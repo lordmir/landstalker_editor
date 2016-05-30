@@ -181,11 +181,20 @@ void MainFrame::OnScrollwin27Paint(wxPaintEvent& event)
 void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
 {
     uint8_t buffer[131072];
+    uint8_t ebuffer[131072];
     std::memset(buffer, 0x00, sizeof(buffer));
+    std::memset(ebuffer, 0x00, sizeof(ebuffer));
     size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[m_choice53->GetCurrentSelection()], 0, buffer);
     std::ostringstream ss;
     ss << "Extracted " << len << " bytes.";
     wxMessageBox(ss.str());
+    size_t enclen = LZ77::Encode(buffer, len, ebuffer);
+    double ratio = static_cast<double>(enclen) / static_cast<double>(len) * 100.0;
+    ss.str(std::string());
+    ss << "Encoded to " << enclen << " bytes. Compression ratio: " << ratio << "%";
+    wxMessageBox(ss.str());
+    std::memset(buffer, 0x00, sizeof(buffer));
+    LZ77::Decode(ebuffer, 0, buffer);
     DrawTest(buffer, (len + 31) / 32, 16, 2);
 }
 
