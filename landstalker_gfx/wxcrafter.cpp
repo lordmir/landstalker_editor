@@ -53,9 +53,18 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     boxSizer47->Add(m_filePicker49, 0, wxALL, 5);
     
+    wxArrayString m_choice53Arr;
+    m_choice53 = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), m_choice53Arr, 0);
+    
+    boxSizer47->Add(m_choice53, 0, wxALL, 5);
+    
     m_button41 = new wxButton(this, wxID_ANY, _("My Button"), wxDefaultPosition, wxSize(-1,-1), 0);
     
     boxSizer47->Add(m_button41, 0, wxALL, 5);
+    
+    m_button51 = new wxButton(this, wxID_ANY, _("My Button"), wxDefaultPosition, wxSize(-1,-1), 0);
+    
+    boxSizer47->Add(m_button51, 0, wxALL, 5);
     
     m_scrollWin27 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxFULL_REPAINT_ON_RESIZE|wxALWAYS_SHOW_SB|wxHSCROLL|wxVSCROLL);
     m_scrollWin27->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
@@ -89,6 +98,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_button41->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
+    m_button51->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
     m_scrollWin27->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
     
 }
@@ -98,6 +108,7 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_button41->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
+    m_button51->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
     m_scrollWin27->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
     
 }

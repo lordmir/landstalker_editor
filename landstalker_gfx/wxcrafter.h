@@ -16,6 +16,8 @@
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/filepicker.h>
+#include <wx/choice.h>
+#include <wx/arrstr.h>
 #include <wx/button.h>
 #include <wx/scrolwin.h>
 #include <wx/statusbr.h>
@@ -35,7 +37,9 @@ protected:
     wxMenu* m_name8;
     wxMenuItem* m_menuItem9;
     wxFilePickerCtrl* m_filePicker49;
+    wxChoice* m_choice53;
     wxButton* m_button41;
+    wxButton* m_button51;
     wxScrolledWindow* m_scrollWin27;
     wxStatusBar* m_statusBar29;
 
@@ -43,12 +47,15 @@ protected:
     virtual void OnExit(wxCommandEvent& event) { event.Skip(); }
     virtual void OnAbout(wxCommandEvent& event) { event.Skip(); }
     virtual void OnButton41ButtonClicked(wxCommandEvent& event) { event.Skip(); }
+    virtual void OnButton51ButtonClicked(wxCommandEvent& event) { event.Skip(); }
     virtual void OnScrollwin27Paint(wxPaintEvent& event) { event.Skip(); }
 
 public:
     wxMenuBar* GetMenuBar() { return m_menuBar; }
     wxFilePickerCtrl* GetFilePicker49() { return m_filePicker49; }
+    wxChoice* GetChoice53() { return m_choice53; }
     wxButton* GetButton41() { return m_button41; }
+    wxButton* GetButton51() { return m_button51; }
     wxScrolledWindow* GetScrollWin27() { return m_scrollWin27; }
     wxStatusBar* GetStatusBar29() { return m_statusBar29; }
     MainFrameBaseClass(wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Landstalker"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize(800,600), long style = wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX);

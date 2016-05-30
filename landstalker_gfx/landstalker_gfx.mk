@@ -64,7 +64,7 @@ AS       := C:/MinGW/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXCFG:=gcc_dll\mswu
 WXWIN:=C:\wxWidgets-3.1.0
-Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
 
 
 
@@ -126,6 +126,14 @@ $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(DependSuffix): wxcrafter_bitmaps
 
 $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(PreprocessSuffix): wxcrafter_bitmaps.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(PreprocessSuffix) "wxcrafter_bitmaps.cpp"
+
+$(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix): LZ77.cpp $(IntermediateDirectory)/LZ77.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/LZ77.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/LZ77.cpp$(DependSuffix): LZ77.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/LZ77.cpp$(DependSuffix) -MM "LZ77.cpp"
+
+$(IntermediateDirectory)/LZ77.cpp$(PreprocessSuffix): LZ77.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LZ77.cpp$(PreprocessSuffix) "LZ77.cpp"
 
 $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix): win_resources.rc
 	$(RcCompilerName) -i "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/win_resources.rc" $(RcCmpOptions)   $(ObjectSwitch)$(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) $(RcIncludePath)

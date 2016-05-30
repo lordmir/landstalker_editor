@@ -2,6 +2,7 @@
 #define MAINFRAME_H
 #include "wxcrafter.h"
 #include <cstdint>
+#include <vector>
 
 class wxImage;
 
@@ -14,14 +15,18 @@ public:
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
 protected:
+    virtual void OnButton51ButtonClicked(wxCommandEvent& event);
     virtual void OnScrollwin27Paint(wxPaintEvent& event);
     virtual void OnPaint(wxPaintEvent& event);
     virtual void OnButton41ButtonClicked(wxCommandEvent& event);
 private:
-    void DrawTest();
-    void PaintNow(wxDC& dc);
+    void DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width = -1, size_t scale = 1);
+    void PaintNow(wxDC& dc, size_t scale = 1);
+    void InitPals();
     uint8_t m_rom[2*1024*1024];
     wxImage m_img;
-    bool m_loaded;
+    size_t m_scale;
+    std::vector<uint32_t> m_tilesetOffsets;
+    uint16_t m_pal[54][15];
 };
 #endif // MAINFRAME_H
