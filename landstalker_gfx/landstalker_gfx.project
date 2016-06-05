@@ -123,4 +123,9 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="wxcrafter">
+    <VirtualDirectory Name="XRC">
+      <File Name="wxcrafter.xrc"/>
+    </VirtualDirectory>
+  </VirtualDirectory>
 </CodeLite_Project>

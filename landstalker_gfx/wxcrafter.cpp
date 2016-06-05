@@ -29,6 +29,11 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_name6 = new wxMenu();
     m_menuBar->Append(m_name6, _("File"));
     
+    m_menuItem109 = new wxMenuItem(m_name6, wxID_ANY, _("Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
+    m_name6->Append(m_menuItem109);
+    
+    m_name6->AppendSeparator();
+    
     m_menuItem7 = new wxMenuItem(m_name6, wxID_EXIT, _("Exit\tAlt-X"), _("Quit"), wxITEM_NORMAL);
     m_name6->Append(m_menuItem7);
     
@@ -38,48 +43,49 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_menuItem9 = new wxMenuItem(m_name8, wxID_ABOUT, _("About..."), wxT(""), wxITEM_NORMAL);
     m_name8->Append(m_menuItem9);
     
-    wxFlexGridSizer* flexGridSizer25 = new wxFlexGridSizer(1, 2, 0, 0);
-    flexGridSizer25->SetFlexibleDirection( wxBOTH );
-    flexGridSizer25->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
-    flexGridSizer25->AddGrowableCol(1);
-    flexGridSizer25->AddGrowableRow(0);
-    this->SetSizer(flexGridSizer25);
-    
-    wxBoxSizer* boxSizer47 = new wxBoxSizer(wxVERTICAL);
-    
-    flexGridSizer25->Add(boxSizer47, 1, wxALL|wxEXPAND, 5);
-    
-    m_filePicker49 = new wxFilePickerCtrl(this, wxID_ANY, wxEmptyString, _("Select Landstalker ROM"), wxT("*.bin"), wxDefaultPosition, wxSize(-1,-1), wxFLP_DEFAULT_STYLE|wxFLP_SMALL);
-    
-    boxSizer47->Add(m_filePicker49, 0, wxALL, 5);
-    
-    m_treeCtrl55 = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxTR_HAS_BUTTONS);
-    
-    boxSizer47->Add(m_treeCtrl55, 1, wxALL|wxEXPAND, 5);
-    
-    wxArrayString m_choice53Arr;
-    m_choice53 = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), m_choice53Arr, 0);
-    
-    boxSizer47->Add(m_choice53, 0, wxALL, 5);
-    
-    m_button41 = new wxButton(this, wxID_ANY, _("My Button"), wxDefaultPosition, wxSize(-1,-1), 0);
-    
-    boxSizer47->Add(m_button41, 0, wxALL, 5);
-    
-    m_button51 = new wxButton(this, wxID_ANY, _("My Button"), wxDefaultPosition, wxSize(-1,-1), 0);
-    
-    boxSizer47->Add(m_button51, 0, wxALL, 5);
-    
-    m_scrollWin27 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxFULL_REPAINT_ON_RESIZE|wxALWAYS_SHOW_SB|wxHSCROLL|wxVSCROLL);
-    m_scrollWin27->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
-    m_scrollWin27->SetScrollRate(5, 5);
-    
-    flexGridSizer25->Add(m_scrollWin27, 100, wxEXPAND|wxRESERVE_SPACE_EVEN_IF_HIDDEN, 5);
-    m_scrollWin27->SetMinSize(wxSize(150,100));
-    
     m_statusBar29 = new wxStatusBar(this, wxID_ANY, wxSTB_DEFAULT_STYLE);
     m_statusBar29->SetFieldsCount(1);
     this->SetStatusBar(m_statusBar29);
+    
+    m_auimgr127 = new wxAuiManager;
+    m_auimgr127->SetManagedWindow( this );
+    m_auimgr127->SetFlags( wxAUI_MGR_LIVE_RESIZE|wxAUI_MGR_TRANSPARENT_HINT|wxAUI_MGR_TRANSPARENT_DRAG|wxAUI_MGR_ALLOW_ACTIVE_PANE|wxAUI_MGR_ALLOW_FLOATING);
+    m_auimgr127->GetArtProvider()->SetMetric(wxAUI_DOCKART_GRADIENT_TYPE, wxAUI_GRADIENT_NONE);
+    
+    m_panel134 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxTAB_TRAVERSAL);
+    
+    m_auimgr127->AddPane(m_panel134, wxAuiPaneInfo().Caption(_("Browser")).Direction(wxAUI_DOCK_LEFT).Layer(0).Row(0).Position(0).BestSize(200,100).MinSize(100,100).MaxSize(100,100).CaptionVisible(true).MaximizeButton(false).CloseButton(true).MinimizeButton(false).PinButton(true));
+    
+    wxBoxSizer* boxSizer138 = new wxBoxSizer(wxVERTICAL);
+    m_panel134->SetSizer(boxSizer138);
+    
+    m_treeCtrl101 = new wxTreeCtrl(m_panel134, wxID_ANY, wxDefaultPosition, wxSize(300,50), wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxFULL_REPAINT_ON_RESIZE);
+    
+    boxSizer138->Add(m_treeCtrl101, 1, wxALL|wxEXPAND, 5);
+    m_treeCtrl101->SetMinSize(wxSize(300,50));
+    
+    m_panel136 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxTAB_TRAVERSAL);
+    
+    m_auimgr127->AddPane(m_panel136, wxAuiPaneInfo().Caption(_("Properties")).Direction(wxAUI_DOCK_LEFT).Layer(0).Row(0).Position(0).BestSize(200,100).MinSize(100,100).MaxSize(100,100).CaptionVisible(true).MaximizeButton(false).CloseButton(true).MinimizeButton(false).PinButton(true));
+    
+    wxBoxSizer* boxSizer144 = new wxBoxSizer(wxVERTICAL);
+    m_panel136->SetSizer(boxSizer144);
+    
+    wxArrayString m_pgMgr146Arr;
+    wxUnusedVar(m_pgMgr146Arr);
+    wxArrayInt m_pgMgr146IntArr;
+    wxUnusedVar(m_pgMgr146IntArr);
+    m_pgMgr146 = new wxPropertyGridManager(m_panel136, wxID_ANY, wxDefaultPosition, wxSize(300,50), wxPG_DESCRIPTION|wxPG_LIMITED_EDITING|wxPG_BOLD_MODIFIED|wxPG_AUTO_SORT);
+    
+    boxSizer144->Add(m_pgMgr146, 1, wxALL|wxEXPAND, 5);
+    m_pgMgr146->SetMinSize(wxSize(300,50));
+    
+    m_scrollWin27 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxFULL_REPAINT_ON_RESIZE|wxHSCROLL|wxVSCROLL);
+    m_scrollWin27->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
+    m_scrollWin27->SetScrollRate(5, 5);
+    
+    m_auimgr127->AddPane(m_scrollWin27, wxAuiPaneInfo().Direction(wxAUI_DOCK_CENTER).Layer(0).Row(0).Position(0).BestSize(100,100).MinSize(100,100).MaxSize(100,100).CaptionVisible(false).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    m_auimgr127->Update();
     
     SetName(wxT("MainFrameBaseClass"));
     SetSize(800,600);
@@ -99,24 +105,25 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     }
 #endif
     // Connect events
+    this->Connect(m_menuItem109->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMenuitem109MenuSelected), NULL, this);
     this->Connect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
-    m_treeCtrl55->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl55TreeItemActivated), NULL, this);
-    m_button41->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
-    m_button51->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
+    m_treeCtrl101->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl101TreeItemActivated), NULL, this);
     m_scrollWin27->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
     
 }
 
 MainFrameBaseClass::~MainFrameBaseClass()
 {
+    this->Disconnect(m_menuItem109->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMenuitem109MenuSelected), NULL, this);
     this->Disconnect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
-    m_treeCtrl55->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl55TreeItemActivated), NULL, this);
-    m_button41->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
-    m_button51->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
+    m_treeCtrl101->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl101TreeItemActivated), NULL, this);
     m_scrollWin27->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
     
+    m_auimgr127->UnInit();
+    delete m_auimgr127;
+
 }
 
 ImgLst::ImgLst()

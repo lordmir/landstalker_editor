@@ -15,13 +15,13 @@
 #include <wx/artprov.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
-#include <wx/filepicker.h>
-#include <wx/treectrl.h>
-#include <wx/choice.h>
-#include <wx/arrstr.h>
-#include <wx/button.h>
-#include <wx/scrolwin.h>
 #include <wx/statusbr.h>
+#include <wx/aui/framemanager.h>
+#include <wx/aui/dockart.h>
+#include <wx/panel.h>
+#include <wx/treectrl.h>
+#include <wx/propgrid/manager.h>
+#include <wx/scrolwin.h>
 #include <wx/imaglist.h>
 #include <wx/bitmap.h>
 #include <map>
@@ -38,34 +38,35 @@ class MainFrameBaseClass : public wxFrame
 protected:
     wxMenuBar* m_menuBar;
     wxMenu* m_name6;
+    wxMenuItem* m_menuItem109;
+    wxMenuItem* m_menuItem121;
     wxMenuItem* m_menuItem7;
     wxMenu* m_name8;
     wxMenuItem* m_menuItem9;
-    wxFilePickerCtrl* m_filePicker49;
-    wxTreeCtrl* m_treeCtrl55;
-    wxChoice* m_choice53;
-    wxButton* m_button41;
-    wxButton* m_button51;
-    wxScrolledWindow* m_scrollWin27;
     wxStatusBar* m_statusBar29;
+    wxAuiManager* m_auimgr127;
+    wxPanel* m_panel134;
+    wxTreeCtrl* m_treeCtrl101;
+    wxPanel* m_panel136;
+    wxPropertyGridManager* m_pgMgr146;
+    wxScrolledWindow* m_scrollWin27;
 
 protected:
+    virtual void OnMenuitem109MenuSelected(wxCommandEvent& event) { event.Skip(); }
     virtual void OnExit(wxCommandEvent& event) { event.Skip(); }
     virtual void OnAbout(wxCommandEvent& event) { event.Skip(); }
-    virtual void OnTreectrl55TreeItemActivated(wxTreeEvent& event) { event.Skip(); }
-    virtual void OnButton41ButtonClicked(wxCommandEvent& event) { event.Skip(); }
-    virtual void OnButton51ButtonClicked(wxCommandEvent& event) { event.Skip(); }
+    virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event) { event.Skip(); }
     virtual void OnScrollwin27Paint(wxPaintEvent& event) { event.Skip(); }
 
 public:
     wxMenuBar* GetMenuBar() { return m_menuBar; }
-    wxFilePickerCtrl* GetFilePicker49() { return m_filePicker49; }
-    wxTreeCtrl* GetTreeCtrl55() { return m_treeCtrl55; }
-    wxChoice* GetChoice53() { return m_choice53; }
-    wxButton* GetButton41() { return m_button41; }
-    wxButton* GetButton51() { return m_button51; }
-    wxScrolledWindow* GetScrollWin27() { return m_scrollWin27; }
     wxStatusBar* GetStatusBar29() { return m_statusBar29; }
+    wxTreeCtrl* GetTreeCtrl101() { return m_treeCtrl101; }
+    wxPanel* GetPanel134() { return m_panel134; }
+    wxPropertyGridManager* GetPgMgr146() { return m_pgMgr146; }
+    wxPanel* GetPanel136() { return m_panel136; }
+    wxScrolledWindow* GetScrollWin27() { return m_scrollWin27; }
+    wxAuiManager* GetAuimgr127() { return m_auimgr127; }
     MainFrameBaseClass(wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Landstalker"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize(800,600), long style = wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();
 };

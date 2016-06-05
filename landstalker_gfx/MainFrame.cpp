@@ -17,14 +17,15 @@ MainFrame::MainFrame(wxWindow* parent)
     : MainFrameBaseClass(parent),
       m_gfxSize(0),
       m_scale(1),
-      m_rpalidx(0)
+      m_rpalidx(0),
+      m_tsidx(0),
+      m_roomnum(0)
 {
     m_imgs = new ImgLst();
 }
 
 MainFrame::~MainFrame()
 {
-    delete m_imgs;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -43,27 +44,20 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     ::wxAboutBox(info);
 }
 
-class TreeNodeData : public wxTreeItemData
-{
-public:
-    enum NodeType {NODE_BASE, NODE_TILESET, NODE_ANIM_TILESET, NODE_ROOM_PAL, NODE_ROOM};
-    TreeNodeData(NodeType nodeType = NODE_BASE, size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
-    size_t GetValue() const { return m_value; }
-    NodeType GetNodeType() const { return m_nodeType; }
-private:
-    const NodeType m_nodeType;
-    const size_t m_value;
-};
 
 void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
 {
+}
+
+void MainFrame::OpenRomFile(const wxString& path)
+{
     std::ifstream inFile;
     size_t sz = 0;
-    inFile.open(m_filePicker49->GetPath(), std::ios::in | std::ios::binary | std::ios::ate);
+    inFile.open(path, std::ios::in | std::ios::binary | std::ios::ate);
     if(!inFile.is_open())
     {
         std::ostringstream ss;
-        ss << "Unable to open ROM file " << m_filePicker49->GetPath() << ".";
+        ss << "Unable to open ROM file " << path << ".";
         wxMessageBox(ss.str());
     }
     else
@@ -74,7 +68,7 @@ void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
         if(sz != sizeof(m_rom))
         {
             std::ostringstream ss;
-            ss << "ROM file " << m_filePicker49->GetPath() << ": Bad ROM size! Expected " << std::dec << sizeof(m_rom) << " bytes, read " << sz << " bytes.";
+            ss << "ROM file " << path << ": Bad ROM size! Expected " << std::dec << sizeof(m_rom) << " bytes, read " << sz << " bytes.";
             wxMessageBox(ss.str());
         }
         else
@@ -82,27 +76,31 @@ void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
             uint32_t* offsets = reinterpret_cast<uint32_t*>(m_rom + 0x44070);
             inFile.read(reinterpret_cast<char*>(m_rom), sz);
             std::ostringstream ss;
-            m_treeCtrl55->DeleteAllItems();
-            m_treeCtrl55->SetImageList(m_imgs);
-            wxTreeItemId nodeRoot = m_treeCtrl55->AddRoot("");
-            wxTreeItemId nodeTs = m_treeCtrl55->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
-            wxTreeItemId nodeATs = m_treeCtrl55->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
-            wxTreeItemId nodeRPal = m_treeCtrl55->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
-            wxTreeItemId nodeRm = m_treeCtrl55->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
+            m_treeCtrl101->DeleteAllItems();
+            m_treeCtrl101->SetImageList(m_imgs);
+            wxTreeItemId nodeRoot = m_treeCtrl101->AddRoot("");            
+            wxTreeItemId nodeTs = m_treeCtrl101->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
+            wxTreeItemId nodeATs = m_treeCtrl101->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
+            wxTreeItemId nodeRPal = m_treeCtrl101->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
+            wxTreeItemId nodeRm = m_treeCtrl101->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
             for(size_t i = 0; i < 31; ++i)
             {
                 ss.str(std::string());
                 uint32_t offset = ntohl(*offsets++);
                 ss << "0x" << std::hex << std::uppercase << std::setw(8) << std::setfill('0') << offset;
-                m_choice53->Append(ss.str());
-                m_treeCtrl55->AppendItem(nodeTs, ss.str(), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, offset));
+                m_treeCtrl101->AppendItem(nodeTs, ss.str(), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, offset));
                 m_tilesetOffsets.push_back(offset);
             }
-            for(size_t i = 0; i < 63; i++)
+            uint32_t rm_ptr = ntohl(*reinterpret_cast<uint32_t*>(m_rom + 0xA0A00));
+            const uint8_t* rm = m_rom + rm_ptr;
+            for(size_t i = 0; i < 816; i++)
             {
-                
+                ss.str(std::string());
+                m_rooms.push_back(RoomData(rm));
+                rm += 8;
+                ss << i;
+                m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
             }
-            m_choice53->SetSelection(0);
             InitPals(nodeRPal);
             DrawTest(m_rom, 65536);
         }
@@ -212,7 +210,7 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
     std::memset(buffer, 0x00, sizeof(buffer));
     std::memset(ebuffer, 0x00, sizeof(ebuffer));
     size_t elen = 0;
-    size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[m_choice53->GetCurrentSelection()], 0, buffer, elen);
+    size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[0], 0, buffer, elen);
     std::ostringstream ss;
     ss << "Extracted " << len << " bytes. Encoded len " << elen << " bytes.";
     wxMessageBox(ss.str());
@@ -250,12 +248,29 @@ void MainFrame::InitPals(const wxTreeItemId& node)
         std::ostringstream ss;
         ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0')
            << ((uint8_t*)pal - m_rom);
-        m_treeCtrl55->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
+        m_treeCtrl101->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
     }
 }
-void MainFrame::OnTreectrl55TreeItemActivated(wxTreeEvent& event)
+
+void MainFrame::OnMenuitem109MenuSelected(wxCommandEvent& event)
 {
-    TreeNodeData* itemData = static_cast<TreeNodeData*>(m_treeCtrl55->GetItemData(event.GetItem()));
+    wxFileDialog    fdlog(this);
+    if(fdlog.ShowModal() != wxID_OK)
+    {
+        return;
+    }
+    OpenRomFile(fdlog.GetPath());
+}
+void MainFrame::OnAuimgr127Paint(wxPaintEvent& event)
+{
+    wxPaintDC dc(m_scrollWin27);  
+    PaintNow(dc, m_scale);
+}
+void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
+{
+    TreeNodeData* itemData = static_cast<TreeNodeData*>(m_treeCtrl101->GetItemData(event.GetItem()));
+    std::ostringstream ss;
+    m_pgMgr146->GetGrid()->Clear();
     switch(itemData->GetNodeType())
     {
         case TreeNodeData::NODE_TILESET:
@@ -264,6 +279,37 @@ void MainFrame::OnTreectrl55TreeItemActivated(wxTreeEvent& event)
         case TreeNodeData::NODE_ROOM_PAL:
             m_rpalidx = itemData->GetValue();
             DrawTest(m_gfxBuffer, (m_gfxSize + 31) / 32, 16, 2, m_rpalidx);    
+            break;
+        case TreeNodeData::NODE_ROOM:
+            m_roomnum = itemData->GetValue();
+            m_rpalidx = m_rooms[m_roomnum].params[1] & 0x3F;
+            m_tsidx = m_rooms[m_roomnum].params[0] & 0x1F;
+            LoadTileset(m_tilesetOffsets[m_tsidx]);
+            ss << "Room: " << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum
+               << " Tileset: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx)
+               << " Palette: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx)
+               << " BigTiles: " << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] >> 5)
+               << " BGM: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] & 0x1F)
+               << " Map Offset: 0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
+            SetStatusText(ss.str());
+            ss.str(std::string());
+            ss << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum;
+            m_pgMgr146->Append(new wxStringProperty("Room Number", "RN", ss.str()));
+            ss.str(std::string());
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx);
+            m_pgMgr146->Append(new wxStringProperty("Tileset", "TS", ss.str()));
+            ss.str(std::string());
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx);
+            m_pgMgr146->Append(new wxStringProperty("Room Palette", "RP", ss.str()));
+            ss.str(std::string());
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] >> 5);
+            m_pgMgr146->Append(new wxStringProperty("Big Tiles", "BT", ss.str()));
+            ss.str(std::string());
+            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] & 0x1F);
+            m_pgMgr146->Append(new wxStringProperty("BGM", "BGM", ss.str()));
+            ss.str(std::string());
+            ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
+            m_pgMgr146->Append(new wxStringProperty("Map Offset", "MO", ss.str()));
             break;
         default:
             // do nothing
