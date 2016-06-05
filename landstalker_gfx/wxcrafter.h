@@ -16,11 +16,16 @@
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/filepicker.h>
+#include <wx/treectrl.h>
 #include <wx/choice.h>
 #include <wx/arrstr.h>
 #include <wx/button.h>
 #include <wx/scrolwin.h>
 #include <wx/statusbr.h>
+#include <wx/imaglist.h>
+#include <wx/bitmap.h>
+#include <map>
+#include <wx/icon.h>
 #if wxVERSION_NUMBER >= 2900
 #include <wx/persist.h>
 #include <wx/persist/toplevel.h>
@@ -37,6 +42,7 @@ protected:
     wxMenu* m_name8;
     wxMenuItem* m_menuItem9;
     wxFilePickerCtrl* m_filePicker49;
+    wxTreeCtrl* m_treeCtrl55;
     wxChoice* m_choice53;
     wxButton* m_button41;
     wxButton* m_button51;
@@ -46,6 +52,7 @@ protected:
 protected:
     virtual void OnExit(wxCommandEvent& event) { event.Skip(); }
     virtual void OnAbout(wxCommandEvent& event) { event.Skip(); }
+    virtual void OnTreectrl55TreeItemActivated(wxTreeEvent& event) { event.Skip(); }
     virtual void OnButton41ButtonClicked(wxCommandEvent& event) { event.Skip(); }
     virtual void OnButton51ButtonClicked(wxCommandEvent& event) { event.Skip(); }
     virtual void OnScrollwin27Paint(wxPaintEvent& event) { event.Skip(); }
@@ -53,6 +60,7 @@ protected:
 public:
     wxMenuBar* GetMenuBar() { return m_menuBar; }
     wxFilePickerCtrl* GetFilePicker49() { return m_filePicker49; }
+    wxTreeCtrl* GetTreeCtrl55() { return m_treeCtrl55; }
     wxChoice* GetChoice53() { return m_choice53; }
     wxButton* GetButton41() { return m_button41; }
     wxButton* GetButton51() { return m_button51; }
@@ -60,6 +68,26 @@ public:
     wxStatusBar* GetStatusBar29() { return m_statusBar29; }
     MainFrameBaseClass(wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Landstalker"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize(800,600), long style = wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();
+};
+
+
+class ImgLst : public wxImageList
+{
+protected:
+    // Maintain a map of all bitmaps representd by their name
+    std::map<wxString, wxBitmap> m_bitmaps;
+
+
+protected:
+
+public:
+    ImgLst();
+    const wxBitmap& Bitmap(const wxString &name) const {
+        if ( !m_bitmaps.count(name) )
+            return wxNullBitmap;
+        return m_bitmaps.find(name)->second;
+    }
+    virtual ~ImgLst();
 };
 
 #endif

@@ -15,12 +15,16 @@
 
 MainFrame::MainFrame(wxWindow* parent)
     : MainFrameBaseClass(parent),
-      m_scale(1)
+      m_gfxSize(0),
+      m_scale(1),
+      m_rpalidx(0)
 {
+    m_imgs = new ImgLst();
 }
 
 MainFrame::~MainFrame()
 {
+    delete m_imgs;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -38,6 +42,19 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     info.SetDescription(_("Short description goes here"));
     ::wxAboutBox(info);
 }
+
+class TreeNodeData : public wxTreeItemData
+{
+public:
+    enum NodeType {NODE_BASE, NODE_TILESET, NODE_ANIM_TILESET, NODE_ROOM_PAL, NODE_ROOM};
+    TreeNodeData(NodeType nodeType = NODE_BASE, size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
+    size_t GetValue() const { return m_value; }
+    NodeType GetNodeType() const { return m_nodeType; }
+private:
+    const NodeType m_nodeType;
+    const size_t m_value;
+};
+
 void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
 {
     std::ifstream inFile;
@@ -65,23 +82,35 @@ void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
             uint32_t* offsets = reinterpret_cast<uint32_t*>(m_rom + 0x44070);
             inFile.read(reinterpret_cast<char*>(m_rom), sz);
             std::ostringstream ss;
+            m_treeCtrl55->DeleteAllItems();
+            m_treeCtrl55->SetImageList(m_imgs);
+            wxTreeItemId nodeRoot = m_treeCtrl55->AddRoot("");
+            wxTreeItemId nodeTs = m_treeCtrl55->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
+            wxTreeItemId nodeATs = m_treeCtrl55->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
+            wxTreeItemId nodeRPal = m_treeCtrl55->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
+            wxTreeItemId nodeRm = m_treeCtrl55->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
             for(size_t i = 0; i < 31; ++i)
             {
                 ss.str(std::string());
                 uint32_t offset = ntohl(*offsets++);
                 ss << "0x" << std::hex << std::uppercase << std::setw(8) << std::setfill('0') << offset;
                 m_choice53->Append(ss.str());
+                m_treeCtrl55->AppendItem(nodeTs, ss.str(), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, offset));
                 m_tilesetOffsets.push_back(offset);
             }
+            for(size_t i = 0; i < 63; i++)
+            {
+                
+            }
             m_choice53->SetSelection(0);
-            InitPals();
+            InitPals(nodeRPal);
             DrawTest(m_rom, 65536);
         }
         inFile.close();
     }
 }
 
-void MainFrame::DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width, size_t scale)
+void MainFrame::DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width, size_t scale, uint8_t pal)
 {
     const size_t TILE_WIDTH = 8;
     const size_t TILE_HEIGHT = 8;
@@ -95,17 +124,15 @@ void MainFrame::DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width, s
     const size_t BYTES_PER_PIXEL = 3;
     const size_t PALETTE_ENTRIES = 16;
     
-    const uint16_t gpal[PALETTE_ENTRIES] = {0x1000, 0xCCC, 0x008, 0x080, 0x088, 0x800, 0x808, 0x880,
-                               0x888, 0x00E, 0x0E0, 0x0EE, 0xE00, 0xE0E, 0xEE0, 0x000};
     uint8_t rgba[PALETTE_ENTRIES * 4];
     
     uint8_t* p = rgba;
     for(size_t i = 0; i < PALETTE_ENTRIES; ++i)
     {
-        *p++ =  (m_pal[0][i] & 0xF)       * 18;
-        *p++ = ((m_pal[0][i] >> 4) & 0xF) * 18;
-        *p++ = ((m_pal[0][i] >> 8) & 0xF) * 18;
-        *p++ = (m_pal[0][i] >> 12) ? 0 : 0xFF;
+        *p++ =  (m_pal[pal][i] & 0xF)       * 18;
+        *p++ = ((m_pal[pal][i] >> 4) & 0xF) * 18;
+        *p++ = ((m_pal[pal][i] >> 8) & 0xF) * 18;
+        *p++ = (m_pal[pal][i] >> 12) ? 0 : 0xFF;
     }
     
     uint8_t* rgbmap = reinterpret_cast<uint8_t*>(malloc(N_PIXELS * BYTES_PER_PIXEL));
@@ -184,9 +211,10 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
     uint8_t ebuffer[131072];
     std::memset(buffer, 0x00, sizeof(buffer));
     std::memset(ebuffer, 0x00, sizeof(ebuffer));
-    size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[m_choice53->GetCurrentSelection()], 0, buffer);
+    size_t elen = 0;
+    size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[m_choice53->GetCurrentSelection()], 0, buffer, elen);
     std::ostringstream ss;
-    ss << "Extracted " << len << " bytes.";
+    ss << "Extracted " << len << " bytes. Encoded len " << elen << " bytes.";
     wxMessageBox(ss.str());
     size_t enclen = LZ77::Encode(buffer, len, ebuffer);
     double ratio = static_cast<double>(enclen) / static_cast<double>(len) * 100.0;
@@ -194,11 +222,19 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
     ss << "Encoded to " << enclen << " bytes. Compression ratio: " << ratio << "%";
     wxMessageBox(ss.str());
     std::memset(buffer, 0x00, sizeof(buffer));
-    LZ77::Decode(ebuffer, 0, buffer);
-    DrawTest(buffer, (len + 31) / 32, 16, 2);
+    LZ77::Decode(ebuffer, 0, buffer, elen);
+    DrawTest(buffer, (len + 31) / 32, 16, 2, m_rpalidx);
 }
 
-void MainFrame::InitPals()
+void MainFrame::LoadTileset(size_t offset)
+{
+    std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
+    size_t elen = 0;
+    m_gfxSize = LZ77::Decode(m_rom + offset, sizeof(m_gfxBuffer), m_gfxBuffer, elen);
+    DrawTest(m_gfxBuffer, (m_gfxSize + 31) / 32, 16, 2, m_rpalidx);    
+}
+
+void MainFrame::InitPals(const wxTreeItemId& node)
 {
     uint32_t pal_ptr = ntohl(*reinterpret_cast<uint32_t*>(m_rom + 0xA0A04));
     const uint16_t* pal = reinterpret_cast<const uint16_t*>(m_rom + pal_ptr);
@@ -211,5 +247,26 @@ void MainFrame::InitPals()
         {
             m_pal[i][j+2] = ntohs(*pal++);
         }
+        std::ostringstream ss;
+        ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0')
+           << ((uint8_t*)pal - m_rom);
+        m_treeCtrl55->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
+    }
+}
+void MainFrame::OnTreectrl55TreeItemActivated(wxTreeEvent& event)
+{
+    TreeNodeData* itemData = static_cast<TreeNodeData*>(m_treeCtrl55->GetItemData(event.GetItem()));
+    switch(itemData->GetNodeType())
+    {
+        case TreeNodeData::NODE_TILESET:
+            LoadTileset(itemData->GetValue());
+            break;
+        case TreeNodeData::NODE_ROOM_PAL:
+            m_rpalidx = itemData->GetValue();
+            DrawTest(m_gfxBuffer, (m_gfxSize + 31) / 32, 16, 2, m_rpalidx);    
+            break;
+        default:
+            // do nothing
+            break;
     }
 }

@@ -53,6 +53,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     boxSizer47->Add(m_filePicker49, 0, wxALL, 5);
     
+    m_treeCtrl55 = new wxTreeCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxTR_HAS_BUTTONS);
+    
+    boxSizer47->Add(m_treeCtrl55, 1, wxALL|wxEXPAND, 5);
+    
     wxArrayString m_choice53Arr;
     m_choice53 = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(-1,-1), m_choice53Arr, 0);
     
@@ -97,6 +101,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     // Connect events
     this->Connect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
+    m_treeCtrl55->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl55TreeItemActivated), NULL, this);
     m_button41->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
     m_button51->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
     m_scrollWin27->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
@@ -107,8 +112,52 @@ MainFrameBaseClass::~MainFrameBaseClass()
 {
     this->Disconnect(m_menuItem7->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_menuItem9->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
+    m_treeCtrl55->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnTreectrl55TreeItemActivated), NULL, this);
     m_button41->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton41ButtonClicked), NULL, this);
     m_button51->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton51ButtonClicked), NULL, this);
     m_scrollWin27->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollwin27Paint), NULL, this);
     
+}
+
+ImgLst::ImgLst()
+    : wxImageList(16, 16, true)
+{
+    if ( !bBitmapLoaded ) {
+        // We need to initialise the default bitmap handler
+        wxXmlResource::Get()->AddHandler(new wxBitmapXmlHandler);
+        wxC9ED9InitBitmapResources();
+        bBitmapLoaded = true;
+    }
+    
+    {
+        wxBitmap bmp;
+        wxIcon icn;
+        bmp = wxXmlResource::Get()->LoadBitmap(wxT("m_bmp57"));
+        icn.CopyFromBitmap( bmp );
+        this->Add( icn );
+        m_bitmaps.insert( std::make_pair(wxT("m_bmp57"), bmp ) );
+    }
+    
+    {
+        wxBitmap bmp;
+        wxIcon icn;
+        bmp = wxXmlResource::Get()->LoadBitmap(wxT("m_bmp59"));
+        icn.CopyFromBitmap( bmp );
+        this->Add( icn );
+        m_bitmaps.insert( std::make_pair(wxT("m_bmp59"), bmp ) );
+    }
+    
+    {
+        wxBitmap bmp;
+        wxIcon icn;
+        bmp = wxXmlResource::Get()->LoadBitmap(wxT("m_bmp61"));
+        icn.CopyFromBitmap( bmp );
+        this->Add( icn );
+        m_bitmaps.insert( std::make_pair(wxT("m_bmp61"), bmp ) );
+    }
+    
+}
+
+ImgLst::~ImgLst()
+{
 }
