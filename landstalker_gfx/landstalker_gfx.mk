@@ -5,16 +5,16 @@
 ## Debug
 ProjectName            :=landstalker_gfx
 ConfigurationName      :=Debug
-WorkspacePath          := "C:\Users\Tom\Documents\landstalker_gfx"
-ProjectPath            := "C:\Users\Tom\Documents\GitHub\landstalker_gfx\landstalker_gfx"
+WorkspacePath          :=C:/Users/Tom/Documents/landstalker_gfx
+ProjectPath            :=C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx
 IntermediateDirectory  :=./Debug
 OutDir                 := $(IntermediateDirectory)
 CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Tom
-Date                   :=05/06/2016
-CodeLitePath           :="C:\Program Files\CodeLite"
+Date                   :=19/06/2016
+CodeLitePath           :="C:/Program Files/CodeLite"
 LinkerName             :=C:/MinGW/bin/g++.exe
 SharedObjectLinkerName :=C:/MinGW/bin/g++.exe -shared -fPIC
 ObjectSuffix           :=.o
@@ -64,7 +64,7 @@ AS       := C:/MinGW/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXCFG:=gcc_dll\mswu
 WXWIN:=C:\wxWidgets-3.1.0
-Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
 
 
 
@@ -134,6 +134,30 @@ $(IntermediateDirectory)/LZ77.cpp$(DependSuffix): LZ77.cpp
 
 $(IntermediateDirectory)/LZ77.cpp$(PreprocessSuffix): LZ77.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LZ77.cpp$(PreprocessSuffix) "LZ77.cpp"
+
+$(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix): BigTilesCmp.cpp $(IntermediateDirectory)/BigTilesCmp.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/BigTilesCmp.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/BigTilesCmp.cpp$(DependSuffix): BigTilesCmp.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/BigTilesCmp.cpp$(DependSuffix) -MM "BigTilesCmp.cpp"
+
+$(IntermediateDirectory)/BigTilesCmp.cpp$(PreprocessSuffix): BigTilesCmp.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/BigTilesCmp.cpp$(PreprocessSuffix) "BigTilesCmp.cpp"
+
+$(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix): BitBarrel.cpp $(IntermediateDirectory)/BitBarrel.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/BitBarrel.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/BitBarrel.cpp$(DependSuffix): BitBarrel.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/BitBarrel.cpp$(DependSuffix) -MM "BitBarrel.cpp"
+
+$(IntermediateDirectory)/BitBarrel.cpp$(PreprocessSuffix): BitBarrel.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/BitBarrel.cpp$(PreprocessSuffix) "BitBarrel.cpp"
+
+$(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix): BitBarrelWriter.cpp $(IntermediateDirectory)/BitBarrelWriter.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/BitBarrelWriter.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/BitBarrelWriter.cpp$(DependSuffix): BitBarrelWriter.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/BitBarrelWriter.cpp$(DependSuffix) -MM "BitBarrelWriter.cpp"
+
+$(IntermediateDirectory)/BitBarrelWriter.cpp$(PreprocessSuffix): BitBarrelWriter.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/BitBarrelWriter.cpp$(PreprocessSuffix) "BitBarrelWriter.cpp"
 
 $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix): win_resources.rc
 	$(RcCompilerName) -i "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/win_resources.rc" $(RcCmpOptions)   $(ObjectSwitch)$(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) $(RcIncludePath)

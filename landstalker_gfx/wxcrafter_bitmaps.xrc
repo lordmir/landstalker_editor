@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc">
   <!-- Handler Generation is ON -->
+  <object class="wxBitmap" name="m_bmp150">img\bigtiles.png</object>
   <object class="wxBitmap" name="m_bmp57">img\room.png</object>
   <object class="wxBitmap" name="m_bmp59">img\ts.png</object>
   <object class="wxBitmap" name="m_bmp61">img\pal.png</object>

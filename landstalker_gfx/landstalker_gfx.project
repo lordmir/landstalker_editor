@@ -25,11 +25,17 @@
     <File Name="wxcrafter.cpp"/>
     <File Name="wxcrafter_bitmaps.cpp"/>
     <File Name="LZ77.cpp"/>
+    <File Name="BigTilesCmp.cpp"/>
+    <File Name="BitBarrel.cpp"/>
+    <File Name="BitBarrelWriter.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="MainFrame.h"/>
     <File Name="wxcrafter.h"/>
     <File Name="LZ77.h"/>
+    <File Name="BigTilesCmp.h"/>
+    <File Name="BitBarrel.h"/>
+    <File Name="BitBarrelWriter.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="resources">
     <File Name="wxcrafter.wxcp"/>

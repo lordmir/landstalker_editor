@@ -4,60 +4,7 @@
 #include <sstream>
 #include <wx/wx.h>
 
-class BitBarrel
-{
-public:
-    BitBarrel()
-    : m_val(0),
-      m_pos(0)
-    {}
-    bool empty()
-    {
-        return(m_pos == 0);
-    }
-    void newByte(uint8_t byte)
-    {
-            m_val = byte;
-            m_pos = 8;
-    }
-    operator bool()
-    {
-        bool retval = false;
-        if(m_pos == 0)
-        {
-            throw std::runtime_error("Out of bits!");
-        }
-        else
-        {
-            retval = (m_val >= 0x80);
-            m_val <<= 1;
-            --m_pos;
-        }
-        return retval;
-    }
-    bool full()
-    {
-        return (m_pos == 8);
-    }
-    bool operator()(bool rhs)
-    {
-        if(m_pos < 8)
-        {
-            m_val <<= 1;
-            m_val |= (rhs ? 1 : 0);
-            m_pos++;
-        }
-        return rhs;
-    }
-    uint8_t out()
-    {
-        m_pos = 0;
-        return m_val;
-    }
-private:
-    uint8_t m_val;
-    uint8_t m_pos;
-};
+#include "BitBarrel.h"
 
 size_t LZ77::Decode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf, size_t& esize)
 {

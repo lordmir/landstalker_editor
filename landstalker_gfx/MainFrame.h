@@ -43,6 +43,7 @@ private:
             NODE_BASE,
             NODE_TILESET,
             NODE_ANIM_TILESET,
+            NODE_BIG_TILES,
             NODE_ROOM_PAL,
             NODE_ROOM
         };
@@ -57,6 +58,7 @@ private:
     void PaintNow(wxDC& dc, size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(size_t offset);
+    void LoadBigTiles(size_t offset);
     void OpenRomFile(const wxString& path);
     uint8_t m_rom[2*1024*1024];
     uint8_t m_gfxBuffer[131072];
@@ -68,6 +70,7 @@ private:
     uint8_t m_tsidx;
     uint16_t m_roomnum;
     std::vector<uint32_t> m_tilesetOffsets;
+    std::vector<std::vector<uint32_t>> m_bigTileOffsets;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
 };

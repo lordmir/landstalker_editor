@@ -163,6 +163,15 @@ ImgLst::ImgLst()
         m_bitmaps.insert( std::make_pair(wxT("m_bmp61"), bmp ) );
     }
     
+    {
+        wxBitmap bmp;
+        wxIcon icn;
+        bmp = wxXmlResource::Get()->LoadBitmap(wxT("m_bmp150"));
+        icn.CopyFromBitmap( bmp );
+        this->Add( icn );
+        m_bitmaps.insert( std::make_pair(wxT("m_bmp150"), bmp ) );
+    }
+    
 }
 
 ImgLst::~ImgLst()
