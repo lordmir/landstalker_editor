@@ -3,191 +3,186 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <deque>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <sstream>
 #include "BitBarrel.h"
-
+#include "BigTile.h"
+#include <wx/msgdlg.h>
 
 template<class T, size_t N>
-class CircularBuffer
+class TileQueue
 {
 public:
-    CircularBuffer() : m_idx(0)
+    TileQueue()
+    : d(std::deque<T>(N,0))
     {
-        erase();
     }
-    CircularBuffer& operator=(T rhs)
+    void push(int x)
     {
-        *this[m_idx] = rhs;
-        return *this;
+        d.push_front(x);
+        d.erase(d.end() - 1);
     }
-    const T& operator[](size_t idx) const
+    void moveToFront(int x)
     {
-        return (*this)[idx];
+        std::rotate(d.begin(), d.begin() + x, d.begin() + x + 1);
     }
-    T& operator[](size_t idx)
+    uint16_t front()
     {
-        return buf[(m_idx + idx) & MASK];
+        return d.front();
     }
-    operator T&()
+    int find(const T& param)
     {
-        return buf[m_idx];
+        typename std::deque<T>::const_iterator it;
+        it = std::find(d.begin(), d.end(), param);
+        if(it == d.end()) return -1;
+        return it - d.begin();
     }
-    operator T() const
-    {
-        return *this;
-    }
-    T& operator++(int)
-    {
-        T tmp = *this;
-        m_idx++;
-        m_idx &= MASK;
-        return tmp;
-    }
-    T operator++(int) const
-    {
-        return (*this)++;
-    }
-    T& operator++()
-    {
-        m_idx++;
-        m_idx &= MASK;
-        return *this;
-    }
-    T operator++() const
-    {
-        return ++(*this);
-    }
-    T& operator--(int)
-    {
-        T tmp = *this;
-        m_idx--;
-        m_idx &= MASK;
-        return tmp;
-    }
-    T operator--(int) const
-    {
-        return --(*this);
-    }
-    T& operator--()
-    {
-        m_idx--;
-        m_idx &= MASK;
-        return *this;
-    }
-    T operator--() const
-    {
-        return (*this)--;
-    }
-    void erase()
-    {
-        std::memset(buf, 0, sizeof(buf));
-    }
-    T& popElem(size_t idx)
-    {
-        if(idx)
-        {
-            T tmp1 = (*this)[idx];
-            for(size_t i = idx - 1; i != 0; --idx)
-            {
-                T tmp2 = (*this)[i];
-                (*this)[i + 1] = tmp2;
-            }
-            (*this)[0] = tmp1;
-        }
-        return *this;
-    }
+    template <class T1, size_t N1>
+    friend std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs);
 private:
-    T buf[N];
-    static const size_t MASK = N - 1;
-    size_t m_idx;
+    std::deque<T> d;  
 };
+
+template<class T1, size_t N1>
+std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs)
+{
+    std::copy (rhs.d.begin(), rhs.d.end(), std::ostream_iterator<uint16_t>(str, ":"));
+    return str;
+}
+
 
 /* Gets compressed variable-width number. Number is in the form 2^Exp + Man */
 /* Exp is the number of leading zeroes. The following bits make up the
  * mantissa. The same number of bits make up the exponent and mantissa */
 uint16_t getCompNumber(BitBarrel& bb)
 {
-    int16_t exponent = 0;
-    do
+    int16_t exponent = 0, mantissa = 0;
+    while(bb.getNextBit() == false)
     {
-        exponent--;
-    } while(bb.getNextBit() == false);
-    exponent = ~exponent;
+        exponent++;
+    }
     if(!exponent) return 0;
     
-    uint16_t val = (2 << (exponent - 1)) - 1;
-    val += bb.readBits(exponent);
+    uint16_t val = 1 << exponent;
+    mantissa = bb.readBits(exponent);
+    val += mantissa;
+    --val;
+   /* std::ostringstream ss;
+    ss << "E: " << exponent << " M: " << mantissa << " V: " << val;
+    wxMessageBox(ss.str()); */
     return val;
 }
 
-uint16_t getNextTile(BitBarrel& bb, CircularBuffer<uint16_t, 16>& cb)
+uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
 {
     if(bb.getNextBit())
     {
-        uint16_t shift = bb.readBits(4);
-        cb.popElem(shift);
+        uint8_t idx = bb.readBits(4);
+        if(idx) tq.moveToFront(idx);
     }
     else
     {
-        --cb = bb.readBits(10);
+        uint16_t val = bb.readBits(11);
+        tq.push(val);
     }
-    return cb;
+    return tq.front();
 }
 
-void maskTiles(BitBarrel& bb, uint16_t total, uint16_t* dst, uint16_t mask)
+void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
 {
-    uint16_t count = 0;
-    uint16_t tile = 0;
-    do
+    TileQueue<uint16_t, 16> tq;
+    std::vector<Tile>::iterator it;
+    for(it = tiles.begin(); it != tiles.end(); it += 2)
     {
-        uint16_t num = getCompNumber(bb);
-        if(count || --num)
+        uint16_t tile = decodeTile(tq, bb);
+        it->setIndex(tile);
+        if(!bb.getNextBit())
         {
-            count += num + 1;
-            for(int16_t i = 0; i <= num; i++)
-            {
-                *dst++ |= tile;
-            }
-        }
-        tile ^= mask;
-    } while(count < total);
-}
-
-uint16_t BigTilesCmp::Decode(const uint8_t* src, uint16_t* dst)
-{
-    BitBarrel bb(src);
-    CircularBuffer<uint16_t, 16> cb;
-    
-    const uint16_t TOTAL = bb.readBits(16) << 2;
-    
-    memset(dst, 0, TOTAL * 2);
-    maskTiles(bb, TOTAL, dst, 0x8000);
-    maskTiles(bb, TOTAL, dst, 0x1000);
-    maskTiles(bb, TOTAL, dst, 0x0800);
-    
-    uint16_t* dstptr = dst;
-    uint16_t count = TOTAL >> 1;
-    uint16_t tile = getNextTile(bb, cb);
-    while(count--)
-    {
-        *dstptr++ |= tile;
-        if(bb.getNextBit())
-        {
-            tile &= 0x7FF;
-            if(0x0800 & *(dstptr - 1))
-            {
-                tile--;
-            }
-            else
-            {
-                tile++;
-            }
-            *dstptr++ |= tile;
+            (it + 1)->setIndex(decodeTile(tq, bb));
         }
         else
         {
-            tile = getNextTile(bb, cb);
-            *dstptr++ |= tile;
+            if(it->attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+            {
+                (it + 1)->setIndex(tile - 1);
+            }
+            else
+            {
+                (it + 1)->setIndex(tile + 1);
+            }
         }
     }
-    return TOTAL >> 2;
+}
+
+void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, BitBarrel& bb)
+{
+    uint16_t count = 0;
+    std::vector<Tile>::iterator it = tiles.begin();
+    bool firstloop = true;
+    bool setAttr = false;
+    do
+    {
+        uint16_t num = getCompNumber(bb);
+        if(!(firstloop && num == 0))
+        {
+            if(!firstloop) num++;
+            count += num;
+            if(setAttr)
+            {
+                for(int16_t i = 0; i < num ; i++)
+                {
+                    assert(it != tiles.end());
+                    it->attributes().setAttribute(attr);
+                    it++;
+                }
+            }
+            else
+            {
+                std::advance(it, num);
+                assert(it <= tiles.end());
+            }
+        }
+        firstloop = false;
+        setAttr = !setAttr;
+    } while (it != tiles.end());
+}
+
+uint16_t BigTilesCmp::Decode(const uint8_t* src, std::vector<BigTile>& tiles)
+{
+    BitBarrel bb(src);
+    TileQueue<uint16_t, 16> tq;
+    std::vector<Tile> new_tiles;
+    
+    const uint16_t TOTAL = bb.readBits(16);
+    
+    new_tiles.resize(TOTAL * 4);   
+    tiles.reserve(tiles.size() + TOTAL);
+    
+    maskTiles(new_tiles, TileAttributes::ATTR_PRIORITY, bb);
+    maskTiles(new_tiles, TileAttributes::ATTR_VFLIP, bb);
+    maskTiles(new_tiles, TileAttributes::ATTR_HFLIP, bb);
+    
+    decompressTiles(new_tiles, bb);
+    
+    std::ostringstream ss;
+    std::vector<Tile>::const_iterator it;
+
+    for(it = new_tiles.begin(); it != new_tiles.end(); it+=4)
+    {
+        tiles.push_back(BigTile(it, it+4));
+    }
+    /*
+    std::vector<BigTile>::const_iterator bit;
+    for(bit = tiles.begin(); bit != tiles.end(); ++bit)
+    {
+        ss << bit->print() << std::endl;
+    }
+    wxMessageBox(ss.str());
+    */
+    return TOTAL;
 }

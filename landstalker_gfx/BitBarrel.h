@@ -19,9 +19,11 @@ public:
     T read() const;
     uint32_t readBits(size_t numBits) const;
     bool getNextBit() const;
+    size_t getBytePosition() const;
     
     uint8_t out();
 protected:
+    const uint8_t* const m_start;
     mutable uint8_t m_val;
     mutable uint8_t m_pos;
     mutable uint8_t* m_buf;

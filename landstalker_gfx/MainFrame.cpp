@@ -23,6 +23,7 @@ MainFrame::MainFrame(wxWindow* parent)
       m_roomnum(0)
 {
     m_imgs = new ImgLst();
+    m_tilebmps.resize(0x800);
 }
 
 MainFrame::~MainFrame()
@@ -122,73 +123,88 @@ void MainFrame::OpenRomFile(const wxString& path)
                 m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
             }
             InitPals(nodeRPal);
-            DrawTest(m_rom, 65536);
+            //DrawTest(m_rom, 65536);
         }
         inFile.close();
     }
 }
 
-void MainFrame::DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width, size_t scale, uint8_t pal)
+void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
+{
+    const size_t TILE_WIDTH = 16;
+    const size_t TILE_HEIGHT = 16;
+    const size_t MAX_WIDTH = 128;
+    const size_t MAX_HEIGHT = 256;
+    const size_t ROW_WIDTH = std::min(std::min(MAX_WIDTH, m_bigTiles.size()), row_width);
+    const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (m_bigTiles.size() + ROW_WIDTH - 1) / ROW_WIDTH);
+    const size_t BMP_WIDTH = TILE_WIDTH * ROW_WIDTH;
+    const size_t BMP_HEIGHT = TILE_HEIGHT * ROW_HEIGHT;
+    
+    size_t x = 0;
+    size_t y = 0;
+    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
+    memDc.SelectObject(bmp);
+    for(auto& t : m_tilebmps)
+    {
+        t.setPalette(m_pal2[pal]);
+    }
+    for(auto& b : m_bigTiles)
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            const Tile& t = b.getTile(i);
+            size_t xoff = (i & 1) ? 1 : 0;
+            size_t yoff = (i & 2) ? 1 : 0;
+            m_tilebmps[t.getIndex()].draw(memDc, x + xoff, y + yoff, t.attributes());
+        }
+        x+=2;
+        if(x == ROW_WIDTH*2)
+        {
+            x = 0;
+            y+=2;
+        }
+    }
+    memDc.SelectObject(wxNullBitmap);
+    
+    m_scale = scale;
+    m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
+    wxClientDC dc(m_scrollWin27); 
+    dc.Clear();
+    PaintNow(dc, scale);
+}
+
+void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
 {
     const size_t TILE_WIDTH = 8;
     const size_t TILE_HEIGHT = 8;
     const size_t MAX_WIDTH = 128;
     const size_t MAX_HEIGHT = 256;
-    const size_t ROW_WIDTH = std::min(std::min(MAX_WIDTH, n_tiles), row_width);
-    const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (n_tiles + ROW_WIDTH - 1) / ROW_WIDTH);
+    const size_t ROW_WIDTH = std::min(std::min(MAX_WIDTH, m_tilebmps.size()), row_width);
+    const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (m_tilebmps.size() + ROW_WIDTH - 1) / ROW_WIDTH);
     const size_t BMP_WIDTH = TILE_WIDTH * ROW_WIDTH;
     const size_t BMP_HEIGHT = TILE_HEIGHT * ROW_HEIGHT;
-    const size_t N_PIXELS = BMP_WIDTH * BMP_HEIGHT;
-    const size_t BYTES_PER_PIXEL = 3;
-    const size_t PALETTE_ENTRIES = 16;
     
-    uint8_t rgba[PALETTE_ENTRIES * 4];
-    
-    uint8_t* p = rgba;
-    for(size_t i = 0; i < PALETTE_ENTRIES; ++i)
+    size_t x = 0;
+    size_t y = 0;
+    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
+    TileAttributes attr;
+    memDc.SelectObject(bmp);
+    for(auto& t : m_tilebmps)
     {
-        *p++ =  (m_pal[pal][i] & 0xF)       * 18;
-        *p++ = ((m_pal[pal][i] >> 4) & 0xF) * 18;
-        *p++ = ((m_pal[pal][i] >> 8) & 0xF) * 18;
-        *p++ = (m_pal[pal][i] >> 12) ? 0 : 0xFF;
-    }
-    
-    uint8_t* rgbmap = reinterpret_cast<uint8_t*>(malloc(N_PIXELS * BYTES_PER_PIXEL));
-    uint8_t* alphamap = reinterpret_cast<uint8_t*>(malloc(N_PIXELS));
-    std::memset(rgbmap, 0x00, N_PIXELS * BYTES_PER_PIXEL);
-    std::memset(alphamap, 0x00, N_PIXELS);
-    
-    for(size_t ty = 0; ty < ROW_HEIGHT; ty++)
-    for(size_t tx = 0; tx < ROW_WIDTH; tx++)
-    {
-        if((ty * ROW_WIDTH + tx) >= n_tiles) goto finished;
-        for(size_t py = 0; py < TILE_HEIGHT; py++)
+        t.setPalette(m_pal2[pal]);
+        t.draw(memDc, x, y, attr);
+        
+        x++;
+        if(x == ROW_WIDTH)
         {
-            size_t offset = (py  + ty * TILE_HEIGHT) * BMP_WIDTH + tx * TILE_WIDTH;
-            uint8_t* rgb_ptr = rgbmap + offset * BYTES_PER_PIXEL;
-            uint8_t* alpha_ptr = alphamap + offset;
-            for(size_t px = 0; px < TILE_WIDTH; px++)
-            {
-                if(px & 1)
-                {
-                    p = rgba + ((*buf++ & 0x0F) << 2);
-                }
-                else
-                {
-                    p = rgba + ((*buf >> 2) & 0x3C);
-                }
-                *rgb_ptr++ = *p++;
-                *rgb_ptr++ = *p++;
-                *rgb_ptr++ = *p++;
-                *alpha_ptr++ = *p;
-            }
+            x = 0;
+            y++;
         }
     }
-finished:
-    m_img.SetData(rgbmap, BMP_WIDTH, BMP_HEIGHT);
-    m_img.SetAlpha(alphamap);
+    memDc.SelectObject(wxNullBitmap);
+    
     m_scale = scale;
-    m_scrollWin27->SetScrollbars(scale,scale,m_img.GetWidth(),m_img.GetHeight(),0,0);
+    m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
     wxClientDC dc(m_scrollWin27); 
     dc.Clear();
     PaintNow(dc, scale);
@@ -200,22 +216,14 @@ void MainFrame::OnPaint(wxPaintEvent& event)
 
 void MainFrame::PaintNow(wxDC& dc, size_t scale)
 {
-    if(m_img.IsOk())
-    { 
-        wxMemoryDC memDC;
-        wxBitmap* bmp = new wxBitmap(m_img);
         int x, y, w, h;
         m_scrollWin27->GetViewStart(&x, &y);
         m_scrollWin27->GetClientSize(&w, &h);
-        
-        
-        memDC.SelectObject(*bmp);
         double dscale = static_cast<double>(scale);
+        memDc.SelectObject(bmp);
         dc.SetUserScale(dscale, dscale);
-        dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDC, x, y, wxCOPY, true);
-        memDC.SelectObject(wxNullBitmap);
-        delete bmp;
-    }
+        dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDc, x, y, wxCOPY, true);
+        memDc.SelectObject(wxNullBitmap);
 }
 
 void MainFrame::OnScrollwin27Paint(wxPaintEvent& event)
@@ -241,41 +249,44 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
     wxMessageBox(ss.str());
     std::memset(buffer, 0x00, sizeof(buffer));
     LZ77::Decode(ebuffer, 0, buffer, elen);
-    DrawTest(buffer, (len + 31) / 32, 16, 2, m_rpalidx);
+    DrawTiles(16, 2, m_rpalidx);
 }
 
 void MainFrame::LoadTileset(size_t offset)
 {
     std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
+    m_tilebmps.assign(m_tilebmps.begin(), m_tilebmps.end());
     size_t elen = 0;
     m_gfxSize = LZ77::Decode(m_rom + offset, sizeof(m_gfxBuffer), m_gfxBuffer, elen);
-    DrawTest(m_gfxBuffer, (m_gfxSize + 31) / 32, 16, 2, m_rpalidx);    
+    const uint8_t* bmp_ptr = m_gfxBuffer;
+    
+    for(auto& i : m_tilebmps)
+    {
+        i.setBits(bmp_ptr);
+        bmp_ptr += 32;
+    }    
 }
 
 void MainFrame::LoadBigTiles(size_t offset)
 {
-    std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
-    uint16_t buf[0x1000];
-    BigTilesCmp::Decode(m_rom +0x1CDFBB, buf); // + offset);
+    BigTilesCmp::Decode(m_rom + offset, m_bigTiles);
 }
 
 void MainFrame::InitPals(const wxTreeItemId& node)
 {
     uint32_t pal_ptr = ntohl(*reinterpret_cast<uint32_t*>(m_rom + 0xA0A04));
-    const uint16_t* pal = reinterpret_cast<const uint16_t*>(m_rom + pal_ptr);
+    const uint8_t* const base_pal = m_rom + pal_ptr;
+    const uint8_t* pal = base_pal;
     for(size_t i = 0; i < 54; ++i)
     {
-        m_pal[i][0]  = 0x1000;
-        m_pal[i][1]  = 0x0CCC;
-        m_pal[i][15] = 0x0000;
-        for(size_t j = 0; j < 13; ++j)
-        {
-            m_pal[i][j+2] = ntohs(*pal++);
-        }
+        m_pal2.push_back(Palette(pal));
+        
         std::ostringstream ss;
         ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0')
-           << ((uint8_t*)pal - m_rom);
+           << (pal - m_rom);
         m_treeCtrl101->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
+        
+        pal += 26;
     }
 }
 
@@ -302,17 +313,20 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
     {
         case TreeNodeData::NODE_TILESET:
             LoadTileset(itemData->GetValue());
+            DrawTiles(16, 2, m_rpalidx);    
             break;
         case TreeNodeData::NODE_ROOM_PAL:
             m_rpalidx = itemData->GetValue();
-            DrawTest(m_gfxBuffer, (m_gfxSize + 31) / 32, 16, 2, m_rpalidx);    
+            DrawTiles(16, 2, m_rpalidx);    
             break;
         case TreeNodeData::NODE_ROOM:
             m_roomnum = itemData->GetValue();
             m_rpalidx = m_rooms[m_roomnum].params[1] & 0x3F;
             m_tsidx = m_rooms[m_roomnum].params[0] & 0x1F;
             LoadTileset(m_tilesetOffsets[m_tsidx]);
+            m_bigTiles.clear();
             LoadBigTiles(m_bigTileOffsets[m_tsidx][0]);
+            LoadBigTiles(m_bigTileOffsets[m_tsidx][1 + (m_rooms[m_roomnum].params[3] >> 5)]);
             ss << "Room: " << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum
                << " Tileset: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx)
                << " Palette: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx)
@@ -338,6 +352,10 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             ss.str(std::string());
             ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
             m_pgMgr146->Append(new wxStringProperty("Map Offset", "MO", ss.str()));
+            ss.str(std::string());
+            ss << m_bigTiles.size();
+            wxMessageBox(ss.str());
+            DrawBigTiles(32, 2, m_rpalidx);    
             break;
         default:
             // do nothing

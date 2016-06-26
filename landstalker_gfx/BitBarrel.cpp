@@ -4,14 +4,16 @@
 #include <stdexcept>
 
 BitBarrel::BitBarrel(const uint8_t* buf)
-: m_val(0),
+: m_start(buf),
+  m_val(0),
   m_pos(8),
   m_buf(const_cast<uint8_t*>(buf))
 {
 }
 
 BitBarrel::BitBarrel()
-: m_val(0),
+: m_start(0),
+  m_val(0),
   m_pos(0),
   m_buf(NULL)
 {
@@ -97,6 +99,11 @@ bool BitBarrel::getNextBit() const
         m_buf++;
     }
     return (*m_buf & (1 << --m_pos)) ? true : false;
+}
+
+size_t BitBarrel::getBytePosition() const
+{
+    return m_buf - m_start;
 }
 
 template bool     BitBarrel::read() const;

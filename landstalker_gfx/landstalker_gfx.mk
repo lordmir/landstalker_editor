@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Tom
-Date                   :=19/06/2016
+Date                   :=26/06/2016
 CodeLitePath           :="C:/Program Files/CodeLite"
 LinkerName             :=C:/MinGW/bin/g++.exe
 SharedObjectLinkerName :=C:/MinGW/bin/g++.exe -shared -fPIC
@@ -64,7 +64,8 @@ AS       := C:/MinGW/bin/as.exe
 CodeLiteDir:=C:\Program Files\CodeLite
 WXCFG:=gcc_dll\mswu
 WXWIN:=C:\wxWidgets-3.1.0
-Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) $(IntermediateDirectory)/Tile.cpp$(ObjectSuffix) $(IntermediateDirectory)/TileAttributes.cpp$(ObjectSuffix) \
+	$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix) $(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix) $(IntermediateDirectory)/Palette.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
 
 
 
@@ -158,6 +159,46 @@ $(IntermediateDirectory)/BitBarrelWriter.cpp$(DependSuffix): BitBarrelWriter.cpp
 
 $(IntermediateDirectory)/BitBarrelWriter.cpp$(PreprocessSuffix): BitBarrelWriter.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/BitBarrelWriter.cpp$(PreprocessSuffix) "BitBarrelWriter.cpp"
+
+$(IntermediateDirectory)/Tile.cpp$(ObjectSuffix): Tile.cpp $(IntermediateDirectory)/Tile.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/Tile.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Tile.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/Tile.cpp$(DependSuffix): Tile.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Tile.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Tile.cpp$(DependSuffix) -MM "Tile.cpp"
+
+$(IntermediateDirectory)/Tile.cpp$(PreprocessSuffix): Tile.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Tile.cpp$(PreprocessSuffix) "Tile.cpp"
+
+$(IntermediateDirectory)/TileAttributes.cpp$(ObjectSuffix): TileAttributes.cpp $(IntermediateDirectory)/TileAttributes.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/TileAttributes.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/TileAttributes.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/TileAttributes.cpp$(DependSuffix): TileAttributes.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/TileAttributes.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/TileAttributes.cpp$(DependSuffix) -MM "TileAttributes.cpp"
+
+$(IntermediateDirectory)/TileAttributes.cpp$(PreprocessSuffix): TileAttributes.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/TileAttributes.cpp$(PreprocessSuffix) "TileAttributes.cpp"
+
+$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix): BigTile.cpp $(IntermediateDirectory)/BigTile.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/BigTile.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/BigTile.cpp$(DependSuffix): BigTile.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/BigTile.cpp$(DependSuffix) -MM "BigTile.cpp"
+
+$(IntermediateDirectory)/BigTile.cpp$(PreprocessSuffix): BigTile.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/BigTile.cpp$(PreprocessSuffix) "BigTile.cpp"
+
+$(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix): TileBitmap.cpp $(IntermediateDirectory)/TileBitmap.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/TileBitmap.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/TileBitmap.cpp$(DependSuffix): TileBitmap.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/TileBitmap.cpp$(DependSuffix) -MM "TileBitmap.cpp"
+
+$(IntermediateDirectory)/TileBitmap.cpp$(PreprocessSuffix): TileBitmap.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/TileBitmap.cpp$(PreprocessSuffix) "TileBitmap.cpp"
+
+$(IntermediateDirectory)/Palette.cpp$(ObjectSuffix): Palette.cpp $(IntermediateDirectory)/Palette.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/Palette.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/Palette.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/Palette.cpp$(DependSuffix): Palette.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/Palette.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/Palette.cpp$(DependSuffix) -MM "Palette.cpp"
+
+$(IntermediateDirectory)/Palette.cpp$(PreprocessSuffix): Palette.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Palette.cpp$(PreprocessSuffix) "Palette.cpp"
 
 $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix): win_resources.rc
 	$(RcCompilerName) -i "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/win_resources.rc" $(RcCmpOptions)   $(ObjectSwitch)$(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) $(RcIncludePath)

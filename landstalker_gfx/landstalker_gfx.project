@@ -28,6 +28,11 @@
     <File Name="BigTilesCmp.cpp"/>
     <File Name="BitBarrel.cpp"/>
     <File Name="BitBarrelWriter.cpp"/>
+    <File Name="Tile.cpp"/>
+    <File Name="TileAttributes.cpp"/>
+    <File Name="BigTile.cpp"/>
+    <File Name="TileBitmap.cpp"/>
+    <File Name="Palette.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="MainFrame.h"/>
@@ -36,6 +41,11 @@
     <File Name="BigTilesCmp.h"/>
     <File Name="BitBarrel.h"/>
     <File Name="BitBarrelWriter.h"/>
+    <File Name="Tile.h"/>
+    <File Name="TileAttributes.h"/>
+    <File Name="BigTile.h"/>
+    <File Name="TileBitmap.h"/>
+    <File Name="Palette.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="resources">
     <File Name="wxcrafter.wxcp"/>

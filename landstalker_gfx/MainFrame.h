@@ -3,6 +3,10 @@
 #include "wxcrafter.h"
 #include <cstdint>
 #include <vector>
+#include <wx/dcmemory.h>
+#include "BigTile.h"
+#include "TileBitmap.h"
+#include "Palette.h"
 
 class wxImage;
 
@@ -54,16 +58,21 @@ private:
         const NodeType m_nodeType;
         const size_t m_value;
     };
-    void DrawTest(const uint8_t* buf, size_t n_tiles, size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
+    void DrawTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
+    void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void PaintNow(wxDC& dc, size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(size_t offset);
     void LoadBigTiles(size_t offset);
     void OpenRomFile(const wxString& path);
     uint8_t m_rom[2*1024*1024];
-    uint8_t m_gfxBuffer[131072];
+    uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
+    wxMemoryDC memDc;
+    wxBitmap bmp;
     std::vector<RoomData> m_rooms;
+    std::vector<Palette> m_pal2;
+    std::vector<TileBitmap> m_tilebmps;
     wxImage m_img;
     size_t m_scale;
     uint8_t m_rpalidx;
@@ -71,6 +80,7 @@ private:
     uint16_t m_roomnum;
     std::vector<uint32_t> m_tilesetOffsets;
     std::vector<std::vector<uint32_t>> m_bigTileOffsets;
+    std::vector<BigTile> m_bigTiles;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
 };
