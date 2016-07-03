@@ -2,6 +2,7 @@
 #define TILE_H
 
 #include <cstdint>
+#include <string>
 #include "TileAttributes.h"
 
 class Tile
@@ -16,9 +17,13 @@ public:
     TileAttributes& attributes();
     const TileAttributes& attributes() const;
     
+    std::string print() const;
+    
 //    void Draw(Tileset, Palette, x, y, zoom);
     
 private:
+    uint16_t getTileValue() const;
+
     TileAttributes attrs_;
     uint16_t index_;
 };

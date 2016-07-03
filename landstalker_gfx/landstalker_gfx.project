@@ -33,6 +33,7 @@
     <File Name="BigTile.cpp"/>
     <File Name="TileBitmap.cpp"/>
     <File Name="Palette.cpp"/>
+    <File Name="LSTilemapCmp.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
     <File Name="MainFrame.h"/>
@@ -46,6 +47,7 @@
     <File Name="BigTile.h"/>
     <File Name="TileBitmap.h"/>
     <File Name="Palette.h"/>
+    <File Name="LSTilemapCmp.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="resources">
     <File Name="wxcrafter.wxcp"/>

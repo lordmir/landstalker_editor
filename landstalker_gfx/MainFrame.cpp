@@ -13,6 +13,7 @@
 
 #include "LZ77.h"
 #include "BigTilesCmp.h"
+#include "LSTilemapCmp.h"
 
 MainFrame::MainFrame(wxWindow* parent)
     : MainFrameBaseClass(parent),
@@ -23,7 +24,6 @@ MainFrame::MainFrame(wxWindow* parent)
       m_roomnum(0)
 {
     m_imgs = new ImgLst();
-    m_tilebmps.resize(0x800);
 }
 
 MainFrame::~MainFrame()
@@ -96,7 +96,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
             const uint32_t* bt_offset_ptr = reinterpret_cast<uint32_t*>(m_rom + 0x1AF800);
             const uint32_t* bt_offset_list = reinterpret_cast<const uint32_t*>(m_rom + ntohl(*bt_offset_ptr));
-            for(size_t i = 0; i < 32; ++i)
+            for(size_t i = 0; i < 64; ++i)
             {
                 m_bigTileOffsets.push_back(std::vector<uint32_t>(8,0));
                 const uint32_t* bt_offsets = reinterpret_cast<uint32_t*>(m_rom + ntohl(*bt_offset_list++));
@@ -144,10 +144,8 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
-    for(auto& t : m_tilebmps)
-    {
-        t.setPalette(m_pal2[pal]);
-    }
+    m_tilebmps.setPalette(m_pal2[pal]);
+    
     for(auto& b : m_bigTiles)
     {
         for(int i = 0; i < 4; i++)
@@ -155,7 +153,65 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
             const Tile& t = b.getTile(i);
             size_t xoff = (i & 1) ? 1 : 0;
             size_t yoff = (i & 2) ? 1 : 0;
-            m_tilebmps[t.getIndex()].draw(memDc, x + xoff, y + yoff, t.attributes());
+            m_tilebmps.draw(memDc, t.getIndex(), x + xoff, y + yoff, t.attributes());
+        }
+        x+=2;
+        if(x == ROW_WIDTH*2)
+        {
+            x = 0;
+            y+=2;
+        }
+    }
+    memDc.SelectObject(wxNullBitmap);
+    
+    m_scale = scale;
+    m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
+    wxClientDC dc(m_scrollWin27); 
+    dc.Clear();
+    PaintNow(dc, scale);
+}
+
+void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
+{
+    const size_t TILE_WIDTH = 16;
+    const size_t TILE_HEIGHT = 16;
+    const size_t ROW_WIDTH = m_tilemap.width;
+    const size_t ROW_HEIGHT = m_tilemap.height;
+    const size_t BMP_WIDTH = (ROW_WIDTH + ROW_HEIGHT) * TILE_WIDTH;
+    const size_t BMP_HEIGHT = (ROW_HEIGHT + ROW_WIDTH + 1) * TILE_HEIGHT / 2;    
+    
+    size_t x = 0;
+    size_t y = 0;
+    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
+    memDc.SelectObject(bmp);
+    m_tilebmps.setPalette(m_pal2[pal]);
+    
+    for(size_t ti = 0; ti < m_tilemap.background.size(); ++ti)
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            size_t xoff = (i & 1) ? 1 : 0;
+            size_t yoff = (i & 2) ? 1 : 0;
+            const Tile* t = &m_bigTiles[m_tilemap.background[ti]].getTile(i);
+            m_tilebmps.draw(memDc, t->getIndex(), x + (ROW_HEIGHT - y/2 - 1)*2 + xoff + 2, y/2 + x/2 + yoff, t->attributes());
+        }
+        x+=2;
+        if(x == ROW_WIDTH*2)
+        {
+            x = 0;
+            y+=2;
+        }
+    }
+    x=0;
+    y=0;
+    for(size_t ti = 0; ti < m_tilemap.foreground.size(); ++ti)
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            size_t xoff = (i & 1) ? 1 : 0;
+            size_t yoff = (i & 2) ? 1 : 0;
+            const Tile* t = &m_bigTiles[m_tilemap.foreground[ti]].getTile(i);
+            m_tilebmps.draw(memDc, t->getIndex(), x + (ROW_HEIGHT - y/2 - 1)*2 + xoff, y/2 + x/2 + yoff, t->attributes());
         }
         x+=2;
         if(x == ROW_WIDTH*2)
@@ -189,10 +245,10 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     TileAttributes attr;
     memDc.SelectObject(bmp);
-    for(auto& t : m_tilebmps)
+    m_tilebmps.setPalette(m_pal2[pal]);
+    for(size_t i = 0; i < m_tilebmps.size(); ++i)
     {
-        t.setPalette(m_pal2[pal]);
-        t.draw(memDc, x, y, attr);
+        m_tilebmps.draw(memDc, i, x, y, attr);
         
         x++;
         if(x == ROW_WIDTH)
@@ -255,21 +311,19 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
 void MainFrame::LoadTileset(size_t offset)
 {
     std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
-    m_tilebmps.assign(m_tilebmps.begin(), m_tilebmps.end());
     size_t elen = 0;
     m_gfxSize = LZ77::Decode(m_rom + offset, sizeof(m_gfxBuffer), m_gfxBuffer, elen);
-    const uint8_t* bmp_ptr = m_gfxBuffer;
-    
-    for(auto& i : m_tilebmps)
-    {
-        i.setBits(bmp_ptr);
-        bmp_ptr += 32;
-    }    
+    m_tilebmps.setBits(m_gfxBuffer, 0x400);
 }
 
 void MainFrame::LoadBigTiles(size_t offset)
 {
     BigTilesCmp::Decode(m_rom + offset, m_bigTiles);
+}
+
+void MainFrame::LoadTilemap(size_t offset)
+{
+    LSTilemapCmp::Decode(m_rom + offset, m_tilemap);
 }
 
 void MainFrame::InitPals(const wxTreeItemId& node)
@@ -325,8 +379,11 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             m_tsidx = m_rooms[m_roomnum].params[0] & 0x1F;
             LoadTileset(m_tilesetOffsets[m_tsidx]);
             m_bigTiles.clear();
-            LoadBigTiles(m_bigTileOffsets[m_tsidx][0]);
-            LoadBigTiles(m_bigTileOffsets[m_tsidx][1 + (m_rooms[m_roomnum].params[3] >> 5)]);
+            LoadBigTiles(m_bigTileOffsets[m_rooms[m_roomnum].params[0] & 0x3F][0]);
+            LoadBigTiles(m_bigTileOffsets[m_rooms[m_roomnum].params[0] & 0x3F][1 + (m_rooms[m_roomnum].params[3] >> 5)]);
+            
+            LoadTilemap(m_rooms[m_roomnum].offset);
+            ss.str(std::string());
             ss << "Room: " << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum
                << " Tileset: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx)
                << " Palette: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx)
@@ -352,10 +409,7 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             ss.str(std::string());
             ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
             m_pgMgr146->Append(new wxStringProperty("Map Offset", "MO", ss.str()));
-            ss.str(std::string());
-            ss << m_bigTiles.size();
-            wxMessageBox(ss.str());
-            DrawBigTiles(32, 2, m_rpalidx);    
+            DrawTilemap(1, m_rpalidx);    
             break;
         default:
             // do nothing

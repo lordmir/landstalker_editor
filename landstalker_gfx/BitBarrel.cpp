@@ -106,6 +106,15 @@ size_t BitBarrel::getBytePosition() const
     return m_buf - m_start;
 }
 
+void BitBarrel::advanceNextByte()
+{
+    if(m_pos != 8)
+    {
+        m_pos = 8;
+        m_buf++;
+    }
+}
+
 template bool     BitBarrel::read() const;
 template uint8_t  BitBarrel::read() const;
 template uint16_t BitBarrel::read() const;

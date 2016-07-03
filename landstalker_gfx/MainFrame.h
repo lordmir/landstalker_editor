@@ -7,6 +7,7 @@
 #include "BigTile.h"
 #include "TileBitmap.h"
 #include "Palette.h"
+#include "LSTilemapCmp.h"
 
 class wxImage;
 
@@ -60,11 +61,15 @@ private:
     };
     void DrawTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
+    void DrawTilemap(size_t scale, uint8_t pal);
     void PaintNow(wxDC& dc, size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(size_t offset);
+    void LoadTilemap(size_t offset);
     void LoadBigTiles(size_t offset);
     void OpenRomFile(const wxString& path);
+    
+    Tilemap m_tilemap;
     uint8_t m_rom[2*1024*1024];
     uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
@@ -72,7 +77,7 @@ private:
     wxBitmap bmp;
     std::vector<RoomData> m_rooms;
     std::vector<Palette> m_pal2;
-    std::vector<TileBitmap> m_tilebmps;
+    TileBitmap m_tilebmps;
     wxImage m_img;
     size_t m_scale;
     uint8_t m_rpalidx;

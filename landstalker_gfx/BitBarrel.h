@@ -20,6 +20,7 @@ public:
     uint32_t readBits(size_t numBits) const;
     bool getNextBit() const;
     size_t getBytePosition() const;
+    void advanceNextByte();
     
     uint8_t out();
 protected:

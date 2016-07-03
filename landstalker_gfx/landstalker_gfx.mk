@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Tom
-Date                   :=26/06/2016
+Date                   :=02/07/2016
 CodeLitePath           :="C:/Program Files/CodeLite"
 LinkerName             :=C:/MinGW/bin/g++.exe
 SharedObjectLinkerName :=C:/MinGW/bin/g++.exe -shared -fPIC
@@ -65,7 +65,7 @@ CodeLiteDir:=C:\Program Files\CodeLite
 WXCFG:=gcc_dll\mswu
 WXWIN:=C:\wxWidgets-3.1.0
 Objects0=$(IntermediateDirectory)/main.cpp$(ObjectSuffix) $(IntermediateDirectory)/MainFrame.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter.cpp$(ObjectSuffix) $(IntermediateDirectory)/wxcrafter_bitmaps.cpp$(ObjectSuffix) $(IntermediateDirectory)/LZ77.cpp$(ObjectSuffix) $(IntermediateDirectory)/BigTilesCmp.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrel.cpp$(ObjectSuffix) $(IntermediateDirectory)/BitBarrelWriter.cpp$(ObjectSuffix) $(IntermediateDirectory)/Tile.cpp$(ObjectSuffix) $(IntermediateDirectory)/TileAttributes.cpp$(ObjectSuffix) \
-	$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix) $(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix) $(IntermediateDirectory)/Palette.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
+	$(IntermediateDirectory)/BigTile.cpp$(ObjectSuffix) $(IntermediateDirectory)/TileBitmap.cpp$(ObjectSuffix) $(IntermediateDirectory)/Palette.cpp$(ObjectSuffix) $(IntermediateDirectory)/LSTilemapCmp.cpp$(ObjectSuffix) $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) 
 
 
 
@@ -199,6 +199,14 @@ $(IntermediateDirectory)/Palette.cpp$(DependSuffix): Palette.cpp
 
 $(IntermediateDirectory)/Palette.cpp$(PreprocessSuffix): Palette.cpp
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/Palette.cpp$(PreprocessSuffix) "Palette.cpp"
+
+$(IntermediateDirectory)/LSTilemapCmp.cpp$(ObjectSuffix): LSTilemapCmp.cpp $(IntermediateDirectory)/LSTilemapCmp.cpp$(DependSuffix)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/LSTilemapCmp.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/LSTilemapCmp.cpp$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/LSTilemapCmp.cpp$(DependSuffix): LSTilemapCmp.cpp
+	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/LSTilemapCmp.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/LSTilemapCmp.cpp$(DependSuffix) -MM "LSTilemapCmp.cpp"
+
+$(IntermediateDirectory)/LSTilemapCmp.cpp$(PreprocessSuffix): LSTilemapCmp.cpp
+	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/LSTilemapCmp.cpp$(PreprocessSuffix) "LSTilemapCmp.cpp"
 
 $(IntermediateDirectory)/win_resources.rc$(ObjectSuffix): win_resources.rc
 	$(RcCompilerName) -i "C:/Users/Tom/Documents/GitHub/landstalker_gfx/landstalker_gfx/win_resources.rc" $(RcCmpOptions)   $(ObjectSwitch)$(IntermediateDirectory)/win_resources.rc$(ObjectSuffix) $(RcIncludePath)
