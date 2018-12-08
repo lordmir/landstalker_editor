@@ -7,6 +7,11 @@ TARGET    := $(notdir $(CURDIR))
 SOURCEDIR := .
 SOURCE := $(foreach DIR,$(SOURCEDIR),$(wildcard $(DIR)/*.cpp))
 
+DEBUG=no
+ifeq ($(DEBUG),yes)
+    CXXFLAGS += -g
+endif
+
 all: $(EXEC)
 
 target: $(OBJ)
