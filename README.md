@@ -19,3 +19,7 @@ In addition to base-devel (compiler and make), wxwidget GUI library is required
 # Note
 
 * The ROM path cannot contains a folder that start with a dot.
+
+# Screenshot
+
+![edit](landstalker_edit.png)
