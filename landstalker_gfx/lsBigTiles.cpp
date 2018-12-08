@@ -14,7 +14,7 @@ uint32_t subD184(uint32_t& d6, uint32_t& d5, const uint8_t*& src)
         }
         d5 <<= 1;
     } while(d5 & 0x80);
-    
+
     d1 = -d1;
     if(d1)
     {
@@ -71,9 +71,8 @@ size_t lsBigTiles::ExtractBigTiles(const uint8_t* src, uint8_t* dst)
     bufptr = dst;
     d3 = 0;
     d7 = 0;
-    d2 = subD184(d6, src);
-    
-    
+    d2 = subD184(d6, d5, src);
+
+
     return 0;
 }
-
