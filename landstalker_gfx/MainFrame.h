@@ -8,6 +8,7 @@
 #include "TileBitmap.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
+#include <arpa/inet.h>
 
 class wxImage;
 
@@ -68,7 +69,7 @@ private:
     void LoadTilemap(size_t offset);
     void LoadBigTiles(size_t offset);
     void OpenRomFile(const wxString& path);
-    
+
     Tilemap m_tilemap;
     uint8_t m_rom[2*1024*1024];
     uint8_t m_gfxBuffer[65536];

@@ -3,13 +3,14 @@
 
 #include <cstdlib>
 #include <cstdint>
+#include <vector>
 
 class LZ77
 {
 public:
     static size_t Decode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf, size_t& elen);
     static size_t Encode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf);
-private:    
+private:
     LZ77();
 };
 
