@@ -24,6 +24,7 @@ MainFrame::MainFrame(wxWindow* parent)
       m_roomnum(0)
 {
     m_imgs = new ImgLst();
+    bmp.Create(1,1);
 }
 
 MainFrame::~MainFrame()

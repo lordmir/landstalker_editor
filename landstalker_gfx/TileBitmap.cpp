@@ -6,6 +6,9 @@ TileBitmap::TileBitmap()
 : drawn_(false),
   size_(0)
 {
+    bmp = new wxBitmap();
+    bmp->Create(1,1);
+    memDC.SelectObject(*bmp);
 }
 
 TileBitmap::~TileBitmap()
@@ -25,35 +28,42 @@ void TileBitmap::setBits(const uint8_t* src, size_t num_tiles)
     drawn_ = false;
 }
 
+// Draw an internal bitmap containing the tilemap.
+// Will be arranged in a 4 x N grid of 8x8 tiles. Each column is a different tile.
+// Rows contain cached orientations for the tiles (X and Y flips)
 void TileBitmap::setPalette(const Palette& palette)
 {
     uint8_t* rgb_ptr = rgb_pixels;
     uint8_t* alpha_ptr = alpha_pixels;
-    
+
     memDC.SelectObject(wxNullBitmap);
-    
+
+    // 4 orientations: normal, X-Flip, Y-Flip, XY-Flip
     for(size_t o = 0; o < 4; ++o)
     {
-        for(size_t t = 0; t < N_TILES; ++t)
+        // Eight lines per tile
+        for(size_t y = 0; y < HEIGHT; ++y)
         {
-            for(size_t y = 0; y < HEIGHT; ++y)
+            // For each unique tile
+            for(size_t t = 0; t < N_TILES; ++t)
             {
+                // Eight pixels per line
                 for(size_t x = 0; x < WIDTH; ++x)
                 {
                     size_t p = t * HEIGHT * WIDTH;
-                    if(o & 1)
+                    if(o & 1) // Horizontal flip
                     {
                         p += WIDTH - 1 - x;
                     }
-                    else
+                    else // No HFLIP
                     {
                         p += x;
                     }
-                    if(o & 2)
+                    if(o & 2) // Vertical flip
                     {
                         p += HEIGHT * WIDTH - (y + 1) * HEIGHT;
                     }
-                    else
+                    else // No VFLIP
                     {
                         p += y * HEIGHT;
                     }
@@ -65,8 +75,7 @@ void TileBitmap::setPalette(const Palette& palette)
             }
         }
     }
-    
-    img_.SetData(rgb_pixels, WIDTH, HEIGHT*N_TILES*4, true);
+    img_.SetData(rgb_pixels, WIDTH*N_TILES, HEIGHT*4, true);
     img_.SetAlpha(alpha_pixels, true);
     if(bmp)
     {
@@ -82,16 +91,17 @@ bool TileBitmap::draw(wxDC& dc, size_t tilenum, size_t x, size_t y, const TileAt
     if(drawn_)
     {
         tilenum %= N_TILES;
+        size_t h_offset = 0;
         if( attrs.getAttribute(TileAttributes::ATTR_VFLIP))
         {
-            tilenum += N_TILES * 2;
+            h_offset += 2 * HEIGHT;
         }
         if(attrs.getAttribute(TileAttributes::ATTR_HFLIP))
         {
-            tilenum += N_TILES;
+            h_offset += HEIGHT;
         }
         //dc.StretchBlit(left, top, width, height, &memDC, 0, 0, WIDTH, HEIGHT, wxCOPY, true, 0, 0);
-        dc.Blit(x*WIDTH, y*HEIGHT, WIDTH, HEIGHT, &memDC, 0, tilenum*HEIGHT, wxCOPY, true);
+        dc.Blit(x*WIDTH, y*HEIGHT, WIDTH, HEIGHT, &memDC, tilenum*WIDTH, h_offset, wxCOPY, true);
     }
     return drawn_;
 }
