@@ -121,10 +121,10 @@ void MainFrame::OpenRomFile(const wxString& path)
                 m_rooms.push_back(RoomData(rm));
                 rm += 8;
                 ss << i;
-                m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
+                wxTreeItemId cRm = m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
+                m_treeCtrl101->AppendItem(cRm, "Heightmap", 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
             }
             InitPals(nodeRPal);
-            //DrawTest(m_rom, 65536);
         }
         inFile.close();
     }
@@ -230,6 +230,49 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     PaintNow(dc, scale);
 }
 
+void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
+{
+    const size_t TILE_WIDTH = 32;
+    const size_t TILE_HEIGHT = 32;
+    const size_t ROW_WIDTH = m_tilemap.hmwidth;
+    const size_t ROW_HEIGHT = m_tilemap.hmheight;
+    const size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
+    const size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
+    
+    //size_t x = 0;
+    //size_t y = 0;
+    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
+    memDc.SelectObject(bmp);
+    memDc.SetPen(*wxWHITE_PEN);
+    memDc.SetBrush(*wxBLACK_BRUSH);
+    memDc.SetTextBackground(*wxBLACK);
+    memDc.SetTextForeground(*wxWHITE);
+
+    size_t p = 0;
+    for(size_t y = 0; y < ROW_HEIGHT; ++y)
+    for(size_t x = 0; x < ROW_WIDTH; ++x)
+    {
+        // Only display cells that are not completely restricted
+        if((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
+        {
+            memDc.DrawRectangle(x*TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH+1, TILE_HEIGHT+1);
+            std::stringstream ss;
+            ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].height) << ","
+            << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << "\n"
+            << std::setfill('0') << std::setw(2) << static_cast<unsigned>(m_tilemap.heightmap[p].classification);
+            memDc.DrawText(ss.str(),x*TILE_WIDTH+2, y*TILE_HEIGHT + 1);
+        }
+        p++;
+    }
+    memDc.SelectObject(wxNullBitmap);
+    
+    m_scale = scale;
+    m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
+    wxClientDC dc(m_scrollWin27); 
+    dc.Clear();
+    PaintNow(dc, scale);
+}
+
 void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
 {
     const size_t TILE_WIDTH = 8;
@@ -277,6 +320,7 @@ void MainFrame::PaintNow(wxDC& dc, size_t scale)
         m_scrollWin27->GetViewStart(&x, &y);
         m_scrollWin27->GetClientSize(&w, &h);
         double dscale = static_cast<double>(scale);
+        memDc.SelectObject(wxNullBitmap);
         memDc.SelectObject(bmp);
         dc.SetUserScale(dscale, dscale);
         dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDc, x, y, wxCOPY, true);
@@ -359,10 +403,88 @@ void MainFrame::OnAuimgr127Paint(wxPaintEvent& event)
     wxPaintDC dc(m_scrollWin27);  
     PaintNow(dc, m_scale);
 }
+
+void MainFrame::InitRoom(uint16_t room)
+{
+    m_roomnum = room;
+    const RoomData& rd = m_rooms[m_roomnum];
+    m_rpalidx = rd.roomPalette;
+    m_tsidx = rd.tileset;
+    LoadTileset(m_tilesetOffsets[m_tsidx]);
+    m_bigTiles.clear();
+    LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][0]);
+    LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][1 + rd.secBigTileset]);
+    LoadTilemap(rd.offset);    
+}
+
+void MainFrame::PopulateRoomProperties(uint16_t room, const Tilemap& tm)
+{
+    m_pgMgr146->GetGrid()->Clear();
+    std::ostringstream ss;
+    ss.str(std::string());
+    const RoomData& rd = m_rooms[room];
+
+    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room
+        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.tileset)
+        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.roomPalette)
+        << " PriBigTiles: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBigTileset)
+        << " SecBigTiles: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBigTileset)
+        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.backgroundMusic)
+        << " Map Offset: 0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(rd.offset);
+    SetStatusText(ss.str());
+    ss.str(std::string());
+    ss << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room;
+    m_pgMgr146->Append(new wxStringProperty("Room Number", "RN", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.tileset);
+    m_pgMgr146->Append(new wxStringProperty("Tileset", "TS", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.roomPalette);
+    m_pgMgr146->Append(new wxStringProperty("Room Palette", "RP", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBigTileset);
+    m_pgMgr146->Append(new wxStringProperty("Primary Big Tiles", "PBT", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBigTileset);
+    m_pgMgr146->Append(new wxStringProperty("Secondary Big Tiles", "SBT", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.backgroundMusic);
+    m_pgMgr146->Append(new wxStringProperty("BGM", "BGM", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(rd.offset);
+    m_pgMgr146->Append(new wxStringProperty("Map Offset", "MO", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.unknownParam1);
+    m_pgMgr146->Append(new wxStringProperty("Unknown Parameter 1", "UP1", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.unknownParam2);
+    m_pgMgr146->Append(new wxStringProperty("Unknown Parameter 2", "UP2", ss.str()));
+    ss.str(std::string());
+    ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.unknownParam3);
+    m_pgMgr146->Append(new wxStringProperty("Unknown Parameter 3", "UP3", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.left);
+    m_pgMgr146->Append(new wxStringProperty("Tilemap Left Offset", "TLO", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.top);
+    m_pgMgr146->Append(new wxStringProperty("Tilemap Top Offset", "TTO", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.width);
+    m_pgMgr146->Append(new wxStringProperty("Tilemap Width", "TW", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.height);
+    m_pgMgr146->Append(new wxStringProperty("Tilemap Height", "TH", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.hmwidth);
+    m_pgMgr146->Append(new wxStringProperty("Heightmap Width", "HW", ss.str()));
+    ss.str(std::string());
+    ss << std::dec << static_cast<unsigned>(tm.hmheight);
+    m_pgMgr146->Append(new wxStringProperty("Heightmap Height", "HH", ss.str()));
+}
+
 void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
 {
     TreeNodeData* itemData = static_cast<TreeNodeData*>(m_treeCtrl101->GetItemData(event.GetItem()));
-    std::ostringstream ss;
     m_pgMgr146->GetGrid()->Clear();
     switch(itemData->GetNodeType())
     {
@@ -375,43 +497,15 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             DrawTiles(16, 2, m_rpalidx);    
             break;
         case TreeNodeData::NODE_ROOM:
-            m_roomnum = itemData->GetValue();
-            m_rpalidx = m_rooms[m_roomnum].params[1] & 0x3F;
-            m_tsidx = m_rooms[m_roomnum].params[0] & 0x1F;
-            LoadTileset(m_tilesetOffsets[m_tsidx]);
-            m_bigTiles.clear();
-            LoadBigTiles(m_bigTileOffsets[m_rooms[m_roomnum].params[0] & 0x3F][0]);
-            LoadBigTiles(m_bigTileOffsets[m_rooms[m_roomnum].params[0] & 0x3F][1 + (m_rooms[m_roomnum].params[3] >> 5)]);
-            
-            LoadTilemap(m_rooms[m_roomnum].offset);
-            ss.str(std::string());
-            ss << "Room: " << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum
-               << " Tileset: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx)
-               << " Palette: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx)
-               << " BigTiles: " << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] >> 5)
-               << " BGM: " << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] & 0x1F)
-               << " Map Offset: 0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
-            SetStatusText(ss.str());
-            ss.str(std::string());
-            ss << std::hex << std::uppercase << std::setw(3) << std::setfill('0') << m_roomnum;
-            m_pgMgr146->Append(new wxStringProperty("Room Number", "RN", ss.str()));
-            ss.str(std::string());
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_tsidx);
-            m_pgMgr146->Append(new wxStringProperty("Tileset", "TS", ss.str()));
-            ss.str(std::string());
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rpalidx);
-            m_pgMgr146->Append(new wxStringProperty("Room Palette", "RP", ss.str()));
-            ss.str(std::string());
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] >> 5);
-            m_pgMgr146->Append(new wxStringProperty("Big Tiles", "BT", ss.str()));
-            ss.str(std::string());
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].params[3] & 0x1F);
-            m_pgMgr146->Append(new wxStringProperty("BGM", "BGM", ss.str()));
-            ss.str(std::string());
-            ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(m_rooms[m_roomnum].offset);
-            m_pgMgr146->Append(new wxStringProperty("Map Offset", "MO", ss.str()));
+            InitRoom(itemData->GetValue());
+            PopulateRoomProperties(m_roomnum, m_tilemap);
             DrawTilemap(1, m_rpalidx);    
             break;
+        case TreeNodeData::NODE_ROOM_HEIGHTMAP:
+            InitRoom(itemData->GetValue());
+            PopulateRoomProperties(m_roomnum, m_tilemap);
+            //DrawTilemap(1, n_rpalidx);
+            DrawHeightmap(1, m_roomnum);
         default:
             // do nothing
             break;

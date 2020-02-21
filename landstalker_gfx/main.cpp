@@ -11,9 +11,7 @@ public:
     virtual ~MainApp() {}
 
     virtual bool OnInit() {
-        // Add the common image handlers
-        wxImage::AddHandler( new wxPNGHandler );
-        wxImage::AddHandler( new wxJPEGHandler );
+        wxInitAllImageHandlers();
 
         MainFrame *mainFrame = new MainFrame(NULL);
         SetTopWindow(mainFrame);

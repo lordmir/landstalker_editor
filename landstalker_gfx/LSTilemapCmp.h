@@ -6,8 +6,8 @@
 
 struct HeightMapCell
 {
-    HeightMapCell(uint16_t cell) : restrictions(cell >> 24),
-                                   height((cell >> 16) & 0x0F),
+    HeightMapCell(uint16_t cell) : restrictions(cell >> 12),
+                                   height((cell >> 8) & 0x0F),
                                    classification(cell & 0xFF)
     {}
     
