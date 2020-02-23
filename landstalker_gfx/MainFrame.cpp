@@ -81,7 +81,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             std::ostringstream ss;
             m_treeCtrl101->DeleteAllItems();
             m_treeCtrl101->SetImageList(m_imgs);
-            wxTreeItemId nodeRoot = m_treeCtrl101->AddRoot("");            
+            wxTreeItemId nodeRoot = m_treeCtrl101->AddRoot("");
             wxTreeItemId nodeTs = m_treeCtrl101->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
             wxTreeItemId nodeATs = m_treeCtrl101->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
             wxTreeItemId nodeBTs = m_treeCtrl101->AppendItem(nodeRoot, "Big Tilesets", 3, 3, new TreeNodeData());
@@ -140,13 +140,13 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
     const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (m_bigTiles.size() + ROW_WIDTH - 1) / ROW_WIDTH);
     const size_t BMP_WIDTH = TILE_WIDTH * ROW_WIDTH;
     const size_t BMP_HEIGHT = TILE_HEIGHT * ROW_HEIGHT;
-    
+
     size_t x = 0;
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
     m_tilebmps.setPalette(m_pal2[pal]);
-    
+
     for(auto& b : m_bigTiles)
     {
         for(int i = 0; i < 4; i++)
@@ -164,10 +164,10 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
         }
     }
     memDc.SelectObject(wxNullBitmap);
-    
+
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
-    wxClientDC dc(m_scrollWin27); 
+    wxClientDC dc(m_scrollWin27);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -179,14 +179,15 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     const size_t ROW_WIDTH = m_tilemap.width;
     const size_t ROW_HEIGHT = m_tilemap.height;
     const size_t BMP_WIDTH = (ROW_WIDTH + ROW_HEIGHT) * TILE_WIDTH;
-    const size_t BMP_HEIGHT = (ROW_HEIGHT + ROW_WIDTH + 1) * TILE_HEIGHT / 2;    
-    
+    const size_t BMP_HEIGHT = (ROW_HEIGHT + ROW_WIDTH + 1) * TILE_HEIGHT / 2;
+
     size_t x = 0;
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
+    memDc.Clear();
     m_tilebmps.setPalette(m_pal2[pal]);
-    
+
     for(size_t ti = 0; ti < m_tilemap.background.size(); ++ti)
     {
         for(int i = 0; i < 4; i++)
@@ -222,10 +223,10 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
         }
     }
     memDc.SelectObject(wxNullBitmap);
-    
+
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
-    wxClientDC dc(m_scrollWin27); 
+    wxClientDC dc(m_scrollWin27);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -238,11 +239,12 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
     const size_t ROW_HEIGHT = m_tilemap.hmheight;
     const size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
     const size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
-    
+
     //size_t x = 0;
     //size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
+    memDc.Clear();
     memDc.SetPen(*wxWHITE_PEN);
     memDc.SetBrush(*wxBLACK_BRUSH);
     memDc.SetTextBackground(*wxBLACK);
@@ -265,10 +267,10 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
         p++;
     }
     memDc.SelectObject(wxNullBitmap);
-    
+
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
-    wxClientDC dc(m_scrollWin27); 
+    wxClientDC dc(m_scrollWin27);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -283,17 +285,18 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (m_tilebmps.size() + ROW_WIDTH - 1) / ROW_WIDTH);
     const size_t BMP_WIDTH = TILE_WIDTH * ROW_WIDTH;
     const size_t BMP_HEIGHT = TILE_HEIGHT * ROW_HEIGHT;
-    
+
     size_t x = 0;
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     TileAttributes attr;
     memDc.SelectObject(bmp);
+    memDc.Clear();
     m_tilebmps.setPalette(m_pal2[pal]);
     for(size_t i = 0; i < m_tilebmps.size(); ++i)
     {
         m_tilebmps.draw(memDc, i, x, y, attr);
-        
+
         x++;
         if(x == ROW_WIDTH)
         {
@@ -302,10 +305,10 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
         }
     }
     memDc.SelectObject(wxNullBitmap);
-    
+
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
-    wxClientDC dc(m_scrollWin27); 
+    wxClientDC dc(m_scrollWin27);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -329,7 +332,7 @@ void MainFrame::PaintNow(wxDC& dc, size_t scale)
 
 void MainFrame::OnScrollwin27Paint(wxPaintEvent& event)
 {
-    wxPaintDC dc(m_scrollWin27);  
+    wxPaintDC dc(m_scrollWin27);
     PaintNow(dc, m_scale);
 }
 void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
@@ -379,12 +382,12 @@ void MainFrame::InitPals(const wxTreeItemId& node)
     for(size_t i = 0; i < 54; ++i)
     {
         m_pal2.push_back(Palette(pal));
-        
+
         std::ostringstream ss;
         ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0')
            << (pal - m_rom);
         m_treeCtrl101->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
-        
+
         pal += 26;
     }
 }
@@ -400,7 +403,7 @@ void MainFrame::OnMenuitem109MenuSelected(wxCommandEvent& event)
 }
 void MainFrame::OnAuimgr127Paint(wxPaintEvent& event)
 {
-    wxPaintDC dc(m_scrollWin27);  
+    wxPaintDC dc(m_scrollWin27);
     PaintNow(dc, m_scale);
 }
 
@@ -414,7 +417,7 @@ void MainFrame::InitRoom(uint16_t room)
     m_bigTiles.clear();
     LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][0]);
     LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][1 + rd.secBigTileset]);
-    LoadTilemap(rd.offset);    
+    LoadTilemap(rd.offset);
 }
 
 void MainFrame::PopulateRoomProperties(uint16_t room, const Tilemap& tm)
@@ -490,16 +493,16 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
     {
         case TreeNodeData::NODE_TILESET:
             LoadTileset(itemData->GetValue());
-            DrawTiles(16, 2, m_rpalidx);    
+            DrawTiles(16, 2, m_rpalidx);
             break;
         case TreeNodeData::NODE_ROOM_PAL:
             m_rpalidx = itemData->GetValue();
-            DrawTiles(16, 2, m_rpalidx);    
+            DrawTiles(16, 2, m_rpalidx);
             break;
         case TreeNodeData::NODE_ROOM:
             InitRoom(itemData->GetValue());
             PopulateRoomProperties(m_roomnum, m_tilemap);
-            DrawTilemap(1, m_rpalidx);    
+            DrawTilemap(1, m_rpalidx);
             break;
         case TreeNodeData::NODE_ROOM_HEIGHTMAP:
             InitRoom(itemData->GetValue());
