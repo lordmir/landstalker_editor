@@ -8,7 +8,12 @@
 #include "TileBitmap.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
+
+#ifdef _WIN32
+#include <winsock.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 class wxImage;
 

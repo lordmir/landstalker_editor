@@ -86,7 +86,7 @@ uint32_t BitBarrel::readBits(size_t numBits) const
     for(size_t i = 0; i < numBits; ++i)
     {
         retval <<= 1;
-        retval |= getNextBit();
+        retval |= static_cast<uint32_t>(getNextBit());
     }
     return retval;
 }

@@ -10,7 +10,7 @@ BitBarrelWriter::BitBarrelWriter(uint8_t* buf)
 template <class T>
 void BitBarrelWriter::write(T value)
 {
-    writeBits(reinterpret_cast<T>(value), sizeof(value) * CHAR_BIT);
+    writeBits(static_cast<uint32_t>(value), sizeof(value) * CHAR_BIT);
 }
 
 template <>

@@ -56,7 +56,7 @@ void MainFrame::OpenRomFile(const wxString& path)
 {
     std::ifstream inFile;
     size_t sz = 0;
-    inFile.open(path, std::ios::in | std::ios::binary | std::ios::ate);
+    inFile.open(static_cast<const char*>(path), std::ios::in | std::ios::binary | std::ios::ate);
     if(!inFile.is_open())
     {
         std::ostringstream ss;
