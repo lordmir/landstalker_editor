@@ -8,6 +8,7 @@
 #include "TileBitmap.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
+#include "Rom.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -94,7 +95,7 @@ private:
     void PopulateRoomProperties(uint16_t room, const Tilemap& tm);
     
     Tilemap m_tilemap;
-    uint8_t m_rom[2*1024*1024];
+    Rom m_rom;
     uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
     wxMemoryDC memDc;

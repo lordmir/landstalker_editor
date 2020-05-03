@@ -82,6 +82,8 @@ void TileBitmap::setPalette(const Palette& palette)
         delete bmp;
     }
     bmp = new wxBitmap(img_);
+    memDC.Clear();
+    memDC.SetBackground(*wxBLACK_BRUSH);
     memDC.SelectObject(*bmp);
     drawn_ = true;
 }

@@ -167,6 +167,7 @@
     <ClInclude Include="..\MainFrame.h" />
     <ClInclude Include="..\Palette.h" />
     <ClInclude Include="..\resource.h" />
+    <ClInclude Include="..\Rom.h" />
     <ClInclude Include="..\Tile.h" />
     <ClInclude Include="..\TileAttributes.h" />
     <ClInclude Include="..\TileBitmap.h" />

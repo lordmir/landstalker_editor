@@ -14,6 +14,7 @@
 #include "LZ77.h"
 #include "BigTilesCmp.h"
 #include "LSTilemapCmp.h"
+#include "Rom.h"
 
 MainFrame::MainFrame(wxWindow* parent)
     : MainFrameBaseClass(parent),
@@ -54,79 +55,50 @@ void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
 
 void MainFrame::OpenRomFile(const wxString& path)
 {
-    std::ifstream inFile;
-    size_t sz = 0;
-    inFile.open(static_cast<const char*>(path), std::ios::in | std::ios::binary | std::ios::ate);
-    if(!inFile.is_open())
+    try
     {
-        std::ostringstream ss;
-        ss << "Unable to open ROM file " << path << ".";
-        wxMessageBox(ss.str());
+        m_rom.load_from_file(static_cast<std::string>(path));
+
+        m_tilesetOffsets = m_rom.read_array<uint32_t>(0x44070, 31);
+        m_treeCtrl101->DeleteAllItems();
+        m_treeCtrl101->SetImageList(m_imgs);
+        wxTreeItemId nodeRoot = m_treeCtrl101->AddRoot("");
+        wxTreeItemId nodeTs = m_treeCtrl101->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
+        wxTreeItemId nodeATs = m_treeCtrl101->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
+        wxTreeItemId nodeBTs = m_treeCtrl101->AppendItem(nodeRoot, "Big Tilesets", 3, 3, new TreeNodeData());
+        wxTreeItemId nodeRPal = m_treeCtrl101->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
+        wxTreeItemId nodeRm = m_treeCtrl101->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
+
+        for (const auto& offset : m_tilesetOffsets)
+        {
+            m_treeCtrl101->AppendItem(nodeTs, Hex(offset), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, offset));
+        }
+        auto bt = m_rom.read_array<uint32_t>(m_rom.read<uint32_t>(0x1AF800), 64);
+        for (size_t i = 0; i < 64; ++i)
+        {
+            m_bigTileOffsets.push_back(m_rom.read_array<uint32_t>(bt[i], 9));
+            wxTreeItemId curTn = m_treeCtrl101->AppendItem(nodeBTs, Hex(bt[i]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, 0));
+            for (size_t j = 0; j < 9; ++j)
+            {
+                m_treeCtrl101->AppendItem(curTn, Hex(m_bigTileOffsets[i][j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
+            }
+        }
+        const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>(0xA0A00));
+        for (size_t i = 0; i < 816; i++)
+        {
+            std::ostringstream ss;
+            m_rooms.push_back(RoomData(rm));
+            rm += 8;
+            ss << i;
+            wxTreeItemId cRm = m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
+            m_treeCtrl101->AppendItem(cRm, "Heightmap", 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
+        }
+        InitPals(nodeRPal);
     }
-    else
+    catch(const std::runtime_error& e)
     {
-        inFile.seekg (0, std::ios::end);
-        sz = inFile.tellg();
-        inFile.seekg (0, std::ios::beg);
-        if(sz != sizeof(m_rom))
-        {
-            std::ostringstream ss;
-            ss << "ROM file " << path << ": Bad ROM size! Expected " << std::dec << sizeof(m_rom) << " bytes, read " << sz << " bytes.";
-            wxMessageBox(ss.str());
-        }
-        else
-        {
-            uint32_t* offsets = reinterpret_cast<uint32_t*>(m_rom + 0x44070);
-            inFile.read(reinterpret_cast<char*>(m_rom), sz);
-            std::ostringstream ss;
-            m_treeCtrl101->DeleteAllItems();
-            m_treeCtrl101->SetImageList(m_imgs);
-            wxTreeItemId nodeRoot = m_treeCtrl101->AddRoot("");
-            wxTreeItemId nodeTs = m_treeCtrl101->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
-            wxTreeItemId nodeATs = m_treeCtrl101->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
-            wxTreeItemId nodeBTs = m_treeCtrl101->AppendItem(nodeRoot, "Big Tilesets", 3, 3, new TreeNodeData());
-            wxTreeItemId nodeRPal = m_treeCtrl101->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
-            wxTreeItemId nodeRm = m_treeCtrl101->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
-            for(size_t i = 0; i < 31; ++i)
-            {
-                ss.str(std::string());
-                uint32_t offset = ntohl(*offsets++);
-                ss << "0x" << std::hex << std::uppercase << std::setw(8) << std::setfill('0') << offset;
-                m_treeCtrl101->AppendItem(nodeTs, ss.str(), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, offset));
-                m_tilesetOffsets.push_back(offset);
-            }
-            const uint32_t* bt_offset_ptr = reinterpret_cast<uint32_t*>(m_rom + 0x1AF800);
-            const uint32_t* bt_offset_list = reinterpret_cast<const uint32_t*>(m_rom + ntohl(*bt_offset_ptr));
-            for(size_t i = 0; i < 64; ++i)
-            {
-                m_bigTileOffsets.push_back(std::vector<uint32_t>(8,0));
-                const uint32_t* bt_offsets = reinterpret_cast<uint32_t*>(m_rom + ntohl(*bt_offset_list++));
-                ss.str(std::string());
-                ss << std::dec << std::uppercase << std::setw(2) << std::setfill('0') << i;
-                wxTreeItemId curTn = m_treeCtrl101->AppendItem(nodeBTs, ss.str(), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, 0));
-                for(size_t j = 0; j < 8; ++j)
-                {
-                    uint32_t offset = ntohl(*bt_offsets++);
-                    m_bigTileOffsets[i][j] = offset;
-                    ss.str(std::string());
-                    ss << std::dec << std::uppercase << std::setw(1) << std::setfill('0') << j;
-                    m_treeCtrl101->AppendItem(curTn, ss.str(), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
-                }
-            }
-            uint32_t rm_ptr = ntohl(*reinterpret_cast<uint32_t*>(m_rom + 0xA0A00));
-            const uint8_t* rm = m_rom + rm_ptr;
-            for(size_t i = 0; i < 816; i++)
-            {
-                ss.str(std::string());
-                m_rooms.push_back(RoomData(rm));
-                rm += 8;
-                ss << i;
-                wxTreeItemId cRm = m_treeCtrl101->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
-                m_treeCtrl101->AppendItem(cRm, "Heightmap", 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
-            }
-            InitPals(nodeRPal);
-        }
-        inFile.close();
+        m_treeCtrl101->DeleteAllItems();
+        wxMessageBox(e.what());
     }
 }
 
@@ -145,6 +117,12 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
+    memDc.SetBackground(*wxBLACK_BRUSH);
+    memDc.Clear();
+    memDc.SetPen(*wxWHITE_PEN);
+    memDc.SetBrush(*wxBLACK_BRUSH);
+    memDc.SetTextBackground(*wxBLACK);
+    memDc.SetTextForeground(*wxWHITE);
     m_tilebmps.setPalette(m_pal2[pal]);
 
     for(auto& b : m_bigTiles)
@@ -168,6 +146,7 @@ void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
     wxClientDC dc(m_scrollWin27);
+    dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -185,6 +164,7 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
+    memDc.SetBackground(*wxBLACK_BRUSH);
     memDc.Clear();
     m_tilebmps.setPalette(m_pal2[pal]);
 
@@ -227,6 +207,7 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
     wxClientDC dc(m_scrollWin27);
+    dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -244,6 +225,7 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
     //size_t y = 0;
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(bmp);
+    memDc.SetBackground(*wxBLACK_BRUSH);
     memDc.Clear();
     memDc.SetPen(*wxWHITE_PEN);
     memDc.SetBrush(*wxBLACK_BRUSH);
@@ -271,6 +253,7 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
     wxClientDC dc(m_scrollWin27);
+    dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -291,6 +274,7 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     bmp.Create(BMP_WIDTH, BMP_HEIGHT);
     TileAttributes attr;
     memDc.SelectObject(bmp);
+    memDc.SetBackground(*wxBLACK_BRUSH);
     memDc.Clear();
     m_tilebmps.setPalette(m_pal2[pal]);
     for(size_t i = 0; i < m_tilebmps.size(); ++i)
@@ -309,6 +293,7 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
     wxClientDC dc(m_scrollWin27);
+    dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
 }
@@ -342,7 +327,7 @@ void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
     std::memset(buffer, 0x00, sizeof(buffer));
     std::memset(ebuffer, 0x00, sizeof(ebuffer));
     size_t elen = 0;
-    size_t len = LZ77::Decode(m_rom + m_tilesetOffsets[0], 0, buffer, elen);
+    size_t len = LZ77::Decode(m_rom.data(m_tilesetOffsets[0]), 0, buffer, elen);
     std::ostringstream ss;
     ss << "Extracted " << len << " bytes. Encoded len " << elen << " bytes.";
     wxMessageBox(ss.str());
@@ -360,32 +345,30 @@ void MainFrame::LoadTileset(size_t offset)
 {
     std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
     size_t elen = 0;
-    m_gfxSize = LZ77::Decode(m_rom + offset, sizeof(m_gfxBuffer), m_gfxBuffer, elen);
+    m_gfxSize = LZ77::Decode(m_rom.data(offset), sizeof(m_gfxBuffer), m_gfxBuffer, elen);
     m_tilebmps.setBits(m_gfxBuffer, 0x400);
 }
 
 void MainFrame::LoadBigTiles(size_t offset)
 {
-    BigTilesCmp::Decode(m_rom + offset, m_bigTiles);
+    BigTilesCmp::Decode(m_rom.data(offset), m_bigTiles);
 }
 
 void MainFrame::LoadTilemap(size_t offset)
 {
-    LSTilemapCmp::Decode(m_rom + offset, m_tilemap);
+    LSTilemapCmp::Decode(m_rom.data(offset), m_tilemap);
 }
 
 void MainFrame::InitPals(const wxTreeItemId& node)
 {
-    uint32_t pal_ptr = ntohl(*reinterpret_cast<uint32_t*>(m_rom + 0xA0A04));
-    const uint8_t* const base_pal = m_rom + pal_ptr;
+    const uint8_t* const base_pal = m_rom.data(m_rom.read<uint32_t>(0xA0A04));
     const uint8_t* pal = base_pal;
     for(size_t i = 0; i < 54; ++i)
     {
         m_pal2.push_back(Palette(pal));
 
         std::ostringstream ss;
-        ss << "0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0')
-           << (pal - m_rom);
+        ss << std::dec << std::setw(2) << std::setfill('0') << i;
         m_treeCtrl101->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
 
         pal += 26;
@@ -495,8 +478,24 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             LoadTileset(itemData->GetValue());
             DrawTiles(16, 2, m_rpalidx);
             break;
+        case TreeNodeData::NODE_BIG_TILES:
+        {
+            size_t sel = itemData->GetValue();
+            size_t bt1 = sel >> 16;
+            size_t bt2 = sel & 0xFFFF;
+            m_bigTiles.clear();
+            LoadTileset(m_tilesetOffsets[m_tsidx]);
+            LoadBigTiles(m_bigTileOffsets[bt1][0]);
+            if (bt2 > 0)
+            {
+                LoadBigTiles(m_bigTileOffsets[bt1][bt2]);
+            }
+            DrawBigTiles(16, 1, m_rpalidx);
+            break;
+        }
         case TreeNodeData::NODE_ROOM_PAL:
             m_rpalidx = itemData->GetValue();
+            LoadTileset(m_tilesetOffsets[m_tsidx]);
             DrawTiles(16, 2, m_rpalidx);
             break;
         case TreeNodeData::NODE_ROOM:
