@@ -15,8 +15,9 @@
 #include "BigTilesCmp.h"
 #include "LSTilemapCmp.h"
 #include "Rom.h"
+#include "ImageBuffer.h"
 
-MainFrame::MainFrame(wxWindow* parent)
+MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
       m_gfxSize(0),
       m_scale(1),
@@ -25,11 +26,18 @@ MainFrame::MainFrame(wxWindow* parent)
       m_roomnum(0)
 {
     m_imgs = new ImgLst();
-    bmp.Create(1,1);
+    bmp = new wxBitmap();
+    bmp->Create(1, 1);
+    if (!filename.empty())
+    {
+        OpenRomFile(filename.c_str());
+    }
 }
 
 MainFrame::~MainFrame()
 {
+    delete m_imgs;
+    delete bmp;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -42,15 +50,10 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxUnusedVar(event);
     wxAboutDialogInfo info;
-    info.SetCopyright(_("My MainFrame"));
+    info.SetCopyright(_("Landstalker Graphics Viewer"));
     info.SetLicence(_("GPL v2 or later"));
-    info.SetDescription(_("Short description goes here"));
+    info.SetDescription(_("Github: www.github.com/thomasamendt/landstalker_gfx\nEmail: tgamendt@gmail.com"));
     ::wxAboutBox(info);
-}
-
-
-void MainFrame::OnButton41ButtonClicked(wxCommandEvent& event)
-{
 }
 
 void MainFrame::OpenRomFile(const wxString& path)
@@ -104,44 +107,37 @@ void MainFrame::OpenRomFile(const wxString& path)
 
 void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
 {
-    const size_t TILE_WIDTH = 16;
-    const size_t TILE_HEIGHT = 16;
+    const size_t BLOCK_WIDTH = 16;
+    const size_t BLOCK_HEIGHT = 16;
     const size_t MAX_WIDTH = 128;
     const size_t MAX_HEIGHT = 256;
     const size_t ROW_WIDTH = std::min(std::min(MAX_WIDTH, m_bigTiles.size()), row_width);
     const size_t ROW_HEIGHT = std::min(MAX_HEIGHT, (m_bigTiles.size() + ROW_WIDTH - 1) / ROW_WIDTH);
-    const size_t BMP_WIDTH = TILE_WIDTH * ROW_WIDTH;
-    const size_t BMP_HEIGHT = TILE_HEIGHT * ROW_HEIGHT;
+    const size_t BMP_WIDTH = BLOCK_WIDTH * ROW_WIDTH;
+    const size_t BMP_HEIGHT = BLOCK_HEIGHT * ROW_HEIGHT;
 
     size_t x = 0;
     size_t y = 0;
-    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
-    memDc.SelectObject(bmp);
-    memDc.SetBackground(*wxBLACK_BRUSH);
-    memDc.Clear();
-    memDc.SetPen(*wxWHITE_PEN);
-    memDc.SetBrush(*wxBLACK_BRUSH);
-    memDc.SetTextBackground(*wxBLACK);
-    memDc.SetTextForeground(*wxWHITE);
-    m_tilebmps.setPalette(m_pal2[pal]);
+    ImageBuffer buf(BMP_WIDTH, BMP_HEIGHT);
 
     for(auto& b : m_bigTiles)
     {
-        for(int i = 0; i < 4; i++)
-        {
-            const Tile& t = b.getTile(i);
-            size_t xoff = (i & 1) ? 1 : 0;
-            size_t yoff = (i & 2) ? 1 : 0;
-            m_tilebmps.draw(memDc, t.getIndex(), x + xoff, y + yoff, t.attributes());
-        }
-        x+=2;
-        if(x == ROW_WIDTH*2)
+        buf.InsertBlock(x * BLOCK_WIDTH, y * BLOCK_HEIGHT, 0, b, m_tilebmps);
+        x++;
+        if(x == ROW_WIDTH)
         {
             x = 0;
-            y+=2;
+            y++;
         }
     }
+    std::vector<uint8_t> rgb = buf.GetRGB(std::vector<Palette>({ m_pal2[pal] }));
+    std::vector<uint8_t> a = buf.GetAlpha(std::vector<Palette>({ m_pal2[pal] }));
+    wxImage img;
+    img.SetData(rgb.data(), BMP_WIDTH, BMP_HEIGHT, true);
+    img.SetAlpha(a.data(), true);
     memDc.SelectObject(wxNullBitmap);
+    delete bmp;
+    bmp = new wxBitmap(img);
 
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
@@ -162,47 +158,42 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
 
     size_t x = 0;
     size_t y = 0;
-    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
-    memDc.SelectObject(bmp);
-    memDc.SetBackground(*wxBLACK_BRUSH);
-    memDc.Clear();
-    m_tilebmps.setPalette(m_pal2[pal]);
+    ImageBuffer buf(BMP_WIDTH, BMP_HEIGHT);
 
     for(size_t ti = 0; ti < m_tilemap.background.size(); ++ti)
     {
-        for(int i = 0; i < 4; i++)
-        {
-            size_t xoff = (i & 1) ? 1 : 0;
-            size_t yoff = (i & 2) ? 1 : 0;
-            const Tile* t = &m_bigTiles[m_tilemap.background[ti]].getTile(i);
-            m_tilebmps.draw(memDc, t->getIndex(), x + (ROW_HEIGHT - y/2 - 1)*2 + xoff + 2, y/2 + x/2 + yoff, t->attributes());
-        }
-        x+=2;
-        if(x == ROW_WIDTH*2)
+        size_t ix = (x - y + ROW_HEIGHT) * TILE_WIDTH;
+        size_t iy = (x + y) * TILE_HEIGHT/2;
+        buf.InsertBlock(ix, iy, 0, m_bigTiles[m_tilemap.background[ti]], m_tilebmps);
+        x++;
+        if(x == ROW_WIDTH)
         {
             x = 0;
-            y+=2;
+            y++;
         }
     }
     x=0;
     y=0;
     for(size_t ti = 0; ti < m_tilemap.foreground.size(); ++ti)
     {
-        for(int i = 0; i < 4; i++)
-        {
-            size_t xoff = (i & 1) ? 1 : 0;
-            size_t yoff = (i & 2) ? 1 : 0;
-            const Tile* t = &m_bigTiles[m_tilemap.foreground[ti]].getTile(i);
-            m_tilebmps.draw(memDc, t->getIndex(), x + (ROW_HEIGHT - y/2 - 1)*2 + xoff, y/2 + x/2 + yoff, t->attributes());
-        }
-        x+=2;
-        if(x == ROW_WIDTH*2)
+        size_t ix = (x - y + ROW_HEIGHT - 1) * TILE_WIDTH;
+        size_t iy = (x + y) * TILE_HEIGHT/2;
+        buf.InsertBlock(ix, iy, 0, m_bigTiles[m_tilemap.foreground[ti]], m_tilebmps);
+        x++;
+        if (x == ROW_WIDTH)
         {
             x = 0;
-            y+=2;
+            y++;
         }
     }
+    std::vector<uint8_t> rgb = buf.GetRGB(std::vector<Palette>({ m_pal2[pal] }));
+    std::vector<uint8_t> a = buf.GetAlpha(std::vector<Palette>({ m_pal2[pal] }));
+    wxImage img;
+    img.SetData(rgb.data(), BMP_WIDTH, BMP_HEIGHT, true);
+    img.SetAlpha(a.data(), true);
     memDc.SelectObject(wxNullBitmap);
+    delete bmp;
+    bmp = new wxBitmap(img);
 
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
@@ -223,8 +214,9 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
 
     //size_t x = 0;
     //size_t y = 0;
-    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
-    memDc.SelectObject(bmp);
+    delete bmp;
+    bmp = new wxBitmap(BMP_WIDTH, BMP_HEIGHT);
+    memDc.SelectObject(*bmp);
     memDc.SetBackground(*wxBLACK_BRUSH);
     memDc.Clear();
     memDc.SetPen(*wxWHITE_PEN);
@@ -271,16 +263,11 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
 
     size_t x = 0;
     size_t y = 0;
-    bmp.Create(BMP_WIDTH, BMP_HEIGHT);
-    TileAttributes attr;
-    memDc.SelectObject(bmp);
-    memDc.SetBackground(*wxBLACK_BRUSH);
-    memDc.Clear();
-    m_tilebmps.setPalette(m_pal2[pal]);
+    ImageBuffer buf(BMP_WIDTH, BMP_HEIGHT);
+    const TileAttributes no_attrs;
     for(size_t i = 0; i < m_tilebmps.size(); ++i)
     {
-        m_tilebmps.draw(memDc, i, x, y, attr);
-
+        buf.InsertTile(x * TILE_WIDTH, y * TILE_HEIGHT, 0, Tile(no_attrs, i), m_tilebmps);
         x++;
         if(x == ROW_WIDTH)
         {
@@ -288,7 +275,14 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
             y++;
         }
     }
+    std::vector<uint8_t> rgb = buf.GetRGB(std::vector<Palette>({ m_pal2[pal] }));
+    std::vector<uint8_t> a = buf.GetAlpha(std::vector<Palette>({ m_pal2[pal] }));
+    wxImage img;
+    img.SetData(rgb.data(), BMP_WIDTH, BMP_HEIGHT, true);
+    img.SetAlpha(a.data(), true);
     memDc.SelectObject(wxNullBitmap);
+    delete bmp;
+    bmp = new wxBitmap(img);
 
     m_scale = scale;
     m_scrollWin27->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
@@ -309,7 +303,10 @@ void MainFrame::PaintNow(wxDC& dc, size_t scale)
         m_scrollWin27->GetClientSize(&w, &h);
         double dscale = static_cast<double>(scale);
         memDc.SelectObject(wxNullBitmap);
-        memDc.SelectObject(bmp);
+        if (bmp != nullptr)
+        {
+            memDc.SelectObject(*bmp);
+        }
         dc.SetUserScale(dscale, dscale);
         dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDc, x, y, wxCOPY, true);
         memDc.SelectObject(wxNullBitmap);
@@ -319,26 +316,6 @@ void MainFrame::OnScrollwin27Paint(wxPaintEvent& event)
 {
     wxPaintDC dc(m_scrollWin27);
     PaintNow(dc, m_scale);
-}
-void MainFrame::OnButton51ButtonClicked(wxCommandEvent& event)
-{
-    uint8_t buffer[131072];
-    uint8_t ebuffer[131072];
-    std::memset(buffer, 0x00, sizeof(buffer));
-    std::memset(ebuffer, 0x00, sizeof(ebuffer));
-    size_t elen = 0;
-    size_t len = LZ77::Decode(m_rom.data(m_tilesetOffsets[0]), 0, buffer, elen);
-    std::ostringstream ss;
-    ss << "Extracted " << len << " bytes. Encoded len " << elen << " bytes.";
-    wxMessageBox(ss.str());
-    size_t enclen = LZ77::Encode(buffer, len, ebuffer);
-    double ratio = static_cast<double>(enclen) / static_cast<double>(len) * 100.0;
-    ss.str(std::string());
-    ss << "Encoded to " << enclen << " bytes. Compression ratio: " << ratio << "%";
-    wxMessageBox(ss.str());
-    std::memset(buffer, 0x00, sizeof(buffer));
-    LZ77::Decode(ebuffer, 0, buffer, elen);
-    DrawTiles(16, 2, m_rpalidx);
 }
 
 void MainFrame::LoadTileset(size_t offset)
@@ -378,11 +355,10 @@ void MainFrame::InitPals(const wxTreeItemId& node)
 void MainFrame::OnMenuitem109MenuSelected(wxCommandEvent& event)
 {
     wxFileDialog    fdlog(this);
-    if(fdlog.ShowModal() != wxID_OK)
+    if(fdlog.ShowModal() == wxID_OK)
     {
-        return;
+        OpenRomFile(fdlog.GetPath());
     }
-    OpenRomFile(fdlog.GetPath());
 }
 void MainFrame::OnAuimgr127Paint(wxPaintEvent& event)
 {
@@ -484,7 +460,7 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
             size_t bt1 = sel >> 16;
             size_t bt2 = sel & 0xFFFF;
             m_bigTiles.clear();
-            LoadTileset(m_tilesetOffsets[m_tsidx]);
+            LoadTileset(m_tilesetOffsets[bt1 & 0x1F]);
             LoadBigTiles(m_bigTileOffsets[bt1][0]);
             if (bt2 > 0)
             {
@@ -506,7 +482,6 @@ void MainFrame::OnTreectrl101TreeItemActivated(wxTreeEvent& event)
         case TreeNodeData::NODE_ROOM_HEIGHTMAP:
             InitRoom(itemData->GetValue());
             PopulateRoomProperties(m_roomnum, m_tilemap);
-            //DrawTilemap(1, n_rpalidx);
             DrawHeightmap(1, m_roomnum);
         default:
             // do nothing

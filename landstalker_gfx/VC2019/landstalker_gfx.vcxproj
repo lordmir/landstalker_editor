@@ -146,6 +146,7 @@
     <ClCompile Include="..\BigTilesCmp.cpp" />
     <ClCompile Include="..\BitBarrel.cpp" />
     <ClCompile Include="..\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\ImageBuffer.cpp" />
     <ClCompile Include="..\LSTilemapCmp.cpp" />
     <ClCompile Include="..\LZ77.cpp" />
     <ClCompile Include="..\main.cpp" />
@@ -153,7 +154,7 @@
     <ClCompile Include="..\Palette.cpp" />
     <ClCompile Include="..\Tile.cpp" />
     <ClCompile Include="..\TileAttributes.cpp" />
-    <ClCompile Include="..\TileBitmap.cpp" />
+    <ClCompile Include="..\Tileset.cpp" />
     <ClCompile Include="..\wxcrafter.cpp" />
     <ClCompile Include="..\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
@@ -162,6 +163,7 @@
     <ClInclude Include="..\BigTilesCmp.h" />
     <ClInclude Include="..\BitBarrel.h" />
     <ClInclude Include="..\BitBarrelWriter.h" />
+    <ClInclude Include="..\ImageBuffer.h" />
     <ClInclude Include="..\LSTilemapCmp.h" />
     <ClInclude Include="..\LZ77.h" />
     <ClInclude Include="..\MainFrame.h" />
@@ -170,7 +172,7 @@
     <ClInclude Include="..\Rom.h" />
     <ClInclude Include="..\Tile.h" />
     <ClInclude Include="..\TileAttributes.h" />
-    <ClInclude Include="..\TileBitmap.h" />
+    <ClInclude Include="..\Tileset.h" />
     <ClInclude Include="..\wxcrafter.h" />
   </ItemGroup>
   <ItemGroup>

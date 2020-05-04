@@ -5,7 +5,7 @@
 #include <vector>
 #include <wx/dcmemory.h>
 #include "BigTile.h"
-#include "TileBitmap.h"
+#include "Tileset.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
 #include "Rom.h"
@@ -21,7 +21,7 @@ class wxImage;
 class MainFrame : public MainFrameBaseClass
 {
 public:
-    MainFrame(wxWindow* parent);
+    MainFrame(wxWindow* parent, const std::string& filename);
     virtual ~MainFrame();
 
     void OnExit(wxCommandEvent& event);
@@ -30,10 +30,8 @@ protected:
     virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event);
     virtual void OnAuimgr127Paint(wxPaintEvent& event);
     virtual void OnMenuitem109MenuSelected(wxCommandEvent& event);
-    virtual void OnButton51ButtonClicked(wxCommandEvent& event);
     virtual void OnScrollwin27Paint(wxPaintEvent& event);
     virtual void OnPaint(wxPaintEvent& event);
-    virtual void OnButton41ButtonClicked(wxCommandEvent& event);
 private:
     struct RoomData
     {
@@ -99,10 +97,10 @@ private:
     uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
     wxMemoryDC memDc;
-    wxBitmap bmp;
+    wxBitmap* bmp;
     std::vector<RoomData> m_rooms;
     std::vector<Palette> m_pal2;
-    TileBitmap m_tilebmps;
+    Tileset m_tilebmps;
     wxImage m_img;
     size_t m_scale;
     uint8_t m_rpalidx;

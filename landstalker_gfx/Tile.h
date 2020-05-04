@@ -19,8 +19,6 @@ public:
     
     std::string print() const;
     
-//    void Draw(Tileset, Palette, x, y, zoom);
-    
 private:
     uint16_t getTileValue() const;
 

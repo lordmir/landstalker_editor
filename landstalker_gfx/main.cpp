@@ -2,6 +2,8 @@
 #include <wx/event.h>
 #include "MainFrame.h"
 #include <wx/image.h>
+#include <wx/cmdline.h>
+#include <string>
 
 // Define the MainApp
 class MainApp : public wxApp
@@ -13,7 +15,13 @@ public:
     virtual bool OnInit() {
         wxInitAllImageHandlers();
 
-        MainFrame *mainFrame = new MainFrame(NULL);
+        std::string romFile("");
+        if (this->argc == 2)
+        {
+            romFile = this->argv[1];
+        }
+
+        MainFrame* mainFrame = new MainFrame(NULL, romFile);
         SetTopWindow(mainFrame);
         return GetTopWindow()->Show();
     }
