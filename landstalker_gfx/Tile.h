@@ -10,6 +10,7 @@ class Tile
 public:
     Tile();
     Tile(const TileAttributes& attrs, uint16_t index);
+    Tile(uint16_t index);
     
     void setIndex(uint16_t index);
     uint16_t getIndex() const;

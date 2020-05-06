@@ -1,4 +1,5 @@
 #include "Tileset.h"
+#include <algorithm>
 
 Tileset::Tileset()
 {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc">
   <object class="wxFrame" name="MainFrameBaseClass">
-    <title>Landstalker</title>
+    <title>Landstalker Graphics Viewer</title>
     <centered>1</centered>
     <style>wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX</style>
     <size>800,600</size>
@@ -15,6 +15,18 @@
           <accel>
             <![CDATA[Ctrl-O]]>
           </accel>
+          <help>
+            <![CDATA[Open]]>
+          </help>
+        </object>
+        <object class="wxMenuItem" name="m_menuItem110">
+          <label>Export to PNG</label>
+          <accel>
+            <![CDATA[Ctrl+E]]>
+          </accel>
+          <help>
+            <![CDATA[]]>
+          </help>
         </object>
         <object class="separator"/>
         <object class="wxMenuItem" name="m_menuItem7">
@@ -22,6 +34,9 @@
           <accel>
             <![CDATA[Alt-X]]>
           </accel>
+          <help>
+            <![CDATA[Quit]]>
+          </help>
         </object>
       </object>
       <object class="wxMenu" name="m_name8">
@@ -32,6 +47,9 @@
           <accel>
             <![CDATA[]]>
           </accel>
+          <help>
+            <![CDATA[]]>
+          </help>
         </object>
       </object>
     </object>
@@ -40,7 +58,7 @@
       <fields>1</fields>
     </object>
     <object class="wxAuiManager">
-      <flags>271</flags>
+      <style>wxAUI_MGR_LIVE_RESIZE|wxAUI_MGR_TRANSPARENT_HINT|wxAUI_MGR_TRANSPARENT_DRAG|wxAUI_MGR_ALLOW_ACTIVE_PANE|wxAUI_MGR_ALLOW_FLOATING</style>
       <sashsize>-1</sashsize>
       <pane-border-size>-1</pane-border-size>
       <sash-colour/>
@@ -51,27 +69,27 @@
       <caption-text-colour/>
       <inactive-caption-text-colour/>
       <gradient-type>wxAUI_GRADIENT_NONE</gradient-type>
-      <object class="wxAuiPaneInfo">
-        <name>
-          <![CDATA[]]>
-        </name>
-        <caption>
-          <![CDATA[Browser]]>
-        </caption>
-        <caption-visible>1</caption-visible>
+      <object class="wxAuiPaneInfo" name="">
+        <caption>Browser</caption>
+        <caption_visible>1</caption_visible>
+        <top_dockable>1</top_dockable>
+        <left_dockable>1</left_dockable>
+        <bottom_dockable>1</bottom_dockable>
+        <right_dockable>1</right_dockable>
         <resizable>1</resizable>
-        <direction>wxAUI_DOCK_LEFT</direction>
+        <movable>1</movable>
+        <floatable>1</floatable>
+        <best_size>200,100</best_size>
+        <max_size>100,100</max_size>
+        <min_size>100,100</min_size>
+        <left>1</left>
         <layer>0</layer>
         <row>0</row>
         <position>0</position>
-        <bestsize>200,100</bestsize>
-        <maxsize>100,100</maxsize>
-        <minsize>100,100</minsize>
-        <closebtn>1</closebtn>
-        <minbtn>0</minbtn>
-        <maxbtn>0</maxbtn>
-        <pinbtn>1</pinbtn>
-        <toolbar-pane>0</toolbar-pane>
+        <close_button>1</close_button>
+        <minimize_button>0</minimize_button>
+        <maximize_button>0</maximize_button>
+        <pin_button>1</pin_button>
         <object class="wxPanel" name="m_panel134">
           <style>wxTAB_TRAVERSAL</style>
           <object class="wxBoxSizer">
@@ -89,27 +107,27 @@
           </object>
         </object>
       </object>
-      <object class="wxAuiPaneInfo">
-        <name>
-          <![CDATA[]]>
-        </name>
-        <caption>
-          <![CDATA[Properties]]>
-        </caption>
-        <caption-visible>1</caption-visible>
+      <object class="wxAuiPaneInfo" name="">
+        <caption>Properties</caption>
+        <caption_visible>1</caption_visible>
+        <top_dockable>1</top_dockable>
+        <left_dockable>1</left_dockable>
+        <bottom_dockable>1</bottom_dockable>
+        <right_dockable>1</right_dockable>
         <resizable>1</resizable>
-        <direction>wxAUI_DOCK_LEFT</direction>
+        <movable>1</movable>
+        <floatable>1</floatable>
+        <best_size>200,100</best_size>
+        <max_size>100,100</max_size>
+        <min_size>100,100</min_size>
+        <left>1</left>
         <layer>0</layer>
         <row>0</row>
         <position>0</position>
-        <bestsize>200,100</bestsize>
-        <maxsize>100,100</maxsize>
-        <minsize>100,100</minsize>
-        <closebtn>1</closebtn>
-        <minbtn>0</minbtn>
-        <maxbtn>0</maxbtn>
-        <pinbtn>1</pinbtn>
-        <toolbar-pane>0</toolbar-pane>
+        <close_button>1</close_button>
+        <minimize_button>0</minimize_button>
+        <maximize_button>0</maximize_button>
+        <pin_button>1</pin_button>
         <object class="wxPanel" name="m_panel136">
           <style>wxTAB_TRAVERSAL</style>
           <object class="wxBoxSizer">
@@ -126,27 +144,27 @@
           </object>
         </object>
       </object>
-      <object class="wxAuiPaneInfo">
-        <name>
-          <![CDATA[]]>
-        </name>
-        <caption>
-          <![CDATA[]]>
-        </caption>
-        <caption-visible>0</caption-visible>
+      <object class="wxAuiPaneInfo" name="">
+        <caption/>
+        <caption_visible>0</caption_visible>
+        <top_dockable>1</top_dockable>
+        <left_dockable>1</left_dockable>
+        <bottom_dockable>1</bottom_dockable>
+        <right_dockable>1</right_dockable>
         <resizable>1</resizable>
-        <direction>wxAUI_DOCK_CENTER</direction>
+        <movable>1</movable>
+        <floatable>1</floatable>
+        <best_size>100,100</best_size>
+        <max_size>100,100</max_size>
+        <min_size>100,100</min_size>
+        <centre>1</centre>
         <layer>0</layer>
         <row>0</row>
         <position>0</position>
-        <bestsize>100,100</bestsize>
-        <maxsize>100,100</maxsize>
-        <minsize>100,100</minsize>
-        <closebtn>0</closebtn>
-        <minbtn>0</minbtn>
-        <maxbtn>0</maxbtn>
-        <pinbtn>0</pinbtn>
-        <toolbar-pane>0</toolbar-pane>
+        <close_button>0</close_button>
+        <minimize_button>0</minimize_button>
+        <maximize_button>0</maximize_button>
+        <pin_button>0</pin_button>
         <object class="wxScrolledWindow" name="m_scrollWin27">
           <bg>#000000</bg>
           <style>wxFULL_REPAINT_ON_RESIZE|wxHSCROLL|wxVSCROLL</style>

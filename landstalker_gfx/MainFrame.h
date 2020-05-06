@@ -3,12 +3,17 @@
 #include "wxcrafter.h"
 #include <cstdint>
 #include <vector>
+#include <memory>
 #include <wx/dcmemory.h>
 #include "BigTile.h"
 #include "Tileset.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
 #include "Rom.h"
+#include "SpriteGraphic.h"
+#include "SpriteFrame.h"
+#include "Sprite.h"
+#include "ImageBuffer.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -30,6 +35,7 @@ protected:
     virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event);
     virtual void OnAuimgr127Paint(wxPaintEvent& event);
     virtual void OnMenuitem109MenuSelected(wxCommandEvent& event);
+    virtual void OnMenuitem110MenuSelected(wxCommandEvent& event);
     virtual void OnScrollwin27Paint(wxPaintEvent& event);
     virtual void OnPaint(wxPaintEvent& event);
 private:
@@ -70,7 +76,9 @@ private:
             NODE_BIG_TILES,
             NODE_ROOM_PAL,
             NODE_ROOM,
-            NODE_ROOM_HEIGHTMAP
+            NODE_ROOM_HEIGHTMAP,
+            NODE_SPRITE,
+            NODE_SPRITE_FRAME
         };
         TreeNodeData(NodeType nodeType = NODE_BASE, size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
         size_t GetValue() const { return m_value; }
@@ -83,6 +91,8 @@ private:
     void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(size_t scale, uint8_t pal);
     void DrawHeightmap(size_t scale, uint16_t room);
+    void DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, size_t scale = 4);
+    void ForceRepaint();
     void PaintNow(wxDC& dc, size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(size_t offset);
@@ -97,10 +107,12 @@ private:
     uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
     wxMemoryDC memDc;
-    wxBitmap* bmp;
+    std::shared_ptr<wxBitmap> bmp;
     std::vector<RoomData> m_rooms;
     std::vector<Palette> m_pal2;
+    std::vector<Palette> m_palette;
     Tileset m_tilebmps;
+    ImageBuffer m_imgbuf;
     wxImage m_img;
     size_t m_scale;
     uint8_t m_rpalidx;
@@ -109,6 +121,9 @@ private:
     std::vector<uint32_t> m_tilesetOffsets;
     std::vector<std::vector<uint32_t>> m_bigTileOffsets;
     std::vector<BigTile> m_bigTiles;
+    std::vector<SpriteFrame> m_spriteFrames;
+    std::vector<SpriteGraphic> m_spriteGraphics;
+    std::map<uint8_t, Sprite> m_sprites;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
 };

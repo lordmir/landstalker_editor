@@ -1,6 +1,6 @@
 EXEC=target
 CC=g++
-LDFLAGS= `wx-config --libs xrc,propgrid,aui,adv,core,base`
+LDFLAGS= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
 CXXFLAGS= `wx-config --cxxflags` -std=c++11
 CPPFLAGS = `wx-config --cppflags`
 TARGET    := $(notdir $(CURDIR))

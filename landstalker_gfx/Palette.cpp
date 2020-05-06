@@ -1,27 +1,62 @@
 #include "Palette.h"
 
-Palette::Palette(const uint8_t* src)
+Palette::Palette()
 {
     pal_[0].r = 0x00;
     pal_[0].g = 0x00;
     pal_[0].b = 0x00;
     pal_[0].a = 0x00;
-    
+
     pal_[1].r = 0xD8;
     pal_[1].g = 0xD8;
     pal_[1].b = 0xD8;
     pal_[1].a = 0xFF;
-    
-    pal_[15].r = 0x00;
-    pal_[15].g = 0x00;
-    pal_[15].b = 0x00;
-    pal_[15].a = 0xFF;
-    
-    for(size_t i = 2; i < 15; ++i)
+
+    for (size_t i = 0; i < 16; ++i)
     {
-        pal_[i].b = (*src++ & 0x0F) * 18;
-        pal_[i].g = (*src >> 4)     * 18;
-        pal_[i].r = (*src++ & 0x0F) * 18;
+        pal_[15].r = 0x00;
+        pal_[15].g = 0x00;
+        pal_[15].b = 0x00;
+        pal_[15].a = 0xFF;
+    }
+}
+
+Palette::Palette(const uint8_t* src, size_t offset, const PaletteType& type)
+    : Palette()
+{
+    Load(src, offset, type);
+}
+
+void Palette::Load(const uint8_t* src, size_t offset, const PaletteType& type)
+{
+    size_t begin = 0;
+    size_t length = 16;
+    switch (type)
+    {
+    case ROOM_PALETTE:
+        begin = 2;
+        length = 13;
+        break;
+    case SPRITE_HIGH_PALETTE:
+        begin = 8;
+        length = 7;
+        break;
+    case SPRITE_LOW_PALETTE:
+        begin = 2;
+        length = 6;
+        break;
+    case FULL_PALETTE:
+    default:
+        break;
+    }
+
+    src += offset * length * 2;
+    
+    for(size_t i = begin; i < (begin + length); ++i)
+    {
+        pal_[i].b = std::min(0xFF, (*src++ & 0x0F) * 18);
+        pal_[i].g = std::min(0xFF, (*src >> 4)     * 18);
+        pal_[i].r = std::min(0xFF, (*src++ & 0x0F) * 18);
         pal_[i].a = 0xFF;
     }
 }

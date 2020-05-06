@@ -796,6 +796,8 @@
 #define LANG_PULAR                      0x67
 #define VK_NUMPAD8                      0x68
 #define LANG_HAUSA                      0x68
+#define IDI_ICON1                       104
+#define aaaa                            104
 #define VK_NUMPAD9                      0x69
 #define VK_MULTIPLY                     0x6A
 #define LANG_YORUBA                     0x6a
@@ -1607,7 +1609,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        101
+#define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101

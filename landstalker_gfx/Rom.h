@@ -3,12 +3,10 @@
 
 #include <string>
 #include <cstdint>
-#include <memory>
 #include <fstream>
 #include <sstream>
 #include <exception>
 #include <vector>
-#include <iomanip>
 
 class Rom
 {
@@ -41,7 +39,7 @@ public:
 		}
 
 		infile.seekg(0, std::ios::end);
-		size_t size = infile.tellg();
+		size_t size = static_cast<size_t>(infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
 		if (size != EXPECTED_SIZE)
@@ -64,54 +62,10 @@ public:
 	}
 
 	template< class T >
-	T read(size_t offset) const
-	{
-		T retval = 0;
-		if (m_initialised == false)
-		{
-			throw std::runtime_error("Attempt to read from uninitialised ROM.");
-		}
-		for (size_t i = 0; i < sizeof(T); ++i)
-		{
-			retval <<= 8;
-			retval |= m_rom[offset + i];
-		}
-		return retval;
-	}
-
-	template<>
-	bool read<bool>(size_t offset) const
-	{
-		if (m_initialised == false)
-		{
-			throw std::runtime_error("Attempt to read from uninitialised ROM.");
-		}
-		return (m_rom[offset] > 0);
-	}
+	T read(size_t offset) const;
 
 	template<class T>
-	std::vector<T> read_array(size_t offset, size_t count) const
-	{
-		std::vector<T> ret;
-		ret.reserve(count);
-		for (size_t i = 0; i < count; ++i)
-		{
-			ret.push_back(read<T>(offset + i * sizeof(T)));
-		}
-		return ret;
-	}
-
-	template<>
-	std::vector<bool> read_array(size_t offset, size_t count) const
-	{
-		std::vector<bool> ret;
-		ret.reserve(count);
-		for (size_t i = 0; i < count; ++i)
-		{
-			ret.push_back(read<bool>(offset + i));
-		}
-		return ret;
-	}
+	std::vector<T> read_array(size_t offset, size_t count) const;
 
 	template< class T >
 	T deref(size_t address, size_t offset = 0) const
@@ -131,26 +85,53 @@ private:
 };
 
 template< class T >
-std::string Hex(const T& val)
+inline T Rom::read(size_t offset) const
 {
-	std::ostringstream ss;
-	ss << "0x" << std::hex << std::uppercase << std::setw(sizeof(T)*2) << std::setfill('0') << static_cast<unsigned>(val);
-	return ss.str();
+	T retval = 0;
+	if (m_initialised == false)
+	{
+		throw std::runtime_error("Attempt to read from uninitialised ROM.");
+	}
+	for (size_t i = 0; i < sizeof(T); ++i)
+	{
+		retval <<= 8;
+		retval |= m_rom[offset + i];
+	}
+	return retval;
 }
 
-template< class Iter >
-std::string HexArray(const Iter start, const Iter end)
+template<>
+inline bool Rom::read<bool>(size_t offset) const
 {
-	std::ostringstream ss;
-	for (auto it = start; it != end; ++it)
+	if (m_initialised == false)
 	{
-		ss << Hex(*it);
-		if ((it + 1) != end)
-		{
-			ss << ", ";
-		}
+		throw std::runtime_error("Attempt to read from uninitialised ROM.");
 	}
-	return ss.str();
+	return (m_rom[offset] > 0);
+}
+
+template<class T>
+inline std::vector<T> Rom::read_array(size_t offset, size_t count) const
+{
+	std::vector<T> ret;
+	ret.reserve(count);
+	for (size_t i = 0; i < count; ++i)
+	{
+		ret.push_back(read<T>(offset + i * sizeof(T)));
+	}
+	return ret;
+}
+
+template<>
+inline std::vector<bool> Rom::read_array(size_t offset, size_t count) const
+{
+	std::vector<bool> ret;
+	ret.reserve(count);
+	for (size_t i = 0; i < count; ++i)
+	{
+		ret.push_back(read<bool>(offset + i));
+	}
+	return ret;
 }
 
 #endif // ROM_H

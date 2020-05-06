@@ -4,9 +4,10 @@
 // Do not modify this file by hand!
 //////////////////////////////////////////////////////////////////////
 
-#ifndef LANDSTALKER_GFX_LANDSTALKER_GFX_WXCRAFTER_BASE_CLASSES_H
-#define LANDSTALKER_GFX_LANDSTALKER_GFX_WXCRAFTER_BASE_CLASSES_H
+#ifndef _LANDSTALKER_GFX_WXCRAFTER_BASE_CLASSES_H
+#define _LANDSTALKER_GFX_WXCRAFTER_BASE_CLASSES_H
 
+// clang-format off
 #include <wx/settings.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/xrc/xh_bmp.h>
@@ -33,12 +34,24 @@
 #include <wx/persist/treebook.h>
 #endif
 
+#ifdef WXC_FROM_DIP
+#undef WXC_FROM_DIP
+#endif
+#if wxVERSION_NUMBER >= 3100
+#define WXC_FROM_DIP(x) wxWindow::FromDIP(x, NULL)
+#else
+#define WXC_FROM_DIP(x) x
+#endif
+
+// clang-format on
+
 class MainFrameBaseClass : public wxFrame
 {
 protected:
     wxMenuBar* m_menuBar;
     wxMenu* m_name6;
     wxMenuItem* m_menuItem109;
+    wxMenuItem* m_menuItem110;
     wxMenuItem* m_menuItem121;
     wxMenuItem* m_menuItem7;
     wxMenu* m_name8;
@@ -52,42 +65,98 @@ protected:
     wxScrolledWindow* m_scrollWin27;
 
 protected:
-    virtual void OnMenuitem109MenuSelected(wxCommandEvent& event) { event.Skip(); }
-    virtual void OnExit(wxCommandEvent& event) { event.Skip(); }
-    virtual void OnAbout(wxCommandEvent& event) { event.Skip(); }
-    virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event) { event.Skip(); }
-    virtual void OnScrollwin27Paint(wxPaintEvent& event) { event.Skip(); }
+    virtual void OnMenuitem109MenuSelected(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnMenuitem110MenuSelected(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnExit(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnAbout(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollwin27Paint(wxPaintEvent& event)
+    {
+        event.Skip();
+    }
 
 public:
-    wxMenuBar* GetMenuBar() { return m_menuBar; }
-    wxStatusBar* GetStatusBar29() { return m_statusBar29; }
-    wxTreeCtrl* GetTreeCtrl101() { return m_treeCtrl101; }
-    wxPanel* GetPanel134() { return m_panel134; }
-    wxPropertyGridManager* GetPgMgr146() { return m_pgMgr146; }
-    wxPanel* GetPanel136() { return m_panel136; }
-    wxScrolledWindow* GetScrollWin27() { return m_scrollWin27; }
-    wxAuiManager* GetAuimgr127() { return m_auimgr127; }
-    MainFrameBaseClass(wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = _("Landstalker"), const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize(800,600), long style = wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX);
+    wxMenuBar* GetMenuBar()
+    {
+        return m_menuBar;
+    }
+    wxStatusBar* GetStatusBar29()
+    {
+        return m_statusBar29;
+    }
+    wxTreeCtrl* GetTreeCtrl101()
+    {
+        return m_treeCtrl101;
+    }
+    wxPanel* GetPanel134()
+    {
+        return m_panel134;
+    }
+    wxPropertyGridManager* GetPgMgr146()
+    {
+        return m_pgMgr146;
+    }
+    wxPanel* GetPanel136()
+    {
+        return m_panel136;
+    }
+    wxScrolledWindow* GetScrollWin27()
+    {
+        return m_scrollWin27;
+    }
+    wxAuiManager* GetAuimgr127()
+    {
+        return m_auimgr127;
+    }
+    MainFrameBaseClass(wxWindow* parent,
+        wxWindowID id = wxID_ANY,
+        const wxString& title = _("Landstalker Graphics Viewer"),
+        const wxPoint& pos = wxDefaultPosition,
+        const wxSize& size = wxSize(800, 600),
+        long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();
 };
-
 
 class ImgLst : public wxImageList
 {
 protected:
     // Maintain a map of all bitmaps representd by their name
     std::map<wxString, wxBitmap> m_bitmaps;
-
+    // The requested image resolution (can be one of @2x, @1.5x, @1.25x or an empty string (the default)
+    wxString m_resolution;
+    int m_imagesWidth;
+    int m_imagesHeight;
 
 protected:
-
 public:
     ImgLst();
-    const wxBitmap& Bitmap(const wxString &name) const {
-        if ( !m_bitmaps.count(name) )
+    const wxBitmap& Bitmap(const wxString& name) const
+    {
+        if(!m_bitmaps.count(name + m_resolution))
             return wxNullBitmap;
-        return m_bitmaps.find(name)->second;
+        return m_bitmaps.find(name + m_resolution)->second;
     }
+
+    void SetBitmapResolution(const wxString& res = wxEmptyString)
+    {
+        m_resolution = res;
+    }
+
     virtual ~ImgLst();
 };
 

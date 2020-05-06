@@ -7,7 +7,19 @@
 class Palette
 {
 public:
-    Palette(const uint8_t* src);
+
+    enum PaletteType
+    {
+        FULL_PALETTE,
+        ROOM_PALETTE,
+        SPRITE_LOW_PALETTE,
+        SPRITE_HIGH_PALETTE,
+    };
+
+    Palette();
+    Palette(const uint8_t* src, size_t offset, const PaletteType& type);
+
+    void Load(const uint8_t* src, size_t offset, const PaletteType& type);
 
     uint8_t getR(uint8_t index) const;
     uint8_t getG(uint8_t index) const;

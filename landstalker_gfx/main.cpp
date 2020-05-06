@@ -15,6 +15,7 @@ public:
     virtual bool OnInit() {
         wxInitAllImageHandlers();
 
+
         std::string romFile("");
         if (this->argc == 2)
         {

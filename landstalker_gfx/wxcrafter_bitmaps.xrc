@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc">
   <!-- Handler Generation is ON -->
-  <object class="wxBitmap" name="m_bmp150">img\bigtiles.png</object>
-  <object class="wxBitmap" name="m_bmp57">img\room.png</object>
-  <object class="wxBitmap" name="m_bmp59">img\ts.png</object>
-  <object class="wxBitmap" name="m_bmp61">img\pal.png</object>
+  <object class="wxBitmap" name="m_bmp150">D:\landstalker_gfx\landstalker_gfx\img\bigtiles.png</object>
+  <object class="wxBitmap" name="m_bmp154">D:\landstalker_gfx\landstalker_gfx\img\sprite.png</object>
+  <object class="wxBitmap" name="m_bmp57">D:\landstalker_gfx\landstalker_gfx\img\room.png</object>
+  <object class="wxBitmap" name="m_bmp59">D:\landstalker_gfx\landstalker_gfx\img\ts.png</object>
+  <object class="wxBitmap" name="m_bmp61">D:\landstalker_gfx\landstalker_gfx\img\pal.png</object>
+  <object class="wxBitmap" name="msword">img\msword.ico</object>
 </resource>

@@ -9,7 +9,13 @@ Tile::Tile()
 }
 
 Tile::Tile(const TileAttributes& attrs, uint16_t index)
-: attrs_(attrs),
+    : attrs_(attrs),
+    index_(index)
+{
+}
+
+Tile::Tile(uint16_t index)
+: attrs_(),
   index_(index)
 {
 }
