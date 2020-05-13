@@ -5,12 +5,12 @@
     <centered>1</centered>
     <style>wxCAPTION|wxRESIZE_BORDER|wxMAXIMIZE_BOX|wxMINIMIZE_BOX|wxSYSTEM_MENU|wxCLOSE_BOX</style>
     <size>800,600</size>
-    <object class="wxMenuBar" name="m_menuBar">
+    <object class="wxMenuBar" name="m_menubar">
       <style/>
-      <object class="wxMenu" name="m_name6">
+      <object class="wxMenu" name="m_mnu_file">
         <label>File</label>
         <style/>
-        <object class="wxMenuItem" name="m_menuItem109">
+        <object class="wxMenuItem" name="m_mnu_open">
           <label>Open</label>
           <accel>
             <![CDATA[Ctrl-O]]>
@@ -19,7 +19,7 @@
             <![CDATA[Open]]>
           </help>
         </object>
-        <object class="wxMenuItem" name="m_menuItem110">
+        <object class="wxMenuItem" name="m_mnu_export">
           <label>Export to PNG</label>
           <accel>
             <![CDATA[Ctrl+E]]>
@@ -29,7 +29,7 @@
           </help>
         </object>
         <object class="separator"/>
-        <object class="wxMenuItem" name="m_menuItem7">
+        <object class="wxMenuItem" name="m_mnu_exit">
           <label>Exit</label>
           <accel>
             <![CDATA[Alt-X]]>
@@ -39,10 +39,10 @@
           </help>
         </object>
       </object>
-      <object class="wxMenu" name="m_name8">
+      <object class="wxMenu" name="m_mnu_help">
         <label>Help</label>
         <style/>
-        <object class="wxMenuItem" name="m_menuItem9">
+        <object class="wxMenuItem" name="m_mnu_about">
           <label>About...</label>
           <accel>
             <![CDATA[]]>
@@ -53,7 +53,7 @@
         </object>
       </object>
     </object>
-    <object class="wxStatusBar" name="m_statusBar29">
+    <object class="wxStatusBar" name="m_statusbar">
       <style>wxSTB_DEFAULT_STYLE</style>
       <fields>1</fields>
     </object>
@@ -79,18 +79,18 @@
         <resizable>1</resizable>
         <movable>1</movable>
         <floatable>1</floatable>
-        <best_size>200,100</best_size>
+        <best_size>200,150</best_size>
         <max_size>100,100</max_size>
         <min_size>100,100</min_size>
         <left>1</left>
         <layer>0</layer>
         <row>0</row>
         <position>0</position>
-        <close_button>1</close_button>
+        <close_button>0</close_button>
         <minimize_button>0</minimize_button>
         <maximize_button>0</maximize_button>
-        <pin_button>1</pin_button>
-        <object class="wxPanel" name="m_panel134">
+        <pin_button>0</pin_button>
+        <object class="wxPanel" name="m_panel_browser">
           <style>wxTAB_TRAVERSAL</style>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
@@ -99,7 +99,7 @@
               <border>5</border>
               <minsize>300,50</minsize>
               <option>1</option>
-              <object class="wxTreeCtrl" name="m_treeCtrl101">
+              <object class="wxTreeCtrl" name="m_browser">
                 <style>wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxFULL_REPAINT_ON_RESIZE</style>
                 <size>300,50</size>
               </object>
@@ -123,12 +123,12 @@
         <left>1</left>
         <layer>0</layer>
         <row>0</row>
-        <position>0</position>
-        <close_button>1</close_button>
+        <position>1</position>
+        <close_button>0</close_button>
         <minimize_button>0</minimize_button>
         <maximize_button>0</maximize_button>
-        <pin_button>1</pin_button>
-        <object class="wxPanel" name="m_panel136">
+        <pin_button>0</pin_button>
+        <object class="wxPanel" name="m_panel_properties">
           <style>wxTAB_TRAVERSAL</style>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
@@ -137,8 +137,188 @@
               <border>5</border>
               <minsize>300,50</minsize>
               <option>1</option>
-              <object class="unknown" name="m_pgMgr146">
+              <object class="unknown" name="m_properties">
                 <size>300,50</size>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="wxAuiPaneInfo" name="">
+        <caption>Layers</caption>
+        <caption_visible>1</caption_visible>
+        <top_dockable>1</top_dockable>
+        <left_dockable>1</left_dockable>
+        <bottom_dockable>1</bottom_dockable>
+        <right_dockable>1</right_dockable>
+        <resizable>0</resizable>
+        <movable>1</movable>
+        <floatable>1</floatable>
+        <best_size>-1,-1</best_size>
+        <max_size>200,115</max_size>
+        <min_size>200,115</min_size>
+        <right>1</right>
+        <layer>0</layer>
+        <row>0</row>
+        <position>0</position>
+        <close_button>0</close_button>
+        <minimize_button>0</minimize_button>
+        <maximize_button>0</maximize_button>
+        <pin_button>0</pin_button>
+        <object class="wxPanel" name="m_panel_layers">
+          <style>wxTAB_TRAVERSAL</style>
+          <size>200,130</size>
+          <object class="wxFlexGridSizer">
+            <minsize>200,130</minsize>
+            <cols>3</cols>
+            <rows>5</rows>
+            <vgap>0</vgap>
+            <hgap>0</hgap>
+            <growablecols>0</growablecols>
+            <growablerows/>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxRadioButton" name="m_optBgSelect">
+                <style/>
+                <label>Background</label>
+                <enabled>0</enabled>
+                <value>1</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALIGN_CENTER|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxCheckBox" name="m_checkBgVisible">
+                <enabled>0</enabled>
+                <style/>
+                <label/>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <minsize>75,-1</minsize>
+              <object class="wxSlider" name="m_sliderBgOpacity">
+                <style>wxSL_HORIZONTAL</style>
+                <enabled>0</enabled>
+                <min>0</min>
+                <max>255</max>
+                <value>255</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxRadioButton" name="m_optFg1Select">
+                <style/>
+                <label>Foreground 1</label>
+                <enabled>0</enabled>
+                <value>0</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALIGN_CENTER|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxCheckBox" name="m_checkFg1Visible">
+                <enabled>0</enabled>
+                <style/>
+                <label/>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <minsize>75,-1</minsize>
+              <object class="wxSlider" name="m_sliderFg1Opacity">
+                <style>wxSL_HORIZONTAL</style>
+                <enabled>0</enabled>
+                <min>0</min>
+                <max>255</max>
+                <value>255</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxRadioButton" name="m_optFg2Select">
+                <style/>
+                <label>Foreground 2</label>
+                <enabled>0</enabled>
+                <value>0</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALIGN_CENTER|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxCheckBox" name="m_checkFg2Visible">
+                <enabled>0</enabled>
+                <style/>
+                <label/>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <minsize>75,-1</minsize>
+              <object class="wxSlider" name="m_sliderFg2Opacity">
+                <style>wxSL_HORIZONTAL</style>
+                <enabled>0</enabled>
+                <min>0</min>
+                <max>255</max>
+                <value>255</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxRadioButton" name="m_optHeightmapSelect">
+                <style/>
+                <label>Heightmap</label>
+                <enabled>0</enabled>
+                <value>0</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALIGN_CENTER|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxCheckBox" name="m_checkHeightmapVisible">
+                <enabled>0</enabled>
+                <style/>
+                <label/>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <minsize>75,-1</minsize>
+              <object class="wxSlider" name="m_sliderHeightmapOpacity">
+                <style>wxSL_HORIZONTAL</style>
+                <enabled>0</enabled>
+                <min>0</min>
+                <max>255</max>
+                <value>255</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxRadioButton" name="m_optSpritesSelect">
+                <style/>
+                <label>Sprites</label>
+                <enabled>0</enabled>
+                <value>0</value>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALIGN_CENTER|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <object class="wxCheckBox" name="m_checkSpritesVisible">
+                <enabled>0</enabled>
+                <style/>
+                <label/>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+              <minsize>75,-1</minsize>
+              <object class="wxSlider" name="m_sliderSpritesOpacity">
+                <style>wxSL_HORIZONTAL</style>
+                <enabled>0</enabled>
+                <min>0</min>
+                <max>255</max>
+                <value>255</value>
               </object>
             </object>
           </object>
@@ -154,7 +334,7 @@
         <resizable>1</resizable>
         <movable>1</movable>
         <floatable>1</floatable>
-        <best_size>100,100</best_size>
+        <best_size>150,100</best_size>
         <max_size>100,100</max_size>
         <min_size>100,100</min_size>
         <centre>1</centre>
@@ -165,11 +345,114 @@
         <minimize_button>0</minimize_button>
         <maximize_button>0</maximize_button>
         <pin_button>0</pin_button>
-        <object class="wxScrolledWindow" name="m_scrollWin27">
+        <object class="wxScrolledWindow" name="m_scrollwindow">
           <bg>#000000</bg>
           <style>wxFULL_REPAINT_ON_RESIZE|wxHSCROLL|wxVSCROLL</style>
           <scrollrate>5,5</scrollrate>
         </object>
+      </object>
+      <object class="wxAuiPaneInfo" name="">
+        <caption>Tiles</caption>
+        <caption_visible>1</caption_visible>
+        <top_dockable>1</top_dockable>
+        <left_dockable>1</left_dockable>
+        <bottom_dockable>1</bottom_dockable>
+        <right_dockable>1</right_dockable>
+        <resizable>1</resizable>
+        <movable>1</movable>
+        <floatable>1</floatable>
+        <best_size>-1,-1</best_size>
+        <max_size>-1,-1</max_size>
+        <min_size>200,10000</min_size>
+        <right>1</right>
+        <layer>0</layer>
+        <row>0</row>
+        <position>1</position>
+        <close_button>0</close_button>
+        <minimize_button>0</minimize_button>
+        <maximize_button>0</maximize_button>
+        <pin_button>0</pin_button>
+        <object class="wxPanel" name="m_panel_tiles">
+          <style>wxTAB_TRAVERSAL</style>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <minsize>200,200</minsize>
+          </object>
+        </object>
+      </object>
+    </object>
+    <object class="wxToolBar" name="m_toolbar">
+      <style>wxTB_FLAT</style>
+      <bitmapsize>32,32</bitmapsize>
+      <object class="tool" name="m_toolbar1">
+        <label>Button1</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/broadsword.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar2">
+        <label>Button2</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/chest.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar3">
+        <label>Button3</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/key.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar4">
+        <label>Button4</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/deathstatue.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar5">
+        <label>Button5</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/switch1off.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar6">
+        <label>Button6</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/bell.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar7">
+        <label>Button7</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/recordbook.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar8">
+        <label>Button8</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/axemagic.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar9">
+        <label>Button9</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/blueribbon.png</bitmap>
+      </object>
+      <object class="tool" name="m_toolbar10">
+        <label>Button10</label>
+        <longhelp>
+          <![CDATA[]]>
+        </longhelp>
+        <bitmap>img/einsteinwhistle.png</bitmap>
       </object>
     </object>
   </object>

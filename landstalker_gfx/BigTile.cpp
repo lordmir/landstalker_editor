@@ -18,11 +18,11 @@ BigTile::BigTile(const std::vector<Tile>::const_iterator& begin, const std::vect
 
 uint16_t getTileValue(const Tile& tile)
 {
-    uint16_t tv = tile.getIndex();
+    uint16_t tv = tile.GetIndex();
     
-    if(tile.attributes().getAttribute(TileAttributes::ATTR_PRIORITY)) tv |= 0x8000;
-    if(tile.attributes().getAttribute(TileAttributes::ATTR_VFLIP)) tv |= 0x1000;
-    if(tile.attributes().getAttribute(TileAttributes::ATTR_HFLIP)) tv |= 0x0800;
+    if(tile.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY)) tv |= 0x8000;
+    if(tile.Attributes().getAttribute(TileAttributes::ATTR_VFLIP)) tv |= 0x1000;
+    if(tile.Attributes().getAttribute(TileAttributes::ATTR_HFLIP)) tv |= 0x0800;
     
     return tv;
 }

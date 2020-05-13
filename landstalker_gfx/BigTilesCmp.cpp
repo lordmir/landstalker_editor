@@ -100,20 +100,20 @@ void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
     for(it = tiles.begin(); it != tiles.end(); it += 2)
     {
         uint16_t tile = decodeTile(tq, bb);
-        it->setIndex(tile);
+        it->SetIndex(tile);
         if(!bb.getNextBit())
         {
-            (it + 1)->setIndex(decodeTile(tq, bb));
+            (it + 1)->SetIndex(decodeTile(tq, bb));
         }
         else
         {
-            if(it->attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+            if(it->Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
             {
-                (it + 1)->setIndex(tile - 1);
+                (it + 1)->SetIndex(tile - 1);
             }
             else
             {
-                (it + 1)->setIndex(tile + 1);
+                (it + 1)->SetIndex(tile + 1);
             }
         }
     }
@@ -137,7 +137,7 @@ void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, 
                 for(int16_t i = 0; i < num ; i++)
                 {
                     assert(it != tiles.end());
-                    it->attributes().setAttribute(attr);
+                    it->Attributes().setAttribute(attr);
                     it++;
                 }
             }

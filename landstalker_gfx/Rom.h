@@ -42,7 +42,7 @@ public:
 		size_t size = static_cast<size_t>(infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
-		if (size != EXPECTED_SIZE)
+		if (size < EXPECTED_SIZE)
 		{
 			std::ostringstream ss;
 			ss << "ROM file " << filename << ": Bad ROM size! Expected " << std::dec << EXPECTED_SIZE << " bytes, read " << size << " bytes.";

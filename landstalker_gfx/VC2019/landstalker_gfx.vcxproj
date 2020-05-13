@@ -44,9 +44,7 @@
     <Import Project="..\..\..\wxWidgets-3.1.3\wxwidgets.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -56,16 +54,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(LIBPNG_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>"$(LIBPNG_PATH)\projects\vstudio\Debug Library";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -76,7 +72,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(LIBPNG_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -85,6 +81,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>"$(LIBPNG_PATH)\projects\vstudio\Release Library";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -92,6 +89,8 @@
     <ClCompile Include="..\BigTilesCmp.cpp" />
     <ClCompile Include="..\BitBarrel.cpp" />
     <ClCompile Include="..\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\Blockmap2D.cpp" />
+    <ClCompile Include="..\BlockmapIsometric.cpp" />
     <ClCompile Include="..\ImageBuffer.cpp" />
     <ClCompile Include="..\LSTilemapCmp.cpp" />
     <ClCompile Include="..\LZ77.cpp" />
@@ -103,6 +102,8 @@
     <ClCompile Include="..\SpriteGraphic.cpp" />
     <ClCompile Include="..\Tile.cpp" />
     <ClCompile Include="..\TileAttributes.cpp" />
+    <ClCompile Include="..\Tilemap.cpp" />
+    <ClCompile Include="..\Tilemap2D.cpp" />
     <ClCompile Include="..\Tileset.cpp" />
     <ClCompile Include="..\Utils.cpp" />
     <ClCompile Include="..\wxcrafter.cpp" />
@@ -113,6 +114,8 @@
     <ClInclude Include="..\BigTilesCmp.h" />
     <ClInclude Include="..\BitBarrel.h" />
     <ClInclude Include="..\BitBarrelWriter.h" />
+    <ClInclude Include="..\Blockmap2D.h" />
+    <ClInclude Include="..\BlockmapIsometric.h" />
     <ClInclude Include="..\ImageBuffer.h" />
     <ClInclude Include="..\LSTilemapCmp.h" />
     <ClInclude Include="..\LZ77.h" />
@@ -125,6 +128,8 @@
     <ClInclude Include="..\SpriteFrame.h" />
     <ClInclude Include="..\Tile.h" />
     <ClInclude Include="..\TileAttributes.h" />
+    <ClInclude Include="..\Tilemap.h" />
+    <ClInclude Include="..\Tilemap2D.h" />
     <ClInclude Include="..\Tileset.h" />
     <ClInclude Include="..\Utils.h" />
     <ClInclude Include="..\wxcrafter.h" />

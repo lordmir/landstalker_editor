@@ -1,60 +1,64 @@
 #include "Tile.h"
 #include <sstream>
 #include <iomanip>
+#include "Utils.h"
 
 Tile::Tile()
-: attrs_(),
-  index_(0)
+: m_attrs(),
+  m_index(0)
 {
 }
 
 Tile::Tile(const TileAttributes& attrs, uint16_t index)
-    : attrs_(attrs),
-    index_(index)
+: m_attrs(attrs),
+  m_index(index)
 {
 }
 
-Tile::Tile(uint16_t index)
-: attrs_(),
-  index_(index)
+Tile::Tile(uint16_t value)
+: m_attrs(TileAttributes((value & 0x0800) > 0, (value & 0x1000) > 0, (value & 0x8000) > 0)),
+  m_index(value & 0x3FF)
 {
 }
 
-void Tile::setIndex(uint16_t index)
+void Tile::SetIndex(uint16_t index)
 {
-    index_ = index;
+    m_index = index;
 }
 
-uint16_t Tile::getIndex() const
+uint16_t Tile::GetIndex() const
 {
-    return index_;
+    return m_index;
 }
 
-uint16_t Tile::getTileValue() const
+uint16_t Tile::GetTileValue() const
 {
-    uint16_t tv = getIndex();
+    uint16_t tv = m_index;
     
-    if(attributes().getAttribute(TileAttributes::ATTR_PRIORITY)) tv |= 0x8000;
-    if(attributes().getAttribute(TileAttributes::ATTR_VFLIP)) tv |= 0x1000;
-    if(attributes().getAttribute(TileAttributes::ATTR_HFLIP)) tv |= 0x0800;
+    if(m_attrs.getAttribute(TileAttributes::ATTR_PRIORITY)) tv |= 0x8000;
+    if(m_attrs.getAttribute(TileAttributes::ATTR_VFLIP)) tv |= 0x1000;
+    if(m_attrs.getAttribute(TileAttributes::ATTR_HFLIP)) tv |= 0x0800;
     
     return tv;
 }
 
-std::string Tile::print() const
+std::string Tile::Print() const
 {
-    std::ostringstream ss;
-    ss << std::hex << std::uppercase << std::setw(4) << std::setfill('0')
-           << getTileValue() << " ";
-    return ss.str();
+    return Hex(GetTileValue());
 }
 
-TileAttributes& Tile::attributes()
+void Tile::SetTileValue(uint16_t value)
 {
-    return attrs_;
+    m_index = value & 0x3FF;
+    m_attrs = TileAttributes();
 }
 
-const TileAttributes& Tile::attributes() const
+TileAttributes& Tile::Attributes()
 {
-    return attrs_;
+    return m_attrs;
+}
+
+const TileAttributes& Tile::Attributes() const
+{
+    return m_attrs;
 }

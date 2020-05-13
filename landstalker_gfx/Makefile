@@ -1,8 +1,8 @@
 EXEC=target
 CC=g++
 LDFLAGS= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
-CXXFLAGS= `wx-config --cxxflags` -std=c++11
-CPPFLAGS = `wx-config --cppflags`
+CXXFLAGS= `wx-config --cxxflags` -std=c++11 -I./third_party
+CPPFLAGS = `wx-config --cppflags` -I./third_party
 TARGET    := $(notdir $(CURDIR))
 SOURCEDIR := .
 SOURCE := $(foreach DIR,$(SOURCEDIR),$(wildcard $(DIR)/*.cpp))

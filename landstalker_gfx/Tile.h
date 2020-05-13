@@ -10,21 +10,21 @@ class Tile
 public:
     Tile();
     Tile(const TileAttributes& attrs, uint16_t index);
-    Tile(uint16_t index);
+    Tile(uint16_t value);
     
-    void setIndex(uint16_t index);
-    uint16_t getIndex() const;
+    void SetIndex(uint16_t index);
+    uint16_t GetIndex() const;
     
-    TileAttributes& attributes();
-    const TileAttributes& attributes() const;
+    TileAttributes& Attributes();
+    const TileAttributes& Attributes() const;
     
-    std::string print() const;
+    std::string Print() const;
+    void SetTileValue(uint16_t value);
+    uint16_t GetTileValue() const;
     
 private:
-    uint16_t getTileValue() const;
-
-    TileAttributes attrs_;
-    uint16_t index_;
+    TileAttributes m_attrs;
+    uint16_t m_index;
 };
 
 #endif // TILE_H

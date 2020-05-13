@@ -29,15 +29,38 @@ public:
     MainFrame(wxWindow* parent, const std::string& filename);
     virtual ~MainFrame();
 
-    void OnExit(wxCommandEvent& event);
-    void OnAbout(wxCommandEvent& event);
 protected:
-    virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event);
-    virtual void OnAuimgr127Paint(wxPaintEvent& event);
-    virtual void OnMenuitem109MenuSelected(wxCommandEvent& event);
-    virtual void OnMenuitem110MenuSelected(wxCommandEvent& event);
-    virtual void OnScrollwin27Paint(wxPaintEvent& event);
+    virtual void OnLayerOpacityChange(wxScrollEvent& event);
+    virtual void OnLayerSelect(wxCommandEvent& event);
+    virtual void OnLayerVisibilityChange(wxCommandEvent& event);
     virtual void OnPaint(wxPaintEvent& event);
+    virtual void OnButton1(wxCommandEvent& event);
+    virtual void OnButton2(wxCommandEvent& event);
+    virtual void OnButton3(wxCommandEvent& event);
+    virtual void OnButton4(wxCommandEvent& event);
+    virtual void OnButton5(wxCommandEvent& event);
+    virtual void OnButton6(wxCommandEvent& event);
+    virtual void OnButton7(wxCommandEvent& event);
+    virtual void OnButton8(wxCommandEvent& event);
+    virtual void OnButton9(wxCommandEvent& event);
+    virtual void OnButton10(wxCommandEvent& event);
+    virtual void OnMousewheel(wxMouseEvent& event);
+    virtual void OnKeyDown(wxKeyEvent& event);
+    virtual void OnKeyUp(wxKeyEvent& event);
+    virtual void OnOpen(wxCommandEvent& event);
+    virtual void OnExport(wxCommandEvent& event);
+    virtual void OnExit(wxCommandEvent& event);
+    virtual void OnAbout(wxCommandEvent& event);
+    virtual void OnBrowserSelect(wxTreeEvent& event);
+    virtual void OnScrollWindowPaint(wxPaintEvent& event);
+    virtual void OnScrollWindowMousewheel(wxMouseEvent& event);
+    virtual void OnScrollWindowMouseMove(wxMouseEvent& event);
+    virtual void OnScrollWindowLeftDown(wxMouseEvent& event);
+    virtual void OnScrollWindowLeftUp(wxMouseEvent& event);
+    virtual void OnScrollWindowRightDown(wxMouseEvent& event);
+    virtual void OnScrollWindowRightUp(wxMouseEvent& event);
+    virtual void OnScrollWindowKeyDown(wxKeyEvent& event);
+    virtual void OnScrollWindowKeyUp(wxKeyEvent& event);
 private:
     struct RoomData
     {
@@ -87,6 +110,15 @@ private:
         const NodeType m_nodeType;
         const size_t m_value;
     };
+    enum Mode
+    {
+        MODE_NONE,
+        MODE_TILESET,
+        MODE_BLOCKSET,
+        MODE_PALETTE,
+        MODE_ROOMMAP,
+        MODE_SPRITE
+    };
     void DrawTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(size_t scale, uint8_t pal);
@@ -100,9 +132,12 @@ private:
     void LoadBigTiles(size_t offset);
     void OpenRomFile(const wxString& path);
     void InitRoom(uint16_t room);
-    void PopulateRoomProperties(uint16_t room, const Tilemap& tm);
+    void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
+    void EnableLayerControls(bool state);
+    void SetMode(const Mode& mode);
+    void Refresh();
     
-    Tilemap m_tilemap;
+    RoomTilemap m_tilemap;
     Rom m_rom;
     uint8_t m_gfxBuffer[65536];
     size_t m_gfxSize;
@@ -117,7 +152,14 @@ private:
     size_t m_scale;
     uint8_t m_rpalidx;
     uint8_t m_tsidx;
+    uint8_t m_bs1;
+    uint8_t m_bs2;
     uint16_t m_roomnum;
+    uint16_t m_sprite_idx;
+    uint16_t m_sprite_anim;
+    uint16_t m_sprite_frame;
+    Mode m_mode;
+    bool m_layer_controls_enabled;
     std::vector<uint32_t> m_tilesetOffsets;
     std::vector<std::vector<uint32_t>> m_bigTileOffsets;
     std::vector<BigTile> m_bigTiles;

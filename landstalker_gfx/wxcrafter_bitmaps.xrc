@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc">
   <!-- Handler Generation is ON -->
-  <object class="wxBitmap" name="m_bmp150">D:\landstalker_gfx\landstalker_gfx\img\bigtiles.png</object>
-  <object class="wxBitmap" name="m_bmp154">D:\landstalker_gfx\landstalker_gfx\img\sprite.png</object>
-  <object class="wxBitmap" name="m_bmp57">D:\landstalker_gfx\landstalker_gfx\img\room.png</object>
-  <object class="wxBitmap" name="m_bmp59">D:\landstalker_gfx\landstalker_gfx\img\ts.png</object>
-  <object class="wxBitmap" name="m_bmp61">D:\landstalker_gfx\landstalker_gfx\img\pal.png</object>
+  <object class="wxBitmap" name="axemagic">img\axemagic.png</object>
+  <object class="wxBitmap" name="bell">img\bell.png</object>
+  <object class="wxBitmap" name="blueribbon">img\blueribbon.png</object>
+  <object class="wxBitmap" name="broadsword">img\broadsword.png</object>
+  <object class="wxBitmap" name="chest">img\chest.png</object>
+  <object class="wxBitmap" name="deathstatue">img\deathstatue.png</object>
+  <object class="wxBitmap" name="einsteinwhistle">img\einsteinwhistle.png</object>
+  <object class="wxBitmap" name="key">img\key.png</object>
+  <object class="wxBitmap" name="m_bmp_block">D:\landstalker_gfx\landstalker_gfx\img\bigtiles.png</object>
+  <object class="wxBitmap" name="m_bmp_palette">D:\landstalker_gfx\landstalker_gfx\img\pal.png</object>
+  <object class="wxBitmap" name="m_bmp_room">D:\landstalker_gfx\landstalker_gfx\img\room.png</object>
+  <object class="wxBitmap" name="m_bmp_sprite">D:\landstalker_gfx\landstalker_gfx\img\sprite.png</object>
+  <object class="wxBitmap" name="m_bmp_tileset">D:\landstalker_gfx\landstalker_gfx\img\ts.png</object>
   <object class="wxBitmap" name="msword">img\msword.ico</object>
+  <object class="wxBitmap" name="recordbook">img\recordbook.png</object>
+  <object class="wxBitmap" name="switch1off">img\switch1off.png</object>
 </resource>

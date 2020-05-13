@@ -31,27 +31,28 @@ uint16_t ilog2(uint16_t num)
     return ret;
 }
 
-uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
+uint16_t LSTilemapCmp::Decode(const uint8_t* src, RoomTilemap& tilemap)
 {
     BitBarrel bb(src);
     
-    tilemap.reset();
 
-    tilemap.left   = bb.readBits(8);
-    tilemap.top    = bb.readBits(8);
-    tilemap.width  = bb.readBits(8) + 1;
-    tilemap.height = (bb.readBits(8) + 1) / 2;
+    uint8_t left   = bb.readBits(8);
+    uint8_t top    = bb.readBits(8);
+    uint8_t width  = bb.readBits(8) + 1;
+    uint8_t height = (bb.readBits(8) + 1) / 2;
+
+    tilemap.set(left, top, width, height);
     
     uint16_t tileDictionary[2] = {0, 0};
     uint16_t offsetDictionary[14] = {0xFFFF,
                                      1,
                                      2,
-                                     static_cast<uint16_t>(tilemap.width),
-                                     static_cast<uint16_t>(tilemap.width*2u),
-                                     static_cast<uint16_t>(tilemap.width + 1),
+                                     static_cast<uint16_t>(tilemap.GetWidth()),
+                                     static_cast<uint16_t>(tilemap.GetWidth() *2u),
+                                     static_cast<uint16_t>(tilemap.GetWidth() + 1),
                                      0, 0, 0, 0, 0, 0, 0, 0};
-    const uint16_t t = tilemap.width * tilemap.height * 2;
-    tilemap.foreground.assign(t, 0);
+    const uint16_t t = tilemap.GetWidth() * tilemap.GetHeight() * 2;
+    std::vector<uint16_t> buffer(t,0);
     
     tileDictionary[1] = bb.readBits(10);
     tileDictionary[0] = bb.readBits(10);
@@ -80,7 +81,7 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
         {
             command = 6 + (((command & 1) << 2) | bb.readBits(2));
         }
-        tilemap.foreground[dst_addr] = offsetDictionary[command];
+        buffer[dst_addr] = offsetDictionary[command];
         
         if(bb.getNextBit())
         {
@@ -90,8 +91,8 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
             {
                 do
                 {
-                    row_addr += tilemap.width + (width_offset ? 1 : 0);
-                    tilemap.foreground[row_addr] = offsetDictionary[command];
+                    row_addr += tilemap.GetWidth() + (width_offset ? 1 : 0);
+                    buffer[row_addr] = offsetDictionary[command];
                 } while(bb.getNextBit());
                 width_offset = !width_offset;
             } while(bb.getNextBit());
@@ -102,15 +103,15 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
     dst_addr = 0;
     do
     {
-        uint16_t operand = tilemap.foreground[dst_addr];
+        uint16_t operand = buffer[dst_addr];
         uint16_t offset;
         if(operand != 0xFFFF)
         {
             offset = dst_addr - operand;
             do
             {
-                tilemap.foreground[dst_addr++] = tilemap.foreground[offset++];
-            } while ((dst_addr < t) && (tilemap.foreground[dst_addr] == 0));
+                buffer[dst_addr++] = buffer[offset++];
+            } while ((dst_addr < t) && (buffer[dst_addr] == 0));
         }
         else
         {
@@ -125,7 +126,7 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
                         {
                             value = bb.readBits(ilog2(tiles[0]));
                         }
-                        tilemap.foreground[dst_addr++] = value;
+                        buffer[dst_addr++] = value;
                         break;
                     case 1:
                         if(tiles[1] != tileDictionary[1])
@@ -133,23 +134,23 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, Tilemap& tilemap)
                             value = bb.readBits(ilog2(tiles[1] - tileDictionary[1]));
                         }
                         value += tileDictionary[1];
-                        tilemap.foreground[dst_addr++] = value;
+                        buffer[dst_addr++] = value;
                         break;
                     case 2:
                         value = tiles[0]++;
-                        tilemap.foreground[dst_addr++] = value;
+                        buffer[dst_addr++] = value;
                         break;
                     case 3:
                         value = tiles[1]++;
-                        tilemap.foreground[dst_addr++] = value;
+                        buffer[dst_addr++] = value;
                         break;
                 }
-            } while ((dst_addr < t) && (tilemap.foreground[dst_addr] == 0));
+            } while ((dst_addr < t) && (buffer[dst_addr] == 0));
         }
     } while(dst_addr < t);
     
-    tilemap.background.assign(tilemap.foreground.begin() + t/2, tilemap.foreground.end());
-    tilemap.foreground.erase(tilemap.foreground.begin() + t/2, tilemap.foreground.end());
+    tilemap.background.Copy(buffer.begin() + t/2, buffer.end());
+    tilemap.foreground.Copy(buffer.begin(), buffer.begin() + t / 2);
     
     bb.advanceNextByte();
     tilemap.hmwidth = bb.readBits(8);

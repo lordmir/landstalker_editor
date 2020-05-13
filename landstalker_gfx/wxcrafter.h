@@ -22,7 +22,11 @@
 #include <wx/panel.h>
 #include <wx/treectrl.h>
 #include <wx/propgrid/manager.h>
+#include <wx/radiobut.h>
+#include <wx/checkbox.h>
+#include <wx/slider.h>
 #include <wx/scrolwin.h>
+#include <wx/toolbar.h>
 #include <wx/imaglist.h>
 #include <wx/bitmap.h>
 #include <map>
@@ -48,28 +52,58 @@
 class MainFrameBaseClass : public wxFrame
 {
 protected:
-    wxMenuBar* m_menuBar;
-    wxMenu* m_name6;
-    wxMenuItem* m_menuItem109;
-    wxMenuItem* m_menuItem110;
-    wxMenuItem* m_menuItem121;
-    wxMenuItem* m_menuItem7;
-    wxMenu* m_name8;
-    wxMenuItem* m_menuItem9;
-    wxStatusBar* m_statusBar29;
-    wxAuiManager* m_auimgr127;
-    wxPanel* m_panel134;
-    wxTreeCtrl* m_treeCtrl101;
-    wxPanel* m_panel136;
-    wxPropertyGridManager* m_pgMgr146;
-    wxScrolledWindow* m_scrollWin27;
+    wxMenuBar* m_menubar;
+    wxMenu* m_mnu_file;
+    wxMenuItem* m_mnu_open;
+    wxMenuItem* m_mnu_export;
+    wxMenuItem* m_mnu_sep1;
+    wxMenuItem* m_mnu_exit;
+    wxMenu* m_mnu_help;
+    wxMenuItem* m_mnu_about;
+    wxStatusBar* m_statusbar;
+    wxAuiManager* m_window;
+    wxPanel* m_panel_browser;
+    wxTreeCtrl* m_browser;
+    wxPanel* m_panel_properties;
+    wxPropertyGridManager* m_properties;
+    wxPanel* m_panel_layers;
+    wxRadioButton* m_optBgSelect;
+    wxCheckBox* m_checkBgVisible;
+    wxSlider* m_sliderBgOpacity;
+    wxRadioButton* m_optFg1Select;
+    wxCheckBox* m_checkFg1Visible;
+    wxSlider* m_sliderFg1Opacity;
+    wxRadioButton* m_optFg2Select;
+    wxCheckBox* m_checkFg2Visible;
+    wxSlider* m_sliderFg2Opacity;
+    wxRadioButton* m_optHeightmapSelect;
+    wxCheckBox* m_checkHeightmapVisible;
+    wxSlider* m_sliderHeightmapOpacity;
+    wxRadioButton* m_optSpritesSelect;
+    wxCheckBox* m_checkSpritesVisible;
+    wxSlider* m_sliderSpritesOpacity;
+    wxScrolledWindow* m_scrollwindow;
+    wxPanel* m_panel_tiles;
+    wxToolBar* m_toolbar;
 
 protected:
-    virtual void OnMenuitem109MenuSelected(wxCommandEvent& event)
+    virtual void OnMousewheel(wxMouseEvent& event)
     {
         event.Skip();
     }
-    virtual void OnMenuitem110MenuSelected(wxCommandEvent& event)
+    virtual void OnKeyDown(wxKeyEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnKeyUp(wxKeyEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnOpen(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnExport(wxCommandEvent& event)
     {
         event.Skip();
     }
@@ -81,47 +115,199 @@ protected:
     {
         event.Skip();
     }
-    virtual void OnTreectrl101TreeItemActivated(wxTreeEvent& event)
+    virtual void OnBrowserSelect(wxTreeEvent& event)
     {
         event.Skip();
     }
-    virtual void OnScrollwin27Paint(wxPaintEvent& event)
+    virtual void OnLayerSelect(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnLayerVisibilityChange(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnLayerOpacityChange(wxScrollEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowPaint(wxPaintEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowMousewheel(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowLeftDown(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowLeftUp(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowRightDown(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowRightUp(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowKeyDown(wxKeyEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowKeyUp(wxKeyEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton1(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton2(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton3(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton4(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton5(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton6(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton7(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton8(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton9(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnButton10(wxCommandEvent& event)
     {
         event.Skip();
     }
 
 public:
-    wxMenuBar* GetMenuBar()
+    wxMenuBar* GetMenubar()
     {
-        return m_menuBar;
+        return m_menubar;
     }
-    wxStatusBar* GetStatusBar29()
+    wxStatusBar* GetStatusbar()
     {
-        return m_statusBar29;
+        return m_statusbar;
     }
-    wxTreeCtrl* GetTreeCtrl101()
+    wxTreeCtrl* GetBrowser()
     {
-        return m_treeCtrl101;
+        return m_browser;
     }
-    wxPanel* GetPanel134()
+    wxPanel* GetPanel_browser()
     {
-        return m_panel134;
+        return m_panel_browser;
     }
-    wxPropertyGridManager* GetPgMgr146()
+    wxPropertyGridManager* GetProperties()
     {
-        return m_pgMgr146;
+        return m_properties;
     }
-    wxPanel* GetPanel136()
+    wxPanel* GetPanel_properties()
     {
-        return m_panel136;
+        return m_panel_properties;
     }
-    wxScrolledWindow* GetScrollWin27()
+    wxRadioButton* GetOptBgSelect()
     {
-        return m_scrollWin27;
+        return m_optBgSelect;
     }
-    wxAuiManager* GetAuimgr127()
+    wxCheckBox* GetCheckBgVisible()
     {
-        return m_auimgr127;
+        return m_checkBgVisible;
+    }
+    wxSlider* GetSliderBgOpacity()
+    {
+        return m_sliderBgOpacity;
+    }
+    wxRadioButton* GetOptFg1Select()
+    {
+        return m_optFg1Select;
+    }
+    wxCheckBox* GetCheckFg1Visible()
+    {
+        return m_checkFg1Visible;
+    }
+    wxSlider* GetSliderFg1Opacity()
+    {
+        return m_sliderFg1Opacity;
+    }
+    wxRadioButton* GetOptFg2Select()
+    {
+        return m_optFg2Select;
+    }
+    wxCheckBox* GetCheckFg2Visible()
+    {
+        return m_checkFg2Visible;
+    }
+    wxSlider* GetSliderFg2Opacity()
+    {
+        return m_sliderFg2Opacity;
+    }
+    wxRadioButton* GetOptHeightmapSelect()
+    {
+        return m_optHeightmapSelect;
+    }
+    wxCheckBox* GetCheckHeightmapVisible()
+    {
+        return m_checkHeightmapVisible;
+    }
+    wxSlider* GetSliderHeightmapOpacity()
+    {
+        return m_sliderHeightmapOpacity;
+    }
+    wxRadioButton* GetOptSpritesSelect()
+    {
+        return m_optSpritesSelect;
+    }
+    wxCheckBox* GetCheckSpritesVisible()
+    {
+        return m_checkSpritesVisible;
+    }
+    wxSlider* GetSliderSpritesOpacity()
+    {
+        return m_sliderSpritesOpacity;
+    }
+    wxPanel* GetPanel_layers()
+    {
+        return m_panel_layers;
+    }
+    wxScrolledWindow* GetScrollwindow()
+    {
+        return m_scrollwindow;
+    }
+    wxPanel* GetPanel_tiles()
+    {
+        return m_panel_tiles;
+    }
+    wxAuiManager* GetWindow()
+    {
+        return m_window;
+    }
+    wxToolBar* GetToolbar()
+    {
+        return m_toolbar;
     }
     MainFrameBaseClass(wxWindow* parent,
         wxWindowID id = wxID_ANY,
