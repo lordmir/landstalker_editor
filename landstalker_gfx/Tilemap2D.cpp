@@ -1,6 +1,6 @@
 #include "Tilemap2D.h"
 
-Tilemap2D::Tilemap2D(size_t width, size_t height, size_t left, size_t top, uint8_t palette)
+Tilemap2D::Tilemap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
 	: Tilemap(width, height, left, top, palette)
 {
 }
@@ -56,12 +56,12 @@ void Tilemap2D::SetTile(const TilePoint& point, const Tile& tile)
 	SetTileValue(point, tile.GetTileValue());
 }
 
-size_t Tilemap2D::GetBitmapWidth() const
+std::size_t Tilemap2D::GetBitmapWidth() const
 {
 	return GetWidth() * TILEWIDTH + GetLeft();
 }
 
-size_t Tilemap2D::GetBitmapHeight() const
+std::size_t Tilemap2D::GetBitmapHeight() const
 {
 	return GetHeight() * TILEHEIGHT + GetTop();
 }

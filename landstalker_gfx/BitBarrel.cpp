@@ -80,10 +80,10 @@ bool BitBarrel::read() const
     return getNextBit();
 }
 
-uint32_t BitBarrel::readBits(size_t numBits) const
+uint32_t BitBarrel::readBits(std::size_t numBits) const
 {
     uint32_t retval = 0;
-    for(size_t i = 0; i < numBits; ++i)
+    for(std::size_t i = 0; i < numBits; ++i)
     {
         retval <<= 1;
         retval |= static_cast<uint32_t>(getNextBit());
@@ -101,7 +101,7 @@ bool BitBarrel::getNextBit() const
     return (*m_buf & (1 << --m_pos)) ? true : false;
 }
 
-size_t BitBarrel::getBytePosition() const
+std::size_t BitBarrel::getBytePosition() const
 {
     return m_buf - m_start;
 }

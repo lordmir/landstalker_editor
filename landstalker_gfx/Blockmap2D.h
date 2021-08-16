@@ -10,7 +10,7 @@
 class Blockmap2D : public Tilemap
 {
 public:
-	Blockmap2D(size_t width, size_t height, size_t left, size_t top, uint8_t palette);
+	Blockmap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette);
 	virtual ~Blockmap2D() = default;
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
@@ -22,12 +22,12 @@ public:
 	std::shared_ptr<std::vector<BigTile>> GetBlockset();
 	std::shared_ptr<const std::vector<BigTile>> GetBlockset() const;
 	const BigTile& GetBigTile(const TilePoint& point) const;
-	virtual size_t GetBitmapWidth() const;
-	virtual size_t GetBitmapHeight() const;
+	virtual std::size_t GetBitmapWidth() const;
+	virtual std::size_t GetBitmapHeight() const;
 
 protected:
-	const size_t TILEWIDTH = 16;
-	const size_t TILEHEIGHT = 16;
+	const std::size_t TILEWIDTH = 16;
+	const std::size_t TILEHEIGHT = 16;
 
 private:
 	std::shared_ptr<Tileset> m_tileset;

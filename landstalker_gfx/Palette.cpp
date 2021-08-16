@@ -12,7 +12,7 @@ Palette::Palette()
     pal_[1].b = 0xD8;
     pal_[1].a = 0xFF;
 
-    for (size_t i = 0; i < 16; ++i)
+    for (std::size_t i = 0; i < 16; ++i)
     {
         pal_[15].r = 0x00;
         pal_[15].g = 0x00;
@@ -21,16 +21,16 @@ Palette::Palette()
     }
 }
 
-Palette::Palette(const uint8_t* src, size_t offset, const PaletteType& type)
+Palette::Palette(const uint8_t* src, std::size_t offset, const PaletteType& type)
     : Palette()
 {
     Load(src, offset, type);
 }
 
-void Palette::Load(const uint8_t* src, size_t offset, const PaletteType& type)
+void Palette::Load(const uint8_t* src, std::size_t offset, const PaletteType& type)
 {
-    size_t begin = 0;
-    size_t length = 16;
+    std::size_t begin = 0;
+    std::size_t length = 16;
     switch (type)
     {
     case ROOM_PALETTE:
@@ -52,7 +52,7 @@ void Palette::Load(const uint8_t* src, size_t offset, const PaletteType& type)
 
     src += offset * length * 2;
     
-    for(size_t i = begin; i < (begin + length); ++i)
+    for(std::size_t i = begin; i < (begin + length); ++i)
     {
         pal_[i].b = std::min(0xFF, (*src++ & 0x0F) * 18);
         pal_[i].g = std::min(0xFF, (*src >> 4)     * 18);

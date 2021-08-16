@@ -38,7 +38,7 @@ std::string BigTile::print() const
     return ss.str();
 }
 
-const Tile& BigTile::getTile(size_t tileIndex) const
+const Tile& BigTile::getTile(std::size_t tileIndex) const
 {
     return tiles[tileIndex];
 }

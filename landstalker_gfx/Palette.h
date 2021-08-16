@@ -17,9 +17,9 @@ public:
     };
 
     Palette();
-    Palette(const uint8_t* src, size_t offset, const PaletteType& type);
+    Palette(const uint8_t* src, std::size_t offset, const PaletteType& type);
 
-    void Load(const uint8_t* src, size_t offset, const PaletteType& type);
+    void Load(const uint8_t* src, std::size_t offset, const PaletteType& type);
 
     uint8_t getR(uint8_t index) const;
     uint8_t getG(uint8_t index) const;

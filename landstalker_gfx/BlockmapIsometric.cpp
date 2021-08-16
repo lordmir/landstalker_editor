@@ -1,6 +1,6 @@
 #include "BlockmapIsometric.h"
 
-BlockmapIsometric::BlockmapIsometric(size_t width, size_t height, size_t left, size_t top, uint8_t palette)
+BlockmapIsometric::BlockmapIsometric(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
 : Blockmap2D(width, height, left, top, palette)
 {
 }
@@ -10,8 +10,8 @@ TilePoint BlockmapIsometric::XYToTilePoint(const wxPoint& point) const
 	TilePoint ret{ 0, 0 };
 	int xgrid = (point.x - GetLeft()) / TILEWIDTH;
 	int ygrid = (2 * (point.y - GetTop())) / TILEHEIGHT;
-	ret.x = static_cast<size_t>((ygrid + xgrid - GetHeight() + 1) / 2);
-	ret.y = static_cast<size_t>((ygrid - xgrid + GetHeight() - 1) / 2);
+	ret.x = static_cast<std::size_t>((ygrid + xgrid - GetHeight() + 1) / 2);
+	ret.y = static_cast<std::size_t>((ygrid - xgrid + GetHeight() - 1) / 2);
 	return ret;
 }
 
@@ -29,12 +29,12 @@ wxPoint BlockmapIsometric::ToXYPoint3D(const TilePoint3D& point) const
 	return wxPoint{ ix, iy };
 }
 
-size_t BlockmapIsometric::GetBitmapWidth() const
+std::size_t BlockmapIsometric::GetBitmapWidth() const
 {
 	return (GetWidth() + GetHeight()) * TILEWIDTH;
 }
 
-size_t BlockmapIsometric::GetBitmapHeight() const
+std::size_t BlockmapIsometric::GetBitmapHeight() const
 {
 	return (GetWidth() + GetHeight() + 1) * TILEHEIGHT / 2;
 }

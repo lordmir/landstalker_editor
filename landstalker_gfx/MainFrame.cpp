@@ -99,14 +99,14 @@ void MainFrame::OpenRomFile(const wxString& path)
 
         std::vector<uint32_t> frames(frame_offsets.cbegin(), frame_offsets.cend());
         std::map<uint32_t, uint32_t> frame_offset_to_frame_num;
-        for (size_t i = 0; i < frames.size(); ++i)
+        for (std::size_t i = 0; i < frames.size(); ++i)
         {
             frame_offset_to_frame_num[frames[i]] = i;
             m_spriteFrames.emplace_back(SpriteFrame(m_rom.data(frames[i])));
         }
 
         std::vector<uint32_t> sprite_frames;
-        size_t i = 0;
+        std::size_t i = 0;
         for (uint32_t soffset = start_of_sprite_table; soffset < start_of_anim_table; soffset += 4)
         {
             m_spriteGraphics.emplace_back(i++);
@@ -141,14 +141,14 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        for (size_t i = 0; i < (236 * 2); i+=2)
+        for (std::size_t i = 0; i < (236 * 2); i+=2)
         {
             uint8_t sprite_idx = m_rom.read<uint8_t>(0x1ABF2 + i + 1);
             uint8_t sprite_gfx = m_rom.read<uint8_t>(0x1ABF2 + i);
             m_sprites.emplace(sprite_idx, Sprite(sprite_gfx));
         }
 
-        for (size_t offset = 0x1A453A; m_rom.read<uint8_t>(offset) != 0xFF; offset += 2)
+        for (std::size_t offset = 0x1A453A; m_rom.read<uint8_t>(offset) != 0xFF; offset += 2)
         {
             if ((m_rom.read<uint8_t>(offset + 1) & 0x80) > 0)
             {
@@ -163,16 +163,16 @@ void MainFrame::OpenRomFile(const wxString& path)
         for (const auto& sprite : m_sprites)
         {
             const auto& sg = m_spriteGraphics[sprite.second.GetGraphicsIdx()];
-            size_t default_anim = sg.GetAnimationCount() > 1 ? 1 : 0;
+            std::size_t default_anim = sg.GetAnimationCount() > 1 ? 1 : 0;
             auto spr = m_browser->AppendItem(nodeSprites, Hex(sprite.first), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, default_anim << 16 | sprite.first));
 
-            for (size_t a = 0; a != sg.GetAnimationCount(); ++a)
+            for (std::size_t a = 0; a != sg.GetAnimationCount(); ++a)
             {
                 std::ostringstream ss;
                 ss.str(std::string());
                 ss << "ANIM" << a;
                 wxTreeItemId anim = m_browser->AppendItem(spr, ss.str(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | sprite.first));
-                for (size_t f = 0; f != sg.GetFrameCount(a); ++f)
+                for (std::size_t f = 0; f != sg.GetFrameCount(a); ++f)
                 {
                     ss.str(std::string());
                     ss << "FRAME" << f;
@@ -181,22 +181,22 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        for (size_t i = 0; i < m_tilesetOffsets.size(); ++i)
+        for (std::size_t i = 0; i < m_tilesetOffsets.size(); ++i)
         {
             m_browser->AppendItem(nodeTs, Hex(m_tilesetOffsets[i]), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, i));
         }
         auto bt = m_rom.read_array<uint32_t>(m_rom.read<uint32_t>(0x1AF800), 64);
-        for (size_t i = 0; i < 64; ++i)
+        for (std::size_t i = 0; i < 64; ++i)
         {
             m_bigTileOffsets.push_back(m_rom.read_array<uint32_t>(bt[i], 9));
             wxTreeItemId curTn = m_browser->AppendItem(nodeBTs, Hex(bt[i]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16));
-            for (size_t j = 0; j < 9; ++j)
+            for (std::size_t j = 0; j < 9; ++j)
             {
                 m_browser->AppendItem(curTn, Hex(m_bigTileOffsets[i][j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
             }
         }
         const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>(0xA0A00));
-        for (size_t i = 0; i < 816; i++)
+        for (std::size_t i = 0; i < 816; i++)
         {
             std::ostringstream ss;
             m_rooms.push_back(RoomData(rm));
@@ -215,10 +215,10 @@ void MainFrame::OpenRomFile(const wxString& path)
     SetMode(MODE_NONE);
 }
 
-void MainFrame::DrawBigTiles(size_t row_width, size_t scale, uint8_t pal)
+void MainFrame::DrawBigTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    const size_t ROW_WIDTH = std::min<size_t>(16U, m_bigTiles.size());
-    const size_t ROW_HEIGHT = std::min<size_t>(128U, m_bigTiles.size() / ROW_WIDTH + (m_bigTiles.size() % ROW_WIDTH != 0));
+    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_bigTiles.size());
+    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_bigTiles.size() / ROW_WIDTH + (m_bigTiles.size() % ROW_WIDTH != 0));
     Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
     m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
     map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
@@ -308,10 +308,10 @@ void SetOpacity(wxImage& image, uint8_t opacity)
     }
 }
 
-void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
+void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 {
-    const size_t TILE_WIDTH = 32;
-    const size_t TILE_HEIGHT = 16;
+    const std::size_t TILE_WIDTH = 32;
+    const std::size_t TILE_HEIGHT = 16;
 
     uint8_t bg_opacity  = m_checkBgVisible->GetValue() ? m_sliderBgOpacity->GetValue() : 0;
     uint8_t fg1_opacity = m_checkFg1Visible->GetValue() ? m_sliderFg1Opacity->GetValue() : 0;
@@ -337,16 +337,16 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     wxGraphicsContext* hm_gc = wxGraphicsContext::Create(hm_img);
     hm_gc->SetPen(*wxWHITE_PEN);
     hm_gc->SetBrush(*wxBLACK_BRUSH);
-    size_t p = 0;
-    for (size_t y = 0; y < m_tilemap.hmheight; ++y)
-        for (size_t x = 0; x < m_tilemap.hmwidth; ++x)
+    std::size_t p = 0;
+    for (std::size_t y = 0; y < m_tilemap.hmheight; ++y)
+        for (std::size_t x = 0; x < m_tilemap.hmwidth; ++x)
         {
             // Only display cells that are not completely restricted
             if ((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
             {
-                size_t xx = x - m_tilemap.GetLeft() + 12;
-                size_t yy = y - m_tilemap.GetTop() + 12;
-                size_t zz = m_tilemap.heightmap[p].height;
+                std::size_t xx = x - m_tilemap.GetLeft() + 12;
+                std::size_t yy = y - m_tilemap.GetTop() + 12;
+                std::size_t zz = m_tilemap.heightmap[p].height;
                 wxPoint xy(m_tilemap.foreground.ToXYPoint3D(TilePoint3D{ xx, yy, zz }));
                 DrawTile(*hm_gc, xy.x, xy.y, zz, TILE_WIDTH, TILE_HEIGHT, m_tilemap.heightmap[p].restrictions, m_tilemap.heightmap[p].classification);
             }
@@ -366,17 +366,17 @@ void MainFrame::DrawTilemap(size_t scale, uint8_t pal)
     ForceRepaint();
 }
 
-void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
+void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
 {
-    const size_t TILE_WIDTH = 32;
-    const size_t TILE_HEIGHT = 32;
-    const size_t ROW_WIDTH = m_tilemap.hmwidth;
-    const size_t ROW_HEIGHT = m_tilemap.hmheight;
-    const size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
-    const size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
+    const std::size_t TILE_WIDTH = 32;
+    const std::size_t TILE_HEIGHT = 32;
+    const std::size_t ROW_WIDTH = m_tilemap.hmwidth;
+    const std::size_t ROW_HEIGHT = m_tilemap.hmheight;
+    const std::size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
+    const std::size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
 
-    //size_t x = 0;
-    //size_t y = 0;
+    //std::size_t x = 0;
+    //std::size_t y = 0;
     bmp = std::make_shared<wxBitmap>(BMP_WIDTH, BMP_HEIGHT);
     memDc.SelectObject(*bmp);
     memDc.SetBackground(*wxBLACK_BRUSH);
@@ -386,9 +386,9 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
     memDc.SetTextBackground(*wxBLACK);
     memDc.SetTextForeground(*wxWHITE);
 
-    size_t p = 0;
-    for(size_t y = 0; y < ROW_HEIGHT; ++y)
-    for(size_t x = 0; x < ROW_WIDTH; ++x)
+    std::size_t p = 0;
+    for(std::size_t y = 0; y < ROW_HEIGHT; ++y)
+    for(std::size_t x = 0; x < ROW_WIDTH; ++x)
     {
         // Only display cells that are not completely restricted
         if((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
@@ -413,10 +413,10 @@ void MainFrame::DrawHeightmap(size_t scale, uint16_t room)
     PaintNow(dc, scale);
 }
 
-void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
+void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    const size_t ROW_WIDTH = std::min<size_t>(16UL, m_tilebmps.size());
-    const size_t ROW_HEIGHT = std::min<size_t>(128UL, m_tilebmps.size() / ROW_WIDTH + (m_tilebmps.size() % ROW_WIDTH != 0));
+    const std::size_t ROW_WIDTH = std::min<std::size_t>(16UL, m_tilebmps.size());
+    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128UL, m_tilebmps.size() / ROW_WIDTH + (m_tilebmps.size() % ROW_WIDTH != 0));
     Tilemap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
     m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
     map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
@@ -427,12 +427,12 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     ForceRepaint();
 }
 
-void MainFrame::DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, size_t scale)
+void MainFrame::DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, std::size_t scale)
 {
-    size_t top = 0xFFFF;
-    size_t left = 0xFFFF;
-    size_t bottom = 0;
-    size_t right = 0;
+    std::size_t top = 0xFFFF;
+    std::size_t left = 0xFFFF;
+    std::size_t bottom = 0;
+    std::size_t right = 0;
 
     for (const auto& subs : sprite.m_subsprites)
     {
@@ -446,12 +446,12 @@ void MainFrame::DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, size_t sc
 
     for (const auto& subs : sprite.m_subsprites)
     {
-        size_t index = subs.tile_idx;
-        for (size_t x = 0; x < subs.w; ++x)
-        for (size_t y = 0; y < subs.h; ++y)
+        std::size_t index = subs.tile_idx;
+        for (std::size_t x = 0; x < subs.w; ++x)
+        for (std::size_t y = 0; y < subs.h; ++y)
         {
-            size_t xx = ((subs.x + 0x80) & 0xFF) - left + x * 8;
-            size_t yy = ((subs.y + 0x80) & 0xFF) - top + y * 8;
+            std::size_t xx = ((subs.x + 0x80) & 0xFF) - left + x * 8;
+            std::size_t yy = ((subs.y + 0x80) & 0xFF) - top + y * 8;
             m_imgbuf.InsertTile(xx, yy, pal_idx, Tile(index++), sprite.m_sprite_gfx);
         }
     }
@@ -474,7 +474,7 @@ void MainFrame::OnPaint(wxPaintEvent& event)
     event.Skip();
 }
 
-void MainFrame::PaintNow(wxDC& dc, size_t scale)
+void MainFrame::PaintNow(wxDC& dc, std::size_t scale)
 {
     int x, y, w, h;
     m_scrollwindow->GetViewStart(&x, &y);
@@ -497,20 +497,20 @@ void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
     event.Skip();
 }
 
-void MainFrame::LoadTileset(size_t offset)
+void MainFrame::LoadTileset(std::size_t offset)
 {
     std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
-    size_t elen = 0;
+    std::size_t elen = 0;
     m_gfxSize = LZ77::Decode(m_rom.data(offset), sizeof(m_gfxBuffer), m_gfxBuffer, elen);
     m_tilebmps.setBits(m_gfxBuffer, 0x400);
 }
 
-void MainFrame::LoadBigTiles(size_t offset)
+void MainFrame::LoadBigTiles(std::size_t offset)
 {
     BigTilesCmp::Decode(m_rom.data(offset), m_bigTiles);
 }
 
-void MainFrame::LoadTilemap(size_t offset)
+void MainFrame::LoadTilemap(std::size_t offset)
 {
     LSTilemapCmp::Decode(m_rom.data(offset), m_tilemap);
 }
@@ -519,7 +519,7 @@ void MainFrame::InitPals(const wxTreeItemId& node)
 {
     const uint8_t* const base_pal = m_rom.data(m_rom.read<uint32_t>(0xA0A04));
     const uint8_t* pal = base_pal;
-    for(size_t i = 0; i < 54; ++i)
+    for(std::size_t i = 0; i < 54; ++i)
     {
         m_pal2.push_back(Palette(pal, i, Palette::ROOM_PALETTE));
 
@@ -752,7 +752,7 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
         break;
     case TreeNodeData::NODE_BIG_TILES:
     {
-        size_t sel = itemData->GetValue();
+        std::size_t sel = itemData->GetValue();
         m_bs1 = sel >> 16;
         m_bs2 = sel & 0xFFFF;
         m_tsidx = m_bs1 & 0x1F;

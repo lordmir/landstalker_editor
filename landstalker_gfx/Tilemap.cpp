@@ -13,43 +13,43 @@
 #include <arpa/inet.h>
 #endif
 
-Tilemap::Tilemap(size_t width, size_t height, size_t left, size_t top, uint8_t palette)
+Tilemap::Tilemap(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
 : m_width(width), m_height(height), m_left(left), m_top(top), m_palette(palette)
 {
 	m_tilevals.resize(width * height);
 }
 
-size_t Tilemap::GetWidth() const
+std::size_t Tilemap::GetWidth() const
 {
 	return m_width;
 }
 
-size_t Tilemap::GetHeight() const
+std::size_t Tilemap::GetHeight() const
 {
 	return m_height;
 }
 
-size_t Tilemap::GetLeft() const
+std::size_t Tilemap::GetLeft() const
 {
 	return m_left;
 }
 
-size_t Tilemap::GetTop() const
+std::size_t Tilemap::GetTop() const
 {
 	return m_top;
 }
 
-void Tilemap::SetLeft(size_t new_left)
+void Tilemap::SetLeft(std::size_t new_left)
 {
 	m_left = new_left;
 }
 
-void Tilemap::SetTop(size_t new_top)
+void Tilemap::SetTop(std::size_t new_top)
 {
 	m_top = new_top;
 }
 
-void Tilemap::Resize(size_t new_width, size_t new_height)
+void Tilemap::Resize(std::size_t new_width, std::size_t new_height)
 {
 	if ((m_width == 0) || (m_height == 0))
 	{
@@ -68,7 +68,7 @@ void Tilemap::Resize(size_t new_width, size_t new_height)
 		}
 		if (new_width < GetWidth())
 		{
-			for (size_t y = 0; y < new_height; ++y)
+			for (std::size_t y = 0; y < new_height; ++y)
 			{
 				auto row_it = std::next(m_tilevals.begin(), y * new_width);
 				m_tilevals.erase(std::next(row_it, new_width), std::next(row_it, GetWidth()));
@@ -77,8 +77,8 @@ void Tilemap::Resize(size_t new_width, size_t new_height)
 		}
 		else if (new_width > GetWidth())
 		{
-			size_t diff = new_width - GetWidth();
-			for (size_t y = 0; y < new_height; ++y)
+			std::size_t diff = new_width - GetWidth();
+			for (std::size_t y = 0; y < new_height; ++y)
 			{
 				auto row_it = std::next(m_tilevals.begin(), y * new_width);
 				m_tilevals.insert(std::next(row_it, GetWidth()), diff, 0);
@@ -110,7 +110,7 @@ void Tilemap::SetTileValue(const TilePoint& point, uint16_t index)
 }
 
 
-void Tilemap::Fill(uint16_t base, size_t increment)
+void Tilemap::Fill(uint16_t base, std::size_t increment)
 {
 	uint16_t index = base;
 	for (auto& tile : m_tilevals)
@@ -131,7 +131,7 @@ void Tilemap::Copy(const uint8_t* src, uint16_t base)
 
 void Tilemap::Copy(std::vector<uint16_t>::const_iterator begin, std::vector<uint16_t>::const_iterator end)
 {
-	if (static_cast<size_t>(std::distance(begin, end)) <= (m_width * m_height))
+	if (static_cast<std::size_t>(std::distance(begin, end)) <= (m_width * m_height))
 	{
 		std::copy(begin, end, m_tilevals.begin());
 	}
@@ -178,9 +178,9 @@ bool Tilemap::WriteBinaryFile(const std::string& filename, bool include_dimensio
 			outfile.write(reinterpret_cast<char*>(&left), sizeof(left));
 			outfile.write(reinterpret_cast<char*>(&top), sizeof(top));
 		}
-		for (size_t y = 0; y < m_height; ++y)
+		for (std::size_t y = 0; y < m_height; ++y)
 		{
-			for (size_t x = 0; x < m_width; ++x)
+			for (std::size_t x = 0; x < m_width; ++x)
 			{
 				uint16_t temp = htons(GetTileValue({ x,y }));
 				outfile.write(reinterpret_cast<char*>(&temp), sizeof(temp));
@@ -199,9 +199,9 @@ bool Tilemap::WriteCSVFile(const std::string& filename)
 	if (outfile.good())
 	{
 		outfile << std::dec << m_width << "," << m_height << "," << m_left << "," << m_top << std::endl;
-		for (size_t y = 0; y < m_height; ++y)
+		for (std::size_t y = 0; y < m_height; ++y)
 		{
-			for (size_t x = 0; x < m_width; ++x)
+			for (std::size_t x = 0; x < m_width; ++x)
 			{
 				outfile << std::hex << std::setw(4) << std::setfill('0') << std::uppercase << GetTileValue({ x,y });
 				if ((x + 1) < m_width)
@@ -241,9 +241,9 @@ bool Tilemap::ReadBinaryFile(const std::string& filename, bool dimensions_includ
 			height = m_height;
 		}
 		vals.reserve(width * height);
-		for (size_t y = 0; y < m_height; ++y)
+		for (std::size_t y = 0; y < m_height; ++y)
 		{
-			for (size_t x = 0; x < m_width; ++x)
+			for (std::size_t x = 0; x < m_width; ++x)
 			{
 				uint16_t temp;
 				infile.read(reinterpret_cast<char*>(&temp), sizeof(temp));
@@ -261,9 +261,9 @@ bool Tilemap::ReadBinaryFile(const std::string& filename, bool dimensions_includ
 				m_top = ntohs(width);
 			}
 			Clear();
-			for (size_t y = 0; y < m_height; ++y)
+			for (std::size_t y = 0; y < m_height; ++y)
 			{
-				for (size_t x = 0; x < m_width; ++x)
+				for (std::size_t x = 0; x < m_width; ++x)
 				{
 					SetTileValue({ x,y }, vals[y * m_width + x]);
 				}
@@ -299,11 +299,11 @@ bool Tilemap::ReadCSVFile(const std::string& filename)
 		std::getline(iss, val, ',');
 		top    = std::stoul(val);
 		vals.reserve(width * height);
-		for (size_t y = 0; y < height; ++y)
+		for (std::size_t y = 0; y < height; ++y)
 		{
 			std::getline(infile, line);
 			iss.str(line);
-			for (size_t x = 0; x < width; ++x)
+			for (std::size_t x = 0; x < width; ++x)
 			{
 				std::getline(iss, val, ',');
 				vals.push_back(std::stoul(val, nullptr, 16));
@@ -317,9 +317,9 @@ bool Tilemap::ReadCSVFile(const std::string& filename)
 			m_left = ntohs(width);
 			m_top = ntohs(width);
 			Clear();
-			for (size_t y = 0; y < m_height; ++y)
+			for (std::size_t y = 0; y < m_height; ++y)
 			{
-				for (size_t x = 0; x < m_width; ++x)
+				for (std::size_t x = 0; x < m_width; ++x)
 				{
 					SetTileValue({ x,y }, vals[y * m_width + x]);
 				}

@@ -14,7 +14,7 @@ public:
     BigTile();
     BigTile(const TileVector::const_iterator& begin, const TileVector::const_iterator& end);
     
-    const Tile& getTile(size_t tileIndex) const;
+    const Tile& getTile(std::size_t tileIndex) const;
     
     std::string print() const;
     
