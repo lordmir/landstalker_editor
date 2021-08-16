@@ -10,17 +10,17 @@ In addition to build-essential (compiler and make), the following libraries are 
 - libpng
 - zlib
 
-### Ubuntu / Debian
+### Ubuntu
 
 ```sh
- # apt install wx-common libwxbase3.0-dev libwxgtk3.0-dev libpng-dev zlib1g-dev
+# apt install libwxgtk3.0-gtk3-dev libpng-dev zlib1g-dev
 ```
 
 ### Arch Linux
 
 ```sh
- # pacman -S wxgtk3 zlib libpng
- # ln -s /usr/bin/wx-config-gtk3 /usr/bin/wx-config
+# pacman -S wxgtk3 zlib libpng
+# ln -s /usr/bin/wx-config-gtk3 /usr/bin/wx-config
 ```
 
 ## Build
@@ -30,13 +30,13 @@ In addition to build-essential (compiler and make), the following libraries are 
  build using the Makefile by calling make
 
 ```sh
- $ make
+$ make
 ```
 
 To build with debug symbols, use pass the DEBUG=yes parameter to make
 
 ```sh
- $ make DEBUG=yes
+$ make DEBUG=yes
 ```
 
 # Windows
