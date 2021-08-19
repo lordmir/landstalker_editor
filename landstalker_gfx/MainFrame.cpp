@@ -481,10 +481,19 @@ void MainFrame::PaintNow(wxDC& dc, std::size_t scale)
     m_scrollwindow->GetClientSize(&w, &h);
     double dscale = static_cast<double>(scale);
     memDc.SelectObject(wxNullBitmap);
+
     if (bmp != nullptr)
     {
         memDc.SelectObject(*bmp);
     }
+    else
+    {
+        bmp = std::make_shared<wxBitmap>(1, 1);
+        memDc.SelectObject(*bmp);
+        memDc.SetBackground(*wxBLACK_BRUSH);
+        memDc.Clear();
+    }
+
     dc.SetUserScale(dscale, dscale);
     dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDc, x, y, wxCOPY, true);
     memDc.SelectObject(wxNullBitmap);
