@@ -7,14 +7,14 @@
 class SpriteGraphic
 {
 public:
-	SpriteGraphic(size_t index);
+	SpriteGraphic(std::size_t index);
 	void AddAnimation(const std::vector<uint32_t>& frame_list);
-	const size_t RetrieveFrameIdx(size_t animation, size_t frame) const;
-	const size_t GetAnimationCount() const;
-	const size_t GetFrameCount(size_t animation) const;
-	const size_t GetIndex() const;
+	const std::size_t RetrieveFrameIdx(std::size_t animation, std::size_t frame) const;
+	const std::size_t GetAnimationCount() const;
+	const std::size_t GetFrameCount(std::size_t animation) const;
+	const std::size_t GetIndex() const;
 private:
-	size_t m_index;
+	std::size_t m_index;
 	std::vector< std::vector< uint32_t > > m_animation_frames;
 };
 

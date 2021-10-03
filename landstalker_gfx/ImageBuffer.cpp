@@ -8,7 +8,7 @@ ImageBuffer::ImageBuffer()
     : m_width(0), m_height(0)
 {}
 
-ImageBuffer::ImageBuffer(size_t width, size_t height)
+ImageBuffer::ImageBuffer(std::size_t width, std::size_t height)
 	: m_width(width), m_height(height)
 {
     m_pixels.assign(width * height, 0);
@@ -21,7 +21,7 @@ void ImageBuffer::Clear()
     std::fill(m_priority.begin(), m_priority.end(), 0);
 }
 
-void ImageBuffer::Resize(size_t width, size_t height)
+void ImageBuffer::Resize(std::size_t width, std::size_t height)
 {
     m_width = width;
     m_height = height;
@@ -30,10 +30,10 @@ void ImageBuffer::Resize(size_t width, size_t height)
     m_priority.assign(width * height, 0);
 }
 
-void ImageBuffer::InsertTile(size_t x, size_t y, uint8_t palette_index, const Tile& tile, const Tileset& tileset)
+void ImageBuffer::InsertTile(std::size_t x, std::size_t y, uint8_t palette_index, const Tile& tile, const Tileset& tileset)
 {
-    size_t max_x = x + 7;
-    size_t max_y = y + 7;
+    std::size_t max_x = x + 7;
+    std::size_t max_y = y + 7;
     if ((max_x >= m_width) || (max_y >= m_height))
     {
         std::ostringstream ss;
@@ -45,13 +45,13 @@ void ImageBuffer::InsertTile(size_t x, size_t y, uint8_t palette_index, const Ti
     {
 	    auto tile_bits = tileset.getTile(tile);
 	    const uint8_t pal_bits = palette_index << 4;
-        size_t begin_offset = y * m_width + x;
+        std::size_t begin_offset = y * m_width + x;
         auto row_it = m_pixels.begin() + begin_offset;
         auto dest_it = row_it;
         auto pri_row_it = m_priority.begin() + begin_offset;
         auto pri_dest_it = row_it;
         uint8_t priority = tile.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
-        for (size_t i = 0; i < tile_bits.size(); ++i)
+        for (std::size_t i = 0; i < tile_bits.size(); ++i)
         {
             if (i % 8 == 0)
             {
@@ -91,10 +91,10 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
     png_color png_palette[256] = { 0 };
     png_byte png_alpha[256] = { 0 };
     
-    size_t entry = 0;
+    std::size_t entry = 0;
     for (const auto& pal : palettes)
     {
-        for (size_t i = 0; i < 16; ++i)
+        for (std::size_t i = 0; i < 16; ++i)
         {
             png_palette[entry + i].red   = pal.getR(i);
             png_palette[entry + i].green = pal.getG(i);
@@ -114,7 +114,7 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
         png_write_info(png, info);
 
         const uint8_t* row = m_pixels.data();
-        for (size_t y = 0; y < m_height; ++y)
+        for (std::size_t y = 0; y < m_height; ++y)
         {
             png_write_row(png, row);
             row += m_width;
@@ -134,7 +134,7 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
     return retval;
 }
 
-void ImageBuffer::InsertBlock(size_t x, size_t y, uint8_t palette_index, const BigTile& block, const Tileset& tileset)
+void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const BigTile& block, const Tileset& tileset)
 {
     if ((y + 7) * m_width + x + 7 < m_pixels.size())
     {
@@ -190,12 +190,12 @@ std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pa
     return ret;
 }
 
-size_t ImageBuffer::GetHeight() const
+std::size_t ImageBuffer::GetHeight() const
 {
 	return m_height;
 }
 
-size_t ImageBuffer::GetWidth() const
+std::size_t ImageBuffer::GetWidth() const
 {
 	return m_width;
 }

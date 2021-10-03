@@ -9,7 +9,7 @@
 class Tilemap2D : public Tilemap
 {
 public:
-	Tilemap2D(size_t width, size_t height, size_t left, size_t top, uint8_t palette);
+	Tilemap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette);
 	virtual ~Tilemap2D() = default;
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
@@ -19,12 +19,12 @@ public:
 	virtual std::shared_ptr<const Tileset> GetTileset() const;
 	Tile GetTile(const TilePoint& point) const;
 	void SetTile(const TilePoint& point, const Tile& tile);
-	virtual size_t GetBitmapWidth() const;
-	virtual size_t GetBitmapHeight() const;
+	virtual std::size_t GetBitmapWidth() const;
+	virtual std::size_t GetBitmapHeight() const;
 
 protected:
-	const size_t TILEWIDTH = 8;
-	const size_t TILEHEIGHT = 8;
+	const std::size_t TILEWIDTH = 8;
+	const std::size_t TILEHEIGHT = 8;
 
 private:
 	std::shared_ptr<Tileset> m_tileset;

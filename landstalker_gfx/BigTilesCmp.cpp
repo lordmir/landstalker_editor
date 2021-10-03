@@ -14,7 +14,7 @@
 #include "BigTile.h"
 #include <wx/msgdlg.h>
 
-template<class T, size_t N>
+template<class T, std::size_t N>
 class TileQueue
 {
 public:
@@ -42,13 +42,13 @@ public:
         if(it == d.end()) return -1;
         return it - d.begin();
     }
-    template <class T1, size_t N1>
+    template <class T1, std::size_t N1>
     friend std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs);
 private:
     std::deque<T> d;  
 };
 
-template<class T1, size_t N1>
+template<class T1, std::size_t N1>
 std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs)
 {
     std::copy (rhs.d.begin(), rhs.d.end(), std::ostream_iterator<uint16_t>(str, ":"));

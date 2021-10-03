@@ -2,7 +2,7 @@
 #include <sstream>
 #include "Utils.h"
 
-Blockmap2D::Blockmap2D(size_t width, size_t height, size_t left, size_t top, uint8_t palette)
+Blockmap2D::Blockmap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
 	: Tilemap(width, height, left, top, palette)
 {
 }
@@ -75,12 +75,12 @@ const BigTile& Blockmap2D::GetBigTile(const TilePoint& point) const
 	return m_blockset->at(GetTileValue(point));
 }
 
-size_t Blockmap2D::GetBitmapWidth() const
+std::size_t Blockmap2D::GetBitmapWidth() const
 {
 	return GetWidth() * TILEWIDTH + GetLeft();
 }
 
-size_t Blockmap2D::GetBitmapHeight() const
+std::size_t Blockmap2D::GetBitmapHeight() const
 {
 	return GetHeight() * TILEHEIGHT + GetTop();
 }

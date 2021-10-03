@@ -10,7 +10,7 @@ public:
     
     template <class T>
     void write(T value);
-    void writeBits(uint32_t value, size_t numBits);
+    void writeBits(uint32_t value, std::size_t numBits);
     void setNextBit(bool value);
 };
 

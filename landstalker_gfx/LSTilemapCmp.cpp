@@ -57,7 +57,7 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, RoomTilemap& tilemap)
     tileDictionary[1] = bb.readBits(10);
     tileDictionary[0] = bb.readBits(10);
     
-    for(size_t i = 6; i < 14; ++i)
+    for(std::size_t i = 6; i < 14; ++i)
     {
         offsetDictionary[i] = bb.readBits(12);
     }
@@ -161,9 +161,9 @@ uint16_t LSTilemapCmp::Decode(const uint8_t* src, RoomTilemap& tilemap)
     
     tilemap.heightmap.assign(tilemap.hmwidth * tilemap.hmheight, 0);
     dst_addr = 0;
-    for(size_t y = 0; y <  tilemap.hmheight; y++)
+    for(std::size_t y = 0; y <  tilemap.hmheight; y++)
     {
-        for(size_t x = 0; x <  tilemap.hmwidth; x++)
+        for(std::size_t x = 0; x <  tilemap.hmwidth; x++)
         {
             if(!hm_rle_count--)
             {
