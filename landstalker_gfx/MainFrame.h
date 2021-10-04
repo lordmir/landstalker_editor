@@ -123,7 +123,7 @@ private:
     void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(size_t scale, uint8_t pal);
     void DrawHeightmap(size_t scale, uint16_t room);
-    void DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, size_t scale = 4);
+    void DrawSprite(const Sprite& sprite, size_t animation, size_t frame, size_t scale = 4);
     void ForceRepaint();
     void PaintNow(wxDC& dc, size_t scale = 1);
     void InitPals(const wxTreeItemId& node);

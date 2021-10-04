@@ -10,8 +10,8 @@ class SpriteFrame
 public:
 	struct SubSprite
 	{
-		size_t x;
-		size_t y;
+		int x;
+		int y;
 		size_t w;
 		size_t h;
 		size_t tile_idx;

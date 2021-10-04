@@ -7,6 +7,11 @@
 #include <sstream>
 #include <exception>
 #include <vector>
+#include <iomanip>
+
+#include <wx/wx.h>
+
+#include "RomOffsets.h"
 
 class Rom
 {
@@ -42,17 +47,19 @@ public:
 		size_t size = static_cast<size_t>(infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
-		if (size < EXPECTED_SIZE)
+		if (size < RomOffsets::EXPECTED_SIZE)
 		{
 			std::ostringstream ss;
-			ss << "ROM file " << filename << ": Bad ROM size! Expected " << std::dec << EXPECTED_SIZE << " bytes, read " << size << " bytes.";
+			ss << "ROM file " << filename << ": Bad ROM size! Expected " << std::dec << RomOffsets::EXPECTED_SIZE << " bytes, read " << size << " bytes.";
 			throw std::runtime_error(ss.str());
 		}
 
 		m_rom.assign(size, 0);
 		infile.read(reinterpret_cast<char*>(m_rom.data()), size);
 		infile.close();
+
 		m_initialised = true;
+		ValidateRomChecksum();
 	}
 
 	Rom& operator=(const Rom& rhs)
@@ -63,9 +70,13 @@ public:
 
 	template< class T >
 	T read(size_t offset) const;
+	template< class T >
+	T read(const std::string& name) const;
 
 	template<class T>
 	std::vector<T> read_array(size_t offset, size_t count) const;
+	template<class T>
+	std::vector<T> read_array(const std::string& name) const;
 
 	template< class T >
 	T deref(size_t address, size_t offset = 0) const
@@ -79,9 +90,39 @@ public:
 	}
 
 private:
+
+	void ValidateRomChecksum()
+	{
+		const uint16_t expected_checksum = read<uint16_t>(RomOffsets::CHECKSUM_ADDRESS);
+		uint16_t calculated_checksum = 0x0000;
+		for (size_t i = RomOffsets::CHECKSUM_BEGIN; i < RomOffsets::EXPECTED_SIZE; i += 2)
+		{
+			calculated_checksum += read<uint16_t>(i);
+		}
+		if (expected_checksum != calculated_checksum)
+		{
+			std::ostringstream ss;
+			ss << "Bad ROM checksum! Expected 0x" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << expected_checksum
+			   << " but calculated " << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << calculated_checksum << ".";
+			wxMessageBox(ss.str());
+		}
+		auto region = RomOffsets::RELEASE_CHECKSUM.find(expected_checksum);
+		if (region != RomOffsets::RELEASE_CHECKSUM.end())
+		{
+			m_region = region->second;
+		}
+		else
+		{
+			std::ostringstream ss;
+			ss << "Unable to determine ROM region. Assuming ROM is US version.";
+			wxMessageBox(ss.str());
+			m_region = RomOffsets::Region::US;
+		}
+	}
+
 	bool m_initialised;
 	std::vector<uint8_t> m_rom;
-	static const size_t EXPECTED_SIZE = (2 * 1024 * 1024);
+	RomOffsets::Region m_region;
 };
 
 template< class T >
@@ -111,6 +152,22 @@ inline bool Rom::read<bool>(size_t offset) const
 }
 
 template<class T>
+inline T Rom::read(const std::string& name) const
+{
+	auto addrs = RomOffsets::ADDRESS.find(name);
+	if (addrs == RomOffsets::ADDRESS.end())
+	{
+		throw std::runtime_error("Named address " + name + " does not exist!");
+	}
+	auto addr = addrs->second.find(m_region);
+	if (addrs == RomOffsets::ADDRESS.end())
+	{
+		throw std::runtime_error("Named address " + name + " does not exist for " + RomOffsets::REGION_NAMES.find(m_region)->second + " ROM!");
+	}
+	return read<T>(addr->second);
+}
+
+template<class T>
 inline std::vector<T> Rom::read_array(size_t offset, size_t count) const
 {
 	std::vector<T> ret;
@@ -132,6 +189,38 @@ inline std::vector<bool> Rom::read_array(size_t offset, size_t count) const
 		ret.push_back(read<bool>(offset + i));
 	}
 	return ret;
+}
+
+template<class T>
+inline std::vector<T> Rom::read_array(const std::string& name) const
+{
+	auto secs = RomOffsets::SECTION.find(name);
+	if (secs == RomOffsets::SECTION.end())
+	{
+		throw std::runtime_error("Named section " + name + " does not exist!");
+	}
+	auto sec = secs->second.find(m_region);
+	if (sec == secs->second.end())
+	{
+		throw std::runtime_error("Named section " + name + " does not exist for " + RomOffsets::REGION_NAMES.find(m_region)->second + " ROM!");
+	}
+	return read_array<T>(sec->second.begin, sec->second.size() / sizeof(T));
+}
+
+template<>
+inline std::vector<bool> Rom::read_array<bool>(const std::string& name) const
+{
+	auto secs = RomOffsets::SECTION.find(name);
+	if (secs == RomOffsets::SECTION.end())
+	{
+		throw std::runtime_error("Named section " + name + " does not exist!");
+	}
+	auto sec = secs->second.find(m_region);
+	if (sec == secs->second.end())
+	{
+		throw std::runtime_error("Named section " + name + " does not exist for " + RomOffsets::REGION_NAMES.find(m_region)->second + " ROM!");
+	}
+	return read_array<bool>(sec->second.begin, sec->second.size());
 }
 
 #endif // ROM_H

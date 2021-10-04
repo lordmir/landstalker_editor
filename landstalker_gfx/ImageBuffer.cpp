@@ -30,11 +30,11 @@ void ImageBuffer::Resize(size_t width, size_t height)
     m_priority.assign(width * height, 0);
 }
 
-void ImageBuffer::InsertTile(size_t x, size_t y, uint8_t palette_index, const Tile& tile, const Tileset& tileset)
+void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset)
 {
     size_t max_x = x + 7;
     size_t max_y = y + 7;
-    if ((max_x >= m_width) || (max_y >= m_height))
+    if ((max_x >= m_width) || (max_y >= m_height) || (x < 0 ) || (y < 0))
     {
         std::ostringstream ss;
         ss << "Attempt to draw tile in out-of-range position " << x << ", " << y 
@@ -57,8 +57,10 @@ void ImageBuffer::InsertTile(size_t x, size_t y, uint8_t palette_index, const Ti
             {
                 dest_it = row_it + m_width * (i / 8);
                 pri_dest_it = pri_row_it + m_width * (i / 8);
+				y++;
+				x -= 8;
             }
-            if (tile_bits[i] != 0)
+            if ((tile_bits[i] != 0))// && (x >= 0) && (y >= 0))
             {
                 *dest_it = tile_bits[i] | pal_bits;
                 *pri_dest_it = priority;

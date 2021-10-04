@@ -22,6 +22,7 @@
 #include "Utils.h"
 #include "Tilemap2D.h"
 #include "Blockmap2D.h"
+#include "RomOffsets.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -63,7 +64,7 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     wxAboutDialogInfo info;
     info.SetCopyright(_("Landstalker Graphics Viewer"));
     info.SetLicence(_("GPL v2 or later"));
-    info.SetDescription(_("Github: www.github.com/thomasamendt/landstalker_gfx\nEmail: tgamendt@gmail.com"));
+    info.SetDescription(_("Github: www.github.com/lordmir/landstalker_gfx\nEmail: hase@redfern.xyz"));
     ::wxAboutBox(info);
     event.Skip();
 }
@@ -74,7 +75,7 @@ void MainFrame::OpenRomFile(const wxString& path)
     {
         m_rom.load_from_file(static_cast<std::string>(path));
 
-        m_tilesetOffsets = m_rom.read_array<uint32_t>(0x44070, 31);
+        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         m_browser->DeleteAllItems();
         m_browser->SetImageList(m_imgs);
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
@@ -85,86 +86,21 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
         wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", 4, 4, new TreeNodeData());
 
-        const uint32_t start_of_sprite_graphics = 0x120000;
-        const uint32_t start_of_sprite_table = start_of_sprite_graphics + 4;
-        const uint32_t start_of_anim_table = m_rom.read<uint32_t>(start_of_sprite_graphics);
-        const uint32_t start_of_frame_table = m_rom.read<uint32_t>(start_of_anim_table);
-        const uint32_t start_of_frames = m_rom.read<uint32_t>(start_of_frame_table);
-
-        std::set<uint32_t> frame_offsets;
-        for (uint32_t frame_offset = start_of_frame_table; frame_offset < start_of_frames; frame_offset += 4)
+        for (size_t i = 0; i < 255; i++)
         {
-            frame_offsets.insert(m_rom.read<uint32_t>(frame_offset));
-        }
-
-        std::vector<uint32_t> frames(frame_offsets.cbegin(), frame_offsets.cend());
-        std::map<uint32_t, uint32_t> frame_offset_to_frame_num;
-        for (size_t i = 0; i < frames.size(); ++i)
-        {
-            frame_offset_to_frame_num[frames[i]] = i;
-            m_spriteFrames.emplace_back(SpriteFrame(m_rom.data(frames[i])));
-        }
-
-        std::vector<uint32_t> sprite_frames;
-        size_t i = 0;
-        for (uint32_t soffset = start_of_sprite_table; soffset < start_of_anim_table; soffset += 4)
-        {
-            m_spriteGraphics.emplace_back(i++);
-            uint32_t start_anim_offset = m_rom.read<uint16_t>(soffset) * 4 + start_of_anim_table;
-            uint32_t end_anim_offset;
-            if (soffset + 4 >= start_of_anim_table)
-            {
-                end_anim_offset = start_of_frame_table;
-            }
-            else
-            {
-                end_anim_offset = m_rom.read<uint16_t>(soffset + 4) * 4 + start_of_anim_table;
-            }
-            for (uint32_t aoffset = start_anim_offset; aoffset < end_anim_offset; aoffset += 4)
-            {
-                uint32_t start_frame_offset = m_rom.read<uint32_t>(aoffset);
-                uint32_t end_frame_offset;
-                if (aoffset + 4 >= start_of_frames)
-                {
-                    end_frame_offset = start_of_frames;
-                }
-                else
-                {
-                    end_frame_offset = m_rom.read<uint32_t>(aoffset + 4);
-                }
-                std::vector<uint32_t> sframes = m_rom.read_array<uint32_t>(start_frame_offset, (end_frame_offset - start_frame_offset)/4);
-                for(auto& frame : sframes)
-                {
-                    frame = frame_offset_to_frame_num[frame];
-                }
-                m_spriteGraphics.back().AddAnimation(sframes);
-            }
-        }
-
-        for (size_t i = 0; i < (236 * 2); i+=2)
-        {
-            uint8_t sprite_idx = m_rom.read<uint8_t>(0x1ABF2 + i + 1);
-            uint8_t sprite_gfx = m_rom.read<uint8_t>(0x1ABF2 + i);
-            m_sprites.emplace(sprite_idx, Sprite(sprite_gfx));
-        }
-
-        for (size_t offset = 0x1A453A; m_rom.read<uint8_t>(offset) != 0xFF; offset += 2)
-        {
-            if ((m_rom.read<uint8_t>(offset + 1) & 0x80) > 0)
-            {
-                m_sprites[m_rom.read<uint8_t>(offset)].SetHighPalette(m_rom.read<uint8_t>(offset + 1) & 0x7F);
-            }
-            else
-            {
-                m_sprites[m_rom.read<uint8_t>(offset)].SetLowPalette(m_rom.read<uint8_t>(offset + 1));
-            }
+            m_sprites.emplace(i, Sprite(m_rom, i));
+			// Remove any sprites that do not have any corresponding graphics
+			if (m_sprites[i].GetGraphicsIdx() == -1)
+			{
+				m_sprites.erase(i);
+			}
         }
 
         for (const auto& sprite : m_sprites)
         {
-            const auto& sg = m_spriteGraphics[sprite.second.GetGraphicsIdx()];
+            const auto& sg = sprite.second.GetGraphics();
             size_t default_anim = sg.GetAnimationCount() > 1 ? 1 : 0;
-            auto spr = m_browser->AppendItem(nodeSprites, Hex(sprite.first), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, default_anim << 16 | sprite.first));
+            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, default_anim << 16 | sprite.first));
 
             for (size_t a = 0; a != sg.GetAnimationCount(); ++a)
             {
@@ -185,17 +121,18 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_browser->AppendItem(nodeTs, Hex(m_tilesetOffsets[i]), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, i));
         }
-        auto bt = m_rom.read_array<uint32_t>(m_rom.read<uint32_t>(0x1AF800), 64);
-        for (size_t i = 0; i < 64; ++i)
+        auto bt = m_rom.read_array<uint32_t>("big_tiles_ptr_table");
+        for (size_t i = 0; i < bt.size(); ++i)
         {
-            m_bigTileOffsets.push_back(m_rom.read_array<uint32_t>(bt[i], 9));
-            wxTreeItemId curTn = m_browser->AppendItem(nodeBTs, Hex(bt[i]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16));
+			auto bt_ptr = bt[i];
+            m_bigTileOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
+            wxTreeItemId curTn = m_browser->AppendItem(nodeBTs, Hex(bt_ptr), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16));
             for (size_t j = 0; j < 9; ++j)
             {
-                m_browser->AppendItem(curTn, Hex(m_bigTileOffsets[i][j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
+                m_browser->AppendItem(curTn, Hex(m_bigTileOffsets.back()[j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
             }
         }
-        const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>(0xA0A00));
+        const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>("room_data_ptr"));
         for (size_t i = 0; i < 816; i++)
         {
             std::ostringstream ss;
@@ -427,35 +364,12 @@ void MainFrame::DrawTiles(size_t row_width, size_t scale, uint8_t pal)
     ForceRepaint();
 }
 
-void MainFrame::DrawSprite(const SpriteFrame& sprite, uint8_t pal_idx, size_t scale)
+void MainFrame::DrawSprite(const Sprite& sprite, size_t animation, size_t frame, size_t scale)
 {
-    size_t top = 0xFFFF;
-    size_t left = 0xFFFF;
-    size_t bottom = 0;
-    size_t right = 0;
-
-    for (const auto& subs : sprite.m_subsprites)
-    {
-        left   = std::min(left,    (subs.x + 0x80) & 0xFF);
-        top    = std::min(top,     (subs.y + 0x80) & 0xFF);
-        right  = std::max(right,  ((subs.x + 0x80) & 0xFF) + subs.w * 8);
-        bottom = std::max(bottom, ((subs.y + 0x80) & 0xFF) + subs.h * 8);
-    }
-
-    m_imgbuf.Resize(right - left, bottom - top);
-
-    for (const auto& subs : sprite.m_subsprites)
-    {
-        size_t index = subs.tile_idx;
-        for (size_t x = 0; x < subs.w; ++x)
-        for (size_t y = 0; y < subs.h; ++y)
-        {
-            size_t xx = ((subs.x + 0x80) & 0xFF) - left + x * 8;
-            size_t yy = ((subs.y + 0x80) & 0xFF) - top + y * 8;
-            m_imgbuf.InsertTile(xx, yy, pal_idx, Tile(index++), sprite.m_sprite_gfx);
-        }
-    }
     m_scale = scale;
+	m_palette[2] = sprite.GetPalette();
+	m_imgbuf.Resize(160, 160);
+	sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
     bmp = m_imgbuf.MakeBitmap(m_palette);
     ForceRepaint();
 }
@@ -521,7 +435,7 @@ void MainFrame::InitPals(const wxTreeItemId& node)
     const uint8_t* pal = base_pal;
     for(size_t i = 0; i < 54; ++i)
     {
-        m_pal2.push_back(Palette(pal, i, Palette::ROOM_PALETTE));
+        m_pal2.push_back(Palette(m_rom, i, Palette::PaletteType::ROOM_PALETTE));
 
         std::ostringstream ss;
         ss << std::dec << std::setw(2) << std::setfill('0') << i;
@@ -530,9 +444,9 @@ void MainFrame::InitPals(const wxTreeItemId& node)
 
     m_palette.clear();
     m_palette.emplace_back(m_pal2[0]);
-    m_palette.emplace_back();
-    m_palette.emplace_back();
-    m_palette.emplace_back();
+    m_palette.emplace_back(m_rom);
+    m_palette.emplace_back(m_rom);
+    m_palette.emplace_back(m_rom);
 }
 void MainFrame::OnExport(wxCommandEvent& event)
 {
@@ -720,10 +634,8 @@ void MainFrame::Refresh()
         // Display sprite
         EnableLayerControls(false);
         const auto& sprite = m_sprites[m_sprite_idx];
-        const auto& sprite_gfx = m_spriteGraphics[sprite.GetGraphicsIdx()];
-        uint32_t frame = sprite_gfx.RetrieveFrameIdx(m_sprite_anim, m_sprite_frame);
-        m_palette[1] = sprite.GetPalette(m_rom.data(0x1A4BA0), m_rom.data(0x1A47E0));
-        DrawSprite(m_spriteFrames[frame], 1, 4);
+        m_palette[1] = sprite.GetPalette();
+        DrawSprite(sprite, m_sprite_anim, m_sprite_frame);
         break;
     }
     case MODE_NONE:

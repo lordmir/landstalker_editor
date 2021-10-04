@@ -49,6 +49,7 @@
       <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -69,6 +70,7 @@
       <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -119,6 +121,7 @@
     <ClInclude Include="..\Palette.h" />
     <ClInclude Include="..\resource.h" />
     <ClInclude Include="..\Rom.h" />
+    <ClInclude Include="..\RomOffsets.h" />
     <ClInclude Include="..\Sprite.h" />
     <ClInclude Include="..\SpriteGraphic.h" />
     <ClInclude Include="..\SpriteFrame.h" />

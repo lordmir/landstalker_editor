@@ -18,7 +18,7 @@ public:
 	ImageBuffer(size_t width, size_t height);
 	void Clear();
 	void Resize(size_t width, size_t height);
-	void InsertTile(size_t x, size_t y, uint8_t palette_index, const Tile& tile, const Tileset& tileset);
+	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset);
 	bool WritePNG(const std::string& filename, const std::vector<Palette>& pals);
 	void InsertBlock(size_t x, size_t y, uint8_t palette_index, const BigTile& block, const Tileset& tileset);
 	const std::vector<uint8_t>& GetRGB(const std::vector<Palette>& pals) const;

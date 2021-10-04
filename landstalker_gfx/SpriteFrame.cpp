@@ -9,9 +9,17 @@ SpriteFrame::SpriteFrame(const uint8_t* src)
 	size_t tile_idx = 0;
 	do
 	{
-		size_t y = (*src & 0x7C) << 1;
+		int y = ((*src & 0x7C) << 1);
+		if (y > 0x80)
+		{
+			y -= 0x100;
+		}
 		size_t w = (*src & 0x03) + 1;
-		size_t x = (*++src & 0x7C) << 1;
+		int x = ((*++src & 0x7C) << 1);
+		if (x > 0x80)
+		{
+			x -= 0x100;
+		}
 		size_t h = (*src & 0x03) + 1;
 		m_subsprites.push_back({ x,y,w,h, tile_idx });
 		tile_idx += w * h;
