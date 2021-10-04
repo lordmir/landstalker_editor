@@ -1,6 +1,6 @@
 #include "Palette.h"
 
-template<size_t N>
+template<std::size_t N>
 static void PopulatePalettes(const std::vector<uint16_t>& input, std::vector<std::array<uint16_t, N>>& output)
 {
 	// Input must contain a whole number of palettes
@@ -19,7 +19,7 @@ static void PopulatePalettes(const std::vector<uint16_t>& input, std::vector<std
 	}
 }
 
-template <size_t N>
+template <std::size_t N>
 static void LoadPalette(const std::array<uint16_t, N>& palette, size_t begin, std::array<PaletteEntry, 16> & outpal)
 {
 	size_t i = 0;
@@ -77,7 +77,7 @@ void Palette::LoadDebugPal()
 	m_pal[15] = FromGenesisColour(0x0000);
 }
 
-size_t Palette::GetPaletteCount(PaletteType type) const
+std::size_t Palette::GetPaletteCount(PaletteType type) const
 {
 	switch (type)
 	{
@@ -93,13 +93,13 @@ size_t Palette::GetPaletteCount(PaletteType type) const
 	return 0;
 }
 
-Palette::Palette(const Rom& rom, size_t index, const PaletteType& type)
+Palette::Palette(const Rom& rom, std::size_t index, const PaletteType& type)
     : Palette(rom)
 {
     Load(type, index);
 }
 
-void Palette::Load(PaletteType type, size_t index)
+void Palette::Load(PaletteType type, std::size_t index)
 {
     switch (type)
     {

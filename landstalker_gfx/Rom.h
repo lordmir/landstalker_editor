@@ -44,7 +44,7 @@ public:
 		}
 
 		infile.seekg(0, std::ios::end);
-		size_t size = static_cast<size_t>(infile.tellg());
+		std::size_t size = static_cast<std::size_t>(infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
 		if (size < RomOffsets::EXPECTED_SIZE)
@@ -69,22 +69,22 @@ public:
 	}
 
 	template< class T >
-	T read(size_t offset) const;
+	T read(std::size_t offset) const;
 	template< class T >
 	T read(const std::string& name) const;
 
 	template<class T>
-	std::vector<T> read_array(size_t offset, size_t count) const;
+	std::vector<T> read_array(std::size_t offset, size_t count) const;
 	template<class T>
 	std::vector<T> read_array(const std::string& name) const;
 
 	template< class T >
-	T deref(size_t address, size_t offset = 0) const
+	T deref(std::size_t address, std::size_t offset = 0) const
 	{
 		return read<T>(read<uint32_t>(address) + offset * sizeof(T));
 	}
 
-	const uint8_t* data(size_t address = 0) const
+	const uint8_t* data(std::size_t address = 0) const
 	{
 		return m_rom.data() + address;
 	}
@@ -126,14 +126,14 @@ private:
 };
 
 template< class T >
-inline T Rom::read(size_t offset) const
+inline T Rom::read(std::size_t offset) const
 {
 	T retval = 0;
 	if (m_initialised == false)
 	{
 		throw std::runtime_error("Attempt to read from uninitialised ROM.");
 	}
-	for (size_t i = 0; i < sizeof(T); ++i)
+	for (std::size_t i = 0; i < sizeof(T); ++i)
 	{
 		retval <<= 8;
 		retval |= m_rom[offset + i];
@@ -142,7 +142,7 @@ inline T Rom::read(size_t offset) const
 }
 
 template<>
-inline bool Rom::read<bool>(size_t offset) const
+inline bool Rom::read<bool>(std::size_t offset) const
 {
 	if (m_initialised == false)
 	{
@@ -168,11 +168,11 @@ inline T Rom::read(const std::string& name) const
 }
 
 template<class T>
-inline std::vector<T> Rom::read_array(size_t offset, size_t count) const
+inline std::vector<T> Rom::read_array(size_t offset, std::size_t count) const
 {
 	std::vector<T> ret;
 	ret.reserve(count);
-	for (size_t i = 0; i < count; ++i)
+	for (std::size_t i = 0; i < count; ++i)
 	{
 		ret.push_back(read<T>(offset + i * sizeof(T)));
 	}
@@ -180,11 +180,11 @@ inline std::vector<T> Rom::read_array(size_t offset, size_t count) const
 }
 
 template<>
-inline std::vector<bool> Rom::read_array(size_t offset, size_t count) const
+inline std::vector<bool> Rom::read_array(std::size_t offset, std::size_t count) const
 {
 	std::vector<bool> ret;
 	ret.reserve(count);
-	for (size_t i = 0; i < count; ++i)
+	for (std::size_t i = 0; i < count; ++i)
 	{
 		ret.push_back(read<bool>(offset + i));
 	}

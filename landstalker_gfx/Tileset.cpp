@@ -11,13 +11,13 @@ Tileset::~Tileset()
 {
 }
 
-void Tileset::setBits(const uint8_t* src, size_t num_tiles)
+void Tileset::setBits(const uint8_t* src, std::size_t num_tiles)
 {
     m_tiles.clear();
     m_tiles.assign(num_tiles, std::vector<uint8_t>(WIDTH * HEIGHT));
     for(auto& t : m_tiles)
     {
-        for (size_t i = 0; i < (WIDTH * HEIGHT / 2); ++i)
+        for (std::size_t i = 0; i < (WIDTH * HEIGHT / 2); ++i)
         {
             t[i * 2] = *src >> 4;
             t[i * 2 + 1] = *src++ & 0x0F;
@@ -27,7 +27,7 @@ void Tileset::setBits(const uint8_t* src, size_t num_tiles)
 
 std::vector<uint8_t> Tileset::getTile(const Tile& tile) const
 {
-    size_t idx = tile.GetIndex();
+    std::size_t idx = tile.GetIndex();
     if (idx >= m_tiles.size())
     {
         std::ostringstream ss;
@@ -38,7 +38,7 @@ std::vector<uint8_t> Tileset::getTile(const Tile& tile) const
     std::vector<uint8_t> ret(m_tiles[idx]);
     if (tile.Attributes().getAttribute(TileAttributes::ATTR_VFLIP))
     {
-        for (size_t i = 0; i < HEIGHT/2; ++i)
+        for (std::size_t i = 0; i < HEIGHT/2; ++i)
         {
             auto source_it = ret.begin() + WIDTH * i;
             auto dest_it = ret.end() - WIDTH * (i + 1);
@@ -47,7 +47,7 @@ std::vector<uint8_t> Tileset::getTile(const Tile& tile) const
     }
     if (tile.Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
     {
-        for (size_t i = 0; i < WIDTH; ++i)
+        for (std::size_t i = 0; i < WIDTH; ++i)
         {
             auto source_it = ret.begin() + WIDTH * i;
             std::reverse(source_it, source_it + WIDTH);
@@ -56,7 +56,7 @@ std::vector<uint8_t> Tileset::getTile(const Tile& tile) const
     return ret;
 }
 
-size_t Tileset::size() const
+std::size_t Tileset::size() const
 {
     return m_tiles.size();
 }

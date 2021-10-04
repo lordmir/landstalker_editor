@@ -28,9 +28,9 @@ public:
 
 	Palette();
     Palette(const Rom& rom);
-    Palette(const Rom& rom, size_t offset, const PaletteType& type);
+    Palette(const Rom& rom, std::size_t offset, const PaletteType& type);
 
-    void Load(PaletteType type, size_t index = 0);
+    void Load(PaletteType type, std::size_t index = 0);
 	void Clear();
 	void LoadDebugPal();
 	size_t GetPaletteCount(PaletteType type) const;

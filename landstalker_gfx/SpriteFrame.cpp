@@ -6,7 +6,7 @@
 
 SpriteFrame::SpriteFrame(const uint8_t* src)
 {
-	size_t tile_idx = 0;
+	std::size_t tile_idx = 0;
 	do
 	{
 		int y = ((*src & 0x7C) << 1);
@@ -14,13 +14,13 @@ SpriteFrame::SpriteFrame(const uint8_t* src)
 		{
 			y -= 0x100;
 		}
-		size_t w = (*src & 0x03) + 1;
+		std::size_t w = (*src & 0x03) + 1;
 		int x = ((*++src & 0x7C) << 1);
 		if (x > 0x80)
 		{
 			x -= 0x100;
 		}
-		size_t h = (*src & 0x03) + 1;
+		std::size_t h = (*src & 0x03) + 1;
 		m_subsprites.push_back({ x,y,w,h, tile_idx });
 		tile_idx += w * h;
 	} while ((*src++ & 0x80) == 0);
@@ -57,7 +57,7 @@ SpriteFrame::SpriteFrame(const uint8_t* src)
 		else if ((ctrl & 0x02) > 0)
 		{
 			std::ostringstream ss;
-			size_t elen = 0;
+			std::size_t elen = 0;
 			src += LZ77::Decode(src, count, &(*dest_it), elen);
 			ss << "Copy " << count << " compressed bytes, " << elen << " bytes decompressed." << std::endl;
 			Debug(ss.str().c_str());

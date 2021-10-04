@@ -9,21 +9,21 @@
 
 struct TilePoint3D
 {
-	size_t x;
-	size_t y;
-	size_t z;
+	std::size_t x;
+	std::size_t y;
+	std::size_t z;
 };
 
 class BlockmapIsometric : public Blockmap2D
 {
 public:
-	BlockmapIsometric(size_t width, size_t height, size_t left, size_t top, uint8_t palette);
+	BlockmapIsometric(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette);
 	virtual ~BlockmapIsometric() = default;
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
 	wxPoint ToXYPoint3D(const TilePoint3D& point) const;
-	virtual size_t GetBitmapWidth() const;
-	virtual size_t GetBitmapHeight() const;
+	virtual std::size_t GetBitmapWidth() const;
+	virtual std::size_t GetBitmapHeight() const;
 
 private:
 	std::shared_ptr<Tileset> m_tileset;

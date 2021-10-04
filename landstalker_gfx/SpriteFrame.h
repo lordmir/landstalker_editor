@@ -12,9 +12,9 @@ public:
 	{
 		int x;
 		int y;
-		size_t w;
-		size_t h;
-		size_t tile_idx;
+		std::size_t w;
+		std::size_t h;
+		std::size_t tile_idx;
 	};
 
 	SpriteFrame(const uint8_t* src);

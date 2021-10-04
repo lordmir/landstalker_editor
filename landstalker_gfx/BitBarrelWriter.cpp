@@ -19,9 +19,9 @@ void BitBarrelWriter::write(bool value)
     setNextBit(value);
 }
 
-void BitBarrelWriter::writeBits(uint32_t value, size_t numBits)
+void BitBarrelWriter::writeBits(uint32_t value, std::size_t numBits)
 {
-    for(size_t i = 0; i < numBits; ++i)
+    for(std::size_t i = 0; i < numBits; ++i)
     {
         setNextBit(value & 1);
         value >>= 1;

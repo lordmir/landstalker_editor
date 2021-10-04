@@ -6,9 +6,9 @@
 
 #include "BitBarrel.h"
 
-size_t LZ77::Decode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf, size_t& esize)
+std::size_t LZ77::Decode(const uint8_t* inbuf, std::size_t bufsize, uint8_t* outbuf, std::size_t& esize)
 {
-    size_t dsize = 0;
+    std::size_t dsize = 0;
     const uint8_t* inbufptr = inbuf;
     BitBarrel cmd;
     
@@ -62,7 +62,7 @@ struct Entry
     {}
 };
 
-static uint8_t find_best_match(const uint8_t* inbuf, size_t bufsize, size_t curpos, uint16_t& offset)
+static uint8_t find_best_match(const uint8_t* inbuf, std::size_t bufsize, std::size_t curpos, uint16_t& offset)
 {
     const uint8_t LEN_MAX_LIMIT = 18;
     const uint8_t LEN_MIN_LIMIT = 3;
@@ -71,7 +71,7 @@ static uint8_t find_best_match(const uint8_t* inbuf, size_t bufsize, size_t curp
     if((inbuf != NULL) && (bufsize > 3) && (curpos > 0))
     {
         const uint16_t END_SEARCH = (curpos > MAX_OFFSET) ? curpos - MAX_OFFSET : 0;
-        const uint8_t MAX_LEN = static_cast<uint8_t>(std::min(static_cast<size_t>(LEN_MAX_LIMIT), bufsize - curpos));
+        const uint8_t MAX_LEN = static_cast<uint8_t>(std::min(static_cast<std::size_t>(LEN_MAX_LIMIT), bufsize - curpos));
         uint8_t len = 0;
         if(MAX_LEN < LEN_MAX_LIMIT)
         {
@@ -79,7 +79,7 @@ static uint8_t find_best_match(const uint8_t* inbuf, size_t bufsize, size_t curp
         }
         if(MAX_LEN >= LEN_MIN_LIMIT)
         {
-            for(size_t i = curpos; i > END_SEARCH; --i)
+            for(std::size_t i = curpos; i > END_SEARCH; --i)
             {
                 len = 0;
                 while(inbuf[len + i - 1] == inbuf[curpos + len])
@@ -109,12 +109,12 @@ static uint8_t find_best_match(const uint8_t* inbuf, size_t bufsize, size_t curp
     return best_len;
 }
 
-size_t LZ77::Encode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf)
+std::size_t LZ77::Encode(const uint8_t* inbuf, std::size_t bufsize, uint8_t* outbuf)
 {
-    size_t esize = 0;
+    std::size_t esize = 0;
     std::vector<Entry> entries;
     BitBarrel bb;
-    for(size_t i = 0; i < bufsize; )
+    for(std::size_t i = 0; i < bufsize; )
     {
         uint16_t match_offset = 0;
         uint8_t match_len = find_best_match(inbuf, bufsize, i, match_offset);

@@ -103,12 +103,12 @@ private:
             NODE_SPRITE,
             NODE_SPRITE_FRAME
         };
-        TreeNodeData(NodeType nodeType = NODE_BASE, size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
-        size_t GetValue() const { return m_value; }
+        TreeNodeData(NodeType nodeType = NODE_BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
+        std::size_t GetValue() const { return m_value; }
         NodeType GetNodeType() const { return m_nodeType; }
     private:
         const NodeType m_nodeType;
-        const size_t m_value;
+        const std::size_t m_value;
     };
     enum Mode
     {
@@ -119,17 +119,17 @@ private:
         MODE_ROOMMAP,
         MODE_SPRITE
     };
-    void DrawTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
-    void DrawBigTiles(size_t row_width = -1, size_t scale = 1, uint8_t pal = 0);
-    void DrawTilemap(size_t scale, uint8_t pal);
-    void DrawHeightmap(size_t scale, uint16_t room);
-    void DrawSprite(const Sprite& sprite, size_t animation, size_t frame, size_t scale = 4);
+    void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
+    void DrawBigTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
+    void DrawTilemap(std::size_t scale, uint8_t pal);
+    void DrawHeightmap(std::size_t scale, uint16_t room);
+    void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void ForceRepaint();
-    void PaintNow(wxDC& dc, size_t scale = 1);
+    void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
-    void LoadTileset(size_t offset);
-    void LoadTilemap(size_t offset);
-    void LoadBigTiles(size_t offset);
+    void LoadTileset(std::size_t offset);
+    void LoadTilemap(std::size_t offset);
+    void LoadBigTiles(std::size_t offset);
     void OpenRomFile(const wxString& path);
     void InitRoom(uint16_t room);
     void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
@@ -140,7 +140,7 @@ private:
     RoomTilemap m_tilemap;
     Rom m_rom;
     uint8_t m_gfxBuffer[65536];
-    size_t m_gfxSize;
+    std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
     std::vector<RoomData> m_rooms;
@@ -149,7 +149,7 @@ private:
     Tileset m_tilebmps;
     ImageBuffer m_imgbuf;
     wxImage m_img;
-    size_t m_scale;
+    std::size_t m_scale;
     uint8_t m_rpalidx;
     uint8_t m_tsidx;
     uint8_t m_bs1;
