@@ -171,6 +171,14 @@ uint16_t Palette::ToGenesisColour(const PaletteEntry& entry)
 	return retval;
 }
 
+void Palette::Reset()
+{
+	m_sprite_high_palettes.clear();
+	m_sprite_low_palettes.clear();
+	m_room_palettes.clear();
+	m_cache_init = false;
+}
+
 bool Palette::m_cache_init = false;
 std::vector<std::array<uint16_t, 7>> Palette::m_sprite_high_palettes;
 std::vector<std::array<uint16_t, 6>> Palette::m_sprite_low_palettes;

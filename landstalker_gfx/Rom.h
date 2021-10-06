@@ -18,21 +18,28 @@ class Rom
 public:
 
 	Rom(const std::string filename)
-	: m_initialised(false)
+	: m_initialised(false),
+	  m_filename(filename),
+	  m_region(RomOffsets::Region::US)
 	{
 		load_from_file(filename);
 	}
 
 	Rom(const Rom& rhs)
-	: m_rom(rhs.m_rom), m_initialised(rhs.m_initialised)
+	: m_filename(rhs.m_filename),
+	  m_rom(rhs.m_rom),
+	  m_initialised(rhs.m_initialised),
+	  m_region(rhs.m_region)
 	{}
 
 	Rom()
-	: m_initialised(false)
+	: m_initialised(false),
+	  m_region(RomOffsets::Region::US)
 	{}
 
 	void load_from_file(std::string filename)
 	{
+		m_filename = filename;
 		std::ifstream infile;
 		infile.open(filename, std::ios::in | std::ios::binary | std::ios::ate);
 
@@ -89,6 +96,11 @@ public:
 		return m_rom.data() + address;
 	}
 
+	std::string get_description() const
+	{
+		return "[" + m_filename + "] - " + RomOffsets::REGION_NAMES.find(m_region)->second + " Release ROM";
+	}
+
 private:
 
 	void ValidateRomChecksum()
@@ -106,20 +118,24 @@ private:
 			   << " but calculated " << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << calculated_checksum << ".";
 			wxMessageBox(ss.str());
 		}
-		auto region = RomOffsets::RELEASE_CHECKSUM.find(expected_checksum);
-		if (region != RomOffsets::RELEASE_CHECKSUM.end())
+
+		auto build_date_vec = read_array<char>(RomOffsets::BUILD_DATE_BEGIN, RomOffsets::BUILD_DATE_LENGTH);
+		std::string build_date(build_date_vec.begin(), build_date_vec.end());
+		auto region = RomOffsets::RELEASE_BUILD_DATE.find(build_date);
+		if (region != RomOffsets::RELEASE_BUILD_DATE.end())
 		{
 			m_region = region->second;
 		}
 		else
 		{
 			std::ostringstream ss;
-			ss << "Unable to determine ROM region. Assuming ROM is US version.";
+			ss << "Unable to determine ROM region from build date '" << build_date << "'. Assuming ROM is US version.";
 			wxMessageBox(ss.str());
 			m_region = RomOffsets::Region::US;
 		}
 	}
 
+	std::string m_filename;
 	bool m_initialised;
 	std::vector<uint8_t> m_rom;
 	RomOffsets::Region m_region;

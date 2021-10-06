@@ -137,38 +137,10 @@
     <None Include="..\wxcrafter.wxcp" />
     <None Include="..\wxcrafter.xrc" />
     <None Include="..\wxcrafter_bitmaps.xrc" />
-    <None Include="..\wx\msw\blank.cur" />
-    <None Include="..\wx\msw\bullseye.cur" />
-    <None Include="..\wx\msw\cross.cur" />
-    <None Include="..\wx\msw\hand.cur" />
-    <None Include="..\wx\msw\magnif1.cur" />
-    <None Include="..\wx\msw\pbrush.cur" />
-    <None Include="..\wx\msw\pencil.cur" />
-    <None Include="..\wx\msw\pntleft.cur" />
-    <None Include="..\wx\msw\pntright.cur" />
-    <None Include="..\wx\msw\roller.cur" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\win_resources.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\img\icon1.ico" />
     <Image Include="..\img\map.ico" />
     <Image Include="..\img\msword.ico" />
-    <Image Include="..\wx\msw\cdrom.ico" />
-    <Image Include="..\wx\msw\colours.bmp" />
-    <Image Include="..\wx\msw\computer.ico" />
-    <Image Include="..\wx\msw\csquery.bmp" />
-    <Image Include="..\wx\msw\drive.ico" />
-    <Image Include="..\wx\msw\file1.ico" />
-    <Image Include="..\wx\msw\floppy.ico" />
-    <Image Include="..\wx\msw\folder1.ico" />
-    <Image Include="..\wx\msw\folder2.ico" />
-    <Image Include="..\wx\msw\icon1.ico" />
-    <Image Include="..\wx\msw\removble.ico" />
-    <Image Include="..\wx\msw\std.ico" />
-    <Image Include="img\map.ico" />
-    <Image Include="img\msword.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

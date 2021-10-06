@@ -34,7 +34,7 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
 {
 	int max_x = x + 7;
 	int max_y = y + 7;
-    if ((max_x >= m_width) || (max_y >= m_height) || (x < 0 ) || (y < 0))
+    if ((max_x >= static_cast<int>(m_width)) || (max_y >= static_cast<int>(m_height)) || (x < 0 ) || (y < 0))
     {
         std::ostringstream ss;
         ss << "Attempt to draw tile in out-of-range position " << x << ", " << y 

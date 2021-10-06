@@ -74,10 +74,19 @@ void MainFrame::OpenRomFile(const wxString& path)
     try
     {
         m_rom.load_from_file(static_cast<std::string>(path));
+        this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
 
-        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         m_browser->DeleteAllItems();
         m_browser->SetImageList(m_imgs);
+        m_properties->GetGrid()->Clear();
+        m_sprites.clear();
+        m_tilesetOffsets.clear();
+        m_bigTileOffsets.clear();
+        m_rooms.clear();
+        Sprite::Reset();
+        Palette::Reset();
+        SetMode(MODE_NONE);
+
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
         wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
@@ -99,8 +108,8 @@ void MainFrame::OpenRomFile(const wxString& path)
         for (const auto& sprite : m_sprites)
         {
             const auto& sg = sprite.second.GetGraphics();
-			std::size_t default_anim = sg.GetAnimationCount() > 1 ? 1 : 0;
-            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, default_anim << 16 | sprite.first));
+            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE,
+                                             sprite.second.GetDefaultAnimationId() << 16 | sprite.second.GetDefaultFrameId() << 8 | sprite.first));
 
             for (std::size_t a = 0; a != sg.GetAnimationCount(); ++a)
             {
@@ -117,6 +126,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
+        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         for (std::size_t i = 0; i < m_tilesetOffsets.size(); ++i)
         {
             m_browser->AppendItem(nodeTs, Hex(m_tilesetOffsets[i]), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, i));

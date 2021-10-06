@@ -173,6 +173,39 @@ const SpriteGraphic& Sprite::GetGraphics() const
 	throw std::runtime_error("Error! Sprite " + std::to_string(m_sprite_id) + " does not have any associated graphics.");
 }
 
+int Sprite::GetDefaultAnimationId() const
+{
+	if (IsItem())
+	{
+		return GetItemId() >> 3;
+	}
+	return GetGraphics().GetAnimationCount() > 1 ? 1 : 0;
+}
+
+int Sprite::GetDefaultFrameId() const
+{
+	if (IsItem())
+	{
+		return GetItemId() & 0x07;
+	}
+	return 0;
+}
+
+bool Sprite::IsItem() const
+{
+	// Items always have an ID of 0xC0 or above
+	return m_sprite_id >= 0xC0;
+}
+
+int Sprite::GetItemId() const
+{
+	if (IsItem())
+	{
+		return m_sprite_id & 0x3F;
+	}
+	return -1;
+}
+
 Palette Sprite::GetPalette() const
 {
 	Palette pal;
@@ -209,6 +242,15 @@ void Sprite::Draw(ImageBuffer& imgbuf, size_t animation, size_t frame, uint8_t p
 				imgbuf.InsertTile(xx, yy, palette_idx, Tile(index++), sprite_frame.m_sprite_gfx);
 			}
 	}
+}
+
+void Sprite::Reset()
+{
+	m_sprite_palette_lookup.clear();
+	m_sprite_gfx_lookup.clear();
+	m_sprite_frames.clear();
+	m_sprite_graphics.clear();
+	m_cache_init = false;
 }
 
 bool Sprite::m_cache_init = false;

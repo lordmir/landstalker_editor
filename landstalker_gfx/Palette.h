@@ -44,6 +44,8 @@ public:
 
 	static PaletteEntry FromGenesisColour(uint16_t colour, bool transparent = false);
 	static uint16_t     ToGenesisColour(const PaletteEntry& entry);
+
+    static void Reset();
 private:
 
 	static bool m_cache_init;

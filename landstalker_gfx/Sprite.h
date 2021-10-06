@@ -18,9 +18,14 @@ public:
 	int GetID() const;
 	int GetGraphicsIdx() const;
 	const SpriteGraphic& GetGraphics() const;
+	int GetDefaultAnimationId() const;
+	int GetDefaultFrameId() const;
+	bool IsItem() const;
+	int GetItemId() const;
 	Palette GetPalette() const;
 	std::string GetName() const;
 	void Draw(ImageBuffer& imgbuf, size_t animation = 0, size_t frame = 0, uint8_t palette_idx = 2, size_t x = 0, size_t y = 0, float scale = 1.0) const;
+	static void Reset();
 private:
 	static bool m_cache_init;
 	static std::unordered_multimap<uint8_t, uint8_t>  m_sprite_palette_lookup;
