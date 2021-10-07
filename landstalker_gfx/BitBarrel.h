@@ -17,9 +17,9 @@ public:
     
     template <class T>
     T read() const;
-    uint32_t readBits(std::size_t numBits) const;
+    uint32_t readBits(size_t numBits) const;
     bool getNextBit() const;
-    std::size_t getBytePosition() const;
+    size_t getBytePosition() const;
     void advanceNextByte();
     
     uint8_t out();

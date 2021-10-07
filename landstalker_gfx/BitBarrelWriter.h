@@ -2,16 +2,25 @@
 #define BITBARRELWRITER_H
 
 #include "BitBarrel.h"
+#include <vector>
 
-class BitBarrelWriter : public BitBarrel
+class BitBarrelWriter
 {
 public:
-    BitBarrelWriter(uint8_t* buf);
-    
+    BitBarrelWriter();
+
     template <class T>
-    void write(T value);
-    void writeBits(uint32_t value, std::size_t numBits);
-    void setNextBit(bool value);
+    void Write(T value);
+    void WriteBits(uint32_t value, size_t numBits);
+    void AdvanceNextByte();
+    void SetNextBit(bool value);
+    size_t GetByteCount() const;
+    std::vector<uint8_t>::const_iterator Begin() const;
+    std::vector<uint8_t>::const_iterator End() const;
+
+private:
+    std::vector<uint8_t> m_buffer;
+    int m_bitpos;
 };
 
 #endif // BITBARRELWRITER_H

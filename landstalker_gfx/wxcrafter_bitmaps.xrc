@@ -9,11 +9,12 @@
   <object class="wxBitmap" name="deathstatue">img\deathstatue.png</object>
   <object class="wxBitmap" name="einsteinwhistle">img\einsteinwhistle.png</object>
   <object class="wxBitmap" name="key">img\key.png</object>
-  <object class="wxBitmap" name="m_bmp_block">D:\landstalker_gfx\landstalker_gfx\img\bigtiles.png</object>
-  <object class="wxBitmap" name="m_bmp_palette">D:\landstalker_gfx\landstalker_gfx\img\pal.png</object>
-  <object class="wxBitmap" name="m_bmp_room">D:\landstalker_gfx\landstalker_gfx\img\room.png</object>
-  <object class="wxBitmap" name="m_bmp_sprite">D:\landstalker_gfx\landstalker_gfx\img\sprite.png</object>
-  <object class="wxBitmap" name="m_bmp_tileset">D:\landstalker_gfx\landstalker_gfx\img\ts.png</object>
+  <object class="wxBitmap" name="m_bmp_block">D:\landstalker_gfx3\landstalker_gfx\img\bigtiles.png</object>
+  <object class="wxBitmap" name="m_bmp_palette">D:\landstalker_gfx3\landstalker_gfx\img\pal.png</object>
+  <object class="wxBitmap" name="m_bmp_room">D:\landstalker_gfx3\landstalker_gfx\img\room.png</object>
+  <object class="wxBitmap" name="m_bmp_sprite">D:\landstalker_gfx3\landstalker_gfx\img\sprite.png</object>
+  <object class="wxBitmap" name="m_bmp_string">D:\landstalker_gfx3\landstalker_gfx\img\string.png</object>
+  <object class="wxBitmap" name="m_bmp_tileset">D:\landstalker_gfx3\landstalker_gfx\img\ts.png</object>
   <object class="wxBitmap" name="msword">img\msword.ico</object>
   <object class="wxBitmap" name="recordbook">img\recordbook.png</object>
   <object class="wxBitmap" name="switch1off">img\switch1off.png</object>

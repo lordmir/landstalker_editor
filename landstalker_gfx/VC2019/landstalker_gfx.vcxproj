@@ -44,7 +44,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
@@ -65,7 +65,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
@@ -89,7 +89,13 @@
     <ClCompile Include="..\BitBarrelWriter.cpp" />
     <ClCompile Include="..\Blockmap2D.cpp" />
     <ClCompile Include="..\BlockmapIsometric.cpp" />
+    <ClCompile Include="..\EndCreditString.cpp" />
+    <ClCompile Include="..\HuffmanString.cpp" />
+    <ClCompile Include="..\HuffmanTree.cpp" />
+    <ClCompile Include="..\HuffmanTrees.cpp" />
     <ClCompile Include="..\ImageBuffer.cpp" />
+    <ClCompile Include="..\IntroString.cpp" />
+    <ClCompile Include="..\LSString.cpp" />
     <ClCompile Include="..\LSTilemapCmp.cpp" />
     <ClCompile Include="..\LZ77.cpp" />
     <ClCompile Include="..\main.cpp" />
@@ -114,7 +120,14 @@
     <ClInclude Include="..\BitBarrelWriter.h" />
     <ClInclude Include="..\Blockmap2D.h" />
     <ClInclude Include="..\BlockmapIsometric.h" />
+    <ClInclude Include="..\Charset.h" />
+    <ClInclude Include="..\EndCreditString.h" />
+    <ClInclude Include="..\HuffmanString.h" />
+    <ClInclude Include="..\HuffmanTree.h" />
+    <ClInclude Include="..\HuffmanTrees.h" />
     <ClInclude Include="..\ImageBuffer.h" />
+    <ClInclude Include="..\IntroString.h" />
+    <ClInclude Include="..\LSString.h" />
     <ClInclude Include="..\LSTilemapCmp.h" />
     <ClInclude Include="..\LZ77.h" />
     <ClInclude Include="..\MainFrame.h" />

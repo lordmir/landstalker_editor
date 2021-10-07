@@ -101,6 +101,11 @@ public:
 		return "[" + m_filename + "] - " + RomOffsets::REGION_NAMES.find(m_region)->second + " Release ROM";
 	}
 
+	RomOffsets::Region get_region() const
+	{
+		return m_region;
+	}
+
 private:
 
 	void ValidateRomChecksum()

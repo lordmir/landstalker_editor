@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <wx/dcmemory.h>
+#include <wx/dataview.h>
 #include "BigTile.h"
 #include "Tileset.h"
 #include "Palette.h"
@@ -14,6 +15,7 @@
 #include "SpriteFrame.h"
 #include "Sprite.h"
 #include "ImageBuffer.h"
+#include "LSString.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -30,6 +32,8 @@ public:
     virtual ~MainFrame();
 
 protected:
+    virtual void OnExportPng(wxCommandEvent& event);
+    virtual void OnExportTxt(wxCommandEvent& event);
     virtual void OnLayerOpacityChange(wxScrollEvent& event);
     virtual void OnLayerSelect(wxCommandEvent& event);
     virtual void OnLayerVisibilityChange(wxCommandEvent& event);
@@ -48,7 +52,6 @@ protected:
     virtual void OnKeyDown(wxKeyEvent& event);
     virtual void OnKeyUp(wxKeyEvent& event);
     virtual void OnOpen(wxCommandEvent& event);
-    virtual void OnExport(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
@@ -94,6 +97,7 @@ private:
     public:
         enum NodeType {
             NODE_BASE,
+            NODE_STRING,
             NODE_TILESET,
             NODE_ANIM_TILESET,
             NODE_BIG_TILES,
@@ -113,6 +117,7 @@ private:
     enum Mode
     {
         MODE_NONE,
+        MODE_STRING,
         MODE_TILESET,
         MODE_BLOCKSET,
         MODE_PALETTE,
@@ -125,6 +130,7 @@ private:
     void DrawHeightmap(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void ForceRepaint();
+    void ClearScreen();
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(std::size_t offset);
@@ -158,8 +164,10 @@ private:
     uint16_t m_sprite_idx;
     uint16_t m_sprite_anim;
     uint16_t m_sprite_frame;
+    int m_strtab;
     Mode m_mode;
     bool m_layer_controls_enabled;
+    std::vector<std::vector<std::shared_ptr<LSString>>> m_strings;
     std::vector<uint32_t> m_tilesetOffsets;
     std::vector<std::vector<uint32_t>> m_bigTileOffsets;
     std::vector<BigTile> m_bigTiles;
@@ -168,5 +176,6 @@ private:
     std::map<uint8_t, Sprite> m_sprites;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
+    wxDataViewListCtrl* m_stringView;
 };
 #endif // MAINFRAME_H

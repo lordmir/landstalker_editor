@@ -5,6 +5,8 @@
 #include <cstring>
 #include <iomanip>
 #include <set>
+#include <codecvt>
+#include <locale>
 
 #include <wx/wx.h>
 #include <wx/aboutdlg.h>
@@ -23,6 +25,10 @@
 #include "Tilemap2D.h"
 #include "Blockmap2D.h"
 #include "RomOffsets.h"
+#include "HuffmanString.h"
+#include "IntroString.h"
+#include "EndCreditString.h"
+#include "Charset.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -36,10 +42,17 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_sprite_idx(0),
       m_sprite_anim(0),
       m_sprite_frame(0),
+      m_strtab(0),
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false)
 {
     m_imgs = new ImgLst();
+    wxGridSizer* sizer = new wxGridSizer(1);
+    m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
+    this->m_scrollwindow->SetSizer(sizer);
+    sizer->Layout();
+    SetMode(MODE_NONE);
     if (!filename.empty())
     {
         OpenRomFile(filename.c_str());
@@ -48,6 +61,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 
 MainFrame::~MainFrame()
 {
+    delete m_stringView;
     delete m_imgs;
 }
 
@@ -83,17 +97,77 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_tilesetOffsets.clear();
         m_bigTileOffsets.clear();
         m_rooms.clear();
+        m_strings.clear();
         Sprite::Reset();
         Palette::Reset();
         SetMode(MODE_NONE);
 
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
+        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", 5, 5, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
         wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
         wxTreeItemId nodeBTs = m_browser->AppendItem(nodeRoot, "Big Tilesets", 3, 3, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
         wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", 4, 4, new TreeNodeData());
+
+        auto x = m_browser->AppendItem(nodeS, "Compressed Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
+        x = m_browser->AppendItem(nodeS, "Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
+        x = m_browser->AppendItem(nodeS, "Special Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
+        x = m_browser->AppendItem(nodeS, "Default Character Name", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
+        x = m_browser->AppendItem(nodeS, "Item Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 4));
+        x = m_browser->AppendItem(nodeS, "Menu Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 5));
+        x = m_browser->AppendItem(nodeS, "Intro Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 6));
+        x = m_browser->AppendItem(nodeS, "End Credit Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 7));
+        auto huffman_trees = m_rom.read_array<uint8_t>("huff_tables");
+        auto huffman_tree_offsets = m_rom.read_array<uint8_t>("huff_table_offsets");
+        auto huff_trees = std::make_shared<HuffmanTrees>(huffman_tree_offsets.data(), huffman_tree_offsets.size(), huffman_trees.data(), huffman_trees.size(), huffman_tree_offsets.size()/2);
+        auto string_bank_pointers = m_rom.read_array<uint32_t>("compressed_string_banks");
+        auto charset = Charset::GetDefaultCharset(m_rom.get_region());
+        auto eos_marker = Charset::GetEOSChar(m_rom.get_region());
+        auto diacritic_map = Charset::GetDiacriticMap(m_rom.get_region());
+        uint32_t p = string_bank_pointers[0];
+        m_strings.push_back({});
+        do
+        {
+            m_strings.back().push_back(std::make_shared<HuffmanString>(huff_trees, charset, eos_marker, diacritic_map));
+            p += m_strings.back().back()->Decode(m_rom.data(p), m_rom.read<uint8_t>(p));
+        } while (m_rom.read<uint8_t>(p) != 0xFF && m_rom.read<uint8_t>(p) != 0);
+
+        auto decode_table = [&](const std::vector<uint8_t> & table)
+        {
+            const uint8_t* ptr = table.data();
+            const uint8_t* end = ptr + table.size();
+            m_strings.push_back({});
+            do
+            {
+                m_strings.back().push_back(std::make_shared<LSString>(charset, diacritic_map));
+                ptr += m_strings.back().back()->Decode(ptr, end - ptr);
+            } while (*ptr != 0xFF && *ptr + ptr < end);
+        };
+        decode_table(m_rom.read_array<uint8_t>("character_name_table"));
+        decode_table(m_rom.read_array<uint8_t>("special_char_name_table"));
+        decode_table(m_rom.read_array<uint8_t>("default_char_name_table"));
+        decode_table(m_rom.read_array<uint8_t>("item_name_table"));
+        decode_table(m_rom.read_array<uint8_t>("menu_string_table"));
+
+        auto intro_string_pointers = m_rom.read_array<uint32_t>("intro_string_pointers");
+        m_strings.push_back({});
+        for(auto s : intro_string_pointers)
+        {
+            m_strings.back().push_back(std::make_shared<IntroString>());
+            m_strings.back().back()->Decode(m_rom.data(s), 255);
+        }
+        
+        auto end_credit_strings = m_rom.read_array<uint8_t>("end_credit_strings");
+        const uint8_t* ptr = end_credit_strings.data();
+        const uint8_t* end = ptr + end_credit_strings.size();
+        m_strings.push_back({});
+        do
+        {
+            m_strings.back().push_back(std::make_shared<EndCreditString>());
+            ptr += m_strings.back().back()->Decode(ptr, end - ptr);
+        } while (ptr < end);
 
         for (std::size_t i = 0; i < 255; i++)
         {
@@ -393,6 +467,16 @@ void MainFrame::ForceRepaint()
     PaintNow(dc, m_scale);
 }
 
+void MainFrame::ClearScreen()
+{
+    bmp = std::make_shared<wxBitmap>(1, 1);
+    memDc.SelectObject(*bmp);
+    memDc.SetBackground(*wxBLACK_BRUSH);
+    memDc.Clear();
+    memDc.SelectObject(wxNullBitmap);
+    ForceRepaint();
+}
+
 void MainFrame::OnPaint(wxPaintEvent& event)
 {
     event.Skip();
@@ -467,20 +551,7 @@ void MainFrame::InitPals(const wxTreeItemId& node)
     m_palette.emplace_back(m_rom);
     m_palette.emplace_back(m_rom);
 }
-void MainFrame::OnExport(wxCommandEvent& event)
-{
-    if (m_imgbuf.GetWidth() > 0)
-    {
-        wxFileDialog    fdlog(this, _("Export to PNG"), "", "",
-            "PNG file (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
-        if (fdlog.ShowModal() == wxID_OK)
-        {
-            m_imgbuf.WritePNG(std::string(fdlog.GetPath()), m_palette);
-        }
-    }
-    event.Skip();
-}
 void MainFrame::OnOpen(wxCommandEvent& event)
 {
     wxFileDialog fdlog(this, "Open Landstalker ROM file", "", "",
@@ -620,14 +691,83 @@ void MainFrame::Refresh()
 {
     switch (m_mode)
     {
+    case MODE_STRING:
+    {
+        ClearScreen();
+        m_mnu_export_png->Enable(false);
+        m_mnu_export_txt->Enable(true);
+        m_stringView->ClearColumns();
+        m_stringView->DeleteAllItems();
+        m_stringView->AppendTextColumn("ID");
+        if (m_strtab == 6)
+        {
+            m_stringView->AppendTextColumn("Display Time");
+            m_stringView->AppendTextColumn("Line 1 X");
+            m_stringView->AppendTextColumn("Line 1 Y");
+            m_stringView->AppendTextColumn("Line 2 X");
+            m_stringView->AppendTextColumn("Line 2 Y");
+            m_stringView->AppendTextColumn("Line 1")->SetWidth(150);
+            m_stringView->AppendTextColumn("Line 2");
+        }
+        else if (m_strtab == 7)
+        {
+            m_stringView->AppendTextColumn("Column");
+            m_stringView->AppendTextColumn("Height");
+            m_stringView->AppendTextColumn("String");
+        }
+        else
+        {
+            m_stringView->AppendTextColumn("String");
+        }
+        wxVector<wxVariant> data;
+        for (std::size_t i = 0; i < m_strings[m_strtab].size(); ++i)
+        {
+            data.clear();
+            data.push_back(wxVariant(wxString::Format("%000d", i)));
+            if (m_strtab == 6)
+            {
+                auto intro_string = std::dynamic_pointer_cast<IntroString>(m_strings[m_strtab][i]);
+                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetDisplayTime())));
+                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine1X())));
+                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine1Y())));
+                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine2X())));
+                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine2Y())));
+                data.push_back(wxVariant(intro_string->GetLine(0)));
+                data.push_back(wxVariant(intro_string->GetLine(1)));
+            }
+            else if (m_strtab == 7)
+            {
+                auto end_credit_string = std::dynamic_pointer_cast<EndCreditString>(m_strings[m_strtab][i]);
+                int col = end_credit_string->GetColumn();
+                col = col > 0x7F ? col - 0x100: col;
+                data.push_back(wxVariant(wxString::Format("%d", col)));
+                data.push_back(wxVariant(wxString::Format("%d", end_credit_string->GetHeight())));
+                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+            }
+            else
+            {
+                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+            }
+            m_stringView->AppendItem(data);
+        }
+        m_stringView->Show();
+        EnableLayerControls(false);
+        break;
+    }
     case MODE_TILESET:
         // Display tileset
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
+        m_stringView->Hide();
         EnableLayerControls(false);
         LoadTileset(m_tilesetOffsets[m_tsidx]);
         DrawTiles(16, 2, m_rpalidx);
         break;
     case MODE_BLOCKSET:
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
+        m_stringView->Hide();
         LoadTileset(m_tilesetOffsets[m_tsidx]);
         LoadBigTiles(m_bigTileOffsets[m_bs2][0]);
         if (m_bs2 > 0)
@@ -639,10 +779,15 @@ void MainFrame::Refresh()
         break;
     case MODE_PALETTE:
         // Display palettes
-        EnableLayerControls(false);
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
+        m_stringView->Hide();
         break;
     case MODE_ROOMMAP:
         // Display room map
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
+        m_stringView->Hide();
         EnableLayerControls(true);
         InitRoom(m_roomnum);
         PopulateRoomProperties(m_roomnum, m_tilemap);
@@ -651,6 +796,9 @@ void MainFrame::Refresh()
     case MODE_SPRITE:
     {
         // Display sprite
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
+        m_stringView->Hide();
         EnableLayerControls(false);
         const auto& sprite = m_sprites[m_sprite_idx];
         m_palette[1] = sprite.GetPalette();
@@ -659,14 +807,11 @@ void MainFrame::Refresh()
     }
     case MODE_NONE:
     default:
-        // Clear Screen
+        m_mnu_export_png->Enable(false);
+        m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
-        bmp = std::make_shared<wxBitmap>(1, 1);
-        memDc.SelectObject(*bmp);
-        memDc.SetBackground(*wxBLACK_BRUSH);
-        memDc.Clear();
-        memDc.SelectObject(wxNullBitmap);
-        ForceRepaint();
+        m_stringView->Hide();
+        ClearScreen();
         break;
     }
 }
@@ -677,6 +822,10 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
     m_properties->GetGrid()->Clear();
     switch (itemData->GetNodeType())
     {
+    case TreeNodeData::NODE_STRING:
+        m_strtab = itemData->GetValue();
+        SetMode(MODE_STRING);
+        break;
     case TreeNodeData::NODE_TILESET:
         m_tsidx = itemData->GetValue();
         SetMode(MODE_TILESET);
@@ -820,5 +969,41 @@ void MainFrame::OnLayerSelect(wxCommandEvent& event)
 void MainFrame::OnLayerVisibilityChange(wxCommandEvent& event)
 {
     DrawTilemap(m_scale, m_rpalidx);
+    event.Skip();
+}
+void MainFrame::OnExportPng(wxCommandEvent& event)
+{
+    if (m_imgbuf.GetWidth() > 0)
+    {
+        wxFileDialog    fdlog(this, _("Export to PNG"), "", "",
+            "PNG file (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+        if (fdlog.ShowModal() == wxID_OK)
+        {
+            m_imgbuf.WritePNG(std::string(fdlog.GetPath()), m_palette);
+        }
+    }
+    event.Skip();
+}
+
+void MainFrame::OnExportTxt(wxCommandEvent& event)
+{
+    wxFileDialog    fdlog(this, _("Export to TXT"), "", "",
+            "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (fdlog.ShowModal() == wxID_OK)
+    {
+        std::ofstream ofs(std::string(fdlog.GetPath()));
+        auto& strings = m_strings[m_strtab];
+        std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
+        if (strings.front()->GetHeaderRow() != "")
+        {
+            ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
+        }
+        for (auto string : strings)
+        {
+            ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
+        }
+    }
     event.Skip();
 }

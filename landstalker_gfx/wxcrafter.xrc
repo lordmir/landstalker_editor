@@ -19,10 +19,19 @@
             <![CDATA[Open]]>
           </help>
         </object>
-        <object class="wxMenuItem" name="m_mnu_export">
+        <object class="wxMenuItem" name="m_mnu_export_png">
           <label>Export to PNG</label>
           <accel>
-            <![CDATA[Ctrl+E]]>
+            <![CDATA[Ctrl+P]]>
+          </accel>
+          <help>
+            <![CDATA[]]>
+          </help>
+        </object>
+        <object class="wxMenuItem" name="m_mnu_export_txt">
+          <label>Export to TXT</label>
+          <accel>
+            <![CDATA[Ctrl+T]]>
           </accel>
           <help>
             <![CDATA[]]>

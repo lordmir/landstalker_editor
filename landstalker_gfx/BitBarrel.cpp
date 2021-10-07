@@ -64,8 +64,10 @@ bool BitBarrel::operator()(bool rhs)
 
 uint8_t BitBarrel::out()
 {
+    uint8_t tmp = m_val;
     m_pos = 0;
-    return m_val;
+    m_val = 0;
+    return tmp;
 }
 
 template <class T>
@@ -80,10 +82,10 @@ bool BitBarrel::read() const
     return getNextBit();
 }
 
-uint32_t BitBarrel::readBits(std::size_t numBits) const
+uint32_t BitBarrel::readBits(size_t numBits) const
 {
     uint32_t retval = 0;
-    for(std::size_t i = 0; i < numBits; ++i)
+    for(size_t i = 0; i < numBits; ++i)
     {
         retval <<= 1;
         retval |= static_cast<uint32_t>(getNextBit());
@@ -101,7 +103,7 @@ bool BitBarrel::getNextBit() const
     return (*m_buf & (1 << --m_pos)) ? true : false;
 }
 
-std::size_t BitBarrel::getBytePosition() const
+size_t BitBarrel::getBytePosition() const
 {
     return m_buf - m_start;
 }

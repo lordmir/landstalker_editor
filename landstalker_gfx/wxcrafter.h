@@ -55,7 +55,8 @@ protected:
     wxMenuBar* m_menubar;
     wxMenu* m_mnu_file;
     wxMenuItem* m_mnu_open;
-    wxMenuItem* m_mnu_export;
+    wxMenuItem* m_mnu_export_png;
+    wxMenuItem* m_mnu_export_txt;
     wxMenuItem* m_mnu_sep1;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
@@ -103,7 +104,11 @@ protected:
     {
         event.Skip();
     }
-    virtual void OnExport(wxCommandEvent& event)
+    virtual void OnExportPng(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnExportTxt(wxCommandEvent& event)
     {
         event.Skip();
     }

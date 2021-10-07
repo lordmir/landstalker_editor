@@ -68,8 +68,11 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     m_mnu_open = new wxMenuItem(m_mnu_file, wxID_ANY, _("Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_open);
 
-    m_mnu_export = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to PNG\tCtrl+E"), wxT(""), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_export);
+    m_mnu_export_png = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to PNG\tCtrl+P"), wxT(""), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_export_png);
+
+    m_mnu_export_txt = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to TXT\tCtrl+T"), wxT(""), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_export_txt);
 
     m_mnu_file->AppendSeparator();
 
@@ -390,8 +393,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent,
     this->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
     this->Connect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen),
         NULL, this);
-    this->Connect(m_mnu_export->GetId(), wxEVT_COMMAND_MENU_SELECTED,
-        wxCommandEventHandler(MainFrameBaseClass::OnExport), NULL, this);
+    this->Connect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+        wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
+    this->Connect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+        wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit),
         NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout),
@@ -458,8 +463,10 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
     this->Disconnect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED,
         wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
-    this->Disconnect(m_mnu_export->GetId(), wxEVT_COMMAND_MENU_SELECTED,
-        wxCommandEventHandler(MainFrameBaseClass::OnExport), NULL, this);
+    this->Disconnect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+        wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
+    this->Disconnect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED,
+        wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED,
         wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED,
@@ -609,6 +616,19 @@ ImgLst::ImgLst()
                 this->Add(icn);
             }
             m_bitmaps.insert(std::make_pair(wxT("m_bmp_sprite"), bmp));
+        }
+    }
+
+    {
+        wxBitmap bmp;
+        wxIcon icn;
+        bmp = wxXmlResource::Get()->LoadBitmap(wxT("m_bmp_string"));
+        if(bmp.IsOk()) {
+            if((m_imagesWidth == bmp.GetWidth()) && (m_imagesHeight == bmp.GetHeight())) {
+                icn.CopyFromBitmap(bmp);
+                this->Add(icn);
+            }
+            m_bitmaps.insert(std::make_pair(wxT("m_bmp_string"), bmp));
         }
     }
 }
