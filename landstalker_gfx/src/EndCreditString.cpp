@@ -1,6 +1,7 @@
 #include "EndCreditString.h"
 #include <stdexcept>
 #include <sstream>
+#include <cstring>
 
 const LSString::CharacterSet ENDING_CHARSET = {
 	{ 1, L" "}, { 2, L"A"}, { 3, L"B"}, { 4, L"C"}, { 5, L"D"}, { 6, L"E"}, { 7, L"F"}, { 8, L"G"},

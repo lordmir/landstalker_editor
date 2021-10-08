@@ -83,7 +83,7 @@ namespace RomOffsets
 		{"item_name_table",         {{Region::JP, {0x02A43A, 0x02A648}}, {Region::US, {0x029732, 0x029A0A}}, {Region::UK, {0x029732, 0x029A0A}}, {Region::FR, {0x0293C0, 0x0296FC}}, {Region::DE, {0x0290CA, 0x0293EC}}, {Region::US_BETA, {0x029624, 0x0298F8}}}},
 		{"menu_string_table",       {{Region::JP, {0x02A648, 0x02A700}}, {Region::US, {0x029A0A, 0x029ACC}}, {Region::UK, {0x029A0A, 0x029ACC}}, {Region::FR, {0x0296FC, 0x0297D4}}, {Region::DE, {0x0293EC, 0x0295DA}}, {Region::US_BETA, {0x0298F8, 0x0299BA}}}},
 		{"intro_string_pointers",   {{Region::JP, {0x00C538, 0x00C568}}, {Region::US, {0x00C59E, 0x00C5CE}}, {Region::UK, {0x00C59E, 0x00C5CE}}, {Region::FR, {0x00C59E, 0x00C5CE}}, {Region::DE, {0x00C5A8, 0x00C5D8}}, {Region::US_BETA, {0x00C546, 0x00C576}}}},
-		{"end_credit_strings",      {{Region::JP, {0x09ED12, 0x09F62D}}, {Region::US, {0x09ED1A, 0x09F644}}, {Region::UK, {0x09ED1A, 0x09F474}}, {Region::FR, {0x09ED1A, 0x09F473}}, {Region::DE, {0x09ED1A, 0x09F472}}, {Region::US_BETA, {0x09ED1A, 0x09F635}}}}
+		{"end_credit_strings",      {{Region::JP, {0x09ED12, 0x09F62D}}, {Region::US, {0x09ED1A, 0x09F644}}, {Region::UK, {0x09ED1A, 0x09F49C}}, {Region::FR, {0x09ED1A, 0x09F473}}, {Region::DE, {0x09ED1A, 0x09F472}}, {Region::US_BETA, {0x09ED1A, 0x09F635}}}}
 	};
 } // namespace RomOffsets
 

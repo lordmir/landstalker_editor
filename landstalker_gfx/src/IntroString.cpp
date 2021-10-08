@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
+#include <cstring>
 
 const LSString::CharacterSet INTRO_CHARSET = {
 	{ 0, L" "}, { 1, L"A"}, { 2, L"B"}, { 3, L"C"}, { 4, L"D"}, { 5, L"E"}, { 6, L"F"}, { 7, L"G"},

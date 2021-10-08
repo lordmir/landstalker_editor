@@ -1,3 +1,10 @@
-Debug
-Release
+build/
+bin/
+*.swp
+*.exe
+~Autorecover*.*
 landstalker_gfx
+VC2019/Debug
+VC2019/Release
+VC2019/.vs
+VC2019/*.user

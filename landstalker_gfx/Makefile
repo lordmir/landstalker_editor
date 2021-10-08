@@ -1,23 +1,46 @@
-EXEC=target
-CC=g++
-LDFLAGS= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
-CXXFLAGS= `wx-config --cxxflags` -std=c++17 -I./third_party
-CPPFLAGS = `wx-config --cppflags` -I./third_party
-TARGET    := $(notdir $(CURDIR))
-SOURCEDIR := .
-SOURCE := $(foreach DIR,$(SOURCEDIR),$(wildcard $(DIR)/*.cpp))
+CXX	= g++
+LD	= g++
+
+CXXFLAGS	= `wx-config --cxxflags` -std=c++17
+CPPFLAGS	= `wx-config --cppflags`
+
+EXEC		:= $(notdir $(CURDIR))
+LIBS		:= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
+SRCDIR  	:= src
+BUILDDIR	:= build
+BINDIR		:= bin
+INC_DIRS	:= ./third_party
+INCS		:= $(SRCDIR) $(addsuffix /include,$(SRCDIR)) $(INC_DIRS)
+
+SRC		:= $(foreach sdir,$(SRCDIR),$(wildcard $(sdir)/*.cpp))
+OBJ		:= $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
+INCLUDES	:= $(addprefix -I,$(INCS))
+
+vpath %.cpp $(SRCDIR) $(EXEC_SDIR)
 
 DEBUG=no
 ifeq ($(DEBUG),yes)
     CXXFLAGS += -g
 endif
 
-all: $(EXEC)
+.PHONY: all checkdirs clean clean-all
 
-target: $(OBJ)
-	$(CC) $(SOURCE) -o $(TARGET) $^ $(LDFLAGS) $(CXXFLAGS) $(CPPFLAGS)
+all: checkdirs $(EXEC)
 
-.PHONY: clean
+checkdirs: $(BUILDDIR)
+
+$(BUILDDIR):
+	@mkdir -p $@
 
 clean:
-	rm -rf *.o
+	@rm -rf $(BUILDDIR)
+
+clean-all: clean
+	@rm -rf $(EXEC)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
+
+$(EXEC): $(OBJ) $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
+	$(LD) $^ -o $@ $(LIBS)
+

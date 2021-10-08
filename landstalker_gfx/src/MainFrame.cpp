@@ -167,7 +167,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_strings.back().push_back(std::make_shared<EndCreditString>());
             ptr += m_strings.back().back()->Decode(ptr, end - ptr);
-        } while (ptr < end);
+        } while (ptr < end - 2);
 
         for (std::size_t i = 0; i < 255; i++)
         {
@@ -723,15 +723,15 @@ void MainFrame::Refresh()
         for (std::size_t i = 0; i < m_strings[m_strtab].size(); ++i)
         {
             data.clear();
-            data.push_back(wxVariant(wxString::Format("%000d", i)));
+            data.push_back(wxVariant(wxString::Format("%000lu", i)));
             if (m_strtab == 6)
             {
                 auto intro_string = std::dynamic_pointer_cast<IntroString>(m_strings[m_strtab][i]);
-                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetDisplayTime())));
-                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine1X())));
-                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine1Y())));
-                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine2X())));
-                data.push_back(wxVariant(wxString::Format("%d", intro_string->GetLine2Y())));
+                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetDisplayTime())));
+                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1X())));
+                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1Y())));
+                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2X())));
+                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2Y())));
                 data.push_back(wxVariant(intro_string->GetLine(0)));
                 data.push_back(wxVariant(intro_string->GetLine(1)));
             }
@@ -741,7 +741,7 @@ void MainFrame::Refresh()
                 int col = end_credit_string->GetColumn();
                 col = col > 0x7F ? col - 0x100: col;
                 data.push_back(wxVariant(wxString::Format("%d", col)));
-                data.push_back(wxVariant(wxString::Format("%d", end_credit_string->GetHeight())));
+                data.push_back(wxVariant(wxString::Format("%u", end_credit_string->GetHeight())));
                 data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
             }
             else
