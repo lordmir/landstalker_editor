@@ -10,6 +10,81 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\BigTile.cpp" />
+    <ClCompile Include="..\src\BigTilesCmp.cpp" />
+    <ClCompile Include="..\src\BitBarrel.cpp" />
+    <ClCompile Include="..\src\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\src\Blockmap2D.cpp" />
+    <ClCompile Include="..\src\BlockmapIsometric.cpp" />
+    <ClCompile Include="..\src\EndCreditString.cpp" />
+    <ClCompile Include="..\src\HuffmanString.cpp" />
+    <ClCompile Include="..\src\HuffmanTree.cpp" />
+    <ClCompile Include="..\src\HuffmanTrees.cpp" />
+    <ClCompile Include="..\src\ImageBuffer.cpp" />
+    <ClCompile Include="..\src\IntroString.cpp" />
+    <ClCompile Include="..\src\LSString.cpp" />
+    <ClCompile Include="..\src\LSTilemapCmp.cpp" />
+    <ClCompile Include="..\src\LZ77.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\MainFrame.cpp" />
+    <ClCompile Include="..\src\Palette.cpp" />
+    <ClCompile Include="..\src\Sprite.cpp" />
+    <ClCompile Include="..\src\SpriteFrame.cpp" />
+    <ClCompile Include="..\src\SpriteGraphic.cpp" />
+    <ClCompile Include="..\src\Tile.cpp" />
+    <ClCompile Include="..\src\TileAttributes.cpp" />
+    <ClCompile Include="..\src\Tilemap.cpp" />
+    <ClCompile Include="..\src\Tilemap2D.cpp" />
+    <ClCompile Include="..\src\Tileset.cpp" />
+    <ClCompile Include="..\src\Utils.cpp" />
+    <ClCompile Include="..\src\wxcrafter.cpp" />
+    <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\wxcrafter.wxcp" />
+    <None Include="..\src\wxcrafter.xrc" />
+    <None Include="..\src\wxcrafter_bitmaps.xrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\include\BigTile.h" />
+    <ClInclude Include="..\src\include\BigTilesCmp.h" />
+    <ClInclude Include="..\src\include\BitBarrel.h" />
+    <ClInclude Include="..\src\include\BitBarrelWriter.h" />
+    <ClInclude Include="..\src\include\Blockmap2D.h" />
+    <ClInclude Include="..\src\include\BlockmapIsometric.h" />
+    <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\EndCreditString.h" />
+    <ClInclude Include="..\src\include\HuffmanString.h" />
+    <ClInclude Include="..\src\include\HuffmanTree.h" />
+    <ClInclude Include="..\src\include\HuffmanTrees.h" />
+    <ClInclude Include="..\src\include\ImageBuffer.h" />
+    <ClInclude Include="..\src\include\IntroString.h" />
+    <ClInclude Include="..\src\include\LSString.h" />
+    <ClInclude Include="..\src\include\LSTilemapCmp.h" />
+    <ClInclude Include="..\src\include\LZ77.h" />
+    <ClInclude Include="..\src\include\MainFrame.h" />
+    <ClInclude Include="..\src\include\Palette.h" />
+    <ClInclude Include="..\src\include\resource.h" />
+    <ClInclude Include="..\src\include\Rom.h" />
+    <ClInclude Include="..\src\include\RomOffsets.h" />
+    <ClInclude Include="..\src\include\Sprite.h" />
+    <ClInclude Include="..\src\include\SpriteFrame.h" />
+    <ClInclude Include="..\src\include\SpriteGraphic.h" />
+    <ClInclude Include="..\src\include\Tile.h" />
+    <ClInclude Include="..\src\include\TileAttributes.h" />
+    <ClInclude Include="..\src\include\Tilemap.h" />
+    <ClInclude Include="..\src\include\Tilemap2D.h" />
+    <ClInclude Include="..\src\include\Tileset.h" />
+    <ClInclude Include="..\src\include\Utils.h" />
+    <ClInclude Include="..\src\include\wxcrafter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\win_resources.rc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ResourceCompile>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{16929D17-8A7F-4A32-9410-071F6F0C22C6}</ProjectGuid>
@@ -46,7 +121,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -67,7 +142,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -82,79 +157,6 @@
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\BigTile.cpp" />
-    <ClCompile Include="..\BigTilesCmp.cpp" />
-    <ClCompile Include="..\BitBarrel.cpp" />
-    <ClCompile Include="..\BitBarrelWriter.cpp" />
-    <ClCompile Include="..\Blockmap2D.cpp" />
-    <ClCompile Include="..\BlockmapIsometric.cpp" />
-    <ClCompile Include="..\EndCreditString.cpp" />
-    <ClCompile Include="..\HuffmanString.cpp" />
-    <ClCompile Include="..\HuffmanTree.cpp" />
-    <ClCompile Include="..\HuffmanTrees.cpp" />
-    <ClCompile Include="..\ImageBuffer.cpp" />
-    <ClCompile Include="..\IntroString.cpp" />
-    <ClCompile Include="..\LSString.cpp" />
-    <ClCompile Include="..\LSTilemapCmp.cpp" />
-    <ClCompile Include="..\LZ77.cpp" />
-    <ClCompile Include="..\main.cpp" />
-    <ClCompile Include="..\MainFrame.cpp" />
-    <ClCompile Include="..\Palette.cpp" />
-    <ClCompile Include="..\Sprite.cpp" />
-    <ClCompile Include="..\SpriteFrame.cpp" />
-    <ClCompile Include="..\SpriteGraphic.cpp" />
-    <ClCompile Include="..\Tile.cpp" />
-    <ClCompile Include="..\TileAttributes.cpp" />
-    <ClCompile Include="..\Tilemap.cpp" />
-    <ClCompile Include="..\Tilemap2D.cpp" />
-    <ClCompile Include="..\Tileset.cpp" />
-    <ClCompile Include="..\Utils.cpp" />
-    <ClCompile Include="..\wxcrafter.cpp" />
-    <ClCompile Include="..\wxcrafter_bitmaps.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\BigTile.h" />
-    <ClInclude Include="..\BigTilesCmp.h" />
-    <ClInclude Include="..\BitBarrel.h" />
-    <ClInclude Include="..\BitBarrelWriter.h" />
-    <ClInclude Include="..\Blockmap2D.h" />
-    <ClInclude Include="..\BlockmapIsometric.h" />
-    <ClInclude Include="..\Charset.h" />
-    <ClInclude Include="..\EndCreditString.h" />
-    <ClInclude Include="..\HuffmanString.h" />
-    <ClInclude Include="..\HuffmanTree.h" />
-    <ClInclude Include="..\HuffmanTrees.h" />
-    <ClInclude Include="..\ImageBuffer.h" />
-    <ClInclude Include="..\IntroString.h" />
-    <ClInclude Include="..\LSString.h" />
-    <ClInclude Include="..\LSTilemapCmp.h" />
-    <ClInclude Include="..\LZ77.h" />
-    <ClInclude Include="..\MainFrame.h" />
-    <ClInclude Include="..\Palette.h" />
-    <ClInclude Include="..\resource.h" />
-    <ClInclude Include="..\Rom.h" />
-    <ClInclude Include="..\RomOffsets.h" />
-    <ClInclude Include="..\Sprite.h" />
-    <ClInclude Include="..\SpriteGraphic.h" />
-    <ClInclude Include="..\SpriteFrame.h" />
-    <ClInclude Include="..\Tile.h" />
-    <ClInclude Include="..\TileAttributes.h" />
-    <ClInclude Include="..\Tilemap.h" />
-    <ClInclude Include="..\Tilemap2D.h" />
-    <ClInclude Include="..\Tileset.h" />
-    <ClInclude Include="..\Utils.h" />
-    <ClInclude Include="..\wxcrafter.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\wxcrafter.wxcp" />
-    <None Include="..\wxcrafter.xrc" />
-    <None Include="..\wxcrafter_bitmaps.xrc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\img\map.ico" />
-    <Image Include="..\img\msword.ico" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
