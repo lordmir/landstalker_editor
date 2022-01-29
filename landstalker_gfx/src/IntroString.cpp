@@ -33,6 +33,12 @@ IntroString::IntroString(uint16_t line1_y, uint16_t line1_x, uint16_t line2_y, u
 }
 
 IntroString::IntroString(const IntroString::StringType& serialised)
+	: LSString(INTRO_CHARSET),
+	  m_line1Y(0),
+	  m_line1X(0),
+	  m_line2Y(0),
+	  m_line2X(0),
+	  m_displayTime(0)
 {
 	Deserialise(serialised);
 }

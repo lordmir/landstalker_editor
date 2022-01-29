@@ -91,9 +91,29 @@ public:
 		return read<T>(read<uint32_t>(address) + offset * sizeof(T));
 	}
 
+	inline std::size_t get_address(const std::string& name) const
+	{
+		auto addrs = RomOffsets::ADDRESS.find(name);
+		if (addrs == RomOffsets::ADDRESS.end())
+		{
+			throw std::runtime_error("Named address " + name + " does not exist!");
+		}
+		auto addr = addrs->second.find(m_region);
+		if (addrs == RomOffsets::ADDRESS.end())
+		{
+			throw std::runtime_error("Named address " + name + " does not exist for " + RomOffsets::REGION_NAMES.find(m_region)->second + " ROM!");
+		}
+		return addr->second;
+	}
+
 	const uint8_t* data(std::size_t address = 0) const
 	{
 		return m_rom.data() + address;
+	}
+
+	std::size_t size(std::size_t address = 0) const
+	{
+		return m_rom.size() - address;
 	}
 
 	std::string get_description() const
@@ -156,7 +176,7 @@ inline T Rom::read(std::size_t offset) const
 	}
 	for (std::size_t i = 0; i < sizeof(T); ++i)
 	{
-		retval <<= 8;
+		retval <<= (8 % (8 * sizeof(T)));
 		retval |= m_rom[offset + i];
 	}
 	return retval;

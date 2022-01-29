@@ -33,6 +33,8 @@ private:
 	static std::vector<SpriteFrame> m_sprite_frames;
 	static std::vector<SpriteGraphic> m_sprite_graphics;
 	int m_sprite_id;
+	mutable Palette m_high_palette;
+	mutable Palette m_low_palette;
 };
 
 #endif // SPRITE_H

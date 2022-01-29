@@ -64,7 +64,7 @@
     </object>
     <object class="wxStatusBar" name="m_statusbar">
       <style>wxSTB_DEFAULT_STYLE</style>
-      <fields>1</fields>
+      <fields>3</fields>
     </object>
     <object class="wxAuiManager">
       <style>wxAUI_MGR_LIVE_RESIZE|wxAUI_MGR_TRANSPARENT_HINT|wxAUI_MGR_TRANSPARENT_DRAG|wxAUI_MGR_ALLOW_ACTIVE_PANE|wxAUI_MGR_ALLOW_FLOATING</style>

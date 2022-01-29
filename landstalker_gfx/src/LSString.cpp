@@ -30,10 +30,11 @@ LSString::LSString(const LSString::CharacterSet& charset, const LSString::Diacri
 }
 
 LSString::LSString(const StringType& s, const LSString::CharacterSet& charset, const LSString::DiacriticMap& diacritic_map)
-	: m_str(s),
+	: m_str(),
 	  m_charset(charset),
 	  m_diacritic_map(diacritic_map)
 {
+	Deserialise(s);
 }
 
 size_t LSString::Decode(const uint8_t* buffer, size_t size)

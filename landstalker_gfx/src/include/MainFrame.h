@@ -6,7 +6,7 @@
 #include <memory>
 #include <wx/dcmemory.h>
 #include <wx/dataview.h>
-#include "BigTile.h"
+#include "Block.h"
 #include "Tileset.h"
 #include "Palette.h"
 #include "LSTilemapCmp.h"
@@ -16,6 +16,7 @@
 #include "Sprite.h"
 #include "ImageBuffer.h"
 #include "LSString.h"
+#include "Images.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -69,9 +70,9 @@ private:
     {
         uint32_t offset;
         uint8_t tileset;
-        uint8_t priBigTileset;
-        uint8_t secBigTileset;
-        uint8_t bigTilesetIdx;
+        uint8_t priBlockset;
+        uint8_t secBlockset;
+        uint8_t blocksetIdx;
         uint8_t roomPalette;
         uint8_t backgroundMusic;
         uint8_t unknownParam1;
@@ -81,9 +82,9 @@ private:
         RoomData(const uint8_t* src)
         :   offset((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]),
             tileset(src[4] & 0x1F),
-            priBigTileset((src[4] >> 5) & 0x01),
-            secBigTileset((src[7] >> 5) & 0x07),
-            bigTilesetIdx(priBigTileset << 5 | tileset),
+            priBlockset((src[4] >> 5) & 0x01),
+            secBlockset((src[7] >> 5) & 0x07),
+            blocksetIdx(priBlockset << 5 | tileset),
             roomPalette(src[5] & 0x3F),
             backgroundMusic(src[7] & 0x1F),
             unknownParam1((src[4] >> 6) & 0x03),
@@ -98,9 +99,10 @@ private:
         enum NodeType {
             NODE_BASE,
             NODE_STRING,
+            NODE_IMAGE,
             NODE_TILESET,
             NODE_ANIM_TILESET,
-            NODE_BIG_TILES,
+            NODE_BLOCKSET,
             NODE_ROOM_PAL,
             NODE_ROOM,
             NODE_ROOM_HEIGHTMAP,
@@ -118,6 +120,7 @@ private:
     {
         MODE_NONE,
         MODE_STRING,
+        MODE_IMAGE,
         MODE_TILESET,
         MODE_BLOCKSET,
         MODE_PALETTE,
@@ -125,17 +128,18 @@ private:
         MODE_SPRITE
     };
     void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
-    void DrawBigTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
+    void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
     void DrawHeightmap(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
+    void DrawImage(const std::string& image, std::size_t scale);
     void ForceRepaint();
     void ClearScreen();
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(std::size_t offset);
     void LoadTilemap(std::size_t offset);
-    void LoadBigTiles(std::size_t offset);
+    void LoadBlocks(std::size_t offset);
     void OpenRomFile(const wxString& path);
     void InitRoom(uint16_t room);
     void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
@@ -145,7 +149,7 @@ private:
     
     RoomTilemap m_tilemap;
     Rom m_rom;
-    uint8_t m_gfxBuffer[65536];
+    std::vector<uint8_t> m_gfxBuffer;
     std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
@@ -169,11 +173,13 @@ private:
     bool m_layer_controls_enabled;
     std::vector<std::vector<std::shared_ptr<LSString>>> m_strings;
     std::vector<uint32_t> m_tilesetOffsets;
-    std::vector<std::vector<uint32_t>> m_bigTileOffsets;
-    std::vector<BigTile> m_bigTiles;
+    std::vector<std::vector<uint32_t>> m_blockOffsets;
+    std::vector<Block> m_blocks;
     std::vector<SpriteFrame> m_spriteFrames;
     std::vector<SpriteGraphic> m_spriteGraphics;
     std::map<uint8_t, Sprite> m_sprites;
+    std::string m_selImage;
+    std::map<std::string, Images::Image> m_images;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
     wxDataViewListCtrl* m_stringView;

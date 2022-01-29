@@ -11,12 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\BigTile.cpp" />
-    <ClCompile Include="..\src\BigTilesCmp.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
+    <ClCompile Include="..\src\BlocksetCmp.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
     <ClCompile Include="..\src\HuffmanTree.cpp" />
@@ -35,7 +35,7 @@
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
     <ClCompile Include="..\src\Tilemap.cpp" />
-    <ClCompile Include="..\src\Tilemap2D.cpp" />
+    <ClCompile Include="..\src\Tilemap2DRLE.cpp" />
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
@@ -47,18 +47,19 @@
     <None Include="..\src\wxcrafter_bitmaps.xrc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\include\BigTile.h" />
-    <ClInclude Include="..\src\include\BigTilesCmp.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
+    <ClInclude Include="..\src\include\Block.h" />
     <ClInclude Include="..\src\include\Blockmap2D.h" />
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
+    <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />
     <ClInclude Include="..\src\include\HuffmanTrees.h" />
     <ClInclude Include="..\src\include\ImageBuffer.h" />
+    <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LSString.h" />
     <ClInclude Include="..\src\include\LSTilemapCmp.h" />
@@ -74,7 +75,7 @@
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
     <ClInclude Include="..\src\include\Tilemap.h" />
-    <ClInclude Include="..\src\include\Tilemap2D.h" />
+    <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
@@ -156,6 +157,9 @@
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

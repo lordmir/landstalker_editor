@@ -32,6 +32,9 @@ EndCreditString::EndCreditString(int8_t fmt0, int8_t fmt1, const EndCreditString
 }
 
 EndCreditString::EndCreditString(const EndCreditString::StringType& serialised)
+	: LSString(ENDING_CHARSET),
+	m_height(0),
+	m_column(-1)
 {
 	Deserialise(serialised);
 }

@@ -84,7 +84,9 @@ Sprite::Sprite()
 }
 
 Sprite::Sprite(const Rom& rom, uint8_t id)
-	: m_sprite_id(id)
+	: m_sprite_id(id),
+	  m_high_palette(rom, 0, Palette::Type::SPRITE_HIGH),
+	  m_low_palette(rom, 0, Palette::Type::SPRITE_LOW)
 {
 	if (!m_cache_init)
 	{
@@ -105,7 +107,17 @@ Sprite::Sprite(const Rom& rom, uint8_t id)
 		for (size_t i = 0; i < frames.size(); ++i)
 		{
 			frame_offset_to_frame_num[frames[i]] = i;
-			m_sprite_frames.emplace_back(SpriteFrame(rom.data(frames[i])));
+			std::size_t frame_size;
+			if (i < frames.size() - 2)
+			{
+				frame_size = frames[i + 1] - frames[i];
+			}
+			else
+			{
+				auto r = rom.get_address("sprite_data_end");
+				frame_size = r - frames[i];
+			}
+			m_sprite_frames.emplace_back(SpriteFrame(rom.read_array<uint8_t>(frames[i], frame_size)));
 		}
 
 		std::vector<uint32_t> sprite_frames;
@@ -212,7 +224,16 @@ Palette Sprite::GetPalette() const
 	auto it = m_sprite_palette_lookup.equal_range(m_sprite_id);
 	for (auto itr = it.first; itr != it.second; ++itr)
 	{
-		pal.Load((itr->second & 0x80) ? Palette::PaletteType::SPRITE_HIGH_PALETTE : Palette::PaletteType::SPRITE_LOW_PALETTE, itr->second & 0x7F);
+		if (itr->second & 0x80)
+		{
+			m_high_palette.Load(itr->second & 0x7F);
+			pal.AddHighPalette(m_high_palette);
+		}
+		else
+		{
+			m_low_palette.Load(itr->second & 0x7F);
+			pal.AddLowPalette(m_low_palette);
+		}
 	}
 	return pal;
 }
@@ -231,15 +252,16 @@ void Sprite::Draw(ImageBuffer& imgbuf, size_t animation, size_t frame, uint8_t p
 {
 	auto sprite_frame = m_sprite_frames[GetGraphics().RetrieveFrameIdx(animation, frame)];
 
-	for (const auto& subs : sprite_frame.m_subsprites)
+	for (std::size_t i = 0; i < sprite_frame.GetSubSpriteCount(); ++i)
 	{
-		size_t index = subs.tile_idx;
-		for (size_t xi = 0; xi < subs.w; ++xi)
-			for (size_t yi = 0; yi < subs.h; ++yi)
+		const auto& subs = sprite_frame.GetSubSprite(i);
+		std::size_t index = subs.tile_idx;
+		for (std::size_t xi = 0; xi < subs.w; ++xi)
+			for (std::size_t yi = 0; yi < subs.h; ++yi)
 			{
 				int xx = subs.x + xi * 8 + x;
 				int yy = subs.y + yi * 8 + y;
-				imgbuf.InsertTile(xx, yy, palette_idx, Tile(index++), sprite_frame.m_sprite_gfx);
+				imgbuf.InsertTile(xx, yy, palette_idx, Tile(index++), sprite_frame.GetTileset());
 			}
 	}
 }

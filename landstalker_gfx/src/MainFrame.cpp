@@ -16,13 +16,13 @@
 #include <wx/graphics.h>
 
 #include "LZ77.h"
-#include "BigTilesCmp.h"
+#include "BlocksetCmp.h"
 #include "LSTilemapCmp.h"
 #include "Rom.h"
 #include "ImageBuffer.h"
 #include "SpriteFrame.h"
 #include "Utils.h"
-#include "Tilemap2D.h"
+#include "Tilemap2DRLE.h"
 #include "Blockmap2D.h"
 #include "RomOffsets.h"
 #include "HuffmanString.h"
@@ -32,6 +32,7 @@
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
+      m_gfxBuffer(65536),
       m_gfxSize(0),
       m_scale(1),
       m_rpalidx(0),
@@ -95,7 +96,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_properties->GetGrid()->Clear();
         m_sprites.clear();
         m_tilesetOffsets.clear();
-        m_bigTileOffsets.clear();
+        m_blockOffsets.clear();
         m_rooms.clear();
         m_strings.clear();
         Sprite::Reset();
@@ -104,14 +105,23 @@ void MainFrame::OpenRomFile(const wxString& path)
 
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", 5, 5, new TreeNodeData());
+        wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", 6, 6, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
         wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
-        wxTreeItemId nodeBTs = m_browser->AppendItem(nodeRoot, "Big Tilesets", 3, 3, new TreeNodeData());
+        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", 3, 3, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
         wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", 4, 4, new TreeNodeData());
 
-        auto x = m_browser->AppendItem(nodeS, "Compressed Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
+        wxTreeItemId x;
+
+        m_images = Images::GetImages(m_rom);
+        for (const auto elem : m_images)
+        {
+            x = m_browser->AppendItem(nodeI, elem.first, 6, 6, new TreeNodeData(TreeNodeData::NODE_IMAGE, 0));
+        }
+
+        x = m_browser->AppendItem(nodeS, "Compressed Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
         x = m_browser->AppendItem(nodeS, "Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
         x = m_browser->AppendItem(nodeS, "Special Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
         x = m_browser->AppendItem(nodeS, "Default Character Name", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
@@ -205,15 +215,15 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_browser->AppendItem(nodeTs, Hex(m_tilesetOffsets[i]), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, i));
         }
-        auto bt = m_rom.read_array<uint32_t>("big_tiles_ptr_table");
+        auto bt = m_rom.read_array<uint32_t>("blockset_ptr_table");
         for (std::size_t i = 0; i < bt.size(); ++i)
         {
 			auto bt_ptr = bt[i];
-            m_bigTileOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
-            wxTreeItemId curTn = m_browser->AppendItem(nodeBTs, Hex(bt_ptr), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16));
+            m_blockOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
+            wxTreeItemId curTn = m_browser->AppendItem(nodeBs, Hex(bt_ptr), 3, 3, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16));
             for (std::size_t j = 0; j < 9; ++j)
             {
-                m_browser->AppendItem(curTn, Hex(m_bigTileOffsets.back()[j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BIG_TILES, i << 16 | j));
+                m_browser->AppendItem(curTn, Hex(m_blockOffsets.back()[j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16 | j));
             }
         }
         const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>("room_data_ptr"));
@@ -236,14 +246,14 @@ void MainFrame::OpenRomFile(const wxString& path)
     SetMode(MODE_NONE);
 }
 
-void MainFrame::DrawBigTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
+void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_bigTiles.size());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_bigTiles.size() / ROW_WIDTH + (m_bigTiles.size() % ROW_WIDTH != 0));
+    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_blocks.size());
+    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_blocks.size() / ROW_WIDTH + (m_blocks.size() % ROW_WIDTH != 0));
     Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
     m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
     map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    map.SetBlockset(std::make_shared<std::vector<BigTile>>(m_bigTiles));
+    map.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
     map.Fill(0, 1);
     map.Draw(m_imgbuf);
     m_scale = scale;
@@ -344,8 +354,8 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     ImageBuffer fg(m_tilemap.background.GetBitmapWidth(), m_tilemap.background.GetBitmapHeight());
     m_tilemap.background.SetTileset(std::make_shared<Tileset>(m_tilebmps));
     m_tilemap.foreground.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    m_tilemap.background.SetBlockset(std::make_shared<std::vector<BigTile>>(m_bigTiles));
-    m_tilemap.foreground.SetBlockset(std::make_shared<std::vector<BigTile>>(m_bigTiles));
+    m_tilemap.background.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
+    m_tilemap.foreground.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
     m_tilemap.background.Draw(m_imgbuf);
     m_tilemap.foreground.Draw(fg);
     m_scale = scale;
@@ -436,13 +446,12 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
 
 void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16UL, m_tilebmps.size());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128UL, m_tilebmps.size() / ROW_WIDTH + (m_tilebmps.size() % ROW_WIDTH != 0));
-    Tilemap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
-    m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
-    map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    map.Fill(0, 1);
-    map.Draw(m_imgbuf);
+    const std::size_t ROW_WIDTH = std::min<std::size_t>(16UL, m_tilebmps.GetTileCount());
+    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128UL, m_tilebmps.GetTileCount() / ROW_WIDTH + (m_tilebmps.GetTileCount() % ROW_WIDTH != 0));
+    Tilemap2D map(ROW_WIDTH, ROW_HEIGHT, 0);
+    m_imgbuf.Resize(map.GetWidth() * m_tilebmps.GetTileWidth(), map.GetHeight() * m_tilebmps.GetTileHeight());
+    map.FillIncrementing(0);
+    m_imgbuf.InsertMap(0, 0, 0, map, m_tilebmps);
     m_scale = scale;
     bmp = m_imgbuf.MakeBitmap(m_palette);
     ForceRepaint();
@@ -456,6 +465,22 @@ void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::siz
 	sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
     bmp = m_imgbuf.MakeBitmap(m_palette);
     ForceRepaint();
+}
+
+void MainFrame::DrawImage(const std::string& image, std::size_t scale)
+{
+    m_scale = scale;
+    if (m_images.find(image) != m_images.end())
+    {
+        const auto& map = *m_images[image].map;
+        const auto& ts = *m_images[image].tileset;
+        m_imgbuf.Resize(map.GetWidth() * ts.GetTileWidth(), map.GetHeight() * ts.GetTileHeight());
+        m_imgbuf.InsertMap(0, 0, 0, map, ts);
+        std::vector<Palette> pal;
+        pal.push_back(*m_images[image].palette);
+        bmp = m_imgbuf.MakeBitmap(pal);
+        ForceRepaint();
+    }
 }
 
 void MainFrame::ForceRepaint()
@@ -516,15 +541,15 @@ void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
 
 void MainFrame::LoadTileset(std::size_t offset)
 {
-    std::memset(m_gfxBuffer, 0x00, sizeof(m_gfxBuffer));
+    std::fill(m_gfxBuffer.begin(), m_gfxBuffer.end(), 0);
     std::size_t elen = 0;
-    m_gfxSize = LZ77::Decode(m_rom.data(offset), sizeof(m_gfxBuffer), m_gfxBuffer, elen);
-    m_tilebmps.setBits(m_gfxBuffer, 0x400);
+    m_gfxSize = LZ77::Decode(m_rom.data(offset), m_gfxBuffer.size(), m_gfxBuffer.data(), elen);
+    m_tilebmps.SetBits(m_gfxBuffer, false);
 }
 
-void MainFrame::LoadBigTiles(std::size_t offset)
+void MainFrame::LoadBlocks(std::size_t offset)
 {
-    BigTilesCmp::Decode(m_rom.data(offset), m_bigTiles);
+    BlocksetCmp::Decode(m_rom.data(offset), m_rom.size(offset), m_blocks);
 }
 
 void MainFrame::LoadTilemap(std::size_t offset)
@@ -538,7 +563,7 @@ void MainFrame::InitPals(const wxTreeItemId& node)
     const uint8_t* pal = base_pal;
     for(std::size_t i = 0; i < 54; ++i)
     {
-        m_pal2.push_back(Palette(m_rom, i, Palette::PaletteType::ROOM_PALETTE));
+        m_pal2.push_back(Palette(m_rom, i, Palette::Type::ROOM));
 
         std::ostringstream ss;
         ss << std::dec << std::setw(2) << std::setfill('0') << i;
@@ -571,9 +596,9 @@ void MainFrame::InitRoom(uint16_t room)
     m_palette[0] = m_pal2[m_rpalidx];
     m_tsidx = rd.tileset;
     LoadTileset(m_tilesetOffsets[m_tsidx]);
-    m_bigTiles.clear();
-    LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][0]);
-    LoadBigTiles(m_bigTileOffsets[rd.bigTilesetIdx][1 + rd.secBigTileset]);
+    m_blocks.clear();
+    LoadBlocks(m_blockOffsets[rd.blocksetIdx][0]);
+    LoadBlocks(m_blockOffsets[rd.blocksetIdx][1 + rd.secBlockset]);
     LoadTilemap(rd.offset);
 }
 
@@ -587,8 +612,8 @@ void MainFrame::PopulateRoomProperties(uint16_t room, const RoomTilemap& tm)
     ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room
         << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.tileset)
         << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.roomPalette)
-        << " PriBigTiles: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBigTileset)
-        << " SecBigTiles: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBigTileset)
+        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBlockset)
+        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBlockset)
         << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.backgroundMusic)
         << " Map Offset: 0x" << std::hex << std::uppercase << std::setw(6) << std::setfill('0') << static_cast<unsigned>(rd.offset);
     SetStatusText(ss.str());
@@ -602,11 +627,11 @@ void MainFrame::PopulateRoomProperties(uint16_t room, const RoomTilemap& tm)
     ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.roomPalette);
     m_properties->Append(new wxStringProperty("Room Palette", "RP", ss.str()));
     ss.str(std::string());
-    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBigTileset);
-    m_properties->Append(new wxStringProperty("Primary Big Tiles", "PBT", ss.str()));
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.priBlockset);
+    m_properties->Append(new wxStringProperty("Primary Blockset", "PBT", ss.str()));
     ss.str(std::string());
-    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBigTileset);
-    m_properties->Append(new wxStringProperty("Secondary Big Tiles", "SBT", ss.str()));
+    ss << "0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.secBlockset);
+    m_properties->Append(new wxStringProperty("Secondary Blockset", "SBT", ss.str()));
     ss.str(std::string());
     ss << "0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.backgroundMusic);
     m_properties->Append(new wxStringProperty("BGM", "BGM", ss.str()));
@@ -769,12 +794,12 @@ void MainFrame::Refresh()
         EnableLayerControls(false);
         m_stringView->Hide();
         LoadTileset(m_tilesetOffsets[m_tsidx]);
-        LoadBigTiles(m_bigTileOffsets[m_bs2][0]);
+        LoadBlocks(m_blockOffsets[m_bs2][0]);
         if (m_bs2 > 0)
         {
-            LoadBigTiles(m_bigTileOffsets[m_bs1][m_bs2]);
+            LoadBlocks(m_blockOffsets[m_bs1][m_bs2]);
         }
-        DrawBigTiles(16, 1, m_rpalidx);
+        DrawBlocks(16, 1, m_rpalidx);
         // Display blockset
         break;
     case MODE_PALETTE:
@@ -791,7 +816,7 @@ void MainFrame::Refresh()
         EnableLayerControls(true);
         InitRoom(m_roomnum);
         PopulateRoomProperties(m_roomnum, m_tilemap);
-        DrawTilemap(m_scale, m_rpalidx);
+        DrawTilemap(1, m_rpalidx);
         break;
     case MODE_SPRITE:
     {
@@ -802,9 +827,17 @@ void MainFrame::Refresh()
         EnableLayerControls(false);
         const auto& sprite = m_sprites[m_sprite_idx];
         m_palette[1] = sprite.GetPalette();
-        DrawSprite(sprite, m_sprite_anim, m_sprite_frame);
+        DrawSprite(sprite, m_sprite_anim, m_sprite_frame, 4);
         break;
     }
+    case MODE_IMAGE:
+        // Display image
+        m_mnu_export_png->Enable(true);
+        m_mnu_export_txt->Enable(false);
+        m_stringView->Hide();
+        EnableLayerControls(false);
+        DrawImage(m_selImage, 2);
+        break;
     case MODE_NONE:
     default:
         m_mnu_export_png->Enable(false);
@@ -818,6 +851,7 @@ void MainFrame::Refresh()
 
 void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 {
+    auto item = m_browser->GetItemText(event.GetItem());
     TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(event.GetItem()));
     m_properties->GetGrid()->Clear();
     switch (itemData->GetNodeType())
@@ -830,7 +864,7 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
         m_tsidx = itemData->GetValue();
         SetMode(MODE_TILESET);
         break;
-    case TreeNodeData::NODE_BIG_TILES:
+    case TreeNodeData::NODE_BLOCKSET:
     {
         std::size_t sel = itemData->GetValue();
         m_bs1 = sel >> 16;
@@ -865,6 +899,9 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
         SetMode(MODE_SPRITE);
         break;
     }
+    case TreeNodeData::NODE_IMAGE:
+        m_selImage = item;
+        SetMode(MODE_IMAGE);
     default:
         // do nothing
         break;

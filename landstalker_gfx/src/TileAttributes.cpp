@@ -52,6 +52,29 @@ void TileAttributes::clearAttribute(const TileAttributes::Attribute& attr)
     }
 }
 
+bool TileAttributes::toggleAttribute(const Attribute& attr)
+{
+    bool retval = false;
+    switch (attr)
+    {
+    case TileAttributes::ATTR_HFLIP:
+        hflip_ = !hflip_;
+        retval = hflip_;
+        break;
+    case TileAttributes::ATTR_VFLIP:
+        vflip_ = !vflip_;
+        retval = vflip_;
+        break;
+    case TileAttributes::ATTR_PRIORITY:
+        priority_ = !priority_;
+        retval = priority_;
+        break;
+    default:
+        throw(std::runtime_error("Bad Attribute Type!"));
+    }
+    return retval;
+}
+
 bool TileAttributes::getAttribute(const TileAttributes::Attribute& attr) const
 {
     bool retval = false;

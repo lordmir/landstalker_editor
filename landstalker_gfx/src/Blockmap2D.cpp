@@ -55,22 +55,22 @@ std::shared_ptr<const Tileset> Blockmap2D::GetTileset() const
 	return m_tileset;
 }
 
-void Blockmap2D::SetBlockset(std::shared_ptr<std::vector<BigTile>> blockset)
+void Blockmap2D::SetBlockset(std::shared_ptr<std::vector<Block>> blockset)
 {
 	m_blockset = blockset;
 }
 
-std::shared_ptr<std::vector<BigTile>> Blockmap2D::GetBlockset()
+std::shared_ptr<std::vector<Block>> Blockmap2D::GetBlockset()
 {
 	return m_blockset;
 }
 
-std::shared_ptr<const std::vector<BigTile>> Blockmap2D::GetBlockset() const
+std::shared_ptr<const std::vector<Block>> Blockmap2D::GetBlockset() const
 {
 	return m_blockset;
 }
 
-const BigTile& Blockmap2D::GetBigTile(const TilePoint& point) const
+const Block& Blockmap2D::GetBigTile(const TilePoint& point) const
 {
 	return m_blockset->at(GetTileValue(point));
 }

@@ -2,6 +2,7 @@ build/
 bin/
 *.swp
 *.exe
+*.bak
 ~Autorecover*.*
 landstalker_gfx
 VC2019/Debug

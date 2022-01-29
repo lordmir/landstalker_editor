@@ -5,7 +5,7 @@
 
 #include <vector>
 #include "Tile.h"
-#include "BigTile.h"
+#include "Block.h"
 
 struct TilePoint3D
 {
@@ -27,7 +27,7 @@ public:
 
 private:
 	std::shared_ptr<Tileset> m_tileset;
-	std::shared_ptr<std::vector<BigTile>> m_blockset;
+	std::shared_ptr<std::vector<Block>> m_blockset;
 };
 
-#endif // TILEMAP2D_H
+#endif // BLOCKMAP_ISOMETRIC_H

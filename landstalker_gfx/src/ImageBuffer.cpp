@@ -43,7 +43,7 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
     }
     else
     {
-	    auto tile_bits = tileset.getTile(tile);
+	    auto tile_bits = tileset.GetTile(tile);
 	    const uint8_t pal_bits = palette_index << 4;
         std::size_t begin_offset = y * m_width + x;
         auto row_it = m_pixels.begin() + begin_offset;
@@ -67,6 +67,20 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
             }
             dest_it++;
             pri_dest_it++;
+        }
+    }
+}
+
+void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset)
+{
+    for (int yy = 0; yy < map.GetHeight(); ++yy)
+    {
+        for (int xx = 0; xx < map.GetWidth(); ++xx)
+        {
+            const int tile_idx(xx + yy * map.GetWidth());
+            const int xpos = x + xx * tileset.GetTileWidth();
+            const int ypos = y + yy * tileset.GetTileHeight();
+            InsertTile(xpos, ypos, palette_index, map.GetTile(xx, yy), tileset);
         }
     }
 }
@@ -136,14 +150,14 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
     return retval;
 }
 
-void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const BigTile& block, const Tileset& tileset)
+void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const Block& block, const Tileset& tileset)
 {
     if ((y + 7) * m_width + x + 7 < m_pixels.size())
     {
-        InsertTile(x, y, palette_index, block.getTile(0), tileset);
-        InsertTile(x + 8, y, palette_index, block.getTile(1), tileset);
-        InsertTile(x, y + 8, palette_index, block.getTile(2), tileset);
-        InsertTile(x + 8, y + 8, palette_index, block.getTile(3), tileset);
+        InsertTile(x, y, palette_index, block.GetTile(0), tileset);
+        InsertTile(x + 8, y, palette_index, block.GetTile(1), tileset);
+        InsertTile(x, y + 8, palette_index, block.GetTile(2), tileset);
+        InsertTile(x + 8, y + 8, palette_index, block.GetTile(3), tileset);
     }
     else
     {

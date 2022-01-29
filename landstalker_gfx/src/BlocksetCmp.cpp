@@ -1,4 +1,4 @@
-#include "BigTilesCmp.h"
+#include "BlocksetCmp.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -10,11 +10,14 @@
 #include <algorithm>
 #include <iterator>
 #include <sstream>
+#include <cassert>
+#include <stdexcept>
 #include "BitBarrel.h"
-#include "BigTile.h"
-#include <wx/msgdlg.h>
+#include "BitBarrelWriter.h"
+#include "Block.h"
+#include "TileAttributes.h"
 
-template<class T, std::size_t N>
+template<class T, size_t N>
 class TileQueue
 {
 public:
@@ -42,19 +45,30 @@ public:
         if(it == d.end()) return -1;
         return it - d.begin();
     }
-    template <class T1, std::size_t N1>
+    template <class T1, size_t N1>
     friend std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs);
 private:
     std::deque<T> d;  
 };
 
-template<class T1, std::size_t N1>
+template<class T1, size_t N1>
 std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs)
 {
     std::copy (rhs.d.begin(), rhs.d.end(), std::ostream_iterator<uint16_t>(str, ":"));
     return str;
 }
 
+unsigned int ilog2(unsigned int in)
+{
+    unsigned int ret = 0;
+
+    while (in) {
+        in >>= 1;
+        ret++;
+    }
+
+    return ret;
+}
 
 /* Gets compressed variable-width number. Number is in the form 2^Exp + Man */
 /* Exp is the number of leading zeroes. The following bits make up the
@@ -72,10 +86,27 @@ uint16_t getCompNumber(BitBarrel& bb)
     mantissa = bb.readBits(exponent);
     val += mantissa;
     --val;
-   /* std::ostringstream ss;
-    ss << "E: " << exponent << " M: " << mantissa << " V: " << val;
-    wxMessageBox(ss.str()); */
+
     return val;
+}
+
+void writeCompNumber(BitBarrelWriter& bb, uint16_t val)
+{
+    uint16_t exp = ilog2(val) - 1;
+    uint16_t i = exp;
+    uint16_t num = val - (1 << exp);
+
+
+    while (i--)
+    {
+        bb.WriteBits(0, 1);
+    }
+    bb.WriteBits(1, 1);
+
+    if (exp)
+    {
+        bb.WriteBits(num, exp);
+    }
 }
 
 uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
@@ -152,16 +183,21 @@ void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, 
     } while (it != tiles.end());
 }
 
-uint16_t BigTilesCmp::Decode(const uint8_t* src, std::vector<BigTile>& tiles)
+uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Block>& blocks)
 {
     BitBarrel bb(src);
     TileQueue<uint16_t, 16> tq;
     std::vector<Tile> new_tiles;
     
+    if (length < 2)
+    {
+        throw std::runtime_error("Unexpected end of input data");
+    }
+
     const uint16_t TOTAL = bb.readBits(16);
     
     new_tiles.resize(TOTAL * 4);   
-    tiles.reserve(tiles.size() + TOTAL);
+    blocks.reserve(blocks.size() + TOTAL);
     
     maskTiles(new_tiles, TileAttributes::ATTR_PRIORITY, bb);
     maskTiles(new_tiles, TileAttributes::ATTR_VFLIP, bb);
@@ -174,15 +210,105 @@ uint16_t BigTilesCmp::Decode(const uint8_t* src, std::vector<BigTile>& tiles)
 
     for(it = new_tiles.begin(); it != new_tiles.end(); it+=4)
     {
-        tiles.push_back(BigTile(it, it+4));
+        blocks.push_back(Block(it, it+4));
     }
-    /*
-    std::vector<BigTile>::const_iterator bit;
-    for(bit = tiles.begin(); bit != tiles.end(); ++bit)
-    {
-        ss << bit->print() << std::endl;
-    }
-    wxMessageBox(ss.str());
-    */
+
     return TOTAL;
+}
+
+void SetMask(const std::vector<Block>& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
+{
+    bool attr_set = false;
+    bool first_loop = true;
+    uint16_t count = 0;
+    for (const auto& block : blocks)
+    {
+        for (size_t t = 0; t < 4; ++t)
+        {
+            if (block.GetTile(t).Attributes().getAttribute(attr) == attr_set)
+            {
+                count++;
+            }
+            else
+            {
+                attr_set = !attr_set;
+                writeCompNumber(cbs, ++count);
+                count = 0;
+                first_loop = false;
+            }
+        }
+    }
+    writeCompNumber(cbs, ++count);
+}
+
+void EncodeTile(TileQueue<uint16_t, 16>& tq, uint16_t tileval, BitBarrelWriter& cbs)
+{
+    int tq_idx = tq.find(tileval);
+    if (tq_idx == -1)
+    {
+        cbs.WriteBits(tileval, 12);
+        tq.push(tileval);
+    }
+    else
+    {
+        cbs.WriteBits(1, 1);
+        cbs.WriteBits(tq_idx, 4);
+        if (tq_idx) tq.moveToFront(tq_idx);
+    }
+}
+
+void CompressTiles(const std::vector<Block>& blocks, BitBarrelWriter& cbs)
+{
+    TileQueue<uint16_t, 16> tq;
+    for (const auto& block : blocks)
+    {
+        for (size_t i = 0; i < 4; i += 2)
+        {
+            uint16_t next = block.GetTile(i).GetIndex();
+            EncodeTile(tq, next, cbs);
+            if (block.GetTile(i).Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+            {
+                next--;
+            }
+            else
+            {
+                next++;
+            }
+
+            if (block.GetTile(i + 1).GetIndex() == next)
+            {
+                cbs.WriteBits(1, 1);
+            }
+            else
+            {
+                cbs.WriteBits(0, 1);
+                EncodeTile(tq, block.GetTile(i + 1).GetIndex(), cbs);
+            }
+        }
+    }
+}
+
+uint16_t BlocksetCmp::Encode(const std::vector<Block>& blocks, uint8_t* dst, size_t bufsize)
+{
+    BitBarrelWriter cbs;
+    // STEP 1: Write out total blocks
+    cbs.Write<uint16_t>(static_cast<uint16_t>(blocks.size()));
+    // STEP 2: Calculate mask for PRIORITY
+    SetMask(blocks, TileAttributes::ATTR_PRIORITY, cbs);
+    // STEP 3: Calculate mask for VFLIP
+    SetMask(blocks, TileAttributes::ATTR_VFLIP, cbs);
+    // STEP 4: Calculate mask for HFLIP
+    SetMask(blocks, TileAttributes::ATTR_HFLIP, cbs);
+    // STEP 5: Encode tile values
+    CompressTiles(blocks, cbs);
+    // Done!
+    if (cbs.GetByteCount() <= bufsize)
+    {
+        std::copy(cbs.Begin(), cbs.End(), dst);
+    }
+    else
+    {
+        throw std::runtime_error("Output buffer not large enough to hold result.");
+    }
+    return static_cast<uint16_t>(cbs.GetByteCount());
 }
