@@ -214,8 +214,9 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 		{
 			std::ostringstream ss;
 			std::size_t elen = 0;
-			dest_it += LZ77::Decode(&(*it), count, &(*dest_it), elen);
-			ss << "Copy " << count << " compressed bytes, " << elen << " bytes decompressed." << std::endl;
+			std::size_t dlen = LZ77::Decode(&(*it), src.end() - it, &(*dest_it), elen);
+			dest_it += dlen;
+			ss << "Copy " << elen << " compressed bytes, " << dlen << " bytes decompressed." << std::endl;
 			Debug(ss.str().c_str());
 			it += elen;
 			m_compressed = true;
