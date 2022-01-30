@@ -1,4 +1,5 @@
 #include "Palette.h"
+#include <algorithm>
 
 const std::unordered_map<Palette::Type, std::array<bool, 16>> LOCKED_ENTRIES =
 {
