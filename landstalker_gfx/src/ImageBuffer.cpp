@@ -150,7 +150,7 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
     return retval;
 }
 
-void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const Block& block, const Tileset& tileset)
+void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const MapBlock& block, const Tileset& tileset)
 {
     if ((y + 7) * m_width + x + 7 < m_pixels.size())
     {

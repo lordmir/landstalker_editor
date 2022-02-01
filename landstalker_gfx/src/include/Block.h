@@ -5,21 +5,28 @@
 #include <vector>
 #include "Tile.h"
 
+template<std::size_t N, std::size_t M>
 class Block
 {
 public:
-    typedef std::array<Tile, 4> TileArray;
+    typedef std::array<Tile, N*M> TileArray;
     typedef std::vector<Tile> TileVector;
     
     Block();
     Block(const TileVector::const_iterator& begin, const TileVector::const_iterator& end);
     
-    const Tile& GetTile(size_t tileIndex) const;
+    const Tile& GetTile(std::size_t tileIndex) const;
+    const Tile& GetTile(std::size_t x, std::size_t y) const;
+    static constexpr std::size_t GetBlockWidth() { return N; }
+    static constexpr std::size_t GetBlockHeight() { return M; }
+    static constexpr std::size_t GetBlockSize() { return N*M; }
     
     std::string Print() const;
     
 private:
     TileArray tiles;
 };
+
+typedef Block<2,2> MapBlock;
 
 #endif // BLOCK_H

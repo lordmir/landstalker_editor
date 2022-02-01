@@ -27,7 +27,7 @@ public:
 
 private:
 	std::shared_ptr<Tileset> m_tileset;
-	std::shared_ptr<std::vector<Block>> m_blockset;
+	std::shared_ptr<std::vector<MapBlock>> m_blockset;
 };
 
 #endif // BLOCKMAP_ISOMETRIC_H

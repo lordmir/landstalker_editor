@@ -253,7 +253,7 @@ void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal
     Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
     m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
     map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    map.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
+    map.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
     map.Fill(0, 1);
     map.Draw(m_imgbuf);
     m_scale = scale;
@@ -354,8 +354,8 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     ImageBuffer fg(m_tilemap.background.GetBitmapWidth(), m_tilemap.background.GetBitmapHeight());
     m_tilemap.background.SetTileset(std::make_shared<Tileset>(m_tilebmps));
     m_tilemap.foreground.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    m_tilemap.background.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
-    m_tilemap.foreground.SetBlockset(std::make_shared<std::vector<Block>>(m_blocks));
+    m_tilemap.background.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
+    m_tilemap.foreground.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
     m_tilemap.background.Draw(m_imgbuf);
     m_tilemap.foreground.Draw(fg);
     m_scale = scale;

@@ -183,11 +183,11 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 	for (const auto subs : m_subsprites)
 	{
 		std::ostringstream ss;
-		ss << "Sprite T:" << subs.tile_idx << " X:" << subs.x << " Y:" << subs.y << " W:" << subs.w << " H:" << subs.h << std::endl;
+		ss << "Sprite T:" << subs.tile_idx << " X:" << subs.x << " Y:" << subs.y << " W:" << subs.w << " H:" << subs.h;
 		Debug(ss.str().c_str());
 	}
 	std::ostringstream ss;
-	ss << "Total tiles to load: " << tile_idx << std::endl;
+	ss << "Total tiles to load: " << tile_idx;
 	Debug(ss.str().c_str());
 	std::vector<uint8_t> sprite_gfx(tile_idx * 32, 0);
 	auto dest_it = sprite_gfx.begin();
@@ -216,7 +216,7 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			std::size_t elen = 0;
 			std::size_t dlen = LZ77::Decode(&(*it), src.end() - it, &(*dest_it), elen);
 			dest_it += dlen;
-			ss << "Copy " << elen << " compressed bytes, " << dlen << " bytes decompressed." << std::endl;
+			ss << "Copy " << elen << " compressed bytes, " << dlen << " bytes decompressed.";
 			Debug(ss.str().c_str());
 			it += elen;
 			m_compressed = true;
@@ -224,7 +224,7 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 		else
 		{
 			std::ostringstream ss;
-			ss << "Copy " << count << " words directly." << std::endl;
+			ss << "Copy " << count << " words directly.";
 			Debug(ss.str().c_str());
 			std::copy(it, it + count * 2, dest_it);
 			dest_it += count * 2;

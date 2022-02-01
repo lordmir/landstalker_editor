@@ -5,18 +5,21 @@
 #include <iomanip>
 #include <string>
 
-Block::Block()
+template<std::size_t N, std::size_t M>
+Block<N,M>::Block()
 {
 }
 
-Block::Block(const std::vector<Tile>::const_iterator& begin, const std::vector<Tile>::const_iterator& end)
+template<std::size_t N, std::size_t M>
+Block<N,M>::Block(const std::vector<Tile>::const_iterator& begin, const std::vector<Tile>::const_iterator& end)
 {
-    assert(std::distance(begin, end) == 4);
+    assert(std::distance(begin, end) == GetBlockSize());
     std::vector<Tile>::const_iterator it = begin;
     std::copy(begin, end, tiles.begin());
 }
 
-std::string Block::Print() const
+template<std::size_t N, std::size_t M>
+std::string Block<N,M>::Print() const
 {
     std::ostringstream ss;
     for(auto t: tiles)
@@ -27,7 +30,18 @@ std::string Block::Print() const
     return ss.str();
 }
 
-const Tile& Block::GetTile(size_t tileIndex) const
+template<std::size_t N, std::size_t M>
+const Tile& Block<N,M>::GetTile(size_t tileIndex) const
 {
     return tiles[tileIndex];
 }
+
+template<std::size_t N, std::size_t M>
+const Tile& Block<N, M>::GetTile(std::size_t x, std::size_t y) const
+{
+    assert(x < N);
+    assert(y < M);
+    return GetTile(x + y * N);
+}
+
+template class Block<2,2>;

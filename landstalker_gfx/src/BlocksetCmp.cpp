@@ -183,7 +183,7 @@ void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, 
     } while (it != tiles.end());
 }
 
-uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Block>& blocks)
+uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Block<2,2>>& blocks)
 {
     BitBarrel bb(src);
     TileQueue<uint16_t, 16> tq;
@@ -210,13 +210,13 @@ uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Bloc
 
     for(it = new_tiles.begin(); it != new_tiles.end(); it+=4)
     {
-        blocks.push_back(Block(it, it+4));
+        blocks.push_back(MapBlock(it, it+4));
     }
 
     return TOTAL;
 }
 
-void SetMask(const std::vector<Block>& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
+void SetMask(const std::vector<Block<2,2>>& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
 {
     bool attr_set = false;
     bool first_loop = true;
@@ -257,7 +257,7 @@ void EncodeTile(TileQueue<uint16_t, 16>& tq, uint16_t tileval, BitBarrelWriter& 
     }
 }
 
-void CompressTiles(const std::vector<Block>& blocks, BitBarrelWriter& cbs)
+void CompressTiles(const std::vector<Block<2,2>>& blocks, BitBarrelWriter& cbs)
 {
     TileQueue<uint16_t, 16> tq;
     for (const auto& block : blocks)
@@ -288,7 +288,7 @@ void CompressTiles(const std::vector<Block>& blocks, BitBarrelWriter& cbs)
     }
 }
 
-uint16_t BlocksetCmp::Encode(const std::vector<Block>& blocks, uint8_t* dst, size_t bufsize)
+uint16_t BlocksetCmp::Encode(const std::vector<Block<2,2>>& blocks, uint8_t* dst, size_t bufsize)
 {
     BitBarrelWriter cbs;
     // STEP 1: Write out total blocks

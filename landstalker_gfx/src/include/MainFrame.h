@@ -174,7 +174,7 @@ private:
     std::vector<std::vector<std::shared_ptr<LSString>>> m_strings;
     std::vector<uint32_t> m_tilesetOffsets;
     std::vector<std::vector<uint32_t>> m_blockOffsets;
-    std::vector<Block> m_blocks;
+    std::vector<MapBlock> m_blocks;
     std::vector<SpriteFrame> m_spriteFrames;
     std::vector<SpriteGraphic> m_spriteGraphics;
     std::map<uint8_t, Sprite> m_sprites;

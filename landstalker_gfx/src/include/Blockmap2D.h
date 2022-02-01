@@ -18,10 +18,10 @@ public:
 	void SetTileset(std::shared_ptr<Tileset> tileset);
 	std::shared_ptr<Tileset> GetTileset();
 	std::shared_ptr<const Tileset> GetTileset() const;
-	void SetBlockset(std::shared_ptr<std::vector<Block>> blockset);
-	std::shared_ptr<std::vector<Block>> GetBlockset();
-	std::shared_ptr<const std::vector<Block>> GetBlockset() const;
-	const Block& GetBigTile(const TilePoint& point) const;
+	void SetBlockset(std::shared_ptr<std::vector<MapBlock>> blockset);
+	std::shared_ptr<std::vector<MapBlock>> GetBlockset();
+	std::shared_ptr<const std::vector<MapBlock>> GetBlockset() const;
+	const MapBlock& GetBigTile(const TilePoint& point) const;
 	virtual std::size_t GetBitmapWidth() const;
 	virtual std::size_t GetBitmapHeight() const;
 
@@ -31,7 +31,7 @@ protected:
 
 private:
 	std::shared_ptr<Tileset> m_tileset;
-	std::shared_ptr<std::vector<Block>> m_blockset;
+	std::shared_ptr<std::vector<MapBlock>> m_blockset;
 };
 
 #endif // TILEMAP2D_H

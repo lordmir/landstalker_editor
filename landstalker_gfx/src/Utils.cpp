@@ -12,7 +12,7 @@ void Debug(const std::string& message)
 	OutputDebugStringA(message.c_str());
 	OutputDebugStringA("\n");
 #elif defined DEBUG
-	std::cerr << message.str() << std::endl;
+	std::cout << message.str() << std::endl;
 #endif
 }
 
