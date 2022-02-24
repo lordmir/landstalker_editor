@@ -1,20 +1,21 @@
 #include "Blockmap2D.h"
 #include <sstream>
+#include <memory>
 #include "Utils.h"
 
-Blockmap2D::Blockmap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
-	: Tilemap(width, height, left, top, palette)
+Blockmap2D::Blockmap2D(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left, std::size_t top, uint8_t palette)
+	: Tilemap(width, height, tile_width, tile_height, left, top, palette)
 {
 }
 
 TilePoint Blockmap2D::XYToTilePoint(const wxPoint& point) const
 {
-	return TilePoint({ (point.x - GetLeft()) / TILEWIDTH, (point.y - GetTop()) / TILEHEIGHT });
+	return TilePoint({ (point.x - GetLeft()) / GetBlockWidth(), (point.y - GetTop()) / GetBlockHeight()});
 }
 
 wxPoint Blockmap2D::ToXYPoint(const TilePoint& point) const
 {
-	return wxPoint(point.x * TILEWIDTH + GetLeft(), point.y * TILEHEIGHT + GetTop());
+	return wxPoint((point.x + GetLeft()) * GetBlockWidth(), (point.y * GetBlockHeight()) + GetTop());
 }
 
 void Blockmap2D::Draw(ImageBuffer& imgbuf) const
@@ -55,17 +56,17 @@ std::shared_ptr<const Tileset> Blockmap2D::GetTileset() const
 	return m_tileset;
 }
 
-void Blockmap2D::SetBlockset(std::shared_ptr<std::vector<MapBlock>> blockset)
+void Blockmap2D::SetBlockset(BlockSetPtr blockset)
 {
 	m_blockset = blockset;
 }
 
-std::shared_ptr<std::vector<MapBlock>> Blockmap2D::GetBlockset()
+BlockSetPtr Blockmap2D::GetBlockset()
 {
 	return m_blockset;
 }
 
-std::shared_ptr<const std::vector<MapBlock>> Blockmap2D::GetBlockset() const
+std::shared_ptr<const BlockSet> Blockmap2D::GetBlockset() const
 {
 	return m_blockset;
 }
@@ -75,12 +76,22 @@ const MapBlock& Blockmap2D::GetBigTile(const TilePoint& point) const
 	return m_blockset->at(GetTileValue(point));
 }
 
-std::size_t Blockmap2D::GetBitmapWidth() const
+const std::size_t Blockmap2D::GetBlockWidth() const
 {
-	return GetWidth() * TILEWIDTH + GetLeft();
+	return TILE_WIDTH * MapBlock::GetBlockWidth();
 }
 
-std::size_t Blockmap2D::GetBitmapHeight() const
+const std::size_t Blockmap2D::GetBlockHeight() const
 {
-	return GetHeight() * TILEHEIGHT + GetTop();
+	return TILE_HEIGHT * MapBlock::GetBlockHeight();
+}
+
+std::size_t Blockmap2D::GetWidthInTiles() const
+{
+	return GetWidth() * MapBlock::GetBlockWidth() + GetLeft();
+}
+
+std::size_t Blockmap2D::GetHeightInTiles() const
+{
+	return GetHeight() * MapBlock::GetBlockHeight() + GetTop();
 }

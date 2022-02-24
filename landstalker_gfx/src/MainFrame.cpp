@@ -250,7 +250,7 @@ void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal
 {
     const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_blocks.size());
     const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_blocks.size() / ROW_WIDTH + (m_blocks.size() % ROW_WIDTH != 0));
-    Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, 0, 0, 0);
+    Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, m_tilebmps.GetTileWidth(), m_tilebmps.GetTileHeight(), 0, 0, 0);
     m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
     map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
     map.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));

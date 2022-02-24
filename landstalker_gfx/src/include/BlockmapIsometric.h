@@ -17,13 +17,13 @@ struct TilePoint3D
 class BlockmapIsometric : public Blockmap2D
 {
 public:
-	BlockmapIsometric(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette);
+	BlockmapIsometric(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left, std::size_t top, uint8_t palette);
 	virtual ~BlockmapIsometric() = default;
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
 	wxPoint ToXYPoint3D(const TilePoint3D& point) const;
-	virtual std::size_t GetBitmapWidth() const;
-	virtual std::size_t GetBitmapHeight() const;
+	virtual std::size_t GetWidthInTiles() const;
+	virtual std::size_t GetHeightInTiles() const;
 
 private:
 	std::shared_ptr<Tileset> m_tileset;

@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <memory>
 #include "Tile.h"
 
 template<std::size_t N, std::size_t M>
@@ -27,6 +28,9 @@ private:
     TileArray tiles;
 };
 
-typedef Block<2,2> MapBlock;
+typedef Block<2, 2> MapBlock;
+typedef std::vector<MapBlock> BlockSet;
+typedef std::shared_ptr<BlockSet> BlockSetPtr;
+typedef std::pair<BlockSetPtr, BlockSetPtr> BlockSets;
 
 #endif // BLOCK_H

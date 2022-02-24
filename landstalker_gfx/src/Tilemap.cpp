@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
-#include <nlohmann/json.hpp>
+//#include <nlohmann/json.hpp>
 #include "Utils.h"
 
 #ifdef _WIN32
@@ -13,8 +13,8 @@
 #include <arpa/inet.h>
 #endif
 
-Tilemap::Tilemap(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette)
-: m_width(width), m_height(height), m_left(left), m_top(top), m_palette(palette)
+Tilemap::Tilemap(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left, std::size_t top, uint8_t palette)
+: m_width(width), m_height(height), m_left(left), m_top(top), TILE_WIDTH(tile_width), TILE_HEIGHT(tile_height), m_palette(palette)
 {
 	m_tilevals.resize(width * height);
 }
@@ -31,12 +31,22 @@ std::size_t Tilemap::GetHeight() const
 
 std::size_t Tilemap::GetLeft() const
 {
-	return m_left;
+	return m_left * TILE_WIDTH;
 }
 
 std::size_t Tilemap::GetTop() const
 {
-	return m_top;
+	return m_top * TILE_HEIGHT;
+}
+
+std::size_t Tilemap::GetTileWidth() const
+{
+	return TILE_WIDTH;
+}
+
+std::size_t Tilemap::GetTileHeight() const
+{
+	return TILE_HEIGHT;
 }
 
 void Tilemap::SetLeft(std::size_t new_left)
@@ -328,4 +338,14 @@ bool Tilemap::ReadCSVFile(const std::string& filename)
 	}
 	infile.close();
 	return retval;
+}
+
+std::size_t Tilemap::GetBitmapWidth() const
+{
+	return GetWidthInTiles() * TILE_WIDTH;
+}
+
+std::size_t Tilemap::GetBitmapHeight() const
+{
+	return GetHeightInTiles() * TILE_HEIGHT;
 }

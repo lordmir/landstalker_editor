@@ -20,15 +20,15 @@ struct HeightMapCell
 struct RoomTilemap
 {
     RoomTilemap()
-    : foreground(0, 0, 0, 0, 0),
-      background(0, 0, 16, 0, 0),
+    : foreground(0, 0, 8, 8, 0, 0, 0),
+      background(0, 0, 8, 8, 2, 0, 0),
       left(0), top(0), width(0), height(0)
     {
     }
 
     RoomTilemap(uint8_t left_in, uint8_t top_in, uint8_t width_in, uint8_t height_in)
-    : foreground(width, height, 0, 0, 0),
-      background(width, height, 16, 0, 0),
+    : foreground(width, height, 8, 8, 0, 0, 0),
+      background(width, height, 8, 8, 2, 0, 0),
       left(left_in), top(top_in), width(width_in), height(height_in)
     {
     }

@@ -18,13 +18,15 @@ struct TilePoint
 class Tilemap
 {
 public:
-	Tilemap(std::size_t width, std::size_t height, std::size_t left = 0, std::size_t top = 0, uint8_t palette = 0);
+	Tilemap(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left = 0, std::size_t top = 0, uint8_t palette = 0);
 	Tilemap() = delete;
 	virtual ~Tilemap() = default;
 	std::size_t GetWidth() const;
 	std::size_t GetHeight() const;
 	std::size_t GetLeft() const;
 	std::size_t GetTop() const;
+	std::size_t GetTileWidth() const;
+	std::size_t GetTileHeight() const;
 	void SetLeft(std::size_t new_left);
 	void SetTop(std::size_t new_top);
 	void Resize(std::size_t new_width, std::size_t new_height);
@@ -45,11 +47,13 @@ public:
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const = 0;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const = 0;
 	virtual void Draw(ImageBuffer& imgbuf) const = 0;
-	virtual std::size_t GetBitmapWidth() const = 0;
-	virtual std::size_t GetBitmapHeight() const = 0;
+	virtual std::size_t GetWidthInTiles() const = 0;
+	virtual std::size_t GetHeightInTiles() const = 0;
+	virtual std::size_t GetBitmapWidth() const;
+	virtual std::size_t GetBitmapHeight() const;
 protected:
-	static const std::size_t TILEWIDTH;
-	static const std::size_t TILEHEIGHT;
+	const std::size_t TILE_WIDTH;
+	const std::size_t TILE_HEIGHT;
 	std::vector<uint16_t> m_tilevals;
 
 private:

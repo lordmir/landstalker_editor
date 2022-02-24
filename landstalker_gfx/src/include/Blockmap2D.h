@@ -10,7 +10,7 @@
 class Blockmap2D : public Tilemap
 {
 public:
-	Blockmap2D(std::size_t width, std::size_t height, std::size_t left, std::size_t top, uint8_t palette);
+	Blockmap2D(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left, std::size_t top, uint8_t palette);
 	virtual ~Blockmap2D() = default;
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
@@ -18,20 +18,17 @@ public:
 	void SetTileset(std::shared_ptr<Tileset> tileset);
 	std::shared_ptr<Tileset> GetTileset();
 	std::shared_ptr<const Tileset> GetTileset() const;
-	void SetBlockset(std::shared_ptr<std::vector<MapBlock>> blockset);
+	void SetBlockset(BlockSetPtr blockset);
 	std::shared_ptr<std::vector<MapBlock>> GetBlockset();
 	std::shared_ptr<const std::vector<MapBlock>> GetBlockset() const;
 	const MapBlock& GetBigTile(const TilePoint& point) const;
-	virtual std::size_t GetBitmapWidth() const;
-	virtual std::size_t GetBitmapHeight() const;
-
-protected:
-	const std::size_t TILEWIDTH = 16;
-	const std::size_t TILEHEIGHT = 16;
-
+	const std::size_t GetBlockWidth() const;
+	const std::size_t GetBlockHeight() const;
+	virtual std::size_t GetWidthInTiles() const;
+	virtual std::size_t GetHeightInTiles() const;
 private:
 	std::shared_ptr<Tileset> m_tileset;
-	std::shared_ptr<std::vector<MapBlock>> m_blockset;
+	BlockSetPtr m_blockset;
 };
 
 #endif // TILEMAP2D_H
