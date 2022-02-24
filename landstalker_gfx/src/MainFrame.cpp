@@ -45,12 +45,17 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_sprite_frame(0),
       m_strtab(0),
       m_mode(MODE_NONE),
-      m_layer_controls_enabled(false)
+      m_layer_controls_enabled(false),
+      m_palettes(std::make_shared<std::map<std::string, Palette>>())
 {
     m_imgs = new ImgLst();
     wxGridSizer* sizer = new wxGridSizer(1);
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    m_tilesetEditor = new TilesetEditor(this->m_scrollwindow);
     sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
+    sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
+    sizer->Hide(m_stringView);
+    sizer->Hide(m_tilesetEditor);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
     SetMode(MODE_NONE);
@@ -90,6 +95,7 @@ void MainFrame::OpenRomFile(const wxString& path)
     {
         m_rom.load_from_file(static_cast<std::string>(path));
         this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
+        PopulatePalettes();
 
         m_browser->DeleteAllItems();
         m_browser->SetImageList(m_imgs);
@@ -483,6 +489,98 @@ void MainFrame::DrawImage(const std::string& image, std::size_t scale)
     }
 }
 
+void MainFrame::PopulatePalettes()
+{
+    Palette dummy_palette(m_rom);
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ROOM); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Room Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ROOM));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LAVA); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Lava Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LAVA));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::WARP); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Warp Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::WARP));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::FULL); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Full Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::FULL));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LOW8); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Low8 Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LOW8));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::HUD); ++i)
+    {
+        m_palettes->emplace(wxString::Format("HUD Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::HUD));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SWORD); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Sword Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SWORD));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ARMOUR); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Armour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ARMOUR));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::PROJECTILE); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Projectile Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::PROJECTILE));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SEGA_LOGO); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Sega Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SEGA_LOGO));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::CLIMAX_LOGO); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Climax Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::CLIMAX_LOGO));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_YELLOW); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Title Sequence Yellow Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_YELLOW));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_BLUE_FADE); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Title Sequence Blue Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_BLUE_FADE));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_SINGLE_COLOUR); ++i)
+    {
+        m_palettes->emplace(wxString::Format("Title Sequence Block Colour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_SINGLE_COLOUR));
+    }
+    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::END_CREDITS); ++i)
+    {
+        m_palettes->emplace(wxString::Format("End Credits Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::END_CREDITS));
+    }
+    m_selected_palette = m_palettes->find("Room Palette 00")->first;
+}
+
+void MainFrame::ShowStrings()
+{
+    m_stringView->Show();
+    m_tilesetEditor->Hide();
+    this->m_scrollwindow->GetSizer()->Clear();
+    this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
+    this->m_scrollwindow->GetSizer()->Layout();
+}
+
+void MainFrame::ShowTileset()
+{
+    m_stringView->Hide();
+    m_tilesetEditor->Show();
+    this->m_scrollwindow->GetSizer()->Clear();
+    this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
+    this->m_scrollwindow->GetSizer()->Layout();
+}
+
+void MainFrame::ShowBitmap()
+{
+    m_stringView->Hide();
+    m_tilesetEditor->Hide();
+    this->m_scrollwindow->GetSizer()->Clear();
+    this->m_scrollwindow->GetSizer()->Layout();
+}
+
 void MainFrame::ForceRepaint()
 {
     m_scrollwindow->SetScrollbars(m_scale, m_scale, m_imgbuf.GetWidth(), m_imgbuf.GetHeight(), 0, 0);
@@ -775,24 +873,30 @@ void MainFrame::Refresh()
             }
             m_stringView->AppendItem(data);
         }
-        m_stringView->Show();
+        ShowStrings();
         EnableLayerControls(false);
         break;
     }
     case MODE_TILESET:
+    {
         // Display tileset
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        m_stringView->Hide();
+        std::vector<uint8_t> tileset(m_rom.data(m_tilesetOffsets[m_tsidx]), m_rom.data(m_rom.size() - 1));
+        m_tilesetEditor->SetPalettes(m_palettes);
+        m_tilesetEditor->SetActivePalette("Room Palette 00");
+        m_tilesetEditor->Open(tileset, true);
+        ShowTileset();
         EnableLayerControls(false);
-        LoadTileset(m_tilesetOffsets[m_tsidx]);
-        DrawTiles(16, 2, m_rpalidx);
+        //LoadTileset(m_tilesetOffsets[m_tsidx]);
+        //DrawTiles(16, 2, m_rpalidx);
         break;
+    }
     case MODE_BLOCKSET:
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
-        m_stringView->Hide();
+        ShowBitmap();
         LoadTileset(m_tilesetOffsets[m_tsidx]);
         LoadBlocks(m_blockOffsets[m_bs2][0]);
         if (m_bs2 > 0)
@@ -806,13 +910,13 @@ void MainFrame::Refresh()
         // Display palettes
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        m_stringView->Hide();
+        ShowBitmap();
         break;
     case MODE_ROOMMAP:
         // Display room map
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        m_stringView->Hide();
+        ShowBitmap();
         EnableLayerControls(true);
         InitRoom(m_roomnum);
         PopulateRoomProperties(m_roomnum, m_tilemap);
@@ -823,7 +927,7 @@ void MainFrame::Refresh()
         // Display sprite
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        m_stringView->Hide();
+        ShowBitmap();
         EnableLayerControls(false);
         const auto& sprite = m_sprites[m_sprite_idx];
         m_palette[1] = sprite.GetPalette();
@@ -834,7 +938,7 @@ void MainFrame::Refresh()
         // Display image
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        m_stringView->Hide();
+        ShowBitmap();
         EnableLayerControls(false);
         DrawImage(m_selImage, 2);
         break;
@@ -843,7 +947,7 @@ void MainFrame::Refresh()
         m_mnu_export_png->Enable(false);
         m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
-        m_stringView->Hide();
+        ShowBitmap();
         ClearScreen();
         break;
     }

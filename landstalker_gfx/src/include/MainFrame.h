@@ -17,6 +17,7 @@
 #include "ImageBuffer.h"
 #include "LSString.h"
 #include "Images.h"
+#include "TilesetEditor.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -133,6 +134,10 @@ private:
     void DrawHeightmap(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
+    void PopulatePalettes();
+    void ShowStrings();
+    void ShowTileset();
+    void ShowBitmap();
     void ForceRepaint();
     void ClearScreen();
     void PaintNow(wxDC& dc, std::size_t scale = 1);
@@ -180,8 +185,11 @@ private:
     std::map<uint8_t, Sprite> m_sprites;
     std::string m_selImage;
     std::map<std::string, Images::Image> m_images;
+    std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+    std::string m_selected_palette;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
     wxDataViewListCtrl* m_stringView;
+    TilesetEditor* m_tilesetEditor;
 };
 #endif // MAINFRAME_H

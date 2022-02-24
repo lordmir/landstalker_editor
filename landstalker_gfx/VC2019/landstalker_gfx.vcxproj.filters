@@ -99,6 +99,9 @@
     <ClCompile Include="..\src\Tilemap2DRLE.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\TilesetEditor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -206,6 +209,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Images.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TilesetEditor.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
