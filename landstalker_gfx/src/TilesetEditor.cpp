@@ -177,12 +177,16 @@ void TilesetEditor::OnDraw(wxDC& dc)
 			{
 				if (DrawTileAtPosition(m_memdc, *it))
 				{
-					m_redraw_list.erase(it++);
+					it = m_redraw_list.erase(it);
 				}
 				else
 				{
 					++it;
 				}
+			}
+			else
+			{
+				++it;
 			}
 		}
 	}
@@ -416,7 +420,7 @@ void TilesetEditor::PaintBitmap(wxDC& dc)
 
 void TilesetEditor::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush();
+	m_alpha_brush = new wxBrush(*wxBLACK);
 	wxBitmap* stipple = new wxBitmap(6, 6);
 	wxMemoryDC* imagememDC = new wxMemoryDC();
 	imagememDC->SelectObject(*stipple);
