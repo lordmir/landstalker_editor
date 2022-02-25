@@ -12,7 +12,7 @@
 #include "BitBarrel.h"
 #include "BitBarrelWriter.h"
 
-uint16_t getCodedNumber(BitBarrel& bb)
+static uint16_t getCodedNumber(BitBarrel& bb)
 {
     uint16_t exp = 0, num = 0;
     
@@ -30,7 +30,7 @@ uint16_t getCodedNumber(BitBarrel& bb)
     return num;
 }
 
-uint16_t ilog2(uint16_t num)
+static uint16_t ilog2(uint16_t num)
 {
     uint16_t ret = 0;
     while(num)
