@@ -1,5 +1,6 @@
 #include "Palette.h"
 #include <algorithm>
+#include "Utils.h"
 
 const std::unordered_map<Palette::Type, std::array<bool, 16>> LOCKED_ENTRIES =
 {
@@ -50,9 +51,9 @@ static void PopulatePalettes(const std::vector<uint16_t>& input, std::vector<std
 	assert(input.size() % N == 0);
 
 	size_t i = 0;
-	for (auto in : input)
+	std::array<uint16_t, N> pal;
+	for (const auto& in : input)
 	{
-		std::array<uint16_t, N> pal;
 		pal[i++] = in;
 		if (i == N)
 		{
