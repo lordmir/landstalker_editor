@@ -51,7 +51,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_imgs = new ImgLst();
     wxGridSizer* sizer = new wxGridSizer(1);
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
-    m_tilesetEditor = new TilesetEditor(this->m_scrollwindow);
+    m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
     sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
     sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
     sizer->Hide(m_stringView);

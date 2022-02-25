@@ -75,6 +75,11 @@ void TilesetEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> 
 	m_palettes = palettes;
 }
 
+std::shared_ptr<Tileset> TilesetEditor::GetTileset()
+{
+	return m_tileset;
+}
+
 bool TilesetEditor::Save(wxString filename, bool compressed)
 {
 	return m_tileset->Save(filename.ToStdString(), compressed);

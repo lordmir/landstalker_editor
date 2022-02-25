@@ -49,6 +49,7 @@ Tileset::Tileset(std::size_t width, std::size_t height, uint8_t bit_depth, Tiles
       m_tilewidth(width),
       m_tileheight(height),
       m_bit_depth(bit_depth),
+	  m_compressed(false),
       m_blocktype(blocktype)
 {
 }
@@ -80,9 +81,10 @@ void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
     const std::vector<uint8_t>* input = &src;
     m_compressed = compressed;
 
-    std::vector<uint8_t> buffer(65536);
+	std::vector<uint8_t> buffer;
     if (compressed == true)
     {
+		buffer.resize(65536);
         std::size_t elen, dlen;
         dlen = LZ77::Decode(src.data(), src.size(), buffer.data(), elen);
         buffer.resize(dlen);

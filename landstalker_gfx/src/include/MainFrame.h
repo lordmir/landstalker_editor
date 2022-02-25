@@ -17,7 +17,7 @@
 #include "ImageBuffer.h"
 #include "LSString.h"
 #include "Images.h"
-#include "TilesetEditor.h"
+#include "TilesetEditorFrame.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -190,6 +190,6 @@ private:
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
     wxDataViewListCtrl* m_stringView;
-    TilesetEditor* m_tilesetEditor;
+    TilesetEditorFrame* m_tilesetEditor;
 };
 #endif // MAINFRAME_H

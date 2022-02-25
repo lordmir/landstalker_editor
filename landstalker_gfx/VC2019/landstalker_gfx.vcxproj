@@ -29,15 +29,18 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\MainFrame.cpp" />
     <ClCompile Include="..\src\Palette.cpp" />
+    <ClCompile Include="..\src\PaletteEditor.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
+    <ClCompile Include="..\src\TileEditor.cpp" />
     <ClCompile Include="..\src\Tilemap.cpp" />
     <ClCompile Include="..\src\Tilemap2DRLE.cpp" />
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
+    <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
@@ -67,6 +70,7 @@
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />
+    <ClInclude Include="..\src\include\PaletteEditor.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
@@ -75,12 +79,14 @@
     <ClInclude Include="..\src\include\SpriteGraphic.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
+    <ClInclude Include="..\src\include\TileEditor.h" />
     <ClInclude Include="..\src\include\Tilemap.h" />
     <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
+    <ClInclude Include="..\src\TilesetEditorFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\win_resources.rc">
