@@ -71,6 +71,9 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(EVT_PROPERTIES_UPDATE, wxCommandEventHandler(MainFrame::OnPropertiesUpdate), nullptr, this);
 	this->Connect(EVT_PROPERTIES_CLEAR, wxCommandEventHandler(MainFrame::OnPropertiesClear), nullptr, this);
 	this->Connect(wxEVT_PG_CHANGED, wxPropertyGridEventHandler(MainFrame::OnPropertyChange), nullptr, this);
+	this->Connect(EVT_MENU_INIT, wxCommandEventHandler(MainFrame::OnMenuInit), nullptr, this);
+	this->Connect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
+	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -504,6 +507,29 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 	if (m_activeEditor != nullptr)
 	{
 		m_activeEditor->OnPropertyChange(event);
+	}
+	event.Skip();
+}
+
+void MainFrame::OnMenuInit(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->InitMenu(*this->m_menubar);
+	event.Skip();
+}
+
+void MainFrame::OnMenuClear(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->ClearMenu(*this->m_menubar);
+	event.Skip();
+}
+
+void MainFrame::OnMenuClick(wxMenuEvent& event)
+{
+	if (m_activeEditor != nullptr)
+	{
+		m_activeEditor->OnMenuClick(event);
 	}
 	event.Skip();
 }

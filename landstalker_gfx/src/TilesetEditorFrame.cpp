@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include "Utils.h"
+#include "wx/artprov.h"
 
 wxBEGIN_EVENT_TABLE(TilesetEditorFrame, wxWindow)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_CHANGE, TilesetEditorFrame::OnPaletteChanged)
@@ -15,7 +16,7 @@ EVT_COMMAND(wxID_ANY, EVT_TILESET_HOVER, TilesetEditorFrame::OnTileSelectionChan
 EVT_COMMAND(wxID_ANY, EVT_TILESET_CHANGE, TilesetEditorFrame::OnTilesetChange)
 wxEND_EVENT_TABLE()
 
-enum MENU_IDS
+enum TOOL_IDS
 {
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_TILE_NOS,
@@ -28,7 +29,28 @@ enum MENU_IDS
 	ID_CUT_TILE,
 	ID_COPY_TILE,
 	ID_PASTE_TILE,
-	ID_EDIT_TILE
+	ID_EDIT_TILE,
+	ID_DRAW_TOGGLE_GRIDLINES,
+	ID_PENCIL
+};
+
+enum MENU_IDS
+{
+	ID_FILE_NEW = 20000,
+	ID_FILE_EXPORT_BIN,
+	ID_FILE_EXPORT_ALL,
+	ID_FILE_EXPORT_PNG,
+	ID_FILE_IMPORT_BIN,
+	ID_FILE_IMPORT_PNG,
+	ID_VIEW,
+	ID_VIEW_TOGGLE_GRIDLINES,
+	ID_VIEW_TOGGLE_TILE_NOS,
+	ID_VIEW_TOGGLE_ALPHA,
+	ID_TOOLS,
+	ID_TOOLS_PALETTE,
+	ID_TOOLS_EDITOR,
+	ID_TOOLS_TILESET_TOOLBAR,
+	ID_TOOLS_DRAW_TOOLBAR,
 };
 
 template <class T>
@@ -65,10 +87,36 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
+
+	wxAuiToolBar* tileset_tb = new wxAuiToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	wxBitmap bmp = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_OTHER, FromDIP(wxSize(16, 16)));
+	tileset_tb->SetToolBitmapSize(FromDIP(wxSize(16, 16)));
+	tileset_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", bmp, "Toggle Gridlines");
+	tileset_tb->AddTool(ID_TOGGLE_TILE_NOS, "Toggle Tile Numbers", bmp, "Toggle Tile Numbers");
+	tileset_tb->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", bmp, "Toggle Alpha");
+	tileset_tb->AddSeparator();
+	tileset_tb->AddTool(ID_ADD_TILE_BEFORE_SEL, "Add Tile Before Selected", bmp, "Add Tile Before Selected");
+	tileset_tb->AddTool(ID_ADD_TILE_AFTER_SEL, "Add Tile After Selected", bmp, "Add Tile After Selected");
+	tileset_tb->AddTool(ID_EXTEND_TILESET, "Extend Tileset", bmp, "Extend Tileset");
+	tileset_tb->AddTool(ID_DELETE_TILE, "Delete Tile", bmp, "Delete Tile");
+	tileset_tb->AddSeparator();
+	tileset_tb->AddTool(ID_SWAP_TILES, "Swap Tiles", bmp, "Swap Tiles");
+	tileset_tb->AddTool(ID_CUT_TILE, "Cut Tile", bmp, "Cut Tile");
+	tileset_tb->AddTool(ID_COPY_TILE, "Copy Tile", bmp, "Copy Tile");
+	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", bmp, "Paste Tile");
+	tileset_tb->Realize();
+
+	wxAuiToolBar* draw_tb = new wxAuiToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	draw_tb->SetToolBitmapSize(FromDIP(wxSize(16, 16)));
+	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", bmp, "Toggle Gridlines");
+	draw_tb->AddSeparator();
+	draw_tb->AddTool(ID_PENCIL, "Pencil", bmp, "Pencil");
+	draw_tb->Realize();
+
 	m_tilesetEditor = new TilesetEditor(this);
-
 	m_paletteEditor = new PaletteEditor(this);
-
 	m_tileEditor = new TileEditor(this);
 	m_tileEditor->SetPixelSize(64);
 
@@ -78,6 +126,14 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	m_mgr.AddPane(m_tileEditor, wxLEFT, wxT("Editor"));
 	m_mgr.GetPane(m_tileEditor).MinSize(640, 640).FloatingSize(520, 520);
 	m_mgr.AddPane(m_tilesetEditor, wxCENTER);
+
+	m_mgr.AddPane(draw_tb, wxAuiPaneInfo().
+		Name("draw_tb").Caption("Draw Toolbar").
+		ToolbarPane().Top().Row(1));
+
+	m_mgr.AddPane(tileset_tb, wxAuiPaneInfo().
+		Name("tileset_tb").Caption("Tileset Toolbar").
+		ToolbarPane().Top().Row(1).Position(1));
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -238,6 +294,35 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		m_tileEditor->Refresh();
 	}
 	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void TilesetEditorFrame::InitMenu(wxMenuBar& menu) const
+{
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 2, ID_FILE_NEW, "New Tileset");
+	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_BIN, "Export Tileset...");
+	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_ALL, "Export All Tilesets...");
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
+	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_BIN, "Import Tileset...");
+	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
+	auto& toolsMenu = AddMenu(menu, 2, ID_TOOLS, "Tools");
+	AddMenuItem(toolsMenu, 0, ID_TOOLS_PALETTE, "Palette", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 1, ID_TOOLS_EDITOR, "Tile Editor", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_DRAW_TOOLBAR, "Drawing Toolbar", wxITEM_CHECK);
+}
+
+void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	const auto id = evt.GetId();
+	if ((id >= 20000) && (id < 31000))
+	{
+		wxMessageBox(wxString::Format("%d", evt.GetId()));
+	}
 }
 
 void TilesetEditorFrame::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)

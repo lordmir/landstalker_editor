@@ -135,6 +135,9 @@ private:
 	void OnPropertiesUpdate(wxCommandEvent& event);
 	void OnPropertiesClear(wxCommandEvent& event);
 	void OnPropertyChange(wxPropertyGridEvent& event);
+	void OnMenuInit(wxCommandEvent& event);
+	void OnMenuClear(wxCommandEvent& event);
+	void OnMenuClick(wxMenuEvent& event);
     void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
