@@ -17,6 +17,7 @@
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
     <ClCompile Include="..\src\HuffmanTree.cpp" />
@@ -58,6 +59,7 @@
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />

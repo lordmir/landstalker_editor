@@ -20,7 +20,7 @@ public:
         BLOCK4X4,
         BLOCK4X6
     };
-
+	inline static const std::array<std::string, 6> BLOCKTYPE_STRINGS = { "Normal", "Block 1x2", "Block 2x2", "Block 3x3", "Block 4x4", "Block 4x6" };
 
     Tileset(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     Tileset(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
@@ -42,7 +42,8 @@ public:
     std::vector<uint8_t> GetColourIndicies() const;
     std::array<bool, 16> GetLockedColours() const;
 
-    std::size_t GetTileCount() const;
+	std::size_t GetTileCount() const;
+	std::size_t GetTilesetUncompressedSizeBytes() const;
     std::size_t GetTileWidth() const;
     std::size_t GetTileHeight() const;
     std::size_t GetTileBitDepth() const;

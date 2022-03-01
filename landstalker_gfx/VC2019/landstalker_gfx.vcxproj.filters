@@ -111,6 +111,9 @@
     <ClCompile Include="..\src\TileEditor.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\EditorFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -230,6 +233,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\TileEditor.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EditorFrame.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

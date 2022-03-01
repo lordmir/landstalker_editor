@@ -46,7 +46,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_strtab(0),
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false),
-      m_palettes(std::make_shared<std::map<std::string, Palette>>())
+      m_palettes(std::make_shared<std::map<std::string, Palette>>()),
+	  m_activeEditor(nullptr)
 {
     m_imgs = new ImgLst();
     wxGridSizer* sizer = new wxGridSizer(1);
@@ -63,11 +64,19 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     {
         OpenRomFile(filename.c_str());
     }
+	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
+	this->Connect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
+	this->Connect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
+	this->Connect(EVT_PROPERTIES_INIT, wxCommandEventHandler(MainFrame::OnPropertiesInit), nullptr, this);
+	this->Connect(EVT_PROPERTIES_UPDATE, wxCommandEventHandler(MainFrame::OnPropertiesUpdate), nullptr, this);
+	this->Connect(EVT_PROPERTIES_CLEAR, wxCommandEventHandler(MainFrame::OnPropertiesClear), nullptr, this);
+	this->Connect(wxEVT_PG_CHANGED, wxPropertyGridEventHandler(MainFrame::OnPropertyChange), nullptr, this);
 }
 
 MainFrame::~MainFrame()
 {
     delete m_stringView;
+	delete m_tilesetEditor;
     delete m_imgs;
 }
 
@@ -411,7 +420,6 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
     const std::size_t ROW_HEIGHT = m_tilemap.hmheight;
     const std::size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
     const std::size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
-
     //std::size_t x = 0;
     //std::size_t y = 0;
     bmp = std::make_shared<wxBitmap>(BMP_WIDTH, BMP_HEIGHT);
@@ -422,7 +430,6 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
     memDc.SetBrush(*wxBLACK_BRUSH);
     memDc.SetTextBackground(*wxBLACK);
     memDc.SetTextForeground(*wxWHITE);
-
     std::size_t p = 0;
     for(std::size_t y = 0; y < ROW_HEIGHT; ++y)
     for(std::size_t x = 0; x < ROW_WIDTH; ++x)
@@ -448,6 +455,57 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
+}
+
+void MainFrame::OnStatusBarInit(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->InitStatusBar(*this->m_statusbar);
+	event.Skip();
+}
+
+void MainFrame::OnStatusBarUpdate(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->UpdateStatusBar(*this->m_statusbar);
+	event.Skip();
+}
+
+void MainFrame::OnStatusBarClear(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->ClearStatusBar(*this->m_statusbar);
+	event.Skip();
+}
+
+void MainFrame::OnPropertiesInit(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->InitProperties(*this->m_properties);
+	event.Skip();
+}
+
+void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->UpdateProperties(*this->m_properties);
+	event.Skip();
+}
+
+void MainFrame::OnPropertiesClear(wxCommandEvent& event)
+{
+	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+	frame->ClearProperties(*this->m_properties);
+	event.Skip();
+}
+
+void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
+{
+	if (m_activeEditor != nullptr)
+	{
+		m_activeEditor->OnPropertyChange(event);
+	}
+	event.Skip();
 }
 
 void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
@@ -557,6 +615,7 @@ void MainFrame::PopulatePalettes()
 
 void MainFrame::ShowStrings()
 {
+	m_activeEditor = nullptr;
     m_stringView->Show();
     m_tilesetEditor->Hide();
     this->m_scrollwindow->GetSizer()->Clear();
@@ -566,6 +625,7 @@ void MainFrame::ShowStrings()
 
 void MainFrame::ShowTileset()
 {
+	m_activeEditor = m_tilesetEditor;
     m_stringView->Hide();
     m_tilesetEditor->Show();
     this->m_scrollwindow->GetSizer()->Clear();
@@ -575,6 +635,7 @@ void MainFrame::ShowTileset()
 
 void MainFrame::ShowBitmap()
 {
+	m_activeEditor = nullptr;
     m_stringView->Hide();
     m_tilesetEditor->Hide();
     this->m_scrollwindow->GetSizer()->Clear();

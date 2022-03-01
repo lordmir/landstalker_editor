@@ -128,6 +128,13 @@ private:
         MODE_ROOMMAP,
         MODE_SPRITE
     };
+	void OnStatusBarInit(wxCommandEvent& event);
+	void OnStatusBarUpdate(wxCommandEvent& event);
+	void OnStatusBarClear(wxCommandEvent& event);
+	void OnPropertiesInit(wxCommandEvent& event);
+	void OnPropertiesUpdate(wxCommandEvent& event);
+	void OnPropertiesClear(wxCommandEvent& event);
+	void OnPropertyChange(wxPropertyGridEvent& event);
     void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
@@ -191,5 +198,6 @@ private:
     ImgLst* m_imgs;
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
+	EditorFrame* m_activeEditor;
 };
 #endif // MAINFRAME_H

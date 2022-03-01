@@ -319,7 +319,11 @@ std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const Palette& pale
 
 void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 {
-    if (colour_indicies.size() >= (1 << m_bit_depth))
+	if (colour_indicies.size() == 0)
+	{
+		m_colour_indicies.clear();
+	}
+    else if (colour_indicies.size() >= (1 << m_bit_depth))
     {
         bool ok = true;
         for (auto c : colour_indicies)
@@ -360,6 +364,11 @@ std::array<bool, 16> Tileset::GetLockedColours() const
 std::size_t Tileset::GetTileCount() const
 {
     return m_tiles.size();
+}
+
+std::size_t Tileset::GetTilesetUncompressedSizeBytes() const
+{
+	return m_tiles.size() * m_width * m_height * m_bit_depth / 8;
 }
 
 std::size_t Tileset::GetTileWidth() const
