@@ -50,7 +50,7 @@ enum MENU_IDS
 	ID_TOOLS_PALETTE,
 	ID_TOOLS_EDITOR,
 	ID_TOOLS_TILESET_TOOLBAR,
-	ID_TOOLS_DRAW_TOOLBAR,
+	ID_TOOLS_DRAW_TOOLBAR
 };
 
 template <class T>
@@ -88,33 +88,6 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 {
 	m_mgr.SetManagedWindow(this);
 
-	wxAuiToolBar* tileset_tb = new wxAuiToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-		wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	wxBitmap bmp = wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_OTHER, FromDIP(wxSize(16, 16)));
-	tileset_tb->SetToolBitmapSize(FromDIP(wxSize(16, 16)));
-	tileset_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", bmp, "Toggle Gridlines");
-	tileset_tb->AddTool(ID_TOGGLE_TILE_NOS, "Toggle Tile Numbers", bmp, "Toggle Tile Numbers");
-	tileset_tb->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", bmp, "Toggle Alpha");
-	tileset_tb->AddSeparator();
-	tileset_tb->AddTool(ID_ADD_TILE_BEFORE_SEL, "Add Tile Before Selected", bmp, "Add Tile Before Selected");
-	tileset_tb->AddTool(ID_ADD_TILE_AFTER_SEL, "Add Tile After Selected", bmp, "Add Tile After Selected");
-	tileset_tb->AddTool(ID_EXTEND_TILESET, "Extend Tileset", bmp, "Extend Tileset");
-	tileset_tb->AddTool(ID_DELETE_TILE, "Delete Tile", bmp, "Delete Tile");
-	tileset_tb->AddSeparator();
-	tileset_tb->AddTool(ID_SWAP_TILES, "Swap Tiles", bmp, "Swap Tiles");
-	tileset_tb->AddTool(ID_CUT_TILE, "Cut Tile", bmp, "Cut Tile");
-	tileset_tb->AddTool(ID_COPY_TILE, "Copy Tile", bmp, "Copy Tile");
-	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", bmp, "Paste Tile");
-	tileset_tb->Realize();
-
-	wxAuiToolBar* draw_tb = new wxAuiToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-		wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	draw_tb->SetToolBitmapSize(FromDIP(wxSize(16, 16)));
-	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", bmp, "Toggle Gridlines");
-	draw_tb->AddSeparator();
-	draw_tb->AddTool(ID_PENCIL, "Pencil", bmp, "Pencil");
-	draw_tb->Realize();
-
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
 	m_tileEditor = new TileEditor(this);
@@ -127,16 +100,9 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	m_mgr.GetPane(m_tileEditor).MinSize(640, 640).FloatingSize(520, 520);
 	m_mgr.AddPane(m_tilesetEditor, wxCENTER);
 
-	m_mgr.AddPane(draw_tb, wxAuiPaneInfo().
-		Name("draw_tb").Caption("Draw Toolbar").
-		ToolbarPane().Top().Row(1));
-
-	m_mgr.AddPane(tileset_tb, wxAuiPaneInfo().
-		Name("tileset_tb").Caption("Tileset Toolbar").
-		ToolbarPane().Top().Row(1).Position(1));
-
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
+	UpdateUI();
 }
 
 TilesetEditorFrame::~TilesetEditorFrame()
@@ -182,6 +148,27 @@ void TilesetEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
+}
+
+void TilesetEditorFrame::UpdateUI() const
+{
+	CheckMenuItem(ID_TOOLS_PALETTE, IsPaneVisible(m_paletteEditor));
+	CheckMenuItem(ID_TOOLS_EDITOR, IsPaneVisible(m_tileEditor));
+	CheckMenuItem(ID_TOOLS_TILESET_TOOLBAR, IsToolbarVisible("Tileset"));
+	CheckMenuItem(ID_TOOLS_DRAW_TOOLBAR, IsToolbarVisible("Draw"));
+	if (m_tilesetEditor != nullptr)
+	{
+		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_tilesetEditor->GetAlphaEnabled());
+		CheckToolbarItem("Tileset", ID_TOGGLE_ALPHA, !m_tilesetEditor->GetAlphaEnabled());
+		CheckMenuItem(ID_VIEW_TOGGLE_GRIDLINES, m_tilesetEditor->GetBordersEnabled());
+		CheckToolbarItem("Tileset", ID_TOGGLE_GRIDLINES, m_tilesetEditor->GetBordersEnabled());
+		CheckMenuItem(ID_VIEW_TOGGLE_TILE_NOS, m_tilesetEditor->GetTileNumbersEnabled());
+		CheckToolbarItem("Tileset", ID_TOGGLE_TILE_NOS, m_tilesetEditor->GetTileNumbersEnabled());
+	}
+	if (m_tileEditor != nullptr)
+	{
+		CheckToolbarItem("Draw", ID_DRAW_TOGGLE_GRIDLINES, m_tileEditor->GetBordersEnabled());
+	}
 }
 
 void TilesetEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
@@ -296,9 +283,11 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
-void TilesetEditorFrame::InitMenu(wxMenuBar& menu) const
+void TilesetEditorFrame::InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList& ilist) const
 {
-	ClearMenu(menu);
+	auto* parent = mgr.GetManagedWindow();
+
+	ClearMenu(menu, mgr);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 2, ID_FILE_NEW, "New Tileset");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_BIN, "Export Tileset...");
@@ -313,7 +302,35 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu) const
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_PALETTE, "Palette", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_EDITOR, "Tile Editor", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 3, ID_TOOLS_DRAW_TOOLBAR, "Drawing Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_DRAW_TOOLBAR, "Draw Toolbar", wxITEM_CHECK);
+
+	wxAuiToolBar* tileset_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	tileset_tb->SetToolBitmapSize(wxSize(16, 16));
+	tileset_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
+	tileset_tb->AddTool(ID_TOGGLE_TILE_NOS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
+	tileset_tb->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
+	tileset_tb->AddSeparator();
+	tileset_tb->AddTool(ID_ADD_TILE_BEFORE_SEL, "Add Tile Before Selected", ilist.GetImage("insert_before"), "Add Tile Before Selected");
+	tileset_tb->AddTool(ID_ADD_TILE_AFTER_SEL, "Add Tile After Selected", ilist.GetImage("insert_after"), "Add Tile After Selected");
+	tileset_tb->AddTool(ID_EXTEND_TILESET, "Extend Tileset", ilist.GetImage("append_tile"), "Extend Tileset");
+	tileset_tb->AddTool(ID_DELETE_TILE, "Delete Tile", ilist.GetImage("delete_tile"), "Delete Tile");
+	tileset_tb->AddSeparator();
+	tileset_tb->AddTool(ID_SWAP_TILES, "Swap Tiles", ilist.GetImage("swap"), "Swap Tiles");
+	tileset_tb->AddTool(ID_CUT_TILE, "Cut Tile", ilist.GetImage("cut"), "Cut Tile");
+	tileset_tb->AddTool(ID_COPY_TILE, "Copy Tile", ilist.GetImage("copy"), "Copy Tile");
+	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", ilist.GetImage("paste"), "Paste Tile");
+	AddToolbar(mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+
+	wxAuiToolBar* draw_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	draw_tb->SetToolBitmapSize(wxSize(16, 16));
+	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
+	draw_tb->AddSeparator();
+	draw_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_RADIO);
+	AddToolbar(mgr, *draw_tb, "Draw", "Drawing Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1));
+
+	UpdateUI();
+
+	mgr.Update();
 }
 
 void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
@@ -321,7 +338,51 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	const auto id = evt.GetId();
 	if ((id >= 20000) && (id < 31000))
 	{
-		wxMessageBox(wxString::Format("%d", evt.GetId()));
+		switch (id)
+		{
+		case ID_VIEW_TOGGLE_GRIDLINES:
+		case ID_TOGGLE_GRIDLINES:
+			if (m_tilesetEditor != nullptr)
+			{
+				m_tilesetEditor->SetBordersEnabled(!m_tilesetEditor->GetBordersEnabled());
+			}
+			break;
+		case ID_VIEW_TOGGLE_TILE_NOS:
+		case ID_TOGGLE_TILE_NOS:
+			if (m_tilesetEditor != nullptr)
+			{
+				m_tilesetEditor->SetTileNumbersEnabled(!m_tilesetEditor->GetTileNumbersEnabled());
+			}
+			break;
+		case ID_VIEW_TOGGLE_ALPHA:
+		case ID_TOGGLE_ALPHA:
+			if (m_tilesetEditor != nullptr)
+			{
+				m_tilesetEditor->SetAlphaEnabled(!m_tilesetEditor->GetAlphaEnabled());
+			}
+			break;
+		case ID_DRAW_TOGGLE_GRIDLINES:
+			if (m_tileEditor != nullptr)
+			{
+				m_tileEditor->SetBordersEnabled(!m_tileEditor->GetBordersEnabled());
+			}
+			break;
+		case ID_TOOLS_PALETTE:
+			SetPaneVisibility(m_paletteEditor, !IsPaneVisible(m_paletteEditor));
+			break;
+		case ID_TOOLS_EDITOR:
+			SetPaneVisibility(m_tileEditor, !IsPaneVisible(m_tileEditor));
+			break;
+		case ID_TOOLS_TILESET_TOOLBAR:
+			SetToolbarVisibility("Tileset", !IsToolbarVisible("Tileset"));
+			break;
+		case ID_TOOLS_DRAW_TOOLBAR:
+			SetToolbarVisibility("Draw", !IsToolbarVisible("Draw"));
+			break;
+		default:
+			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
+		}
+		UpdateUI();
 	}
 }
 
@@ -358,6 +419,7 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 		m_tileEditor->SetTileset(m_tileset);
 		m_tileEditor->SetTile(m_tile);
 	}
+	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	return retval;
 }

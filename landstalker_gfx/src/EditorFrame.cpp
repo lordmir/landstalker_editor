@@ -15,6 +15,8 @@ EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
 	FireEvent(EVT_STATUSBAR_INIT);
 	FireEvent(EVT_PROPERTIES_INIT);
 	FireEvent(EVT_MENU_INIT);
+
+	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
 
 EditorFrame::~EditorFrame()
@@ -55,11 +57,11 @@ void EditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 {
 }
 
-void EditorFrame::InitMenu(wxMenuBar& menu) const
+void EditorFrame::InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList& ilist) const
 {
 }
 
-void EditorFrame::ClearMenu(wxMenuBar& menu) const
+void EditorFrame::ClearMenu(wxMenuBar& menu, wxAuiManager& mgr) const
 {
 	for (const auto& itm : m_menuitems)
 	{
@@ -76,6 +78,14 @@ void EditorFrame::ClearMenu(wxMenuBar& menu) const
 		delete parent->Remove(pos);
 	}
 	m_menus.clear();
+	for (const auto& tb : m_toolbars)
+	{
+		tb.second->Hide();
+		mgr.DetachPane(tb.second);
+		tb.second->Destroy();
+	}
+	m_toolbars.clear();
+	mgr.Update();
 }
 
 void EditorFrame::OnMenuClick(wxMenuEvent& evt)
@@ -97,6 +107,85 @@ bool EditorFrame::Show(bool show)
 		FireEvent(EVT_MENU_CLEAR);
 	}
 	return wxWindow::Show(show);
+}
+
+void EditorFrame::UpdateUI() const
+{
+}
+
+void EditorFrame::CheckMenuItem(int id, bool checked) const
+{
+	auto* menu = GetMenuItem(id);
+	if (menu != nullptr)
+	{
+		menu->Check(checked);
+	}
+}
+
+void EditorFrame::CheckToolbarItem(const std::string& name, int id, bool checked) const
+{
+	auto* tb = GetToolbar(name);
+	if (tb != nullptr)
+	{
+		tb->ToggleTool(id, checked);
+		tb->Refresh();
+	}
+}
+
+void EditorFrame::SetPaneVisibility(wxWindow* pane, bool visible)
+{
+	if (pane == nullptr)
+	{
+		return;
+	}
+	auto* mgr = wxAuiManager::GetManager(pane->GetParent());
+	auto& paneInfo = mgr->GetPane(pane);
+	bool currentlyVisible = paneInfo.IsShown();
+	if (visible != currentlyVisible)
+	{
+		paneInfo.Show(visible);
+		mgr->Update();
+	}
+}
+
+bool EditorFrame::IsPaneVisible(wxWindow* pane) const
+{
+	if (pane == nullptr)
+	{
+		return false;
+	}
+	auto* mgr = wxAuiManager::GetManager(pane->GetParent());
+	auto& paneInfo = mgr->GetPane(pane);
+	return paneInfo.IsShown();
+}
+
+void EditorFrame::SetToolbarVisibility(const std::string& name, bool visible)
+{
+	auto* tb = GetToolbar(name);
+	if (tb == nullptr)
+	{
+		return;
+	}
+	auto* mgr = wxAuiManager::GetManager(tb->GetParent());
+	auto& pane = mgr->GetPane(tb);
+	bool currentlyVisible = pane.IsShown();
+	if (visible != currentlyVisible)
+	{
+		pane.Show(visible);
+		mgr->Update();
+	}
+}
+
+bool EditorFrame::IsToolbarVisible(const std::string& name) const
+{
+	auto* tb = GetToolbar(name);
+	if (tb == nullptr)
+	{
+		return false;
+	}
+	auto* mgr = wxAuiManager::GetManager(tb->GetParent());
+	auto& pane = mgr->GetPane(tb);
+	return pane.IsShown();
 }
 
 void EditorFrame::FireEvent(const wxEventType& e, const std::string& data)
@@ -130,12 +219,48 @@ wxMenuItem& EditorFrame::AddMenuItem(wxMenu& parent, int position, int id, const
 	return *menuItem;
 }
 
-wxMenu& EditorFrame::GetMenu(int id) const
+wxAuiToolBar& EditorFrame::AddToolbar(wxAuiManager& mgr, wxAuiToolBar& tb, const std::string& name, const std::string title, wxAuiPaneInfo& position) const
 {
-	return *m_menus[id].second;
+	mgr.AddPane(&tb, position.Name(name).Caption(title));
+	tb.Realize();
+	m_toolbars.insert({ name, &tb });
+	return tb;
 }
 
-wxMenuItem& EditorFrame::GetMenuItem(int id) const
+wxMenu* EditorFrame::GetMenu(int id) const
 {
-	return *m_menuitems[id].second;
+	auto result = m_menus.find(id);
+	if (result == m_menus.end())
+	{
+		return nullptr;
+	}
+	return result->second.second;
+}
+
+wxMenuItem* EditorFrame::GetMenuItem(int id) const
+{
+	auto result = m_menuitems.find(id);
+	if (result == m_menuitems.end())
+	{
+		return nullptr;
+	}
+	return result->second.second;
+}
+
+wxAuiToolBar* EditorFrame::GetToolbar(const std::string name) const
+{
+	auto result = m_toolbars.find(name);
+	if (result == m_toolbars.end())
+	{
+		return nullptr;
+	}
+	return result->second;
+}
+
+void EditorFrame::OnPaneClose(wxAuiManagerEvent& event)
+{
+	auto* pane = event.GetPane();
+	pane->Hide();
+	UpdateUI();
+	event.Skip();
 }

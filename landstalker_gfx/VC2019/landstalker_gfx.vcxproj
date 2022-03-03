@@ -23,6 +23,7 @@
     <ClCompile Include="..\src\HuffmanTree.cpp" />
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
+    <ClCompile Include="..\src\ImageList.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
     <ClCompile Include="..\src\LSTilemapCmp.cpp" />
@@ -64,7 +65,9 @@
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />
     <ClInclude Include="..\src\include\HuffmanTrees.h" />
+    <ClInclude Include="..\src\include\Icons.h" />
     <ClInclude Include="..\src\include\ImageBuffer.h" />
+    <ClInclude Include="..\src\include\ImageList.h" />
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LSString.h" />

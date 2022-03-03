@@ -17,6 +17,7 @@
 #include "ImageBuffer.h"
 #include "LSString.h"
 #include "Images.h"
+#include "ImageList.h"
 #include "TilesetEditorFrame.h"
 
 #ifdef _WIN32
@@ -138,6 +139,7 @@ private:
 	void OnMenuInit(wxCommandEvent& event);
 	void OnMenuClear(wxCommandEvent& event);
 	void OnMenuClick(wxMenuEvent& event);
+	void OnPaneClose(wxAuiManagerEvent& event);
     void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
@@ -161,6 +163,7 @@ private:
     void EnableLayerControls(bool state);
     void SetMode(const Mode& mode);
     void Refresh();
+	ImageList& GetImageList();
     
     RoomTilemap m_tilemap;
     Rom m_rom;
@@ -199,6 +202,7 @@ private:
     std::string m_selected_palette;
     uint16_t m_pal[54][15];
     ImgLst* m_imgs;
+	ImageList m_imagelist;
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;

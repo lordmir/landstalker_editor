@@ -64,6 +64,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     {
         OpenRomFile(filename.c_str());
     }
+	this->GetToolBar()->Hide();
 	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
 	this->Connect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
 	this->Connect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
@@ -74,6 +75,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(EVT_MENU_INIT, wxCommandEventHandler(MainFrame::OnMenuInit), nullptr, this);
 	this->Connect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
+	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -514,14 +516,14 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->InitMenu(*this->m_menubar);
+	frame->InitMenu(*this->m_menubar, *this->GetWindow(), m_imagelist);
 	event.Skip();
 }
 
 void MainFrame::OnMenuClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->ClearMenu(*this->m_menubar);
+	frame->ClearMenu(*this->m_menubar, *this->GetWindow());
 	event.Skip();
 }
 
@@ -530,6 +532,17 @@ void MainFrame::OnMenuClick(wxMenuEvent& event)
 	if (m_activeEditor != nullptr)
 	{
 		m_activeEditor->OnMenuClick(event);
+	}
+	event.Skip();
+}
+
+void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
+{
+	if (m_activeEditor != nullptr)
+	{
+		auto* pane = event.GetPane();
+		pane->Hide();
+		m_activeEditor->UpdateUI();
 	}
 	event.Skip();
 }
@@ -1038,6 +1051,11 @@ void MainFrame::Refresh()
         ClearScreen();
         break;
     }
+}
+
+ImageList& MainFrame::GetImageList()
+{
+	return m_imagelist;
 }
 
 void MainFrame::OnBrowserSelect(wxTreeEvent& event)
