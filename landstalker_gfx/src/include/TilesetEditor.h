@@ -83,7 +83,6 @@ private:
 
 	bool UpdateRowCount();
 	void DrawTile(wxDC& dc, int x, int y, int tile);
-	bool DrawTileAtPosition(wxDC& dc, int pos);
 	void DrawSelectionBorders(wxDC& dc);
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
@@ -101,6 +100,8 @@ private:
 
 	int m_columns;
 	int m_rows;
+	int m_tilewidth;
+	int m_tileheight;
 	int m_cellwidth;
 	int m_cellheight;
 
@@ -130,9 +131,9 @@ private:
 	wxBrush* m_highlighted_brush = nullptr;
 
 	ImageBuffer m_buf;
-
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;
+	wxBitmap m_tiles_bmp;
 
 	wxDECLARE_EVENT_TABLE();
 };

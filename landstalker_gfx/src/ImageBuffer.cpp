@@ -53,12 +53,12 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
         uint8_t priority = tile.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
         for (std::size_t i = 0; i < tile_bits.size(); ++i)
         {
-            if (i % 8 == 0)
+            if (i % tileset.GetTileWidth() == 0)
             {
-                dest_it = row_it + m_width * (i / 8);
-                pri_dest_it = pri_row_it + m_width * (i / 8);
+                dest_it = row_it + m_width * (i / tileset.GetTileWidth());
+                pri_dest_it = pri_row_it + m_width * (i / tileset.GetTileWidth());
 				y++;
-				x -= 8;
+				x -= tileset.GetTileWidth();
             }
             if ((tile_bits[i] != 0))// && (x >= 0) && (y >= 0))
             {
@@ -204,6 +204,18 @@ std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pa
     }
     auto ret = std::make_shared<wxBitmap>(img);
     return ret;
+}
+
+wxImage ImageBuffer::MakeImage(const std::vector<Palette>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+{
+	GetRGB(pals);
+	wxImage img(m_width, m_height, m_rgb.data(), true);
+	if (use_alpha)
+	{
+		GetAlpha(pals, low_pri_max_opacity, high_pri_max_opacity);
+		img.SetAlpha(m_alpha.data(), true);
+	}
+	return img;
 }
 
 std::size_t ImageBuffer::GetHeight() const

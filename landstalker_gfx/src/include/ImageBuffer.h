@@ -26,6 +26,7 @@ public:
 	const std::vector<uint8_t>& GetRGB(const std::vector<Palette>& pals) const;
 	const std::vector<uint8_t>& GetAlpha(const std::vector<Palette>& pals, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
 	std::shared_ptr<wxBitmap> MakeBitmap(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
+	wxImage MakeImage(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
 	std::size_t GetHeight() const;
 	std::size_t GetWidth() const;
 private:

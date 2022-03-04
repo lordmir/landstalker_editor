@@ -1062,7 +1062,7 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 {
     auto item = m_browser->GetItemText(event.GetItem());
     TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(event.GetItem()));
-    m_properties->GetGrid()->Clear();
+    //m_properties->GetGrid()->Clear();
     switch (itemData->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:

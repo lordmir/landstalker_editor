@@ -57,7 +57,7 @@ TileEditor::~TileEditor()
 void TileEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
 {
 	m_palettes = palettes;
-	Redraw();
+	ForceRedraw();
 }
 
 void TileEditor::SetTileset(std::shared_ptr<Tileset> tileset)
@@ -79,7 +79,7 @@ void TileEditor::SetTile(const Tile& tile)
 
 void TileEditor::Redraw()
 {
-	Refresh();
+	Refresh(true);
 }
 
 int TileEditor::GetPixelSize() const
@@ -92,7 +92,7 @@ void TileEditor::SetActivePalette(const std::string& name)
 	if (m_selected_palette != name)
 	{
 		m_selected_palette = name;
-		Redraw();
+		ForceRedraw();
 	}
 }
 
@@ -244,6 +244,7 @@ wxCoord TileEditor::OnGetColumnWidth(size_t column) const
 
 void TileEditor::OnDraw(wxDC& dc)
 {
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
 	dc.Clear();
 
 	wxPosition s = GetVisibleBegin();
@@ -452,6 +453,12 @@ int TileEditor::ConvertMouseXYToPixel(const wxPoint& point)
 		return pt.x + pt.y * m_tileset->GetTileWidth();
 	}
 	return -1;
+}
+
+void TileEditor::ForceRedraw()
+{
+	Update();
+	Refresh(true);
 }
 
 int TileEditor::ConvertXYToPixel(const Point& point)

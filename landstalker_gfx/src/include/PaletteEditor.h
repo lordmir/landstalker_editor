@@ -31,6 +31,7 @@ private:
 	void OnSize(wxSizeEvent& evt);
 	void OnMouseDown(wxMouseEvent& evt);
 	void OnDoubleClick(wxMouseEvent& evt);
+	void ForceRedraw();
 
 	Palette& GetSelectedPalette();
 	int ConvertXYToColour(const wxPoint& p) const;

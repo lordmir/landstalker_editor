@@ -88,6 +88,7 @@ private:
 	void MouseDraw(const Point& point);
 	void OnTilesetFocus(wxFocusEvent& evt);
 	int  ConvertMouseXYToPixel(const wxPoint& point);
+	void ForceRedraw();
 
 	bool SetColour(const Point& point, int colour);
 	void SetPixelSize(int n);

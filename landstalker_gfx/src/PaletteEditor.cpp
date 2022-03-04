@@ -35,7 +35,7 @@ PaletteEditor::~PaletteEditor()
 void PaletteEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
 {
 	m_palettes = palettes;
-	Refresh(true);
+	ForceRedraw();
 }
 
 void PaletteEditor::SelectPalette(const std::string& name)
@@ -44,7 +44,7 @@ void PaletteEditor::SelectPalette(const std::string& name)
 	{
 		m_selected_palette = name;
 		m_locked = GetSelectedPalette().GetLockedColours();
-		Refresh();
+		ForceRedraw();
 	}
 }
 
@@ -141,6 +141,7 @@ void PaletteEditor::OnDraw(wxDC& dc)
 {
 	int ctrlwidth, ctrlheight;
 	this->GetClientSize(&ctrlwidth, &ctrlheight);
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
 	dc.Clear();
 
 	int sel_colour_box_width = std::max(16, std::min(ctrlwidth / 19, ctrlheight/2 - 1));
@@ -254,6 +255,12 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 		}
 	}
 	evt.Skip();
+}
+
+void PaletteEditor::ForceRedraw()
+{
+	Update();
+	Refresh(true);
 }
 
 Palette& PaletteEditor::GetSelectedPalette()
