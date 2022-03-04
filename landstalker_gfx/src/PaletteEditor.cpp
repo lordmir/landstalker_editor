@@ -300,7 +300,7 @@ wxBrush PaletteEditor::GetBrush(int index)
 
 void PaletteEditor::InitialiseBrushes()
 {
-	m_alpha_brush = new wxBrush();
+	m_alpha_brush = new wxBrush(*wxBLACK);
 	wxBitmap* stipple = new wxBitmap(6, 6);
 	wxMemoryDC* imagememDC = new wxMemoryDC();
 	imagememDC->SelectObject(*stipple);

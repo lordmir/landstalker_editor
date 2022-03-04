@@ -10,20 +10,14 @@ wxDEFINE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
-	: wxWindow(parent, id, wxDefaultPosition, parent->GetClientSize())
+	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
+	  m_props_init(false)
 {
-	FireEvent(EVT_STATUSBAR_INIT);
-	FireEvent(EVT_PROPERTIES_INIT);
-	FireEvent(EVT_MENU_INIT);
-
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
 
 EditorFrame::~EditorFrame()
 {
-	FireEvent(EVT_STATUSBAR_CLEAR);
-	FireEvent(EVT_PROPERTIES_CLEAR);
-	FireEvent(EVT_MENU_CLEAR);
 }
 
 void EditorFrame::InitStatusBar(wxStatusBar& status) const
@@ -42,6 +36,7 @@ void EditorFrame::ClearStatusBar(wxStatusBar& status) const
 
 void EditorFrame::InitProperties(wxPropertyGridManager& props) const
 {
+	m_props_init = true;
 }
 
 void EditorFrame::UpdateProperties(wxPropertyGridManager& props) const
@@ -50,7 +45,11 @@ void EditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 
 void EditorFrame::ClearProperties(wxPropertyGridManager& props) const
 {
-	props.GetGrid()->Clear();
+	if(m_props_init == true)
+	{
+		props.GetGrid()->Clear();
+		m_props_init = false;
+	}
 }
 
 void EditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
@@ -186,6 +185,11 @@ bool EditorFrame::IsToolbarVisible(const std::string& name) const
 	auto* mgr = wxAuiManager::GetManager(tb->GetParent());
 	auto& pane = mgr->GetPane(tb);
 	return pane.IsShown();
+}
+
+bool EditorFrame::ArePropsInitialised() const
+{
+	return m_props_init;
 }
 
 void EditorFrame::FireEvent(const wxEventType& e, const std::string& data)

@@ -34,6 +34,7 @@ protected:
 	bool IsPaneVisible(wxWindow* pane) const;
 	void SetToolbarVisibility(const std::string& name, bool visible);
 	bool IsToolbarVisible(const std::string& name) const;
+	bool ArePropsInitialised() const;
 	void FireEvent(const wxEventType& e, const std::string& data);
 	void FireEvent(const wxEventType& e);
 	wxMenu& AddMenu(wxMenuBar& parent, int position, int id, const std::string& name) const;
@@ -45,6 +46,8 @@ protected:
 
 	void OnPaneClose(wxAuiManagerEvent& event);
 private:
+	mutable bool m_props_init;
+
 	mutable std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
 	mutable std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
 	mutable std::unordered_map<std::string, wxAuiToolBar*> m_toolbars;

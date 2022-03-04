@@ -318,7 +318,7 @@ public:
         wxWindowID id = wxID_ANY,
         const wxString& title = _("Landstalker Graphics Viewer"),
         const wxPoint& pos = wxDefaultPosition,
-        const wxSize& size = wxSize(800, 600),
+        const wxSize& size = wxSize(1024, 768),
         long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();
 };

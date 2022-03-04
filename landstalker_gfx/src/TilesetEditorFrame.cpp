@@ -87,21 +87,16 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
-	wxBoxSizer* sz = new wxBoxSizer(1);
-	this->SetSizer(sz);
-	sz->Layout();
-
 
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
 	m_tileEditor = new TileEditor(this);
 
-
 	// add the panes to the manager
-	m_mgr.AddPane(m_tileEditor, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).Caption("Editor"));
-	m_mgr.AddPane(m_paletteEditor, wxAuiPaneInfo().Bottom().Layer(1).MinSize(300, 50).BestSize(450, 150).Caption("Palette"));
+	m_mgr.SetDockSizeConstraint(0.3, 0.3);
+	m_mgr.AddPane(m_tileEditor, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).FloatingSize(450,450).Caption("Editor"));
+	m_mgr.AddPane(m_paletteEditor, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700,100).Caption("Palette"));
 	m_mgr.AddPane(m_tilesetEditor, wxAuiPaneInfo().CenterPane());
-	m_mgr.SetDockSizeConstraint(0.5, 0.3);
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -222,43 +217,54 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status) const
 
 void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 {
-	for (const auto& b : Tileset::BLOCKTYPE_STRINGS)
+	if(ArePropsInitialised() == false)
 	{
-		m_blocktype_list.Add(b);
+		EditorFrame::InitProperties(props);
+		for (const auto& b : Tileset::BLOCKTYPE_STRINGS)
+		{
+			m_blocktype_list.Add(b);
+		}
+		props.GetGrid()->Clear();
+		props.Append(new wxPropertyCategory("Main", "M"));
+		props.Append(new wxStringProperty("Start Address", "SA", "0x000000"))->Enable(false);
+		props.Append(new wxStringProperty("End Address", "EA", "0x000000"))->Enable(false);
+		props.Append(new wxFileProperty("Filename", "FN", "untitled.bin"))->Enable(false);
+		props.Append(new wxStringProperty("Compressed Size", "CS", "0 bytes"))->Enable(false);
+		props.Append(new wxStringProperty("Uncompressed Size", "US", "0 bytes"))->Enable(false);
+		props.Append(new wxPropertyCategory("Tileset", "T"));
+		props.Append(new wxEnumProperty("Palette", "P", m_palette_list));
+		props.Append(new wxStringProperty("Colour Indicies", "I", ""));
+		props.Append(new wxBoolProperty("LZ77 Compressed", "C", false))->Enable(false);
+		props.Append(new wxIntProperty("Tile Count", "#", 0))->Enable(false);
+		props.Append(new wxIntProperty("Tile Width", "W", 0))->Enable(false);
+		props.Append(new wxIntProperty("Tile Height", "H", 0))->Enable(false);
+		props.Append(new wxIntProperty("Tile Bitdepth", "D", 0))->Enable(false);
+		props.Append(new wxEnumProperty("Tile Block Layout", "B", m_blocktype_list))->Enable(false);
+		UpdateProperties(props);
 	}
-	props.GetGrid()->Clear();
-	props.Append(new wxPropertyCategory("Main", "M"));
-	props.Append(new wxStringProperty("Start Address", "SA", "0x000000"))->Enable(false);
-	props.Append(new wxStringProperty("End Address", "EA", "0x000000"))->Enable(false);
-	props.Append(new wxFileProperty("Filename", "FN", "untitled.bin"))->Enable(false);
-	props.Append(new wxStringProperty("Compressed Size", "CS", "0 bytes"))->Enable(false);
-	props.Append(new wxStringProperty("Uncompressed Size", "US", "0 bytes"))->Enable(false);
-	props.Append(new wxPropertyCategory("Tileset", "T"));
-	props.Append(new wxEnumProperty("Palette", "P", m_palette_list));
-	props.Append(new wxStringProperty("Colour Indicies", "I", ""));
-	props.Append(new wxBoolProperty("LZ77 Compressed", "C", false))->Enable(false);
-	props.Append(new wxIntProperty("Tile Count", "#", 0))->Enable(false);
-	props.Append(new wxIntProperty("Tile Width", "W", 0))->Enable(false);
-	props.Append(new wxIntProperty("Tile Height", "H", 0))->Enable(false);
-	props.Append(new wxIntProperty("Tile Bitdepth", "D", 0))->Enable(false);
-	props.Append(new wxEnumProperty("Tile Block Layout", "B", m_blocktype_list))->Enable(false);
-	UpdateProperties(props);
 }
 
 void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 {
-	if (m_tileset)
+	if (ArePropsInitialised() == false)
 	{
-		props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
-		props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
-		props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
-		props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
-		props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
-		props.GetGrid()->SetPropertyValue("B", wxString::Format("%lu", m_tileset->GetTileBlockType()));
-		props.GetGrid()->SetPropertyValue("C", wxString::Format("%lu", m_tileset->GetCompressed()));
-		props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
+		InitProperties(props);
 	}
-	props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette));
+	else
+	{
+		if (m_tileset)
+		{
+			props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
+			props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
+			props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
+			props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
+			props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
+			props.GetGrid()->SetPropertyValue("B", wxString(Tileset::BLOCKTYPE_STRINGS[m_tileset->GetTileBlockType()]));
+			props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
+			props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
+		}
+		props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette));
+	}
 }
 
 void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
@@ -345,9 +351,6 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		{
 		case ID_VIEW_TOGGLE_GRIDLINES:
 		case ID_TOGGLE_GRIDLINES:
-
-	m_tileEditor->SetSize(450, wxDefaultCoord);
-	m_mgr.Update();
 			if (m_tilesetEditor != nullptr)
 			{
 				m_tilesetEditor->SetBordersEnabled(!m_tilesetEditor->GetBordersEnabled());
