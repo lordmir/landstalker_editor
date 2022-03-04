@@ -129,6 +129,8 @@ private:
 	wxPen* m_highlighted_border_pen = nullptr;
 	wxBrush* m_highlighted_brush = nullptr;
 
+	ImageBuffer m_buf;
+
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;
 

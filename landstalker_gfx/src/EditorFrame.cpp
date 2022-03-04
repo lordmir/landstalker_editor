@@ -10,7 +10,7 @@ wxDEFINE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
-	: wxWindow(parent, id)
+	: wxWindow(parent, id, wxDefaultPosition, parent->GetClientSize())
 {
 	FireEvent(EVT_STATUSBAR_INIT);
 	FireEvent(EVT_PROPERTIES_INIT);

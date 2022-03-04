@@ -87,18 +87,21 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
+	wxBoxSizer* sz = new wxBoxSizer(1);
+	this->SetSizer(sz);
+	sz->Layout();
+
 
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
 	m_tileEditor = new TileEditor(this);
-	m_tileEditor->SetPixelSize(64);
+
 
 	// add the panes to the manager
-	m_mgr.AddPane(m_paletteEditor, wxBOTTOM, wxT("Palettes"));
-	m_mgr.GetPane(m_paletteEditor).MinSize(500, 150).FloatingSize(300, 50);
-	m_mgr.AddPane(m_tileEditor, wxLEFT, wxT("Editor"));
-	m_mgr.GetPane(m_tileEditor).MinSize(640, 640).FloatingSize(520, 520);
-	m_mgr.AddPane(m_tilesetEditor, wxCENTER);
+	m_mgr.AddPane(m_tileEditor, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).Caption("Editor"));
+	m_mgr.AddPane(m_paletteEditor, wxAuiPaneInfo().Bottom().Layer(1).MinSize(300, 50).BestSize(450, 150).Caption("Palette"));
+	m_mgr.AddPane(m_tilesetEditor, wxAuiPaneInfo().CenterPane());
+	m_mgr.SetDockSizeConstraint(0.5, 0.3);
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -342,6 +345,9 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		{
 		case ID_VIEW_TOGGLE_GRIDLINES:
 		case ID_TOGGLE_GRIDLINES:
+
+	m_tileEditor->SetSize(450, wxDefaultCoord);
+	m_mgr.Update();
 			if (m_tilesetEditor != nullptr)
 			{
 				m_tilesetEditor->SetBordersEnabled(!m_tilesetEditor->GetBordersEnabled());

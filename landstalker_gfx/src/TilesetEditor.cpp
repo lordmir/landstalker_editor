@@ -147,6 +147,7 @@ void TilesetEditor::OnDraw(wxDC& dc)
 	{
 		return;
 	}
+	m_buf.Resize(m_tileset->GetTileWidth() * m_columns, m_tileset->GetTileHeight() * m_rows);
 	m_memdc.SetTextForeground(wxColour(255, 255, 255));
 	m_memdc.SetTextBackground(wxColour(150, 150, 150));
 	m_memdc.SetBackgroundMode(wxSOLID);
@@ -345,9 +346,11 @@ bool TilesetEditor::DrawTileAtPosition(wxDC& dc, int pos)
 	int s = GetVisibleRowsBegin();
 	int e = GetVisibleRowsEnd();
 
+
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);
 	auto x = pos % m_columns;
 	auto y = pos / m_columns;
+	m_buf.InsertTile(x * m_tileset->GetTileWidth(), y * m_tileset->GetTileHeight(), 0, pos, *m_tileset);
 	if ((y >= s) && (y < e))
 	{
 		dc.SetPen(*wxTRANSPARENT_PEN);

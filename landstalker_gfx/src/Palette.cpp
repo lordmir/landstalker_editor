@@ -376,6 +376,11 @@ uint16_t Palette::getGenesisColour(uint8_t index) const
 	return ToGenesisColour(m_pal[index]);
 }
 
+PaletteEntry Palette::GetColour(uint8_t index) const
+{
+	return m_pal[index];
+}
+
 void Palette::setGenesisColour(uint8_t index, uint16_t colour)
 {
 	m_pal[index] = FromGenesisColour(colour);

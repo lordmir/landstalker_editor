@@ -44,7 +44,6 @@ public:
 	void SetTile(const Tile& tile);
 
 	void Redraw();
-	void SetPixelSize(int n);
 	int GetPixelSize() const;
 	void SetActivePalette(const std::string& name);
 	std::string GetActivePalette() const;
@@ -91,13 +90,15 @@ private:
 	int  ConvertMouseXYToPixel(const wxPoint& point);
 
 	bool SetColour(const Point& point, int colour);
+	void SetPixelSize(int n);
 	int ValidateColour(int colour);
 	const Palette& GetSelectedPalette();
 	void InitialiseBrushesAndPens();
 	wxBrush GetBrush(int index);
 
 	void FireEvent(const wxEventType& e);
-
+	int m_ctrlwidth;
+	int m_ctrlheight;
 	int m_pixelsize;
 	uint8_t m_primary_colour;
 	uint8_t m_secondary_colour;

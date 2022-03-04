@@ -82,14 +82,6 @@ void TileEditor::Redraw()
 	Refresh();
 }
 
-void TileEditor::SetPixelSize(int n)
-{
-	m_pixelsize = n;
-	wxVarHScrollHelper::RefreshAll();
-	wxVarVScrollHelper::RefreshAll();
-	Refresh();
-}
-
 int TileEditor::GetPixelSize() const
 {
 	return m_pixelsize;
@@ -304,8 +296,31 @@ void TileEditor::OnPaint(wxPaintEvent& evt)
 	this->OnDraw(dc);
 }
 
+void TileEditor::SetPixelSize(int n)
+{
+	m_pixelsize = n;
+	wxVarHScrollHelper::RefreshAll();
+	wxVarVScrollHelper::RefreshAll();
+	Refresh();
+}
+
 void TileEditor::OnSize(wxSizeEvent& evt)
 {
+	if (m_tileset != nullptr)
+	{
+		this->GetClientSize(&m_ctrlwidth, &m_ctrlheight);
+		int pixwidth = m_ctrlwidth / m_tileset->GetTileWidth();
+		int pixheight = m_ctrlheight / m_tileset->GetTileHeight();
+		int new_pixelsize = std::min(pixwidth, pixheight);
+		if (new_pixelsize <= 0)
+		{
+			new_pixelsize = 1;
+		}
+		if (new_pixelsize != m_pixelsize)
+		{
+			SetPixelSize(new_pixelsize);
+		}
+	}
 	wxVarHScrollHelper::HandleOnSize(evt);
 	wxVarVScrollHelper::HandleOnSize(evt);
 	Refresh(false);

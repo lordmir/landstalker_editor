@@ -61,6 +61,7 @@ public:
     uint8_t  getA(uint8_t index) const;
     uint32_t getRGBA(uint8_t index) const;
     uint16_t getGenesisColour(uint8_t index) const;
+	PaletteEntry GetColour(uint8_t index) const;
     void setGenesisColour(uint8_t index, uint16_t colour);
     bool ColourInRange(uint8_t colour) const;
     bool ColourEditable(uint8_t colour) const;
@@ -94,6 +95,100 @@ private:
 
     Type m_type;
     std::array<PaletteEntry, 16> m_pal;
+};
+
+class Colour
+{
+public:
+	Colour(PaletteEntry p)
+	{
+		colour = p;
+	}
+	Colour(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0)
+	{
+		colour = { r, g, b, a };
+	}
+	Colour(uint16_t c)
+	{
+		colour = Palette::FromGenesisColour(c);
+	}
+	Colour(uint8_t idx, const Palette& pal)
+	{
+		colour = pal.GetColour(idx);
+	}
+	Colour(uint32_t c, bool alpha = true)
+	{
+		if (alpha == true)
+		{
+			colour.a = (c >> 24) & 0xFF;
+		}
+		else
+		{
+			colour.a = 0;
+		}
+		colour.r = (c >> 16) & 0xFF;
+		colour.g = (c >> 8) & 0xFF;
+		colour.b = c & 0xFF;
+	}
+
+	inline uint8_t GetR() const
+	{
+		return colour.r;
+	}
+	inline uint8_t GetG() const
+	{
+		return colour.g;
+	}
+	inline uint8_t GetB() const
+	{
+		return colour.b;
+	}
+	inline uint8_t GetA() const
+	{
+		return colour.a;
+	}
+	uint16_t GetGenesis() const
+	{
+		return Palette::ToGenesisColour(colour);
+	}
+	uint32_t GetRGB(bool include_alpha) const
+	{
+		uint32_t result = 0;
+		if (include_alpha == true)
+		{
+			result = colour.a << 24;
+		}
+		result |= colour.r << 16;
+		result |= colour.g << 8;
+		result |= colour.b;
+		return result;
+	}
+
+	template<class Iter>
+	inline Iter& CopyRGBA(Iter& begin)
+	{
+		*begin++ = colour.a;
+		*begin++ = colour.r;
+		*begin++ = colour.g;
+		*begin++ = colour.b;
+		return begin;
+	}
+	template<class Iter>
+	inline Iter& CopyRGB(Iter& begin)
+	{
+		*begin++ = colour.r;
+		*begin++ = colour.g;
+		*begin++ = colour.b;
+		return begin;
+	}
+	template<class Iter>
+	inline Iter& CopyA(Iter& begin)
+	{
+		*begin++ = colour.a;
+		return begin;
+	}
+private:
+	PaletteEntry colour;
 };
 
 #endif // PALETTE_H
