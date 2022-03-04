@@ -22,8 +22,8 @@ public:
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	virtual void ClearProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
-	virtual void InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList& ilist) const;
-	virtual void ClearMenu(wxMenuBar& menu, wxAuiManager& mgr) const;
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void ClearMenu(wxMenuBar& menu) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	virtual bool Show(bool show = true);
 	virtual void UpdateUI() const;
@@ -45,6 +45,8 @@ protected:
 	wxAuiToolBar* GetToolbar(const std::string name) const;
 
 	void OnPaneClose(wxAuiManagerEvent& event);
+
+	mutable wxAuiManager m_mgr;
 private:
 	mutable bool m_props_init;
 

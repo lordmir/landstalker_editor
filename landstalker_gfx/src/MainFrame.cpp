@@ -516,14 +516,14 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->InitMenu(*this->m_menubar, *this->GetWindow(), m_imagelist);
+	frame->InitMenu(*this->m_menubar, m_imagelist);
 	event.Skip();
 }
 
 void MainFrame::OnMenuClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->ClearMenu(*this->m_menubar, *this->GetWindow());
+	frame->ClearMenu(*this->m_menubar);
 	event.Skip();
 }
 

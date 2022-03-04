@@ -662,10 +662,9 @@ void TilesetEditor::InsertTileAfter(const Tile& tile)
 	}
 }
 
-void TilesetEditor::InsertTileAtEnd()
+void TilesetEditor::InsertTilesAtEnd(int count)
 {
-	m_tileset->InsertTilesBefore(m_tileset->GetTileCount());
-	m_redraw_list.insert(m_tileset->GetTileCount() - 1);
+	m_tileset->InsertTilesBefore(m_tileset->GetTileCount(), count);
 	UpdateRowCount();
 	Refresh();
 	FireEvent(EVT_TILESET_CHANGE, "");

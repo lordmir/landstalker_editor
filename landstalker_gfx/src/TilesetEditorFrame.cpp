@@ -3,18 +3,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <exception>
 #include "Utils.h"
 #include "wx/artprov.h"
-
-wxBEGIN_EVENT_TABLE(TilesetEditorFrame, wxWindow)
-EVT_COMMAND(wxID_ANY, EVT_PALETTE_CHANGE, TilesetEditorFrame::OnPaletteChanged)
-EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, TilesetEditorFrame::OnPaletteColourSelect)
-EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, TilesetEditorFrame::OnTileEditRequested)
-EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, TilesetEditorFrame::OnTileChanged)
-EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, TilesetEditorFrame::OnTilePixelHover)
-EVT_COMMAND(wxID_ANY, EVT_TILESET_HOVER, TilesetEditorFrame::OnTileSelectionChanged)
-EVT_COMMAND(wxID_ANY, EVT_TILESET_CHANGE, TilesetEditorFrame::OnTilesetChange)
-wxEND_EVENT_TABLE()
 
 enum TOOL_IDS
 {
@@ -29,9 +20,9 @@ enum TOOL_IDS
 	ID_CUT_TILE,
 	ID_COPY_TILE,
 	ID_PASTE_TILE,
-	ID_EDIT_TILE,
+	ID_ZOOM_SLIDER,
 	ID_DRAW_TOGGLE_GRIDLINES,
-	ID_PENCIL
+	ID_PENCIL,
 };
 
 enum MENU_IDS
@@ -52,6 +43,17 @@ enum MENU_IDS
 	ID_TOOLS_TILESET_TOOLBAR,
 	ID_TOOLS_DRAW_TOOLBAR
 };
+
+wxBEGIN_EVENT_TABLE(TilesetEditorFrame, wxWindow)
+EVT_COMMAND(wxID_ANY, EVT_PALETTE_CHANGE, TilesetEditorFrame::OnPaletteChanged)
+EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, TilesetEditorFrame::OnPaletteColourSelect)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, TilesetEditorFrame::OnTileEditRequested)
+EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, TilesetEditorFrame::OnTileChanged)
+EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, TilesetEditorFrame::OnTilePixelHover)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_HOVER, TilesetEditorFrame::OnTileSelectionChanged)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_CHANGE, TilesetEditorFrame::OnTilesetChange)
+EVT_SLIDER(ID_ZOOM_SLIDER, TilesetEditorFrame::OnZoom)
+wxEND_EVENT_TABLE()
 
 template <class T>
 static std::string VecToCommaList(const std::vector<T> list)
@@ -86,8 +88,6 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
 	  m_title("")
 {
-	m_mgr.SetManagedWindow(this);
-
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
 	m_tileEditor = new TileEditor(this);
@@ -115,8 +115,10 @@ void TilesetEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 2);
 }
 
-void TilesetEditorFrame::OnZoomChange(wxCommandEvent& evt)
+void TilesetEditorFrame::OnZoom(wxCommandEvent& evt)
 {
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	m_tilesetEditor->SetPixelSize(m_zoomslider->GetValue());
 	evt.Skip();
 }
 
@@ -146,6 +148,265 @@ void TilesetEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
+}
+
+void TilesetEditorFrame::ToggleAlpha()
+{
+	if (m_tilesetEditor != nullptr)
+	{
+		m_tilesetEditor->SetAlphaEnabled(!m_tilesetEditor->GetAlphaEnabled());
+	}
+}
+
+void TilesetEditorFrame::ToggleTileNums()
+{
+	if (m_tilesetEditor != nullptr)
+	{
+		m_tilesetEditor->SetTileNumbersEnabled(!m_tilesetEditor->GetTileNumbersEnabled());
+	}
+}
+
+void TilesetEditorFrame::ToggleGrid()
+{
+	if (m_tilesetEditor != nullptr)
+	{
+		m_tilesetEditor->SetBordersEnabled(!m_tilesetEditor->GetBordersEnabled());
+	}
+}
+
+void TilesetEditorFrame::InsertTileBefore()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->InsertTileBefore(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to add tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::InsertTileAfter()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->InsertTileAfter(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to add tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::ExtendTileset()
+{
+	auto dlg = wxTextEntryDialog(this, "Enter number of tiles to extend by", "Extend Tileset", "1");
+
+	if (dlg.ShowModal() != wxID_CANCEL)
+	{
+		try
+		{
+			int count = std::stoi(dlg.GetValue().ToStdString());
+			if (count >= 1)
+			{
+				m_tilesetEditor->InsertTilesAtEnd(count);
+			}
+			else
+			{
+				throw std::out_of_range("bad number");
+			}
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+		catch (const std::exception & e)
+		{
+			wxMessageBox(_("Failed to extend tileset: ") + e.what());
+		}
+	}
+}
+
+void TilesetEditorFrame::DeleteTile()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->DeleteTileAt(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to delete tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::SwapTiles()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->SwapTile(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to swap tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::CutTile()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->CutTile(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to cut tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::CopyTile()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->CopyTile(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to copy tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::PasteTile()
+{
+	try
+	{
+		if (m_tilesetEditor->IsSelectionValid())
+		{
+			m_tilesetEditor->PasteTile(m_tilesetEditor->GetSelectedTile().GetIndex());
+		}
+	}
+	catch (const std::exception & e)
+	{
+		wxMessageBox(_("Failed to paste tile: ") + e.what());
+	}
+}
+
+void TilesetEditorFrame::ToggleDrawGrid()
+{
+	if (m_tileEditor != nullptr)
+	{
+		m_tileEditor->SetBordersEnabled(!m_tileEditor->GetBordersEnabled());
+	}
+}
+
+void TilesetEditorFrame::ClearTile()
+{
+	m_tileEditor->Clear();
+}
+
+void TilesetEditorFrame::SelectDrawPencil()
+{
+}
+
+void TilesetEditorFrame::Save()
+{
+}
+
+void TilesetEditorFrame::SaveAs()
+{
+}
+
+void TilesetEditorFrame::New()
+{
+	m_tileset->Clear();
+	m_tileset->InsertTilesBefore(0, 1);
+	m_tilesetEditor->RedrawTiles();
+	m_tilesetEditor->SelectTile(0);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void TilesetEditorFrame::ImportFromBin()
+{
+	wxFileDialog fd(this, _("Import Tileset From Binary"), "", "", "Uncompressed Tileset (*.bin)|*.bin|Compressed Tileset (*.lz77)|*.lz77|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		bool use_compression = path.substr(path.find_last_of(".") + 1) == "lz77";
+		auto bytes = ReadBytes(path);
+		m_tileset->SetBits(bytes, use_compression);
+		m_tilesetEditor->ForceRedraw();
+		m_tilesetEditor->SelectTile(0);
+
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+}
+
+void TilesetEditorFrame::ImportFromPng()
+{
+}
+
+void TilesetEditorFrame::ImportFromRom()
+{
+}
+
+void TilesetEditorFrame::ExportAsBin()
+{
+	const wxString defaultFile = m_tileset->GetCompressed() ? "tileset.lz77" : "tileset.bin";
+	wxFileDialog fd(this, _("Export Tileset As Binary"), "", defaultFile, "Uncompressed Tileset (*.bin)|*.bin|Compressed Tileset (*.lz77)|*.lz77|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	fd.SetFilterIndexFromExt(defaultFile);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		bool use_compression = path.substr(path.find_last_of(".") + 1) == "lz77";
+		auto bytes = m_tileset->GetBits(use_compression);
+		WriteBytes(bytes, path);
+	}
+}
+
+void TilesetEditorFrame::ExportAsPng()
+{
+	wxFileDialog fd(this, _("Export Tileset As PNG"), "", "tileset.png", "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+
+		const unsigned int max_width = 16U;
+		const int cols = std::min(m_tileset->GetTileCount(), max_width);
+		const int rows = std::max(1U, (m_tileset->GetTileCount() + max_width - 1) / max_width);
+		ImageBuffer buf(cols * m_tileset->GetTileWidth(), rows * m_tileset->GetTileHeight());
+		for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+		{
+			buf.InsertTile((i % cols) * m_tileset->GetTileWidth(), (i / cols) * m_tileset->GetTileHeight(), 0, i, *m_tileset);
+		}
+		buf.WritePNG(fd.GetPath().ToStdString(), {m_palettes->find(m_selected_palette)->second});
+	}
+}
+
+void TilesetEditorFrame::ExportAll()
+{
+}
+
+void TilesetEditorFrame::InjectIntoRom()
+{
+	auto bytes = m_tileset->GetBits(m_tileset->GetCompressed());
 }
 
 void TilesetEditorFrame::UpdateUI() const
@@ -213,6 +474,12 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status) const
 		ss << "Tile at mouse: " << selection.GetIndex();
 	}
 	status.SetStatusText(ss.str(), 1);
+	ss.str(std::string());
+	if (m_zoomslider != nullptr)
+	{
+		ss << "Zoom: " << m_zoomslider->GetValue();
+		status.SetStatusText(ss.str(), 2);
+	}
 }
 
 void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
@@ -292,11 +559,11 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
-void TilesetEditorFrame::InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList& ilist) const
+void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
-	auto* parent = mgr.GetManagedWindow();
+	auto* parent = m_mgr.GetManagedWindow();
 
-	ClearMenu(menu, mgr);
+	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 2, ID_FILE_NEW, "New Tileset");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_BIN, "Export Tileset...");
@@ -328,18 +595,22 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList&
 	tileset_tb->AddTool(ID_CUT_TILE, "Cut Tile", ilist.GetImage("cut"), "Cut Tile");
 	tileset_tb->AddTool(ID_COPY_TILE, "Copy Tile", ilist.GetImage("copy"), "Copy Tile");
 	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", ilist.GetImage("paste"), "Paste Tile");
-	AddToolbar(mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+	tileset_tb->AddSeparator();
+	tileset_tb->AddLabel(wxID_ANY, "Zoom:");
+	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 16);
+	tileset_tb->AddControl(m_zoomslider, "Zoom");
+	AddToolbar(m_mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 
 	wxAuiToolBar* draw_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	draw_tb->SetToolBitmapSize(wxSize(16, 16));
 	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	draw_tb->AddSeparator();
 	draw_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_RADIO);
-	AddToolbar(mgr, *draw_tb, "Draw", "Drawing Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1));
+	AddToolbar(m_mgr, *draw_tb, "Draw", "Drawing Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1));
 
 	UpdateUI();
 
-	mgr.Update();
+	m_mgr.Update();
 }
 
 void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
@@ -347,34 +618,67 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	const auto id = evt.GetId();
 	if ((id >= 20000) && (id < 31000))
 	{
-		switch (id)
+		switch(id)
 		{
+		case ID_ADD_TILE_AFTER_SEL:
+			InsertTileAfter();
+			break;
+		case ID_ADD_TILE_BEFORE_SEL:
+			InsertTileBefore();
+			break;
+		case ID_EXTEND_TILESET:
+			ExtendTileset();
+			break;
+		case ID_DELETE_TILE:
+			DeleteTile();
+			break;
+		case ID_SWAP_TILES:
+			SwapTiles();
+			break;
+		case ID_CUT_TILE:
+			CutTile();
+			break;
+		case ID_COPY_TILE:
+			CopyTile();
+			break;
+		case ID_PASTE_TILE:
+			PasteTile();
+			break;
+		case ID_FILE_NEW:
+			New();
+			break;
+		case ID_FILE_EXPORT_BIN:
+			ExportAsBin();
+			break;
+		case ID_FILE_EXPORT_ALL:
+			ExportAll();
+			break;
+		case ID_FILE_EXPORT_PNG:
+			ExportAsPng();
+			break;
+		case ID_FILE_IMPORT_BIN:
+			ImportFromBin();
+			break;
+		case ID_FILE_IMPORT_PNG:
+			ImportFromPng();
+			break;
 		case ID_VIEW_TOGGLE_GRIDLINES:
 		case ID_TOGGLE_GRIDLINES:
-			if (m_tilesetEditor != nullptr)
-			{
-				m_tilesetEditor->SetBordersEnabled(!m_tilesetEditor->GetBordersEnabled());
-			}
+			ToggleGrid();
 			break;
 		case ID_VIEW_TOGGLE_TILE_NOS:
 		case ID_TOGGLE_TILE_NOS:
-			if (m_tilesetEditor != nullptr)
-			{
-				m_tilesetEditor->SetTileNumbersEnabled(!m_tilesetEditor->GetTileNumbersEnabled());
-			}
+			ToggleTileNums();
 			break;
 		case ID_VIEW_TOGGLE_ALPHA:
 		case ID_TOGGLE_ALPHA:
-			if (m_tilesetEditor != nullptr)
-			{
-				m_tilesetEditor->SetAlphaEnabled(!m_tilesetEditor->GetAlphaEnabled());
-			}
+			ToggleAlpha();
 			break;
 		case ID_DRAW_TOGGLE_GRIDLINES:
-			if (m_tileEditor != nullptr)
-			{
-				m_tileEditor->SetBordersEnabled(!m_tileEditor->GetBordersEnabled());
-			}
+			ToggleDrawGrid();
+			break;
+		case ID_PENCIL:
+			SelectDrawPencil();
 			break;
 		case ID_TOOLS_PALETTE:
 			SetPaneVisibility(m_paletteEditor, !IsPaneVisible(m_paletteEditor));
@@ -387,6 +691,8 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_TOOLS_DRAW_TOOLBAR:
 			SetToolbarVisibility("Draw", !IsToolbarVisible("Draw"));
+			break;
+		case ID_ZOOM_SLIDER:
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -425,6 +731,7 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 	{
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tile = 0;
+		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTileset(m_tileset);
 		m_tileEditor->SetTile(m_tile);
 	}

@@ -29,6 +29,7 @@ public:
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool New(int r, int c);
 	void RedrawTiles(int index = -1);
+	void ForceRedraw();
 
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
@@ -59,7 +60,7 @@ public:
 	void SelectTile(int tile);
 	void InsertTileBefore(const Tile& tile);
 	void InsertTileAfter(const Tile& tile);
-	void InsertTileAtEnd();
+	void InsertTilesAtEnd(int count = 1);
 	void DeleteTileAt(const Tile& tile);
 	void CutTile(const Tile& tile);
 	void CopyTile(const Tile& tile) const;
@@ -86,7 +87,6 @@ private:
 	void DrawSelectionBorders(wxDC& dc);
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
-	void ForceRedraw();
 	const Palette& GetSelectedPalette();
 
 	void FireEvent(const wxEventType& e, const std::string& data);

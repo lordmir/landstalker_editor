@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 void Debug(const std::string& message);
 
@@ -29,5 +30,9 @@ std::string HexArray(const Iter start, const Iter end)
 	}
 	return ss.str();
 }
+
+std::vector<uint8_t> ReadBytes(const std::string& filename);
+
+void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename);
 
 #endif // UTILS_H

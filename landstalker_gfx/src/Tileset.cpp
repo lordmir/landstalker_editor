@@ -413,6 +413,10 @@ void Tileset::InsertTilesBefore(int tile_number, int count)
             m_tiles.insert(m_tiles.begin() + tile_number, std::vector<uint8_t>(m_width * m_height));
         }
     }
+	else
+	{
+		throw std::out_of_range("bad count");
+	}
 }
 
 void Tileset::DuplicateTile(const Tile& src, const Tile& dst)

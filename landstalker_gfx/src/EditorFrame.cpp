@@ -13,6 +13,8 @@ EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
 	  m_props_init(false)
 {
+	m_mgr.SetManagedWindow(this);
+
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
 
@@ -56,11 +58,11 @@ void EditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 {
 }
 
-void EditorFrame::InitMenu(wxMenuBar& menu, wxAuiManager& mgr, ImageList& ilist) const
+void EditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
 }
 
-void EditorFrame::ClearMenu(wxMenuBar& menu, wxAuiManager& mgr) const
+void EditorFrame::ClearMenu(wxMenuBar& menu) const
 {
 	for (const auto& itm : m_menuitems)
 	{
@@ -80,11 +82,11 @@ void EditorFrame::ClearMenu(wxMenuBar& menu, wxAuiManager& mgr) const
 	for (const auto& tb : m_toolbars)
 	{
 		tb.second->Hide();
-		mgr.DetachPane(tb.second);
+		m_mgr.DetachPane(tb.second);
 		tb.second->Destroy();
 	}
 	m_toolbars.clear();
-	mgr.Update();
+	m_mgr.Update();
 }
 
 void EditorFrame::OnMenuClick(wxMenuEvent& evt)
