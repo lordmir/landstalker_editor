@@ -82,6 +82,7 @@ private:
 	std::shared_ptr<Tileset> m_tileset;
 	Tile m_tile;
 	int m_inputBuffer;
+	mutable wxAuiManager m_mgr;
 
 	std::string m_title;
 

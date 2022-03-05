@@ -46,7 +46,6 @@ protected:
 
 	void OnPaneClose(wxAuiManagerEvent& event);
 
-	mutable wxAuiManager m_mgr;
 private:
 	mutable bool m_props_init;
 

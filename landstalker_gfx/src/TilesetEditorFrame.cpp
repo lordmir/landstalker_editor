@@ -88,6 +88,8 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
 	  m_title("")
 {
+	m_mgr.SetManagedWindow(this);
+
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
 	m_tileEditor = new TileEditor(this);
@@ -371,7 +373,7 @@ void TilesetEditorFrame::ExportAsBin()
 {
 	const wxString defaultFile = m_tileset->GetCompressed() ? "tileset.lz77" : "tileset.bin";
 	wxFileDialog fd(this, _("Export Tileset As Binary"), "", defaultFile, "Uncompressed Tileset (*.bin)|*.bin|Compressed Tileset (*.lz77)|*.lz77|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	fd.SetFilterIndexFromExt(defaultFile);
+	fd.SetFilterIndex(m_tileset->GetCompressed() ? 1 : 0);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		std::string path = fd.GetPath().ToStdString();
@@ -388,9 +390,9 @@ void TilesetEditorFrame::ExportAsPng()
 	{
 		std::string path = fd.GetPath().ToStdString();
 
-		const unsigned int max_width = 16U;
+		const std::size_t max_width = 16U;
 		const int cols = std::min(m_tileset->GetTileCount(), max_width);
-		const int rows = std::max(1U, (m_tileset->GetTileCount() + max_width - 1) / max_width);
+		const int rows = std::max(1UL, (m_tileset->GetTileCount() + max_width - 1) / max_width);
 		ImageBuffer buf(cols * m_tileset->GetTileWidth(), rows * m_tileset->GetTileHeight());
 		for (int i = 0; i < m_tileset->GetTileCount(); ++i)
 		{
@@ -579,7 +581,7 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_EDITOR, "Tile Editor", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 3, ID_TOOLS_DRAW_TOOLBAR, "Draw Toolbar", wxITEM_CHECK);
-
+	
 	wxAuiToolBar* tileset_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	tileset_tb->SetToolBitmapSize(wxSize(16, 16));
 	tileset_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
@@ -597,17 +599,17 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", ilist.GetImage("paste"), "Paste Tile");
 	tileset_tb->AddSeparator();
 	tileset_tb->AddLabel(wxID_ANY, "Zoom:");
-	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 16);
+	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 16, wxDefaultPosition, wxSize(80, wxDefaultCoord));
 	tileset_tb->AddControl(m_zoomslider, "Zoom");
 	AddToolbar(m_mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
-
+	
 	wxAuiToolBar* draw_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	draw_tb->SetToolBitmapSize(wxSize(16, 16));
 	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	draw_tb->AddSeparator();
 	draw_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_RADIO);
 	AddToolbar(m_mgr, *draw_tb, "Draw", "Drawing Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1));
-
+	
 	UpdateUI();
 
 	m_mgr.Update();

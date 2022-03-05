@@ -1,4 +1,5 @@
 #include "EditorFrame.h"
+#include <set>
 
 wxDEFINE_EVENT(EVT_STATUSBAR_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_STATUSBAR_UPDATE, wxCommandEvent);
@@ -13,8 +14,6 @@ EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
 	  m_props_init(false)
 {
-	m_mgr.SetManagedWindow(this);
-
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
 
@@ -79,14 +78,21 @@ void EditorFrame::ClearMenu(wxMenuBar& menu) const
 		delete parent->Remove(pos);
 	}
 	m_menus.clear();
+	std::set<wxAuiManager*> mgrs;
 	for (const auto& tb : m_toolbars)
 	{
 		tb.second->Hide();
-		m_mgr.DetachPane(tb.second);
+		auto* mgr = wxAuiManager::GetManager(tb.second->GetParent());
+		mgr->DetachPane(tb.second);
+		mgrs.insert(mgr);
 		tb.second->Destroy();
 	}
 	m_toolbars.clear();
-	m_mgr.Update();
+	for(auto* mgr : mgrs)
+	{
+		mgr->Update();
+	}
+	this->GetParent()->Refresh(true);
 }
 
 void EditorFrame::OnMenuClick(wxMenuEvent& evt)

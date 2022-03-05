@@ -679,6 +679,7 @@ void MainFrame::ShowBitmap()
     m_tilesetEditor->Hide();
     this->m_scrollwindow->GetSizer()->Clear();
     this->m_scrollwindow->GetSizer()->Layout();
+    this->m_scrollwindow->Refresh(true);
 }
 
 void MainFrame::ForceRepaint()
