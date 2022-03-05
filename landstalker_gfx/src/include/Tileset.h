@@ -40,6 +40,7 @@ public:
     std::vector<uint32_t> GetTileRGBA(const Tile& tile, const Palette& palette) const;
     void SetColourIndicies(const std::vector<uint8_t>& colour_indicies);
     std::vector<uint8_t> GetColourIndicies() const;
+    std::vector<uint8_t> GetDefaultColourIndicies() const;
     std::array<bool, 16> GetLockedColours() const;
 
 	std::size_t GetTileCount() const;

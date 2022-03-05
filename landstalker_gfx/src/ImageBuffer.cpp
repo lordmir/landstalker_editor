@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <png.h>
+#include <numeric>
 #include "Utils.h"
 
 ImageBuffer::ImageBuffer()
@@ -34,6 +35,11 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
 {
 	int max_x = x + 7;
 	int max_y = y + 7;
+    std::vector<uint8_t> cmap = tileset.GetColourIndicies();
+    if (cmap.empty())
+    {
+        cmap = tileset.GetDefaultColourIndicies();
+    }
     if ((max_x >= static_cast<int>(m_width)) || (max_y >= static_cast<int>(m_height)) || (x < 0 ) || (y < 0))
     {
         std::ostringstream ss;
@@ -60,9 +66,9 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
 				y++;
 				x -= tileset.GetTileWidth();
             }
-            if (!use_alpha || (tile_bits[i] != 0))// && (x >= 0) && (y >= 0))
+            if (!use_alpha || (cmap[tile_bits[i]] != 0))
             {
-                *dest_it = tile_bits[i] | pal_bits;
+                *dest_it = cmap[tile_bits[i]] | pal_bits;
                 *pri_dest_it = priority;
             }
             dest_it++;

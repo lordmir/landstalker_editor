@@ -1,6 +1,7 @@
 #include "Tileset.h"
 #include <algorithm>
 #include <sstream>
+#include <numeric>
 #include "Utils.h"
 #include "LZ77.h"
 
@@ -341,6 +342,13 @@ void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 std::vector<uint8_t> Tileset::GetColourIndicies() const
 {
     return m_colour_indicies;
+}
+
+std::vector<uint8_t> Tileset::GetDefaultColourIndicies() const
+{
+    std::vector<uint8_t> ret(1 << m_bit_depth);
+    std::iota(ret.begin(), ret.end(), 0);
+    return ret;
 }
 
 std::array<bool, 16> Tileset::GetLockedColours() const
