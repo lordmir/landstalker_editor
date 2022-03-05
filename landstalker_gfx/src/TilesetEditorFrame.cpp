@@ -391,8 +391,8 @@ void TilesetEditorFrame::ExportAsPng()
 		std::string path = fd.GetPath().ToStdString();
 
 		const std::size_t max_width = 16U;
-		const int cols = std::min(m_tileset->GetTileCount(), max_width);
-		const int rows = std::max(1UL, (m_tileset->GetTileCount() + max_width - 1) / max_width);
+		const int cols = std::min<std::size_t>(m_tileset->GetTileCount(), max_width);
+		const int rows = std::max<std::size_t>(1UL, (m_tileset->GetTileCount() + max_width - 1) / max_width);
 		ImageBuffer buf(cols * m_tileset->GetTileWidth(), rows * m_tileset->GetTileHeight());
 		for (int i = 0; i < m_tileset->GetTileCount(); ++i)
 		{
