@@ -30,7 +30,7 @@ void ImageBuffer::Resize(std::size_t width, std::size_t height)
     m_priority.assign(width * height, 0);
 }
 
-void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset)
+void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha)
 {
 	int max_x = x + 7;
 	int max_y = y + 7;
@@ -60,7 +60,7 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
 				y++;
 				x -= tileset.GetTileWidth();
             }
-            if ((tile_bits[i] != 0))// && (x >= 0) && (y >= 0))
+            if (!use_alpha || (tile_bits[i] != 0))// && (x >= 0) && (y >= 0))
             {
                 *dest_it = tile_bits[i] | pal_bits;
                 *pri_dest_it = priority;

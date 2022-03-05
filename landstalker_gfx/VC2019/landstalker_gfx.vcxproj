@@ -43,6 +43,7 @@
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\TilesetManager.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
@@ -89,6 +90,7 @@
     <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
+    <ClInclude Include="..\src\include\TilesetManager.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
     <ClInclude Include="..\src\TilesetEditorFrame.h" />

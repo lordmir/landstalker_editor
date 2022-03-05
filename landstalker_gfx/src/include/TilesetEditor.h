@@ -83,9 +83,11 @@ private:
 	int  ConvertXYToTile(const wxPoint& point);
 
 	bool UpdateRowCount();
-	void DrawTile(wxDC& dc, int x, int y, int tile);
+	void DrawAllTiles(wxDC& dest);
+	void DrawTileList(wxDC& dest);
+	void DrawGrid(wxDC& dest);
 	void DrawSelectionBorders(wxDC& dc);
-	void PaintBitmap(wxDC& dc);
+	void PaintBitmap(wxDC& src, wxDC& dst);
 	void InitialiseBrushesAndPens();
 	const Palette& GetSelectedPalette();
 
@@ -131,9 +133,9 @@ private:
 	wxBrush* m_highlighted_brush = nullptr;
 
 	ImageBuffer m_buf;
-	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;
-	wxBitmap m_tiles_bmp;
+	wxBitmap* m_tiles_bmp;
+	wxBitmap m_bg_bmp;
 
 	wxDECLARE_EVENT_TABLE();
 };

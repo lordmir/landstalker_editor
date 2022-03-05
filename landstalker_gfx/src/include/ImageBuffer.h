@@ -19,7 +19,7 @@ public:
 	ImageBuffer(std::size_t width, std::size_t height);
 	void Clear();
 	void Resize(std::size_t width, std::size_t height);
-	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset);
+	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha = true);
 	void InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset);
 	bool WritePNG(const std::string& filename, const std::vector<Palette>& pals);
 	void InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const MapBlock& block, const Tileset& tileset);

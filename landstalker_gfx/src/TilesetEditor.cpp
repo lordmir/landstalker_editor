@@ -124,7 +124,7 @@ void TilesetEditor::RedrawTiles(int index)
 	else
 	{
 		m_redraw_list.insert(index);
-		Refresh(false);
+		Refresh(true);
 	}
 }
 
@@ -137,93 +137,42 @@ void TilesetEditor::OnDraw(wxDC& dc)
 {
 	if (m_redraw_all == true)
 	{
+		m_bg_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
 		m_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
 		m_buf.Resize(m_tilewidth * m_columns, m_tileheight * m_rows);
 	}
-	m_memdc.SelectObject(m_bmp);
-	m_memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-	m_memdc.Clear();
-	if (!m_tileset)
+	wxMemoryDC background(m_bg_bmp);
+	wxMemoryDC memdc(m_bmp);
+	if (m_redraw_all == true)
 	{
-		return;
+		background.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+		background.Clear();
 	}
-	m_memdc.SetTextForeground(wxColour(255, 255, 255));
-	m_memdc.SetTextBackground(wxColour(150, 150, 150));
-	m_memdc.SetBackgroundMode(wxSOLID);
-
-	if (m_pixelsize > 3)
+	if (m_tileset != nullptr)
 	{
-		m_border_pen->SetStyle(wxPENSTYLE_SOLID);
+
+		if (m_redraw_all)
+		{
+			DrawAllTiles(background);
+		}
+		else if (!m_redraw_list.empty())
+		{
+			DrawTileList(background);
+		}
+		PaintBitmap(background, memdc);
+		DrawGrid(memdc);
+		DrawSelectionBorders(memdc);
 	}
 	else
 	{
-		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
+		memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+		memdc.Clear();
 	}
-
-	m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-	int x = 0;
-	int y = 0;
-	m_memdc.SetPen(*wxTRANSPARENT_PEN);
-	m_memdc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
-	{
-		m_memdc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
-		x++;
-		if (x >= m_columns)
-		{
-			x = 0;
-			y++;
-		}
-	}
-	x = 0;
-	y = 0;
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
-	{
-		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset);
-		x++;
-		if (x >= m_columns)
-		{
-			x = 0;
-			y++;
-		}
-	}
-	if (m_redraw_all)
-	{
-		auto img = m_buf.MakeImage({ m_palettes->find(m_selected_palette)->second }, true);
-		img.Rescale(img.GetWidth() * m_pixelsize, img.GetHeight() * m_pixelsize, wxIMAGE_QUALITY_NORMAL);
-		m_tiles_bmp = wxBitmap(img);
-	}
-	m_memdc.DrawBitmap(m_tiles_bmp, { 0,0 }, false);
-	x = 0;
-	y = 0;
-	m_memdc.SetPen(*m_border_pen);
-	m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
-	{
-		if (m_enableborders)
-		{
-			m_memdc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
-		}
-		if (m_enabletilenumbers)
-		{
-			auto label = (wxString::Format("%03d", i));
-			auto extent = m_memdc.GetTextExtent(label);
-			if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
-			{
-				m_memdc.DrawText(label, { x * m_cellwidth + 2, y * m_cellheight + 2 });
-			}
-		}
-		x++;
-		if (x >= m_columns)
-		{
-			x = 0;
-			y++;
-		}
-	}
-	
-	DrawSelectionBorders(m_memdc);
-	PaintBitmap(dc);
-	m_memdc.SelectObject(wxNullBitmap);
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+	dc.Clear();
+	PaintBitmap(memdc, dc);
+	background.SelectObject(wxNullBitmap);
+	memdc.SelectObject(wxNullBitmap);
 }
 
 void TilesetEditor::OnPaint(wxPaintEvent& evt)
@@ -266,10 +215,6 @@ void TilesetEditor::OnMouseMove(wxMouseEvent& evt)
 {
 	if (!m_enablehover) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
-	if ((m_hoveredtile != -1) && (sel != m_hoveredtile))
-	{
-		m_redraw_list.insert(m_hoveredtile);
-	}
 	if (sel != m_hoveredtile)
 	{
 		m_hoveredtile = sel;
@@ -284,7 +229,6 @@ void TilesetEditor::OnMouseLeave(wxMouseEvent& evt)
 	if (!m_enablehover) return;
 	if (m_hoveredtile != -1)
 	{
-		m_redraw_list.insert(m_hoveredtile);
 		m_hoveredtile = -1;
 		FireEvent(EVT_TILESET_HOVER, std::to_string(m_hoveredtile));
 		Refresh();
@@ -342,30 +286,143 @@ bool TilesetEditor::UpdateRowCount()
 	return false;
 }
 
-void TilesetEditor::DrawTile(wxDC& dc, int x, int y, int tile)
+void TilesetEditor::DrawAllTiles(wxDC& dest)
 {
-	wxPen pen = dc.GetPen();
-	wxBrush brush = dc.GetBrush();
-
-	pen.SetStyle(wxPENSTYLE_TRANSPARENT);
-	brush.SetStyle(wxBRUSHSTYLE_SOLID);
-	dc.SetPen(pen);
-
-	auto tile_pixels = m_tileset->GetTileRGBA(tile, GetSelectedPalette());
-
-	for (int i = 0; i < tile_pixels.size(); ++i)
+	int x = 0;
+	int y = 0;
+	dest.SetBrush(*wxTRANSPARENT_BRUSH);
+	dest.SetPen(*wxTRANSPARENT_PEN);
+	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
 	{
-		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
-		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
-		brush.SetColour(wxColour(tile_pixels[i]));
-		dc.SetBrush(brush);
-		// Has alpha
-		if ((tile_pixels[i] & 0xFF000000) > 0)
+		dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
+		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset);
+		x++;
+		if (x >= m_columns)
 		{
-			dc.DrawRectangle({ xx, yy, m_pixelsize, m_pixelsize });
+			x = 0;
+			y++;
 		}
 	}
+	auto img = m_buf.MakeImage({ m_palettes->find(m_selected_palette)->second }, true);
+	if (m_tiles_bmp)
+	{
+		delete m_tiles_bmp;
+	}
+	m_tiles_bmp = new wxBitmap(img);
+	wxMemoryDC tiles(*m_tiles_bmp);
+	dest.StretchBlit({ 0,0 },
+		{ img.GetWidth() * m_pixelsize, img.GetHeight() * m_pixelsize },
+		&tiles, { 0,0 }, { img.GetWidth(), img.GetHeight() }, wxCOPY, true, { 0,0 });
+	m_redraw_all = false;
+	m_redraw_list.clear();
+}
 
+void TilesetEditor::DrawTileList(wxDC& dest)
+{
+	dest.SetBrush(*wxTRANSPARENT_BRUSH);
+	dest.SetPen(*wxTRANSPARENT_PEN);
+	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	int s = GetVisibleRowsBegin();
+	int e = GetVisibleRowsEnd();
+	auto it = m_redraw_list.begin();
+	while (it != m_redraw_list.end())
+	{
+		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		{
+			const int x = *it % m_columns;
+			const int y = *it / m_columns;
+			if ((y >= s) && (y <= e))
+			{
+				m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, *it, *m_tileset, false);
+			}
+		}
+		it++;
+	}
+	auto img = m_buf.MakeImage({ m_palettes->find(m_selected_palette)->second }, true);
+	if (m_tiles_bmp)
+	{
+		delete m_tiles_bmp;
+	}
+	m_tiles_bmp = new wxBitmap(img);
+	wxMemoryDC tiles(*m_tiles_bmp);
+
+	it = m_redraw_list.begin();
+	while (it != m_redraw_list.end())
+	{
+		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		{
+			const int x = *it % m_columns;
+			const int y = *it / m_columns;
+			if ((y >= s) && (y <= e))
+			{
+				dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
+				dest.StretchBlit({ x * m_cellwidth, y * m_cellheight },
+					{ m_cellwidth, m_cellheight },
+					&tiles,
+					{ x * m_tilewidth, y * m_tileheight },
+					{ m_tilewidth, m_tileheight },
+					wxCOPY, true, { x * m_tilewidth, y * m_tileheight });
+				it = m_redraw_list.erase(it);
+			}
+			else
+			{
+				it++;
+			}
+		}
+		else
+		{
+			it = m_redraw_list.erase(it);
+		}
+	}
+}
+
+void TilesetEditor::DrawGrid(wxDC& dest)
+{
+	int x = 0;
+	int y = 0;
+	dest.SetPen(*m_border_pen);
+	dest.SetBrush(*wxTRANSPARENT_BRUSH);
+	dest.SetTextForeground(wxColour(255, 255, 255));
+	dest.SetTextBackground(wxColour(150, 150, 150));
+	dest.SetBackgroundMode(wxSOLID);
+
+	if (m_pixelsize > 3)
+	{
+		m_border_pen->SetStyle(wxPENSTYLE_SOLID);
+	}
+	else
+	{
+		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
+	}
+
+	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+	{
+		int s = GetVisibleRowsBegin();
+		int e = GetVisibleRowsEnd();
+		if (y >= s && y <= e)
+		{
+			if (m_enableborders)
+			{
+				dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
+			}
+			if (m_enabletilenumbers)
+			{
+				auto label = (wxString::Format("%03d", i));
+				auto extent = dest.GetTextExtent(label);
+				if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
+				{
+					dest.DrawText(label, { x * m_cellwidth + 2, y * m_cellheight + 2 });
+				}
+			}
+		}
+		x++;
+		if (x >= m_columns)
+		{
+			x = 0;
+			y++;
+		}
+	}
 }
 
 void TilesetEditor::DrawSelectionBorders(wxDC& dc)
@@ -395,10 +452,8 @@ void TilesetEditor::DrawSelectionBorders(wxDC& dc)
 	}
 }
 
-void TilesetEditor::PaintBitmap(wxDC& dc)
+void TilesetEditor::PaintBitmap(wxDC& src, wxDC& dst)
 {
-	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-	dc.Clear();
 	int sy = GetVisibleRowsBegin() * m_cellheight;
 	
 	int vX, vY, vW, vH;                 // Dimensions of client area in pixels
@@ -412,7 +467,7 @@ void TilesetEditor::PaintBitmap(wxDC& dc)
 		// Alternatively we can do this:
 		// wxRect rect(upd.GetRect());
 		// Repaint this rectangle
-		dc.Blit(vX, vY + sy, vW, vH, &m_memdc, vX, vY + sy);
+		dst.Blit(vX, vY + sy, vW, vH, &src, vX, vY + sy);
 		upd++;
 	}
 }
@@ -534,7 +589,6 @@ void TilesetEditor::SetSelectionEnabled(bool enabled)
 {
 	if (m_enableselection != enabled)
 	{
-		m_redraw_list.insert(m_selectedtile);
 		if (enabled == false)
 		{
 			m_selectedtile = -1;
@@ -553,7 +607,6 @@ void TilesetEditor::SetHoverEnabled(bool enabled)
 {
 	if (m_enablehover != enabled)
 	{
-		m_redraw_list.insert(m_selectedtile);
 		if (enabled == false)
 		{
 			m_hoveredtile = -1;
@@ -618,10 +671,11 @@ void TilesetEditor::SelectTile(int tile)
 		if (m_pendingswap)
 		{
 			m_redraw_list.insert(tile);
+			m_redraw_list.insert(m_selectedtile);
 			m_tileset->SwapTile(m_pendingswap, tile);
 			m_pendingswap = -1;
+			Refresh();
 		}
-		m_redraw_list.insert(m_selectedtile);
 	}
 	if (tile != m_selectedtile)
 	{
