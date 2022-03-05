@@ -576,7 +576,7 @@ void TilesetEditor::SetTileNumbersEnabled(bool enabled)
 	if (enabled != m_enabletilenumbers)
 	{
 		m_enabletilenumbers = enabled;
-		ForceRedraw();
+		Refresh();
 	}
 }
 
@@ -640,7 +640,7 @@ void TilesetEditor::SetBordersEnabled(bool enabled)
 	if (m_enableborders != enabled)
 	{
 		m_enableborders = enabled;
-		ForceRedraw();
+		Refresh();
 	}
 }
 
