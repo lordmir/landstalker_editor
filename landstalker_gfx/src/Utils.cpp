@@ -58,3 +58,22 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
 }
 
+bool IsHex(const std::string& str)
+{
+	return str.compare(0, 2, "0x") == 0
+		&& str.size() > 2
+		&& str.find_first_not_of("0123456789abcdefABCDEF", 2) == std::string::npos;
+}
+
+std::string Trim(const std::string& str)
+{
+	const auto whitespace = " \t";
+	const auto start = str.find_first_not_of(whitespace);
+	if (start == std::string::npos)
+		return ""; // no content
+
+	const auto end = str.find_last_not_of(whitespace);
+	const auto len = end - start + 1;
+
+	return str.substr(start, len);
+}

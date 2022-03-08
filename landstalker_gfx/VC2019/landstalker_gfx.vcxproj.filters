@@ -120,6 +120,9 @@
     <ClCompile Include="..\src\TilesetManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\AsmFile.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -251,6 +254,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\TilesetManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AsmFile.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AsmFile_inl.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

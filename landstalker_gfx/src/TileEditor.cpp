@@ -63,7 +63,7 @@ void TileEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> pal
 void TileEditor::SetTileset(std::shared_ptr<Tileset> tileset)
 {
 	m_tileset = tileset;
-	m_pixels = &m_tileset->GetTilePixels(m_tile.GetIndex());
+	m_pixels = m_tileset->GetTilePixels(m_tile.GetIndex());
 	SetRowColumnCount(m_tileset->GetTileHeight(), m_tileset->GetTileWidth());
 	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
@@ -73,7 +73,14 @@ void TileEditor::SetTileset(std::shared_ptr<Tileset> tileset)
 void TileEditor::SetTile(const Tile& tile)
 {
 	m_tile = tile;
-	m_pixels = &m_tileset->GetTilePixels(tile.GetIndex());
+	if (m_tileset != nullptr)
+	{
+		m_pixels = m_tileset->GetTilePixels(tile.GetIndex());
+	}
+	else
+	{
+		m_pixels.clear();
+	}
 	Redraw();
 }
 
@@ -210,8 +217,8 @@ TileEditor::Point TileEditor::GetHoveredPixel() const
 
 int TileEditor::GetColourAtPixel(const Point& point) const
 {
-	if (!m_pixels) throw std::runtime_error("m_pixels is NULL");
-	return (*m_pixels)[point.x + point.y * m_tileset->GetTileWidth()];
+	if (m_pixels.empty()) throw std::runtime_error("m_pixels is empty");
+	return (m_pixels)[point.x + point.y * m_tileset->GetTileWidth()];
 }
 
 bool TileEditor::SetColourAtPixel(const Point& point, int colour)
@@ -226,9 +233,9 @@ bool TileEditor::SetColourAtPixel(const Point& point, int colour)
 
 void TileEditor::Clear()
 {
-	if (m_pixels)
+	if (!m_pixels.empty())
 	{
-		std::fill(m_pixels->begin(), m_pixels->end(), 0);
+		std::fill(m_pixels.begin(), m_pixels.end(), m_secondary_colour);
 	}
 }
 
@@ -250,7 +257,7 @@ void TileEditor::OnDraw(wxDC& dc)
 	wxPosition s = GetVisibleBegin();
 	wxPosition e = GetVisibleEnd();
 
-	if(m_pixels)
+	if(!m_pixels.empty())
 	{
 		if (m_pixelsize > 3)
 		{
@@ -260,14 +267,14 @@ void TileEditor::OnDraw(wxDC& dc)
 		{
 			m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 		}
-		for (int i = 0; i < m_pixels->size(); ++i)
+		for (int i = 0; i < m_pixels.size(); ++i)
 		{
 			Point p = ConvertPixelToXY(i);
 			if ((p.x >= s.GetCol()) && (p.x < e.GetCol()) &&
 				(p.y >= s.GetRow()) && (p.y < e.GetRow()))
 			{
 				dc.SetPen(*wxTRANSPARENT_PEN);
-				dc.SetBrush(GetBrush(m_pixels->at(i)));
+				dc.SetBrush(GetBrush(m_pixels.at(i)));
 				dc.DrawRectangle(p.x * m_pixelsize, p.y * m_pixelsize, m_pixelsize, m_pixelsize);
 				if (m_enableborders)
 				{
@@ -424,9 +431,10 @@ void TileEditor::MouseDraw(const Point& point)
 	if ((px >= 0) && (m_drawing))
 	{
 		int colour = m_secondary_active ? m_secondary_colour : m_primary_colour;
-		if (m_pixels && m_pixels->at(px) != colour)
+		if (!m_pixels.empty() && m_pixels.at(px) != colour)
 		{
-			m_pixels->at(px) = colour;
+			m_pixels.at(px) = colour;
+			m_tileset->GetTilePixels(m_tile.GetIndex()) = m_pixels;
 			refresh = true;
 			FireEvent(EVT_TILE_CHANGE);
 		}
@@ -472,7 +480,7 @@ int TileEditor::ConvertXYToPixel(const Point& point)
 
 TileEditor::Point TileEditor::ConvertPixelToXY(int pixel)
 {
-	if (!m_pixels || (pixel < 0) || (pixel > m_pixels->size()))
+	if (m_pixels.empty() || (pixel < 0) || (pixel > m_pixels.size()))
 	{
 		return { -1, -1 };
 	}
@@ -484,11 +492,13 @@ bool TileEditor::SetColour(const Point& point, int colour)
 {
 	bool retval = false;
 	int pixel = ConvertXYToPixel(point);
-	if (m_pixels && pixel != -1)
+	if (!m_pixels.empty() && pixel != -1)
 	{
-		if ((*m_pixels)[pixel] != colour)
+		if (m_pixels[pixel] != colour)
 		{
-			(*m_pixels)[pixel] = colour;
+			m_pixels[pixel] = colour;
+			m_tileset->GetTilePixels(m_tile.GetIndex()) = m_pixels;
+			Refresh(true);
 			retval = true;
 		}
 	}

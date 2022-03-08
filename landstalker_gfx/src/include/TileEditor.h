@@ -123,7 +123,7 @@ private:
 	std::string m_selected_palette;
 	Palette m_default_palette;
 	Tile m_tile;
-	std::vector<uint8_t>* m_pixels = nullptr;
+	std::vector<uint8_t> m_pixels;
 
 	wxDECLARE_EVENT_TABLE();
 };

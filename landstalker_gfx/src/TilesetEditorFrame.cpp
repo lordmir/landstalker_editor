@@ -140,6 +140,7 @@ void TilesetEditorFrame::OnTileChanged(wxCommandEvent& evt)
 void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 {
 	m_tilesetEditor->RedrawTiles();
+	m_tileEditor->SetTile(m_tilesetEditor->GetSelectedTile());
 	m_tileEditor->Redraw();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	FireEvent(EVT_STATUSBAR_UPDATE);

@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\AsmFile.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
@@ -54,6 +55,8 @@
     <None Include="..\src\wxcrafter_bitmaps.xrc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\include\AsmFile.h" />
+    <ClInclude Include="..\src\include\AsmFile_inl.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
     <ClInclude Include="..\src\include\Block.h" />
