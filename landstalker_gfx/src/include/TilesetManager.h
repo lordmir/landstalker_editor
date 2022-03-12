@@ -1,60 +1,97 @@
 #ifndef _TILESET_MANAGER_H_
 #define _TILESET_MANAGER_H_
 
-#include <map>
-#include <vector>
-#include <list>
-#include <memory>
-#include <cstdint>
 #include <string>
+#include <vector>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <boost/filesystem.hpp>
 
-#include <Tileset.h>
+#include <AsmFile.h>
+#include <AnimatedTileset.h>
 #include <Rom.h>
 
 class TilesetManager
 {
 public:
-	TilesetManager(Rom& rom);
-	TilesetManager(const std::string& pointer_asm_file, const std::string& tileset_dir);
+	enum class Type
+	{
+		MAP,
+		ANIMATED_MAP,
+		FONT,
+		MISC
+	};
 
-	std::shared_ptr<Tileset> GetTileset(std::size_t index);
-	std::shared_ptr<Tileset> GetTileset(uint32_t address);
-	std::shared_ptr<Tileset> GetTileset(const std::string name);
+	struct TilesetEntry
+	{
+		TilesetEntry(const std::string& pname, std::shared_ptr<Tileset> ptileset, Type ptype)
+			: name(pname), tileset(ptileset), type(ptype) {}
+		std::string name;
+		std::shared_ptr<Tileset> tileset;
+		Type type;
+		uint32_t start_address;
+		uint32_t end_address;
+		boost::filesystem::path filename;
+		std::string ptrname;
+		std::shared_ptr<std::vector<uint8_t>> raw_data;
+		std::shared_ptr<std::vector<uint8_t>> decompressed_data;
+	};
 
-	std::size_t GetTilesetIndex(std::shared_ptr<Tileset> ts);
-	std::string GetTilesetName(std::shared_ptr<Tileset> ts);
-	std::string GetTilesetName(std::size_t index);
-	std::size_t GetTilesetCount();
-
-	bool MakeNewTileset(const std::string& name);
-	void SetTilesetAtIndex(std::size_t index, const std::string& name = std::string());
-	void AssociatePaletteWithTileset(std::size_t index, const std::string& name);
-
-	void MarkDirty(std::shared_ptr<Tileset>);
-	bool SaveChanges();
-	bool SaveChanges(const std::string& pointer_asm_file, const std::string& tileset_dir);
-	bool InjectIntoRom();
+	TilesetManager(const boost::filesystem::path& asm_file);
+	TilesetManager(const Rom& rom);
+	
+	bool CheckDataWillFitInRom(const Rom& rom, int& tilesets_size, int& anim_table_size) const;
+	bool HasTilesetBeenModified(const std::string& tileset) const;
 	bool InjectIntoRom(Rom& rom);
+	bool Save(boost::filesystem::path dir);
+	bool Save();
+	std::shared_ptr<Tileset> GetTileset(const std::string& name);
 
+	std::shared_ptr<const TilesetEntry> GetTilesetByName(const std::string& name) const;
+	std::shared_ptr<const TilesetEntry> GetTilesetByPtr(std::shared_ptr<Tileset> ts) const;
+	std::vector<std::string> GetTilesetList() const;
+	std::vector<std::string> GetTilesetList(Type type) const;
+	bool RenameTileset(const std::string& origname, const std::string& newname);
+	bool DeleteTileset(const std::string& name);
+	std::shared_ptr<TilesetEntry> MakeNewTileset(const std::string& name, Type type);
+
+	std::array<std::string, 32> GetTilesetOrder() const;
+	void SetTilesetOrder(const std::array<std::string, 32>& order);
 private:
-	std::shared_ptr<Rom> rom;
-	uint32_t m_ptbladdr;
-	uint32_t m_ts_start;
-	uint32_t m_ts_end;
+	bool GetTilesetAsmFilenames();
+	bool LoadAsmAnimatedTilesetData();
+	bool LoadAsmTilesetPointerData();
+	bool LoadAsmTilesetFilenames();
+	void LoadAsmTilesetData();
+	bool LoadRomAnimatedTilesetData(const Rom& rom);
+	bool LoadRomTilesetPointerData(const Rom& rom);
+	void LoadRomTilesetData(const Rom& rom);
+	
+	bool UpdateTilesetCache(const std::string& tileset);
+	std::vector<uint8_t> GetTilesetBits(const std::string& tileset) const;
 
-	static const std::size_t MAX_TILESETS = 32;
+	void SaveTilesetsToDisk(const boost::filesystem::path& dir);
+	void SaveTilesetsToRom(Rom& rom);
+	void SaveTilesetToFile(const boost::filesystem::path& dir, const std::string& name) const;
+	bool SaveAsmTilesetFilenames(const boost::filesystem::path& dir);
+	bool SaveAsmAnimatedTilesetData(const boost::filesystem::path& dir);
+	bool SaveRomAnimatedTilesetData(Rom& rom);
+	bool SaveAsmTilesetPointerData(const boost::filesystem::path& dir);
+	bool SaveRomTilesetPointerData(Rom& rom);
 
-	std::string m_pointerfile;
-	std::string m_tilesetdir;
+	boost::filesystem::path m_asm_filename;
+	boost::filesystem::path m_base_path;
+	boost::filesystem::path m_tileset_data_filename;
+	boost::filesystem::path m_tileset_ptrtab_filename;
+	boost::filesystem::path m_tileset_anim_filename;
 
-	std::array<std::string, MAX_TILESETS> m_tlist;
-	std::map<std::string, std::shared_ptr<Tileset>> m_tilesets;
-	std::map<std::shared_ptr<Tileset>, std::string> m_names;
-	std::map<std::shared_ptr<Tileset>, uint32_t> m_addrs;
-	std::map<std::shared_ptr<Tileset>, std::size_t> m_sizes;
-	std::map<std::shared_ptr<Tileset>, bool> m_dirty;
-	std::map<std::shared_ptr<Tileset>, std::vector<uint8_t>> m_orig;
-	std::unordered_multimap<std::shared_ptr<Tileset>, std::string> m_pals;
+	std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
+	std::map<std::shared_ptr<Tileset>, std::shared_ptr<TilesetEntry>> m_tilesets_by_ptr;
+	std::array<std::shared_ptr<TilesetEntry>, 32> m_tileset_list_x;
+	std::vector<std::shared_ptr<TilesetEntry>> m_animated_ts_ptrorder;
+	std::vector<std::shared_ptr<TilesetEntry>> m_tilesets_listorder;
+	mutable std::map<std::shared_ptr<TilesetEntry>, std::vector<uint8_t>> m_pending_write;
 };
 
 #endif // _TILESET_MANAGER_H_

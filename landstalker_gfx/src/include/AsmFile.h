@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <variant>
 #include <map>
+#include <boost/filesystem.hpp>
+#include <Utils.h>
 
 class AsmFile
 {
@@ -29,11 +31,16 @@ public:
 	struct IncludeFile
 	{
 		IncludeFile(const std::string& ppath, FileType ptype)
+			: path(RemoveQuotes(ppath)), type(ptype)
+		{}
+		IncludeFile(const boost::filesystem::path& ppath, FileType ptype)
 			: path(ppath), type(ptype)
 		{}
 		IncludeFile() : type(ASSEMBLER) {}
+		operator std::string() { return path.string(); }
+		operator const boost::filesystem::path&() { return path; }
 
-		std::string path;
+		boost::filesystem::path path;
 		FileType type;
 	};
 
@@ -41,6 +48,7 @@ public:
 	{
 		Comment(const std::string& pcomment) : comment(pcomment) {}
 		Comment() {}
+		operator const std::string&() { return comment; }
 		std::string comment;
 	};
 
@@ -48,18 +56,25 @@ public:
 	{
 		Label(const std::string& plabel) : label(plabel) {}
 		Label() {}
+		operator const std::string&() { return label; }
 		std::string label;
+	};
+
+	struct GotoLabel : public Label
+	{
+		GotoLabel(const std::string& plabel) : Label(plabel) {}
 	};
 
 	struct Align
 	{
 		Align(std::size_t pamount) : amount(pamount) {}
+		operator std::size_t() { return amount; }
 		std::size_t amount;
 	};
 
 	struct NewLine {};
 
-	AsmFile(const std::string& filename, FileType type = FileType::ASSEMBLER);
+	AsmFile(const boost::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	AsmFile(FileType type = FileType::ASSEMBLER);
 
 	template<typename T>
@@ -76,11 +91,14 @@ public:
 	std::string ReadLabel();
 	bool IsLabel();
 	bool IsLabel(const std::string& label);
+	bool Goto(const std::string& label);
+	bool Goto(const GotoLabel& label);
+	bool Goto(const Label& label);
 
 	bool IsGood() const;
-	bool ReadFile(const std::string& filename, FileType type = ASSEMBLER);
-	bool WriteFile(const std::string& filename, FileType type);
-	bool WriteFile(const std::string& filename);
+	bool ReadFile(const boost::filesystem::path& filename, FileType type = ASSEMBLER);
+	bool WriteFile(const boost::filesystem::path& filename, FileType type);
+	bool WriteFile(const boost::filesystem::path& filename);
 	std::ostream& PrintFile(std::ostream& stream);
 
 	std::size_t GetLineCount() const;
@@ -88,9 +106,12 @@ public:
 	std::string GetFilename() const;
 	FileType GetFileType() const;
 
+
+	void WriteFileHeader(const boost::filesystem::path& p, const std::string& short_description);
+
 	template<typename T>
 	bool Read(T& value);
-	bool Read(const Label& label);
+	bool Read(const GotoLabel& label);
 	template<template<typename, typename...> class C, typename T, typename... Rest>
 	bool Read(C<T, Rest...>& container);
 	template<typename T, std::size_t N>
@@ -179,11 +200,11 @@ private:
 
 	static const std::unordered_map<std::string, Inst> INSTRUCTIONS;
 	static const std::unordered_map<std::string, std::size_t> WIDTHS;
-	static const std::size_t MAX_ELEMENTS_ON_LINE = 16;
+	static const std::size_t MAX_ELEMENTS_ON_LINE = 8;
 
 	bool m_good;
 	FileType m_type;
-	std::string m_filename;
+	boost::filesystem::path m_filename;
 	std::vector<AsmLine> m_asm;
 	AsmLine m_nextline;
 	std::vector<std::variant<uint8_t, std::string, IncludeFile>> m_data;

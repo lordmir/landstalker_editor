@@ -12,7 +12,6 @@
 template<typename T>
 AsmFile& AsmFile::operator<<(const T& data)
 {
-	std::cin.get();
 	if (!Write(data))
 	{
 		m_good = false;
@@ -26,6 +25,7 @@ AsmFile& AsmFile::operator>>(T& data)
 	if (!Read(data))
 	{
 		m_good = false;
+		throw(std::runtime_error("Read failed"));
 	}
 	return *this;
 }
@@ -49,22 +49,18 @@ bool AsmFile::Read(T& value, Args&&... args)
 template<typename T>
 bool AsmFile::Read(T& value)
 {
-	if (m_readptr == m_data.end())
-	{
-		return false;
-	}
 	value = 0;
 	try
 	{
 		for (int i = 0; i < sizeof(T); ++i)
 		{
-			value <<= 8;
-			value |= std::get<uint8_t>(*m_readptr++);
 			if (m_readptr == m_data.end())
 			{
 				m_good = false;
 				return false;
 			}
+			value <<= 8;
+			value |= std::get<uint8_t>(*m_readptr++);
 		}
 	}
 	catch (const std::bad_variant_access&)
@@ -80,8 +76,11 @@ bool AsmFile::Read(std::string& value);
 template<>
 bool AsmFile::Read(IncludeFile& value);
 
-template <>
+template<>
 bool AsmFile::Read(Label& label);
+
+template<>
+bool AsmFile::Read(boost::filesystem::path& label);
 
 template<template<typename, typename...> class C, typename T, typename... Rest>
 bool AsmFile::Read(C<T, Rest...>& container)

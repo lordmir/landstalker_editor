@@ -120,7 +120,13 @@
     <ClCompile Include="..\src\TilesetManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\AnimatedTileset.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\AsmFile.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Rom.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -260,6 +266,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AsmFile_inl.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AnimatedTileset.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

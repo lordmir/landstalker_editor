@@ -3,16 +3,21 @@
 #include <regex>
 #include <unordered_map>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
+#include <boost/format.hpp>
 
 const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN}, {"Align", Inst::ALIGN} };
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
-AsmFile::AsmFile(const std::string& filename, FileType type)
+AsmFile::AsmFile(const boost::filesystem::path& filename, FileType type)
 	: m_filename(filename),
 	m_type(type)
 {
-	ReadFile(m_filename, m_type);
+	if (!ReadFile(m_filename, m_type))
+	{
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+	}
 }
 
 AsmFile::AsmFile(FileType type)
@@ -86,12 +91,27 @@ bool AsmFile::IsLabel(const std::string& label)
 	return ReadLabel() == label;
 }
 
+bool AsmFile::Goto(const std::string& label)
+{
+	return Goto(GotoLabel(label));
+}
+
+bool AsmFile::Goto(const GotoLabel& label)
+{
+	return Read(label);
+}
+
+bool AsmFile::Goto(const Label& label)
+{
+	return Goto(GotoLabel(label.label));
+}
+
 bool AsmFile::IsGood() const
 {
 	return m_good && (m_readptr != m_data.end());
 }
 
-bool AsmFile::ReadFile(const std::string& filename, FileType type)
+bool AsmFile::ReadFile(const boost::filesystem::path& filename, FileType type)
 {
 	m_filename = filename;
 	m_type = type;
@@ -101,7 +121,7 @@ bool AsmFile::ReadFile(const std::string& filename, FileType type)
 		if (m_type == FileType::ASSEMBLER)
 		{
 			std::vector<AsmLine> lines;
-			std::ifstream ifs(m_filename);
+			std::ifstream ifs(m_filename.string());
 			std::string line;
 			AsmLine asml;
 			while (std::getline(ifs, line))
@@ -129,7 +149,7 @@ bool AsmFile::ReadFile(const std::string& filename, FileType type)
 		}
 		else
 		{
-			std::ifstream ifs(m_filename, std::ios::binary);
+			std::ifstream ifs(m_filename.string(), std::ios::binary);
 			ifs.unsetf(std::ios::skipws);
 			m_data.insert(m_data.begin(),
 				std::istream_iterator<uint8_t>(ifs),
@@ -146,18 +166,22 @@ bool AsmFile::ReadFile(const std::string& filename, FileType type)
 	return true;
 }
 
-bool AsmFile::WriteFile(const std::string& filename, FileType type)
+bool AsmFile::WriteFile(const boost::filesystem::path& filename, FileType type)
 {
 	try
 	{
+		if (!m_nextline.instruction.empty())
+		{
+			PushNextLine();
+		}
 		if (type == BINARY)
 		{
-			WriteBytes(ToBinary(), filename);
+			WriteBytes(ToBinary(), filename.string());
 			return true;
 		}
 		else
 		{
-			std::ofstream ofs(filename);
+			std::ofstream ofs(filename.string());
 			ofs << ToAssembly();
 		}
 	}
@@ -168,7 +192,7 @@ bool AsmFile::WriteFile(const std::string& filename, FileType type)
 	return false;
 }
 
-bool AsmFile::WriteFile(const std::string& filename)
+bool AsmFile::WriteFile(const boost::filesystem::path& filename)
 {
 	return WriteFile(filename, m_type);
 }
@@ -206,7 +230,7 @@ std::size_t AsmFile::GetByteCount() const
 
 std::string AsmFile::GetFilename() const
 {
-	return m_filename;
+	return m_filename.string();
 }
 
 AsmFile::FileType AsmFile::GetFileType() const
@@ -214,7 +238,22 @@ AsmFile::FileType AsmFile::GetFileType() const
 	return m_type;
 }
 
-bool AsmFile::Read(const Label& label)
+void AsmFile::WriteFileHeader(const boost::filesystem::path& p, const std::string& short_description)
+{
+	boost::format f(";;  %=70s  ;;");
+	*this << AsmFile::Comment(std::string(78, ';'));
+	*this << AsmFile::Comment((f % short_description).str());
+	*this << AsmFile::Comment((f % p.string()).str());
+	*this << AsmFile::Comment((f % "").str());
+	*this << AsmFile::Comment((f % "Generated using the Landstalker editor:").str());
+	*this << AsmFile::Comment((f % "https://github.com/lordmir/landstalker_gfx").str());
+	*this << AsmFile::Comment((f % "For use with the Landstalker disassembly:").str());
+	*this << AsmFile::Comment((f % "https://github.com/lordmir/landstalker_disasm").str());
+	*this << AsmFile::Comment(std::string(78, ';'));
+	*this << AsmFile::NewLine() << AsmFile::NewLine();
+}
+
+bool AsmFile::Read(const GotoLabel& label)
 {
 	if (m_labels.find(label.label) == m_labels.end())
 	{
@@ -223,6 +262,27 @@ bool AsmFile::Read(const Label& label)
 	m_readptr = m_data.begin() + m_labels[label.label];
 	m_good = true;
 	return true;
+}
+
+template<>
+bool AsmFile::Read(boost::filesystem::path& path)
+{
+	bool ret = false;
+	AsmFile::IncludeFile file;
+	if (m_readptr != m_data.end())
+	{
+		try
+		{
+			file = std::get<IncludeFile>(*m_readptr++);
+			ret = true;
+		}
+		catch (const std::bad_variant_access&)
+		{
+			return false;
+		}
+	}
+	path = file;
+	return ret;
 }
 
 template <>
@@ -327,15 +387,9 @@ bool AsmFile::Write(const IncludeFile& file)
 		PushNextLine();
 	}
 	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
-	if (file.path[0] != '\"')
-	{
-		m_nextline.operand = "\"";
-	}
-	m_nextline.operand += file.path;
-	if (file.path[0] != '\"')
-	{
-		m_nextline.operand += "\"";
-	}
+	m_nextline.operand = "\"";
+	m_nextline.operand += file.path.string();
+	m_nextline.operand += "\"";
 	return true;
 }
 
@@ -545,33 +599,44 @@ std::string AsmFile::ToAsmLine(const AsmFile::AsmLine& line)
 	std::ostringstream ss;
 	if (!line.label.empty())
 	{
-		ss << line.label << ":";
+		ss << std::setw(20) << std::left;
+		ss << (line.label + ":");
 	}
 	else if (!line.instruction.empty())
 	{
-		ss << "\t\t";
+		ss << std::string(20, ' ');
 	}
 	if (!line.instruction.empty())
 	{
-		ss << "\t" << line.instruction;
-		if (!line.width.empty())
+		ss << std::setw(0) << ' ';
+		if (line.width.empty())
 		{
-			ss << "." << line.width;
+			ss << std::setw(8) << std::left << line.instruction;
+		}
+		else
+		{
+			ss << std::setw(8) << std::left << (line.instruction + "." + line.width);
 		}
 		if (!line.args.empty())
 		{
-			ss << "(" << line.args << ")";
+			ss << line.instruction + "(" + line.args + ")";
 		}
 		if (!line.operand.empty())
 		{
-			ss << " " << line.operand;
+			ss << ' ';
+			if (!line.comment.empty())
+			{
+				ss << std::setw(10) << std::left;
+			}
+			ss << line.operand;
 		}
 	}
 	if (!line.comment.empty())
 	{
+		ss << std::setw(0);
 		if (!line.instruction.empty())
 		{
-			ss << "\t";
+			ss << "    ";
 		}
 		ss << line.comment;
 	}

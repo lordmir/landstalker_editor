@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <boost/filesystem.hpp>
 
 void Debug(const std::string& message);
 
@@ -65,11 +66,15 @@ std::string HexArray(const T(&val)[N])
 }
 
 std::vector<uint8_t> ReadBytes(const std::string& filename);
+std::vector<uint8_t> ReadBytes(const boost::filesystem::path& filename);
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename);
+void WriteBytes(const std::vector<uint8_t>& data, const boost::filesystem::path& filename);
 
 bool IsHex(const std::string& str);
 
 std::string Trim(const std::string& str);
+
+std::string RemoveQuotes(const std::string& str);
 
 #endif // UTILS_H

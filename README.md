@@ -9,17 +9,18 @@ In addition to build-essential (compiler and make), the following libraries are 
 - wxWidgets
 - libpng
 - zlib
+- boost
 
 ### Ubuntu
 
 ```sh
-# apt install libwxgtk3.0-gtk3-dev libpng-dev zlib1g-dev
+# apt install libwxgtk3.0-gtk3-dev libpng-dev zlib1g-dev libboost-all-dev
 ```
 
 ### Arch Linux
 
 ```sh
-# pacman -S wxgtk3 zlib libpng
+# pacman -S wxgtk3 zlib libpng boost
 # ln -s /usr/bin/wx-config-gtk3 /usr/bin/wx-config
 ```
 
@@ -69,13 +70,27 @@ Finally, we need to add an environment variable to tell Visual Studio where to f
 
 Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
 
+## Boost
+
+Boost can be obtained here: https://www.boost.org/users/download/. You should download the latest zip file release.
+
+Extract the boost libraries to a common directory (e.g. C:\libraries). Once extracted, you should have a "boost_*x*" directory, where *x* is the version number.
+
+Open a command prompt in this directory, and enter the following commands:
+- ```bootstrap```
+- ```.\b2```
+
+Finally, we need to add an environment variable to tell Visual Studio where to find the Boost libraries. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named BOOST_PATH, and set its value equal to the full path to Boost (e.g. "C:\libraries\boost_1_78_0"). Click OK and exit out of the system properties windows.
+
+Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
+
 ### Build
 
 Open the VS2019 solution file in landstalker_gfx\VC2019. Make sure that the appropriate configuration has been set (e.g. "Debug x86") and hit Ctrl+Shift+B to build.
 
 # Note
 
-* The ROM path cannot contains a folder that start with a dot.
+* The ROM path cannot contain a folder that start with a dot.
 
 # Screenshot
 

@@ -374,9 +374,14 @@ std::size_t Tileset::GetTileCount() const
     return m_tiles.size();
 }
 
+std::size_t Tileset::GetTileSizeBytes() const
+{
+    return m_width * m_height * m_bit_depth / 8;
+}
+
 std::size_t Tileset::GetTilesetUncompressedSizeBytes() const
 {
-	return m_tiles.size() * m_width * m_height * m_bit_depth / 8;
+	return m_tiles.size() * GetTileSizeBytes();
 }
 
 std::size_t Tileset::GetTileWidth() const

@@ -44,7 +44,8 @@ public:
     std::array<bool, 16> GetLockedColours() const;
 
 	std::size_t GetTileCount() const;
-	std::size_t GetTilesetUncompressedSizeBytes() const;
+    std::size_t GetTileSizeBytes() const;
+    std::size_t GetTilesetUncompressedSizeBytes() const;
     std::size_t GetTileWidth() const;
     std::size_t GetTileHeight() const;
     std::size_t GetTileBitDepth() const;

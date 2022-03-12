@@ -1,5 +1,6 @@
 #include "Palette.h"
 #include <algorithm>
+#include <cassert>
 #include "Utils.h"
 
 const std::unordered_map<Palette::Type, std::array<bool, 16>> LOCKED_ENTRIES =

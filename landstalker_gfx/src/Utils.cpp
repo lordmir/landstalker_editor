@@ -48,6 +48,11 @@ std::vector<uint8_t> ReadBytes(const std::string& filename)
 	return ret;
 }
 
+std::vector<uint8_t> ReadBytes(const boost::filesystem::path& filename)
+{
+	return ReadBytes(filename.string());
+}
+
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 {
 	std::ofstream file(filename, std::ios::out | std::ios::binary);
@@ -56,6 +61,11 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 		throw std::runtime_error("Unable to open file for writing");
 	}
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
+}
+
+void WriteBytes(const std::vector<uint8_t>& data, const boost::filesystem::path& filename)
+{
+	WriteBytes(data, filename.string());
 }
 
 bool IsHex(const std::string& str)
@@ -76,4 +86,11 @@ std::string Trim(const std::string& str)
 	const auto len = end - start + 1;
 
 	return str.substr(start, len);
+}
+
+std::string RemoveQuotes(const std::string& str)
+{
+	std::string s(Trim(str));
+	s.erase(std::remove(s.begin(), s.end(), '\"'), s.end());
+	return s;
 }
