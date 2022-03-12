@@ -226,6 +226,10 @@ wxMenu& EditorFrame::AddMenu(wxMenuBar& parent, int position, int id, const std:
 wxMenuItem& EditorFrame::AddMenuItem(wxMenu& parent, int position, int id, const std::string& name, wxItemKind kind, const std::string& help) const
 {
 	wxMenuItem* menuItem = new wxMenuItem(&parent, id, name, help, kind);
+	if (parent.GetTitle() == "File")
+	{
+		position += 4;
+	}
 	parent.Insert(position, menuItem);
 	m_menuitems.insert({ id, {&parent, menuItem} });
 	return *menuItem;

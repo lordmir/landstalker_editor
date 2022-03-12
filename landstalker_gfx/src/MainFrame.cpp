@@ -7,6 +7,8 @@
 #include <set>
 #include <codecvt>
 #include <locale>
+#include <algorithm>
+#include <boost/filesystem.hpp>
 
 #include <wx/wx.h>
 #include <wx/aboutdlg.h>
@@ -62,7 +64,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     SetMode(MODE_NONE);
     if (!filename.empty())
     {
-        OpenRomFile(filename.c_str());
+        OpenFile(filename.c_str());
     }
 	this->GetToolBar()->Hide();
 	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
@@ -84,7 +86,6 @@ MainFrame::~MainFrame()
 
 void MainFrame::OnExit(wxCommandEvent& event)
 {
-    wxUnusedVar(event);
     Close();
     event.Skip();
 }
@@ -227,7 +228,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        //m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
+        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         m_tsmgr = std::make_shared<TilesetManager>(m_rom);
         for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
@@ -258,10 +259,135 @@ void MainFrame::OpenRomFile(const wxString& path)
     }
     catch(const std::runtime_error& e)
     {
-        m_browser->DeleteAllItems();
+        CloseFiles(true);
         wxMessageBox(e.what());
     }
     SetMode(MODE_NONE);
+}
+
+void MainFrame::OpenAsmFile(const wxString& path)
+{
+    try
+    {
+        if (CloseFiles() != ReturnCode::OK)
+        {
+            return;
+        }
+
+        wxTreeItemId nodeRoot = m_browser->AddRoot("");
+        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
+
+        m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
+        {
+            m_browser->AppendItem(nodeTs, t, 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+    }
+    catch (const std::runtime_error& e)
+    {
+        CloseFiles(true);
+        wxMessageBox(e.what());
+    }
+}
+
+MainFrame::ReturnCode MainFrame::Save()
+{
+    if (m_asmfile == true)
+    {
+        return SaveAsAsm();
+    }
+    else
+    {
+        return SaveToRom();
+    }
+    return ReturnCode::ERR;
+}
+
+MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
+{
+    try
+    {
+        if (path.empty())
+        {
+            wxDirDialog dlg(this, "Select Output Directory to Write Assembly...", "", wxDD_DEFAULT_STYLE);
+            if (dlg.ShowModal() != wxID_OK)
+            {
+                return ReturnCode::CANCELLED;
+            }
+            path = dlg.GetPath().ToStdString();
+        }
+        if (m_tsmgr)
+        {
+            m_tsmgr->Save(path);
+            return ReturnCode::OK;
+        }
+    }
+    catch (...)
+    {
+    }
+    return ReturnCode::ERR;
+}
+
+MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
+{
+    try
+    {
+        if (m_rom.size() == 0)
+        {
+            // No ROM loaded, load one in now
+            wxFileDialog fdlog(this, "Open existing ROM", "", "",
+                "ROM files (*.bin; *.md)|*.bin;*.md|"
+                "All files (*.*)|*.*",
+                wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+            if (fdlog.ShowModal() == wxID_OK)
+            {
+                m_rom.load_from_file(fdlog.GetPath().ToStdString());
+            }
+            else
+            {
+                return ReturnCode::CANCELLED;
+            }
+        }
+        if (path.empty())
+        {
+            wxFileDialog fdlog(this, "Save new ROM as", "", "",
+                "ROM files (*.bin; *.md)|*.bin;*.md|"
+                "All files (*.*)|*.*",
+                wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            if (fdlog.ShowModal() != wxID_OK)
+            {
+                return ReturnCode::CANCELLED;
+            }
+            path = fdlog.GetPath().ToStdString();
+        }
+        if (m_tsmgr)
+        {
+            int ts_size, anim_ts_size;
+            if (m_tsmgr->CheckDataWillFitInRom(m_rom, ts_size, anim_ts_size) == false)
+            {
+                std::ostringstream ss;
+                ss << "Warning: Data will not fit in ROM without overwriting existing structures!\n"
+                    << "  Animated tileset table has"
+                    << ((anim_ts_size < 0) ? " overrun by " : " spare space of ") << std::abs(anim_ts_size)
+                    << " bytes.\n" << "  Tileset listing has" << ((ts_size < 0) ? " overrun by " : " spare space of ")
+                    << std::abs(ts_size) << " bytes.\n\n"
+                    << "To work around this issue, is recommended to use a disassembly source.\n"
+                    << "Still proceed with saving to ROM?";
+                int answer = wxMessageBox(ss.str(), "Warning", wxYES_NO | wxICON_EXCLAMATION);
+                if (answer == wxNO)
+                {
+                    return ReturnCode::CANCELLED;
+                }
+            }
+            m_tsmgr->InjectIntoRom(m_rom);
+            m_rom.writeFile(path);
+            return ReturnCode::OK;
+        }
+    }
+    catch (...)
+    {
+    }
+    return ReturnCode::ERR;
 }
 
 void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal)
@@ -652,32 +778,41 @@ void MainFrame::PopulatePalettes()
 
 void MainFrame::ShowStrings()
 {
-	m_activeEditor = nullptr;
-    m_stringView->Show();
-    m_tilesetEditor->Hide();
-    this->m_scrollwindow->GetSizer()->Clear();
-    this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
-    this->m_scrollwindow->GetSizer()->Layout();
+    if (!m_stringView->IsShown())
+    {
+        m_activeEditor = nullptr;
+        m_stringView->Show();
+        m_tilesetEditor->Hide();
+        this->m_scrollwindow->GetSizer()->Clear();
+        this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Layout();
+    }
 }
 
 void MainFrame::ShowTileset()
 {
-	m_activeEditor = m_tilesetEditor;
-    m_stringView->Hide();
-    m_tilesetEditor->Show();
-    this->m_scrollwindow->GetSizer()->Clear();
-    this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
-    this->m_scrollwindow->GetSizer()->Layout();
+    if (!m_tilesetEditor->IsShown())
+    {
+        m_activeEditor = m_tilesetEditor;
+        m_stringView->Hide();
+        m_tilesetEditor->Show();
+        this->m_scrollwindow->GetSizer()->Clear();
+        this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Layout();
+    }
 }
 
 void MainFrame::ShowBitmap()
 {
-	m_activeEditor = nullptr;
-    m_stringView->Hide();
-    m_tilesetEditor->Hide();
-    this->m_scrollwindow->GetSizer()->Clear();
-    this->m_scrollwindow->GetSizer()->Layout();
-    this->m_scrollwindow->Refresh(true);
+    if (m_tilesetEditor->IsShown() || m_stringView->IsShown())
+    {
+        m_activeEditor = nullptr;
+        m_stringView->Hide();
+        m_tilesetEditor->Hide();
+        this->m_scrollwindow->GetSizer()->Clear();
+        this->m_scrollwindow->GetSizer()->Layout();
+        this->m_scrollwindow->Refresh(true);
+    }
 }
 
 void MainFrame::ForceRepaint()
@@ -749,6 +884,62 @@ void MainFrame::LoadBlocks(std::size_t offset)
     BlocksetCmp::Decode(m_rom.data(offset), m_rom.size(offset), m_blocks);
 }
 
+MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
+{
+    if (!force && CheckForFileChanges())
+    {
+        int answer = wxMessageBox("Do you want to save your changes?", "Message", wxYES_NO | wxCANCEL | wxICON_QUESTION);
+        if (answer == wxCANCEL)
+        {
+            return ReturnCode::CANCELLED;
+        }
+        else if (answer == wxYES)
+        {
+            auto result = Save();
+            if (result != ReturnCode::OK)
+            {
+                return result;
+            }
+        }
+    }
+    m_browser->DeleteAllItems();
+    m_browser->SetImageList(m_imgs);
+    m_properties->GetGrid()->Clear();
+    m_sprites.clear();
+    m_tilesetOffsets.clear();
+    m_blockOffsets.clear();
+    m_rooms.clear();
+    m_strings.clear();
+    Sprite::Reset();
+    Palette::Reset();
+    m_tsmgr.reset();
+    SetMode(MODE_NONE);
+    return ReturnCode::OK;
+}
+
+bool MainFrame::CheckForFileChanges()
+{
+    if (m_tsmgr && m_tsmgr->HasBeenModified())
+    {
+        return true;
+    }
+    return false;
+}
+
+void MainFrame::OpenFile(const wxString& path)
+{
+    auto extension = boost::filesystem::extension(path.ToStdString());
+    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+    if (extension == ".asm")
+    {
+        OpenAsmFile(path);
+    }
+    else
+    {
+        OpenRomFile(path);
+    }
+}
+
 void MainFrame::LoadTilemap(std::size_t offset)
 {
     LSTilemapCmp::Decode(m_rom.data(offset), m_tilemap);
@@ -776,11 +967,33 @@ void MainFrame::InitPals(const wxTreeItemId& node)
 
 void MainFrame::OnOpen(wxCommandEvent& event)
 {
-    wxFileDialog fdlog(this, "Open Landstalker ROM file", "", "",
-        "ROM files (*.bin; *.md)|*.bin;*.md", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    wxFileDialog fdlog(this, "Open file", "", "",
+        "All compatible files (*.bin; *.md; landstalker*.asm)|landstalker*.asm;*.bin;*.md|"
+        "ROM files (*.bin; *.md)|*.bin;*.md|"
+        "Top-level assembler file (landstalker*.asm)|landstalker*.asm|"
+        "All files (*.*)|*.*",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (fdlog.ShowModal() == wxID_OK)
     {
-        OpenRomFile(fdlog.GetPath());
+        OpenFile(fdlog.GetPath());
+    }
+    event.Skip();
+}
+
+void MainFrame::OnSaveAsAsm(wxCommandEvent& event)
+{
+    if (SaveAsAsm() == ReturnCode::ERR)
+    {
+        wxMessageBox("Failed to save as assembler", "Error", wxICON_ERROR);
+    }
+    event.Skip();
+}
+
+void MainFrame::OnSaveToRom(wxCommandEvent& event)
+{
+    if (SaveToRom() == ReturnCode::ERR)
+    {
+        wxMessageBox("Failed to save to ROM", "Error", wxICON_ERROR);
     }
     event.Skip();
 }
@@ -916,8 +1129,6 @@ void MainFrame::Refresh()
     case MODE_STRING:
     {
         ClearScreen();
-        m_mnu_export_png->Enable(false);
-        m_mnu_export_txt->Enable(true);
         m_stringView->ClearColumns();
         m_stringView->DeleteAllItems();
         m_stringView->AppendTextColumn("ID");
@@ -979,9 +1190,6 @@ void MainFrame::Refresh()
     case MODE_TILESET:
     {
         // Display tileset
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
-        //std::vector<uint8_t> tileset(m_rom.data(m_tilesetOffsets[m_tsidx]), m_rom.data(m_rom.size() - 1));
         m_tilesetEditor->SetPalettes(m_palettes);
         m_tilesetEditor->SetActivePalette("Room Palette 00");
         m_tilesetEditor->Open(m_tsmgr->GetTilesetByName(m_tsname));
@@ -992,8 +1200,6 @@ void MainFrame::Refresh()
         break;
     }
     case MODE_BLOCKSET:
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
         ShowBitmap();
         LoadTileset(m_tilesetOffsets[m_tsidx]);
@@ -1007,14 +1213,10 @@ void MainFrame::Refresh()
         break;
     case MODE_PALETTE:
         // Display palettes
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
         ShowBitmap();
         break;
     case MODE_ROOMMAP:
         // Display room map
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
         ShowBitmap();
         EnableLayerControls(true);
         InitRoom(m_roomnum);
@@ -1024,8 +1226,6 @@ void MainFrame::Refresh()
     case MODE_SPRITE:
     {
         // Display sprite
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
         ShowBitmap();
         EnableLayerControls(false);
         const auto& sprite = m_sprites[m_sprite_idx];
@@ -1035,16 +1235,12 @@ void MainFrame::Refresh()
     }
     case MODE_IMAGE:
         // Display image
-        m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
         ShowBitmap();
         EnableLayerControls(false);
         DrawImage(m_selImage, 2);
         break;
     case MODE_NONE:
     default:
-        m_mnu_export_png->Enable(false);
-        m_mnu_export_txt->Enable(false);
         EnableLayerControls(false);
         ShowBitmap();
         ClearScreen();
@@ -1118,46 +1314,6 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 
     event.Skip();
 }
-void MainFrame::OnButton1(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton2(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton3(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton4(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton5(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton6(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton7(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton8(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton9(wxCommandEvent& event)
-{
-    event.Skip();
-}
-void MainFrame::OnButton10(wxCommandEvent& event)
-{
-    event.Skip();
-}
 void MainFrame::OnKeyDown(wxKeyEvent& event)
 {
     event.Skip();
@@ -1202,6 +1358,15 @@ void MainFrame::OnScrollWindowRightUp(wxMouseEvent& event)
 {
     event.Skip();
 }
+void MainFrame::OnClose(wxCloseEvent& event)
+{
+    if(CloseFiles(!event.CanVeto()) != ReturnCode::OK)
+    {
+        event.Veto();
+        return;
+    }
+    event.Skip();
+}
 void MainFrame::OnLayerOpacityChange(wxScrollEvent& event)
 {
     DrawTilemap(m_scale, m_rpalidx);
@@ -1215,41 +1380,5 @@ void MainFrame::OnLayerSelect(wxCommandEvent& event)
 void MainFrame::OnLayerVisibilityChange(wxCommandEvent& event)
 {
     DrawTilemap(m_scale, m_rpalidx);
-    event.Skip();
-}
-void MainFrame::OnExportPng(wxCommandEvent& event)
-{
-    if (m_imgbuf.GetWidth() > 0)
-    {
-        wxFileDialog    fdlog(this, _("Export to PNG"), "", "",
-            "PNG file (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-
-        if (fdlog.ShowModal() == wxID_OK)
-        {
-            m_imgbuf.WritePNG(std::string(fdlog.GetPath()), m_palette);
-        }
-    }
-    event.Skip();
-}
-
-void MainFrame::OnExportTxt(wxCommandEvent& event)
-{
-    wxFileDialog    fdlog(this, _("Export to TXT"), "", "",
-            "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-
-    if (fdlog.ShowModal() == wxID_OK)
-    {
-        std::ofstream ofs(std::string(fdlog.GetPath()));
-        auto& strings = m_strings[m_strtab];
-        std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
-        if (strings.front()->GetHeaderRow() != "")
-        {
-            ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
-        }
-        for (auto string : strings)
-        {
-            ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
-        }
-    }
     event.Skip();
 }

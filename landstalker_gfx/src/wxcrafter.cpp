@@ -65,12 +65,12 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_mnu_open = new wxMenuItem(m_mnu_file, wxID_ANY, _("Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_open);
-    
-    m_mnu_export_png = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to PNG\tCtrl+P"), wxT(""), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_export_png);
-    
-    m_mnu_export_txt = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to TXT\tCtrl+T"), wxT(""), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_export_txt);
+
+    m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As Assembly..."), _("Save As Assembly"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save_as_asm);
+
+    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To ROM..."), _("Save To ROM"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save_to_rom);
     
     m_mnu_file->AppendSeparator();
     
@@ -340,9 +340,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrameBaseClass::OnMousewheel), NULL, this);
     this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnKeyDown), NULL, this);
     this->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
+    this->Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnClose), NULL, this);
     this->Connect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
-    this->Connect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
-    this->Connect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
+    this->Connect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
+    this->Connect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -369,16 +370,6 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_scrollwindow->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
     m_scrollwindow->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
     m_scrollwindow->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
-    this->Connect(11000, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton1), NULL, this);
-    this->Connect(11001, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton2), NULL, this);
-    this->Connect(11002, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton3), NULL, this);
-    this->Connect(11003, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton4), NULL, this);
-    this->Connect(11004, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton5), NULL, this);
-    this->Connect(11005, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton6), NULL, this);
-    this->Connect(11006, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton7), NULL, this);
-    this->Connect(11007, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton8), NULL, this);
-    this->Connect(11008, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton9), NULL, this);
-    this->Connect(11009, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton10), NULL, this);
     
 }
 
@@ -387,9 +378,10 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrameBaseClass::OnMousewheel), NULL, this);
     this->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnKeyDown), NULL, this);
     this->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
+    this->Disconnect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnClose), NULL, this);
     this->Disconnect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
-    this->Disconnect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
-    this->Disconnect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
+    this->Disconnect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
+    this->Disconnect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -416,16 +408,6 @@ MainFrameBaseClass::~MainFrameBaseClass()
     m_scrollwindow->Disconnect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
-    this->Disconnect(11000, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton1), NULL, this);
-    this->Disconnect(11001, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton2), NULL, this);
-    this->Disconnect(11002, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton3), NULL, this);
-    this->Disconnect(11003, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton4), NULL, this);
-    this->Disconnect(11004, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton5), NULL, this);
-    this->Disconnect(11005, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton6), NULL, this);
-    this->Disconnect(11006, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton7), NULL, this);
-    this->Disconnect(11007, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton8), NULL, this);
-    this->Disconnect(11008, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton9), NULL, this);
-    this->Disconnect(11009, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton10), NULL, this);
     
     m_window->UnInit();
     delete m_window;

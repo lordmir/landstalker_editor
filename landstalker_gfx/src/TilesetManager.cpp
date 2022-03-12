@@ -407,7 +407,7 @@ bool TilesetManager::LoadAsmTilesetFilenames()
 		{
 			file.Goto(ts.first);
 			file >> inc;
-			ts.second->filename = inc;
+			ts.second->filename = inc.path;
 		}
 		return true;
 	}
@@ -617,6 +617,18 @@ bool TilesetManager::HasTilesetBeenModified(const std::string& tileset) const
 	{
 		return (buf != *it->second->decompressed_data);
 	}
+}
+
+bool TilesetManager::HasBeenModified() const
+{
+	for (const auto& ts : m_tilesets_by_name)
+	{
+		if (HasTilesetBeenModified(ts.first))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool TilesetManager::UpdateTilesetCache(const std::string& tileset)

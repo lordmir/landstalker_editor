@@ -55,8 +55,8 @@ protected:
     wxMenuBar* m_menubar;
     wxMenu* m_mnu_file;
     wxMenuItem* m_mnu_open;
-    wxMenuItem* m_mnu_export_png;
-    wxMenuItem* m_mnu_export_txt;
+    wxMenuItem* m_mnu_save_as_asm;
+    wxMenuItem* m_mnu_save_to_rom;
     wxMenuItem* m_mnu_sep1;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
@@ -100,15 +100,19 @@ protected:
     {
         event.Skip();
     }
+    virtual void OnClose(wxCloseEvent& event)
+    {
+        event.Skip();
+    }
     virtual void OnOpen(wxCommandEvent& event)
     {
         event.Skip();
     }
-    virtual void OnExportPng(wxCommandEvent& event)
+    virtual void OnSaveAsAsm(wxCommandEvent& event)
     {
         event.Skip();
     }
-    virtual void OnExportTxt(wxCommandEvent& event)
+    virtual void OnSaveToRom(wxCommandEvent& event)
     {
         event.Skip();
     }
@@ -165,46 +169,6 @@ protected:
         event.Skip();
     }
     virtual void OnScrollWindowKeyUp(wxKeyEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton1(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton2(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton3(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton4(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton5(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton6(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton7(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton8(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton9(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnButton10(wxCommandEvent& event)
     {
         event.Skip();
     }

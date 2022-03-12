@@ -43,6 +43,7 @@ public:
 	
 	bool CheckDataWillFitInRom(const Rom& rom, int& tilesets_size, int& anim_table_size) const;
 	bool HasTilesetBeenModified(const std::string& tileset) const;
+	bool HasBeenModified() const;
 	bool InjectIntoRom(Rom& rom);
 	bool Save(boost::filesystem::path dir);
 	bool Save();
