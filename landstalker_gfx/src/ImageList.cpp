@@ -2,9 +2,11 @@
 #include <ImageList.h>
 
 ImageList::ImageList()
+	: wxImageList(16, 16, true)
 {
 	m_images["alpha"]                  = wxBITMAP_PNG_FROM_DATA(alpha_16x16);
 	m_images["append_tile"]            = wxBITMAP_PNG_FROM_DATA(append_tile_16x16);
+	m_images["ats"]                    = wxBITMAP_PNG_FROM_DATA(ats_16x16);
 	m_images["axe_magic"]              = wxBITMAP_PNG_FROM_DATA(axemagic_32x32);
 	m_images["bell"]                   = wxBITMAP_PNG_FROM_DATA(bell_32x32);
 	m_images["big_tiles"]              = wxBITMAP_PNG_FROM_DATA(bigtiles_16x16);
@@ -20,6 +22,7 @@ ImageList::ImageList()
 	m_images["delete_tile"]            = wxBITMAP_PNG_FROM_DATA(delete_tile_16x16);
 	m_images["drawing"]                = wxBITMAP_PNG_FROM_DATA(DRAWING_16x16);
 	m_images["einstein_whistle"]       = wxBITMAP_PNG_FROM_DATA(einsteinwhistle_32x32);
+	m_images["fonts"]                  = wxBITMAP_PNG_FROM_DATA(fonts_16x16);
 	m_images["find"]                   = wxBITMAP_PNG_FROM_DATA(FIND_16x16);
 	m_images["gridlines"]              = wxBITMAP_PNG_FROM_DATA(gridlines_16x16);
 	m_images["image"]                  = wxBITMAP_PNG_FROM_DATA(img_16x16);
@@ -48,6 +51,14 @@ ImageList::ImageList()
 	m_images["tile_nums"]              = wxBITMAP_PNG_FROM_DATA(tilenums_16x16);
 	m_images["tileset"]                = wxBITMAP_PNG_FROM_DATA(ts_16x16);
 	m_images["undo"]                   = wxBITMAP_PNG_FROM_DATA(UNDO_16x16);
+
+	for (const auto& img : m_images)
+	{
+		m_idxs.insert({ img.first, m_idxs.size() });
+		wxIcon ico;
+		ico.CopyFromBitmap(img.second);
+		this->Add(ico);
+	}
 }
 
 wxBitmap& ImageList::GetImage(const std::string& name)
@@ -63,4 +74,10 @@ wxBitmap& ImageList::GetImage(const std::string& name)
 const wxBitmap& ImageList::GetImage(const std::string& name) const
 {
 	return GetImage(name);
+}
+
+int ImageList::GetIdx(const std::string& name) const
+{
+	if (m_idxs.find(name) == m_idxs.end()) return -1;
+	return m_idxs.at(name);
 }

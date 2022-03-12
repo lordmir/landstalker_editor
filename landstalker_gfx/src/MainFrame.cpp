@@ -51,7 +51,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_palettes(std::make_shared<std::map<std::string, Palette>>()),
 	  m_activeEditor(nullptr)
 {
-    m_imgs = new ImgLst();
+    m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
@@ -121,32 +121,42 @@ void MainFrame::OpenRomFile(const wxString& path)
         Palette::Reset();
         SetMode(MODE_NONE);
 
+        const int str_img = m_imgs->GetIdx("string");
+        const int img_img = m_imgs->GetIdx("image");
+        const int ts_img = m_imgs->GetIdx("tileset");
+        const int ats_img = m_imgs->GetIdx("ats");
+        const int fonts_img = m_imgs->GetIdx("fonts");
+        const int bs_img = m_imgs->GetIdx("big_tiles");
+        const int pal_img = m_imgs->GetIdx("palette");
+        const int rm_img = m_imgs->GetIdx("room");
+        const int spr_img = m_imgs->GetIdx("sprite");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", 5, 5, new TreeNodeData());
-        wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", 6, 6, new TreeNodeData());
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
-        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", 1, 1, new TreeNodeData());
-        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", 3, 3, new TreeNodeData());
-        wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", 2, 2, new TreeNodeData());
-        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", 0, 0, new TreeNodeData());
-        wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", 4, 4, new TreeNodeData());
+        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
+        wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
+        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
+        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
+        wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
+        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
+        wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
         wxTreeItemId x;
 
         m_images = Images::GetImages(m_rom);
         for (const auto elem : m_images)
         {
-            x = m_browser->AppendItem(nodeI, elem.first, 6, 6, new TreeNodeData(TreeNodeData::NODE_IMAGE, 0));
+            x = m_browser->AppendItem(nodeI, elem.first, img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE, 0));
         }
 
-        x = m_browser->AppendItem(nodeS, "Compressed Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
-        x = m_browser->AppendItem(nodeS, "Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
-        x = m_browser->AppendItem(nodeS, "Special Character Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
-        x = m_browser->AppendItem(nodeS, "Default Character Name", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
-        x = m_browser->AppendItem(nodeS, "Item Names", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 4));
-        x = m_browser->AppendItem(nodeS, "Menu Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 5));
-        x = m_browser->AppendItem(nodeS, "Intro Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 6));
-        x = m_browser->AppendItem(nodeS, "End Credit Strings", 5, 5, new TreeNodeData(TreeNodeData::NODE_STRING, 7));
+        x = m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
+        x = m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
+        x = m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
+        x = m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
+        x = m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 4));
+        x = m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 5));
+        x = m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 6));
+        x = m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 7));
         auto huffman_trees = m_rom.read_array<uint8_t>("huff_tables");
         auto huffman_tree_offsets = m_rom.read_array<uint8_t>("huff_table_offsets");
         auto huff_trees = std::make_shared<HuffmanTrees>(huffman_tree_offsets.data(), huffman_tree_offsets.size(), huffman_trees.data(), huffman_trees.size(), huffman_tree_offsets.size()/2);
@@ -210,7 +220,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         for (const auto& sprite : m_sprites)
         {
             const auto& sg = sprite.second.GetGraphics();
-            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE,
+            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE,
                                              sprite.second.GetDefaultAnimationId() << 16 | sprite.second.GetDefaultFrameId() << 8 | sprite.first));
 
             for (std::size_t a = 0; a != sg.GetAnimationCount(); ++a)
@@ -218,12 +228,12 @@ void MainFrame::OpenRomFile(const wxString& path)
                 std::ostringstream ss;
                 ss.str(std::string());
                 ss << "ANIM" << a;
-                wxTreeItemId anim = m_browser->AppendItem(spr, ss.str(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | sprite.first));
+                wxTreeItemId anim = m_browser->AppendItem(spr, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | sprite.first));
                 for (std::size_t f = 0; f != sg.GetFrameCount(a); ++f)
                 {
                     ss.str(std::string());
                     ss << "FRAME" << f;
-                    m_browser->AppendItem(anim, ss.str(), 4, 4, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | f << 8 | sprite.first));
+                    m_browser->AppendItem(anim, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | f << 8 | sprite.first));
                 }
             }
         }
@@ -232,17 +242,25 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_tsmgr = std::make_shared<TilesetManager>(m_rom);
         for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
-            m_browser->AppendItem(nodeTs, t, 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
+        {
+            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
+        {
+            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         auto bt = m_rom.read_array<uint32_t>("blockset_ptr_table");
         for (std::size_t i = 0; i < bt.size(); ++i)
         {
 			auto bt_ptr = bt[i];
             m_blockOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
-            wxTreeItemId curTn = m_browser->AppendItem(nodeBs, Hex(bt_ptr), 3, 3, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16));
+            wxTreeItemId curTn = m_browser->AppendItem(nodeBs, Hex(bt_ptr), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16));
             for (std::size_t j = 0; j < 9; ++j)
             {
-                m_browser->AppendItem(curTn, Hex(m_blockOffsets.back()[j]), 3, 3, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16 | j));
+                m_browser->AppendItem(curTn, Hex(m_blockOffsets.back()[j]), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16 | j));
             }
         }
         const uint8_t* rm = m_rom.data(m_rom.read<uint32_t>("room_data_ptr"));
@@ -252,10 +270,11 @@ void MainFrame::OpenRomFile(const wxString& path)
             m_rooms.push_back(RoomData(rm));
             rm += 8;
             ss << i;
-            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, ss.str(), 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
-            m_browser->AppendItem(cRm, "Heightmap", 0, 0, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
+            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, ss.str(), rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
+            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
         }
         InitPals(nodeRPal);
+        m_asmfile = false;
     }
     catch(const std::runtime_error& e)
     {
@@ -273,15 +292,28 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
-
+        const int ts_img = m_imgs->GetIdx("tileset");
+        const int ats_img = m_imgs->GetIdx("ats");
+        const int fonts_img = m_imgs->GetIdx("fonts");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", 1, 1, new TreeNodeData());
+        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
+        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
 
         m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
         for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
-            m_browser->AppendItem(nodeTs, t, 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
+        {
+            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
+        {
+            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        m_asmfile = true;
     }
     catch (const std::runtime_error& e)
     {
@@ -640,7 +672,7 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->InitMenu(*this->m_menubar, m_imagelist);
+	frame->InitMenu(*this->m_menubar, *m_imgs);
 	event.Skip();
 }
 
@@ -1250,7 +1282,7 @@ void MainFrame::Refresh()
 
 ImageList& MainFrame::GetImageList()
 {
-	return m_imagelist;
+	return *m_imgs;
 }
 
 void MainFrame::OnBrowserSelect(wxTreeEvent& event)

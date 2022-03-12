@@ -206,8 +206,7 @@ private:
     std::shared_ptr<std::map<std::string, Palette>> m_palettes;
     std::string m_selected_palette;
     uint16_t m_pal[54][15];
-    ImgLst* m_imgs;
-	ImageList m_imagelist;
+	ImageList* m_imgs;
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;

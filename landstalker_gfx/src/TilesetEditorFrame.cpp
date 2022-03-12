@@ -502,6 +502,12 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxFileProperty("Filename", "FN", "untitled.bin"))->Enable(false);
 		props.Append(new wxStringProperty("Original Size", "OS", "0 bytes"))->Enable(false);
 		props.Append(new wxStringProperty("Uncompressed Size", "US", "0 bytes"))->Enable(false);
+		props.Append(new wxPropertyCategory("Animation", "A"));
+		props.Append(new wxIntProperty("Base Tileset", "ABT", 0));
+		props.Append(new wxIntProperty("Start From Tile", "AST", 0));
+		props.Append(new wxIntProperty("Number of tiles", "A#T", 0));
+		props.Append(new wxIntProperty("Number of frames", "A#F", 0));
+		props.Append(new wxIntProperty("Animation speed (FPS)", "AS", 0));
 		props.Append(new wxPropertyCategory("Tileset", "T"));
 		props.Append(new wxEnumProperty("Palette", "P", m_palette_list));
 		props.Append(new wxStringProperty("Colour Indicies", "I", ""));
@@ -525,11 +531,29 @@ void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 	{
 		if (m_ts_entry)
 		{
+			if (m_ts_entry->type == TilesetManager::Type::ANIMATED_MAP)
+			{
+				auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+				props.GetGrid()->SetPropertyValue("ABT", ats->GetBaseTileset());
+				props.GetGrid()->SetPropertyValue("AST", ats->GetStartTile().GetIndex());
+				props.GetGrid()->SetPropertyValue("A#T", static_cast<int>(ats->GetFrameSizeTiles()));
+				props.GetGrid()->SetPropertyValue("A#F", ats->GetAnimationFrames());
+				props.GetGrid()->SetPropertyValue("AS",  ats->GetAnimationSpeed());
+				props.GetGrid()->GetProperty("A")->Hide(false);
+			}
+			else
+			{
+				props.GetGrid()->GetProperty("A")->Hide(true);
+			}
 			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
 			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_ts_entry->raw_data->size()));
 			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_ts_entry->start_address)));
 			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
 			props.GetGrid()->SetPropertyValue("FN", _(m_ts_entry->filename.string()));
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("A")->Hide(true);
 		}
 		if (m_tileset)
 		{
@@ -568,6 +592,34 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		m_tilesetEditor->RedrawTiles();
 		m_tileEditor->Refresh();
 	}
+	else if (name == "ABT")
+	{
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		ats->SetBaseTileset(property->GetValuePlain().GetLong());
+	}
+	else if (name == "AST")
+	{
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		ats->SetStartTile(property->GetValuePlain().GetLong());
+
+	}
+	else if (name == "A#T")
+	{
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		ats->SetFrameSizeBytes(property->GetValuePlain().GetLong());
+
+	}
+	else if (name == "A#F")
+	{
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		ats->SetAnimationFrames(property->GetValuePlain().GetLong());
+	}
+	else if (name == "AS")
+	{
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		ats->SetAnimationSpeed(property->GetValuePlain().GetLong());
+	}
+
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
