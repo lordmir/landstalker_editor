@@ -5,12 +5,12 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <boost/format.hpp>
+#include <cstdio>
 
 const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN}, {"Align", Inst::ALIGN} };
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
-AsmFile::AsmFile(const boost::filesystem::path& filename, FileType type)
+AsmFile::AsmFile(const std::filesystem::path& filename, FileType type)
 	: m_filename(filename),
 	m_type(type)
 {
@@ -111,7 +111,7 @@ bool AsmFile::IsGood() const
 	return m_good && (m_readptr != m_data.end());
 }
 
-bool AsmFile::ReadFile(const boost::filesystem::path& filename, FileType type)
+bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
 {
 	m_filename = filename;
 	m_type = type;
@@ -166,7 +166,7 @@ bool AsmFile::ReadFile(const boost::filesystem::path& filename, FileType type)
 	return true;
 }
 
-bool AsmFile::WriteFile(const boost::filesystem::path& filename, FileType type)
+bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
 {
 	try
 	{
@@ -192,7 +192,7 @@ bool AsmFile::WriteFile(const boost::filesystem::path& filename, FileType type)
 	return false;
 }
 
-bool AsmFile::WriteFile(const boost::filesystem::path& filename)
+bool AsmFile::WriteFile(const std::filesystem::path& filename)
 {
 	return WriteFile(filename, m_type);
 }
@@ -238,17 +238,32 @@ AsmFile::FileType AsmFile::GetFileType() const
 	return m_type;
 }
 
-void AsmFile::WriteFileHeader(const boost::filesystem::path& p, const std::string& short_description)
+std::string AsmFile::PrintCentered(const std::string& str)
 {
-	boost::format f(";;  %=70s  ;;");
+	std::size_t width = 72;
+	std::string start = ";; ";
+	std::string end = " ;;";
+	if(str.length() >= width)
+	{
+		return start + str + end;
+	}
+	std::size_t spacing = (width - str.length()) / 2;
+	std::string result(spacing, ' ');
+	result += str;
+	result += std::string(width - result.length(), ' ');
+	return start + result + end;
+}
+
+void AsmFile::WriteFileHeader(const std::filesystem::path& p, const std::string& short_description)
+{
 	*this << AsmFile::Comment(std::string(78, ';'));
-	*this << AsmFile::Comment((f % short_description).str());
-	*this << AsmFile::Comment((f % p.string()).str());
-	*this << AsmFile::Comment((f % "").str());
-	*this << AsmFile::Comment((f % "Generated using the Landstalker editor:").str());
-	*this << AsmFile::Comment((f % "https://github.com/lordmir/landstalker_gfx").str());
-	*this << AsmFile::Comment((f % "For use with the Landstalker disassembly:").str());
-	*this << AsmFile::Comment((f % "https://github.com/lordmir/landstalker_disasm").str());
+	*this << AsmFile::Comment(PrintCentered(short_description));
+	*this << AsmFile::Comment(PrintCentered(p.string()));
+	*this << AsmFile::Comment(PrintCentered(""));
+	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker editor:"));
+	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_gfx"));
+	*this << AsmFile::Comment(PrintCentered("For use with the Landstalker disassembly:"));
+	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_disasm"));
 	*this << AsmFile::Comment(std::string(78, ';'));
 	*this << AsmFile::NewLine() << AsmFile::NewLine();
 }
@@ -265,7 +280,7 @@ bool AsmFile::Read(const GotoLabel& label)
 }
 
 template<>
-bool AsmFile::Read(boost::filesystem::path& path)
+bool AsmFile::Read(std::filesystem::path& path)
 {
 	bool ret = false;
 	AsmFile::IncludeFile file;

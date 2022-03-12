@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <sstream>
 #include <numeric>
+#include <iterator>
 #include "Utils.h"
 #include "LZ77.h"
 

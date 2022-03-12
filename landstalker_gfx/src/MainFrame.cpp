@@ -8,7 +8,7 @@
 #include <codecvt>
 #include <locale>
 #include <algorithm>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <wx/wx.h>
 #include <wx/aboutdlg.h>
@@ -928,7 +928,7 @@ bool MainFrame::CheckForFileChanges()
 
 void MainFrame::OpenFile(const wxString& path)
 {
-    auto extension = boost::filesystem::extension(path.ToStdString());
+    auto extension = std::filesystem::path(path.ToStdString()).extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
     if (extension == ".asm")
     {

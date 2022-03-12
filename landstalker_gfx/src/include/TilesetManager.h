@@ -6,7 +6,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <AsmFile.h>
 #include <AnimatedTileset.h>
@@ -32,20 +32,20 @@ public:
 		Type type;
 		uint32_t start_address;
 		uint32_t end_address;
-		boost::filesystem::path filename;
+		std::filesystem::path filename;
 		std::string ptrname;
 		std::shared_ptr<std::vector<uint8_t>> raw_data;
 		std::shared_ptr<std::vector<uint8_t>> decompressed_data;
 	};
 
-	TilesetManager(const boost::filesystem::path& asm_file);
+	TilesetManager(const std::filesystem::path& asm_file);
 	TilesetManager(const Rom& rom);
 	
 	bool CheckDataWillFitInRom(const Rom& rom, int& tilesets_size, int& anim_table_size) const;
 	bool HasTilesetBeenModified(const std::string& tileset) const;
 	bool HasBeenModified() const;
 	bool InjectIntoRom(Rom& rom);
-	bool Save(boost::filesystem::path dir);
+	bool Save(std::filesystem::path dir);
 	bool Save();
 	std::shared_ptr<Tileset> GetTileset(const std::string& name);
 
@@ -74,20 +74,20 @@ private:
 	bool UpdateTilesetCache(const std::string& tileset);
 	std::vector<uint8_t> GetTilesetBits(const std::string& tileset) const;
 
-	void SaveTilesetsToDisk(const boost::filesystem::path& dir);
+	void SaveTilesetsToDisk(const std::filesystem::path& dir);
 	void SaveTilesetsToRom(Rom& rom);
-	void SaveTilesetToFile(const boost::filesystem::path& dir, const std::string& name) const;
-	bool SaveAsmTilesetFilenames(const boost::filesystem::path& dir);
-	bool SaveAsmAnimatedTilesetData(const boost::filesystem::path& dir);
+	void SaveTilesetToFile(const std::filesystem::path& dir, const std::string& name) const;
+	bool SaveAsmTilesetFilenames(const std::filesystem::path& dir);
+	bool SaveAsmAnimatedTilesetData(const std::filesystem::path& dir);
 	bool SaveRomAnimatedTilesetData(Rom& rom);
-	bool SaveAsmTilesetPointerData(const boost::filesystem::path& dir);
+	bool SaveAsmTilesetPointerData(const std::filesystem::path& dir);
 	bool SaveRomTilesetPointerData(Rom& rom);
 
-	boost::filesystem::path m_asm_filename;
-	boost::filesystem::path m_base_path;
-	boost::filesystem::path m_tileset_data_filename;
-	boost::filesystem::path m_tileset_ptrtab_filename;
-	boost::filesystem::path m_tileset_anim_filename;
+	std::filesystem::path m_asm_filename;
+	std::filesystem::path m_base_path;
+	std::filesystem::path m_tileset_data_filename;
+	std::filesystem::path m_tileset_ptrtab_filename;
+	std::filesystem::path m_tileset_anim_filename;
 
 	std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
 	std::map<std::shared_ptr<Tileset>, std::shared_ptr<TilesetEntry>> m_tilesets_by_ptr;

@@ -80,7 +80,7 @@ template<>
 bool AsmFile::Read(Label& label);
 
 template<>
-bool AsmFile::Read(boost::filesystem::path& label);
+bool AsmFile::Read(std::filesystem::path& label);
 
 template<template<typename, typename...> class C, typename T, typename... Rest>
 bool AsmFile::Read(C<T, Rest...>& container)

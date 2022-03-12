@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <iterator>
+#include <algorithm>
 
 void Debug(const std::string& message)
 {
@@ -48,7 +49,7 @@ std::vector<uint8_t> ReadBytes(const std::string& filename)
 	return ret;
 }
 
-std::vector<uint8_t> ReadBytes(const boost::filesystem::path& filename)
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename)
 {
 	return ReadBytes(filename.string());
 }
@@ -63,7 +64,7 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
 }
 
-void WriteBytes(const std::vector<uint8_t>& data, const boost::filesystem::path& filename)
+void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename)
 {
 	WriteBytes(data, filename.string());
 }
