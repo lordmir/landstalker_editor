@@ -80,9 +80,6 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 
 MainFrame::~MainFrame()
 {
-    delete m_stringView;
-	delete m_tilesetEditor;
-    delete m_imgs;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -230,10 +227,11 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
-        for (std::size_t i = 0; i < m_tilesetOffsets.size(); ++i)
+        //m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
+        m_tsmgr = std::make_shared<TilesetManager>(m_rom);
+        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
-            m_browser->AppendItem(nodeTs, Hex(m_tilesetOffsets[i]), 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET, i));
+            m_browser->AppendItem(nodeTs, t, 1, 1, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         auto bt = m_rom.read_array<uint32_t>("blockset_ptr_table");
         for (std::size_t i = 0; i < bt.size(); ++i)
@@ -983,10 +981,10 @@ void MainFrame::Refresh()
         // Display tileset
         m_mnu_export_png->Enable(true);
         m_mnu_export_txt->Enable(false);
-        std::vector<uint8_t> tileset(m_rom.data(m_tilesetOffsets[m_tsidx]), m_rom.data(m_rom.size() - 1));
+        //std::vector<uint8_t> tileset(m_rom.data(m_tilesetOffsets[m_tsidx]), m_rom.data(m_rom.size() - 1));
         m_tilesetEditor->SetPalettes(m_palettes);
         m_tilesetEditor->SetActivePalette("Room Palette 00");
-        m_tilesetEditor->Open(tileset, true);
+        m_tilesetEditor->Open(m_tsmgr->GetTilesetByName(m_tsname));
         ShowTileset();
         EnableLayerControls(false);
         //LoadTileset(m_tilesetOffsets[m_tsidx]);
@@ -1072,6 +1070,7 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
         break;
     case TreeNodeData::NODE_TILESET:
         m_tsidx = itemData->GetValue();
+        m_tsname = item;
         SetMode(MODE_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:

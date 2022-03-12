@@ -281,7 +281,7 @@ bool AsmFile::Read(boost::filesystem::path& path)
 			return false;
 		}
 	}
-	path = file;
+	path = file.path;
 	return ret;
 }
 

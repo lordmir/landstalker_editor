@@ -87,27 +87,31 @@ bool TilesetEditor::Save(wxString filename, bool compressed)
 	return m_tileset->Save(filename.ToStdString(), compressed);
 }
 
-bool TilesetEditor::Open(wxString filename, int tile_width, int tile_height, int tile_bitdepth)
+bool TilesetEditor::Open(wxString filename, bool compressed, int tile_width, int tile_height, int tile_bitdepth)
 {
-	return false;
+	return Open(std::make_shared<Tileset>(filename.ToStdString(), compressed, tile_width, tile_height, tile_bitdepth));
 }
 
-bool TilesetEditor::Open(std::vector<uint8_t>& pixels, bool uses_compression, int tile_width, int tile_height, int tile_bitdepth)
+bool TilesetEditor::Open(std::shared_ptr<Tileset> ts)
 {
-	bool retval = false;
 	try
 	{
-		m_tileset = std::make_shared<Tileset>(pixels, uses_compression, tile_width, tile_height, tile_bitdepth);
+		m_tileset = ts;
 
 		UpdateRowCount();
 		ForceRedraw();
-		retval = true;
+		return true;
 	}
 	catch (std::exception& e)
 	{
 		Debug(e.what());
 	}
-	return retval;
+	return false;
+}
+
+bool TilesetEditor::Open(std::vector<uint8_t>& pixels, bool uses_compression, int tile_width, int tile_height, int tile_bitdepth)
+{
+	return Open(std::make_shared<Tileset>(pixels, uses_compression, tile_width, tile_height, tile_bitdepth));
 }
 
 bool TilesetEditor::New(int r, int c)

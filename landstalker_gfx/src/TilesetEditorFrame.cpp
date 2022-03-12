@@ -496,10 +496,11 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		}
 		props.GetGrid()->Clear();
 		props.Append(new wxPropertyCategory("Main", "M"));
+		props.Append(new wxStringProperty("Name", "N", ""))->Enable(false);
 		props.Append(new wxStringProperty("Start Address", "SA", "0x000000"))->Enable(false);
 		props.Append(new wxStringProperty("End Address", "EA", "0x000000"))->Enable(false);
 		props.Append(new wxFileProperty("Filename", "FN", "untitled.bin"))->Enable(false);
-		props.Append(new wxStringProperty("Compressed Size", "CS", "0 bytes"))->Enable(false);
+		props.Append(new wxStringProperty("Original Size", "OS", "0 bytes"))->Enable(false);
 		props.Append(new wxStringProperty("Uncompressed Size", "US", "0 bytes"))->Enable(false);
 		props.Append(new wxPropertyCategory("Tileset", "T"));
 		props.Append(new wxEnumProperty("Palette", "P", m_palette_list));
@@ -522,6 +523,14 @@ void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 	}
 	else
 	{
+		if (m_ts_entry)
+		{
+			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
+			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_ts_entry->raw_data->size()));
+			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_ts_entry->start_address)));
+			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
+			props.GetGrid()->SetPropertyValue("FN", _(m_ts_entry->filename.string()));
+		}
 		if (m_tileset)
 		{
 			props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
@@ -730,6 +739,23 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 {
 	bool retval = false;
 	retval = m_tilesetEditor->Open(pixels, uses_compression, tile_width, tile_height, tile_bitdepth);
+	if (retval)
+	{
+		m_tileset = m_tilesetEditor->GetTileset();
+		m_tile = 0;
+		m_tilesetEditor->SelectTile(m_tile.GetIndex());
+		m_tileEditor->SetTileset(m_tileset);
+		m_tileEditor->SetTile(m_tile);
+	}
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	return retval;
+}
+
+bool TilesetEditorFrame::Open(std::shared_ptr<TilesetManager::TilesetEntry> ts_entry)
+{
+	m_ts_entry = ts_entry;
+	bool retval = m_tilesetEditor->Open(m_ts_entry->tileset);
 	if (retval)
 	{
 		m_tileset = m_tilesetEditor->GetTileset();

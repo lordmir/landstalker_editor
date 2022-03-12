@@ -15,6 +15,7 @@
 #include "TileEditor.h"
 #include "Palette.h"
 #include "EditorFrame.h"
+#include "TilesetManager.h"
 
 class TilesetEditorFrame : public EditorFrame
 {
@@ -31,6 +32,7 @@ public:
 	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
 	void SetActivePalette(const std::string& name);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
+	bool Open(std::shared_ptr<TilesetManager::TilesetEntry> ts_entry);
 
 private:
 	void OnZoom(wxCommandEvent& evt);
@@ -83,6 +85,8 @@ private:
 	Tile m_tile;
 	int m_inputBuffer;
 	mutable wxAuiManager m_mgr;
+	std::shared_ptr<TilesetManager> m_tsmgr;
+	std::shared_ptr<TilesetManager::TilesetEntry> m_ts_entry;
 
 	std::string m_title;
 

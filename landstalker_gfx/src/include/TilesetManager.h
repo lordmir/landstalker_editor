@@ -49,7 +49,9 @@ public:
 	std::shared_ptr<Tileset> GetTileset(const std::string& name);
 
 	std::shared_ptr<const TilesetEntry> GetTilesetByName(const std::string& name) const;
+	std::shared_ptr<TilesetEntry> GetTilesetByName(const std::string& name);
 	std::shared_ptr<const TilesetEntry> GetTilesetByPtr(std::shared_ptr<Tileset> ts) const;
+	std::shared_ptr<TilesetEntry> GetTilesetByPtr(std::shared_ptr<Tileset> ts);
 	std::vector<std::string> GetTilesetList() const;
 	std::vector<std::string> GetTilesetList(Type type) const;
 	bool RenameTileset(const std::string& origname, const std::string& newname);

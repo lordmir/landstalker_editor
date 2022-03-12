@@ -25,7 +25,8 @@ public:
 	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
 	std::shared_ptr<Tileset> GetTileset();
 	bool Save(wxString filename, bool compressed = false);
-	bool Open(wxString filename, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
+	bool Open(wxString filename, bool compressed = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
+	bool Open(std::shared_ptr<Tileset> ts);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool New(int r, int c);
 	void RedrawTiles(int index = -1);

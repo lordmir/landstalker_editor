@@ -19,6 +19,7 @@
 #include "Images.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
+#include "TilesetManager.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -206,5 +207,8 @@ private:
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
+
+    std::shared_ptr<TilesetManager> m_tsmgr;
+    std::string m_tsname;
 };
 #endif // MAINFRAME_H

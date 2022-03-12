@@ -117,9 +117,6 @@
     <ClCompile Include="..\src\ImageList.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\TilesetManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\AnimatedTileset.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -127,6 +124,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Rom.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TilesetManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
