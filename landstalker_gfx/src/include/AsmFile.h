@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <variant>
 #include <map>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <Utils.h>
 
 class AsmFile
@@ -33,14 +33,14 @@ public:
 		IncludeFile(const std::string& ppath, FileType ptype)
 			: path(RemoveQuotes(ppath)), type(ptype)
 		{}
-		IncludeFile(const boost::filesystem::path& ppath, FileType ptype)
+		IncludeFile(const std::filesystem::path& ppath, FileType ptype)
 			: path(ppath), type(ptype)
 		{}
 		IncludeFile() : type(ASSEMBLER) {}
 		operator std::string() { return path.string(); }
-		operator const boost::filesystem::path&() { return path; }
+		operator const std::filesystem::path&() { return path; }
 
-		boost::filesystem::path path;
+		std::filesystem::path path;
 		FileType type;
 	};
 
@@ -74,7 +74,7 @@ public:
 
 	struct NewLine {};
 
-	AsmFile(const boost::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
+	AsmFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	AsmFile(FileType type = FileType::ASSEMBLER);
 
 	template<typename T>
@@ -96,9 +96,9 @@ public:
 	bool Goto(const Label& label);
 
 	bool IsGood() const;
-	bool ReadFile(const boost::filesystem::path& filename, FileType type = ASSEMBLER);
-	bool WriteFile(const boost::filesystem::path& filename, FileType type);
-	bool WriteFile(const boost::filesystem::path& filename);
+	bool ReadFile(const std::filesystem::path& filename, FileType type = ASSEMBLER);
+	bool WriteFile(const std::filesystem::path& filename, FileType type);
+	bool WriteFile(const std::filesystem::path& filename);
 	std::ostream& PrintFile(std::ostream& stream);
 
 	std::size_t GetLineCount() const;
@@ -107,7 +107,7 @@ public:
 	FileType GetFileType() const;
 
 
-	void WriteFileHeader(const boost::filesystem::path& p, const std::string& short_description);
+	void WriteFileHeader(const std::filesystem::path& p, const std::string& short_description);
 
 	template<typename T>
 	bool Read(T& value);
@@ -168,6 +168,7 @@ private:
 	bool ParseLine(AsmLine& line, const std::string& str);
 	int64_t ParseValue(std::string val);
 	int GetWidth(const AsmLine& line);
+	std::string PrintCentered(const std::string& str);
 
 	template<AsmFile::Inst>
 	bool ProcessInst(const AsmFile::AsmLine& line);
@@ -204,7 +205,7 @@ private:
 
 	bool m_good;
 	FileType m_type;
-	boost::filesystem::path m_filename;
+	std::filesystem::path m_filename;
 	std::vector<AsmLine> m_asm;
 	AsmLine m_nextline;
 	std::vector<std::variant<uint8_t, std::string, IncludeFile>> m_data;

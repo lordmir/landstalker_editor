@@ -5,7 +5,7 @@ CXXFLAGS	= `wx-config --cxxflags` -std=c++17
 CPPFLAGS	= `wx-config --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))
-LIBS		:= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng -lboost_filesystem -lboost_system
+LIBS		:= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
 SRCDIR  	:= src
 BUILDDIR	:= build
 BINDIR		:= bin

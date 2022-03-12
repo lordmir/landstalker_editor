@@ -1,15 +1,14 @@
 #include <TilesetManager.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <boost/bimap.hpp>
+#include <filesystem>
 
 #include <exception>
 #include <set>
 #include <LZ77.h>
 #include <RomOffsets.h>
+#include <Utils.h>
 
-TilesetManager::TilesetManager(const boost::filesystem::path& asm_file)
+TilesetManager::TilesetManager(const std::filesystem::path& asm_file)
 	: m_asm_filename(asm_file)
 {
 	if (!GetTilesetAsmFilenames())
@@ -101,9 +100,9 @@ bool TilesetManager::InjectIntoRom(Rom& rom)
 	return true;
 }
 
-bool TilesetManager::Save(boost::filesystem::path dir)
+bool TilesetManager::Save(std::filesystem::path dir)
 {
-	if (boost::filesystem::exists(dir) && boost::filesystem::is_regular_file(dir))
+	if (std::filesystem::exists(dir) && std::filesystem::is_regular_file(dir))
 	{
 		dir = dir.parent_path();
 	}
@@ -143,7 +142,14 @@ std::shared_ptr<Tileset> TilesetManager::GetTileset(const std::string& name)
 
 std::shared_ptr<const TilesetManager::TilesetEntry> TilesetManager::GetTilesetByName(const std::string& name) const
 {
-	return GetTilesetByName(name);
+	if (m_tilesets_by_name.find(name) == m_tilesets_by_name.end())
+	{
+		return nullptr;
+	}
+	else
+	{
+		return m_tilesets_by_name.at(name);
+	}
 }
 
 std::shared_ptr<TilesetManager::TilesetEntry> TilesetManager::GetTilesetByName(const std::string& name)
@@ -160,7 +166,14 @@ std::shared_ptr<TilesetManager::TilesetEntry> TilesetManager::GetTilesetByName(c
 
 std::shared_ptr<const TilesetManager::TilesetEntry> TilesetManager::GetTilesetByPtr(std::shared_ptr<Tileset> ts) const
 {
-	return GetTilesetByPtr(ts);
+	if (m_tilesets_by_ptr.find(ts) == m_tilesets_by_ptr.end())
+	{
+		return nullptr;
+	}
+	else
+	{
+		return m_tilesets_by_ptr.at(ts);
+	}
 }
 
 std::shared_ptr<TilesetManager::TilesetEntry> TilesetManager::GetTilesetByPtr(std::shared_ptr<Tileset> ts)
@@ -268,9 +281,9 @@ bool TilesetManager::GetTilesetAsmFilenames()
 		f >> m_tileset_ptrtab_filename;
 		f.Goto(RomOffsets::Tilesets::ANIM_DATA_LOC);
 		f >> m_tileset_anim_filename;
-		if (boost::filesystem::exists(m_base_path / m_tileset_anim_filename) &&
-			boost::filesystem::exists(m_base_path / m_tileset_ptrtab_filename) &&
-		    boost::filesystem::exists(m_base_path / m_tileset_data_filename))
+		if (std::filesystem::exists(m_base_path / m_tileset_anim_filename) &&
+			std::filesystem::exists(m_base_path / m_tileset_ptrtab_filename) &&
+		    std::filesystem::exists(m_base_path / m_tileset_data_filename))
 		{
 			return true;
 		}
@@ -472,9 +485,9 @@ bool TilesetManager::LoadRomAnimatedTilesetData(const Rom& rom)
 		}
 		animts_list[*idx].insert(ts_entry->name);
 		std::size_t subts = animts_list[*idx].size();
-		ts_entry->name = (boost::format(RomOffsets::Tilesets::ANIM_LABEL_FORMAT_STRING) % (*idx + 1) % subts).str();
-		ts_entry->ptrname = (boost::format(RomOffsets::Tilesets::ANIM_PTR_LABEL_FORMAT_STRING) % (*idx + 1) % subts).str();
-		ts_entry->filename = (boost::format(RomOffsets::Tilesets::ANIM_FILENAME_FORMAT_STRING) % (*idx + 1) % subts).str();
+		ts_entry->name = StrPrintf(RomOffsets::Tilesets::ANIM_LABEL_FORMAT_STRING, *idx + 1, subts);
+		ts_entry->ptrname = StrPrintf(RomOffsets::Tilesets::ANIM_PTR_LABEL_FORMAT_STRING, *idx + 1, subts);
+		ts_entry->filename = StrPrintf(RomOffsets::Tilesets::ANIM_FILENAME_FORMAT_STRING, *idx + 1, subts);
 		ts->SetBaseTileset(*idx);
 		m_animated_ts_ptrorder.push_back(ts_entry);
 		m_tilesets_by_name.insert({ ts_entry->name, ts_entry });
@@ -530,8 +543,8 @@ bool TilesetManager::LoadRomTilesetPointerData(const Rom& rom)
 		if (it == m_animated_ts_ptrorder.end() && ts_addr != 0)
 		{
 			ts_idx++;
-			std::string name = (boost::format(RomOffsets::Tilesets::LABEL_FORMAT_STRING) % ts_idx).str();
-			std::string filename = (boost::format(RomOffsets::Tilesets::FILENAME_FORMAT_STRING) % ts_idx).str();
+			std::string name = StrPrintf(RomOffsets::Tilesets::LABEL_FORMAT_STRING, ts_idx);
+			std::string filename = StrPrintf(RomOffsets::Tilesets::FILENAME_FORMAT_STRING, ts_idx);
 			auto ts = std::make_shared<Tileset>();
 			auto ts_entry = std::make_shared<TilesetEntry>(name, ts, Type::MAP);
 			ts_entry->filename = filename;
@@ -669,7 +682,7 @@ std::vector<uint8_t> TilesetManager::GetTilesetBits(const std::string& tileset) 
 	}
 }
 
-void TilesetManager::SaveTilesetsToDisk(const boost::filesystem::path& dir)
+void TilesetManager::SaveTilesetsToDisk(const std::filesystem::path& dir)
 {
 	for (const auto& ts : m_tilesets_by_name)
 	{
@@ -705,7 +718,7 @@ void TilesetManager::SaveTilesetsToRom(Rom& rom)
 	}
 }
 
-void TilesetManager::SaveTilesetToFile(const boost::filesystem::path& dir, const std::string& name) const
+void TilesetManager::SaveTilesetToFile(const std::filesystem::path& dir, const std::string& name) const
 {
 	auto ts = m_tilesets_by_name.find(name);
 	if (ts == m_tilesets_by_name.end())
@@ -714,15 +727,15 @@ void TilesetManager::SaveTilesetToFile(const boost::filesystem::path& dir, const
 	}
 	auto fname = dir / ts->second->filename;
 	std::vector<uint8_t> buf = ts->second->tileset->GetBits();
-	if (!boost::filesystem::is_directory(fname.parent_path()) &&
-		!boost::filesystem::create_directories(fname.parent_path()))
+	if (!std::filesystem::is_directory(fname.parent_path()) &&
+		!std::filesystem::create_directories(fname.parent_path()))
 	{
 		throw std::runtime_error(std::string("Unable to create directory \"") + dir.parent_path().string() + "\"");
 	}
 	WriteBytes(GetTilesetBits(ts->first), fname);
 }
 
-bool TilesetManager::SaveAsmTilesetFilenames(const boost::filesystem::path& dir)
+bool TilesetManager::SaveAsmTilesetFilenames(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -751,8 +764,8 @@ bool TilesetManager::SaveAsmTilesetFilenames(const boost::filesystem::path& dir)
 			m_tileset_data_filename = RomOffsets::Tilesets::INCLUDE_FILE;
 		}
 		auto f = dir / m_tileset_data_filename;
-		if (!boost::filesystem::is_directory(f.parent_path()) &&
-			!boost::filesystem::create_directories(f.parent_path()))
+		if (!std::filesystem::is_directory(f.parent_path()) &&
+			!std::filesystem::create_directories(f.parent_path()))
 		{
 			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
 		}
@@ -765,7 +778,7 @@ bool TilesetManager::SaveAsmTilesetFilenames(const boost::filesystem::path& dir)
 	return false;
 }
 
-bool TilesetManager::SaveAsmAnimatedTilesetData(const boost::filesystem::path& dir)
+bool TilesetManager::SaveAsmAnimatedTilesetData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -794,8 +807,8 @@ bool TilesetManager::SaveAsmAnimatedTilesetData(const boost::filesystem::path& d
 			m_tileset_anim_filename = RomOffsets::Tilesets::ANIM_FILE;
 		}
 		auto f = dir / m_tileset_anim_filename;
-		if (!boost::filesystem::is_directory(f.parent_path()) &&
-			!boost::filesystem::create_directories(f.parent_path()))
+		if (!std::filesystem::is_directory(f.parent_path()) &&
+			!std::filesystem::create_directories(f.parent_path()))
 		{
 			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
 		}
@@ -841,7 +854,7 @@ bool TilesetManager::SaveRomAnimatedTilesetData(Rom& rom)
 	return true;
 }
 
-bool TilesetManager::SaveAsmTilesetPointerData(const boost::filesystem::path& dir)
+bool TilesetManager::SaveAsmTilesetPointerData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -870,8 +883,8 @@ bool TilesetManager::SaveAsmTilesetPointerData(const boost::filesystem::path& di
 			m_tileset_ptrtab_filename = RomOffsets::Tilesets::PTRTAB_FILE;
 		}
 		auto f = dir / m_tileset_ptrtab_filename;
-		if (!boost::filesystem::is_directory(f.parent_path()) &&
-			!boost::filesystem::create_directories(f.parent_path()))
+		if (!std::filesystem::is_directory(f.parent_path()) &&
+			!std::filesystem::create_directories(f.parent_path()))
 		{
 			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
 		}
