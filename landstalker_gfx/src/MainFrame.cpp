@@ -811,7 +811,7 @@ void MainFrame::Refresh()
     case MODE_ROOMMAP:
         // Display room map
         m_mnu_export_png->Enable(true);
-        m_mnu_export_txt->Enable(false);
+        m_mnu_export_txt->Enable(true);
         m_stringView->Hide();
         EnableLayerControls(true);
         InitRoom(m_roomnum);
@@ -1022,24 +1022,56 @@ void MainFrame::OnExportPng(wxCommandEvent& event)
     }
     event.Skip();
 }
-
-void MainFrame::OnExportTxt(wxCommandEvent& event)
+void MainFrame::OnExportTxt(wxCommandEvent &event)
 {
-    wxFileDialog    fdlog(this, _("Export to TXT"), "", "",
-            "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    wxFileDialog fdlog(this, _("Export to TXT"), "", "",
+                       "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
     if (fdlog.ShowModal() == wxID_OK)
     {
         std::ofstream ofs(std::string(fdlog.GetPath()));
-        auto& strings = m_strings[m_strtab];
-        std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
-        if (strings.front()->GetHeaderRow() != "")
+
+        switch (m_mode)
         {
-            ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
+        case MODE_STRING:
+        {
+            auto &strings = m_strings[m_strtab];
+            std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
+            if (strings.front()->GetHeaderRow() != "")
+            {
+                ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
+            }
+            for (auto string : strings)
+            {
+                ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
+            }
         }
-        for (auto string : strings)
+        break;
+        case MODE_ROOMMAP:
         {
-            ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
+            std::string heightMapString;
+            const std::size_t ROW_WIDTH = m_tilemap.hmwidth;
+            const std::size_t ROW_HEIGHT = m_tilemap.hmheight;
+
+            std::size_t p = 0;
+            for (std::size_t y = 0; y < ROW_HEIGHT; ++y)
+                for (std::size_t x = 0; x < ROW_WIDTH; ++x)
+                {
+                    // Only output cells that are not completely restricted
+                    if ((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
+                    {
+                        std::stringstream ss;
+                        ss << static_cast<unsigned>(x) << " "
+                           << static_cast<unsigned>(y) << " "
+                           << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].height) << " "
+                           << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << " "
+                           << std::setfill('0') << std::setw(2) << static_cast<unsigned>(m_tilemap.heightmap[p].classification);
+                        ofs << ss.str() << std::endl;
+                    }
+                    p++;
+                }
+        }
+        break;
         }
     }
     event.Skip();
