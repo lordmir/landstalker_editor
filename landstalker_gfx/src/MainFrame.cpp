@@ -1085,7 +1085,7 @@ void MainFrame::OnExportTxt(wxCommandEvent &event)
                         std::size_t yy = y - m_tilemap.GetTop() + 12;
                         std::size_t zz = m_tilemap.heightmap[p].height;
                         wxPoint xy(m_tilemap.foreground.ToXYPoint3D(TilePoint3D{xx, yy, zz}));
-                        ofs << x << y << xy.x << xy.y << zz << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << static_cast<unsigned>(m_tilemap.heightmap[p].classification) << std::endl;
+                        ofs << x << " " << y << " " << xy.x << " " << xy.y << " " << zz << " " << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << " " << static_cast<unsigned>(m_tilemap.heightmap[p].classification) << std::endl;
                     }
                     p++;
                 }
