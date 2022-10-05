@@ -1,11 +1,12 @@
 CXX	= g++
 LD	= g++
+WXCONFIG	= wx-config
 
-CXXFLAGS	= `wx-config --cxxflags` -std=c++17
-CPPFLAGS	= `wx-config --cppflags`
+CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++17
+CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))
-LIBS		:= `wx-config --libs xrc,propgrid,aui,adv,core,base` -lpng
+LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base` -lpng
 SRCDIR  	:= src
 BUILDDIR	:= build
 BINDIR		:= bin

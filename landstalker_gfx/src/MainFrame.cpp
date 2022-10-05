@@ -753,8 +753,8 @@ void MainFrame::Refresh()
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1Y())));
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2X())));
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2Y())));
-                data.push_back(wxVariant(intro_string->GetLine(0)));
-                data.push_back(wxVariant(intro_string->GetLine(1)));
+                data.push_back(wxVariant(wxString(intro_string->GetLine(0))));
+                data.push_back(wxVariant(wxString(intro_string->GetLine(1))));
             }
             else if (m_strtab == 7)
             {
@@ -763,11 +763,11 @@ void MainFrame::Refresh()
                 col = col > 0x7F ? col - 0x100 : col;
                 data.push_back(wxVariant(wxString::Format("%d", col)));
                 data.push_back(wxVariant(wxString::Format("%u", end_credit_string->GetHeight())));
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+                data.push_back(wxVariant(wxString(m_strings[m_strtab][i]->Str())));
             }
             else
             {
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+                data.push_back(wxVariant(wxString(m_strings[m_strtab][i]->Str())));
             }
             m_stringView->AppendItem(data);
         }
