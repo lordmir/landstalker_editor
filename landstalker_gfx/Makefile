@@ -1,21 +1,21 @@
-CXX     = g++
-LD      = g++
-WXCONFIG = wx-config
+CXX	= g++
+LD	= g++
+WXCONFIG	= wx-config
 
-CXXFLAGS        = `$(WXCONFIG) --cxxflags` -std=c++17
-CPPFLAGS        = `$(WXCONFIG) --cppflags`
+CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++17
+CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
-EXEC            := $(notdir $(CURDIR))
-LIBS            := `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base` -lpng
-SRCDIR          := src
-BUILDDIR        := build
-BINDIR          := bin
-INC_DIRS        := ./third_party
-INCS            := $(SRCDIR) $(addsuffix /include,$(SRCDIR)) $(INC_DIRS)
+EXEC		:= $(notdir $(CURDIR))
+LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base` -lpng
+SRCDIR  	:= src
+BUILDDIR	:= build
+BINDIR		:= bin
+INC_DIRS	:= ./third_party
+INCS		:= $(SRCDIR) $(addsuffix /include,$(SRCDIR)) $(INC_DIRS)
 
-SRC             := $(foreach sdir,$(SRCDIR),$(wildcard $(sdir)/*.cpp))
-OBJ             := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
-INCLUDES        := $(addprefix -I,$(INCS))
+SRC		:= $(foreach sdir,$(SRCDIR),$(wildcard $(sdir)/*.cpp))
+OBJ		:= $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
+INCLUDES	:= $(addprefix -I,$(INCS))
 
 vpath %.cpp $(SRCDIR) $(EXEC_SDIR)
 
@@ -31,17 +31,17 @@ all: checkdirs $(EXEC)
 checkdirs: $(BUILDDIR)
 
 $(BUILDDIR):
-        @mkdir -p $@
+	@mkdir -p $@
 
 clean:
-        @rm -rf $(BUILDDIR)
+	@rm -rf $(BUILDDIR)
 
 clean-all: clean
-        @rm -rf $(EXEC)
+	@rm -rf $(EXEC)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
-        $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
 $(EXEC): $(OBJ) $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
-        $(LD) $^ -o $@ $(LIBS)
+	$(LD) $^ -o $@ $(LIBS)
 
