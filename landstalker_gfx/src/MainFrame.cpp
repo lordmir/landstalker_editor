@@ -168,7 +168,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             m_strings.back().push_back(std::make_shared<IntroString>());
             m_strings.back().back()->Decode(m_rom.data(s), 255);
         }
-        
+
         auto end_credit_strings = m_rom.read_array<uint8_t>("end_credit_strings");
         const uint8_t* ptr = end_credit_strings.data();
         const uint8_t* end = ptr + end_credit_strings.size();
@@ -182,11 +182,11 @@ void MainFrame::OpenRomFile(const wxString& path)
         for (std::size_t i = 0; i < 255; i++)
         {
             m_sprites.emplace(i, Sprite(m_rom, i));
-			// Remove any sprites that do not have any corresponding graphics
-			if (m_sprites[i].GetGraphicsIdx() == -1)
-			{
-				m_sprites.erase(i);
-			}
+                        // Remove any sprites that do not have any corresponding graphics
+                        if (m_sprites[i].GetGraphicsIdx() == -1)
+                        {
+                                m_sprites.erase(i);
+                        }
         }
 
         for (const auto& sprite : m_sprites)
@@ -218,7 +218,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         auto bt = m_rom.read_array<uint32_t>("blockset_ptr_table");
         for (std::size_t i = 0; i < bt.size(); ++i)
         {
-			auto bt_ptr = bt[i];
+                        auto bt_ptr = bt[i];
             m_blockOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
             wxTreeItemId curTn = m_browser->AppendItem(nodeBs, Hex(bt_ptr), 3, 3, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16));
             for (std::size_t j = 0; j < 9; ++j)
@@ -460,9 +460,9 @@ void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
 void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale)
 {
     m_scale = scale;
-	m_palette[2] = sprite.GetPalette();
-	m_imgbuf.Resize(160, 160);
-	sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
+        m_palette[2] = sprite.GetPalette();
+        m_imgbuf.Resize(160, 160);
+        sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
     bmp = m_imgbuf.MakeBitmap(m_palette);
     ForceRepaint();
 }
@@ -686,7 +686,7 @@ void MainFrame::EnableLayerControls(bool state)
         m_sliderFg2Opacity->Enable(state);
         m_sliderHeightmapOpacity->Enable(state);
         m_sliderSpritesOpacity->Enable(state);
-        
+
         if (state == true)
         {
             // Reset to default state
@@ -757,8 +757,8 @@ void MainFrame::Refresh()
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1Y())));
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2X())));
                 data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2Y())));
-                data.push_back(wxVariant(intro_string->GetLine(0)));
-                data.push_back(wxVariant(intro_string->GetLine(1)));
+                data.push_back(wxVariant(wxString(intro_string->GetLine(0))));
+                data.push_back(wxVariant(wxString(intro_string->GetLine(1))));
             }
             else if (m_strtab == 7)
             {
@@ -767,11 +767,11 @@ void MainFrame::Refresh()
                 col = col > 0x7F ? col - 0x100: col;
                 data.push_back(wxVariant(wxString::Format("%d", col)));
                 data.push_back(wxVariant(wxString::Format("%u", end_credit_string->GetHeight())));
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+                data.push_back(wxVariant(wxString(m_strings[m_strtab][i]->Str())));
             }
             else
             {
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
+                data.push_back(wxVariant(wxString(m_strings[m_strtab][i]->Str())));
             }
             m_stringView->AppendItem(data);
         }
