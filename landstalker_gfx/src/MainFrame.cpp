@@ -1030,6 +1030,48 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
     event.Skip();
 }
 
+void MainFrame::OnExport(wxCommandEvent& event)
+{
+    std::string filter = "";
+    switch (m_mode)
+    {
+    case MODE_STRING:
+        filter = "Text File (*.txt)|*.txt";
+        break;
+    case MODE_BLOCKSET:
+    case MODE_IMAGE:
+    case MODE_SPRITE:
+        filter = "PNG Image (*.png)|*.png";
+        break;
+    case MODE_ROOMMAP:
+        filter = "Text File (*.txt)|*.txt|PNG Image (*.png)|*.png";
+    default:
+        return;
+    }
+    wxFileDialog fdlog(this, _("Export"), "", "",
+        filter, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (fdlog.ShowModal() == wxID_OK)
+    {
+        std::string filename = std::string(fdlog.GetPath());
+        std::string extension = "";
+        if (filename.find_last_of('.') != std::string::npos)
+        {
+            extension = filename.substr(filename.find_last_of('.') + 1);
+            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+        }
+        if (extension == "png")
+        {
+            ExportPng(filename);
+        }
+        else
+        {
+            ExportTxt(filename);
+        }
+    }
+    event.Skip();
+}
+
 void MainFrame::InitRoom(uint16_t room)
 {
     m_roomnum = room;
@@ -1277,6 +1319,83 @@ void MainFrame::Refresh()
         ShowBitmap();
         ClearScreen();
         break;
+    }
+}
+
+bool MainFrame::ExportPng(const std::string& filename)
+{
+    m_imgbuf.WritePNG(filename, m_palette);
+    return false;
+}
+
+bool MainFrame::ExportTxt(const std::string& filename)
+{
+    std::ofstream ofs(filename);
+
+    switch (m_mode)
+    {
+    case MODE_STRING:
+    {
+        auto& strings = m_strings[m_strtab];
+        std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
+        if (strings.front()->GetHeaderRow() != "")
+        {
+            ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
+        }
+        for (auto string : strings)
+        {
+            ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
+        }
+    }
+    break;
+    case MODE_ROOMMAP:
+    {
+        // Height Map
+        std::string heightMapString;
+        const std::size_t ROW_WIDTH = m_tilemap.hmwidth;
+        const std::size_t ROW_HEIGHT = m_tilemap.hmheight;
+
+        ofs << "#HEIGHTMAP: X Y HEIGHT RESTRICTIONS CLASSIFICATION" << std::endl;
+        std::size_t p = 0;
+        for (std::size_t y = 0; y < ROW_HEIGHT; ++y)
+            for (std::size_t x = 0; x < ROW_WIDTH; ++x)
+            {
+                // Only output cells that are not completely restricted
+                if ((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
+                {
+                    std::stringstream ss;
+                    ss << static_cast<unsigned>(x) << " "
+                        << static_cast<unsigned>(y) << " "
+                        << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].height) << " "
+                        << std::setfill('0') << std::setw(1) << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << " "
+                        << std::setfill('0') << std::setw(2) << static_cast<unsigned>(m_tilemap.heightmap[p].classification);
+                    ofs << ss.str() << std::endl;
+                }
+                p++;
+            }
+
+        // Tile Map
+        const std::size_t TILE_WIDTH = 32;
+        const std::size_t TILE_HEIGHT = 16;
+
+        ofs << "#TILEMAP: X Y XY.X XY.Y HEIGHT RESTRICTIONS CLASSIFICATION" << std::endl;
+        p = 0;
+        for (std::size_t y = 0; y < m_tilemap.hmheight; ++y)
+            for (std::size_t x = 0; x < m_tilemap.hmwidth; ++x)
+            {
+                // Only output cells that are not completely restricted
+                if ((m_tilemap.heightmap[p].height > 0) || (m_tilemap.heightmap[p].restrictions != 0x04))
+                {
+                    std::size_t xx = x - m_tilemap.GetLeft() + 12;
+                    std::size_t yy = y - m_tilemap.GetTop() + 12;
+                    std::size_t zz = m_tilemap.heightmap[p].height;
+                    wxPoint xy(m_tilemap.foreground.ToXYPoint3D(TilePoint3D{ xx, yy, zz }));
+                    ofs << x << " " << y << " " << xy.x << " " << xy.y << " " << zz << " " << static_cast<unsigned>(m_tilemap.heightmap[p].restrictions) << " " << static_cast<unsigned>(m_tilemap.heightmap[p].classification) << std::endl;
+                }
+                p++;
+            }
+    }
+    break;
     }
 }
 

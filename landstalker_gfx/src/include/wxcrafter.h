@@ -57,6 +57,7 @@ protected:
     wxMenuItem* m_mnu_open;
     wxMenuItem* m_mnu_save_as_asm;
     wxMenuItem* m_mnu_save_to_rom;
+    wxMenuItem* m_mnu_export;
     wxMenuItem* m_mnu_sep1;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
@@ -113,6 +114,10 @@ protected:
         event.Skip();
     }
     virtual void OnSaveToRom(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnExport(wxCommandEvent& event)
     {
         event.Skip();
     }

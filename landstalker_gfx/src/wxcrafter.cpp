@@ -69,6 +69,9 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As Assembly..."), _("Save As Assembly"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_as_asm);
 
+    m_mnu_export = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export..."), _("Export"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_export);
+
     m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To ROM..."), _("Save To ROM"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_to_rom);
     
@@ -344,6 +347,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
     this->Connect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Connect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Connect(m_mnu_export->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExport), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);

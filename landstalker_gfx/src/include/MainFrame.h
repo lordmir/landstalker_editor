@@ -53,6 +53,7 @@ protected:
     virtual void OnOpen(wxCommandEvent& event);
     virtual void OnSaveAsAsm(wxCommandEvent& event);
     virtual void OnSaveToRom(wxCommandEvent& event);
+    virtual void OnExport(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
@@ -168,6 +169,8 @@ private:
     void EnableLayerControls(bool state);
     void SetMode(const Mode& mode);
     void Refresh();
+    bool ExportPng(const std::string& filename);
+    bool ExportTxt(const std::string& filename);
 	ImageList& GetImageList();
     
     RoomTilemap m_tilemap;
