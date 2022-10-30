@@ -21,7 +21,9 @@ vpath %.cpp $(SRCDIR) $(EXEC_SDIR)
 
 DEBUG=no
 ifeq ($(DEBUG),yes)
-    CXXFLAGS += -g
+    CXXFLAGS += -O0 -g
+else
+    CXXFLAGS += -O3 -DNDEBUG
 endif
 
 .PHONY: all checkdirs clean clean-all

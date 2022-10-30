@@ -1,5 +1,6 @@
 #include "SpriteFrame.h"
 #include <vector>
+#include <iterator>
 #include "Rom.h"
 #include "LZ77.h"
 #include "Utils.h"

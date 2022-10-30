@@ -357,7 +357,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
     for (auto it = frequency_counts.cbegin(); it != frequency_counts.cend(); ++it)
     {
 #ifndef NDEBUG
-        //std::cout << "Offset " << std::hex << it->first << ": " << std::dec << it->second << std::endl;
+        std::cout << "Offset " << std::hex << it->first << ": " << std::dec << it->second << std::endl;
 #endif
         if (std::find(offsets.begin(), offsets.end(), it->first) == offsets.end())
         {

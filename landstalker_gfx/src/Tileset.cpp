@@ -1,6 +1,8 @@
 #include "Tileset.h"
 #include <algorithm>
 #include <sstream>
+#include <numeric>
+#include <iterator>
 #include "Utils.h"
 #include "LZ77.h"
 
@@ -49,6 +51,7 @@ Tileset::Tileset(std::size_t width, std::size_t height, uint8_t bit_depth, Tiles
       m_tilewidth(width),
       m_tileheight(height),
       m_bit_depth(bit_depth),
+	  m_compressed(false),
       m_blocktype(blocktype)
 {
 }
@@ -80,9 +83,10 @@ void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
     const std::vector<uint8_t>* input = &src;
     m_compressed = compressed;
 
-    std::vector<uint8_t> buffer(65536);
+	std::vector<uint8_t> buffer;
     if (compressed == true)
     {
+		buffer.resize(65536);
         std::size_t elen, dlen;
         dlen = LZ77::Decode(src.data(), src.size(), buffer.data(), elen);
         buffer.resize(dlen);
@@ -317,7 +321,11 @@ std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const Palette& pale
 
 void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 {
-    if (colour_indicies.size() >= (1 << m_bit_depth))
+	if (colour_indicies.size() == 0)
+	{
+		m_colour_indicies.clear();
+	}
+    else if (colour_indicies.size() >= (1 << m_bit_depth))
     {
         bool ok = true;
         for (auto c : colour_indicies)
@@ -335,6 +343,13 @@ void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 std::vector<uint8_t> Tileset::GetColourIndicies() const
 {
     return m_colour_indicies;
+}
+
+std::vector<uint8_t> Tileset::GetDefaultColourIndicies() const
+{
+    std::vector<uint8_t> ret(1 << m_bit_depth);
+    std::iota(ret.begin(), ret.end(), 0);
+    return ret;
 }
 
 std::array<bool, 16> Tileset::GetLockedColours() const
@@ -358,6 +373,16 @@ std::array<bool, 16> Tileset::GetLockedColours() const
 std::size_t Tileset::GetTileCount() const
 {
     return m_tiles.size();
+}
+
+std::size_t Tileset::GetTileSizeBytes() const
+{
+    return m_width * m_height * m_bit_depth / 8;
+}
+
+std::size_t Tileset::GetTilesetUncompressedSizeBytes() const
+{
+	return m_tiles.size() * GetTileSizeBytes();
 }
 
 std::size_t Tileset::GetTileWidth() const
@@ -402,6 +427,10 @@ void Tileset::InsertTilesBefore(int tile_number, int count)
             m_tiles.insert(m_tiles.begin() + tile_number, std::vector<uint8_t>(m_width * m_height));
         }
     }
+	else
+	{
+		throw std::out_of_range("bad count");
+	}
 }
 
 void Tileset::DuplicateTile(const Tile& src, const Tile& dst)

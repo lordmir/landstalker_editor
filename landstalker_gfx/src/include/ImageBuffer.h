@@ -19,13 +19,14 @@ public:
 	ImageBuffer(std::size_t width, std::size_t height);
 	void Clear();
 	void Resize(std::size_t width, std::size_t height);
-	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset);
+	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha = true);
 	void InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset);
 	bool WritePNG(const std::string& filename, const std::vector<Palette>& pals);
 	void InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const MapBlock& block, const Tileset& tileset);
 	const std::vector<uint8_t>& GetRGB(const std::vector<Palette>& pals) const;
 	const std::vector<uint8_t>& GetAlpha(const std::vector<Palette>& pals, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
 	std::shared_ptr<wxBitmap> MakeBitmap(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
+	wxImage MakeImage(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
 	std::size_t GetHeight() const;
 	std::size_t GetWidth() const;
 private:

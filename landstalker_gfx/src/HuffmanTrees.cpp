@@ -116,7 +116,7 @@ std::vector<uint8_t> HuffmanTrees::DecompressString(const std::vector<uint8_t>& 
 
 void HuffmanTrees::RecalculateTrees(const std::vector<std::shared_ptr<LSString>>& strings)
 {
-	std::cout << "Recalculating Huffman trees..." << std::endl;
+	Debug("Recalculating Huffman trees...");
 	m_trees.clear();
 	LSString::FrequencyCounts frequencies;
 	for (const auto s : strings)

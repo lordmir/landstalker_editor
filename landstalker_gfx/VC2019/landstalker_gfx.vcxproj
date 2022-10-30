@@ -11,17 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\AnimatedTileset.cpp" />
+    <ClCompile Include="..\src\AsmFile.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
     <ClCompile Include="..\src\HuffmanTree.cpp" />
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
+    <ClCompile Include="..\src\ImageList.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
     <ClCompile Include="..\src\LSTilemapCmp.cpp" />
@@ -29,14 +33,20 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\MainFrame.cpp" />
     <ClCompile Include="..\src\Palette.cpp" />
+    <ClCompile Include="..\src\PaletteEditor.cpp" />
+    <ClCompile Include="..\src\Rom.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
+    <ClCompile Include="..\src\TileEditor.cpp" />
     <ClCompile Include="..\src\Tilemap.cpp" />
     <ClCompile Include="..\src\Tilemap2DRLE.cpp" />
     <ClCompile Include="..\src\Tileset.cpp" />
+    <ClCompile Include="..\src\TilesetEditor.cpp" />
+    <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\TilesetManager.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
@@ -47,6 +57,9 @@
     <None Include="..\src\wxcrafter_bitmaps.xrc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\include\AnimatedTileset.h" />
+    <ClInclude Include="..\src\include\AsmFile.h" />
+    <ClInclude Include="..\src\include\AsmFile_inl.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
     <ClInclude Include="..\src\include\Block.h" />
@@ -54,11 +67,14 @@
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />
     <ClInclude Include="..\src\include\HuffmanTrees.h" />
+    <ClInclude Include="..\src\include\Icons.h" />
     <ClInclude Include="..\src\include\ImageBuffer.h" />
+    <ClInclude Include="..\src\include\ImageList.h" />
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LSString.h" />
@@ -66,6 +82,7 @@
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />
+    <ClInclude Include="..\src\include\PaletteEditor.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
@@ -74,11 +91,15 @@
     <ClInclude Include="..\src\include\SpriteGraphic.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
+    <ClInclude Include="..\src\include\TileEditor.h" />
     <ClInclude Include="..\src\include\Tilemap.h" />
     <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
+    <ClInclude Include="..\src\include\TilesetEditor.h" />
+    <ClInclude Include="..\src\include\TilesetManager.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
+    <ClInclude Include="..\src\TilesetEditorFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\win_resources.rc">
@@ -96,15 +117,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -130,7 +151,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>"$(LIBPNG_PATH)\projects\vstudio\Debug Library";%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -153,7 +174,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>"$(LIBPNG_PATH)\projects\vstudio\Release Library";%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>

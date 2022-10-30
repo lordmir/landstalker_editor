@@ -65,12 +65,15 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_mnu_open = new wxMenuItem(m_mnu_file, wxID_ANY, _("Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_open);
-    
-    m_mnu_export_png = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to PNG\tCtrl+P"), wxT(""), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_export_png);
-    
-    m_mnu_export_txt = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export to TXT\tCtrl+T"), wxT(""), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_export_txt);
+
+    m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As Assembly..."), _("Save As Assembly"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save_as_asm);
+
+    m_mnu_export = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export..."), _("Export"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_export);
+
+    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To ROM..."), _("Save To ROM"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save_to_rom);
     
     m_mnu_file->AppendSeparator();
     
@@ -94,7 +97,22 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_panel_browser = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1,-1)), wxTAB_TRAVERSAL);
     
-    m_window->AddPane(m_panel_browser, wxAuiPaneInfo().Caption(_("Browser")).Direction(wxAUI_DOCK_LEFT).Layer(0).Row(0).Position(0).BestSize(200,150).MinSize(100,100).MaxSize(100,100).CaptionVisible(true).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    wxAuiPaneInfo browserPane = wxAuiPaneInfo()
+                                  .Caption(_("Browser"))
+                                  .Direction(wxAUI_DOCK_LEFT)
+                                  .Layer(0)
+                                  .Row(0)
+                                  .Position(0)
+                                  .MinSize(100,100)
+                                  .BestSize(200,100)
+                                  .FloatingSize(200,300)
+                                  .CaptionVisible(true)
+                                  .MaximizeButton(false)
+                                  .CloseButton(false)
+                                  .MinimizeButton(false)
+                                  .PinButton(false);
+    browserPane.dock_proportion = 1;
+    m_window->AddPane(m_panel_browser, browserPane);
     
     wxBoxSizer* m_boxsizer_browser = new wxBoxSizer(wxVERTICAL);
     m_panel_browser->SetSizer(m_boxsizer_browser);
@@ -106,7 +124,22 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_panel_properties = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1,-1)), wxTAB_TRAVERSAL);
     
-    m_window->AddPane(m_panel_properties, wxAuiPaneInfo().Caption(_("Properties")).Direction(wxAUI_DOCK_LEFT).Layer(0).Row(0).Position(1).BestSize(200,100).MinSize(100,100).MaxSize(100,100).CaptionVisible(true).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    wxAuiPaneInfo propsPane = wxAuiPaneInfo()
+                                .Caption(_("Properties"))
+                                .Direction(wxAUI_DOCK_LEFT)
+                                .Layer(0)
+                                .Row(0)
+                                .Position(1)
+                                .MinSize(100,100)
+                                .BestSize(200,100)
+                                .FloatingSize(200,600)
+                                .CaptionVisible(true)
+                                .MaximizeButton(false)
+                                .CloseButton(false)
+                                .MinimizeButton(false)
+                                .PinButton(false);
+    propsPane.dock_proportion = 2;
+    m_window->AddPane(m_panel_properties, propsPane);
     
     wxBoxSizer* m_boxsizer_properties = new wxBoxSizer(wxVERTICAL);
     m_panel_properties->SetSizer(m_boxsizer_properties);
@@ -122,7 +155,22 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_panel_layers = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(200,130)), wxTAB_TRAVERSAL);
     
-    m_window->AddPane(m_panel_layers, wxAuiPaneInfo().Caption(_("Layers")).Direction(wxAUI_DOCK_RIGHT).Layer(0).Row(0).Position(0).MinSize(200,115).MaxSize(200,115).Fixed().CaptionVisible(true).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    wxAuiPaneInfo layersPane = wxAuiPaneInfo()
+                                 .Caption(_("Layers"))
+                                 .Direction(wxAUI_DOCK_RIGHT)
+                                 .Layer(0)
+                                 .Row(0)
+                                 .Position(0)
+                                 .MinSize(220,180)
+                                 .BestSize(220,180)
+                                 .FloatingSize(270,180)
+                                 .CaptionVisible(true)
+                                 .MaximizeButton(false)
+                                 .CloseButton(false)
+                                 .MinimizeButton(false)
+                                 .PinButton(false);
+    layersPane.dock_proportion = 1;
+    m_window->AddPane(m_panel_layers, layersPane);
     
     wxFlexGridSizer* flexGridSizer220 = new wxFlexGridSizer(5, 3, 0, 0);
     flexGridSizer220->SetFlexibleDirection( wxBOTH );
@@ -225,11 +273,26 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_scrollwindow->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
     m_scrollwindow->SetScrollRate(5, 5);
     
-    m_window->AddPane(m_scrollwindow, wxAuiPaneInfo().Direction(wxAUI_DOCK_CENTER).Layer(0).Row(0).Position(0).BestSize(150,100).MinSize(100,100).MaxSize(100,100).CaptionVisible(false).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    m_window->AddPane(m_scrollwindow, wxAuiPaneInfo().CenterPane().Layer(0).Row(0).Position(0));
     
     m_panel_tiles = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1,-1)), wxTAB_TRAVERSAL);
     
-    m_window->AddPane(m_panel_tiles, wxAuiPaneInfo().Caption(_("Tiles")).Direction(wxAUI_DOCK_RIGHT).Layer(0).Row(0).Position(1).MinSize(200,10000).CaptionVisible(true).MaximizeButton(false).CloseButton(false).MinimizeButton(false).PinButton(false));
+    wxAuiPaneInfo tilesPane = wxAuiPaneInfo()
+                                .Caption(_("Tiles"))
+                                .Direction(wxAUI_DOCK_RIGHT)
+                                .Layer(0)
+                                .Row(0)
+                                .Position(1)
+                                .MinSize(200, 200)
+                                .BestSize(200, 400)
+                                .FloatingSize(200, 400)
+                                .CaptionVisible(true)
+                                .MaximizeButton(false)
+                                .CloseButton(false)
+                                .MinimizeButton(false)
+                                .PinButton(false);
+    tilesPane.dock_proportion = 10;
+    m_window->AddPane(m_panel_tiles, tilesPane);
     m_window->Update();
     
     wxBoxSizer* m_boxsizer_tiles = new wxBoxSizer(wxVERTICAL);
@@ -280,9 +343,11 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrameBaseClass::OnMousewheel), NULL, this);
     this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnKeyDown), NULL, this);
     this->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
+    this->Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnClose), NULL, this);
     this->Connect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
-    this->Connect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
-    this->Connect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
+    this->Connect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
+    this->Connect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Connect(m_mnu_export->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExport), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -309,16 +374,6 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_scrollwindow->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
     m_scrollwindow->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
     m_scrollwindow->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
-    this->Connect(11000, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton1), NULL, this);
-    this->Connect(11001, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton2), NULL, this);
-    this->Connect(11002, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton3), NULL, this);
-    this->Connect(11003, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton4), NULL, this);
-    this->Connect(11004, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton5), NULL, this);
-    this->Connect(11005, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton6), NULL, this);
-    this->Connect(11006, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton7), NULL, this);
-    this->Connect(11007, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton8), NULL, this);
-    this->Connect(11008, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton9), NULL, this);
-    this->Connect(11009, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton10), NULL, this);
     
 }
 
@@ -327,9 +382,10 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrameBaseClass::OnMousewheel), NULL, this);
     this->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnKeyDown), NULL, this);
     this->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnKeyUp), NULL, this);
+    this->Disconnect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainFrameBaseClass::OnClose), NULL, this);
     this->Disconnect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
-    this->Disconnect(m_mnu_export_png->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportPng), NULL, this);
-    this->Disconnect(m_mnu_export_txt->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExportTxt), NULL, this);
+    this->Disconnect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
+    this->Disconnect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -356,16 +412,6 @@ MainFrameBaseClass::~MainFrameBaseClass()
     m_scrollwindow->Disconnect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
-    this->Disconnect(11000, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton1), NULL, this);
-    this->Disconnect(11001, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton2), NULL, this);
-    this->Disconnect(11002, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton3), NULL, this);
-    this->Disconnect(11003, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton4), NULL, this);
-    this->Disconnect(11004, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton5), NULL, this);
-    this->Disconnect(11005, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton6), NULL, this);
-    this->Disconnect(11006, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton7), NULL, this);
-    this->Disconnect(11007, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton8), NULL, this);
-    this->Disconnect(11008, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton9), NULL, this);
-    this->Disconnect(11009, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnButton10), NULL, this);
     
     m_window->UnInit();
     delete m_window;

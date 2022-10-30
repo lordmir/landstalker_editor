@@ -1,5 +1,7 @@
 #include "Palette.h"
 #include <algorithm>
+#include <cassert>
+#include "Utils.h"
 
 const std::unordered_map<Palette::Type, std::array<bool, 16>> LOCKED_ENTRIES =
 {
@@ -50,9 +52,9 @@ static void PopulatePalettes(const std::vector<uint16_t>& input, std::vector<std
 	assert(input.size() % N == 0);
 
 	size_t i = 0;
-	for (auto in : input)
+	std::array<uint16_t, N> pal;
+	for (const auto& in : input)
 	{
-		std::array<uint16_t, N> pal;
 		pal[i++] = in;
 		if (i == N)
 		{
@@ -373,6 +375,11 @@ uint32_t Palette::getRGBA(uint8_t index) const
 uint16_t Palette::getGenesisColour(uint8_t index) const
 {
 	return ToGenesisColour(m_pal[index]);
+}
+
+PaletteEntry Palette::GetColour(uint8_t index) const
+{
+	return m_pal[index];
 }
 
 void Palette::setGenesisColour(uint8_t index, uint16_t colour)

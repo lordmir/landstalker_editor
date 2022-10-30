@@ -17,6 +17,9 @@
 #include "ImageBuffer.h"
 #include "LSString.h"
 #include "Images.h"
+#include "ImageList.h"
+#include "TilesetEditorFrame.h"
+#include "TilesetManager.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -33,26 +36,24 @@ public:
     virtual ~MainFrame();
 
 protected:
-    virtual void OnExportPng(wxCommandEvent& event);
-    virtual void OnExportTxt(wxCommandEvent& event);
+    enum class ReturnCode
+    {
+        OK,
+        ERR,
+        CANCELLED
+    };
+    virtual void OnClose(wxCloseEvent& event);
     virtual void OnLayerOpacityChange(wxScrollEvent& event);
     virtual void OnLayerSelect(wxCommandEvent& event);
     virtual void OnLayerVisibilityChange(wxCommandEvent& event);
     virtual void OnPaint(wxPaintEvent& event);
-    virtual void OnButton1(wxCommandEvent& event);
-    virtual void OnButton2(wxCommandEvent& event);
-    virtual void OnButton3(wxCommandEvent& event);
-    virtual void OnButton4(wxCommandEvent& event);
-    virtual void OnButton5(wxCommandEvent& event);
-    virtual void OnButton6(wxCommandEvent& event);
-    virtual void OnButton7(wxCommandEvent& event);
-    virtual void OnButton8(wxCommandEvent& event);
-    virtual void OnButton9(wxCommandEvent& event);
-    virtual void OnButton10(wxCommandEvent& event);
     virtual void OnMousewheel(wxMouseEvent& event);
     virtual void OnKeyDown(wxKeyEvent& event);
     virtual void OnKeyUp(wxKeyEvent& event);
     virtual void OnOpen(wxCommandEvent& event);
+    virtual void OnSaveAsAsm(wxCommandEvent& event);
+    virtual void OnSaveToRom(wxCommandEvent& event);
+    virtual void OnExport(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
@@ -127,12 +128,27 @@ private:
         MODE_ROOMMAP,
         MODE_SPRITE
     };
+	void OnStatusBarInit(wxCommandEvent& event);
+	void OnStatusBarUpdate(wxCommandEvent& event);
+	void OnStatusBarClear(wxCommandEvent& event);
+	void OnPropertiesInit(wxCommandEvent& event);
+	void OnPropertiesUpdate(wxCommandEvent& event);
+	void OnPropertiesClear(wxCommandEvent& event);
+	void OnPropertyChange(wxPropertyGridEvent& event);
+	void OnMenuInit(wxCommandEvent& event);
+	void OnMenuClear(wxCommandEvent& event);
+	void OnMenuClick(wxMenuEvent& event);
+	void OnPaneClose(wxAuiManagerEvent& event);
     void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
     void DrawHeightmap(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
+    void PopulatePalettes();
+    void ShowStrings();
+    void ShowTileset();
+    void ShowBitmap();
     void ForceRepaint();
     void ClearScreen();
     void PaintNow(wxDC& dc, std::size_t scale = 1);
@@ -140,12 +156,22 @@ private:
     void LoadTileset(std::size_t offset);
     void LoadTilemap(std::size_t offset);
     void LoadBlocks(std::size_t offset);
+    ReturnCode CloseFiles(bool force = false);
+    bool CheckForFileChanges();
+    void OpenFile(const wxString& path);
     void OpenRomFile(const wxString& path);
+    void OpenAsmFile(const wxString& path);
+    ReturnCode Save();
+    ReturnCode SaveAsAsm(std::string path = std::string());
+    ReturnCode SaveToRom(std::string path = std::string());
     void InitRoom(uint16_t room);
     void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
     void EnableLayerControls(bool state);
     void SetMode(const Mode& mode);
     void Refresh();
+    bool ExportPng(const std::string& filename);
+    bool ExportTxt(const std::string& filename);
+	ImageList& GetImageList();
     
     RoomTilemap m_tilemap;
     Rom m_rom;
@@ -180,8 +206,16 @@ private:
     std::map<uint8_t, Sprite> m_sprites;
     std::string m_selImage;
     std::map<std::string, Images::Image> m_images;
+    std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+    std::string m_selected_palette;
     uint16_t m_pal[54][15];
-    ImgLst* m_imgs;
+	ImageList* m_imgs;
     wxDataViewListCtrl* m_stringView;
+    TilesetEditorFrame* m_tilesetEditor;
+	EditorFrame* m_activeEditor;
+
+    bool m_asmfile;
+    std::shared_ptr<TilesetManager> m_tsmgr;
+    std::string m_tsname;
 };
 #endif // MAINFRAME_H

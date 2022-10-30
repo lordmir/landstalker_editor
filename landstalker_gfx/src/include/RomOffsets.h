@@ -34,6 +34,29 @@ namespace RomOffsets
 	inline const uint32_t BUILD_DATE_LENGTH = 0x00000E;
 	inline const uint32_t EXPECTED_SIZE     = 0x200000;
 
+	namespace Tilesets
+	{
+		static const std::string INTRO_FONT_NAME("IntroFont");
+		static const std::string INTRO_FONT_PTR("IntroFontPtr");
+		static const std::string DATA_LOC("TilesetData");
+		static const std::string PTRTAB_LOC("TilesetPtrTable");
+		static const std::string ANIM_DATA_LOC("AnimatedTilesetTable");
+		static const std::string ANIM_LIST_LOC("AnimatedTilesetData");
+		static const std::string ANIM_IDX_LOC("AnimatedTilesetIdxs");
+		static const std::string PTRTAB_BEGIN_LOC("Tilesets");
+		static const std::string PTR_LOC("TilesetPointers");
+		static const std::string LABEL_FORMAT_STRING("Tileset%02d");
+		static const std::string ANIM_LABEL_FORMAT_STRING("Tileset%02dAnim%02d");
+		static const std::string ANIM_PTR_LABEL_FORMAT_STRING("Tileset%02dAnim%02dPtr");
+
+		static const std::string ANIM_FILENAME_FORMAT_STRING("assets_packed/graphics/tilesets/animated/tileset%02dAnim%02dPtr.bin");
+		static const std::string FILENAME_FORMAT_STRING("assets_packed/graphics/tilesets/tileset%02d.lz77");
+		static const std::string INTRO_FONT_FILENAME("assets_packed/graphics/fonts/introfont.bin");
+		static const std::string INCLUDE_FILE("code/includes/tileset.asm");
+		static const std::string PTRTAB_FILE("code/pointertables/graphics/tilesetpointers.asm");
+		static const std::string ANIM_FILE("code/maps/animtilesettbl.asm");
+	}
+
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
 	{
 		{Region::JP,      "Japanese"},
@@ -56,18 +79,21 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, uint32_t>> ADDRESS
 	{
-		{"sprite_table_ptr",      {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
-		{"sprite_data_end",       {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
-		{"big_tiles_ptr",         {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
-		{"room_data_ptr",         {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
-		{"room_palette_ptr",      {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
-		{"room_exit_table_ptr",   {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}}
+		{"sprite_table_ptr",        {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
+		{"sprite_data_end",         {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{"big_tiles_ptr",           {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
+		{"room_data_ptr",           {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
+		{"room_palette_ptr",        {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
+		{"room_exit_table_ptr",     {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
+		{ Tilesets::INTRO_FONT_PTR, {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
 		{"blockset_ptr_table",       {{Region::JP, {0x1AF804, 0x1AF8C8}}, {Region::US, {0x1AF804, 0x1AF8C8}}, {Region::UK, {0x1AF804, 0x1AF8C8}}, {Region::FR, {0x1AF804, 0x1AF8C8}}, {Region::DE, {0x1AF804, 0x1AF8C8}}, {Region::US_BETA, {0x1AF804, 0x1AF8C8}}}},
 		{"tileset_offset_table",     {{Region::JP, {0x043E70, 0x043EF0}}, {Region::US, {0x044070, 0x0440F0}}, {Region::UK, {0x044070, 0x0440F0}}, {Region::FR, {0x044070, 0x0440F0}}, {Region::DE, {0x044070, 0x0440F0}}, {Region::US_BETA, {0x043E70, 0x043EF0}}}},
+		{ Tilesets::DATA_LOC,        {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
+		{ Tilesets::ANIM_DATA_LOC,   {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009E04, 0x009EF8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"sprite_gfx_lookup",        {{Region::JP, {0x01ABBE, 0x01AD96}}, {Region::US, {0x01ABF2, 0x01ADCA}}, {Region::UK, {0x01ABF2, 0x01ADCA}}, {Region::FR, {0x01ABE6, 0x01ADBE}}, {Region::DE, {0x01ABEC, 0x01ADC4}}, {Region::US_BETA, {0x01ABB8, 0x01AD90}}}},
 		{"sprite_gfx_offset_table",  {{Region::JP, {0x120004, 0x1201B4}}, {Region::US, {0x120004, 0x1201B4}}, {Region::UK, {0x120004, 0x1201B4}}, {Region::FR, {0x120004, 0x1201B4}}, {Region::DE, {0x120004, 0x1201B4}}, {Region::US_BETA, {0x120004, 0x1201B4}}}},
 		{"sprite_palette_lookup",    {{Region::JP, {0x1A453A, 0x1A47E0}}, {Region::US, {0x1A453A, 0x1A47E0}}, {Region::UK, {0x1A453A, 0x1A47E0}}, {Region::FR, {0x1A453A, 0x1A47E0}}, {Region::DE, {0x1A453A, 0x1A47E0}}, {Region::US_BETA, {0x1A453A, 0x1A47E0}}}},
