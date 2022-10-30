@@ -1,0 +1,11 @@
+#ifndef _LANDSTALKER_GFX_H_
+#define _LANDSTALKER_GFX_H_
+
+#define VERSION_MAJOR @landstalker_gfx_VERSION_MAJOR@
+#define VERSION_MINOR @landstalker_gfx_VERSION_MINOR@
+#define VERSION_PATCH @landstalker_gfx_VERSION_PATCH@
+
+#define XSTR(a) STR(a)
+#define STR(a) #a
+
+#endif // _LANDSTALKER_GFX_H_

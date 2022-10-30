@@ -1,0 +1,3 @@
+[submodule "landstalker_gfx\\third_party\\wxWidgets"]
+	path = landstalker_gfx\\third_party\\wxWidgets
+	url = https://github.com/wxWidgets/wxWidgets.git
