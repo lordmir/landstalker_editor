@@ -1325,17 +1325,16 @@ void MainFrame::Refresh()
 bool MainFrame::ExportPng(const std::string& filename)
 {
     m_imgbuf.WritePNG(filename, m_palette);
-    return false;
+    return true;
 }
 
 bool MainFrame::ExportTxt(const std::string& filename)
 {
-    std::ofstream ofs(filename);
-
     switch (m_mode)
     {
     case MODE_STRING:
     {
+        std::ofstream ofs(filename);
         auto& strings = m_strings[m_strtab];
         std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
         if (strings.front()->GetHeaderRow() != "")
@@ -1346,10 +1345,12 @@ bool MainFrame::ExportTxt(const std::string& filename)
         {
             ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
         }
+        return true;
     }
     break;
     case MODE_ROOMMAP:
     {
+        std::ofstream ofs(filename);
         // Height Map
         std::string heightMapString;
         const std::size_t ROW_WIDTH = m_tilemap.hmwidth;
@@ -1394,9 +1395,11 @@ bool MainFrame::ExportTxt(const std::string& filename)
                 }
                 p++;
             }
+        return true;
     }
     break;
     }
+    return false;
 }
 
 ImageList& MainFrame::GetImageList()
