@@ -1,25 +1,30 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.13.4)
 
-INCLUDE(FindPkgConfig)
-IF(NOT PKG_CONFIG_FOUND)
-    MESSAGE(FATAL_ERROR "pkg-config not found")
+FIND_PACKAGE(Git QUIET)
+IF(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    OPTION(GIT_SUBMODULE "Check submodules during build" ON)
+    IF(GIT_SUBMODULE)
+        MESSAGE(STATUS "Submodule Update")
+        EXECUTE_PROCESS(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
+        IF(NOT GIT_SUBMOD_RESULT EQUAL "0")
+            MESSAGE(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please check")
+        ENDIF()
+    ENDIF()
 ENDIF()
 
-CONFIGURE_FILE(landstalker_gfx.h.in landstalker_gfx.h)
+IF(NOT EXISTS "${PROJECT_SOURCE_DIR}/landstalker_gfx/third_party/wxWidgets/CMakeLists.txt")
+    MESSAGE(FATAL_ERROR "The wxWidgets submodule was not downloaded!")
+ENDIF()
 
 ADD_EXECUTABLE(${PROJECT_NAME})
 
-FIND_PACKAGE(wxWidgets COMPONENTS xrc propgrid aui adv core base REQUIRED)
-IF(wxWidgets_FOUND)
-    INCLUDE(${wxWidgets_USE_FILE})
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
-ENDIF()
+CONFIGURE_FILE(landstalker_gfx.h.in landstalker_gfx.h)
 
-FIND_PACKAGE(PNG REQUIRED)
-IF(PNG_FOUND)
-    INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
-    TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${PNG_LIBRARY})
-ENDIF()
+SET(wxBUILD_SHARED OFF)
+ADD_SUBDIRECTORY(third_party/wxWidgets)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} wx::xrc wx::propgrid wx::aui wx::adv wx::core wx::base)
 
 SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 17
