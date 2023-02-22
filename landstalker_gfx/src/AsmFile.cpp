@@ -10,13 +10,13 @@
 const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN}, {"Align", Inst::ALIGN} };
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
-AsmFile::AsmFile(const std::filesystem::path& filename, FileType type)
+AsmFile::AsmFile(const filesystem::path& filename, FileType type)
 	: m_filename(filename),
 	m_type(type)
 {
 	if (!ReadFile(m_filename, m_type))
 	{
-		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+		throw std::runtime_error(std::string("File \'") + m_filename.str() + ("\' cannot be read!"));
 	}
 }
 
@@ -111,7 +111,7 @@ bool AsmFile::IsGood() const
 	return m_good && (m_readptr != m_data.end());
 }
 
-bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
+bool AsmFile::ReadFile(const filesystem::path& filename, FileType type)
 {
 	m_filename = filename;
 	m_type = type;
@@ -121,7 +121,7 @@ bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
 		if (m_type == FileType::ASSEMBLER)
 		{
 			std::vector<AsmLine> lines;
-			std::ifstream ifs(m_filename.string());
+			std::ifstream ifs(m_filename.str());
 			std::string line;
 			AsmLine asml;
 			while (std::getline(ifs, line))
@@ -149,7 +149,7 @@ bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
 		}
 		else
 		{
-			std::ifstream ifs(m_filename.string(), std::ios::binary);
+			std::ifstream ifs(m_filename.str(), std::ios::binary);
 			ifs.unsetf(std::ios::skipws);
 			m_data.insert(m_data.begin(),
 				std::istream_iterator<uint8_t>(ifs),
@@ -166,7 +166,7 @@ bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
 	return true;
 }
 
-bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
+bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
 {
 	try
 	{
@@ -176,12 +176,12 @@ bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
 		}
 		if (type == BINARY)
 		{
-			WriteBytes(ToBinary(), filename.string());
+			WriteBytes(ToBinary(), filename.str());
 			return true;
 		}
 		else
 		{
-			std::ofstream ofs(filename.string());
+			std::ofstream ofs(filename.str());
 			ofs << ToAssembly();
 		}
 	}
@@ -192,7 +192,7 @@ bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
 	return false;
 }
 
-bool AsmFile::WriteFile(const std::filesystem::path& filename)
+bool AsmFile::WriteFile(const filesystem::path& filename)
 {
 	return WriteFile(filename, m_type);
 }
@@ -230,7 +230,7 @@ std::size_t AsmFile::GetByteCount() const
 
 std::string AsmFile::GetFilename() const
 {
-	return m_filename.string();
+	return m_filename.str();
 }
 
 AsmFile::FileType AsmFile::GetFileType() const
@@ -254,11 +254,11 @@ std::string AsmFile::PrintCentered(const std::string& str)
 	return start + result + end;
 }
 
-void AsmFile::WriteFileHeader(const std::filesystem::path& p, const std::string& short_description)
+void AsmFile::WriteFileHeader(const filesystem::path& p, const std::string& short_description)
 {
 	*this << AsmFile::Comment(std::string(78, ';'));
 	*this << AsmFile::Comment(PrintCentered(short_description));
-	*this << AsmFile::Comment(PrintCentered(p.string()));
+	*this << AsmFile::Comment(PrintCentered(p.str()));
 	*this << AsmFile::Comment(PrintCentered(""));
 	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker editor:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_gfx"));
@@ -280,7 +280,7 @@ bool AsmFile::Read(const GotoLabel& label)
 }
 
 template<>
-bool AsmFile::Read(std::filesystem::path& path)
+bool AsmFile::Read(filesystem::path& path)
 {
 	bool ret = false;
 	AsmFile::IncludeFile file;
@@ -403,7 +403,7 @@ bool AsmFile::Write(const IncludeFile& file)
 	}
 	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
 	m_nextline.operand = "\"";
-	m_nextline.operand += file.path.string();
+	m_nextline.operand += file.path.str();
 	m_nextline.operand += "\"";
 	return true;
 }

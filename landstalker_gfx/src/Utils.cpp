@@ -49,9 +49,9 @@ std::vector<uint8_t> ReadBytes(const std::string& filename)
 	return ret;
 }
 
-std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename)
+std::vector<uint8_t> ReadBytes(const filesystem::path& filename)
 {
-	return ReadBytes(filename.string());
+	return ReadBytes(filename.str());
 }
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
@@ -64,9 +64,9 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
 }
 
-void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename)
+void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename)
 {
-	WriteBytes(data, filename.string());
+	WriteBytes(data, filename.str());
 }
 
 bool IsHex(const std::string& str)

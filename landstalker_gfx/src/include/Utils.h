@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
-#include <filesystem>
+#include <wjakob/filesystem/path.h>
 
 void Debug(const std::string& message);
 
@@ -75,10 +75,10 @@ std::string StrPrintf(const std::string& fmt, Args... args)
 }
 
 std::vector<uint8_t> ReadBytes(const std::string& filename);
-std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename);
+std::vector<uint8_t> ReadBytes(const filesystem::path& filename);
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename);
-void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename);
+void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename);
 
 bool IsHex(const std::string& str);
 

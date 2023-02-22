@@ -549,7 +549,7 @@ void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_ts_entry->raw_data->size()));
 			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_ts_entry->start_address)));
 			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
-			props.GetGrid()->SetPropertyValue("FN", _(m_ts_entry->filename.string()));
+			props.GetGrid()->SetPropertyValue("FN", _(m_ts_entry->filename.str()));
 		}
 		else
 		{

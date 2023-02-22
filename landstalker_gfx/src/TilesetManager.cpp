@@ -1,6 +1,6 @@
 #include <TilesetManager.h>
 
-#include <filesystem>
+#include <wjakob/filesystem/path.h>
 
 #include <exception>
 #include <set>
@@ -8,24 +8,24 @@
 #include <RomOffsets.h>
 #include <Utils.h>
 
-TilesetManager::TilesetManager(const std::filesystem::path& asm_file)
+TilesetManager::TilesetManager(const filesystem::path& asm_file)
 	: m_asm_filename(asm_file)
 {
 	if (!GetTilesetAsmFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load tileset data from \'") + asm_file.string() + '\'');
+		throw std::runtime_error(std::string("Unable to load tileset data from \'") + asm_file.str() + '\'');
 	}
 	if (!LoadAsmAnimatedTilesetData())
 	{
-		throw std::runtime_error(std::string("Unable to load animated tileset data from \'") + m_tileset_anim_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to load animated tileset data from \'") + m_tileset_anim_filename.str() + '\'');
 	}
 	if (!LoadAsmTilesetPointerData())
 	{
-		throw std::runtime_error(std::string("Unable to load tileset pointers from \'") + m_tileset_ptrtab_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to load tileset pointers from \'") + m_tileset_ptrtab_filename.str() + '\'');
 	}
 	if (!LoadAsmTilesetFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.str() + '\'');
 	}
 	LoadAsmTilesetData();
 }
@@ -100,24 +100,24 @@ bool TilesetManager::InjectIntoRom(Rom& rom)
 	return true;
 }
 
-bool TilesetManager::Save(std::filesystem::path dir)
+bool TilesetManager::Save(filesystem::path dir)
 {
-	if (std::filesystem::exists(dir) && std::filesystem::is_regular_file(dir))
+	if (dir.exists() && dir.is_file())
 	{
 		dir = dir.parent_path();
 	}
 	SaveTilesetsToDisk(dir);
 	if (!SaveAsmTilesetFilenames(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save tileset file list to \'") + m_tileset_data_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to save tileset file list to \'") + m_tileset_data_filename.str() + '\'');
 	}
 	if (!SaveAsmTilesetPointerData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save tileset pointers to \'") + m_tileset_ptrtab_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to save tileset pointers to \'") + m_tileset_ptrtab_filename.str() + '\'');
 	}
 	if (!SaveAsmAnimatedTilesetData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.string() + '\'');
+		throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.str() + '\'');
 	}
 
 	return true;
@@ -272,7 +272,7 @@ bool TilesetManager::GetTilesetAsmFilenames()
 {
 	try
 	{
-		AsmFile f(m_asm_filename);
+		AsmFile f(m_asm_filename.str());
 		m_base_path = m_asm_filename.parent_path();
 		AsmFile::IncludeFile inc;
 		f.Goto(RomOffsets::Tilesets::DATA_LOC);
@@ -281,9 +281,9 @@ bool TilesetManager::GetTilesetAsmFilenames()
 		f >> m_tileset_ptrtab_filename;
 		f.Goto(RomOffsets::Tilesets::ANIM_DATA_LOC);
 		f >> m_tileset_anim_filename;
-		if (std::filesystem::exists(m_base_path / m_tileset_anim_filename) &&
-			std::filesystem::exists(m_base_path / m_tileset_ptrtab_filename) &&
-		    std::filesystem::exists(m_base_path / m_tileset_data_filename))
+		if (filesystem::path(m_base_path / m_tileset_anim_filename).exists() &&
+			filesystem::path(m_base_path / m_tileset_ptrtab_filename).exists() &&
+			filesystem::path(m_base_path / m_tileset_data_filename).exists())
 		{
 			return true;
 		}
@@ -682,7 +682,7 @@ std::vector<uint8_t> TilesetManager::GetTilesetBits(const std::string& tileset) 
 	}
 }
 
-void TilesetManager::SaveTilesetsToDisk(const std::filesystem::path& dir)
+void TilesetManager::SaveTilesetsToDisk(const filesystem::path& dir)
 {
 	for (const auto& ts : m_tilesets_by_name)
 	{
@@ -718,7 +718,7 @@ void TilesetManager::SaveTilesetsToRom(Rom& rom)
 	}
 }
 
-void TilesetManager::SaveTilesetToFile(const std::filesystem::path& dir, const std::string& name) const
+void TilesetManager::SaveTilesetToFile(const filesystem::path& dir, const std::string& name) const
 {
 	auto ts = m_tilesets_by_name.find(name);
 	if (ts == m_tilesets_by_name.end())
@@ -727,15 +727,15 @@ void TilesetManager::SaveTilesetToFile(const std::filesystem::path& dir, const s
 	}
 	auto fname = dir / ts->second->filename;
 	std::vector<uint8_t> buf = ts->second->tileset->GetBits();
-	if (!std::filesystem::is_directory(fname.parent_path()) &&
-		!std::filesystem::create_directories(fname.parent_path()))
+	if (!fname.parent_path().is_directory() &&
+		!filesystem::create_directories(fname.parent_path()))
 	{
-		throw std::runtime_error(std::string("Unable to create directory \"") + dir.parent_path().string() + "\"");
+		throw std::runtime_error(std::string("Unable to create directory \"") + dir.parent_path().str() + "\"");
 	}
 	WriteBytes(GetTilesetBits(ts->first), fname);
 }
 
-bool TilesetManager::SaveAsmTilesetFilenames(const std::filesystem::path& dir)
+bool TilesetManager::SaveAsmTilesetFilenames(const filesystem::path& dir)
 {
 	try
 	{
@@ -764,10 +764,10 @@ bool TilesetManager::SaveAsmTilesetFilenames(const std::filesystem::path& dir)
 			m_tileset_data_filename = RomOffsets::Tilesets::INCLUDE_FILE;
 		}
 		auto f = dir / m_tileset_data_filename;
-		if (!std::filesystem::is_directory(f.parent_path()) &&
-			!std::filesystem::create_directories(f.parent_path()))
+		if (!f.parent_path().is_directory() &&
+			!filesystem::create_directories(f.parent_path()))
 		{
-			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
+			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().str() + "\"");
 		}
 		file.WriteFile(f);
 		return true;
@@ -778,7 +778,7 @@ bool TilesetManager::SaveAsmTilesetFilenames(const std::filesystem::path& dir)
 	return false;
 }
 
-bool TilesetManager::SaveAsmAnimatedTilesetData(const std::filesystem::path& dir)
+bool TilesetManager::SaveAsmAnimatedTilesetData(const filesystem::path& dir)
 {
 	try
 	{
@@ -807,10 +807,10 @@ bool TilesetManager::SaveAsmAnimatedTilesetData(const std::filesystem::path& dir
 			m_tileset_anim_filename = RomOffsets::Tilesets::ANIM_FILE;
 		}
 		auto f = dir / m_tileset_anim_filename;
-		if (!std::filesystem::is_directory(f.parent_path()) &&
-			!std::filesystem::create_directories(f.parent_path()))
+		if (!f.parent_path().is_directory() &&
+			!filesystem::create_directories(f.parent_path()))
 		{
-			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
+			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().str() + "\"");
 		}
 		file.WriteFile(f);
 		return true;
@@ -854,7 +854,7 @@ bool TilesetManager::SaveRomAnimatedTilesetData(Rom& rom)
 	return true;
 }
 
-bool TilesetManager::SaveAsmTilesetPointerData(const std::filesystem::path& dir)
+bool TilesetManager::SaveAsmTilesetPointerData(const filesystem::path& dir)
 {
 	try
 	{
@@ -883,10 +883,10 @@ bool TilesetManager::SaveAsmTilesetPointerData(const std::filesystem::path& dir)
 			m_tileset_ptrtab_filename = RomOffsets::Tilesets::PTRTAB_FILE;
 		}
 		auto f = dir / m_tileset_ptrtab_filename;
-		if (!std::filesystem::is_directory(f.parent_path()) &&
-			!std::filesystem::create_directories(f.parent_path()))
+		if (!f.parent_path().is_directory() &&
+			!filesystem::create_directories(f.parent_path()))
 		{
-			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().string() + "\"");
+			throw std::runtime_error(std::string("Unable to create directory \"") + f.parent_path().str() + "\"");
 		}
 		file.WriteFile(f);
 		return true;
