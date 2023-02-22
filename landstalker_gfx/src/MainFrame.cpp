@@ -240,6 +240,7 @@ void MainFrame::OpenRomFile(const wxString& path)
 
         m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         m_tsmgr = std::make_shared<TilesetManager>(m_rom);
+        m_tilesetEditor->SetTilesetManager(m_tsmgr);
         for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
             m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
@@ -1264,9 +1265,11 @@ void MainFrame::Refresh()
     case MODE_TILESET:
     {
         // Display tileset
+        auto ts = m_tsmgr->GetTilesetByName(m_tsname);
+        std::string pal_name = m_tsmgr->GetTilesetSavedPalette(ts);
         m_tilesetEditor->SetPalettes(m_palettes);
-        m_tilesetEditor->SetActivePalette("Room Palette 00");
-        m_tilesetEditor->Open(m_tsmgr->GetTilesetByName(m_tsname));
+        m_tilesetEditor->SetActivePalette(pal_name.empty() ? "Room Palette 00" : pal_name);
+        m_tilesetEditor->Open(ts);
         ShowTileset();
         EnableLayerControls(false);
         //LoadTileset(m_tilesetOffsets[m_tsidx]);

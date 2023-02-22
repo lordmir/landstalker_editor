@@ -9,7 +9,8 @@
 #include <Utils.h>
 
 TilesetManager::TilesetManager(const filesystem::path& asm_file)
-	: m_asm_filename(asm_file)
+	: m_asm_filename(asm_file),
+	  m_tilesets_defaultpal{}
 {
 	if (!GetTilesetAsmFilenames())
 	{
@@ -31,6 +32,7 @@ TilesetManager::TilesetManager(const filesystem::path& asm_file)
 }
 
 TilesetManager::TilesetManager(const Rom& rom)
+ : m_tilesets_defaultpal{}
 {
 	if (!LoadRomAnimatedTilesetData(rom))
 	{
@@ -266,6 +268,24 @@ void TilesetManager::SetTilesetOrder(const std::array<std::string, 32>& order)
 			m_tileset_list_x[i] = nullptr;
 		}
 	}
+}
+
+std::string TilesetManager::GetTilesetSavedPalette(const std::shared_ptr<TilesetEntry> ts) const
+{
+	auto result = m_tilesets_defaultpal.find(ts);
+	if (result == m_tilesets_defaultpal.end())
+	{
+		return "";
+	}
+	else
+	{
+		return result->second;
+	}
+}
+
+void TilesetManager::SetTilesetSavedPalette(std::shared_ptr<TilesetEntry> ts, const std::string& palette_name)
+{
+	m_tilesets_defaultpal[ts] = palette_name;
 }
 
 bool TilesetManager::GetTilesetAsmFilenames()

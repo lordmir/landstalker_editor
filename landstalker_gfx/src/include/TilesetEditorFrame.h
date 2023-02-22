@@ -29,6 +29,7 @@ public:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	void SetTilesetManager(std::shared_ptr<TilesetManager> tsmgr);
 	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
 	void SetActivePalette(const std::string& name);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);

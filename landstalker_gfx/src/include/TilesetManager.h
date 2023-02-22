@@ -61,6 +61,9 @@ public:
 
 	std::array<std::string, 32> GetTilesetOrder() const;
 	void SetTilesetOrder(const std::array<std::string, 32>& order);
+
+	std::string GetTilesetSavedPalette(const std::shared_ptr<TilesetEntry> ts) const;
+	void SetTilesetSavedPalette(std::shared_ptr<TilesetEntry> ts, const std::string& palette_name);
 private:
 	bool GetTilesetAsmFilenames();
 	bool LoadAsmAnimatedTilesetData();
@@ -94,6 +97,7 @@ private:
 	std::array<std::shared_ptr<TilesetEntry>, 32> m_tileset_list_x;
 	std::vector<std::shared_ptr<TilesetEntry>> m_animated_ts_ptrorder;
 	std::vector<std::shared_ptr<TilesetEntry>> m_tilesets_listorder;
+	std::unordered_map<std::shared_ptr<TilesetEntry>, std::string> m_tilesets_defaultpal;
 	mutable std::map<std::shared_ptr<TilesetEntry>, std::vector<uint8_t>> m_pending_write;
 };
 

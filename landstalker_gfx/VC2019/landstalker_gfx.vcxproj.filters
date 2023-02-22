@@ -241,9 +241,6 @@
     <ClInclude Include="..\src\include\TilesetEditor.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\TilesetEditorFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\include\PaletteEditor.h">
       <Filter>include</Filter>
     </ClInclude>

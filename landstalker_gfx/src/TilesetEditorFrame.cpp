@@ -583,6 +583,10 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		// Palette change
 		SetActivePalette(property->GetValueAsString().ToStdString());
+		if (m_tsmgr)
+		{
+			m_tsmgr->SetTilesetSavedPalette(m_ts_entry, m_tilesetEditor->GetActivePalette());
+		}
 	}
 	else if (name == "I")
 	{
@@ -764,6 +768,11 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		}
 		UpdateUI();
 	}
+}
+
+void TilesetEditorFrame::SetTilesetManager(std::shared_ptr<TilesetManager> tsmgr)
+{
+	m_tsmgr = tsmgr;
 }
 
 void TilesetEditorFrame::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
