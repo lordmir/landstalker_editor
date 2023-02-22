@@ -1,6 +1,7 @@
 #ifndef _IMAGE_LIST_H_
 #define _IMAGE_LIST_H_
 
+#include <wx/imaglist.h>
 #include <wx/wx.h>
 #include <unordered_map>
 #include <string>
