@@ -814,8 +814,8 @@ bool TilesetEditorFrame::Open(std::shared_ptr<TilesetManager::TilesetEntry> ts_e
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
-		m_tileEditor->SetTileset(m_tileset);
 		m_tileEditor->SetTile(m_tile);
+		m_tileEditor->SetTileset(m_tileset);
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
