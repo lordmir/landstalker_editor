@@ -43,15 +43,18 @@ public:
     : foreground(),
       background(),
       heightmap(),
-      left(0), top(0), width(0), height(0), tile_width(0), tile_height(0), hmwidth(0), hmheight(0)
+      left(0), top(0), width(0), height(0), tile_width(8), tile_height(8), hmwidth(0), hmheight(0)
     {
     }
 
     Tilemap3D(const uint8_t* src)
-        : tile_width(0), tile_height(0)
+        : tile_width(8), tile_height(8)
     {
         Decode(src);
     }
+
+    bool operator==(const Tilemap3D& rhs) const;
+    bool operator!=(const Tilemap3D& rhs) const;
 
     uint16_t Decode(const uint8_t* src);
     uint16_t Encode(uint8_t* dst, size_t size);

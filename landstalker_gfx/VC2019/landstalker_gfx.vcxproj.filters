@@ -129,6 +129,15 @@
     <ClCompile Include="..\src\TilesetManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\RoomManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Room.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tilemap3DCmp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -266,6 +275,15 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AnimatedTileset.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Room.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tilemap3DCmp.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

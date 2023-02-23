@@ -19,6 +19,15 @@ Tilemap::Tilemap(std::size_t width, std::size_t height, std::size_t tile_width, 
 	m_tilevals.resize(width * height);
 }
 
+bool Tilemap::operator==(const Tilemap& rhs)
+{
+	return ((this->m_height == rhs.m_height) &&
+		(this->m_left == rhs.m_left) &&
+		(this->m_top == rhs.m_top) &&
+		(this->m_left == rhs.m_left) &&
+		(this->m_tilevals == rhs.m_tilevals));
+}
+
 std::size_t Tilemap::GetWidth() const
 {
 	return m_width;

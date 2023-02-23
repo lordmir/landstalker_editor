@@ -20,6 +20,7 @@
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "TilesetManager.h"
+#include "RoomManager.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -154,7 +155,6 @@ private:
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(std::size_t offset);
-    void LoadTilemap(std::size_t offset);
     void LoadBlocks(std::size_t offset);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
@@ -165,7 +165,7 @@ private:
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
     void InitRoom(uint16_t room);
-    void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
+    void PopulateRoomProperties(uint16_t room);
     void EnableLayerControls(bool state);
     void SetMode(const Mode& mode);
     void Refresh();
@@ -173,13 +173,11 @@ private:
     bool ExportTxt(const std::string& filename);
 	ImageList& GetImageList();
     
-    RoomTilemap m_tilemap;
     Rom m_rom;
     std::vector<uint8_t> m_gfxBuffer;
     std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
-    std::vector<RoomData> m_rooms;
     std::vector<Palette> m_pal2;
     std::vector<Palette> m_palette;
     Tileset m_tilebmps;
@@ -216,6 +214,7 @@ private:
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
+    std::shared_ptr<RoomManager> m_rmgr;
     std::string m_tsname;
 };
 #endif // MAINFRAME_H

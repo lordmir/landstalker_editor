@@ -21,6 +21,7 @@ public:
 	Tilemap(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left = 0, std::size_t top = 0, uint8_t palette = 0);
 	Tilemap() = delete;
 	virtual ~Tilemap() = default;
+	virtual bool operator==(const Tilemap& rhs);
 	std::size_t GetWidth() const;
 	std::size_t GetHeight() const;
 	std::size_t GetLeft() const;
