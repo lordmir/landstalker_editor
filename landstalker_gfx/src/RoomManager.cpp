@@ -19,6 +19,10 @@ RoomManager::RoomManager(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load map data from \'") + m_map_data_filename.str() + '\'');
 	}
+	if (!LoadAsmWarpData())
+	{
+		throw std::runtime_error(std::string("Unable to load warp data from \'") + m_warp_data_filename.str() + '\'');
+	}
 }
 
 RoomManager::RoomManager(const Rom& rom)
@@ -27,6 +31,10 @@ RoomManager::RoomManager(const Rom& rom)
 	if (!LoadRomRoomTable(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load room data from ROM"));
+	}
+	if (!LoadRomWarpData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load warp data from ROM"));
 	}
 }
 
@@ -121,6 +129,11 @@ std::shared_ptr<RoomManager::MapEntry> RoomManager::GetMap(uint16_t roomnum)
 	return GetMap(name);
 }
 
+std::list<WarpList::Warp> RoomManager::GetWarpsForRoom(uint16_t roomnum)
+{
+	return m_warps.GetWarpsForRoom(roomnum);
+}
+
 bool RoomManager::LoadRomRoomTable(const Rom& rom)
 {
 	uint32_t addr = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_DATA_PTR));
@@ -171,6 +184,12 @@ bool RoomManager::LoadRomRoomTable(const Rom& rom)
 	return true;
 }
 
+bool RoomManager::LoadRomWarpData(const Rom& rom)
+{
+	m_warps = WarpList(rom);
+	return true;
+}
+
 bool RoomManager::GetAsmFilenames()
 {
 	try
@@ -181,8 +200,11 @@ bool RoomManager::GetAsmFilenames()
 		f >> m_room_data_filename;
 		f.Goto(RomOffsets::Rooms::MAP_DATA);
 		f >> m_map_data_filename;
+		f.Goto(RomOffsets::Rooms::ROOM_EXITS);
+		f >> m_warp_data_filename;
 		if (filesystem::path(m_base_path / m_room_data_filename).exists() &&
-			filesystem::path(m_base_path / m_map_data_filename).exists())
+			filesystem::path(m_base_path / m_map_data_filename).exists() &&
+			filesystem::path(m_base_path / m_warp_data_filename).exists())
 		{
 			return true;
 		}
@@ -240,6 +262,12 @@ bool RoomManager::LoadAsmMapData()
 	{
 	}
 	return false;
+}
+
+bool RoomManager::LoadAsmWarpData()
+{
+	m_warps = WarpList(m_warp_data_filename);
+	return true;
 }
 
 bool RoomManager::SaveMapsToDisk(const filesystem::path& dir)

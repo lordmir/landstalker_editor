@@ -67,6 +67,7 @@ protected:
     virtual void OnScrollWindowRightUp(wxMouseEvent& event);
     virtual void OnScrollWindowKeyDown(wxKeyEvent& event);
     virtual void OnScrollWindowKeyUp(wxKeyEvent& event);
+    virtual void OnScrollWindowResize(wxSizeEvent& event);
 private:
     struct RoomData
     {
@@ -211,6 +212,7 @@ private:
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
+    wxScrolledCanvas* m_canvas;
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;

@@ -269,12 +269,6 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     flexGridSizer220->Add(m_sliderSpritesOpacity, 0, wxALL|wxEXPAND|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL, WXC_FROM_DIP(0));
     m_sliderSpritesOpacity->SetMinSize(wxSize(75,-1));
     
-    m_scrollwindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1,-1)), wxFULL_REPAINT_ON_RESIZE|wxHSCROLL|wxVSCROLL);
-    m_scrollwindow->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
-    m_scrollwindow->SetScrollRate(5, 5);
-    
-    m_window->AddPane(m_scrollwindow, wxAuiPaneInfo().CenterPane().Layer(0).Row(0).Position(0));
-    
     m_panel_tiles = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1,-1)), wxTAB_TRAVERSAL);
     
     wxAuiPaneInfo tilesPane = wxAuiPaneInfo()
@@ -293,7 +287,6 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
                                 .PinButton(false);
     tilesPane.dock_proportion = 10;
     m_window->AddPane(m_panel_tiles, tilesPane);
-    m_window->Update();
     
     wxBoxSizer* m_boxsizer_tiles = new wxBoxSizer(wxVERTICAL);
     m_panel_tiles->SetSizer(m_boxsizer_tiles);
@@ -321,6 +314,13 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     
     m_toolbar->AddTool(11009, _("Button10"), wxXmlResource::Get()->LoadBitmap(wxT("einsteinwhistle")), wxNullBitmap, wxITEM_NORMAL, wxT(""), wxT(""), NULL);
     m_toolbar->Realize();
+
+    m_scrollwindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxFULL_REPAINT_ON_RESIZE | wxHSCROLL | wxVSCROLL);
+    m_scrollwindow->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
+    m_scrollwindow->SetScrollRate(5, 5);
+
+    m_window->AddPane(m_scrollwindow, wxAuiPaneInfo().CenterPane().Layer(0).Row(0).Position(0));
+    m_window->Update();
     
     SetName(wxT("MainFrameBaseClass"));
     SetSize(wxDLG_UNIT(this, wxSize(800,600)));
@@ -366,15 +366,6 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_optSpritesSelect->Connect(wxEVT_COMMAND_RADIOBUTTON_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnLayerSelect), NULL, this);
     m_checkSpritesVisible->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnLayerVisibilityChange), NULL, this);
     m_sliderSpritesOpacity->Connect(wxEVT_SCROLL_CHANGED, wxScrollEventHandler(MainFrameBaseClass::OnLayerOpacityChange), NULL, this);
-    m_scrollwindow->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollWindowPaint), NULL, this);
-    m_scrollwindow->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowMousewheel), NULL, this);
-    m_scrollwindow->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowLeftDown), NULL, this);
-    m_scrollwindow->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowLeftUp), NULL, this);
-    m_scrollwindow->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightDown), NULL, this);
-    m_scrollwindow->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
-    m_scrollwindow->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
-    m_scrollwindow->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
-    
 }
 
 MainFrameBaseClass::~MainFrameBaseClass()
@@ -412,6 +403,8 @@ MainFrameBaseClass::~MainFrameBaseClass()
     m_scrollwindow->Disconnect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowRightUp), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyDown), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
+    m_scrollwindow->Disconnect(wxEVT_MOTION, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowMouseMove), NULL, this);
+    m_scrollwindow->Disconnect(wxEVT_SIZE, wxSizeEventHandler(MainFrameBaseClass::OnScrollWindowResize), NULL, this);
     
     m_window->UnInit();
     delete m_window;

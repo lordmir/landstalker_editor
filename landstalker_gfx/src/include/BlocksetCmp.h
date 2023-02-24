@@ -1,5 +1,5 @@
-#ifndef BLOCKSETCMP_H
-#define BLOCKSETCMP_H
+#ifndef _BLOCKSETCMP_H
+#define _BLOCKSETCMP_H
 
 #include <cstdint>
 #include <vector>
@@ -14,4 +14,4 @@ private:
     BlocksetCmp();
 };
 
-#endif // BLOCKSETCMP_H
+#endif // _BLOCKSETCMP_H

@@ -55,10 +55,13 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     wxGridSizer* sizer = new wxGridSizer(1);
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
+    m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
     sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
     sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
+    sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
     sizer->Hide(m_stringView);
     sizer->Hide(m_tilesetEditor);
+    sizer->Hide(m_canvas);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
     SetMode(MODE_NONE);
@@ -78,10 +81,41 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
+    m_canvas->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
+    m_canvas->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrame::OnScrollWindowMousewheel), NULL, this);
+    m_canvas->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowLeftDown), NULL, this);
+    m_canvas->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(MainFrame::OnScrollWindowLeftUp), NULL, this);
+    m_canvas->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowRightDown), NULL, this);
+    m_canvas->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrame::OnScrollWindowRightUp), NULL, this);
+    m_canvas->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrame::OnScrollWindowKeyDown), NULL, this);
+    m_canvas->Connect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrame::OnScrollWindowKeyUp), NULL, this);
+    m_canvas->Connect(wxEVT_MOTION, wxMouseEventHandler(MainFrame::OnScrollWindowMouseMove), NULL, this);
+    m_canvas->Connect(wxEVT_SIZE, wxSizeEventHandler(MainFrame::OnScrollWindowResize), NULL, this);
 }
 
 MainFrame::~MainFrame()
 {
+    this->Disconnect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
+    this->Disconnect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
+    this->Disconnect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
+    this->Disconnect(EVT_PROPERTIES_INIT, wxCommandEventHandler(MainFrame::OnPropertiesInit), nullptr, this);
+    this->Disconnect(EVT_PROPERTIES_UPDATE, wxCommandEventHandler(MainFrame::OnPropertiesUpdate), nullptr, this);
+    this->Disconnect(EVT_PROPERTIES_CLEAR, wxCommandEventHandler(MainFrame::OnPropertiesClear), nullptr, this);
+    this->Disconnect(wxEVT_PG_CHANGED, wxPropertyGridEventHandler(MainFrame::OnPropertyChange), nullptr, this);
+    this->Disconnect(EVT_MENU_INIT, wxCommandEventHandler(MainFrame::OnMenuInit), nullptr, this);
+    this->Disconnect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
+    this->Disconnect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
+    this->Disconnect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
+    m_canvas->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
+    m_canvas->Disconnect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrame::OnScrollWindowMousewheel), NULL, this);
+    m_canvas->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowLeftDown), NULL, this);
+    m_canvas->Disconnect(wxEVT_LEFT_UP, wxMouseEventHandler(MainFrame::OnScrollWindowLeftUp), NULL, this);
+    m_canvas->Disconnect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowRightDown), NULL, this);
+    m_canvas->Disconnect(wxEVT_RIGHT_UP, wxMouseEventHandler(MainFrame::OnScrollWindowRightUp), NULL, this);
+    m_canvas->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(MainFrame::OnScrollWindowKeyDown), NULL, this);
+    m_canvas->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrame::OnScrollWindowKeyUp), NULL, this);
+    m_canvas->Disconnect(wxEVT_MOTION, wxMouseEventHandler(MainFrame::OnScrollWindowMouseMove), NULL, this);
+    m_canvas->Disconnect(wxEVT_SIZE, wxSizeEventHandler(MainFrame::OnScrollWindowResize), NULL, this);
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -566,10 +600,35 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
             {
                 int z = tilemap->map->GetHeight({x, y});
                 //wxPoint xy(tilemap->map->foreground.ToXYPoint3D(TilePoint3D{ xx, yy, zz }));
-                auto xy(tilemap->map->Iso3DToPixel({ x, y, z }));
+                auto xy(tilemap->map->Iso3DToPixel({ x + 12, y + 12, z }));
                 DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, tilemap->map->GetCellProps({x,y}), tilemap->map->GetCellType({x,y}));
             }
         }
+    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
+    for (const auto& warp : warps)
+    {
+        int x = 0;
+        int y = 0;
+        if (warp.room1 == m_roomnum)
+        {
+            x = warp.x1;
+            y = warp.y1;
+        }
+        else if (warp.room2 == m_roomnum)
+        {
+            x = warp.x2;
+            y = warp.y2;
+        }
+        for(int yoff = 0; yoff < warp.y_size; ++yoff)
+            for (int xoff = 0; xoff < warp.x_size; ++xoff)
+            {
+                int xx = x + xoff;
+                int yy = y + yoff;
+                int z = tilemap->map->GetHeight({ xx - 12,yy - 12 });
+                auto xy = tilemap->map->Iso3DToPixel({ xx,yy,z });
+                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, 5, static_cast<uint8_t>(warp.type));
+            }
+    }
     delete hm_gc;
     SetOpacity(hm_img, hm_opacity);
     wxBitmap hm_bmp(hm_img);
@@ -610,7 +669,6 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
             // Only display cells that are not completely restricted
             if ((tilemap->map->GetHeight({ x, y }) > 0 || (tilemap->map->GetCellProps({ x, y }) != 0x04)))
             {
-                auto xy(tilemap->map->IsoToPixel({ x, y }));
                 memDc.DrawRectangle(x * TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH+1, TILE_HEIGHT+1);
                 std::stringstream ss;
                 ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tilemap->map->GetHeight({x,y})) << ","
@@ -619,11 +677,46 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
                 memDc.DrawText(ss.str(),x*TILE_WIDTH+2, y*TILE_HEIGHT + 1);
             }
         }
+    memDc.SetBrush(*wxTRANSPARENT_BRUSH);
+    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
+    for (const auto& warp : warps)
+    {
+        int x = 0;
+        int y = 0;
+        if (warp.room1 == m_roomnum)
+        {
+            x = warp.x1;
+            y = warp.y1;
+        }
+        else if (warp.room2 == m_roomnum)
+        {
+            x = warp.x2;
+            y = warp.y2;
+        }
+        int xx = x - 12;
+        int yy = y - 12;
+        switch (warp.type)
+        {
+        case WarpList::Warp::Type::NORMAL:
+            memDc.SetPen(*wxYELLOW_PEN);
+            break;
+        case WarpList::Warp::Type::STAIR_SE:
+            memDc.SetPen(*wxGREEN_PEN);
+            break;
+        case WarpList::Warp::Type::STAIR_SW:
+            memDc.SetPen(*wxCYAN_PEN);
+            break;
+        default:
+            memDc.SetPen(*wxRED_PEN);
+            break;
+        }
+        memDc.DrawRectangle(xx * TILE_WIDTH + 2, yy * TILE_HEIGHT + 2, warp.x_size * TILE_WIDTH - 3, warp.y_size * TILE_HEIGHT - 3);
+    }
     memDc.SelectObject(wxNullBitmap);
 
     m_scale = scale;
-    m_scrollwindow->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
-    wxClientDC dc(m_scrollwindow);
+    m_canvas->SetScrollbars(scale,scale,BMP_WIDTH,BMP_HEIGHT,0,0);
+    wxClientDC dc(m_canvas);
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
@@ -826,6 +919,7 @@ void MainFrame::ShowStrings()
         m_activeEditor = nullptr;
         m_stringView->Show();
         m_tilesetEditor->Hide();
+        m_canvas->Hide();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
@@ -839,6 +933,7 @@ void MainFrame::ShowTileset()
         m_activeEditor = m_tilesetEditor;
         m_stringView->Hide();
         m_tilesetEditor->Show();
+        m_canvas->Hide();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
@@ -847,12 +942,14 @@ void MainFrame::ShowTileset()
 
 void MainFrame::ShowBitmap()
 {
-    if (m_tilesetEditor->IsShown() || m_stringView->IsShown())
+    if (!m_canvas->IsShown())
     {
         m_activeEditor = nullptr;
         m_stringView->Hide();
         m_tilesetEditor->Hide();
+        m_canvas->Show();
         this->m_scrollwindow->GetSizer()->Clear();
+        this->m_scrollwindow->GetSizer()->Add(m_canvas, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
         this->m_scrollwindow->Refresh(true);
     }
@@ -860,8 +957,11 @@ void MainFrame::ShowBitmap()
 
 void MainFrame::ForceRepaint()
 {
-    m_scrollwindow->SetScrollbars(m_scale, m_scale, m_imgbuf.GetWidth(), m_imgbuf.GetHeight(), 0, 0);
-    wxClientDC dc(m_scrollwindow);
+    //m_scrollwindow->SetScrollbars(m_scale, m_scale, m_imgbuf.GetWidth(), m_imgbuf.GetHeight(), 0, 0);
+    //m_scrollwindow->SetClientSize(m_scrollwindow->GetClientSize());
+    m_canvas->SetScrollRate(1, 1);
+    m_canvas->SetVirtualSize(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
+    wxClientDC dc(m_canvas);
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, m_scale);
@@ -885,8 +985,8 @@ void MainFrame::OnPaint(wxPaintEvent& event)
 void MainFrame::PaintNow(wxDC& dc, std::size_t scale)
 {
     int x, y, w, h;
-    m_scrollwindow->GetViewStart(&x, &y);
-    m_scrollwindow->GetClientSize(&w, &h);
+    m_canvas->GetViewStart(&x, &y);
+    m_canvas->GetClientSize(&w, &h);
     double dscale = static_cast<double>(scale);
     memDc.SelectObject(wxNullBitmap);
 
@@ -909,7 +1009,7 @@ void MainFrame::PaintNow(wxDC& dc, std::size_t scale)
 
 void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
 {
-    wxPaintDC dc(m_scrollwindow);
+    wxPaintDC dc(m_canvas);
     PaintNow(dc, m_scale);
     event.Skip();
 }
@@ -1457,6 +1557,10 @@ void MainFrame::OnScrollWindowKeyUp(wxKeyEvent& event)
 {
     event.Skip();
 }
+void MainFrame::OnScrollWindowResize(wxSizeEvent& event)
+{
+    event.Skip();
+}
 void MainFrame::OnScrollWindowLeftDown(wxMouseEvent& event)
 {
     event.Skip();
@@ -1471,6 +1575,12 @@ void MainFrame::OnScrollWindowMousewheel(wxMouseEvent& event)
 }
 void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
+    auto s = m_canvas->GetClientSize();
+    auto p = m_canvas->GetScreenPosition();
+    auto vx = m_imgbuf.GetWidth();
+    auto vy = m_imgbuf.GetHeight();
+    auto msg = StrPrintf("%dx%d (%d,%d)   [%d,%d]  {%d,%d}", s.x, s.y, p.x, p.y, event.GetX(), event.GetY(), vx, vy);
+    m_statusbar->SetLabelText(msg);
     event.Skip();
 }
 void MainFrame::OnScrollWindowRightDown(wxMouseEvent& event)

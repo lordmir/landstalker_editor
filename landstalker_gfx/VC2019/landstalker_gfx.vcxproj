@@ -51,6 +51,7 @@
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\TilesetManager.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
+    <ClCompile Include="..\src\WarpList.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
@@ -104,6 +105,7 @@
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\TilesetManager.h" />
     <ClInclude Include="..\src\include\Utils.h" />
+    <ClInclude Include="..\src\include\WarpList.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
   </ItemGroup>
   <ItemGroup>

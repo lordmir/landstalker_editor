@@ -13,6 +13,7 @@
 #include <Rom.h>
 #include <Room.h>
 #include <Tilemap3DCmp.h>
+#include <WarpList.h>
 
 class RoomManager
 {
@@ -44,12 +45,15 @@ public:
     std::vector<std::string> GetMapList() const;
     std::shared_ptr<MapEntry> GetMap(const std::string& name);
     std::shared_ptr<MapEntry> GetMap(uint16_t roomnum);
+    std::list<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
 
 private:
     bool LoadRomRoomTable(const Rom& rom);
+    bool LoadRomWarpData(const Rom& rom);
     bool GetAsmFilenames();
     bool LoadAsmRoomTable();
     bool LoadAsmMapData();
+    bool LoadAsmWarpData();
     bool SaveMapsToDisk(const filesystem::path& dir);
     bool SaveAsmMapFilenames(const filesystem::path& dir);
     bool SaveAsmRoomData(const filesystem::path& dir);
@@ -58,9 +62,11 @@ private:
     filesystem::path m_base_path;
     filesystem::path m_room_data_filename;
     filesystem::path m_map_data_filename;
+    filesystem::path m_warp_data_filename;
 
     std::vector<Room> m_roomlist;
     std::map<std::string, std::shared_ptr<MapEntry>> m_maps;
+    WarpList m_warps;
     mutable std::map<std::string, std::vector<uint8_t>> m_pending_write;
     mutable bool m_roomlist_pending_modifications;
 };

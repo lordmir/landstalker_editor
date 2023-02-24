@@ -855,9 +855,9 @@ PixelPoint2D Tilemap3D::ToPixel(const Point2D& iso, Layer layer) const
 
 PixelPoint2D Tilemap3D::Iso3DToPixel(const Point3D& iso) const
 {
-    if (IsHMPointValid({ iso.x, iso.y }) == false) return { -1, -1 };
-    int xx = iso.x - GetLeft() + 12;
-    int yy = iso.y - GetTop() + 12;
+    //if (IsHMPointValid({ iso.x, iso.y }) == false) return { -1, -1 };
+    int xx = iso.x - GetLeft();
+    int yy = iso.y - GetTop();
     int ix = (xx - yy + (GetHeight() - 1)) * 2 + GetLeft();
     int iy = (xx + yy - iso.z * 2) * 2 / 2 + GetTop();
     return Point2D{ ix * tile_width, iy * tile_height };
@@ -871,7 +871,7 @@ Point3D Tilemap3D::PixelToIso3D(const PixelPoint2D& p) const
 
 PixelPoint2D Tilemap3D::HMPointToPixel(const HMPoint2D& p) const
 {
-    return Iso3DToPixel({p.x, p.y, 0});
+    return Iso3DToPixel({p.x + 12, p.y + 12, 0});
 }
 
 HMPoint2D Tilemap3D::PixelToHMPoint(const PixelPoint2D& p) const

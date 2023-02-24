@@ -138,6 +138,9 @@
     <ClCompile Include="..\src\Tilemap3DCmp.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\WarpList.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -284,6 +287,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Tilemap3DCmp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\WarpList.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
