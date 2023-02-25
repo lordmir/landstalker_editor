@@ -20,6 +20,7 @@
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "TilesetManager.h"
+#include "RoomManager.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -66,6 +67,7 @@ protected:
     virtual void OnScrollWindowRightUp(wxMouseEvent& event);
     virtual void OnScrollWindowKeyDown(wxKeyEvent& event);
     virtual void OnScrollWindowKeyUp(wxKeyEvent& event);
+    virtual void OnScrollWindowResize(wxSizeEvent& event);
 private:
     struct RoomData
     {
@@ -107,6 +109,7 @@ private:
             NODE_ROOM_PAL,
             NODE_ROOM,
             NODE_ROOM_HEIGHTMAP,
+            NODE_ROOM_WARPS,
             NODE_SPRITE,
             NODE_SPRITE_FRAME
         };
@@ -143,18 +146,21 @@ private:
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
     void DrawHeightmap(std::size_t scale, uint16_t room);
+    void DrawWarps(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
+    void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height);
+    void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
     void PopulatePalettes();
     void ShowStrings();
     void ShowTileset();
     void ShowBitmap();
     void ForceRepaint();
     void ClearScreen();
+    void GoToRoom(uint16_t room);
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(std::size_t offset);
-    void LoadTilemap(std::size_t offset);
     void LoadBlocks(std::size_t offset);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
@@ -165,21 +171,20 @@ private:
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
     void InitRoom(uint16_t room);
-    void PopulateRoomProperties(uint16_t room, const RoomTilemap& tm);
+    void PopulateRoomProperties(uint16_t room);
     void EnableLayerControls(bool state);
     void SetMode(const Mode& mode);
     void Refresh();
     bool ExportPng(const std::string& filename);
     bool ExportTxt(const std::string& filename);
 	ImageList& GetImageList();
+    void ProcessSelectedBrowserItem(const wxTreeItemId& item);
     
-    RoomTilemap m_tilemap;
     Rom m_rom;
     std::vector<uint8_t> m_gfxBuffer;
     std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
-    std::vector<RoomData> m_rooms;
     std::vector<Palette> m_pal2;
     std::vector<Palette> m_palette;
     Tileset m_tilebmps;
@@ -213,9 +218,13 @@ private:
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
+    wxScrolledCanvas* m_canvas;
+    std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
+    std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
+    std::shared_ptr<RoomManager> m_rmgr;
     std::string m_tsname;
 };
 #endif // MAINFRAME_H

@@ -153,6 +153,10 @@ protected:
     {
         event.Skip();
     }
+    virtual void OnScrollWindowMouseMove(wxMouseEvent& event)
+    {
+        event.Skip();
+    }
     virtual void OnScrollWindowLeftDown(wxMouseEvent& event)
     {
         event.Skip();
@@ -174,6 +178,10 @@ protected:
         event.Skip();
     }
     virtual void OnScrollWindowKeyUp(wxKeyEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnScrollWindowResize(wxSizeEvent& event)
     {
         event.Skip();
     }

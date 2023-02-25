@@ -35,6 +35,8 @@
     <ClCompile Include="..\src\Palette.cpp" />
     <ClCompile Include="..\src\PaletteEditor.cpp" />
     <ClCompile Include="..\src\Rom.cpp" />
+    <ClCompile Include="..\src\Room.cpp" />
+    <ClCompile Include="..\src\RoomManager.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
@@ -43,11 +45,13 @@
     <ClCompile Include="..\src\TileEditor.cpp" />
     <ClCompile Include="..\src\Tilemap.cpp" />
     <ClCompile Include="..\src\Tilemap2DRLE.cpp" />
+    <ClCompile Include="..\src\Tilemap3DCmp.cpp" />
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\TilesetManager.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
+    <ClCompile Include="..\src\WarpList.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
@@ -86,6 +90,8 @@
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
+    <ClInclude Include="..\src\include\Room.h" />
+    <ClInclude Include="..\src\include\RoomManager.h" />
     <ClInclude Include="..\src\include\Sprite.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\SpriteGraphic.h" />
@@ -94,10 +100,12 @@
     <ClInclude Include="..\src\include\TileEditor.h" />
     <ClInclude Include="..\src\include\Tilemap.h" />
     <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
+    <ClInclude Include="..\src\include\Tilemap3DCmp.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\TilesetManager.h" />
     <ClInclude Include="..\src\include\Utils.h" />
+    <ClInclude Include="..\src\include\WarpList.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
   </ItemGroup>
   <ItemGroup>

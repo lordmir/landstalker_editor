@@ -91,6 +91,32 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
     }
 }
 
+void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<Tilemap3D> map, const std::shared_ptr<Tileset> tileset, const std::shared_ptr<std::vector<MapBlock>> blockset)
+{
+    Point2D tilepos = {0, 0};
+    for (int y = 0; y < map->GetHeight(); ++y)
+        for (int x = 0; x < map->GetWidth(); ++x)
+        {
+            tilepos = { x, y };
+            auto tile = map->GetBlock(tilepos, layer);
+            auto loc(map->IsoToPixel(tilepos, layer));
+            if (tile >= blockset->size())
+            {
+                std::ostringstream ss;
+                ss << "Attempt to index out of range block " << std::hex << tile << " - maximum is " << (blockset->size() - 1);
+                Debug(ss.str());
+                tile = 0;
+            }
+            InsertBlock(loc.x, loc.y, palette_index, blockset->at(tile), *tileset);
+            tilepos.x++;
+            if (tilepos.x == GetWidth())
+            {
+                tilepos.x = 0;
+                tilepos.y++;
+            }
+        }
+}
+
 bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palette>& palettes)
 {
     bool retval = false;

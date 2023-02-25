@@ -294,7 +294,6 @@ bool TilesetManager::GetTilesetAsmFilenames()
 	{
 		AsmFile f(m_asm_filename.str());
 		m_base_path = m_asm_filename.parent_path();
-		AsmFile::IncludeFile inc;
 		f.Goto(RomOffsets::Tilesets::DATA_LOC);
 		f >> m_tileset_data_filename;
 		f.Goto(RomOffsets::Tilesets::PTRTAB_LOC);
@@ -635,7 +634,6 @@ void TilesetManager::LoadRomTilesetData(const Rom& rom)
 
 bool TilesetManager::HasTilesetBeenModified(const std::string& tileset) const
 {
-	//return true;
 	auto it = m_tilesets_by_name.find(tileset);
 	if (it == m_tilesets_by_name.end())
 	{
