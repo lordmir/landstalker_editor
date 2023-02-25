@@ -1660,7 +1660,7 @@ void MainFrame::GoToRoom(uint16_t room)
         {
             break;
         }
-        c = m_browser->GetNextChild(r, cookie);
+        c = m_browser->GetNextSibling(c);
     }
     c = m_browser->GetFirstChild(c, cookie);
     while (c.IsOk() == true)
@@ -1670,7 +1670,7 @@ void MainFrame::GoToRoom(uint16_t room)
         {
             break;
         }
-        c = m_browser->GetNextChild(c, cookie);
+        c = m_browser->GetNextSibling(c);
     }
     c = m_browser->GetFirstChild(c, cookie);
     while (c.IsOk() == true)
@@ -1680,7 +1680,7 @@ void MainFrame::GoToRoom(uint16_t room)
         {
             break;
         }
-        c = m_browser->GetNextChild(c, cookie);
+        c = m_browser->GetNextSibling(c);
     }
     if (c.IsOk())
     {
