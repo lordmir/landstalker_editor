@@ -46,6 +46,11 @@ public:
     std::shared_ptr<MapEntry> GetMap(const std::string& name);
     std::shared_ptr<MapEntry> GetMap(uint16_t roomnum);
     std::list<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
+    bool HasFallDestination(uint16_t room) const;
+    uint16_t GetFallDestination(uint16_t room) const;
+    bool HasClimbDestination(uint16_t room) const;
+    uint16_t GetClimbDestination(uint16_t room) const;
+    std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
 
 private:
     bool LoadRomRoomTable(const Rom& rom);
@@ -63,6 +68,9 @@ private:
     filesystem::path m_room_data_filename;
     filesystem::path m_map_data_filename;
     filesystem::path m_warp_data_filename;
+    filesystem::path m_fall_data_filename;
+    filesystem::path m_climb_data_filename;
+    filesystem::path m_transition_data_filename;
 
     std::vector<Room> m_roomlist;
     std::map<std::string, std::shared_ptr<MapEntry>> m_maps;

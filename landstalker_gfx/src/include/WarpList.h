@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdint>
 #include <list>
+#include <map>
 
 class WarpList
 {
@@ -33,14 +34,26 @@ public:
 		Warp(const std::vector<uint8_t>& raw);
 		std::vector<uint8_t> GetRaw();
 	};
-	WarpList(const filesystem::path& path);
+	WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path);
 	WarpList(const Rom& rom);
 	WarpList() = default;
 
 	std::list<Warp> GetWarpsForRoom(uint16_t room) const;
+	bool HasFallDestination(uint16_t room) const;
+	uint16_t GetFallDestination(uint16_t room) const;
+	bool HasClimbDestination(uint16_t room) const;
+	uint16_t GetClimbDestination(uint16_t room) const;
+	std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
 
 private:
+	void ProcessWarpList(const std::vector<uint8_t>& bytes);
+	void ProcessRouteList(const std::vector<uint8_t>& bytes, std::map<uint16_t, uint16_t>& routes);
+	void ProcessTransitionList(const std::vector<uint8_t>& bytes);
+
 	std::vector<Warp> m_warps;
+	std::map<uint16_t, uint16_t> m_fall_dests;
+	std::map<uint16_t, uint16_t> m_climb_dests;
+	std::map<std::pair<uint16_t, uint16_t>, uint16_t> m_transitions;
 };
 
 #endif // _WARP_LIST_H_

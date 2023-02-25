@@ -134,6 +134,31 @@ std::list<WarpList::Warp> RoomManager::GetWarpsForRoom(uint16_t roomnum)
 	return m_warps.GetWarpsForRoom(roomnum);
 }
 
+bool RoomManager::HasFallDestination(uint16_t room) const
+{
+	return m_warps.HasFallDestination(room);
+}
+
+uint16_t RoomManager::GetFallDestination(uint16_t room) const
+{
+	return m_warps.GetFallDestination(room);
+}
+
+bool RoomManager::HasClimbDestination(uint16_t room) const
+{
+	return m_warps.HasClimbDestination(room);
+}
+
+uint16_t RoomManager::GetClimbDestination(uint16_t room) const
+{
+	return m_warps.GetClimbDestination(room);
+}
+
+std::map<std::pair<uint16_t, uint16_t>, uint16_t> RoomManager::GetTransitions(uint16_t room) const
+{
+	return m_warps.GetTransitions(room);
+}
+
 bool RoomManager::LoadRomRoomTable(const Rom& rom)
 {
 	uint32_t addr = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_DATA_PTR));
@@ -202,9 +227,18 @@ bool RoomManager::GetAsmFilenames()
 		f >> m_map_data_filename;
 		f.Goto(RomOffsets::Rooms::ROOM_EXITS);
 		f >> m_warp_data_filename;
+		f.Goto(RomOffsets::Rooms::ROOM_FALL_DEST);
+		f >> m_fall_data_filename;
+		f.Goto(RomOffsets::Rooms::ROOM_CLIMB_DEST);
+		f >> m_climb_data_filename;
+		f.Goto(RomOffsets::Rooms::ROOM_TRANSITIONS);
+		f >> m_transition_data_filename;
 		if (filesystem::path(m_base_path / m_room_data_filename).exists() &&
 			filesystem::path(m_base_path / m_map_data_filename).exists() &&
-			filesystem::path(m_base_path / m_warp_data_filename).exists())
+			filesystem::path(m_base_path / m_warp_data_filename).exists() &&
+			filesystem::path(m_base_path / m_climb_data_filename).exists() &&
+			filesystem::path(m_base_path / m_fall_data_filename).exists() &&
+			filesystem::path(m_base_path / m_transition_data_filename).exists())
 		{
 			return true;
 		}
@@ -266,7 +300,10 @@ bool RoomManager::LoadAsmMapData()
 
 bool RoomManager::LoadAsmWarpData()
 {
-	m_warps = WarpList(m_warp_data_filename);
+	m_warps = WarpList(m_base_path / m_warp_data_filename, 
+	                   m_base_path / m_fall_data_filename,
+		               m_base_path / m_climb_data_filename,
+		               m_base_path / m_transition_data_filename);
 	return true;
 }
 

@@ -2,32 +2,41 @@
 
 #include <cassert>
 
-WarpList::WarpList(const filesystem::path& path)
+WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
 {
-	auto buf = ReadBytes(path);
-	assert(buf.size() % 8 == 2);
-	auto it = buf.begin();
-	uint16_t begin = (*(it) << 8) | *(it + 1);
-	while (it != buf.end() && begin != 0xFFFF)
+	auto warp_buf = ReadBytes(warp_path);
+	auto fall_buf = ReadBytes(fall_dest_path);
+	auto climb_buf = ReadBytes(climb_dest_path);
+	auto transition_buf = ReadBytes(transition_path);
+	ProcessWarpList(warp_buf);
+	ProcessRouteList(fall_buf, m_fall_dests);
+	ProcessRouteList(climb_buf, m_climb_dests);
+	ProcessTransitionList(transition_buf);
+}
+
+uint32_t FindMarker(const Rom& rom, uint32_t start_addr)
+{
+	uint32_t end = start_addr;
+	uint16_t marker;
+	do
 	{
-		auto bits = std::vector<uint8_t>(it, it + 8);
-		m_warps.emplace_back(bits);
-		it += 8;
-		begin = (*(it) << 8) | *(it + 1);
-	}
+		end += 2;
+		marker = rom.read<uint16_t>(end);
+	} while (marker != 0xFFFF);
+	return end + 2;
 }
 
 WarpList::WarpList(const Rom& rom)
 {
-	uint32_t addr = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
-	uint16_t begin = rom.read<uint16_t>(addr);
-	while (begin != 0xFFFF)
-	{
-		auto bits = rom.read_array<uint8_t>(addr, 8);
-		m_warps.emplace_back(bits);
-		addr += 8;
-		begin = rom.read<uint16_t>(addr);
-	}
+	uint32_t start = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
+	auto warp_bytes = rom.read_array<uint8_t>(start, FindMarker(rom, start) - start);
+	auto fall_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_FALL_DEST);
+	auto climb_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_CLIMB_DEST);
+	auto transition_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_TRANSITIONS);
+	ProcessWarpList(warp_bytes);
+	ProcessRouteList(fall_bytes, m_fall_dests);
+	ProcessRouteList(climb_bytes, m_climb_dests);
+	ProcessTransitionList(transition_bytes);
 }
 
 std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
@@ -41,6 +50,90 @@ std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 		}
 	}
 	return warps;
+}
+
+bool WarpList::HasFallDestination(uint16_t room) const
+{
+	return m_fall_dests.find(room) != m_fall_dests.end();
+}
+
+uint16_t WarpList::GetFallDestination(uint16_t room) const
+{
+	if (!HasFallDestination(room))
+	{
+		return 0xFFFF;
+	}
+	return m_fall_dests.find(room)->second;
+}
+
+bool WarpList::HasClimbDestination(uint16_t room) const
+{
+	return m_climb_dests.find(room) != m_climb_dests.end();
+}
+
+uint16_t WarpList::GetClimbDestination(uint16_t room) const
+{
+	if (!HasClimbDestination(room))
+	{
+		return 0xFFFF;
+	}
+	return m_climb_dests.find(room)->second;
+}
+
+std::map<std::pair<uint16_t, uint16_t>, uint16_t> WarpList::GetTransitions(uint16_t room) const
+{
+	std::map<std::pair<uint16_t, uint16_t>, uint16_t> retval;
+	for (const auto& t : m_transitions)
+	{
+		if ((t.first.first == room) || (t.first.second == room))
+		{
+			retval.emplace(t);
+		}
+	}
+	return retval;
+}
+
+void WarpList::ProcessWarpList(const std::vector<uint8_t>& bytes)
+{
+	assert(bytes.size() % 8 == 2);
+	auto it = bytes.begin();
+	uint16_t begin = (*(it) << 8) | *(it + 1);
+	while (it != bytes.end() && begin != 0xFFFF)
+	{
+		auto bits = std::vector<uint8_t>(it, it + 8);
+		m_warps.emplace_back(bits);
+		it += 8;
+		begin = (*(it) << 8) | *(it + 1);
+	}
+}
+
+void WarpList::ProcessRouteList(const std::vector<uint8_t>& bytes, std::map<uint16_t, uint16_t>& route)
+{
+	assert(bytes.size() % 4 == 2);
+	auto it = bytes.begin();
+	uint16_t target = (*it << 8) | *(it + 1);
+	while (target != 0xFFFF)
+	{
+		uint16_t destination = (*(it + 2) << 8) | *(it + 3);
+		route.insert({ target, destination });
+		it += 4;
+		target = (*it << 8) | *(it + 1);
+	}
+}
+
+void WarpList::ProcessTransitionList(const std::vector<uint8_t>& bytes)
+{
+	assert(bytes.size() % 6 == 4);
+	auto it = bytes.begin();
+	uint16_t target = (*it << 8) | *(it + 1);
+	while (target != 0xFFFF)
+	{
+		uint16_t destination = (*(it + 2) << 8) | *(it + 3);
+		uint16_t flag = (*(it + 4) << 3) | *(it + 5);
+		m_transitions.insert({{target, destination}, flag});
+		it += 6;
+		target = (*it << 8) | *(it + 1);
+	}
 }
 
 WarpList::Warp::Warp(const std::vector<uint8_t>& raw)

@@ -603,6 +603,8 @@ void SetOpacity(wxImage& image, uint8_t opacity)
 void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 {
     auto tilemap = m_rmgr->GetMap(m_roomnum);
+    m_warp_poly.clear();
+    m_link_poly.clear();
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 16;
@@ -640,11 +642,6 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
                 DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, tilemap->map->GetCellProps({x,y}), tilemap->map->GetCellType({x,y}));
             }
         }
-    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
-    for (const auto& warp : warps)
-    {
-        DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
-    }
     delete hm_gc;
     SetOpacity(hm_img, hm_opacity);
     wxBitmap hm_bmp(hm_img);
@@ -661,6 +658,8 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
 {
     auto tilemap = m_rmgr->GetMap(m_roomnum);
+    m_warp_poly.clear();
+    m_link_poly.clear();
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 32;
@@ -693,40 +692,6 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
             }
         }
     memDc.SetBrush(*wxTRANSPARENT_BRUSH);
-    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
-    for (const auto& warp : warps)
-    {
-        int x = 0;
-        int y = 0;
-        if (warp.room1 == m_roomnum)
-        {
-            x = warp.x1;
-            y = warp.y1;
-        }
-        else if (warp.room2 == m_roomnum)
-        {
-            x = warp.x2;
-            y = warp.y2;
-        }
-        int xx = x - 12;
-        int yy = y - 12;
-        switch (warp.type)
-        {
-        case WarpList::Warp::Type::NORMAL:
-            memDc.SetPen(*wxYELLOW_PEN);
-            break;
-        case WarpList::Warp::Type::STAIR_SE:
-            memDc.SetPen(*wxGREEN_PEN);
-            break;
-        case WarpList::Warp::Type::STAIR_SW:
-            memDc.SetPen(*wxCYAN_PEN);
-            break;
-        default:
-            memDc.SetPen(*wxRED_PEN);
-            break;
-        }
-        memDc.DrawRectangle(xx * TILE_WIDTH + 2, yy * TILE_HEIGHT + 2, warp.x_size * TILE_WIDTH - 3, warp.y_size * TILE_HEIGHT - 3);
-    }
     memDc.SelectObject(wxNullBitmap);
 
     m_scale = scale;
@@ -735,6 +700,28 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
+}
+
+void MainFrame::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y)
+{
+    wxFont font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    double w, h;
+    gc->SetFont(font, *wxWHITE);
+    gc->GetTextExtent(label, &w, &h);
+    const double LINK_X = x + std::max<double>(145, w + 20);
+    const double LINK_Y = y;
+    gc->DrawText(label, x, y);
+    gc->SetFont(font, *wxYELLOW);
+    auto roomlabel = StrPrintf("Room %03d", room);
+    gc->DrawText(roomlabel, LINK_X, LINK_Y);
+    gc->GetTextExtent(roomlabel, &w, & h);
+    m_link_poly.push_back({ room, {
+        {LINK_X, LINK_Y},
+        {LINK_X + w, LINK_Y},
+        {LINK_X + w, LINK_Y + h},
+        {LINK_X, LINK_Y + h},
+        {LINK_X, LINK_Y}
+    } });
 }
 
 void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
@@ -759,10 +746,32 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     hm_gc->SetPen(*wxWHITE_PEN);
     hm_gc->SetBrush(*wxBLACK_BRUSH);
     m_warp_poly.clear();
+    m_link_poly.clear();
     auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
     for (const auto& warp : warps)
     {
         DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
+    }
+    wxColour bkColor(*wxBLACK);
+    wxColour textColor(*wxWHITE);
+    int line = 0;
+    if (m_rmgr->HasClimbDestination(m_roomnum))
+    {
+        AddRoomLink(hm_gc, "Climb Destination:", m_rmgr->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
+        line++;
+    }
+    if (m_rmgr->HasFallDestination(m_roomnum))
+    {
+        AddRoomLink(hm_gc, "Fall Destination:", m_rmgr->GetFallDestination(m_roomnum), 5, 5 + line * 16);
+        line++;
+    }
+    auto txns = m_rmgr->GetTransitions(m_roomnum);
+    for (const auto t : txns)
+    {
+        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == m_roomnum) ? "SET" : "CLEAR");
+        uint16_t dest = (t.first.first == m_roomnum) ? t.first.second : t.first.first;
+        AddRoomLink(hm_gc, label, dest, 5, 5 + line * 16);
+        line++;
     }
     delete hm_gc;
     wxBitmap hm_bmp(hm_img);
@@ -1639,6 +1648,47 @@ bool pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y)
     return c;
 }
 
+void MainFrame::GoToRoom(uint16_t room)
+{
+    auto r = m_browser->GetRootItem();
+    wxTreeItemIdValue cookie;
+    auto c = m_browser->GetFirstChild(r, cookie);
+    while (c.IsOk() == true)
+    {
+        auto label = m_browser->GetItemText(c);
+        if (label == "Rooms")
+        {
+            break;
+        }
+        c = m_browser->GetNextChild(r, cookie);
+    }
+    c = m_browser->GetFirstChild(c, cookie);
+    while (c.IsOk() == true)
+    {
+        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
+        if (itemData->GetValue() == room)
+        {
+            break;
+        }
+        c = m_browser->GetNextChild(c, cookie);
+    }
+    c = m_browser->GetFirstChild(c, cookie);
+    while (c.IsOk() == true)
+    {
+        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
+        if (itemData->GetNodeType() == TreeNodeData::NodeType::NODE_ROOM_WARPS)
+        {
+            break;
+        }
+        c = m_browser->GetNextChild(c, cookie);
+    }
+    if (c.IsOk())
+    {
+        m_browser->SelectItem(c);
+        ProcessSelectedBrowserItem(c);
+    }
+}
+
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
     if (m_rmgr != nullptr)
@@ -1655,43 +1705,15 @@ void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
                 if (pnpoly(wp.second, x, y))
                 {
                     uint16_t room = (wp.first.room1 == m_roomnum) ? wp.first.room2 : wp.first.room1;
-                    auto r = m_browser->GetRootItem();
-                    wxTreeItemIdValue cookie;
-                    auto c = m_browser->GetFirstChild(r, cookie);
-                    while (c.IsOk() == true)
-                    {
-                        auto label = m_browser->GetItemText(c);
-                        if (label == "Rooms")
-                        {
-                            break;
-                        }
-                        c = m_browser->GetNextChild(r, cookie);
-                    }
-                    c = m_browser->GetFirstChild(c, cookie);
-                    while (c.IsOk() == true)
-                    {
-                        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
-                        if (itemData->GetValue() == room)
-                        {
-                            break;
-                        }
-                        c = m_browser->GetNextChild(c, cookie);
-                    }
-                    c = m_browser->GetFirstChild(c, cookie);
-                    while (c.IsOk() == true)
-                    {
-                        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
-                        if (itemData->GetNodeType() == TreeNodeData::NodeType::NODE_ROOM_WARPS)
-                        {
-                            break;
-                        }
-                        c = m_browser->GetNextChild(c, cookie);
-                    }
-                    if (c.IsOk())
-                    {
-                        m_browser->SelectItem(c);
-                        ProcessSelectedBrowserItem(c);
-                    }
+                    GoToRoom(room);
+                    break;
+                }
+            }
+            for (const auto& lp : m_link_poly)
+            {
+                if (pnpoly(lp.second, x, y))
+                {
+                    GoToRoom(lp.first);
                     break;
                 }
             }
@@ -1726,6 +1748,14 @@ void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
                     uint8_t wx = (wp.first.room1 == m_roomnum) ? wp.first.x2 : wp.first.x1;
                     uint8_t wy = (wp.first.room1 == m_roomnum) ? wp.first.y2 : wp.first.y1;
                     msg += StrPrintf(" - Warp to room %03d (%d,%d)", room, wx, wy);
+                    m_canvas->SetCursor(wxCURSOR_HAND);
+                    break;
+                }
+            }
+            for (const auto& lp : m_link_poly)
+            {
+                if (pnpoly(lp.second, x, y))
+                {
                     m_canvas->SetCursor(wxCURSOR_HAND);
                     break;
                 }

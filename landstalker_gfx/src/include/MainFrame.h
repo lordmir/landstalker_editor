@@ -150,12 +150,14 @@ private:
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
     void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height);
+    void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
     void PopulatePalettes();
     void ShowStrings();
     void ShowTileset();
     void ShowBitmap();
     void ForceRepaint();
     void ClearScreen();
+    void GoToRoom(uint16_t room);
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
     void LoadTileset(std::size_t offset);
@@ -218,6 +220,7 @@ private:
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
     std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
+    std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
