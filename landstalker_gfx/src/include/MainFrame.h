@@ -109,6 +109,7 @@ private:
             NODE_ROOM_PAL,
             NODE_ROOM,
             NODE_ROOM_HEIGHTMAP,
+            NODE_ROOM_WARPS,
             NODE_SPRITE,
             NODE_SPRITE_FRAME
         };
@@ -145,8 +146,10 @@ private:
     void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(std::size_t scale, uint8_t pal);
     void DrawHeightmap(std::size_t scale, uint16_t room);
+    void DrawWarps(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
+    void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height);
     void PopulatePalettes();
     void ShowStrings();
     void ShowTileset();
@@ -173,6 +176,7 @@ private:
     bool ExportPng(const std::string& filename);
     bool ExportTxt(const std::string& filename);
 	ImageList& GetImageList();
+    void ProcessSelectedBrowserItem(const wxTreeItemId& item);
     
     Rom m_rom;
     std::vector<uint8_t> m_gfxBuffer;
@@ -213,6 +217,7 @@ private:
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
+    std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;

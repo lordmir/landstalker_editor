@@ -305,6 +305,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             std::string name = StrPrintf("Room%03u", i);
             wxTreeItemId cRm = m_browser->AppendItem(nodeRm, name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
             m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
+            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, i));
         }
         InitPals(nodeRPal);
         m_asmfile = false;
@@ -544,6 +545,51 @@ void DrawTile(wxGraphicsContext& gc, int x, int y, int z, int width, int height,
     }
 }
 
+void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height)
+{
+    int x = 0;
+    int y = 0;
+    if (warp.room1 == m_roomnum)
+    {
+        x = warp.x1;
+        y = warp.y1;
+    }
+    else if (warp.room2 == m_roomnum)
+    {
+        x = warp.x2;
+        y = warp.y2;
+    }
+    int z = tilemap->map->GetHeight({ x - 12,y - 12 });
+    auto xy = tilemap->map->Iso3DToPixel({ x,y,z });
+    int width = tile_width;
+    int height = tile_height;
+    std::vector<wxPoint2DDouble> tile_points = {
+        wxPoint2DDouble(xy.x + tile_width / 2, xy.y),
+        wxPoint2DDouble(xy.x + (warp.x_size + 1) * tile_width / 2, xy.y + warp.x_size * tile_height / 2),
+        wxPoint2DDouble(xy.x + (warp.x_size - warp.y_size + 1) * tile_width / 2, xy.y + (warp.x_size + warp.y_size) * tile_height / 2),
+        wxPoint2DDouble(xy.x + (1 - warp.y_size) * tile_width / 2, xy.y + warp.y_size * tile_height / 2),
+        wxPoint2DDouble(xy.x + tile_width / 2, xy.y)
+    };
+    switch (warp.type)
+    {
+    case WarpList::Warp::Type::NORMAL:
+        gc.SetPen(*wxYELLOW_PEN);
+        break;
+    case WarpList::Warp::Type::STAIR_SE:
+        gc.SetPen(*wxGREEN_PEN);
+        break;
+    case WarpList::Warp::Type::STAIR_SW:
+        gc.SetPen(*wxCYAN_PEN);
+        break;
+    default:
+        gc.SetPen(*wxRED_PEN);
+        break;
+    }
+    gc.SetBrush(*wxTRANSPARENT_BRUSH);
+    gc.DrawLines(tile_points.size(), &tile_points[0]);
+    m_warp_poly.push_back({ warp, tile_points });
+}
+
 void SetOpacity(wxImage& image, uint8_t opacity)
 {
     uint8_t* alpha = image.GetAlpha();
@@ -569,14 +615,6 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 
     m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
     ImageBuffer fg(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
-    /*
-    tilemap->map->background.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    tilemap->map->foreground.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    tilemap->map->background.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
-    tilemap->map->foreground.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
-    tilemap->map->background.Draw(m_imgbuf);
-    tilemap->map->foreground.Draw(fg);
-    */
     auto tileset = std::make_shared<Tileset>(m_tilebmps);
     auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
     m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, tileset, blockset);
@@ -595,11 +633,9 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
         for (int x = 0; x < tilemap->map->GetHeightmapWidth(); ++x)
         {
             // Only display cells that are not completely restricted
-            //if ((tilemap->map->heightmap[p].height > 0) || (tilemap->map->heightmap[p].restrictions != 0x04))
             if ((tilemap->map->GetHeight({x, y}) > 0 || (tilemap->map->GetCellProps({x, y}) != 0x04)))
             {
                 int z = tilemap->map->GetHeight({x, y});
-                //wxPoint xy(tilemap->map->foreground.ToXYPoint3D(TilePoint3D{ xx, yy, zz }));
                 auto xy(tilemap->map->Iso3DToPixel({ x + 12, y + 12, z }));
                 DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, tilemap->map->GetCellProps({x,y}), tilemap->map->GetCellType({x,y}));
             }
@@ -607,32 +643,11 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
     for (const auto& warp : warps)
     {
-        int x = 0;
-        int y = 0;
-        if (warp.room1 == m_roomnum)
-        {
-            x = warp.x1;
-            y = warp.y1;
-        }
-        else if (warp.room2 == m_roomnum)
-        {
-            x = warp.x2;
-            y = warp.y2;
-        }
-        for(int yoff = 0; yoff < warp.y_size; ++yoff)
-            for (int xoff = 0; xoff < warp.x_size; ++xoff)
-            {
-                int xx = x + xoff;
-                int yy = y + yoff;
-                int z = tilemap->map->GetHeight({ xx - 12,yy - 12 });
-                auto xy = tilemap->map->Iso3DToPixel({ xx,yy,z });
-                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, 5, static_cast<uint8_t>(warp.type));
-            }
+        DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
     }
     delete hm_gc;
     SetOpacity(hm_img, hm_opacity);
     wxBitmap hm_bmp(hm_img);
-    //hm_bmp.UseAlpha();
     wxGraphicsContext* disp_gc = wxGraphicsContext::Create(disp_img);
     disp_gc->DrawBitmap(*bg_bmp, 0, 0, bg_bmp->GetWidth(), bg_bmp->GetHeight());
     disp_gc->DrawBitmap(*fg_bmp, 0, 0, fg_bmp->GetWidth(), fg_bmp->GetHeight());
@@ -720,6 +735,44 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     PaintNow(dc, scale);
+}
+
+void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
+{
+    auto tilemap = m_rmgr->GetMap(m_roomnum);
+
+    const std::size_t TILE_WIDTH = 32;
+    const std::size_t TILE_HEIGHT = 16;
+
+    m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
+    auto tileset = std::make_shared<Tileset>(m_tilebmps);
+    auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, tilemap->map, tileset, blockset);
+    m_scale = scale;
+    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette));
+    wxImage hm_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
+    wxImage disp_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
+    hm_img.InitAlpha();
+    SetOpacity(hm_img, 0x00);
+    wxGraphicsContext* hm_gc = wxGraphicsContext::Create(hm_img);
+    hm_gc->SetPen(*wxWHITE_PEN);
+    hm_gc->SetBrush(*wxBLACK_BRUSH);
+    m_warp_poly.clear();
+    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
+    for (const auto& warp : warps)
+    {
+        DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
+    }
+    delete hm_gc;
+    wxBitmap hm_bmp(hm_img);
+    wxGraphicsContext* disp_gc = wxGraphicsContext::Create(disp_img);
+    disp_gc->DrawBitmap(*bg_bmp, 0, 0, bg_bmp->GetWidth(), bg_bmp->GetHeight());
+    disp_gc->DrawBitmap(hm_bmp, 0, 0, hm_bmp.GetWidth(), hm_bmp.GetHeight());
+    delete disp_gc;
+    bmp = std::make_shared<wxBitmap>(disp_img);
+    memDc.SelectObject(*bmp);
+    ForceRepaint();
 }
 
 void MainFrame::OnStatusBarInit(wxCommandEvent& event)
@@ -957,8 +1010,6 @@ void MainFrame::ShowBitmap()
 
 void MainFrame::ForceRepaint()
 {
-    //m_scrollwindow->SetScrollbars(m_scale, m_scale, m_imgbuf.GetWidth(), m_imgbuf.GetHeight(), 0, 0);
-    //m_scrollwindow->SetClientSize(m_scrollwindow->GetClientSize());
     m_canvas->SetScrollRate(1, 1);
     m_canvas->SetVirtualSize(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
     wxClientDC dc(m_canvas);
@@ -1478,23 +1529,29 @@ ImageList& MainFrame::GetImageList()
 
 void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 {
-    auto item = m_browser->GetItemText(event.GetItem());
-    TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(event.GetItem()));
+    ProcessSelectedBrowserItem(event.GetItem());
+    event.Skip();
+}
+
+void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
+{
+    auto item_text = m_browser->GetItemText(item);
+    TreeNodeData* item_data = static_cast<TreeNodeData*>(m_browser->GetItemData(item));
     //m_properties->GetGrid()->Clear();
-    switch (itemData->GetNodeType())
+    switch (item_data->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:
-        m_strtab = itemData->GetValue();
+        m_strtab = item_data->GetValue();
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:
-        m_tsidx = itemData->GetValue();
-        m_tsname = item;
+        m_tsidx = item_data->GetValue();
+        m_tsname = item_text;
         SetMode(MODE_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:
     {
-        std::size_t sel = itemData->GetValue();
+        std::size_t sel = item_data->GetValue();
         m_bs1 = sel >> 16;
         m_bs2 = sel & 0xFFFF;
         m_tsidx = m_bs1 & 0x1F;
@@ -1503,24 +1560,29 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
     }
     case TreeNodeData::NODE_ROOM_PAL:
     {
-        m_rpalidx = itemData->GetValue();
+        m_rpalidx = item_data->GetValue();
         m_palette[0] = m_pal2[m_rpalidx];
         Refresh();
         break;
     }
     case TreeNodeData::NODE_ROOM:
-        m_roomnum = itemData->GetValue();
+        m_roomnum = item_data->GetValue();
         SetMode(MODE_ROOMMAP);
         break;
     case TreeNodeData::NODE_ROOM_HEIGHTMAP:
-        InitRoom(itemData->GetValue());
+        InitRoom(item_data->GetValue());
         PopulateRoomProperties(m_roomnum);
         DrawHeightmap(1, m_roomnum);
+        break;
+    case TreeNodeData::NODE_ROOM_WARPS:
+        InitRoom(item_data->GetValue());
+        PopulateRoomProperties(m_roomnum);
+        DrawWarps(1, m_roomnum);
         break;
     case TreeNodeData::NODE_SPRITE:
     {
         Palette pal;
-        uint32_t data = itemData->GetValue();
+        uint32_t data = item_data->GetValue();
         m_sprite_idx = data & 0xFF;
         m_sprite_anim = (data >> 16) & 0xFF;
         m_sprite_frame = (data >> 8) & 0xFF;
@@ -1528,14 +1590,13 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
         break;
     }
     case TreeNodeData::NODE_IMAGE:
-        m_selImage = item;
+        m_selImage = item_text;
         SetMode(MODE_IMAGE);
+        break;
     default:
         // do nothing
         break;
     }
-
-    event.Skip();
 }
 void MainFrame::OnKeyDown(wxKeyEvent& event)
 {
@@ -1565,22 +1626,113 @@ void MainFrame::OnScrollWindowLeftDown(wxMouseEvent& event)
 {
     event.Skip();
 }
+
+bool pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y)
+{
+    int i, j;
+    bool c = false;
+    for (i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
+        if (((poly[i].m_y > y) != (poly[j].m_y > y)) &&
+            (x < (poly[j].m_x - poly[i].m_x) * (y - poly[i].m_y) / (poly[j].m_y - poly[i].m_y) + poly[i].m_x))
+            c = !c;
+    }
+    return c;
+}
+
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
+    if (m_rmgr != nullptr)
+    {
+        auto tilemap = m_rmgr->GetMap(m_roomnum);
+        if (tilemap)
+        {
+            int x, y;
+            m_canvas->GetViewStart(&x, &y);
+            x += event.GetX();
+            y += event.GetY();
+            for (const auto& wp : m_warp_poly)
+            {
+                if (pnpoly(wp.second, x, y))
+                {
+                    uint16_t room = (wp.first.room1 == m_roomnum) ? wp.first.room2 : wp.first.room1;
+                    auto r = m_browser->GetRootItem();
+                    wxTreeItemIdValue cookie;
+                    auto c = m_browser->GetFirstChild(r, cookie);
+                    while (c.IsOk() == true)
+                    {
+                        auto label = m_browser->GetItemText(c);
+                        if (label == "Rooms")
+                        {
+                            break;
+                        }
+                        c = m_browser->GetNextChild(r, cookie);
+                    }
+                    c = m_browser->GetFirstChild(c, cookie);
+                    while (c.IsOk() == true)
+                    {
+                        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
+                        if (itemData->GetValue() == room)
+                        {
+                            break;
+                        }
+                        c = m_browser->GetNextChild(c, cookie);
+                    }
+                    c = m_browser->GetFirstChild(c, cookie);
+                    while (c.IsOk() == true)
+                    {
+                        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
+                        if (itemData->GetNodeType() == TreeNodeData::NodeType::NODE_ROOM_WARPS)
+                        {
+                            break;
+                        }
+                        c = m_browser->GetNextChild(c, cookie);
+                    }
+                    if (c.IsOk())
+                    {
+                        m_browser->SelectItem(c);
+                        ProcessSelectedBrowserItem(c);
+                    }
+                    break;
+                }
+            }
+        }
+    }
     event.Skip();
 }
 void MainFrame::OnScrollWindowMousewheel(wxMouseEvent& event)
 {
     event.Skip();
 }
+
 void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
-    auto s = m_canvas->GetClientSize();
-    auto p = m_canvas->GetScreenPosition();
-    auto vx = m_imgbuf.GetWidth();
-    auto vy = m_imgbuf.GetHeight();
-    auto msg = StrPrintf("%dx%d (%d,%d)   [%d,%d]  {%d,%d}", s.x, s.y, p.x, p.y, event.GetX(), event.GetY(), vx, vy);
-    m_statusbar->SetLabelText(msg);
+    if (m_rmgr != nullptr)
+    {
+        auto tilemap = m_rmgr->GetMap(m_roomnum);
+        if (tilemap)
+        {
+            int x, y;
+            m_canvas->GetViewStart(&x, &y);
+            x += event.GetX();
+            y += event.GetY();
+            auto r = tilemap->map->PixelToHMPoint({ x,y });
+            auto msg = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
+            m_canvas->SetCursor(wxCURSOR_ARROW);
+            for (const auto& wp : m_warp_poly)
+            {
+                if (pnpoly(wp.second, x, y))
+                {
+                    uint16_t room = (wp.first.room1 == m_roomnum) ? wp.first.room2 : wp.first.room1;
+                    uint8_t wx = (wp.first.room1 == m_roomnum) ? wp.first.x2 : wp.first.x1;
+                    uint8_t wy = (wp.first.room1 == m_roomnum) ? wp.first.y2 : wp.first.y1;
+                    msg += StrPrintf(" - Warp to room %03d (%d,%d)", room, wx, wy);
+                    m_canvas->SetCursor(wxCURSOR_HAND);
+                    break;
+                }
+            }
+            m_statusbar->SetLabelText(msg);
+        }
+    }
     event.Skip();
 }
 void MainFrame::OnScrollWindowRightDown(wxMouseEvent& event)

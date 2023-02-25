@@ -780,7 +780,7 @@ std::size_t Tilemap3D::GetPixelWidth() const
 
 std::size_t Tilemap3D::GetPixelHeight() const
 {
-    return GetCartesianWidth() * tile_height;
+    return GetCartesianHeight() * tile_height;
 }
 
 bool Tilemap3D::IsIsoPointValid(const IsoPoint2D& iso) const
@@ -843,7 +843,7 @@ PixelPoint2D Tilemap3D::IsoToPixel(const IsoPoint2D& iso, Layer layer) const
     int layer_offset = (layer == Layer::BG) ? 2 : 0;
     return {
         ((iso.x - iso.y + (GetHeight() - 1)) * 2 + GetLeft() + layer_offset) * tile_width,
-        ((iso.x + iso.y) * 2 / 2 + GetTop()) * tile_height
+        (iso.x + iso.y + GetTop()) * tile_height
     };
 }
 
@@ -859,7 +859,7 @@ PixelPoint2D Tilemap3D::Iso3DToPixel(const Point3D& iso) const
     int xx = iso.x - GetLeft();
     int yy = iso.y - GetTop();
     int ix = (xx - yy + (GetHeight() - 1)) * 2 + GetLeft();
-    int iy = (xx + yy - iso.z * 2) * 2 / 2 + GetTop();
+    int iy = (xx + yy - iso.z * 2) + GetTop();
     return Point2D{ ix * tile_width, iy * tile_height };
 }
 
@@ -876,8 +876,10 @@ PixelPoint2D Tilemap3D::HMPointToPixel(const HMPoint2D& p) const
 
 HMPoint2D Tilemap3D::PixelToHMPoint(const PixelPoint2D& p) const
 {
-    if (IsPixelPointValid(p) == false) return { -1, -1 };
-    return { -1, -1 };
+    return {
+        p.y / (2 * tile_height) + p.x / (4 * tile_width) - (GetLeft() + 2 * (GetTop() + GetHeight() - 1)) / 4 - 12,
+        p.y / (2 * tile_height) - p.x / (4 * tile_width) + (GetLeft() - 2 * (GetTop() - GetHeight() + 1)) / 4 - 12
+    };
 }
 
 bool Tilemap3D::IsBlockValid(uint16_t block) const
