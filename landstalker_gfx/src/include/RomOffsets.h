@@ -64,6 +64,9 @@ namespace RomOffsets
 		static const std::string MAP_DATA("RoomMaps");
 		static const std::string ROOM_EXITS_PTR("RoomExitsPtr");
 		static const std::string ROOM_EXITS("RoomExits");
+		static const std::string ROOM_PALS_PTR("RoomPalPtr");
+		static const std::string ROOM_PALS("RoomPals");
+		static const std::string PALETTE_FORMAT_STRING("pal%03d");
 		static const std::string MAP_FORMAT_STRING("Map%03d");
 		static const std::string ROOM_FALL_DEST("RoomFallDestination");
 		static const std::string ROOM_CLIMB_DEST("RoomClimbDestination");
@@ -72,6 +75,12 @@ namespace RomOffsets
 		static const std::string ROOM_DATA_FILE("code/pointertables/maps/roomlist.asm");
 		static const std::string MAP_DATA_FILE("code/graphics/roommaps.asm");
 		static const std::string MAP_FILENAME_FORMAT_STRING("assets_packed/maps/%s.cmp");
+		static const std::string PALETTE_DATA_FILE("code/palettes/roompals.asm");
+		static const std::string PALETTE_FILENAME_FORMAT_STRING("assets_packed/graphics/roompalettes/%s.pal");
+		static const std::string WARP_FILENAME("assets_packed/roomdata/warps/exits.bin");
+		static const std::string FALL_DEST_FILENAME("assets_packed/roomdata/warps/roomfalldests.bin");
+		static const std::string CLIMB_DEST_FILENAME("assets_packed/roomdata/warps/roomclimbdests.bin");
+		static const std::string TRANSITION_FILENAME("assets_packed/roomdata/flagactions/roomtransitions.bin");
 	}
 
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
@@ -100,7 +109,7 @@ namespace RomOffsets
 		{"sprite_data_end",         {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
 		{"big_tiles_ptr",           {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
 		{ Rooms::ROOM_DATA_PTR,     {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
-		{"room_palette_ptr",        {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
+		{ Rooms::ROOM_PALS_PTR,     {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
 		{ Rooms::ROOM_EXITS_PTR,    {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
 		{ Tilesets::INTRO_FONT_PTR, {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};

@@ -32,7 +32,7 @@ public:
 		Type type;
 
 		Warp(const std::vector<uint8_t>& raw);
-		std::vector<uint8_t> GetRaw();
+		std::vector<uint8_t> GetRaw() const;
 	};
 	WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path);
 	WarpList(const Rom& rom);
@@ -44,6 +44,11 @@ public:
 	bool HasClimbDestination(uint16_t room) const;
 	uint16_t GetClimbDestination(uint16_t room) const;
 	std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
+
+	std::vector<uint8_t> GetWarpBytes() const;
+	std::vector<uint8_t> GetFallBytes() const;
+	std::vector<uint8_t> GetClimbBytes() const;
+	std::vector<uint8_t> GetTransitionBytes() const;
 
 private:
 	void ProcessWarpList(const std::vector<uint8_t>& bytes);

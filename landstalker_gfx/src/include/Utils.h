@@ -86,4 +86,6 @@ std::string Trim(const std::string& str);
 
 std::string RemoveQuotes(const std::string& str);
 
+bool CreateDirectoryTree(const filesystem::path& path);
+
 #endif // UTILS_H

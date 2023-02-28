@@ -87,7 +87,7 @@ std::vector<Palette> CreatePalettes(const std::vector<uint8_t>& input, const Pal
 
 	size_t i = 0;
 	std::vector<Palette> pals;
-	std::vector<Colour> colours;
+	std::vector<Palette::Colour> colours;
 	colours.reserve(size);
 	for (; it != input.end(); it += 2)
 	{
@@ -113,26 +113,6 @@ std::vector<uint8_t> GetPaletteBytes(const std::vector<Palette>& palettes)
 		retval.insert(retval.end(), bytes.begin(), bytes.end());
 	}
 	return retval;
-}
-
-static void LoadPalette(const std::vector<uint16_t>& palette, size_t begin, std::array<Colour, 16> & outpal, bool var_width = false)
-{
-	size_t i = 0;
-	assert(!var_width || (palette[0] == N - 2));
-	for (auto colour : palette)
-	{
-		if (var_width)
-		{
-			// Skip over first entry as it is the palette size
-			var_width = false;
-			continue;
-		}
-		outpal[begin + i++] = Colour(colour, (i + begin) == 0);
-		if (i >= outpal.size())
-		{
-			break;
-		}
-	}
 }
 
 Palette::Palette(const Type& type)
@@ -252,6 +232,21 @@ void Palette::RemoveLowPalette()
 	}
 }
 
+bool Palette::operator==(const Palette& rhs) const
+{
+	bool retval = (this->m_type == rhs.m_type);
+	if (retval)
+	{
+		retval = (this->m_pal == rhs.m_pal);
+	}
+	return retval;
+}
+
+bool Palette::operator!=(const Palette& rhs) const
+{
+	return !(*this == rhs);
+}
+
 Palette::Palette(const std::vector<Colour>& colours, const Type& type)
 	: m_type(type)
 {
@@ -277,18 +272,19 @@ Palette::Palette(const std::vector<Colour>& colours, const Type& type)
 }
 
 Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
+	: m_type(type)
 {	// Input must contain the right number of colours
-	int size = PALETTE_SIZES[type];
+	int size = PALETTE_SIZES[m_type];
 	auto it = bytes.begin();
 	if (size == -1) // Variable width palette
 	{
 		size = (*it << 8) | *(it + 1);
 		it += 2;
-		assert(input.size() == ((size + 1) * 2));
+		assert(bytes.size() == ((size + 1) * 2));
 	}
 	else
 	{
-		assert(input.size() == (size * 2));
+		assert(bytes.size() == (size * 2));
 	}
 
 	size_t i = 0;
@@ -302,7 +298,23 @@ Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
 			break;
 		}
 	}
-	Palette(colours, type);
+	if (IsVarWidth())
+	{
+		std::copy(colours.begin(), colours.end(), std::back_inserter(m_pal));
+	}
+	else
+	{
+		m_pal.resize(16);
+		Clear();
+		auto it = colours.begin();
+		for (int i = 0; i < m_pal.size(); ++i)
+		{
+			if (!LOCKED_ENTRIES.at(m_type).at(i))
+			{
+				m_pal[i] = *it++;
+			}
+		}
+	}
 }
 
 std::vector<uint8_t> Palette::GetBytes() const
@@ -361,14 +373,14 @@ uint16_t Palette::getGenesisColour(uint8_t index) const
 	return m_pal[index].GetGenesis();
 }
 
-Colour Palette::GetColour(uint8_t index) const
+Palette::Colour Palette::GetColour(uint8_t index) const
 {
 	return m_pal[index];
 }
 
 void Palette::setGenesisColour(uint8_t index, uint16_t colour)
 {
-	m_pal[index] = Colour(colour);
+	m_pal[index] = Palette::Colour(colour);
 }
 
 bool Palette::ColourInRange(uint8_t colour) const
@@ -387,7 +399,7 @@ bool Palette::ColourEditable(uint8_t colour) const
 
 const std::vector<bool>& Palette::GetLockedColours() const
 {
-	return LOCKED_ENTRIES.at(m_type);
+	return GetLockedColours(m_type);
 }
 
 int Palette::GetSize() const
@@ -403,5 +415,25 @@ int Palette::GetSize() const
 
 bool Palette::IsVarWidth() const
 {
-	return PALETTE_SIZES[m_type] == -1;
+	return IsVarWidth(m_type);
+}
+
+const std::vector<bool>& Palette::GetLockedColours(const Type& type)
+{
+	return LOCKED_ENTRIES.at(type);
+}
+
+int Palette::GetSize(const Type& type)
+{
+	int size = PALETTE_SIZES[type];
+	if (size == -1)
+	{
+		size = 0;
+	}
+	return size;
+}
+
+bool Palette::IsVarWidth(const Type& type)
+{
+	return PALETTE_SIZES[type] == -1;
 }

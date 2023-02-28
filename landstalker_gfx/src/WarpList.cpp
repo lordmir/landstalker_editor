@@ -93,6 +93,76 @@ std::map<std::pair<uint16_t, uint16_t>, uint16_t> WarpList::GetTransitions(uint1
 	return retval;
 }
 
+std::vector<uint8_t> WarpList::GetWarpBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_warps.size() * 8 + 2);
+
+	for (const auto& warp : m_warps)
+	{
+		auto bytes = warp.GetRaw();
+		retval.insert(retval.end(), bytes.begin(), bytes.end());
+	}
+
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetFallBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_fall_dests.size() * 4 + 2);
+
+	for (const auto& dest : m_fall_dests)
+	{
+		retval.push_back(dest.first >> 8);
+		retval.push_back(dest.first & 0xFF);
+		retval.push_back(dest.second >> 8);
+		retval.push_back(dest.second & 0xFF);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetClimbBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_climb_dests.size() * 4 + 2);
+
+	for (const auto& dest : m_climb_dests)
+	{
+		retval.push_back(dest.first >> 8);
+		retval.push_back(dest.first & 0xFF);
+		retval.push_back(dest.second >> 8);
+		retval.push_back(dest.second & 0xFF);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetTransitionBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_transitions.size() * 6 + 4);
+	for (const auto& dest : m_transitions)
+	{
+		retval.push_back(dest.first.first >> 8);
+		retval.push_back(dest.first.first & 0xFF);
+		retval.push_back(dest.first.second >> 8);
+		retval.push_back(dest.first.second & 0xFF);
+		retval.push_back((dest.second >> 3) & 0xFF);
+		retval.push_back(dest.second & 0x07);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
 void WarpList::ProcessWarpList(const std::vector<uint8_t>& bytes)
 {
 	assert(bytes.size() % 8 == 2);
@@ -178,7 +248,7 @@ WarpList::Warp::Warp(const std::vector<uint8_t>& raw)
 	}
 }
 
-std::vector<uint8_t> WarpList::Warp::GetRaw()
+std::vector<uint8_t> WarpList::Warp::GetRaw() const
 {
 	std::vector<uint8_t> retval(8);
 

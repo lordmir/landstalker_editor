@@ -1,5 +1,5 @@
-#ifndef PALETTE_H
-#define PALETTE_H
+#ifndef PALETTE_O_H
+#define PALETTE_O_H
 
 #include <array>
 #include <vector>
@@ -191,4 +191,4 @@ private:
 	PaletteEntryO colour;
 };
 
-#endif // PALETTE_H
+#endif // PALETTE_O_H

@@ -14,6 +14,7 @@
 #include <Room.h>
 #include <Tilemap3DCmp.h>
 #include <WarpList.h>
+#include <Palette.h>
 
 class RoomManager
 {
@@ -24,6 +25,18 @@ public:
         std::string name;
         std::shared_ptr<Tilemap3D> orig_map;
         std::shared_ptr<Tilemap3D> map;
+        uint32_t start_address;
+        uint32_t end_address;
+        filesystem::path filename;
+        std::shared_ptr<std::vector<uint8_t>> raw_data;
+    };
+
+    struct PaletteEntry
+    {
+        std::string name;
+        uint16_t index;
+        std::shared_ptr<Palette> orig_pal;
+        std::shared_ptr<Palette> pal;
         uint32_t start_address;
         uint32_t end_address;
         filesystem::path filename;
@@ -51,18 +64,24 @@ public:
     bool HasClimbDestination(uint16_t room) const;
     uint16_t GetClimbDestination(uint16_t room) const;
     std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
+    std::shared_ptr<const Palette> GetRoomPalette(unsigned int index) const;
+    std::shared_ptr<Palette> GetRoomPalette(unsigned int index);
 
 private:
     bool LoadRomRoomTable(const Rom& rom);
     bool LoadRomWarpData(const Rom& rom);
-    bool LoadRoomPalettes(const Rom& rom);
+    bool LoadRomPalettes(const Rom& rom);
     bool GetAsmFilenames();
     bool LoadAsmRoomTable();
     bool LoadAsmMapData();
     bool LoadAsmWarpData();
+    bool LoadAsmPalettes();
     bool SaveMapsToDisk(const filesystem::path& dir);
     bool SaveAsmMapFilenames(const filesystem::path& dir);
     bool SaveAsmRoomData(const filesystem::path& dir);
+    bool SaveAsmWarpData(const filesystem::path& dir);
+    bool SaveAsmPalettes(const filesystem::path& dir);
+    bool SaveAsmPaletteFilenames(const filesystem::path& dir);
 
     filesystem::path m_asm_filename;
     filesystem::path m_base_path;
@@ -72,12 +91,14 @@ private:
     filesystem::path m_fall_data_filename;
     filesystem::path m_climb_data_filename;
     filesystem::path m_transition_data_filename;
+    filesystem::path m_palette_data_filename;
 
     std::vector<Room> m_roomlist;
     std::map<std::string, std::shared_ptr<MapEntry>> m_maps;
     WarpList m_warps;
     mutable std::map<std::string, std::vector<uint8_t>> m_pending_write;
     mutable bool m_roomlist_pending_modifications;
+    std::vector<PaletteEntry> m_room_pals;
 };
 
 #endif // _ROOM_MANAGER_H_

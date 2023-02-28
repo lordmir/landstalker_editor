@@ -95,3 +95,13 @@ std::string RemoveQuotes(const std::string& str)
 	s.erase(std::remove(s.begin(), s.end(), '\"'), s.end());
 	return s;
 }
+
+bool CreateDirectoryTree(const filesystem::path& path)
+{
+	if (!path.parent_path().is_directory() &&
+		!filesystem::create_directories(path.parent_path()))
+	{
+		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().str() + "\"");
+	}
+	return true;
+}

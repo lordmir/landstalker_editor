@@ -7,94 +7,126 @@
 
 #include "Rom.h"
 
-class Colour
-{
-public:
-	Colour(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0)
-		: m_r(r), m_g(g), m_b(b), m_a(a)
-	{
-	}
-	Colour(uint16_t c, bool transparent = false)
-	{
-		m_b = std::min(0xFF, ((c & 0x0E00) >> 9) * 36);
-		m_g = std::min(0xFF, ((c & 0x00E0) >> 5) * 36);
-		m_r = std::min(0xFF, ((c & 0x000E) >> 1) * 36);
-		m_a = transparent ? 0x00 : 0xFF;
-	}
-	Colour()
-		: Colour(0x0000, true)
-	{}
-
-	inline uint8_t GetR() const
-	{
-		return m_r;
-	}
-	inline uint8_t GetG() const
-	{
-		return m_g;
-	}
-	inline uint8_t GetB() const
-	{
-		return m_b;
-	}
-	inline uint8_t GetA() const
-	{
-		return m_a;
-	}
-	uint16_t GetGenesis() const
-	{
-		uint16_t retval = 0x0000;
-		retval |= std::min(0x07, m_r / 36) << 1;
-		retval |= std::min(0x07, m_g / 36) << 5;
-		retval |= std::min(0x07, m_b / 36) << 9;
-		return retval;
-	}
-	uint32_t GetRGB(bool include_alpha) const
-	{
-		uint32_t result = 0;
-		if (include_alpha == true)
-		{
-			result = m_a << 24;
-		}
-		result |= m_r << 16;
-		result |= m_g << 8;
-		result |= m_b;
-		return result;
-	}
-
-	template<class Iter>
-	inline Iter& CopyRGBA(Iter& begin)
-	{
-		*begin++ = m_a;
-		*begin++ = m_r;
-		*begin++ = m_g;
-		*begin++ = m_b;
-		return begin;
-	}
-	template<class Iter>
-	inline Iter& CopyRGB(Iter& begin)
-	{
-		*begin++ = m_r;
-		*begin++ = m_g;
-		*begin++ = m_b;
-		return begin;
-	}
-	template<class Iter>
-	inline Iter& CopyA(Iter& begin)
-	{
-		*begin++ = m_a;
-		return begin;
-	}
-private:
-	uint8_t m_r;
-	uint8_t m_g;
-	uint8_t m_b;
-	uint8_t m_a;
-};
-
 class Palette
 {
 public:
+	class Colour
+	{
+	public:
+		Colour(uint8_t r, uint8_t g, uint8_t b, bool transparent = false)
+			: m_r(std::min(0x07, r / 36)),
+			  m_g(std::min(0x07, g / 36)),
+			  m_b(std::min(0x07, b / 36)),
+			  m_transparent(transparent)
+		{
+		}
+		Colour(uint16_t c, bool transparent = false)
+			: m_b((c & 0x0E00) >> 9),
+			  m_g((c & 0x00E0) >> 5),
+			  m_r((c & 0x000E) >> 1),
+			  m_transparent(transparent)
+		{
+		}
+		Colour()
+			: Colour(0x0000, true)
+		{}
+
+		bool operator==(const Colour& rhs) const
+		{
+			return ((this->m_transparent == rhs.m_transparent) &&
+				(this->m_r == rhs.m_r) &&
+				(this->m_g == rhs.m_g) &&
+				(this->m_b == rhs.m_b));
+		}
+
+		bool operator!=(const Colour& rhs) const
+		{
+			return !(*this == rhs);
+		}
+
+		inline void FromRGB(uint32_t c, bool transparent = false)
+		{
+			uint8_t r = (c >> 16) & 0xFF;
+			uint8_t g = (c >> 8) & 0xFF;
+			uint8_t b = c & 0xFF;
+			m_transparent = transparent;
+			m_r = std::min(0x07, r / 36);
+			m_g = std::min(0x07, g / 36);
+			m_b = std::min(0x07, b / 36);
+		}
+
+		inline void FromRGBA(uint32_t c)
+		{
+			uint8_t a = (c >> 24) & 0xFF;
+			FromRGB(c, (a == 0x00));
+		}
+
+		inline uint8_t GetR() const
+		{
+			return std::min(0xFF, m_r * 36);
+		}
+		inline uint8_t GetG() const
+		{
+			return std::min(0xFF, m_g * 36);
+		}
+		inline uint8_t GetB() const
+		{
+			return std::min(0xFF, m_b * 36);
+		}
+		inline uint8_t GetA() const
+		{
+			return m_transparent ? 0x00 : 0xFF;
+		}
+		uint16_t GetGenesis() const
+		{
+			uint16_t retval = 0x0000;
+			retval |= (m_b & 0x07) << 9;
+			retval |= (m_g & 0x07) << 5;
+			retval |= (m_r & 0x07) << 1;
+			return retval;
+		}
+		uint32_t GetRGB(bool include_alpha) const
+		{
+			uint32_t result = 0;
+			if (include_alpha == true)
+			{
+				result = GetA() << 24;
+			}
+			result |= GetR() << 16;
+			result |= GetG() << 8;
+			result |= GetB();
+			return result;
+		}
+
+		template<class Iter>
+		inline Iter& CopyRGBA(Iter& begin)
+		{
+			*begin++ = GetA();
+			*begin++ = GetR();
+			*begin++ = GetG();
+			*begin++ = GetB();
+			return begin;
+		}
+		template<class Iter>
+		inline Iter& CopyRGB(Iter& begin)
+		{
+			*begin++ = GetR();
+			*begin++ = GetG();
+			*begin++ = GetB();
+			return begin;
+		}
+		template<class Iter>
+		inline Iter& CopyA(Iter& begin)
+		{
+			*begin++ = GetA();
+			return begin;
+		}
+	private:
+		uint8_t m_r;
+		uint8_t m_g;
+		uint8_t m_b;
+		bool m_transparent;
+	};
 
 	enum class Type
 	{
@@ -123,6 +155,9 @@ public:
 	Palette(const std::vector<Colour>& colours, const Type& type);
 	Palette(const std::vector<uint8_t>& bytes, const Palette::Type& type);
 
+	bool operator==(const Palette& rhs) const;
+	bool operator!=(const Palette& rhs) const;
+
 	std::vector<uint8_t> GetBytes() const;
 
 	void Clear();
@@ -145,6 +180,10 @@ public:
 	const std::vector<bool>& GetLockedColours() const;
 	int GetSize() const;
 	bool IsVarWidth() const;
+
+	static const std::vector<bool>& GetLockedColours(const Type& type);
+	static int GetSize(const Type& type);
+	static bool IsVarWidth(const Type& type);
 private:
 
 	Type m_type;
