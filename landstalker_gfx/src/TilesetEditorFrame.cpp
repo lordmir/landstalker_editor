@@ -775,7 +775,7 @@ void TilesetEditorFrame::SetTilesetManager(std::shared_ptr<TilesetManager> tsmgr
 	m_tsmgr = tsmgr;
 }
 
-void TilesetEditorFrame::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void TilesetEditorFrame::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
 {
 	m_palettes = palettes;
 	m_tilesetEditor->SetPalettes(palettes);

@@ -52,7 +52,7 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	InitialiseBrushesAndPens();
 }
 
-TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset, std::shared_ptr<std::map<std::string, Palette>> palettes)
+TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset, std::shared_ptr<std::map<std::string, PaletteO>> palettes)
 	: TilesetEditor(parent)
 {
 	m_palettes = palettes;
@@ -72,7 +72,7 @@ void TilesetEditor::SetColour(int c)
 {
 }
 
-void TilesetEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void TilesetEditor::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
 {
 	m_palettes = palettes;
 }
@@ -506,7 +506,7 @@ void TilesetEditor::ForceRedraw()
 	Refresh();
 }
 
-const Palette& TilesetEditor::GetSelectedPalette()
+const PaletteO& TilesetEditor::GetSelectedPalette()
 {
 	if (m_palettes)
 	{

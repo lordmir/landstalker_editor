@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include "Palette.h"
+#include "PaletteO.h"
 #include "Rom.h"
 #include "SpriteFrame.h"
 #include "SpriteGraphic.h"
@@ -22,7 +22,7 @@ public:
 	int GetDefaultFrameId() const;
 	bool IsItem() const;
 	int GetItemId() const;
-	Palette GetPalette() const;
+	PaletteO GetPalette() const;
 	std::string GetName() const;
 	void Draw(ImageBuffer& imgbuf, size_t animation = 0, size_t frame = 0, uint8_t palette_idx = 2, size_t x = 0, size_t y = 0, float scale = 1.0) const;
 	static void Reset();
@@ -33,8 +33,8 @@ private:
 	static std::vector<SpriteFrame> m_sprite_frames;
 	static std::vector<SpriteGraphic> m_sprite_graphics;
 	int m_sprite_id;
-	mutable Palette m_high_palette;
-	mutable Palette m_low_palette;
+	mutable PaletteO m_high_palette;
+	mutable PaletteO m_low_palette;
 };
 
 #endif // SPRITE_H

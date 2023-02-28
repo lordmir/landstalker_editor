@@ -33,6 +33,7 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\MainFrame.cpp" />
     <ClCompile Include="..\src\Palette.cpp" />
+    <ClCompile Include="..\src\PaletteO.cpp" />
     <ClCompile Include="..\src\PaletteEditor.cpp" />
     <ClCompile Include="..\src\Rom.cpp" />
     <ClCompile Include="..\src\Room.cpp" />
@@ -86,6 +87,7 @@
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />
+    <ClInclude Include="..\src\include\PaletteO.h" />
     <ClInclude Include="..\src\include\PaletteEditor.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />

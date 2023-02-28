@@ -48,7 +48,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_strtab(0),
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false),
-      m_palettes(std::make_shared<std::map<std::string, Palette>>()),
+      m_palettes(std::make_shared<std::map<std::string, PaletteO>>()),
 	  m_activeEditor(nullptr)
 {
     m_imgs = new ImageList();
@@ -151,7 +151,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_blockOffsets.clear();
         m_strings.clear();
         Sprite::Reset();
-        Palette::Reset();
+        PaletteO::Reset();
         m_tsmgr.reset();
         m_rmgr.reset();
         SetMode(MODE_NONE);
@@ -901,7 +901,7 @@ void MainFrame::DrawImage(const std::string& image, std::size_t scale)
         const auto& ts = *m_images[image].tileset;
         m_imgbuf.Resize(map.GetWidth() * ts.GetTileWidth(), map.GetHeight() * ts.GetTileHeight());
         m_imgbuf.InsertMap(0, 0, 0, map, ts);
-        std::vector<Palette> pal;
+        std::vector<PaletteO> pal;
         pal.push_back(*m_images[image].palette);
         bmp = m_imgbuf.MakeBitmap(pal);
         ForceRepaint();
@@ -910,66 +910,66 @@ void MainFrame::DrawImage(const std::string& image, std::size_t scale)
 
 void MainFrame::PopulatePalettes()
 {
-    Palette dummy_palette(m_rom);
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ROOM); ++i)
+    PaletteO dummy_palette(m_rom);
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::ROOM); ++i)
     {
-        m_palettes->emplace(wxString::Format("Room Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ROOM));
+        m_palettes->emplace(wxString::Format("Room Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::ROOM));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LAVA); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::LAVA); ++i)
     {
-        m_palettes->emplace(wxString::Format("Lava Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LAVA));
+        m_palettes->emplace(wxString::Format("Lava Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::LAVA));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::WARP); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::WARP); ++i)
     {
-        m_palettes->emplace(wxString::Format("Warp Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::WARP));
+        m_palettes->emplace(wxString::Format("Warp Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::WARP));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::FULL); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::FULL); ++i)
     {
-        m_palettes->emplace(wxString::Format("Full Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::FULL));
+        m_palettes->emplace(wxString::Format("Full Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::FULL));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LOW8); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::LOW8); ++i)
     {
-        m_palettes->emplace(wxString::Format("Low8 Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LOW8));
+        m_palettes->emplace(wxString::Format("Low8 Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::LOW8));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::HUD); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::HUD); ++i)
     {
-        m_palettes->emplace(wxString::Format("HUD Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::HUD));
+        m_palettes->emplace(wxString::Format("HUD Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::HUD));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SWORD); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::SWORD); ++i)
     {
-        m_palettes->emplace(wxString::Format("Sword Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SWORD));
+        m_palettes->emplace(wxString::Format("Sword Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::SWORD));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ARMOUR); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::ARMOUR); ++i)
     {
-        m_palettes->emplace(wxString::Format("Armour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ARMOUR));
+        m_palettes->emplace(wxString::Format("Armour Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::ARMOUR));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::PROJECTILE); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::PROJECTILE); ++i)
     {
-        m_palettes->emplace(wxString::Format("Projectile Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::PROJECTILE));
+        m_palettes->emplace(wxString::Format("Projectile Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::PROJECTILE));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SEGA_LOGO); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::SEGA_LOGO); ++i)
     {
-        m_palettes->emplace(wxString::Format("Sega Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SEGA_LOGO));
+        m_palettes->emplace(wxString::Format("Sega Logo Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::SEGA_LOGO));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::CLIMAX_LOGO); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::CLIMAX_LOGO); ++i)
     {
-        m_palettes->emplace(wxString::Format("Climax Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::CLIMAX_LOGO));
+        m_palettes->emplace(wxString::Format("Climax Logo Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::CLIMAX_LOGO));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_YELLOW); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_YELLOW); ++i)
     {
-        m_palettes->emplace(wxString::Format("Title Sequence Yellow Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_YELLOW));
+        m_palettes->emplace(wxString::Format("Title Sequence Yellow Fade Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_YELLOW));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_BLUE_FADE); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_BLUE_FADE); ++i)
     {
-        m_palettes->emplace(wxString::Format("Title Sequence Blue Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_BLUE_FADE));
+        m_palettes->emplace(wxString::Format("Title Sequence Blue Fade Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_BLUE_FADE));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_SINGLE_COLOUR); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_SINGLE_COLOUR); ++i)
     {
-        m_palettes->emplace(wxString::Format("Title Sequence Block Colour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_SINGLE_COLOUR));
+        m_palettes->emplace(wxString::Format("Title Sequence Block Colour Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_SINGLE_COLOUR));
     }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::END_CREDITS); ++i)
+    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::END_CREDITS); ++i)
     {
-        m_palettes->emplace(wxString::Format("End Credits Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::END_CREDITS));
+        m_palettes->emplace(wxString::Format("End Credits Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::END_CREDITS));
     }
     m_selected_palette = m_palettes->find("Room Palette 00")->first;
 }
@@ -1113,7 +1113,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_blockOffsets.clear();
     m_strings.clear();
     Sprite::Reset();
-    Palette::Reset();
+    PaletteO::Reset();
     m_tsmgr.reset();
     m_rmgr.reset();
     SetMode(MODE_NONE);
@@ -1153,7 +1153,7 @@ void MainFrame::InitPals(const wxTreeItemId& node)
     const uint8_t* pal = base_pal;
     for(std::size_t i = 0; i < 54; ++i)
     {
-        m_pal2.push_back(Palette(m_rom, i, Palette::Type::ROOM));
+        m_pal2.push_back(PaletteO(m_rom, i, PaletteO::Type::ROOM));
 
         std::ostringstream ss;
         ss << std::dec << std::setw(2) << std::setfill('0') << i;
@@ -1590,7 +1590,7 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         break;
     case TreeNodeData::NODE_SPRITE:
     {
-        Palette pal;
+        PaletteO pal;
         uint32_t data = item_data->GetValue();
         m_sprite_idx = data & 0xFF;
         m_sprite_anim = (data >> 16) & 0xFF;

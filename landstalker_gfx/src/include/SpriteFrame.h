@@ -28,9 +28,9 @@ public:
 	std::vector<uint8_t>  GetTile(const Tile& tile) const;
 	std::pair<int, int>   GetTilePosition(const Tile& tile) const;
 	std::vector<uint8_t>& GetTilePixels(int tile_index);
-	std::vector<uint8_t>  GetTileRGB(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const;
-	std::vector<uint8_t>  GetTileA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const;
-	std::vector<uint32_t> GetTileRGBA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const;
+	std::vector<uint8_t>  GetTileRGB(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const;
+	std::vector<uint8_t>  GetTileA(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const;
+	std::vector<uint32_t> GetTileRGBA(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const;
 	const Tileset& GetTileset() const;
 	Tileset& GetTileset();
 
@@ -49,7 +49,7 @@ public:
 	void       DeleteSubSprite(std::size_t idx);
 	void       SwapSubSprite(std::size_t src1, std::size_t src2);
 
-	Palette    GetSpritePalette(std::optional<Palette> low_palette, std::optional<Palette> high_palette) const;
+	PaletteO    GetSpritePalette(std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const;
 
 private:
 	std::vector<SubSprite> m_subsprites;

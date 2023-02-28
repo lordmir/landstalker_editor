@@ -8,7 +8,7 @@
 #include <wx/dataview.h>
 #include "Block.h"
 #include "Tileset.h"
-#include "Palette.h"
+#include "PaletteO.h"
 #include "LSTilemapCmp.h"
 #include "Rom.h"
 #include "SpriteGraphic.h"
@@ -185,8 +185,8 @@ private:
     std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
-    std::vector<Palette> m_pal2;
-    std::vector<Palette> m_palette;
+    std::vector<PaletteO> m_pal2;
+    std::vector<PaletteO> m_palette;
     Tileset m_tilebmps;
     ImageBuffer m_imgbuf;
     wxImage m_img;
@@ -211,7 +211,7 @@ private:
     std::map<uint8_t, Sprite> m_sprites;
     std::string m_selImage;
     std::map<std::string, Images::Image> m_images;
-    std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+    std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
     std::string m_selected_palette;
     uint16_t m_pal[54][15];
 	ImageList* m_imgs;

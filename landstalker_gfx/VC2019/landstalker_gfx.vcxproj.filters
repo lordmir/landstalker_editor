@@ -57,7 +57,7 @@
     <ClCompile Include="..\src\MainFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Palette.cpp">
+    <ClCompile Include="..\src\PaletteO.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Sprite.cpp">
@@ -141,6 +141,9 @@
     <ClCompile Include="..\src\WarpList.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Palette.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -199,7 +202,7 @@
     <ClInclude Include="..\src\include\MainFrame.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\Palette.h">
+    <ClInclude Include="..\src\include\PaletteO.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\resource.h">
@@ -290,6 +293,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\WarpList.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Palette.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

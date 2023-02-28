@@ -215,6 +215,11 @@ bool RoomManager::LoadRomWarpData(const Rom& rom)
 	return true;
 }
 
+bool RoomManager::LoadRoomPalettes(const Rom& rom)
+{
+	return false;
+}
+
 bool RoomManager::GetAsmFilenames()
 {
 	try

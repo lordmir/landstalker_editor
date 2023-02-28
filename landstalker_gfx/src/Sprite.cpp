@@ -85,8 +85,8 @@ Sprite::Sprite()
 
 Sprite::Sprite(const Rom& rom, uint8_t id)
 	: m_sprite_id(id),
-	  m_high_palette(rom, 0, Palette::Type::SPRITE_HIGH),
-	  m_low_palette(rom, 0, Palette::Type::SPRITE_LOW)
+	  m_high_palette(rom, 0, PaletteO::Type::SPRITE_HIGH),
+	  m_low_palette(rom, 0, PaletteO::Type::SPRITE_LOW)
 {
 	if (!m_cache_init)
 	{
@@ -218,9 +218,9 @@ int Sprite::GetItemId() const
 	return -1;
 }
 
-Palette Sprite::GetPalette() const
+PaletteO Sprite::GetPalette() const
 {
-	Palette pal;
+	PaletteO pal;
 	auto it = m_sprite_palette_lookup.equal_range(m_sprite_id);
 	for (auto itr = it.first; itr != it.second; ++itr)
 	{

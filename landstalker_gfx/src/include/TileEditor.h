@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 #include <memory>
-#include "Palette.h"
+#include "PaletteO.h"
 #include "Tileset.h"
 #include "Tile.h"
 
@@ -39,7 +39,7 @@ public:
 	TileEditor(wxWindow* parent);
 	~TileEditor();
 
-	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
+	void SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes);
 	void SetTileset(std::shared_ptr<Tileset> tileset);
 	void SetTile(const Tile& tile);
 
@@ -93,7 +93,7 @@ private:
 	bool SetColour(const Point& point, int colour);
 	void SetPixelSize(int n);
 	int ValidateColour(int colour);
-	const Palette& GetSelectedPalette();
+	const PaletteO& GetSelectedPalette();
 	void InitialiseBrushesAndPens();
 	wxBrush GetBrush(int index);
 
@@ -118,10 +118,10 @@ private:
 	bool m_enableedit;
 	bool m_enablealpha;
 
-	std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+	std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
 	std::shared_ptr<Tileset> m_tileset;
 	std::string m_selected_palette;
-	Palette m_default_palette;
+	PaletteO m_default_palette;
 	Tile m_tile;
 	std::vector<uint8_t> m_pixels;
 

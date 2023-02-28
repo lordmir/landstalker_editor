@@ -8,7 +8,7 @@
 
 #include "Tile.h"
 #include "Tileset.h"
-#include "Palette.h"
+#include "PaletteO.h"
 #include "Block.h"
 #include "Tilemap2DRLE.h"
 #include "Tilemap3DCmp.h"
@@ -25,12 +25,12 @@ public:
 	void Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer,
 		const std::shared_ptr<Tilemap3D> map, const std::shared_ptr<Tileset> tileset,
 		const std::shared_ptr<std::vector<MapBlock>> blockset);
-	bool WritePNG(const std::string& filename, const std::vector<Palette>& pals);
+	bool WritePNG(const std::string& filename, const std::vector<PaletteO>& pals);
 	void InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const MapBlock& block, const Tileset& tileset);
-	const std::vector<uint8_t>& GetRGB(const std::vector<Palette>& pals) const;
-	const std::vector<uint8_t>& GetAlpha(const std::vector<Palette>& pals, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
-	std::shared_ptr<wxBitmap> MakeBitmap(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
-	wxImage MakeImage(const std::vector<Palette>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
+	const std::vector<uint8_t>& GetRGB(const std::vector<PaletteO>& pals) const;
+	const std::vector<uint8_t>& GetAlpha(const std::vector<PaletteO>& pals, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
+	std::shared_ptr<wxBitmap> MakeBitmap(const std::vector<PaletteO>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
+	wxImage MakeImage(const std::vector<PaletteO>& pals, bool use_alpha = false, uint8_t low_pri_max_opacity = 0xFF, uint8_t high_pri_max_opacity = 0xFF) const;
 	std::size_t GetHeight() const;
 	std::size_t GetWidth() const;
 private:

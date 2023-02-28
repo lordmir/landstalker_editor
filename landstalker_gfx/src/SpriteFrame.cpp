@@ -288,21 +288,21 @@ std::vector<uint8_t>& SpriteFrame::GetTilePixels(int tile_index)
 	return m_sprite_gfx.GetTilePixels(tile_index);
 }
 
-std::vector<uint8_t> SpriteFrame::GetTileRGB(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
+std::vector<uint8_t> SpriteFrame::GetTileRGB(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const
 {
-	Palette p = GetSpritePalette(low_palette, high_palette);
+	PaletteO p = GetSpritePalette(low_palette, high_palette);
 	return m_sprite_gfx.GetTileRGB(tile, p);
 }
 
-std::vector<uint8_t> SpriteFrame::GetTileA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
+std::vector<uint8_t> SpriteFrame::GetTileA(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const
 {
-	Palette p = GetSpritePalette(low_palette, high_palette);
+	PaletteO p = GetSpritePalette(low_palette, high_palette);
 	return m_sprite_gfx.GetTileA(tile, p);
 }
 
-std::vector<uint32_t> SpriteFrame::GetTileRGBA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
+std::vector<uint32_t> SpriteFrame::GetTileRGBA(const Tile& tile, std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const
 {
-	Palette p = GetSpritePalette(low_palette, high_palette);
+	PaletteO p = GetSpritePalette(low_palette, high_palette);
 	return m_sprite_gfx.GetTileRGBA(tile, p);
 }
 
@@ -386,9 +386,9 @@ void SpriteFrame::SwapSubSprite(std::size_t src1, std::size_t src2)
 	std::swap(m_subsprites[src1], m_subsprites[src2]);	
 }
 
-Palette SpriteFrame::GetSpritePalette(std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
+PaletteO SpriteFrame::GetSpritePalette(std::optional<PaletteO> low_palette, std::optional<PaletteO> high_palette) const
 {
-	Palette p;
+	PaletteO p;
 	if (low_palette)
 	{
 		p = *low_palette;

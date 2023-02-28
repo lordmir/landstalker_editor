@@ -55,6 +55,7 @@ public:
 private:
     bool LoadRomRoomTable(const Rom& rom);
     bool LoadRomWarpData(const Rom& rom);
+    bool LoadRoomPalettes(const Rom& rom);
     bool GetAsmFilenames();
     bool LoadAsmRoomTable();
     bool LoadAsmMapData();

@@ -117,7 +117,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
         }
 }
 
-bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palette>& palettes)
+bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<PaletteO>& palettes)
 {
     bool retval = false;
 
@@ -198,7 +198,7 @@ void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_inde
     }
 }
 
-const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<Palette>& pals) const
+const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<PaletteO>& pals) const
 {
 	m_rgb.resize(m_width * m_height * 3);
     auto it = m_rgb.begin();
@@ -211,7 +211,7 @@ const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<Palette>& pals
 	return m_rgb;
 }
 
-const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<Palette>& pals, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<PaletteO>& pals, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
     m_alpha.resize(m_width * m_height);
     auto pri = m_priority.cbegin();
@@ -225,7 +225,7 @@ const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<Palette>& pa
 	return m_alpha;
 }
 
-std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<PaletteO>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
     GetRGB(pals);
     wxImage img(m_width, m_height, m_rgb.data(), true);
@@ -238,7 +238,7 @@ std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pa
     return ret;
 }
 
-wxImage ImageBuffer::MakeImage(const std::vector<Palette>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+wxImage ImageBuffer::MakeImage(const std::vector<PaletteO>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
 	GetRGB(pals);
 	wxImage img(m_width, m_height, m_rgb.data(), true);

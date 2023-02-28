@@ -11,9 +11,9 @@ public:
 
     std::vector<uint8_t> GetTile(const Tile& tile, uint8_t frame) const;
     std::vector<uint8_t>& GetTilePixels(int tile_index, uint8_t frame);
-    std::vector<uint8_t> GetTileRGB(const Tile& tile, const Palette& palette, uint8_t frame) const;
-    std::vector<uint8_t> GetTileA(const Tile& tile, const Palette& palette, uint8_t frame) const;
-    std::vector<uint32_t> GetTileRGBA(const Tile& tile, const Palette& palette, uint8_t frame) const;
+    std::vector<uint8_t> GetTileRGB(const Tile& tile, const PaletteO& palette, uint8_t frame) const;
+    std::vector<uint8_t> GetTileA(const Tile& tile, const PaletteO& palette, uint8_t frame) const;
+    std::vector<uint32_t> GetTileRGBA(const Tile& tile, const PaletteO& palette, uint8_t frame) const;
 
     uint16_t GetBaseBytes() const;
     Tile GetStartTile() const;

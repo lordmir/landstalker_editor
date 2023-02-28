@@ -32,7 +32,7 @@ PaletteEditor::~PaletteEditor()
 	delete m_alpha_brush;
 }
 
-void PaletteEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void PaletteEditor::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
 {
 	m_palettes = palettes;
 	ForceRedraw();
@@ -245,7 +245,7 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 		if (dlg.ShowModal() == wxID_OK)
 		{
 			auto colour = dlg.GetColourData().GetColour();
-			auto result = Palette::ToGenesisColour({ colour.Red(), colour.Green(), colour.Blue() });
+			auto result = PaletteO::ToGenesisColour({ colour.Red(), colour.Green(), colour.Blue() });
 			if (result != orig_colour)
 			{
 				GetSelectedPalette().setGenesisColour(colour_selected, result);
@@ -263,7 +263,7 @@ void PaletteEditor::ForceRedraw()
 	Refresh(true);
 }
 
-Palette& PaletteEditor::GetSelectedPalette()
+PaletteO& PaletteEditor::GetSelectedPalette()
 {
 	if (m_palettes)
 	{

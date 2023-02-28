@@ -13,7 +13,7 @@
 #include "TilesetEditor.h"
 #include "PaletteEditor.h"
 #include "TileEditor.h"
-#include "Palette.h"
+#include "PaletteO.h"
 #include "EditorFrame.h"
 #include "TilesetManager.h"
 
@@ -30,7 +30,7 @@ public:
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void SetTilesetManager(std::shared_ptr<TilesetManager> tsmgr);
-	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
+	void SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes);
 	void SetActivePalette(const std::string& name);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool Open(std::shared_ptr<TilesetManager::TilesetEntry> ts_entry);
@@ -80,7 +80,7 @@ private:
 	mutable wxSlider* m_zoomslider = nullptr;
 	mutable wxPGChoices m_palette_list;
 	mutable wxPGChoices m_blocktype_list;
-	std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+	std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
 	std::string m_selected_palette;
 	std::shared_ptr<Tileset> m_tileset;
 	Tile m_tile;

@@ -54,7 +54,7 @@ TileEditor::~TileEditor()
 	delete m_highlighted_brush;
 }
 
-void TileEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void TileEditor::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
 {
 	m_palettes = palettes;
 	ForceRedraw();
@@ -526,7 +526,7 @@ int TileEditor::ValidateColour(int colour)
 	return -1;
 }
 
-const Palette& TileEditor::GetSelectedPalette()
+const PaletteO& TileEditor::GetSelectedPalette()
 {
 	if (m_palettes)
 	{

@@ -11,18 +11,18 @@
 #include <string>
 
 #include "Tileset.h"
-#include "Palette.h"
+#include "PaletteO.h"
 #include "ImageBuffer.h"
 
 class TilesetEditor : public wxVScrolledWindow
 {
 public:
 	TilesetEditor(wxWindow* parent);
-	TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset>, std::shared_ptr<std::map<std::string, Palette>> palettes);
+	TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset>, std::shared_ptr<std::map<std::string, PaletteO>> palettes);
 	~TilesetEditor();
 
 	void SetColour(int c);
-	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
+	void SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes);
 	std::shared_ptr<Tileset> GetTileset();
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename, bool compressed = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
@@ -90,7 +90,7 @@ private:
 	void DrawSelectionBorders(wxDC& dc);
 	void PaintBitmap(wxDC& src, wxDC& dst);
 	void InitialiseBrushesAndPens();
-	const Palette& GetSelectedPalette();
+	const PaletteO& GetSelectedPalette();
 
 	void FireEvent(const wxEventType& e, const std::string& data);
 
@@ -116,9 +116,9 @@ private:
 
 	std::string m_name;
 
-	std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+	std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
 	std::string m_selected_palette;
-	Palette m_default_palette;
+	PaletteO m_default_palette;
 	std::shared_ptr<Tileset> m_tileset = nullptr;
 	int m_ctrlwidth;
 	int m_ctrlheight;
