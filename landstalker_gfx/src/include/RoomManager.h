@@ -16,6 +16,8 @@
 #include <WarpList.h>
 #include <Palette.h>
 
+using SizeReport = std::vector<std::pair<std::string, int>>;
+
 class RoomManager
 {
 public:
@@ -48,9 +50,9 @@ public:
 
     bool Save(filesystem::path dir);
     bool Save();
-
-    bool HasBeenModified();
-    bool HasMapBeenModified(const std::string& map);
+    bool HasBeenModified() const;
+    SizeReport GetRomInjectReport(const Rom& rom) const;
+    bool InjectIntoRom(Rom& rom);
 
     std::size_t GetRoomCount() const;
     const Room& GetRoom(uint16_t idx) const;
@@ -70,17 +72,20 @@ public:
 private:
     bool LoadRomRoomTable(const Rom& rom);
     bool LoadRomWarpData(const Rom& rom);
-    bool LoadRomPalettes(const Rom& rom);
+    bool LoadRomRoomPalettes(const Rom& rom);
+    bool LoadRomMiscPalettes(const Rom& rom);
     bool GetAsmFilenames();
     bool LoadAsmRoomTable();
     bool LoadAsmMapData();
     bool LoadAsmWarpData();
-    bool LoadAsmPalettes();
+    bool LoadAsmRoomPalettes();
+    bool LoadAsmMiscPalettes();
     bool SaveMapsToDisk(const filesystem::path& dir);
     bool SaveAsmMapFilenames(const filesystem::path& dir);
     bool SaveAsmRoomData(const filesystem::path& dir);
     bool SaveAsmWarpData(const filesystem::path& dir);
-    bool SaveAsmPalettes(const filesystem::path& dir);
+    bool SaveAsmRoomPalettes(const filesystem::path& dir);
+    bool SaveAsmMiscPalettes(const filesystem::path& dir);
     bool SaveAsmPaletteFilenames(const filesystem::path& dir);
 
     filesystem::path m_asm_filename;
@@ -92,13 +97,21 @@ private:
     filesystem::path m_climb_data_filename;
     filesystem::path m_transition_data_filename;
     filesystem::path m_palette_data_filename;
+    filesystem::path m_lava_pal_data_filename;
+    filesystem::path m_warp_pal_data_filename;
+    filesystem::path m_lantern_pal_data_filename;
 
     std::vector<Room> m_roomlist;
+    std::vector<Room> m_roomlist_orig;
     std::map<std::string, std::shared_ptr<MapEntry>> m_maps;
     WarpList m_warps;
+    WarpList m_warps_orig;
+    std::vector<PaletteEntry> m_room_pals;
+    std::vector<PaletteEntry> m_lava_palette;
+    std::vector<PaletteEntry> m_warp_palette;
+    PaletteEntry m_labrynth_lit_palette;
     mutable std::map<std::string, std::vector<uint8_t>> m_pending_write;
     mutable bool m_roomlist_pending_modifications;
-    std::vector<PaletteEntry> m_room_pals;
 };
 
 #endif // _ROOM_MANAGER_H_

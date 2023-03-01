@@ -33,10 +33,16 @@ public:
 
 		Warp(const std::vector<uint8_t>& raw);
 		std::vector<uint8_t> GetRaw() const;
+
+		bool operator==(const Warp& rhs) const;
+		bool operator!=(const Warp& rhs) const;
 	};
 	WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path);
 	WarpList(const Rom& rom);
 	WarpList() = default;
+
+	bool operator==(const WarpList& rhs) const;
+	bool operator!=(const WarpList& rhs) const;
 
 	std::list<Warp> GetWarpsForRoom(uint16_t room) const;
 	bool HasFallDestination(uint16_t room) const;

@@ -39,6 +39,19 @@ WarpList::WarpList(const Rom& rom)
 	ProcessTransitionList(transition_bytes);
 }
 
+bool WarpList::operator==(const WarpList& rhs) const
+{
+	return ((this->m_warps == rhs.m_warps) &&
+            (this->m_fall_dests == rhs.m_fall_dests) &&
+            (this->m_climb_dests == rhs.m_climb_dests) &&
+            (this->m_transitions == rhs.m_transitions));
+}
+
+bool WarpList::operator!=(const WarpList& rhs) const
+{
+	return !(*this == rhs);
+}
+
 std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 {
 	std::list<Warp> warps;
@@ -267,4 +280,21 @@ std::vector<uint8_t> WarpList::Warp::GetRaw() const
 	retval[0] |= (type == Type::STAIR_SW) ? 0x40 : 0;
 
 	return retval;
+}
+
+bool WarpList::Warp::operator==(const Warp& rhs) const
+{
+	return ((this->type == rhs.type) && (this->x_size == rhs.x_size) &&
+		    (this->y_size == rhs.y_size) &&
+		    ((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
+			 (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
+			 (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
+		    ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
+		  	 (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
+			 (this->x2 == rhs.x1) && (this->y2 == rhs.y1)));
+}
+
+bool WarpList::Warp::operator!=(const Warp& rhs) const
+{
+	return !(*this == rhs);
 }

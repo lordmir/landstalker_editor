@@ -23,9 +23,13 @@ RoomManager::RoomManager(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load warp data from \'") + m_warp_data_filename.str() + '\'');
 	}
-	if (!LoadAsmPalettes())
+	if (!LoadAsmRoomPalettes())
 	{
 		throw std::runtime_error(std::string("Unable to load palette data from \'") + m_palette_data_filename.str() + '\'');
+	}
+	if (!LoadAsmMiscPalettes())
+	{
+		throw std::runtime_error(std::string("Unable to load misc palette data from \'") + asm_file.str() + '\'');
 	}
 }
 
@@ -40,9 +44,13 @@ RoomManager::RoomManager(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load warp data from ROM"));
 	}
-	if (!LoadRomPalettes(rom))
+	if (!LoadRomRoomPalettes(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load palette data from ROM"));
+	}
+	if (!LoadRomMiscPalettes(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load misc palette data from ROM"));
 	}
 }
 
@@ -65,13 +73,17 @@ bool RoomManager::Save(filesystem::path dir)
 	{
 		throw std::runtime_error(std::string("Unable to save warp data to \'") + m_asm_filename.str() + '\'');
 	}
-	if (!SaveAsmPalettes(dir))
+	if (!SaveAsmRoomPalettes(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save palettes to \'") + m_palette_data_filename.str() + '\'');
 	}
 	if (!SaveAsmPaletteFilenames(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save palette data to \'") + m_palette_data_filename.str() + '\'');
+	}
+	if (!SaveAsmMiscPalettes(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save misc palette data to \'") + m_asm_filename.str() + '\'');
 	}
 	return true;
 }
@@ -81,26 +93,34 @@ bool RoomManager::Save()
 	return Save(m_base_path);
 }
 
-bool RoomManager::HasBeenModified()
+bool RoomManager::HasBeenModified() const
 {
 	for (const auto& map : m_maps)
 	{
-		if (HasMapBeenModified(map.first))
+		if (map.second->orig_map == nullptr ||
+			*map.second->map != *map.second->orig_map)
 		{
 			return true;
 		}
 	}
-	return m_roomlist_pending_modifications;
-}
-
-bool RoomManager::HasMapBeenModified(const std::string& map)
-{
-	auto it = m_maps.find(map);
-	if (it == m_maps.end())
+	for (const auto& pal : m_room_pals)
+	{
+		if (pal.orig_pal == nullptr ||
+			*pal.pal != *pal.orig_pal)
+		{
+			return true;
+		}
+	}
+	if ((m_warps != m_warps_orig) || (m_roomlist != m_roomlist_orig))
 	{
 		return true;
 	}
-	return *it->second->map != *it->second->orig_map;
+	return false;
+}
+
+SizeReport RoomManager::GetRomInjectReport(const Rom& rom) const
+{
+	return SizeReport();
 }
 
 std::size_t RoomManager::GetRoomCount() const
@@ -169,6 +189,11 @@ bool RoomManager::HasClimbDestination(uint16_t room) const
 	return m_warps.HasClimbDestination(room);
 }
 
+bool RoomManager::InjectIntoRom(Rom& rom)
+{
+	return false;
+}
+
 uint16_t RoomManager::GetClimbDestination(uint16_t room) const
 {
 	return m_warps.GetClimbDestination(room);
@@ -235,7 +260,7 @@ bool RoomManager::LoadRomWarpData(const Rom& rom)
 	return true;
 }
 
-bool RoomManager::LoadRomPalettes(const Rom& rom)
+bool RoomManager::LoadRomRoomPalettes(const Rom& rom)
 {
 	uint32_t palettes_begin = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_PALS_PTR));
 	uint32_t palettes_end = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_EXITS_PTR));
@@ -266,6 +291,38 @@ bool RoomManager::LoadRomPalettes(const Rom& rom)
 	return true;
 }
 
+bool RoomManager::LoadRomMiscPalettes(const Rom& rom)
+{
+	auto load_pal_array = [&](const std::string& name, const filesystem::path& fname, const Palette::Type& ptype)
+	{
+		uint32_t addr = rom.get_section(name).begin;
+		uint32_t end = rom.get_section(name).end;
+		uint32_t size = Palette::GetSize(ptype) * 2;
+		unsigned int i = 0;
+		std::vector<PaletteEntry> ret;
+		for (; addr < end; addr += size)
+		{
+			auto bytes = std::make_shared<std::vector<uint8_t>>(rom.read_array<uint8_t>(addr, size));
+			PaletteEntry e;
+			e.raw_data = bytes;
+			e.start_address = addr;
+			e.end_address = addr + size;
+			e.index = i++;
+			e.name = name;
+			e.filename = fname;
+			auto p = std::make_shared<Palette>(*bytes, ptype);
+			e.orig_pal = p;
+			e.pal = std::make_shared<Palette>(*p);
+			ret.push_back(e);
+		}
+		return ret;
+	};
+	m_lava_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LAVA, RomOffsets::Rooms::PALETTE_LAVA_FILENAME, Palette::Type::LAVA);
+	m_warp_palette = load_pal_array(RomOffsets::Rooms::PALETTE_WARP, RomOffsets::Rooms::PALETTE_WARP_FILENAME, Palette::Type::WARP);
+	m_labrynth_lit_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LANTERN, RomOffsets::Rooms::PALETTE_LANTERN_FILENAME, Palette::Type::ROOM).front();
+	return true;
+}
+
 bool RoomManager::GetAsmFilenames()
 {
 	try
@@ -286,13 +343,22 @@ bool RoomManager::GetAsmFilenames()
 		f >> m_transition_data_filename;
 		f.Goto(RomOffsets::Rooms::ROOM_PALS);
 		f >> m_palette_data_filename;
+		f.Goto(RomOffsets::Rooms::PALETTE_LANTERN);
+		f >> m_lantern_pal_data_filename;
+		f.Goto(RomOffsets::Rooms::PALETTE_LAVA);
+		f >> m_lava_pal_data_filename;
+		f.Goto(RomOffsets::Rooms::PALETTE_WARP);
+		f >> m_warp_pal_data_filename;
 		if (filesystem::path(m_base_path / m_room_data_filename).exists() &&
 			filesystem::path(m_base_path / m_map_data_filename).exists() &&
 			filesystem::path(m_base_path / m_warp_data_filename).exists() &&
 			filesystem::path(m_base_path / m_climb_data_filename).exists() &&
 			filesystem::path(m_base_path / m_fall_data_filename).exists() &&
 			filesystem::path(m_base_path / m_transition_data_filename).exists() &&
-			filesystem::path(m_base_path / m_palette_data_filename).exists())
+			filesystem::path(m_base_path / m_palette_data_filename).exists() &&
+			filesystem::path(m_base_path / m_lantern_pal_data_filename).exists() &&
+			filesystem::path(m_base_path / m_lava_pal_data_filename).exists() &&
+			filesystem::path(m_base_path / m_warp_pal_data_filename).exists())
 		{
 			return true;
 		}
@@ -359,7 +425,7 @@ bool RoomManager::SaveAsmWarpData(const filesystem::path& dir)
 	return true;
 }
 
-bool RoomManager::SaveAsmPalettes(const filesystem::path& dir)
+bool RoomManager::SaveAsmRoomPalettes(const filesystem::path& dir)
 {
 	for (auto& palette : m_room_pals)
 	{
@@ -377,6 +443,51 @@ bool RoomManager::SaveAsmPalettes(const filesystem::path& dir)
 		WriteBytes(*palette.raw_data, fname);
 	}
 	return true;
+}
+
+bool RoomManager::SaveAsmMiscPalettes(const filesystem::path& dir)
+{
+	if (*m_labrynth_lit_palette.pal != *m_labrynth_lit_palette.orig_pal)
+	{
+		m_labrynth_lit_palette.raw_data = std::make_shared<std::vector<uint8_t>>(m_labrynth_lit_palette.pal->GetBytes());
+		*m_labrynth_lit_palette.orig_pal = *m_labrynth_lit_palette.pal;
+	}
+	auto combine_palette_array = [](std::vector<PaletteEntry>& pals)
+	{
+		std::vector<uint8_t> ret;
+		for (auto& p : pals)
+		{
+			if (*p.pal != *p.orig_pal)
+			{
+				p.raw_data = std::make_shared<std::vector<uint8_t>>(p.pal->GetBytes());
+				*p.orig_pal = *p.pal;
+			}
+			ret.insert(ret.end(), p.raw_data->begin(), p.raw_data->end());
+		}
+		return ret;
+	};
+	auto lava_pal_bytes = combine_palette_array(m_lava_palette);
+	auto warp_pal_bytes = combine_palette_array(m_warp_palette);
+
+	if (m_lantern_pal_data_filename.empty())
+	{
+		m_lantern_pal_data_filename = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
+	}
+	if (m_lava_pal_data_filename.empty())
+	{
+		m_lava_pal_data_filename = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
+	}
+	if (m_warp_pal_data_filename.empty())
+	{
+		m_warp_pal_data_filename = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
+	}
+	CreateDirectoryTree(dir / m_lantern_pal_data_filename);
+	WriteBytes(*m_labrynth_lit_palette.raw_data, dir / m_lantern_pal_data_filename);
+	CreateDirectoryTree(dir / m_lava_pal_data_filename);
+	WriteBytes(lava_pal_bytes, dir / m_lava_pal_data_filename);
+	CreateDirectoryTree(dir / m_warp_pal_data_filename);
+	WriteBytes(warp_pal_bytes, dir / m_warp_pal_data_filename);
+
 }
 
 bool RoomManager::SaveAsmPaletteFilenames(const filesystem::path& dir)
@@ -435,7 +546,7 @@ bool RoomManager::LoadAsmMapData()
 	return false;
 }
 
-bool RoomManager::LoadAsmPalettes()
+bool RoomManager::LoadAsmRoomPalettes()
 {
 	try
 	{
@@ -468,6 +579,37 @@ bool RoomManager::LoadAsmPalettes()
 	return false;
 }
 
+bool RoomManager::LoadAsmMiscPalettes()
+{
+	auto load_pal_array = [&](const std::string& name, const filesystem::path& fname, const Palette::Type& ptype)
+	{
+		auto path = m_base_path / fname;
+		auto data = std::make_shared<std::vector<uint8_t>>(ReadBytes(path));
+		auto pals = CreatePalettes(*data, ptype);
+		std::vector<PaletteEntry> ret;
+		int idx = 0;
+		for (const auto& p : pals)
+		{
+			PaletteEntry e;
+			e.start_address = 0;
+			e.end_address = 0;
+			e.index = idx++;
+			e.name = name;
+			e.filename = fname;
+			e.orig_pal = std::make_shared<Palette>(p);
+			e.pal = std::make_shared<Palette>(p);
+			e.raw_data = std::make_shared<std::vector<uint8_t>>(p.GetBytes());;
+			ret.push_back(e);
+		}
+		return ret;
+	};
+
+	m_lava_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LAVA, m_lava_pal_data_filename, Palette::Type::LAVA);
+	m_warp_palette = load_pal_array(RomOffsets::Rooms::PALETTE_WARP, m_warp_pal_data_filename, Palette::Type::WARP);
+	m_labrynth_lit_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LANTERN, m_lantern_pal_data_filename, Palette::Type::ROOM).front();
+	return true;
+}
+
 bool RoomManager::LoadAsmWarpData()
 {
 	m_warps = WarpList(m_base_path / m_warp_data_filename, 
@@ -486,7 +628,7 @@ bool RoomManager::SaveMapsToDisk(const filesystem::path& dir)
 			map.second->filename = StrPrintf(RomOffsets::Rooms::MAP_FILENAME_FORMAT_STRING, map.first.c_str());
 		}
 		auto fname = dir / map.second->filename;
-		if (HasMapBeenModified(map.first))
+		if (*map.second->map != *map.second->orig_map)
 		{
 			map.second->raw_data->resize(65536);
 			auto ret = map.second->map->Encode(&map.second->raw_data->at(0), map.second->raw_data->size());

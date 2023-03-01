@@ -99,8 +99,8 @@ PaletteO::PaletteO(const Rom& rom)
 		PopulatePalettes(rom.read_array<uint16_t>("room_palettes"), m_room_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("sprite_high_palettes"), m_sprite_high_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("sprite_low_palettes"), m_sprite_low_palettes);
-		PopulatePalettes(rom.read_array<uint16_t>("lava_palettes"), m_lava_palettes);
-		PopulatePalettes(rom.read_array<uint16_t>("labrynth_lantern_palette"), m_room_palettes);
+		PopulatePalettes(rom.read_array<uint16_t>(RomOffsets::Rooms::PALETTE_LAVA), m_lava_palettes);
+		PopulatePalettes(rom.read_array<uint16_t>(RomOffsets::Rooms::PALETTE_LANTERN), m_room_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("equipped_sword_palette"), m_equipped_sword_palette);
 		PopulatePalettes(rom.read_array<uint16_t>("equipped_armour_palette"), m_equipped_armour_palette);
 		PopulatePalettes(rom.read_array<uint16_t>("player_palette"), m_full_palettes);
@@ -108,7 +108,7 @@ PaletteO::PaletteO(const Rom& rom)
 		PopulatePalettes(rom.read_array<uint16_t>("inventory_palette_1_8col"), m_inventory_palette_1_8col);
 		PopulatePalettes(rom.read_array<uint16_t>("inventory_palette_2"), m_full_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("inventory_palette_3"), m_full_palettes);
-		PopulatePalettes(rom.read_array<uint16_t>("kazalt_warp_palette"), m_kazalt_warp_palette);
+		PopulatePalettes(rom.read_array<uint16_t>(RomOffsets::Rooms::PALETTE_WARP), m_kazalt_warp_palette);
 		PopulatePalettes(rom.read_array<uint16_t>("new_game_palette"), m_full_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("new_game_player_palette"), m_full_palettes);
 		PopulatePalettes(rom.read_array<uint16_t>("sega_logo_palette"), m_sega_logo_palette);

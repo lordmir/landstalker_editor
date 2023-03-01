@@ -71,6 +71,9 @@ namespace RomOffsets
 		static const std::string ROOM_FALL_DEST("RoomFallDestination");
 		static const std::string ROOM_CLIMB_DEST("RoomClimbDestination");
 		static const std::string ROOM_TRANSITIONS("RoomTransitionLookup");
+		static const std::string PALETTE_LAVA("LavaPaletteRotation");
+		static const std::string PALETTE_WARP("KazaltWarpPalette");
+		static const std::string PALETTE_LANTERN("LabrynthLitPal");
 
 		static const std::string ROOM_DATA_FILE("code/pointertables/maps/roomlist.asm");
 		static const std::string MAP_DATA_FILE("code/graphics/roommaps.asm");
@@ -81,6 +84,9 @@ namespace RomOffsets
 		static const std::string FALL_DEST_FILENAME("assets_packed/roomdata/warps/roomfalldests.bin");
 		static const std::string CLIMB_DEST_FILENAME("assets_packed/roomdata/warps/roomclimbdests.bin");
 		static const std::string TRANSITION_FILENAME("assets_packed/roomdata/flagactions/roomtransitions.bin");
+		static const std::string PALETTE_LAVA_FILENAME("assets_packed/graphics/miscpalettes/lavapalette.pal");
+		static const std::string PALETTE_WARP_FILENAME("assets_packed/graphics/miscpalettes/kazaltwarp.pal");
+		static const std::string PALETTE_LANTERN_FILENAME("assets_packed/graphics/miscpalettes/labrynthlit.pal");
 	}
 
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
@@ -165,8 +171,8 @@ namespace RomOffsets
 		{"loadgame_map",             {{Region::JP, {0x00FFA3, 0x01007E}}, {Region::US, {0x00FE37, 0x00FF12}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 
 		// Palettes
-		{"lava_palettes",            {{Region::JP, {0x002608, 0x002628}}, {Region::US, {0x00260E, 0x00262E}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
-		{"labrynth_lantern_palette", {{Region::JP, {0x002DAE, 0x002DC8}}, {Region::US, {0x002DB4, 0x002DCE}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::PALETTE_LAVA,       {{Region::JP, {0x002608, 0x002628}}, {Region::US, {0x00260E, 0x00262E}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::PALETTE_LANTERN,    {{Region::JP, {0x002DAE, 0x002DC8}}, {Region::US, {0x002DB4, 0x002DCE}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"equipped_sword_palette",   {{Region::JP, {0x0078A6, 0x0078BE}}, {Region::US, {0x007900, 0x007918}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"equipped_armour_palette",  {{Region::JP, {0x0078BE, 0x0078D2}}, {Region::US, {0x007918, 0x00792C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"player_palette",           {{Region::JP, {0x008FB6, 0x008FD6}}, {Region::US, {0x00901C, 0x00903C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
@@ -174,7 +180,7 @@ namespace RomOffsets
 		{"inventory_palette_1_8col", {{Region::JP, {0x00E25C, 0x00E26C}}, {Region::US, {0x00E0E0, 0x00E0F0}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"inventory_palette_2",      {{Region::JP, {0x00E26C, 0x00E28C}}, {Region::US, {0x00E0F0, 0x00E110}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"inventory_palette_3",      {{Region::JP, {0x00783C, 0x00785C}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
-		{"kazalt_warp_palette",      {{Region::JP, {0x00E98A, 0x00E9AE}}, {Region::US, {0x00E80E, 0x00E832}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::PALETTE_WARP,       {{Region::JP, {0x00E98A, 0x00E9AE}}, {Region::US, {0x00E80E, 0x00E832}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"new_game_palette",         {{Region::JP, {0x00F828, 0x00F848}}, {Region::US, {0x00F6BC, 0x00F6DC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"new_game_player_palette",  {{Region::JP, {0x00FC9E, 0x00FCBE}}, {Region::US, {0x00FB32, 0x00FB52}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"sega_logo_palette",        {{Region::JP, {0x0386C2, 0x0386D0}}, {Region::US, {0x0386C2, 0x0386D0}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
