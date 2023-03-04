@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <set>
+#include <algorithm>
 #include <LZ77.h>
 #include <RomOffsets.h>
 #include <Utils.h>
@@ -28,6 +29,14 @@ TilesetManager::TilesetManager(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.str() + '\'');
 	}
+	if (!LoadAsmBlocksetData())
+	{
+		throw std::runtime_error(std::string("Unable to load blockset data from \'") + m_blockset_data_filename.str() + '\'');
+	}
+	if (!LoadAsmBlocksetPointerData())
+	{
+		throw std::runtime_error(std::string("Unable to load blockset pointer data from \'") + m_blockset_pri_ptr_filename.str() + '\'');
+	}
 	LoadAsmTilesetData();
 }
 
@@ -40,8 +49,9 @@ TilesetManager::TilesetManager(const Rom& rom)
 	}
 	if (!LoadRomTilesetPointerData(rom))
 	{
-		throw std::runtime_error("Unable to load tileset pointer table into ROM");
+		throw std::runtime_error("Unable to load tileset pointer table from ROM");
 	}
+	LoadRomBlocksetData(rom);
 	LoadRomTilesetData(rom);
 }
 
@@ -121,6 +131,14 @@ bool TilesetManager::Save(filesystem::path dir)
 	{
 		throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.str() + '\'');
 	}
+	if (!SaveAsmBlocksetData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save blockset data to \'") + m_blockset_data_filename.str() + '\'');
+	}
+	if (!SaveAsmBlocksetPointerData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save blockset pointer data to \'") + m_blockset_pri_ptr_filename.str() + '\'');
+	}
 
 	return true;
 }
@@ -190,6 +208,16 @@ std::shared_ptr<TilesetManager::TilesetEntry> TilesetManager::GetTilesetByPtr(st
 	}
 }
 
+std::shared_ptr<const TilesetManager::TilesetEntry> TilesetManager::GetTilesetByIdx(uint8_t ts) const
+{
+	return m_tileset_list_x[ts];
+}
+
+std::shared_ptr<TilesetManager::TilesetEntry> TilesetManager::GetTilesetByIdx(uint8_t ts)
+{
+	return m_tileset_list_x[ts];
+}
+
 std::vector<std::string> TilesetManager::GetTilesetList() const
 {
 	std::vector<std::string> list;
@@ -213,6 +241,50 @@ std::vector<std::string> TilesetManager::GetTilesetList(Type type) const
 		}
 	}
 	return list;
+}
+
+std::vector<std::pair<uint8_t, std::string>> TilesetManager::GetPriBlocksetList() const
+{
+	std::vector<std::pair<uint8_t, std::string>> retval;
+	std::set<uint8_t> pri;
+	for (const auto& b : m_blocksets)
+	{
+		auto pri_idx = b.first.first;
+		if (pri.find(pri_idx) == pri.end())
+		{
+			auto name = StrPrintf(RomOffsets::Blocksets::SEC_LABEL, (pri_idx & 0x1F) + 1);
+			if (pri_idx > 0x1F)
+			{
+				name += "A";
+			}
+			retval.push_back({ pri_idx, name });
+			pri.insert(pri_idx);
+		}
+	}
+	return retval;
+}
+
+std::vector<std::string> TilesetManager::GetSecBlocksetList(uint8_t pri) const
+{
+	std::vector<std::string> retval;
+	for (const auto& b : m_blocksets)
+	{
+		if (b.first.first == pri)
+		{
+			retval.push_back(b.second->name);
+		}
+	}
+	return retval;
+}
+
+std::shared_ptr<TilesetManager::BlocksetEntry> TilesetManager::GetBlockset(const std::string& name) const
+{
+	return m_blocksets_by_ptr.find(name)->second;
+}
+
+std::shared_ptr<TilesetManager::BlocksetEntry> TilesetManager::GetBlockset(uint8_t pri, uint8_t sec) const
+{
+	return m_blocksets.find({ pri, sec })->second;
 }
 
 bool TilesetManager::RenameTileset(const std::string& origname, const std::string& newname)
@@ -300,9 +372,18 @@ bool TilesetManager::GetTilesetAsmFilenames()
 		f >> m_tileset_ptrtab_filename;
 		f.Goto(RomOffsets::Tilesets::ANIM_DATA_LOC);
 		f >> m_tileset_anim_filename;
+		f.Goto(RomOffsets::Blocksets::PRI_PTRS);
+		f >> m_blockset_pri_ptr_filename;
+		f.Goto(RomOffsets::Blocksets::SEC_PTRS);
+		f >> m_blockset_sec_ptr_filename;
+		f.Goto(RomOffsets::Blocksets::DATA);
+		f >> m_blockset_data_filename;
 		if (filesystem::path(m_base_path / m_tileset_anim_filename).exists() &&
 			filesystem::path(m_base_path / m_tileset_ptrtab_filename).exists() &&
-			filesystem::path(m_base_path / m_tileset_data_filename).exists())
+			filesystem::path(m_base_path / m_tileset_data_filename).exists() &&
+			filesystem::path(m_base_path / m_blockset_pri_ptr_filename).exists() &&
+			filesystem::path(m_base_path / m_blockset_sec_ptr_filename).exists() &&
+			filesystem::path(m_base_path / m_blockset_data_filename).exists())
 		{
 			return true;
 		}
@@ -472,6 +553,106 @@ void TilesetManager::LoadAsmTilesetData()
 	}
 }
 
+bool TilesetManager::LoadAsmBlocksetPointerData()
+{
+	try
+	{
+		m_blockset_pri_ptrs.clear();
+		m_blockset_sec_ptrs.clear();
+
+		AsmFile pri_file(m_base_path / m_blockset_pri_ptr_filename);
+		AsmFile sec_file(m_base_path / m_blockset_sec_ptr_filename);
+
+		pri_file.Goto(RomOffsets::Blocksets::POINTER);
+		// First item is always a pointer to the start of the regular tileset list.
+		// We can safely ignore this
+		std::string name;
+		AsmFile::Label lbl;
+		pri_file >> lbl >> name;
+		uint8_t p = 0, s = 0;
+		while (pri_file.IsGood())
+		{
+			pri_file >> name;
+			if (m_blocksets_by_ptr.find(name) == m_blocksets_by_ptr.end())
+			{
+				if (m_blockset_pri_ptrs.find(name) == m_blockset_pri_ptrs.end())
+				{
+					m_blockset_pri_ptrs.insert({ name, p });
+				}
+				else
+				{
+					m_blockset_pri_ptrs[name] = p;
+				}
+			}
+			p++;
+		}
+		while (sec_file.IsGood())
+		{
+			if (sec_file.IsLabel())
+			{
+				sec_file >> lbl;
+				p = m_blockset_pri_ptrs[lbl];
+				s = 0;
+			}
+			sec_file >> name;
+			if (m_blocksets_by_ptr.find(name) != m_blocksets_by_ptr.end())
+			{
+				m_blockset_sec_ptrs.insert({ name, {p, s++} });
+			}
+		}
+		for (const auto& ptr : m_blockset_sec_ptrs)
+		{
+			if (m_blocksets_by_ptr.find(ptr.first) != m_blocksets_by_ptr.end())
+			{
+				auto e = m_blocksets_by_ptr[ptr.first];
+				e->primary_idx = ptr.second.first >> 5;
+				e->secondary_idx = ptr.second.second;
+				e->tileset = ptr.second.first & 0x1F;
+				m_blocksets.insert({ ptr.second, e });
+			}
+		}
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what();
+	}
+	return false;
+}
+
+bool TilesetManager::LoadAsmBlocksetData()
+{
+	try
+	{
+		m_blocksets_by_ptr.clear();
+		m_blocksets.clear();
+		AsmFile dfile(m_base_path / m_blockset_data_filename);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		while (dfile.IsGood())
+		{
+			dfile >> lbl >> inc;
+			std::shared_ptr<BlocksetEntry> ep = std::make_shared<BlocksetEntry>();
+			ep->filename = inc.path;
+			ep->raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(m_base_path / ep->filename));
+			ep->name = lbl;
+			ep->primary_idx = 0;
+			ep->secondary_idx = 0;
+			ep->start_address = 0;
+			ep->end_address = 0;
+			ep->blockset_orig = std::make_shared<Blockset>();
+			BlocksetCmp::Decode(&ep->raw_data->at(0), ep->raw_data->size(), *ep->blockset_orig);
+			ep->blockset = std::make_shared<Blockset>(*ep->blockset_orig);
+			m_blocksets_by_ptr.insert({ ep->name, ep });
+		}
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+
 bool TilesetManager::LoadRomAnimatedTilesetData(const Rom& rom)
 {
 	std::size_t addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
@@ -632,6 +813,67 @@ void TilesetManager::LoadRomTilesetData(const Rom& rom)
 	introfont->end_address = introfont->start_address + introfont->raw_data->size();
 }
 
+void TilesetManager::LoadRomBlocksetData(const Rom& rom)
+{
+	uint32_t blockset_begin = rom.read<uint32_t>(RomOffsets::Blocksets::POINTER);
+	std::map<uint32_t, uint8_t> pri_ptrs;
+	std::map<uint32_t, std::pair<uint8_t, uint8_t>> sec_ptrs;
+	std::set<uint32_t> b_ptrs;
+	for (uint8_t i = 0; i < 64; ++i)
+	{
+		uint32_t ptr = rom.read<uint32_t>(blockset_begin + i * 4);
+		pri_ptrs[ptr] = i;
+	}
+	auto p_it = pri_ptrs.cbegin();
+	while (p_it != std::prev(pri_ptrs.cend()))
+	{
+		uint8_t pri = p_it->second;
+		uint8_t sec = 0;
+		uint32_t begin = p_it->first;
+		++p_it;
+		uint32_t end = p_it->first;
+		for (uint32_t addr = begin; addr < end; addr += 4)
+		{
+			sec_ptrs[addr] = { pri, sec++ };
+		}
+	}
+	for(auto s_it = sec_ptrs.cbegin(); s_it != sec_ptrs.cend(); ++s_it)
+	{
+		uint32_t begin = rom.read<uint32_t>(s_it->first);
+		uint32_t end;
+		if (std::next(s_it) != sec_ptrs.cend())
+		{
+			end = rom.read<uint32_t>(std::next(s_it)->first);
+		}
+		else
+		{
+			end = rom.get_section(RomOffsets::Blocksets::SECTION).end;
+		}
+		LoadRomBlockset(rom, s_it->second.first, s_it->second.second, begin, end);
+	}
+}
+
+void TilesetManager::LoadRomBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end)
+{
+	auto data = rom.read_array<uint8_t>(begin, end - begin);
+	BlocksetPtr blockset = std::make_shared<Blockset>();
+	int len = BlocksetCmp::Decode(&data.at(0), data.size(), *blockset);
+	data.resize(len);
+	auto e = std::make_shared<BlocksetEntry>();
+	e->start_address = begin;
+	e->end_address = begin + len;
+	e->blockset_orig = blockset;
+	e->blockset = std::make_shared<Blockset>(*blockset);
+	e->primary_idx = pri >> 5;
+	e->secondary_idx = sec;
+	e->tileset = pri & 0x1F;
+	e->raw_data = std::make_shared<std::vector<uint8_t>>(data);
+	e->name = StrPrintf(RomOffsets::Blocksets::BLOCKSET_LABEL, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
+	e->filename = StrPrintf(RomOffsets::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
+	m_blocksets_by_ptr.insert({ e->name, e });
+	m_blocksets.insert({ {pri, sec}, e });
+}
+
 bool TilesetManager::HasTilesetBeenModified(const std::string& tileset) const
 {
 	auto it = m_tilesets_by_name.find(tileset);
@@ -757,6 +999,10 @@ bool TilesetManager::SaveAsmTilesetFilenames(const filesystem::path& dir)
 {
 	try
 	{
+		if (m_tileset_data_filename.empty())
+		{
+			m_tileset_data_filename = RomOffsets::Tilesets::INCLUDE_FILE;
+		}
 		AsmFile file;
 		file.WriteFileHeader(m_tileset_data_filename, "Tileset data include file");
 		std::set<decltype(m_tileset_list_x)::value_type> tilesets;
@@ -777,10 +1023,6 @@ bool TilesetManager::SaveAsmTilesetFilenames(const filesystem::path& dir)
 		{
 			file << AsmFile::Label(ts->name) << AsmFile::IncludeFile(ts->filename, AsmFile::BINARY);
 		}
-		if (m_tileset_data_filename.empty())
-		{
-			m_tileset_data_filename = RomOffsets::Tilesets::INCLUDE_FILE;
-		}
 		auto f = dir / m_tileset_data_filename;
 		if (!f.parent_path().is_directory() &&
 			!filesystem::create_directories(f.parent_path()))
@@ -800,6 +1042,10 @@ bool TilesetManager::SaveAsmAnimatedTilesetData(const filesystem::path& dir)
 {
 	try
 	{
+		if (m_tileset_anim_filename.empty())
+		{
+			m_tileset_anim_filename = RomOffsets::Tilesets::ANIM_FILE;
+		}
 		AsmFile file;
 		file.WriteFileHeader(m_tileset_anim_filename, "Animated tileset definition file");
 
@@ -819,10 +1065,6 @@ bool TilesetManager::SaveAsmAnimatedTilesetData(const filesystem::path& dir)
 			file << ats->GetBaseBytes() << ats->GetFrameSizeBytes()
 				<< ats->GetAnimationSpeed() << ats->GetAnimationFrames()
 				<< ts->ptrname;
-		}
-		if (m_tileset_anim_filename.empty())
-		{
-			m_tileset_anim_filename = RomOffsets::Tilesets::ANIM_FILE;
 		}
 		auto f = dir / m_tileset_anim_filename;
 		if (!f.parent_path().is_directory() &&
@@ -877,6 +1119,10 @@ bool TilesetManager::SaveAsmTilesetPointerData(const filesystem::path& dir)
 	try
 	{
 		AsmFile file;
+		if (m_tileset_ptrtab_filename.empty())
+		{
+			m_tileset_ptrtab_filename = RomOffsets::Tilesets::PTRTAB_FILE;
+		}
 		file.WriteFileHeader(m_tileset_ptrtab_filename, "Tileset pointer table file");
 
 		file << AsmFile::Label(RomOffsets::Tilesets::PTR_LOC) << RomOffsets::Tilesets::PTRTAB_BEGIN_LOC;
@@ -895,10 +1141,6 @@ bool TilesetManager::SaveAsmTilesetPointerData(const filesystem::path& dir)
 			{
 				file << ts->name;
 			}
-		}
-		if (m_tileset_ptrtab_filename.empty())
-		{
-			m_tileset_ptrtab_filename = RomOffsets::Tilesets::PTRTAB_FILE;
 		}
 		auto f = dir / m_tileset_ptrtab_filename;
 		if (!f.parent_path().is_directory() &&
@@ -948,4 +1190,103 @@ bool TilesetManager::SaveRomTilesetPointerData(Rom& rom)
 		rom.write<uint32_t>(ptr, rom.get_address(RomOffsets::Tilesets::INTRO_FONT_PTR));
 	}
 	return true;
+}
+
+bool TilesetManager::SaveAsmBlocksetPointerData(const filesystem::path& dir)
+{
+	try
+	{
+		if (m_blockset_pri_ptr_filename.empty())
+		{
+			m_blockset_pri_ptr_filename = RomOffsets::Blocksets::PRI_PTR_FILE;
+		}
+		if (m_blockset_sec_ptr_filename.empty())
+		{
+			m_blockset_sec_ptr_filename = RomOffsets::Blocksets::SEC_PTR_FILE;
+		}
+		AsmFile pri_file;
+		AsmFile sec_file;
+		pri_file.WriteFileHeader(m_blockset_pri_ptr_filename, "Blockset primary pointer file");
+		sec_file.WriteFileHeader(m_blockset_sec_ptr_filename, "Blockset secondary pointer file");
+
+		pri_file << AsmFile::Label(RomOffsets::Blocksets::POINTER) << RomOffsets::Blocksets::PRI_LABEL;
+		pri_file << AsmFile::Label(RomOffsets::Blocksets::PRI_LABEL);
+
+		int pri_ptr_count = 0;
+		int pri = -1;
+		for (const auto& bs : m_blocksets)
+		{
+			if (bs.first.first != pri)
+			{
+				pri = bs.first.first;
+				auto name = StrPrintf(RomOffsets::Blocksets::SEC_LABEL, (pri & 0x1F) + 1);
+				if (pri > 0x1F)
+				{
+					name += "A";
+				}
+				do 
+				{
+					pri_file << name;
+				} while (++pri_ptr_count < (pri + 1));
+				sec_file << AsmFile::Label(name);
+			}
+			sec_file << bs.second->name;
+		}
+		while (pri_ptr_count++ < 64)
+		{
+			pri_file << m_blocksets.begin()->second->name;
+		}
+
+		auto prifname = dir / m_blockset_pri_ptr_filename;
+		auto secfname = dir / m_blockset_sec_ptr_filename;
+		CreateDirectoryTree(prifname);
+		CreateDirectoryTree(secfname);
+		pri_file.WriteFile(prifname);
+		sec_file.WriteFile(secfname);
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
+
+bool TilesetManager::SaveAsmBlocksetData(const filesystem::path& dir)
+{
+	try
+	{
+		if (m_blockset_data_filename.empty())
+		{
+			m_blockset_data_filename = RomOffsets::Blocksets::DATA_FILE;
+		}
+		AsmFile file;
+		file.WriteFileHeader(m_blockset_data_filename, "Blockset data include file");
+		for (const auto& bs : m_blocksets)
+		{
+			if (*bs.second->blockset != *bs.second->blockset_orig)
+			{
+				bs.second->raw_data->resize(65536);
+				uint16_t len = BlocksetCmp::Encode(*bs.second->blockset, &bs.second->raw_data->at(0), bs.second->raw_data->size());
+				bs.second->raw_data->resize(len);
+				*bs.second->blockset_orig = *bs.second->blockset;
+			}
+			if (bs.second->filename.empty())
+			{
+				bs.second->filename = StrPrintf(RomOffsets::Blocksets::BLOCKSET_FILE,
+					bs.second->tileset, bs.second->secondary_idx + 10 * bs.second->primary_idx);
+			}
+			file << AsmFile::Label(bs.second->name) << AsmFile::IncludeFile(bs.second->filename, AsmFile::BINARY);
+			auto fname = dir / bs.second->filename;
+			CreateDirectoryTree(fname);
+			WriteBytes(*bs.second->raw_data, fname);
+		}
+		auto incfname = dir / m_blockset_data_filename;
+		CreateDirectoryTree(incfname);
+		file.WriteFile(incfname);
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
 }

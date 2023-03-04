@@ -41,14 +41,9 @@ void Blockmap2D::Draw(ImageBuffer& imgbuf) const
 	}
 }
 
-void Blockmap2D::SetTileset(std::shared_ptr<Tileset> tileset)
+void Blockmap2D::SetTileset(std::shared_ptr<const Tileset> tileset)
 {
 	m_tileset = tileset;
-}
-
-std::shared_ptr<Tileset> Blockmap2D::GetTileset()
-{
-	return m_tileset;
 }
 
 std::shared_ptr<const Tileset> Blockmap2D::GetTileset() const
@@ -56,17 +51,17 @@ std::shared_ptr<const Tileset> Blockmap2D::GetTileset() const
 	return m_tileset;
 }
 
-void Blockmap2D::SetBlockset(BlockSetPtr blockset)
+void Blockmap2D::SetBlockset(BlocksetPtr blockset)
 {
 	m_blockset = blockset;
 }
 
-BlockSetPtr Blockmap2D::GetBlockset()
+BlocksetPtr Blockmap2D::GetBlockset()
 {
 	return m_blockset;
 }
 
-std::shared_ptr<const BlockSet> Blockmap2D::GetBlockset() const
+std::shared_ptr<const Blockset> Blockmap2D::GetBlockset() const
 {
 	return m_blockset;
 }

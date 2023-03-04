@@ -57,6 +57,23 @@ namespace RomOffsets
 		static const std::string ANIM_FILE("code/maps/animtilesettbl.asm");
 	}
 
+	namespace Blocksets
+	{
+		static const std::string PRI_PTRS("BlocksetPrimaryPointers");
+		static const std::string SEC_PTRS("BlocksetSecondaryPointers");
+		static const std::string DATA("Blocksets");
+		static const std::string POINTER("BigTilesListPtr");
+		static const std::string PRI_LABEL("BigTilesList");
+		static const std::string SECTION("BlocksetSection");
+		static const std::string SEC_LABEL("BTPtr%02d");
+		static const std::string BLOCKSET_LABEL("BT%02d_%02d");
+
+		static const std::string PRI_PTR_FILE("code/pointertables/blocks/primaryblocksetpointers.asm");
+		static const std::string SEC_PTR_FILE("code/pointertables/blocks/secondaryblocksetpointers.asm");
+		static const std::string DATA_FILE("code/blocks/blocksets.asm");
+		static const std::string BLOCKSET_FILE("assets_packed/graphics/blocksets/blockset%02d_%02d.cbs");
+	}
+
 	namespace Rooms
 	{
 		static const std::string ROOM_DATA_PTR("RoomDataPtr");
@@ -113,7 +130,7 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",        {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",         {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
-		{"big_tiles_ptr",           {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
+		{ Blocksets::POINTER,       {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
 		{ Rooms::ROOM_DATA_PTR,     {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
 		{ Rooms::ROOM_PALS_PTR,     {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
 		{ Rooms::ROOM_EXITS_PTR,    {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
@@ -122,7 +139,7 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
-		{"blockset_ptr_table",       {{Region::JP, {0x1AF804, 0x1AF8C8}}, {Region::US, {0x1AF804, 0x1AF8C8}}, {Region::UK, {0x1AF804, 0x1AF8C8}}, {Region::FR, {0x1AF804, 0x1AF8C8}}, {Region::DE, {0x1AF804, 0x1AF8C8}}, {Region::US_BETA, {0x1AF804, 0x1AF8C8}}}},
+		{ Blocksets::SECTION,        {{Region::JP, {0x1AF800, 0x1DFFFF}}, {Region::US, {0x1AF800, 0x1DFFFF}}, {Region::UK, {0x1AF800, 0x1DFFFF}}, {Region::FR, {0x1AF800, 0x1DFFFF}}, {Region::DE, {0x1AF800, 0x1DFFFF}}, {Region::US_BETA, {0x1AF800, 0x1DFFFF}}}},
 		{"tileset_offset_table",     {{Region::JP, {0x043E70, 0x043EF0}}, {Region::US, {0x044070, 0x0440F0}}, {Region::UK, {0x044070, 0x0440F0}}, {Region::FR, {0x044070, 0x0440F0}}, {Region::DE, {0x044070, 0x0440F0}}, {Region::US_BETA, {0x043E70, 0x043EF0}}}},
 		{ Tilesets::DATA_LOC,        {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
 		{ Tilesets::ANIM_DATA_LOC,   {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009E04, 0x009EF8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

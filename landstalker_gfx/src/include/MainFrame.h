@@ -160,8 +160,10 @@ private:
     void GoToRoom(uint16_t room);
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
-    void LoadTileset(std::size_t offset);
-    void LoadBlocks(std::size_t offset);
+    void LoadTileset(uint8_t ts);
+    void LoadTileset(const std::string& name);
+    void LoadBlocks(const std::string& name);
+    void LoadBlocks(uint8_t pri, uint8_t sec);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
@@ -187,7 +189,7 @@ private:
     std::shared_ptr<wxBitmap> bmp;
     std::vector<PaletteO> m_pal2;
     std::vector<PaletteO> m_palette;
-    Tileset m_tilebmps;
+    std::shared_ptr<const Tileset> m_tileset;
     ImageBuffer m_imgbuf;
     wxImage m_img;
     std::size_t m_scale;
@@ -226,5 +228,6 @@ private:
     std::shared_ptr<TilesetManager> m_tsmgr;
     std::shared_ptr<RoomManager> m_rmgr;
     std::string m_tsname;
+    std::string m_bsname;
 };
 #endif // MAINFRAME_H

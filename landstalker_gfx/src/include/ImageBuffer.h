@@ -23,8 +23,8 @@ public:
 	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha = true);
 	void InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset);
 	void Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer,
-		const std::shared_ptr<Tilemap3D> map, const std::shared_ptr<Tileset> tileset,
-		const std::shared_ptr<std::vector<MapBlock>> blockset);
+		const std::shared_ptr<const Tilemap3D> map, const std::shared_ptr<const Tileset> tileset,
+		const std::shared_ptr<const std::vector<MapBlock>> blockset);
 	bool WritePNG(const std::string& filename, const std::vector<PaletteO>& pals);
 	void InsertBlock(std::size_t x, std::size_t y, uint8_t palette_index, const MapBlock& block, const Tileset& tileset);
 	const std::vector<uint8_t>& GetRGB(const std::vector<PaletteO>& pals) const;

@@ -118,11 +118,6 @@ bool RoomManager::HasBeenModified() const
 	return false;
 }
 
-SizeReport RoomManager::GetRomInjectReport(const Rom& rom) const
-{
-	return SizeReport();
-}
-
 std::size_t RoomManager::GetRoomCount() const
 {
 	return m_roomlist.size();
@@ -487,22 +482,22 @@ bool RoomManager::SaveAsmMiscPalettes(const filesystem::path& dir)
 	WriteBytes(lava_pal_bytes, dir / m_lava_pal_data_filename);
 	CreateDirectoryTree(dir / m_warp_pal_data_filename);
 	WriteBytes(warp_pal_bytes, dir / m_warp_pal_data_filename);
-
+	return true;
 }
 
 bool RoomManager::SaveAsmPaletteFilenames(const filesystem::path& dir)
 {
 	try
 	{
-		AsmFile file;
-		file.WriteFileHeader(m_map_data_filename, "Room palette data include file");
-		for (const auto& palette : m_room_pals)
-		{
-			file << AsmFile::IncludeFile(palette.filename, AsmFile::BINARY);
-		}
 		if (m_palette_data_filename.empty())
 		{
 			m_palette_data_filename = RomOffsets::Rooms::PALETTE_DATA_FILE;
+		}
+		AsmFile file;
+		file.WriteFileHeader(m_palette_data_filename, "Room palette data include file");
+		for (const auto& palette : m_room_pals)
+		{
+			file << AsmFile::IncludeFile(palette.filename, AsmFile::BINARY);
 		}
 		auto f = dir / m_palette_data_filename;
 		CreateDirectoryTree(f);
@@ -645,15 +640,15 @@ bool RoomManager::SaveAsmMapFilenames(const filesystem::path& dir)
 {
 	try
 	{
+		if (m_map_data_filename.empty())
+		{
+			m_map_data_filename = RomOffsets::Rooms::MAP_DATA_FILE;
+		}
 		AsmFile file;
 		file.WriteFileHeader(m_map_data_filename, "Map data include file");
 		for (const auto& map : m_maps)
 		{
 			file << AsmFile::Label(map.first) << AsmFile::IncludeFile(map.second->filename, AsmFile::BINARY);
-		}
-		if (m_map_data_filename.empty())
-		{
-			m_map_data_filename = RomOffsets::Rooms::MAP_DATA_FILE;
 		}
 		auto f = dir / m_map_data_filename;
 		CreateDirectoryTree(f);
@@ -670,16 +665,16 @@ bool RoomManager::SaveAsmRoomData(const filesystem::path& dir)
 {
 	try
 	{
+		if (m_room_data_filename.empty())
+		{
+			m_room_data_filename = RomOffsets::Rooms::ROOM_DATA_FILE;
+		}
 		AsmFile file;
 		file.WriteFileHeader(m_room_data_filename, "Room data include file");
 		for (const auto& room : m_roomlist)
 		{
 			auto params = room.GetParams();
 			file << room.map << params;
-		}
-		if (m_room_data_filename.empty())
-		{
-			m_room_data_filename = RomOffsets::Rooms::ROOM_DATA_FILE;
 		}
 		auto f = dir / m_room_data_filename;
 		CreateDirectoryTree(f);

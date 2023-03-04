@@ -52,13 +52,13 @@ private:
 };
 
 template<class T1, size_t N1>
-std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs)
+static std::ostream& operator<< (std::ostream& str, const TileQueue<T1, N1>& rhs)
 {
     std::copy (rhs.d.begin(), rhs.d.end(), std::ostream_iterator<uint16_t>(str, ":"));
     return str;
 }
 
-unsigned int ilog2(unsigned int in)
+static unsigned int ilog2(unsigned int in)
 {
     unsigned int ret = 0;
 
@@ -73,7 +73,7 @@ unsigned int ilog2(unsigned int in)
 /* Gets compressed variable-width number. Number is in the form 2^Exp + Man */
 /* Exp is the number of leading zeroes. The following bits make up the
  * mantissa. The same number of bits make up the exponent and mantissa */
-uint16_t getCompNumber(BitBarrel& bb)
+static uint16_t getCompNumber(BitBarrel& bb)
 {
     int16_t exponent = 0, mantissa = 0;
     while(bb.getNextBit() == false)
@@ -90,7 +90,7 @@ uint16_t getCompNumber(BitBarrel& bb)
     return val;
 }
 
-void writeCompNumber(BitBarrelWriter& bb, uint16_t val)
+static void writeCompNumber(BitBarrelWriter& bb, uint16_t val)
 {
     uint16_t exp = ilog2(val) - 1;
     uint16_t i = exp;
@@ -109,7 +109,7 @@ void writeCompNumber(BitBarrelWriter& bb, uint16_t val)
     }
 }
 
-uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
+static uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
 {
     if(bb.getNextBit())
     {
@@ -124,7 +124,7 @@ uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
     return tq.front();
 }
 
-void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
+static void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
 {
     TileQueue<uint16_t, 16> tq;
     std::vector<Tile>::iterator it;
@@ -150,7 +150,7 @@ void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
     }
 }
 
-void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, BitBarrel& bb)
+static void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, BitBarrel& bb)
 {
     uint16_t count = 0;
     std::vector<Tile>::iterator it = tiles.begin();
@@ -183,7 +183,7 @@ void maskTiles(std::vector<Tile>& tiles, const TileAttributes::Attribute& attr, 
     } while (it != tiles.end());
 }
 
-uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Block<2,2>>& blocks)
+uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, Blockset& blocks)
 {
     BitBarrel bb(src);
     TileQueue<uint16_t, 16> tq;
@@ -213,10 +213,11 @@ uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, std::vector<Bloc
         blocks.push_back(MapBlock(it, it+4));
     }
 
-    return TOTAL;
+    bb.advanceNextByte();
+    return static_cast<uint16_t>(bb.getBytePosition());;
 }
 
-void SetMask(const std::vector<Block<2,2>>& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
+static void SetMask(const Blockset& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
 {
     bool attr_set = false;
     bool first_loop = true;
@@ -241,7 +242,7 @@ void SetMask(const std::vector<Block<2,2>>& blocks, const TileAttributes::Attrib
     writeCompNumber(cbs, ++count);
 }
 
-void EncodeTile(TileQueue<uint16_t, 16>& tq, uint16_t tileval, BitBarrelWriter& cbs)
+static void EncodeTile(TileQueue<uint16_t, 16>& tq, uint16_t tileval, BitBarrelWriter& cbs)
 {
     int tq_idx = tq.find(tileval);
     if (tq_idx == -1)
@@ -257,7 +258,7 @@ void EncodeTile(TileQueue<uint16_t, 16>& tq, uint16_t tileval, BitBarrelWriter& 
     }
 }
 
-void CompressTiles(const std::vector<Block<2,2>>& blocks, BitBarrelWriter& cbs)
+static void CompressTiles(const Blockset& blocks, BitBarrelWriter& cbs)
 {
     TileQueue<uint16_t, 16> tq;
     for (const auto& block : blocks)
@@ -288,7 +289,7 @@ void CompressTiles(const std::vector<Block<2,2>>& blocks, BitBarrelWriter& cbs)
     }
 }
 
-uint16_t BlocksetCmp::Encode(const std::vector<Block<2,2>>& blocks, uint8_t* dst, size_t bufsize)
+uint16_t BlocksetCmp::Encode(const Blockset& blocks, uint8_t* dst, size_t bufsize)
 {
     BitBarrelWriter cbs;
     // STEP 1: Write out total blocks

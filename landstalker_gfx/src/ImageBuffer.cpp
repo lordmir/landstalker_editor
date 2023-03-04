@@ -91,7 +91,7 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
     }
 }
 
-void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<Tilemap3D> map, const std::shared_ptr<Tileset> tileset, const std::shared_ptr<std::vector<MapBlock>> blockset)
+void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<const Tilemap3D> map, const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset)
 {
     Point2D tilepos = {0, 0};
     for (int y = 0; y < map->GetHeight(); ++y)

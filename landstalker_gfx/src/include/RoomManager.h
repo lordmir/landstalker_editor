@@ -15,12 +15,53 @@
 #include <Tilemap3DCmp.h>
 #include <WarpList.h>
 #include <Palette.h>
+#include <Tileset.h>
+#include <BlocksetCmp.h>
 
 using SizeReport = std::vector<std::pair<std::string, int>>;
 
 class RoomManager
 {
 public:
+    enum class Type
+    {
+        MAP,
+        ANIMATED_MAP,
+        FONT,
+        MISC
+    };
+
+    struct TilesetEntry
+    {
+        TilesetEntry(const std::string& pname, std::shared_ptr<Tileset> ptileset, Type ptype)
+            : name(pname), tileset(ptileset), type(ptype) {}
+        std::string name;
+        std::shared_ptr<Tileset> tileset;
+        Type type;
+        uint32_t start_address;
+        uint32_t end_address;
+        filesystem::path filename;
+        std::string ptrname;
+        std::shared_ptr<std::vector<uint8_t>> raw_data;
+        std::shared_ptr<std::vector<uint8_t>> decompressed_data;
+    };
+
+    struct BlocksetEntry
+    {
+        std::string name;
+        uint8_t tileset;
+        uint8_t primary_idx;
+        uint8_t secondary_idx;
+        std::shared_ptr<Blockset> blockset;
+        std::shared_ptr<Blockset> blockset_orig;
+        uint32_t start_address;
+        uint32_t end_address;
+        filesystem::path filename;
+        std::shared_ptr<std::vector<uint8_t>> raw_data;
+
+        uint8_t GetPrimary() const { return (primary_idx << 5) | tileset; }
+        uint8_t GetSecondary() const { return secondary_idx; }
+    };
 
     struct MapEntry
     {
@@ -48,11 +89,13 @@ public:
     RoomManager(const filesystem::path& asm_file);
     RoomManager(const Rom& rom);
 
+    bool CheckDataWillFitInRom(const Rom& rom, int& tilesets_size, int& anim_table_size) const;
+    bool HasTilesetBeenModified(const std::string& tileset) const;
+    bool HasBeenModified() const;
+    bool InjectIntoRom(Rom& rom);
     bool Save(filesystem::path dir);
     bool Save();
-    bool HasBeenModified() const;
-    SizeReport GetRomInjectReport(const Rom& rom) const;
-    bool InjectIntoRom(Rom& rom);
+    std::shared_ptr<Tileset> GetTileset(const std::string& name);
 
     std::size_t GetRoomCount() const;
     const Room& GetRoom(uint16_t idx) const;
