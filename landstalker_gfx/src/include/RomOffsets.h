@@ -36,7 +36,7 @@ namespace RomOffsets
 
 	namespace Tilesets
 	{
-		static const std::string INTRO_FONT_NAME("IntroFont");
+		static const std::string INTRO_FONT("IntroFont");
 		static const std::string INTRO_FONT_PTR("IntroFontPtr");
 		static const std::string DATA_LOC("TilesetData");
 		static const std::string PTRTAB_LOC("TilesetPtrTable");
@@ -48,6 +48,7 @@ namespace RomOffsets
 		static const std::string LABEL_FORMAT_STRING("Tileset%02d");
 		static const std::string ANIM_LABEL_FORMAT_STRING("Tileset%02dAnim%02d");
 		static const std::string ANIM_PTR_LABEL_FORMAT_STRING("Tileset%02dAnim%02dPtr");
+		static const std::string SECTION("TilesetSection");
 
 		static const std::string ANIM_FILENAME_FORMAT_STRING("assets_packed/graphics/tilesets/animated/tileset%02dAnim%02d.bin");
 		static const std::string FILENAME_FORMAT_STRING("assets_packed/graphics/tilesets/tileset%02d.lz77");
@@ -83,6 +84,7 @@ namespace RomOffsets
 		static const std::string ROOM_EXITS("RoomExits");
 		static const std::string ROOM_PALS_PTR("RoomPalPtr");
 		static const std::string ROOM_PALS("RoomPals");
+		static const std::string ROOM_PAL_NAME("RoomPal%02d");
 		static const std::string PALETTE_FORMAT_STRING("pal%03d");
 		static const std::string MAP_FORMAT_STRING("Map%03d");
 		static const std::string ROOM_FALL_DEST("RoomFallDestination");
@@ -104,6 +106,13 @@ namespace RomOffsets
 		static const std::string PALETTE_LAVA_FILENAME("assets_packed/graphics/miscpalettes/lavapalette.pal");
 		static const std::string PALETTE_WARP_FILENAME("assets_packed/graphics/miscpalettes/kazaltwarp.pal");
 		static const std::string PALETTE_LANTERN_FILENAME("assets_packed/graphics/miscpalettes/labrynthlit.pal");
+
+		static const std::string MISC_WARP_SECTION("MiscWarpSection");
+		static const std::string FALL_TABLE_LEA_LOC("FallTableLeaLoc");
+		static const std::string CLIMB_TABLE_LEA_LOC("ClimbTableLeaLoc");
+		static const std::string TRANSITION_TABLE_LEA_LOC1("TransitionTableLeaLoc1");
+		static const std::string TRANSITION_TABLE_LEA_LOC2("TransitionTableLeaLoc2");
+		static const std::string ROOM_DATA_SECTION("RoomDataSection");
 	}
 
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
@@ -128,28 +137,36 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, uint32_t>> ADDRESS
 	{
-		{"sprite_table_ptr",        {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
-		{"sprite_data_end",         {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
-		{ Blocksets::POINTER,       {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
-		{ Rooms::ROOM_DATA_PTR,     {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
-		{ Rooms::ROOM_PALS_PTR,     {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
-		{ Rooms::ROOM_EXITS_PTR,    {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
-		{ Tilesets::INTRO_FONT_PTR, {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
+		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
+		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Blocksets::POINTER,               {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
+		{ Rooms::ROOM_DATA_PTR,             {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
+		{ Rooms::ROOM_PALS_PTR,             {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
+		{ Rooms::ROOM_EXITS_PTR,            {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
+		{ Rooms::FALL_TABLE_LEA_LOC,        {{Region::JP, 0x000000}, {Region::US, 0x00A114}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::CLIMB_TABLE_LEA_LOC,       {{Region::JP, 0x000000}, {Region::US, 0x00A120}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::TRANSITION_TABLE_LEA_LOC1, {{Region::JP, 0x000000}, {Region::US, 0x00A150}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::TRANSITION_TABLE_LEA_LOC2, {{Region::JP, 0x000000}, {Region::US, 0x00A186}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Tilesets::INTRO_FONT_PTR,         {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
-		{ Blocksets::SECTION,        {{Region::JP, {0x1AF800, 0x1DFFFF}}, {Region::US, {0x1AF800, 0x1DFFFF}}, {Region::UK, {0x1AF800, 0x1DFFFF}}, {Region::FR, {0x1AF800, 0x1DFFFF}}, {Region::DE, {0x1AF800, 0x1DFFFF}}, {Region::US_BETA, {0x1AF800, 0x1DFFFF}}}},
+		{ Blocksets::SECTION,        {{Region::JP, {0x1AF800, 0x1E0000}}, {Region::US, {0x1AF800, 0x1E0000}}, {Region::UK, {0x1AF800, 0x1E0000}}, {Region::FR, {0x1AF800, 0x1E0000}}, {Region::DE, {0x1AF800, 0x1E0000}}, {Region::US_BETA, {0x1AF800, 0x1E0000}}}},
 		{"tileset_offset_table",     {{Region::JP, {0x043E70, 0x043EF0}}, {Region::US, {0x044070, 0x0440F0}}, {Region::UK, {0x044070, 0x0440F0}}, {Region::FR, {0x044070, 0x0440F0}}, {Region::DE, {0x044070, 0x0440F0}}, {Region::US_BETA, {0x043E70, 0x043EF0}}}},
+		{ Tilesets::SECTION,         {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
 		{ Tilesets::DATA_LOC,        {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
+		{ Tilesets::INTRO_FONT,      {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09A4EA, 0x09AC6A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Tilesets::ANIM_DATA_LOC,   {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009E04, 0x009EF8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"sprite_gfx_lookup",        {{Region::JP, {0x01ABBE, 0x01AD96}}, {Region::US, {0x01ABF2, 0x01ADCA}}, {Region::UK, {0x01ABF2, 0x01ADCA}}, {Region::FR, {0x01ABE6, 0x01ADBE}}, {Region::DE, {0x01ABEC, 0x01ADC4}}, {Region::US_BETA, {0x01ABB8, 0x01AD90}}}},
 		{"sprite_gfx_offset_table",  {{Region::JP, {0x120004, 0x1201B4}}, {Region::US, {0x120004, 0x1201B4}}, {Region::UK, {0x120004, 0x1201B4}}, {Region::FR, {0x120004, 0x1201B4}}, {Region::DE, {0x120004, 0x1201B4}}, {Region::US_BETA, {0x120004, 0x1201B4}}}},
 		{"sprite_palette_lookup",    {{Region::JP, {0x1A453A, 0x1A47E0}}, {Region::US, {0x1A453A, 0x1A47E0}}, {Region::UK, {0x1A453A, 0x1A47E0}}, {Region::FR, {0x1A453A, 0x1A47E0}}, {Region::DE, {0x1A453A, 0x1A47E0}}, {Region::US_BETA, {0x1A453A, 0x1A47E0}}}},
 		{"room_exits",               {{Region::JP, {0x11CEF0, 0x11EAB0}}, {Region::US, {0x11CEA2, 0x11EA62}}, {Region::UK, {0x11CEA2, 0x11EA62}}, {Region::FR, {0x11CEA2, 0x11EA62}}, {Region::DE, {0x11CEA2, 0x11EA62}}, {Region::US_BETA, {0x11CE80, 0x11EA40}}}},
+		{ Rooms::ROOM_DATA_SECTION,  {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0A0A12, 0x11EA64}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Rooms::ROOM_FALL_DEST,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A1A8, 0x00A35A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Rooms::ROOM_CLIMB_DEST,    {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A35A, 0x00A3D8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Rooms::ROOM_TRANSITIONS,   {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A3D8, 0x00A61C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::MISC_WARP_SECTION,  {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A1A8, 0x00A61C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{"compressed_string_banks",  {{Region::JP, {0x038532, 0x038552}}, {Region::US, {0x038368, 0x03838C}}, {Region::UK, {0x038368, 0x03838C}}, {Region::FR, {0x038216, 0x03822E}}, {Region::DE, {0x037D14, 0x037D2C}}, {Region::US_BETA, {0x0383EE, 0x038412}}}},
 		{"huff_table_offsets",       {{Region::JP, {0x023C94, 0x023E8E}}, {Region::US, {0x023D60, 0x023E38}}, {Region::UK, {0x023D60, 0x023E38}}, {Region::FR, {0x023D76, 0x023E6C}}, {Region::DE, {0x023D8A, 0x023E3A}}, {Region::US_BETA, {0x023CBC, 0x023D94}}}},
 		{"huff_tables",              {{Region::JP, {0x023E8E, 0x025562}}, {Region::US, {0x023E38, 0x02469C}}, {Region::UK, {0x023E38, 0x02469C}}, {Region::FR, {0x023E6C, 0x024732}}, {Region::DE, {0x023E3A, 0x024412}}, {Region::US_BETA, {0x023D94, 0x0245C4}}}},

@@ -144,6 +144,18 @@
     <ClCompile Include="..\src\Palette.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\DataManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DataTypes.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AsmUtils.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -296,6 +308,18 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Palette.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataTypes.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AsmUtils.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

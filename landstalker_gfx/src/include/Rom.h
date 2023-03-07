@@ -77,6 +77,9 @@ public:
 	RomOffsets::Region get_region() const;
 	const std::vector<uint8_t>& get_vec() const;
 
+	static bool section_exists(const std::string& name);
+	static bool address_exists(const std::string& name);
+
 private:
 	void ValidateRomChecksum();
 	void FixRomChecksum();

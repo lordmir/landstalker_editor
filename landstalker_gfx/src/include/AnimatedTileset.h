@@ -7,7 +7,12 @@ class AnimatedTileset : public Tileset
 {
 public:
     AnimatedTileset(uint16_t base, uint16_t length, uint8_t speed, uint8_t frames);
+    AnimatedTileset(const std::vector<uint8_t>& bytes, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames);
     AnimatedTileset(const std::string& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames);
+    AnimatedTileset();
+
+    bool operator==(const AnimatedTileset& rhs) const;
+    bool operator!=(const AnimatedTileset& rhs) const;
 
     std::vector<uint8_t> GetTile(const Tile& tile, uint8_t frame) const;
     std::vector<uint8_t>& GetTilePixels(int tile_index, uint8_t frame);

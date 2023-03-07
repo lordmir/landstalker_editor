@@ -154,6 +154,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         PaletteO::Reset();
         m_tsmgr.reset();
         m_rmgr.reset();
+        m_rd.reset();
         SetMode(MODE_NONE);
 
         const int str_img = m_imgs->GetIdx("string");
@@ -299,6 +300,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
         m_rmgr = std::make_shared<RoomManager>(m_rom);
+        m_rd = std::make_shared<RoomData>(m_rom);
         for (std::size_t i = 0; i < m_rmgr->GetRoomCount(); i++)
         {
             std::string name = StrPrintf("Room%03u", i);
@@ -338,6 +340,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
         m_tilesetEditor->SetTilesetManager(m_tsmgr);
         m_rmgr = std::make_shared<RoomManager>(path.ToStdString());
+        m_rd = std::make_shared<RoomData>(path.ToStdString());
         for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
         {
             m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
@@ -395,13 +398,9 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
             }
             path = dlg.GetPath().ToStdString();
         }
-        if (m_tsmgr)
+        if (m_rd)
         {
-            m_tsmgr->Save(path);
-        }
-        if (m_rmgr)
-        {
-            m_rmgr->Save(path);
+            m_rd->Save(path);
         }
         return ReturnCode::OK;
     }
@@ -443,26 +442,47 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
             }
             path = fdlog.GetPath().ToStdString();
         }
-        if (m_tsmgr)
+        if (m_rd)
         {
-            int ts_size, anim_ts_size;
-            if (m_tsmgr->CheckDataWillFitInRom(m_rom, ts_size, anim_ts_size) == false)
+            std::ostringstream ss;
+            m_rd->RefreshPendingWrites(m_rom);
+            auto result = m_rd->GetPendingWrites();
+            bool warning = false;
+            if (!m_rd->WillFitInRom(m_rom))
             {
-                std::ostringstream ss;
-                ss << "Warning: Data will not fit in ROM without overwriting existing structures!\n"
-                    << "  Animated tileset table has"
-                    << ((anim_ts_size < 0) ? " overrun by " : " spare space of ") << std::abs(anim_ts_size)
-                    << " bytes.\n" << "  Tileset listing has" << ((ts_size < 0) ? " overrun by " : " spare space of ")
-                    << std::abs(ts_size) << " bytes.\n\n"
-                    << "To work around this issue, is recommended to use a disassembly source.\n"
-                    << "Still proceed with saving to ROM?";
-                int answer = wxMessageBox(ss.str(), "Warning", wxYES_NO | wxICON_EXCLAMATION);
-                if (answer == wxNO)
-                {
-                    return ReturnCode::CANCELLED;
-                }
+                ss << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
+                ss << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
+                warning = true;
             }
-            m_tsmgr->InjectIntoRom(m_rom);
+            else
+            {
+                ss << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
+            }
+            for (const auto& w : result)
+            {
+                uint32_t addr = 0;
+                uint32_t size = 0;
+                if (m_rom.section_exists(w.first))
+                {
+                    auto sec = m_rom.get_section(w.first);
+                    addr = sec.begin;
+                    size = sec.size();
+                }
+                else if (m_rom.address_exists(w.first))
+                {
+                    addr = m_rom.get_address(w.first);
+                    size = sizeof(uint32_t);
+                }
+                ss << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
+                    << size << " bytes: " << ((w.second->size() <= size) ? "OK" : "BAD") << std::endl;
+            }
+            ss << "\nProceed?";
+            int answer = wxMessageBox(ss.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+            if (answer == wxNO)
+            {
+                return ReturnCode::CANCELLED;
+            }
+            m_rd->InjectIntoRom(m_rom);
             m_rom.writeFile(path);
             return ReturnCode::OK;
         }
@@ -1171,17 +1191,14 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     PaletteO::Reset();
     m_tsmgr.reset();
     m_rmgr.reset();
+    m_rd.reset();
     SetMode(MODE_NONE);
     return ReturnCode::OK;
 }
 
 bool MainFrame::CheckForFileChanges()
 {
-    if (m_tsmgr && m_tsmgr->HasBeenModified())
-    {
-        return true;
-    }
-    if (m_rmgr && m_rmgr->HasBeenModified())
+    if (m_rd && m_rd->HasBeenModified())
     {
         return true;
     }

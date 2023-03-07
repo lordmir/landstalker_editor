@@ -413,6 +413,17 @@ int Palette::GetSize() const
 	return size;
 }
 
+int Palette::GetSizeBytes() const
+{
+	int size = PALETTE_SIZES[m_type];
+	if (size == -1)
+	{
+		// Var-width palette
+		size = m_pal.size() * 2 + 2;
+	}
+	return size * 2;
+}
+
 bool Palette::IsVarWidth() const
 {
 	return IsVarWidth(m_type);
@@ -431,6 +442,11 @@ int Palette::GetSize(const Type& type)
 		size = 0;
 	}
 	return size;
+}
+
+int Palette::GetSizeBytes(const Type& type)
+{
+	return GetSize(type) * 2;
 }
 
 bool Palette::IsVarWidth(const Type& type)

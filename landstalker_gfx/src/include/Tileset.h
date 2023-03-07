@@ -27,6 +27,9 @@ public:
     Tileset(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     Tileset(const std::vector<uint8_t>& src, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     ~Tileset();
+
+    bool operator==(const Tileset& rhs) const;
+    bool operator!=(const Tileset& rhs) const;
     
     void SetBits(const std::vector<uint8_t>& src, bool compressed = false);
     void SetParams(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
@@ -69,7 +72,6 @@ private:
     std::size_t m_tilewidth;
     std::size_t m_tileheight;
     bool m_compressed;
-    const std::size_t MAXIMUM_CAPACITY = 0x400;
     
     BlockType m_blocktype;
     std::vector<std::vector<uint8_t>> m_tiles;

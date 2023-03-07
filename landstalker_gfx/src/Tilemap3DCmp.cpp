@@ -209,6 +209,7 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
             heightmap[dst_addr++] = hm_pattern;
         }
     }
+    bb.advanceNextByte();
     return static_cast<uint16_t>(bb.getBytePosition());
 }
 
@@ -880,13 +881,7 @@ HMPoint2D Tilemap3D::PixelToHMPoint(const PixelPoint2D& p) const
         p.y / (2 * tile_height) + p.x / (4 * tile_width) - (GetLeft() + 2 * (GetTop() + GetHeight() - 1)) / 4 - 12,
         p.y / (2 * tile_height) - p.x / (4 * tile_width) + (GetLeft() - 2 * (GetTop() - GetHeight() + 1)) / 4 - 12
     };
-
-
-
-
-
-
-.}
+}
 
 bool Tilemap3D::IsBlockValid(uint16_t block) const
 {

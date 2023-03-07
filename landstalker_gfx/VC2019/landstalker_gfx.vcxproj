@@ -13,12 +13,14 @@
   <ItemGroup>
     <ClCompile Include="..\src\AnimatedTileset.cpp" />
     <ClCompile Include="..\src\AsmFile.cpp" />
+    <ClCompile Include="..\src\AsmUtils.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
@@ -37,6 +39,8 @@
     <ClCompile Include="..\src\PaletteEditor.cpp" />
     <ClCompile Include="..\src\Rom.cpp" />
     <ClCompile Include="..\src\Room.cpp" />
+    <ClCompile Include="..\src\DataTypes.cpp" />
+    <ClCompile Include="..\src\RoomData.cpp" />
     <ClCompile Include="..\src\RoomManager.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
@@ -65,6 +69,7 @@
     <ClInclude Include="..\src\include\AnimatedTileset.h" />
     <ClInclude Include="..\src\include\AsmFile.h" />
     <ClInclude Include="..\src\include\AsmFile_inl.h" />
+    <ClInclude Include="..\src\include\AsmUtils.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
     <ClInclude Include="..\src\include\Block.h" />
@@ -72,6 +77,7 @@
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
@@ -93,6 +99,8 @@
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
     <ClInclude Include="..\src\include\Room.h" />
+    <ClInclude Include="..\src\include\DataTypes.h" />
+    <ClInclude Include="..\src\include\RoomData.h" />
     <ClInclude Include="..\src\include\RoomManager.h" />
     <ClInclude Include="..\src\include\Sprite.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />

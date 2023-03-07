@@ -21,6 +21,7 @@
 #include "TilesetEditorFrame.h"
 #include "TilesetManager.h"
 #include "RoomManager.h"
+#include "RoomData.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -69,33 +70,6 @@ protected:
     virtual void OnScrollWindowKeyUp(wxKeyEvent& event);
     virtual void OnScrollWindowResize(wxSizeEvent& event);
 private:
-    struct RoomData
-    {
-        uint32_t offset;
-        uint8_t tileset;
-        uint8_t priBlockset;
-        uint8_t secBlockset;
-        uint8_t blocksetIdx;
-        uint8_t roomPalette;
-        uint8_t backgroundMusic;
-        uint8_t unknownParam1;
-        uint8_t unknownParam2;
-        uint8_t unknownParam3;
-
-        RoomData(const uint8_t* src)
-        :   offset((src[0] << 24) | (src[1] << 16) | (src[2] << 8) | src[3]),
-            tileset(src[4] & 0x1F),
-            priBlockset((src[4] >> 5) & 0x01),
-            secBlockset((src[7] >> 5) & 0x07),
-            blocksetIdx(priBlockset << 5 | tileset),
-            roomPalette(src[5] & 0x3F),
-            backgroundMusic(src[7] & 0x1F),
-            unknownParam1((src[4] >> 6) & 0x03),
-            unknownParam2((src[5] >> 6) & 0x03),
-            unknownParam3(src[6])
-        {
-        }
-    };
     class TreeNodeData : public wxTreeItemData
     {
     public:
@@ -227,6 +201,8 @@ private:
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
     std::shared_ptr<RoomManager> m_rmgr;
+    std::shared_ptr<RoomData> m_rd;
+
     std::string m_tsname;
     std::string m_bsname;
 };

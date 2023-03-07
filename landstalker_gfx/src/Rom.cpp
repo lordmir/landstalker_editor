@@ -131,6 +131,16 @@ const std::vector<uint8_t>& Rom::get_vec() const
 	return m_rom;
 }
 
+bool Rom::section_exists(const std::string& name)
+{
+	return RomOffsets::SECTION.find(name) != RomOffsets::SECTION.cend();
+}
+
+bool Rom::address_exists(const std::string& name)
+{
+	return RomOffsets::ADDRESS.find(name) != RomOffsets::ADDRESS.cend();
+}
+
 void Rom::ValidateRomChecksum()
 {
 	const uint16_t expected_checksum = read<uint16_t>(RomOffsets::CHECKSUM_ADDRESS);

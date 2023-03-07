@@ -179,10 +179,12 @@ public:
 	bool ColourEditable(uint8_t colour) const;
 	const std::vector<bool>& GetLockedColours() const;
 	int GetSize() const;
+	int GetSizeBytes() const;
 	bool IsVarWidth() const;
 
 	static const std::vector<bool>& GetLockedColours(const Type& type);
 	static int GetSize(const Type& type);
+	static int GetSizeBytes(const Type& type);
 	static bool IsVarWidth(const Type& type);
 private:
 

@@ -2,19 +2,56 @@
 
 AnimatedTileset::AnimatedTileset(uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: m_base(base),
+	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
 	  m_frames(frames)
 {
 }
 
+AnimatedTileset::AnimatedTileset(const std::vector<uint8_t>& bytes, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
+	: Tileset(bytes),
+	m_base(base),
+	m_base_tileset(0),
+	m_length(length),
+	m_speed(speed),
+	m_frames(frames)
+{
+}
+
 AnimatedTileset::AnimatedTileset(const std::string& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(filename),
 	  m_base(base),
+	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
 	  m_frames(frames)
 {
+}
+
+AnimatedTileset::AnimatedTileset()
+	: Tileset(),
+	  m_base(0),
+	  m_base_tileset(0),
+	  m_frames(0),
+	  m_length(0),
+	  m_speed(0)
+{
+}
+
+bool AnimatedTileset::operator==(const AnimatedTileset& rhs) const
+{
+	return ((*static_cast<const Tileset*>(this) == *static_cast<const Tileset*>(&rhs)) &&
+		(this->m_base == rhs.m_base) &&
+		(this->m_frames == rhs.m_frames) &&
+		(this->m_length == rhs.m_length) &&
+		(this->m_speed == rhs.m_speed) &&
+		(this->m_base_tileset == rhs.m_base_tileset));
+}
+
+bool AnimatedTileset::operator!=(const AnimatedTileset& rhs) const
+{
+	return !(*this == rhs);
 }
 
 std::vector<uint8_t> AnimatedTileset::GetTile(const Tile& tile, uint8_t frame) const

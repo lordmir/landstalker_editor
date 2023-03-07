@@ -6,6 +6,8 @@
 #include "Utils.h"
 #include "LZ77.h"
 
+static const std::size_t MAXIMUM_CAPACITY = 0x400;
+
 template<class T>
 void HFlip(std::vector<T>& elems, int width)
 {
@@ -75,6 +77,19 @@ Tileset::Tileset(const std::vector<uint8_t>& src, bool compressed, std::size_t w
 
 Tileset::~Tileset()
 {
+}
+
+bool Tileset::operator==(const Tileset& rhs) const
+{
+    return ((this->m_bit_depth == rhs.m_bit_depth) &&
+        (this->m_tileheight == rhs.m_tileheight) &&
+        (this->m_tilewidth == rhs.m_tilewidth) &&
+        (this->m_tiles == rhs.m_tiles));
+}
+
+bool Tileset::operator!=(const Tileset& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)

@@ -712,7 +712,7 @@ bool TilesetManager::LoadRomTilesetPointerData(const Rom& rom)
 			// This is the intro font
 			std::size_t ts_addr = rom.inc_read<uint32_t>(addr);
 			auto ts = std::make_shared<Tileset>(8, 16);
-			auto ts_entry = std::make_shared<TilesetEntry>(RomOffsets::Tilesets::INTRO_FONT_NAME, ts, Type::FONT);
+			auto ts_entry = std::make_shared<TilesetEntry>(RomOffsets::Tilesets::INTRO_FONT, ts, Type::FONT);
 			ts_entry->ptrname = RomOffsets::Tilesets::INTRO_FONT_PTR;
 			ts_entry->filename = RomOffsets::Tilesets::INTRO_FONT_FILENAME;
 			ts_entry->start_address = ts_addr;
@@ -794,7 +794,7 @@ void TilesetManager::LoadRomTilesetData(const Rom& rom)
 	// Unfortunately, there is no way to calculate the size of the intro font
 	// just by looking at the data in the ROM. We have to guess: the data
 	// immediately after the tileset is all 0xFF, so we can look for that and delete.
-	auto introfont = m_tilesets_by_name.at(RomOffsets::Tilesets::INTRO_FONT_NAME);
+	auto introfont = m_tilesets_by_name.at(RomOffsets::Tilesets::INTRO_FONT);
 	std::vector<uint8_t> bad_tile(introfont->tileset->GetTileWidth() * introfont->tileset->GetTileHeight());
 	std::fill(bad_tile.begin(), bad_tile.end(), 0x0F);
 	for (std::size_t i = 0; i < introfont->tileset->GetTileCount(); ++i)
