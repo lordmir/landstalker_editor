@@ -2,15 +2,19 @@
 
 #include <cassert>
 
-Room::Room(const std::string& map_name, const std::vector<uint8_t>& params)
-    : map(map_name)
+Room::Room(const std::string& name_, const std::string& map_name, uint16_t index_, const std::vector<uint8_t>& params)
+    : name(name_),
+      map(map_name),
+      index(index_)
 {
     assert(params.size() == 4);
     SetParams(params[0], params[1], params[2], params[3]);
 }
 
-Room::Room(const std::string& map_name, uint8_t params[4])
-    : map(map_name)
+Room::Room(const std::string& name_, const std::string& map_name, uint16_t index_, uint8_t params[4])
+    : name(name_),
+      map(map_name),
+      index(index_)
 {
     SetParams(params[0], params[1], params[2], params[3]);
 }

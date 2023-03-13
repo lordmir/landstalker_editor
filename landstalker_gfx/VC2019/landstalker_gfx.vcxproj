@@ -41,7 +41,6 @@
     <ClCompile Include="..\src\Room.cpp" />
     <ClCompile Include="..\src\DataTypes.cpp" />
     <ClCompile Include="..\src\RoomData.cpp" />
-    <ClCompile Include="..\src\RoomManager.cpp" />
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
@@ -101,7 +100,6 @@
     <ClInclude Include="..\src\include\Room.h" />
     <ClInclude Include="..\src\include\DataTypes.h" />
     <ClInclude Include="..\src\include\RoomData.h" />
-    <ClInclude Include="..\src\include\RoomManager.h" />
     <ClInclude Include="..\src\include\Sprite.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\SpriteGraphic.h" />

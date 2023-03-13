@@ -153,7 +153,6 @@ void MainFrame::OpenRomFile(const wxString& path)
         Sprite::Reset();
         PaletteO::Reset();
         m_tsmgr.reset();
-        m_rmgr.reset();
         m_rd.reset();
         SetMode(MODE_NONE);
 
@@ -170,7 +169,6 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
         wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
         wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
@@ -274,39 +272,28 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
         m_tsmgr = std::make_shared<TilesetManager>(m_rom);
         m_tilesetEditor->SetTilesetManager(m_tsmgr);
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
+        m_rd = std::make_shared<RoomData>(m_rom);
+        for (const auto& t : m_rd->GetTilesets())
         {
-            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
-        {
-            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
-        {
-            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        auto pbs = m_tsmgr->GetPriBlocksetList();
-        for (const auto& p : pbs)
-        {
-            auto sbs = m_tsmgr->GetSecBlocksetList(p.first);
-            wxTreeItemId pri = m_browser->AppendItem(nodeBs, p.second, bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE, p.first << 16));
-            for (const auto& s : sbs)
+            auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            for (const auto& at : m_rd->GetAnimatedTilesets(t->GetName()))
             {
-                m_browser->AppendItem(pri, s, bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, p.first << 16));
+                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            }
+            auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+            for (const auto& bs : m_rd->GetBlocksetList(t->GetName()))
+            {
+                m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
             }
         }
-        m_rmgr = std::make_shared<RoomManager>(m_rom);
-        m_rd = std::make_shared<RoomData>(m_rom);
-        for (std::size_t i = 0; i < m_rmgr->GetRoomCount(); i++)
+        m_browser->AppendItem(nodeF, m_rd->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& room : m_rd->GetRoomlist())
         {
-            std::string name = StrPrintf("Room%03u", i);
-            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
-            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
-            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, i));
+            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
+            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
+            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
         }
         InitPals(nodeRPal);
         m_asmfile = false;
@@ -331,37 +318,35 @@ void MainFrame::OpenAsmFile(const wxString& path)
         const int ats_img = m_imgs->GetIdx("ats");
         const int fonts_img = m_imgs->GetIdx("fonts");
         const int bs_img = m_imgs->GetIdx("big_tiles");
+        const int rm_img = m_imgs->GetIdx("room");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
         wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
+        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
         m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
         m_tilesetEditor->SetTilesetManager(m_tsmgr);
-        m_rmgr = std::make_shared<RoomManager>(path.ToStdString());
         m_rd = std::make_shared<RoomData>(path.ToStdString());
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
+        for (const auto& t : m_rd->GetTilesets())
         {
-            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
-        {
-            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
-        {
-            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        auto pbs = m_tsmgr->GetPriBlocksetList();
-        for (const auto& p : pbs)
-        {
-            auto sbs = m_tsmgr->GetSecBlocksetList(p.first);
-            wxTreeItemId pri = m_browser->AppendItem(nodeBs, p.second, bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE, p.first << 16));
-            for (const auto& s : sbs)
+            auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            for (const auto& at : m_rd->GetAnimatedTilesets(t->GetName()))
             {
-                m_browser->AppendItem(pri, s, bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, p.first << 16));
+                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
             }
+            auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+            for (const auto& bs : m_rd->GetBlocksetList(t->GetName()))
+            {
+                m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
+            }
+        }
+        m_browser->AppendItem(nodeF, m_rd->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& room : m_rd->GetRoomlist())
+        {
+            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
+            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
+            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
         }
         m_asmfile = true;
     }
@@ -579,7 +564,7 @@ void DrawTile(wxGraphicsContext& gc, int x, int y, int z, int width, int height,
     }
 }
 
-void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height)
+void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height)
 {
     int x = 0;
     int y = 0;
@@ -593,8 +578,8 @@ void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std:
         x = warp.x2;
         y = warp.y2;
     }
-    int z = tilemap->map->GetHeight({ x - 12,y - 12 });
-    auto xy = tilemap->map->Iso3DToPixel({ x,y,z });
+    int z = map->GetHeight({ x - 12,y - 12 });
+    auto xy = map->Iso3DToPixel({ x,y,z });
     int width = tile_width;
     int height = tile_height;
     std::vector<wxPoint2DDouble> tile_points = {
@@ -636,7 +621,7 @@ void SetOpacity(wxImage& image, uint8_t opacity)
 
 void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 {
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    auto tilemap = m_rd->GetMap(m_roomnum);
     m_warp_poly.clear();
     m_link_poly.clear();
 
@@ -648,12 +633,13 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     uint8_t fg2_opacity = m_checkFg2Visible->GetValue() ? m_sliderFg2Opacity->GetValue() : 0;
     uint8_t hm_opacity  = m_checkHeightmapVisible->GetValue() ? m_sliderHeightmapOpacity->GetValue() : 0;
     uint8_t spr_opacity = m_checkSpritesVisible->GetValue() ? m_sliderSpritesOpacity->GetValue() : 0;
+    auto map = tilemap->GetData();
 
-    m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
-    ImageBuffer fg(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
+    m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
+    ImageBuffer fg(map->GetPixelWidth(), map->GetPixelHeight());
     auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, m_tileset, blockset);
-    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, tilemap->map, m_tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, m_tileset, blockset);
+    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, m_tileset, blockset);
     m_scale = scale;
     std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette, true, bg_opacity));
     std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap(m_palette, true, fg1_opacity, fg2_opacity));
@@ -664,15 +650,15 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     wxGraphicsContext* hm_gc = wxGraphicsContext::Create(hm_img);
     hm_gc->SetPen(*wxWHITE_PEN);
     hm_gc->SetBrush(*wxBLACK_BRUSH);
-    for (int y = 0; y < tilemap->map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < tilemap->map->GetHeightmapWidth(); ++x)
+    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
+        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
         {
             // Only display cells that are not completely restricted
-            if ((tilemap->map->GetHeight({x, y}) > 0 || (tilemap->map->GetCellProps({x, y}) != 0x04)))
+            if ((map->GetHeight({x, y}) > 0 || (map->GetCellProps({x, y}) != 0x04)))
             {
-                int z = tilemap->map->GetHeight({x, y});
-                auto xy(tilemap->map->Iso3DToPixel({ x + 12, y + 12, z }));
-                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, tilemap->map->GetCellProps({x,y}), tilemap->map->GetCellType({x,y}));
+                int z = map->GetHeight({x, y});
+                auto xy(map->Iso3DToPixel({ x + 12, y + 12, z }));
+                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, map->GetCellProps({x,y}), map->GetCellType({x,y}));
             }
         }
     delete hm_gc;
@@ -690,14 +676,15 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 
 void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
 {
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    auto tilemap = m_rd->GetMap(m_roomnum);
     m_warp_poly.clear();
     m_link_poly.clear();
+    auto map = tilemap->GetData();
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 32;
-    const std::size_t ROW_WIDTH = tilemap->map->GetHeightmapWidth();
-    const std::size_t ROW_HEIGHT = tilemap->map->GetHeightmapHeight();
+    const std::size_t ROW_WIDTH = map->GetHeightmapWidth();
+    const std::size_t ROW_HEIGHT = map->GetHeightmapHeight();
     const std::size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
     const std::size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
     //std::size_t x = 0;
@@ -714,13 +701,13 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
         for(int x = 0; x < ROW_WIDTH; ++x)
         {
             // Only display cells that are not completely restricted
-            if ((tilemap->map->GetHeight({ x, y }) > 0 || (tilemap->map->GetCellProps({ x, y }) != 0x04)))
+            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
             {
                 memDc.DrawRectangle(x * TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH+1, TILE_HEIGHT+1);
                 std::stringstream ss;
-                ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tilemap->map->GetHeight({x,y})) << ","
-                << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tilemap->map->GetCellProps({x,y})) << "\n"
-                << std::setfill('0') << std::setw(2) << static_cast<unsigned>(tilemap->map->GetCellType({x,y}));
+                ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetHeight({x,y})) << ","
+                << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetCellProps({x,y})) << "\n"
+                << std::setfill('0') << std::setw(2) << static_cast<unsigned>(map->GetCellType({x,y}));
                 memDc.DrawText(ss.str(),x*TILE_WIDTH+2, y*TILE_HEIGHT + 1);
             }
         }
@@ -763,15 +750,15 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     {
         return;
     }
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    auto map = m_rd->GetMap(m_roomnum)->GetData();
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 16;
 
-    m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
+    m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
     auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, m_tileset, blockset);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, tilemap->map, m_tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, m_tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, m_tileset, blockset);
     m_scale = scale;
     std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette));
     wxImage hm_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
@@ -783,25 +770,25 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     hm_gc->SetBrush(*wxBLACK_BRUSH);
     m_warp_poly.clear();
     m_link_poly.clear();
-    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
+    auto warps = m_rd->GetWarpsForRoom(m_roomnum);
     for (const auto& warp : warps)
     {
-        DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
+        DrawWarp(*hm_gc, warp, map, TILE_WIDTH, TILE_HEIGHT);
     }
     wxColour bkColor(*wxBLACK);
     wxColour textColor(*wxWHITE);
     int line = 0;
-    if (m_rmgr->HasClimbDestination(m_roomnum))
+    if (m_rd->HasClimbDestination(m_roomnum))
     {
-        AddRoomLink(hm_gc, "Climb Destination:", m_rmgr->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
+        AddRoomLink(hm_gc, "Climb Destination:", m_rd->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    if (m_rmgr->HasFallDestination(m_roomnum))
+    if (m_rd->HasFallDestination(m_roomnum))
     {
-        AddRoomLink(hm_gc, "Fall Destination:", m_rmgr->GetFallDestination(m_roomnum), 5, 5 + line * 16);
+        AddRoomLink(hm_gc, "Fall Destination:", m_rd->GetFallDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    auto txns = m_rmgr->GetTransitions(m_roomnum);
+    auto txns = m_rd->GetTransitions(m_roomnum);
     for (const auto t : txns)
     {
         std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == m_roomnum) ? "SET" : "CLEAR");
@@ -1190,7 +1177,6 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     Sprite::Reset();
     PaletteO::Reset();
     m_tsmgr.reset();
-    m_rmgr.reset();
     m_rd.reset();
     SetMode(MODE_NONE);
     return ReturnCode::OK;
@@ -1317,12 +1303,12 @@ void MainFrame::OnExport(wxCommandEvent& event)
 void MainFrame::InitRoom(uint16_t room)
 {
     m_roomnum = room;
-    const auto& rd = m_rmgr->GetRoom(m_roomnum);
-    m_rpalidx = rd.room_palette;
+    const auto rd = m_rd->GetRoom(m_roomnum);
+    m_rpalidx = rd->room_palette;
     m_palette[0] = m_pal2[m_rpalidx];
-    m_tsidx = rd.tileset;
+    m_tsidx = rd->tileset;
     LoadTileset(m_tsidx);
-    LoadBlocks(rd.GetBlocksetId(), rd.sec_blockset + 1);
+    LoadBlocks(rd->GetBlocksetId(), rd->sec_blockset + 1);
 }
 
 void MainFrame::PopulateRoomProperties(uint16_t room)
@@ -1330,36 +1316,36 @@ void MainFrame::PopulateRoomProperties(uint16_t room)
     m_properties->GetGrid()->Clear();
     std::ostringstream ss;
     ss.str(std::string());
-    const auto& rd = m_rmgr->GetRoom(m_roomnum);
-    auto tm = m_rmgr->GetMap(m_roomnum);
+    const auto rd = m_rd->GetRoom(m_roomnum);
+    auto tm = m_rd->GetMap(m_roomnum);
 
-    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room
-        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.tileset)
-        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.room_palette)
-        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.pri_blockset)
-        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.sec_blockset)
-        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.bgm)
-        << " Map: " << rd.map;
+    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
+        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
+        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
+        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->pri_blockset)
+        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->sec_blockset)
+        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->bgm)
+        << " Map: " << rd->map;
     SetStatusText(ss.str());
     ss.str(std::string());
     ss << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room;
-    m_properties->Append(new wxStringProperty("Room Number", "RN", ss.str()));
-    m_properties->Append(new wxStringProperty("Tileset", "TS", Hex(rd.tileset)));
-    m_properties->Append(new wxStringProperty("Room Palette", "RP", Hex(rd.room_palette)));
-    m_properties->Append(new wxStringProperty("Primary Blockset", "PBT", std::to_string(rd.pri_blockset)));
-    m_properties->Append(new wxStringProperty("Secondary Blockset", "SBT", Hex(rd.sec_blockset)));
-    m_properties->Append(new wxStringProperty("BGM", "BGM", Hex(rd.bgm)));
-    m_properties->Append(new wxStringProperty("Map", "M", rd.map));
-    m_properties->Append(new wxStringProperty("Unknown Parameter 1", "UP1", std::to_string(rd.unknown_param1)));
-    m_properties->Append(new wxStringProperty("Unknown Parameter 2", "UP2", std::to_string(rd.unknown_param2)));
-    m_properties->Append(new wxStringProperty("Z Begin", "ZB", std::to_string(rd.room_z_begin)));
-    m_properties->Append(new wxStringProperty("Z End", "ZE", std::to_string(rd.room_z_end)));
-    m_properties->Append(new wxStringProperty("Tilemap Left Offset", "TLO", std::to_string(tm->map->GetLeft())));
-    m_properties->Append(new wxStringProperty("Tilemap Top Offset",  "TTO", std::to_string(tm->map->GetTop())));
-    m_properties->Append(new wxStringProperty("Tilemap Width", "TW", std::to_string(tm->map->GetWidth())));
-    m_properties->Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->map->GetHeight())));
-    m_properties->Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->map->GetHeightmapWidth())));
-    m_properties->Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->map->GetHeightmapHeight())));
+    m_properties->Append(new wxStringProperty("Room Number", "RN", std::to_string(rd->index)));
+    m_properties->Append(new wxStringProperty("Tileset", "TS", Hex(rd->tileset)));
+    m_properties->Append(new wxStringProperty("Room Palette", "RP", Hex(rd->room_palette)));
+    m_properties->Append(new wxStringProperty("Primary Blockset", "PBT", std::to_string(rd->pri_blockset)));
+    m_properties->Append(new wxStringProperty("Secondary Blockset", "SBT", Hex(rd->sec_blockset)));
+    m_properties->Append(new wxStringProperty("BGM", "BGM", Hex(rd->bgm)));
+    m_properties->Append(new wxStringProperty("Map", "M", rd->map));
+    m_properties->Append(new wxStringProperty("Unknown Parameter 1", "UP1", std::to_string(rd->unknown_param1)));
+    m_properties->Append(new wxStringProperty("Unknown Parameter 2", "UP2", std::to_string(rd->unknown_param2)));
+    m_properties->Append(new wxStringProperty("Z Begin", "ZB", std::to_string(rd->room_z_begin)));
+    m_properties->Append(new wxStringProperty("Z End", "ZE", std::to_string(rd->room_z_end)));
+    m_properties->Append(new wxStringProperty("Tilemap Left Offset", "TLO", std::to_string(tm->GetData()->GetLeft())));
+    m_properties->Append(new wxStringProperty("Tilemap Top Offset",  "TTO", std::to_string(tm->GetData()->GetTop())));
+    m_properties->Append(new wxStringProperty("Tilemap Width", "TW", std::to_string(tm->GetData()->GetWidth())));
+    m_properties->Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->GetData()->GetHeight())));
+    m_properties->Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->GetData()->GetHeightmapWidth())));
+    m_properties->Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->GetData()->GetHeightmapHeight())));
 }
 
 void MainFrame::EnableLayerControls(bool state)
@@ -1558,11 +1544,11 @@ bool MainFrame::ExportTxt(const std::string& filename)
         return true;
     case MODE_ROOMMAP:
         {
-            auto tm = m_rmgr->GetMap(m_roomnum);
+            auto map = m_rd->GetMap(m_roomnum)->GetData();
             // Height Map
             std::string heightMapString;
-            const std::size_t ROW_WIDTH = tm->map->GetHeightmapWidth();
-            const std::size_t ROW_HEIGHT = tm->map->GetHeightmapHeight();
+            const std::size_t ROW_WIDTH = map->GetHeightmapWidth();
+            const std::size_t ROW_HEIGHT = map->GetHeightmapHeight();
 
             ofs << "#HEIGHTMAP: X Y HEIGHT RESTRICTIONS CLASSIFICATION" << std::endl;
             for (int y = 0; y < ROW_HEIGHT; ++y)
@@ -1571,9 +1557,9 @@ bool MainFrame::ExportTxt(const std::string& filename)
                     std::stringstream ss;
                     ss << static_cast<unsigned>(x) << " "
                         << static_cast<unsigned>(y) << " "
-                        << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tm->map->GetHeight({x,y})) << " "
-                        << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tm->map->GetCellProps({x,y})) << " "
-                        << std::setfill('0') << std::setw(2) << static_cast<unsigned>(tm->map->GetCellType({x,y}));
+                        << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetHeight({x,y})) << " "
+                        << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetCellProps({x,y})) << " "
+                        << std::setfill('0') << std::setw(2) << static_cast<unsigned>(map->GetCellType({x,y}));
                     ofs << ss.str() << std::endl;
                 }
 
@@ -1582,13 +1568,13 @@ bool MainFrame::ExportTxt(const std::string& filename)
             const std::size_t TILE_HEIGHT = 16;
 
             ofs << "#MAP: X Y XY.X XY.Y FG BG" << std::endl;
-            for (int y = 0; y < tm->map->GetHeight(); ++y)
-                for (int x = 0; x < tm->map->GetWidth(); ++x)
+            for (int y = 0; y < map->GetHeight(); ++y)
+                for (int x = 0; x < map->GetWidth(); ++x)
                 {
-                    auto xy(tm->map->ToIsometric({x, y}));
+                    auto xy(map->ToIsometric({x, y}));
                     ofs << x << " " << y << " " << xy.x << " " << xy.y << " "
-                        << static_cast<unsigned>(tm->map->GetBlock(xy, Tilemap3D::Layer::FG)) << " "
-                        << static_cast<unsigned>(tm->map->GetBlock(xy, Tilemap3D::Layer::BG)) << std::endl;
+                        << static_cast<unsigned>(map->GetBlock(xy, Tilemap3D::Layer::FG)) << " "
+                        << static_cast<unsigned>(map->GetBlock(xy, Tilemap3D::Layer::BG)) << std::endl;
                 }
         }
         return true;
@@ -1753,10 +1739,10 @@ void MainFrame::GoToRoom(uint16_t room)
 
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
-    if (m_rmgr != nullptr)
+    if (m_rd != nullptr)
     {
-        auto tilemap = m_rmgr->GetMap(m_roomnum);
-        if (tilemap)
+        auto map = m_rd->GetMap(m_roomnum)->GetData();
+        if (map)
         {
             int x, y;
             m_canvas->GetViewStart(&x, &y);
@@ -1790,16 +1776,16 @@ void MainFrame::OnScrollWindowMousewheel(wxMouseEvent& event)
 
 void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
-    if (m_rmgr != nullptr)
+    if (m_rd != nullptr)
     {
-        auto tilemap = m_rmgr->GetMap(m_roomnum);
-        if (tilemap)
+        auto map = m_rd->GetMap(m_roomnum)->GetData();
+        if (map)
         {
             int x, y;
             m_canvas->GetViewStart(&x, &y);
             x += event.GetX();
             y += event.GetY();
-            auto r = tilemap->map->PixelToHMPoint({ x,y });
+            auto r = map->PixelToHMPoint({ x,y });
             auto msg = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
             m_canvas->SetCursor(wxCURSOR_ARROW);
             for (const auto& wp : m_warp_poly)

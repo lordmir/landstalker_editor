@@ -18,7 +18,8 @@ public:
 		m_width(width),
 		m_height(height),
 		m_bit_depth(bit_depth),
-		m_blocktype(blocktype)
+		m_blocktype(blocktype),
+		m_index(-1)
 	{}
 
 	static std::shared_ptr<TilesetEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed = true, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, Tileset::BlockType blocktype = Tileset::BlockType::NORMAL);
@@ -28,6 +29,9 @@ public:
 
 	const std::string& GetPointerName() const { return m_ptrname; }
 	void SetPointerName(const std::string& name) { m_ptrname = name; }
+
+	int GetIndex() const { return m_index; }
+	void SetIndex(int index) { m_index = index; }
 private:
 	bool m_compressed;
 	std::size_t m_width;
@@ -35,13 +39,20 @@ private:
 	uint8_t m_bit_depth;
 	Tileset::BlockType m_blocktype;
 	std::string m_ptrname;
+	int m_index;
 };
 
 class AnimatedTilesetEntry : public DataManager::Entry<AnimatedTileset>
 {
 public:
 	AnimatedTilesetEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset)
-		: Entry(b, name, filename), m_base(base), m_length(length), m_speed(speed), m_frames(frames), m_base_tileset(base_tileset)
+		: Entry(b, name, filename),
+		  m_base(base),
+		  m_length(length),
+		  m_speed(speed),
+		  m_frames(frames),
+		  m_base_tileset(base_tileset),
+		  m_index({0,0})
 	{}
 
 	static std::shared_ptr<AnimatedTilesetEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset);
@@ -51,6 +62,9 @@ public:
 
 	const std::string& GetPointerName() const { return m_ptrname; }
 	void SetPointerName(const std::string& name) { m_ptrname = name; }
+
+	std::pair<uint8_t, uint8_t> GetIndex() const { return m_index; }
+	void SetIndex(uint8_t src_idx, uint8_t anim_idx) { m_index = { src_idx, anim_idx }; }
 private:
 	uint16_t m_base;
 	uint16_t m_length;
@@ -58,6 +72,7 @@ private:
 	uint8_t m_frames;
 	uint8_t m_base_tileset;
 	std::string m_ptrname;
+	std::pair<uint8_t, uint8_t> m_index;
 };
 
 class PaletteEntry : public DataManager::Entry<Palette>

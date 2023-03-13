@@ -22,6 +22,36 @@ public:
 
 	virtual bool HasBeenModified() const;
     virtual void RefreshPendingWrites(const Rom& rom);
+
+    std::vector<std::shared_ptr<TilesetEntry>> GetTilesets() const;
+    std::vector<std::shared_ptr<AnimatedTilesetEntry>> GetAnimatedTilesets(const std::string& tileset) const;
+    bool HasAnimatedTilesets(const std::string& tileset) const;
+    std::shared_ptr<TilesetEntry> GetTileset(uint8_t index) const;
+    std::shared_ptr<TilesetEntry> GetTileset(const std::string& name) const;
+    std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(uint8_t tileset, uint8_t idx) const;
+    std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(const std::string& name) const;
+    std::shared_ptr<TilesetEntry> GetIntroFont() const;
+
+    std::vector<std::shared_ptr<BlocksetEntry>> GetBlocksetList(const std::string& tileset) const;
+    std::shared_ptr<BlocksetEntry> GetBlockset(const std::string& name) const;
+    std::shared_ptr<BlocksetEntry> GetBlockset(uint8_t pri, uint8_t sec) const;
+    std::shared_ptr<BlocksetEntry> GetBlockset(uint8_t tileset, uint8_t pri, uint8_t sec) const;
+    std::shared_ptr<BlocksetEntry> GetBlockset(const std::string& tileset, uint8_t pri, uint8_t sec) const;
+
+    const std::vector<std::shared_ptr<Room>>& GetRoomlist() const;
+    std::size_t GetRoomCount() const;
+    std::shared_ptr<Room> GetRoom(uint16_t index) const;
+    std::shared_ptr<Room> GetRoom(const std::string& name) const;
+    std::shared_ptr<Tilemap3DEntry> GetMap(uint16_t roomnum) const;
+    std::shared_ptr<Tilemap3DEntry> GetMap(const std::string& name) const;
+
+    std::list<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
+    bool HasFallDestination(uint16_t room) const;
+    uint16_t GetFallDestination(uint16_t room) const;
+    bool HasClimbDestination(uint16_t room) const;
+    uint16_t GetClimbDestination(uint16_t room) const;
+    std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
+
 protected:
     virtual void CommitAllChanges();
 private:
@@ -102,9 +132,10 @@ private:
     std::map<std::string, std::shared_ptr<BlocksetEntry>> m_blocksets_by_name_orig;
     std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<BlocksetEntry>> m_blocksets;
     std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<BlocksetEntry>> m_blocksets_orig;
-    
-    std::vector<Room> m_roomlist;
-    std::vector<Room> m_roomlist_orig;
+
+    std::vector<std::shared_ptr<Room>> m_roomlist;
+    std::vector<std::shared_ptr<Room>> m_roomlist_orig;
+    std::map<std::string, std::shared_ptr<Room>> m_roomlist_by_name;
 
     std::map<std::string, std::shared_ptr<Tilemap3DEntry>> m_maps;
     std::map<std::string, std::shared_ptr<Tilemap3DEntry>> m_maps_orig;

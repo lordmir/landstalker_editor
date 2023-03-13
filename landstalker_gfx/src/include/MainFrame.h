@@ -20,7 +20,6 @@
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "TilesetManager.h"
-#include "RoomManager.h"
 #include "RoomData.h"
 
 #ifdef _WIN32
@@ -123,7 +122,7 @@ private:
     void DrawWarps(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
-    void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height);
+    void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> tilemap, int tile_width, int tile_height);
     void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
     void PopulatePalettes();
     void ShowStrings();
@@ -200,7 +199,6 @@ private:
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
-    std::shared_ptr<RoomManager> m_rmgr;
     std::shared_ptr<RoomData> m_rd;
 
     std::string m_tsname;

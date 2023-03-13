@@ -210,9 +210,12 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
-    if (m_roomlist != m_roomlist_orig)
+    for (std::size_t i = 0; i < m_roomlist.size(); ++i)
     {
-        return true;
+        if (*m_roomlist[i] != *m_roomlist_orig[i])
+        {
+            return true;
+        }
     }
     if (m_warps != m_warps_orig)
     {
@@ -251,6 +254,179 @@ void RoomData::RefreshPendingWrites(const Rom& rom)
     }
 }
 
+std::vector<std::shared_ptr<TilesetEntry>> RoomData::GetTilesets() const
+{
+    std::vector<std::shared_ptr<TilesetEntry>> retval;
+    for (const auto& t : m_tilesets)
+    {
+        retval.push_back(t.second);
+    }
+    return retval;
+}
+
+std::vector<std::shared_ptr<AnimatedTilesetEntry>> RoomData::GetAnimatedTilesets(const std::string& tileset) const
+{
+    std::vector<std::shared_ptr<AnimatedTilesetEntry>> retval;
+    auto it = m_tilesets_by_name.find(tileset);
+    if (it != m_tilesets_by_name.cend())
+    {
+        uint8_t idx = it->second->GetIndex();
+        for (const auto& ts : m_animated_ts)
+        {
+            if (ts.first.first == idx)
+            {
+                retval.push_back(ts.second);
+            }
+        }
+    }
+    return retval;
+}
+
+bool RoomData::HasAnimatedTilesets(const std::string& tileset) const
+{
+    auto it = m_tilesets_by_name.find(tileset);
+    if (it != m_tilesets_by_name.cend())
+    {
+        uint8_t idx = it->second->GetIndex();
+        for (const auto& ts : m_animated_ts)
+        {
+            if (ts.first.first == idx)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::shared_ptr<TilesetEntry> RoomData::GetTileset(uint8_t index) const
+{
+    assert(m_tilesets.find(index) != m_tilesets.cend());
+    return m_tilesets.find(index)->second;
+}
+
+std::shared_ptr<TilesetEntry> RoomData::GetTileset(const std::string& name) const
+{
+    assert(m_tilesets_by_name.find(name) != m_tilesets_by_name.cend());
+    return m_tilesets_by_name.find(name)->second;
+}
+
+std::shared_ptr<AnimatedTilesetEntry> RoomData::GetAnimatedTileset(uint8_t tileset, uint8_t idx) const
+{
+    assert(m_animated_ts.find({ tileset, idx }) != m_animated_ts.cend());
+    return m_animated_ts.find({ tileset, idx })->second;
+}
+
+std::shared_ptr<AnimatedTilesetEntry> RoomData::GetAnimatedTileset(const std::string& name) const
+{
+    assert(m_animated_ts_by_name.find(name) != m_animated_ts_by_name.cend());
+    return m_animated_ts_by_name.find(name)->second;
+}
+
+std::shared_ptr<TilesetEntry> RoomData::GetIntroFont() const
+{
+    return m_intro_font;
+}
+
+std::vector<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetList(const std::string& tileset) const
+{
+    std::vector<std::shared_ptr<BlocksetEntry>> retval;
+    for (const auto& bs : m_blocksets)
+    {
+        if (bs.second->GetTileset() == GetTileset(tileset)->GetIndex())
+        {
+            retval.push_back(bs.second);
+        }
+    }
+    return retval;
+}
+
+std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& name) const
+{
+    assert(m_blocksets_by_name.find(name) != m_blocksets_by_name.cend());
+    return m_blocksets_by_name.find(name)->second;
+}
+
+std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(uint8_t pri, uint8_t sec) const
+{
+    assert(m_blocksets.find({ pri, sec }) != m_blocksets.cend());
+    return m_blocksets.find({ pri, sec })->second;
+}
+
+std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(uint8_t tileset, uint8_t pri, uint8_t sec) const
+{
+    return GetBlockset(pri << 5 | tileset, sec);
+}
+
+std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& tileset, uint8_t pri, uint8_t sec) const
+{
+    return GetBlockset(pri << 5 | GetTileset(tileset)->GetIndex(), sec);
+}
+
+const std::vector<std::shared_ptr<Room>>& RoomData::GetRoomlist() const
+{
+    return m_roomlist;
+}
+
+std::size_t RoomData::GetRoomCount() const
+{
+    return m_roomlist.size();
+}
+
+std::shared_ptr<Room> RoomData::GetRoom(uint16_t index) const
+{
+    assert(index < m_roomlist.size());
+    return m_roomlist.at(index);
+}
+
+std::shared_ptr<Room> RoomData::GetRoom(const std::string& name) const
+{
+    assert(m_roomlist_by_name.find(name) != m_roomlist_by_name.cend());
+    return m_roomlist_by_name.find(name)->second;
+}
+
+std::shared_ptr<Tilemap3DEntry> RoomData::GetMap(uint16_t roomnum) const
+{
+    auto rm = GetRoom(roomnum);
+    return GetMap(rm->map);
+}
+
+std::shared_ptr<Tilemap3DEntry> RoomData::GetMap(const std::string& name) const
+{
+    assert(m_maps.find(name) != m_maps.cend());
+    return m_maps.find(name)->second;
+}
+
+std::list<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
+{
+    return m_warps.GetWarpsForRoom(roomnum);
+}
+
+bool RoomData::HasFallDestination(uint16_t room) const
+{
+    return m_warps.HasFallDestination(room);
+}
+
+uint16_t RoomData::GetFallDestination(uint16_t room) const
+{
+    return m_warps.GetFallDestination(room);
+}
+
+bool RoomData::HasClimbDestination(uint16_t room) const
+{
+    return m_warps.HasClimbDestination(room);
+}
+
+uint16_t RoomData::GetClimbDestination(uint16_t room) const
+{
+    return m_warps.GetClimbDestination(room);
+}
+
+std::map<std::pair<uint16_t, uint16_t>, uint16_t> RoomData::GetTransitions(uint16_t room) const
+{
+    return m_warps.GetTransitions(room);
+}
+
 void RoomData::CommitAllChanges()
 {
     auto entry_commit = [](const auto& e) {return e->Commit(); };
@@ -263,7 +439,11 @@ void RoomData::CommitAllChanges()
     std::for_each(m_tilesets.begin(), m_tilesets.end(), pair_commit);
     std::for_each(m_warp_palette.begin(), m_warp_palette.end(), entry_commit);
     entry_commit(m_labrynth_lit_palette);
-    m_roomlist_orig = m_roomlist;
+    m_roomlist_orig.clear();
+    for (std::size_t i = 0; i < m_roomlist.size(); ++i)
+    {
+        m_roomlist_orig.push_back(std::make_shared<Room>(*m_roomlist[i]));
+    }
     m_warps_orig = m_warps;
     m_animated_ts_orig = m_animated_ts;
     m_animated_ts_by_name_orig = m_animated_ts_by_name;
@@ -362,12 +542,17 @@ bool RoomData::AsmLoadRoomTable()
         AsmFile file(GetBasePath() / m_room_data_filename);
         std::string map;
         uint8_t params[4];
+        uint16_t index = 0;
         while (file.IsGood())
         {
             file >> map >> params;
-            m_roomlist.push_back(Room(map, params));
+            std::string name = StrPrintf("Room%03d", index);
+            auto room = std::make_shared<Room>(name, map, index, params);
+            m_roomlist.push_back(room);
+            m_roomlist_by_name.insert({ name, room });
+            m_roomlist_orig.push_back(std::make_shared<Room>(*room));
+            index++;
         }
-        m_roomlist_orig = m_roomlist;
         return true;
     }
     catch (const std::exception&)
@@ -595,10 +780,10 @@ bool RoomData::AsmLoadAnimatedTilesetData()
             auto fpath = GetBasePath() / inc.path;
             auto e = AnimatedTilesetEntry::Create(ReadBytes(fpath), name, inc.path, base, length, speed, frames, *ts_idx_it);
             e->SetPointerName(ptrname);
+            e->SetIndex(*ts_idx_it, ts_counts[*ts_idx_it]);
             m_animated_ts_by_name.insert({ name, e });
             m_animated_ts_by_ptr.insert({ ptrname, e });
-            ts_counts[*ts_idx_it];
-            m_animated_ts.insert({ {*ts_idx_it, ts_counts[*ts_idx_it]} , e});
+            m_animated_ts.insert({ e->GetIndex() , e});
             ts_counts[*ts_idx_it++]++;
         }
         m_animated_ts_by_name_orig = m_animated_ts_by_name;
@@ -653,7 +838,8 @@ bool RoomData::AsmLoadTilesetData()
                     datafile >> inc;
                     auto e = TilesetEntry::Create(ReadBytes(GetBasePath() / inc.path), name, inc.path, true);
                     m_tilesets_by_name.insert({ name, e });
-                    m_tilesets.insert({ i++, e });
+                    e->SetIndex(i++);
+                    m_tilesets.insert({ e->GetIndex(), e});
                 }
                 else
                 {
@@ -683,12 +869,16 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
         uint32_t table_end_addr = map_end_addr;
         uint32_t map_addr = map_end_addr;
         std::set<uint32_t> map_list;
+        uint16_t index = 0;
         do
         {
             map_addr = rom.read<uint32_t>(addr);
             table_end_addr = std::min(map_addr, table_end_addr);
             map_list.insert(map_addr);
-            m_roomlist.push_back(Room(Hex(map_addr), rom.read_array<uint8_t>(addr + 4, 4)));
+            std::string name = StrPrintf("Room%03d", index);
+            auto room = std::make_shared<Room>(name, Hex(map_addr), index++, rom.read_array<uint8_t>(addr + 4, 4));
+            m_roomlist.push_back(room);
+            m_roomlist_by_name.insert({ name, room });
             addr += 8;
         } while (addr < table_end_addr);
         std::map<std::string, std::string> map_names;
@@ -714,9 +904,9 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
         }
         for (auto& room : m_roomlist)
         {
-            room.map = map_names[room.map];
+            room->map = map_names[room->map];
+            m_roomlist_orig.push_back(std::make_shared<Room>(*room));
         }
-        m_roomlist_orig = m_roomlist;
         m_maps_orig = m_maps;
         return true;
     }
@@ -910,6 +1100,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         std::string fname = StrPrintf(RomOffsets::Tilesets::FILENAME_FORMAT_STRING, i + 1);
         auto e = TilesetEntry::Create(tilesets[addr], name, fname);
         e->SetStartAddress(addr);
+        e->SetIndex(i);
         m_tilesets.insert({ i, e });
         m_tilesets_by_name.insert({ name, e });
     }
@@ -948,7 +1139,8 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         auto e = AnimatedTilesetEntry::Create(tilesets[addr], name, filename, base, length, speed, frames, *idx);
         e->SetStartAddress(addr);
         e->SetPointerName(ptrname);
-        m_animated_ts.insert({ {*idx, subts - 1}, e });
+        e->SetIndex(*idx, subts - 1);
+        m_animated_ts.insert({ e->GetIndex(), e });
         m_animated_ts_by_name.insert({ name, e });
         m_animated_ts_by_ptr.insert({ ptrname, e });
     }
@@ -991,8 +1183,8 @@ bool RoomData::AsmSaveRoomData(const filesystem::path& dir)
         file.WriteFileHeader(m_room_data_filename, "Room data include file");
         for (const auto& room : m_roomlist)
         {
-            auto params = room.GetParams();
-            file << room.map << params;
+            auto params = room->GetParams();
+            file << room->map << params;
         }
         auto f = dir / m_room_data_filename;
         file.WriteFile(f);
@@ -1280,8 +1472,8 @@ bool RoomData::RomPrepareInjectRoomData(const Rom& rom)
     }
     for (const auto& room : m_roomlist)
     {
-        auto mapaddr = Split<uint8_t>(map_addrs[room.map]);
-        auto params = room.GetParams();
+        auto mapaddr = Split<uint8_t>(map_addrs[room->map]);
+        auto params = room->GetParams();
         bytes->insert(bytes->end(), mapaddr.begin(), mapaddr.end());
         bytes->insert(bytes->end(), params.begin(), params.end());
     }
