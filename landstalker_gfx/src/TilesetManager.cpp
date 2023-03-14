@@ -655,7 +655,7 @@ bool TilesetManager::LoadAsmBlocksetData()
 
 bool TilesetManager::LoadRomAnimatedTilesetData(const Rom& rom)
 {
-	std::size_t addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
+	uint32_t addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
 	std::map<int, std::set<std::string>> animts_list;
 	std::vector<uint8_t> idx_list;
 	// Read in animation index table
@@ -698,7 +698,7 @@ bool TilesetManager::LoadRomAnimatedTilesetData(const Rom& rom)
 
 bool TilesetManager::LoadRomTilesetPointerData(const Rom& rom)
 {
-	std::size_t addr = rom.get_section(RomOffsets::Tilesets::DATA_LOC).begin;
+	uint32_t addr = rom.get_section(RomOffsets::Tilesets::DATA_LOC).begin;
 	const std::size_t ts_begin_ptr = rom.inc_read<uint32_t>(addr);
 	const std::size_t introfont_ptr = rom.read<uint32_t>(rom.get_address(RomOffsets::Tilesets::INTRO_FONT_PTR));
 	while(addr != ts_begin_ptr)
@@ -1083,7 +1083,7 @@ bool TilesetManager::SaveAsmAnimatedTilesetData(const filesystem::path& dir)
 
 bool TilesetManager::SaveRomAnimatedTilesetData(Rom& rom)
 {
-	std::size_t addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
+	uint32_t addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
 	// First, write out base tileset list:
 	for (const auto& ts : m_animated_ts_ptrorder)
 	{
@@ -1159,8 +1159,8 @@ bool TilesetManager::SaveAsmTilesetPointerData(const filesystem::path& dir)
 
 bool TilesetManager::SaveRomTilesetPointerData(Rom& rom)
 {
-	const std::size_t tilesets_begin = rom.get_section(RomOffsets::Tilesets::DATA_LOC).begin;
-	std::size_t addr = tilesets_begin;
+	const uint32_t tilesets_begin = rom.get_section(RomOffsets::Tilesets::DATA_LOC).begin;
+	uint32_t addr = tilesets_begin;
 	// First entry: pointer to start of TS table
 	std::size_t ts_table_begin = tilesets_begin + (1 + m_tilesets_listorder.size()) * sizeof(uint32_t);
 	rom.inc_write<uint32_t>(ts_table_begin, addr);
