@@ -20,7 +20,7 @@
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "TilesetManager.h"
-#include "RoomData.h"
+#include "GameData.h"
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -184,7 +184,7 @@ private:
 
     bool m_asmfile;
     std::shared_ptr<TilesetManager> m_tsmgr;
-    std::shared_ptr<RoomData> m_rd;
+    std::shared_ptr<GameData> m_g;
 
     std::string m_selname;
 };
