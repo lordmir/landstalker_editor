@@ -35,7 +35,7 @@ public:
 	void SetPalette(uint8_t palette);
 	uint16_t GetTileValue(const TilePoint& point) const;
 	void SetTileValue(const TilePoint& point, uint16_t index);
-	void Fill(uint16_t base, std::size_t increment = 0);
+	void Fill(uint16_t base, std::size_t increment = 0, int limit = -1);
 	void Copy(const uint8_t* src, uint16_t base = 0);
 	void Copy(std::vector<uint16_t>::const_iterator begin, std::vector<uint16_t>::const_iterator end);
 	void Clear();

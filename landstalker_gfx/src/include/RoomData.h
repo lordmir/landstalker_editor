@@ -42,6 +42,10 @@ public:
     std::shared_ptr<PaletteEntry> GetRoomPalette(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetRoomPalette(uint8_t index) const;
     std::vector<std::shared_ptr<PaletteEntry>> GetMiscPalette(const MiscPaletteType& type) const;
+    std::shared_ptr<PaletteEntry> GetDefaultTilesetPalette(const std::string& name) const;
+    std::shared_ptr<PaletteEntry> GetDefaultTilesetPalette(uint8_t index) const;
+    std::list<std::shared_ptr<PaletteEntry>> GetTilesetRecommendedPalettes(const std::string& name) const;
+    std::list<std::shared_ptr<PaletteEntry>> GetTilesetRecommendedPalettes(uint8_t index) const;
 
     std::vector<std::shared_ptr<BlocksetEntry>> GetBlocksetList(const std::string& tileset) const;
     std::shared_ptr<BlocksetEntry> GetBlockset(const std::string& name) const;
@@ -115,6 +119,9 @@ private:
     bool RomPrepareInjectTilesetData(const Rom& rom);
     bool RomPrepareInjectAnimatedTilesetData(const Rom& rom);
 
+    void UpdateTilesetRecommendedPalettes();
+    void ResetTilesetDefaultPalettes();
+
     filesystem::path m_room_data_filename;
     filesystem::path m_map_data_filename;
     filesystem::path m_warp_data_filename;
@@ -144,7 +151,8 @@ private:
     std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<AnimatedTilesetEntry>> m_animated_ts;
     std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<AnimatedTilesetEntry>> m_animated_ts_orig;
 
-    std::unordered_map<std::shared_ptr<TilesetEntry>, std::string> m_tilesets_defaultpal;
+    std::unordered_map<std::string, std::shared_ptr<PaletteEntry>> m_tileset_defaultpal;
+    std::unordered_map<std::string, std::list<std::shared_ptr<PaletteEntry>>> m_tileset_pals;
 
     std::shared_ptr<TilesetEntry> m_intro_font;
 

@@ -47,6 +47,8 @@ RoomData::RoomData(const filesystem::path& asm_file)
     {
         throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.str() + '\'');
     }
+    UpdateTilesetRecommendedPalettes();
+    ResetTilesetDefaultPalettes();
 }
 
 RoomData::RoomData(const Rom& rom)
@@ -77,6 +79,8 @@ RoomData::RoomData(const Rom& rom)
     {
         throw std::runtime_error(std::string("Unable to load tileset data from ROM"));
     }
+    UpdateTilesetRecommendedPalettes();
+    ResetTilesetDefaultPalettes();
 }
 
 bool RoomData::Save(const filesystem::path& dir)
@@ -353,6 +357,42 @@ std::vector<std::shared_ptr<PaletteEntry>> RoomData::GetMiscPalette(const MiscPa
     default:
         return std::vector<std::shared_ptr<PaletteEntry>>();
     }
+}
+
+std::shared_ptr<PaletteEntry> RoomData::GetDefaultTilesetPalette(const std::string& name) const
+{
+    auto p = m_tileset_defaultpal.find(name);
+    if (p != m_tileset_defaultpal.cend())
+    {
+        return p->second;
+    }
+    else
+    {
+        return m_room_pals.front();
+    }
+}
+
+std::shared_ptr<PaletteEntry> RoomData::GetDefaultTilesetPalette(uint8_t index) const
+{
+    return GetDefaultTilesetPalette(GetTileset(index)->GetName());
+}
+
+std::list<std::shared_ptr<PaletteEntry>> RoomData::GetTilesetRecommendedPalettes(const std::string& name) const
+{
+    auto p = m_tileset_pals.find(name);
+    if (p != m_tileset_pals.cend())
+    {
+        return p->second;
+    }
+    else
+    {
+        return std::list<std::shared_ptr<PaletteEntry>>(m_room_pals.cbegin(), m_room_pals.cend());
+    }
+}
+
+std::list<std::shared_ptr<PaletteEntry>> RoomData::GetTilesetRecommendedPalettes(uint8_t index) const
+{
+    return GetTilesetRecommendedPalettes(GetTileset(index)->GetName());
 }
 
 std::vector<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetList(const std::string& tileset) const
@@ -1754,4 +1794,44 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
     m_pending_writes.push_back({ RomOffsets::Tilesets::ANIM_DATA_LOC, bytes });
 
     return true;
+}
+
+void RoomData::UpdateTilesetRecommendedPalettes()
+{
+    m_tileset_pals.clear();
+    std::unordered_map<uint8_t, std::unordered_map<uint8_t, int>> frequencies;
+    for (const auto& r : m_roomlist)
+    {
+        frequencies[r->tileset][r->room_palette]++;
+    }
+    for (const auto& freqs : frequencies)
+    {
+        auto ts = GetTileset(freqs.first)->GetName();
+        std::vector<std::pair<uint8_t, int>> freqlist(freqs.second.cbegin(), freqs.second.cend());
+        std::sort(freqlist.begin(), freqlist.end(), [](const auto& lhs, const auto& rhs) {
+            return lhs.second > rhs.second;
+            });
+        for (const auto& f : freqlist)
+        {
+            auto p = GetRoomPalette(f.first);
+            m_tileset_pals[ts].push_back(p);
+        }
+    }
+}
+
+void RoomData::ResetTilesetDefaultPalettes()
+{
+    m_tileset_defaultpal.clear();
+    for (const auto& ts : m_tilesets_by_name)
+    {
+        auto p = m_tileset_pals.find(ts.first);
+        if (p == m_tileset_pals.cend())
+        {
+            m_tileset_defaultpal[ts.first] = m_room_pals.front();
+        }
+        else
+        {
+            m_tileset_defaultpal[ts.first] = p->second.front();
+        }
+    }
 }

@@ -129,12 +129,13 @@ void Tilemap::SetTileValue(const TilePoint& point, uint16_t index)
 }
 
 
-void Tilemap::Fill(uint16_t base, std::size_t increment)
+void Tilemap::Fill(uint16_t base, std::size_t increment, int limit)
 {
 	uint16_t index = base;
-	for (auto& tile : m_tilevals)
+	std::size_t i = 0;
+	for (uint16_t t = base; (t < limit || limit == -1) && i < m_tilevals.size(); t += increment, i++)
 	{
-		tile = index;
+		m_tilevals[i] = index;
 		index += increment;
 	}
 }

@@ -116,9 +116,9 @@ private:
 	void OnMenuClick(wxMenuEvent& event);
 	void OnPaneClose(wxAuiManagerEvent& event);
     void DrawBlocks(const std::string& name, std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
-    void DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room);
-    void DrawHeightmap(std::size_t scale, uint16_t room);
-    void DrawWarps(std::size_t scale, uint16_t room);
+    void DrawTilemap(uint16_t room, std::size_t scale=1);
+    void DrawHeightmap(uint16_t room, std::size_t scale=1);
+    void DrawWarps(uint16_t room, std::size_t scale=1);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
     void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> tilemap, int tile_width, int tile_height);
@@ -173,13 +173,11 @@ private:
     std::map<std::string, Images::Image> m_images;
     std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
     std::string m_selected_palette;
-    uint16_t m_pal[54][15];
 	ImageList* m_imgs;
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
-    std::vector<PaletteO> m_pal2;
     std::vector<PaletteO> m_palette;
     std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
     std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;

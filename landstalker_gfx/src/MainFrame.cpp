@@ -477,17 +477,22 @@ void MainFrame::DrawBlocks(const std::string& name, std::size_t row_width, std::
     auto bs = m_rd->GetBlockset(name);
     auto ts = m_rd->GetTileset(bs->GetTileset())->GetData();
     auto blockset = bs->GetData();
+    auto palette = m_rd->GetDefaultTilesetPalette(bs->GetTileset())->GetData();
 
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, blockset->size());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, blockset->size() / ROW_WIDTH + (blockset->size() % ROW_WIDTH != 0));
-    Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, ts->GetTileWidth(), ts->GetTileHeight(), 0, 0, 0);
-    m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
-    map.SetTileset(ts);
-    map.SetBlockset(blockset);
-    map.Fill(0, 1);
-    map.Draw(m_imgbuf);
+    m_imgbuf.Clear();
+    if (blockset->size() > 0)
+    {
+        const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, blockset->size());
+        const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, blockset->size() / ROW_WIDTH + (blockset->size() % ROW_WIDTH != 0));
+        Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, ts->GetTileWidth(), ts->GetTileHeight(), 0, 0, 0);
+        m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
+        map.SetTileset(ts);
+        map.SetBlockset(blockset);
+        map.Fill(0, 1, blockset->size());
+        map.Draw(m_imgbuf);
+    }
     m_scale = scale;
-    bmp = m_imgbuf.MakeBitmap(m_palette);
+    bmp = m_imgbuf.MakeBitmap({ palette });
     ForceRepaint();
 }
 
@@ -614,7 +619,7 @@ void SetOpacity(wxImage& image, uint8_t opacity)
     }
 }
 
-void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room)
+void MainFrame::DrawTilemap(uint16_t room, std::size_t scale)
 {
     auto map = m_rd->GetMapForRoom(room)->GetData();
     auto blocksets = m_rd->GetBlocksetsForRoom(room);
@@ -639,8 +644,8 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room)
     m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
     fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
-    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette, true, bg_opacity));
-    std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap(m_palette, true, fg1_opacity, fg2_opacity));
+    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap({ palette }, true, bg_opacity));
+    std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap({ palette }, true, fg1_opacity, fg2_opacity));
     wxImage hm_img(fg.GetWidth(), fg.GetHeight());
     wxImage disp_img(fg.GetWidth(), fg.GetHeight());
     hm_img.InitAlpha();
@@ -672,7 +677,7 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room)
     ForceRepaint();
 }
 
-void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
+void MainFrame::DrawHeightmap(uint16_t room, std::size_t scale)
 {
     auto tilemap = m_rd->GetMapForRoom(room);
     m_warp_poly.clear();
@@ -742,7 +747,7 @@ void MainFrame::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uin
     } });
 }
 
-void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
+void MainFrame::DrawWarps(uint16_t room, std::size_t scale)
 {
     if (m_rd == nullptr)
     {
@@ -760,7 +765,7 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
     m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
-    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette));
+    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap({ palette }));
     wxImage hm_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
     wxImage disp_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
     hm_img.InitAlpha();
@@ -1140,19 +1145,8 @@ void MainFrame::OpenFile(const wxString& path)
 
 void MainFrame::InitPals(const wxTreeItemId& node)
 {
-    const uint8_t* const base_pal = m_rom.data(m_rom.read<uint32_t>(0xA0A04));
-    const uint8_t* pal = base_pal;
-    for(std::size_t i = 0; i < 54; ++i)
-    {
-        m_pal2.push_back(PaletteO(m_rom, i, PaletteO::Type::ROOM));
-
-        std::ostringstream ss;
-        ss << std::dec << std::setw(2) << std::setfill('0') << i;
-        m_browser->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
-    }
-
     m_palette.clear();
-    m_palette.emplace_back(m_pal2[0]);
+    m_palette.emplace_back(m_rom);
     m_palette.emplace_back(m_rom);
     m_palette.emplace_back(m_rom);
     m_palette.emplace_back(m_rom);
@@ -1236,8 +1230,6 @@ void MainFrame::OnExport(wxCommandEvent& event)
 void MainFrame::InitRoom(uint16_t room)
 {
     m_roomnum = room;
-    const auto rd = m_rd->GetRoom(m_roomnum);
-    m_palette[0] = m_pal2[rd->room_palette];
 }
 
 void MainFrame::PopulateRoomProperties(uint16_t room)
@@ -1414,7 +1406,7 @@ void MainFrame::Refresh()
         EnableLayerControls(true);
         InitRoom(m_roomnum);
         PopulateRoomProperties(m_roomnum);
-        DrawTilemap(1, 0, m_roomnum);
+        DrawTilemap(m_roomnum);
         break;
     case MODE_SPRITE:
     {
@@ -1754,16 +1746,16 @@ void MainFrame::OnClose(wxCloseEvent& event)
 }
 void MainFrame::OnLayerOpacityChange(wxScrollEvent& event)
 {
-    DrawTilemap(m_scale, 0, m_roomnum);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerSelect(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, 0, m_roomnum);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerVisibilityChange(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, 0, m_roomnum);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }
