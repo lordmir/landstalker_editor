@@ -677,8 +677,14 @@ bool RoomData::AsmLoadRoomTable()
         uint16_t index = 0;
         while (file.IsGood())
         {
-            file >> map >> params;
             std::string name = StrPrintf("Room%03d", index);
+            if (file.IsLabel())
+            {
+                AsmFile::Label l;
+                file >> l;
+                name = l;
+            }
+            file >> map >> params;
             auto room = std::make_shared<Room>(name, map, index, params);
             m_roomlist.push_back(room);
             m_roomlist_by_name.insert({ name, room });
@@ -726,9 +732,15 @@ bool RoomData::AsmLoadRoomPalettes()
         unsigned int i = 0;
         while (file.IsGood())
         {
+            std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
+            if (file.IsLabel())
+            {
+                AsmFile::Label l;
+                file >> l;
+                name = l;
+            }
             file >> inc;
             auto palfile = GetBasePath() / inc.path;
-            std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
             auto e = PaletteEntry::Create(ReadBytes(palfile), name, inc.path, Palette::Type::ROOM);
             auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(palfile));
             auto palette = std::make_shared<Palette>(*raw_data, Palette::Type::ROOM);
@@ -893,13 +905,15 @@ bool RoomData::AsmLoadAnimatedTilesetData()
         std::vector<uint8_t> ts_idxs;
         std::map<uint8_t, uint8_t> ts_counts;
         animfile.Goto(RomOffsets::Tilesets::ANIM_IDX_LOC);
-        uint8_t cur_byte = 0, last_byte = 0;
+        uint8_t cur_byte = 0;
         do
         {
-            last_byte = cur_byte;
             animfile >> cur_byte;
-            ts_idxs.push_back(cur_byte);
-        } while (last_byte != 0xFF || cur_byte != 0xFF);
+            if (cur_byte != 0xFF)
+            {
+                ts_idxs.push_back(cur_byte);
+            }
+        } while (cur_byte != 0xFF);
 
         auto ts_idx_it = ts_idxs.begin();
         animfile.Goto(RomOffsets::Tilesets::ANIM_LIST_LOC);
@@ -1318,7 +1332,7 @@ bool RoomData::AsmSaveRoomData(const filesystem::path& dir)
         for (const auto& room : m_roomlist)
         {
             auto params = room->GetParams();
-            file << room->map << params;
+            file << AsmFile::Label(room->name) << room->map << params;
         }
         auto f = dir / m_room_data_filename;
         file.WriteFile(f);
@@ -1357,7 +1371,7 @@ bool RoomData::AsmSaveRoomPalettes(const filesystem::path& dir)
             {
                 return false;
             }
-            file << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(palette->GetName()) << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::BINARY);
         }
         file.WriteFile(dir / m_palette_data_filename);
         return true;
@@ -1575,10 +1589,10 @@ bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
     uint32_t climb_addr = fall_addr + fall_bytes.size();
     uint32_t transition_addr = climb_addr + climb_bytes.size();
 
-    uint32_t fall_lea = Asm::LEA_PCRel(Asm::AReg::A0, rom.get_address(RomOffsets::Rooms::FALL_TABLE_LEA_LOC), fall_addr);
-    uint32_t climb_lea = Asm::LEA_PCRel(Asm::AReg::A0, rom.get_address(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC), climb_addr);
-    uint32_t t1_lea = Asm::LEA_PCRel(Asm::AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1), transition_addr);
-    uint32_t t2_lea = Asm::LEA_PCRel(Asm::AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2), transition_addr);
+    uint32_t fall_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::FALL_TABLE_LEA_LOC), fall_addr);
+    uint32_t climb_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC), climb_addr);
+    uint32_t t1_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1), transition_addr);
+    uint32_t t2_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2), transition_addr);
 
     m_pending_writes.push_back({ RomOffsets::Rooms::FALL_TABLE_LEA_LOC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(fall_lea)) });
     m_pending_writes.push_back({ RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(climb_lea)) });

@@ -17,3 +17,9 @@ uint32_t Asm::LEA_PCRel(AReg reg, uint32_t pc, uint32_t loc)
 	}
 	return ins | regbits | mode | offset;
 }
+
+uint32_t Disasm::LEA_PCRel(uint32_t ins, uint32_t pc)
+{
+	int16_t offset = ins & 0xFFFF;
+	return pc + offset + 2;
+}

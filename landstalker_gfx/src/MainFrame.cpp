@@ -52,6 +52,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
+    m_scrollwindow->SetBackgroundColour(*wxBLACK);
     sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
     sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
     sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
@@ -783,21 +784,21 @@ void MainFrame::DrawWarps(uint16_t room, std::size_t scale)
     wxColour bkColor(*wxBLACK);
     wxColour textColor(*wxWHITE);
     int line = 0;
-    if (m_rd->HasClimbDestination(m_roomnum))
+    if (m_rd->HasClimbDestination(room))
     {
         AddRoomLink(hm_gc, "Climb Destination:", m_rd->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    if (m_rd->HasFallDestination(m_roomnum))
+    if (m_rd->HasFallDestination(room))
     {
         AddRoomLink(hm_gc, "Fall Destination:", m_rd->GetFallDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    auto txns = m_rd->GetTransitions(m_roomnum);
+    auto txns = m_rd->GetTransitions(room);
     for (const auto t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == m_roomnum) ? "SET" : "CLEAR");
-        uint16_t dest = (t.first.first == m_roomnum) ? t.first.second : t.first.first;
+        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == room) ? "SET" : "CLEAR");
+        uint16_t dest = (t.first.first == room) ? t.first.second : t.first.first;
         AddRoomLink(hm_gc, label, dest, 5, 5 + line * 16);
         line++;
     }
@@ -1541,14 +1542,16 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         SetMode(MODE_ROOMMAP);
         break;
     case TreeNodeData::NODE_ROOM_HEIGHTMAP:
+        SetMode(MODE_ROOMMAP);
         InitRoom(item_data->GetValue());
         PopulateRoomProperties(m_roomnum);
-        DrawHeightmap(1, m_roomnum);
+        DrawHeightmap(m_roomnum);
         break;
     case TreeNodeData::NODE_ROOM_WARPS:
+        SetMode(MODE_ROOMMAP);
         InitRoom(item_data->GetValue());
         PopulateRoomProperties(m_roomnum);
-        DrawWarps(1, m_roomnum);
+        DrawWarps(m_roomnum);
         break;
     case TreeNodeData::NODE_SPRITE:
     {
@@ -1653,7 +1656,7 @@ void MainFrame::GoToRoom(uint16_t room)
 
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
-    if (m_rd != nullptr)
+    if (m_rd != nullptr && m_mode == Mode::MODE_ROOMMAP)
     {
         auto map = m_rd->GetMapForRoom(m_roomnum)->GetData();
         if (map)
@@ -1690,7 +1693,7 @@ void MainFrame::OnScrollWindowMousewheel(wxMouseEvent& event)
 
 void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
-    if (m_rd != nullptr)
+    if (m_rd != nullptr && m_mode == Mode::MODE_ROOMMAP)
     {
         auto map = m_rd->GetMapForRoom(m_roomnum)->GetData();
         if (map)

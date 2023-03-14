@@ -1,6 +1,7 @@
 #include "WarpList.h"
 
 #include <cassert>
+#include "AsmUtils.h"
 
 WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
 {
@@ -28,11 +29,16 @@ uint32_t FindMarker(const Rom& rom, uint32_t start_addr)
 
 WarpList::WarpList(const Rom& rom)
 {
+	uint32_t fall_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::FALL_TABLE_LEA_LOC), rom.get_address(RomOffsets::Rooms::FALL_TABLE_LEA_LOC));
+	uint32_t climb_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC), rom.get_address(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC));
+	uint32_t transition_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1), rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1));
+
 	uint32_t start = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
 	auto warp_bytes = rom.read_array<uint8_t>(start, FindMarker(rom, start) - start);
-	auto fall_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_FALL_DEST);
-	auto climb_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_CLIMB_DEST);
-	auto transition_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_TRANSITIONS);
+	auto fall_bytes = rom.read_array<uint8_t>(fall_start_addr, FindMarker(rom, fall_start_addr) - fall_start_addr);
+	auto climb_bytes = rom.read_array<uint8_t>(climb_start_addr, FindMarker(rom, climb_start_addr) - climb_start_addr);
+	auto transition_bytes = rom.read_array<uint8_t>(transition_start_addr, FindMarker(rom, transition_start_addr) - transition_start_addr + 2);
+
 	ProcessWarpList(warp_bytes);
 	ProcessRouteList(fall_bytes, m_fall_dests);
 	ProcessRouteList(climb_bytes, m_climb_dests);
