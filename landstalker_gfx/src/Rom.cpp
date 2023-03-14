@@ -71,7 +71,7 @@ void Rom::writeFile(const std::string& filename)
 	WriteBytes(m_rom, filename);
 }
 
-std::size_t Rom::get_address(const std::string& name) const
+uint32_t Rom::get_address(const std::string& name) const
 {
 	auto addrs = RomOffsets::ADDRESS.find(name);
 	if (addrs == RomOffsets::ADDRESS.end())
@@ -101,17 +101,17 @@ RomOffsets::Section Rom::get_section(const std::string& name) const
 	return addr->second;
 }
 
-const uint8_t* Rom::data(std::size_t address) const
+const uint8_t* Rom::data(uint32_t address) const
 {
 	return m_rom.data() + address;
 }
 
-std::size_t Rom::size(std::size_t address) const
+uint32_t Rom::size(uint32_t address) const
 {
 	return m_rom.size() - address;
 }
 
-void Rom::resize(std::size_t amt)
+void Rom::resize(uint32_t amt)
 {
 	m_rom.resize(amt);
 }
