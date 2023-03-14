@@ -106,12 +106,12 @@ const uint8_t* Rom::data(uint32_t address) const
 	return m_rom.data() + address;
 }
 
-uint32_t Rom::size(uint32_t address) const
+std::size_t Rom::size(uint32_t address) const
 {
 	return m_rom.size() - address;
 }
 
-void Rom::resize(uint32_t amt)
+void Rom::resize(std::size_t amt)
 {
 	m_rom.resize(amt);
 }

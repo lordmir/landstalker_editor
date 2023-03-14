@@ -52,7 +52,7 @@ public:
 	void write_array(const C<T, Rest...>& container, uint32_t offset);
 	template<template <typename T, typename... Rest> typename C, typename T, typename... Rest>
 	void write_array(const C<T, Rest...>& container, const std::string& name);
-	template<typename T, std::uint32_t N>
+	template<typename T, std::size_t N>
 	void write_array(const T(&arr)[N], uint32_t offset);
 	template<typename T, std::size_t N>
 	void write_array(const T(&arr)[N], const std::string& name);
