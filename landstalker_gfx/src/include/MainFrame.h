@@ -115,9 +115,8 @@ private:
 	void OnMenuClear(wxCommandEvent& event);
 	void OnMenuClick(wxMenuEvent& event);
 	void OnPaneClose(wxAuiManagerEvent& event);
-    void DrawTiles(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
-    void DrawBlocks(std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
-    void DrawTilemap(std::size_t scale, uint8_t pal);
+    void DrawBlocks(const std::string& name, std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
+    void DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room);
     void DrawHeightmap(std::size_t scale, uint16_t room);
     void DrawWarps(std::size_t scale, uint16_t room);
     void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
@@ -133,10 +132,6 @@ private:
     void GoToRoom(uint16_t room);
     void PaintNow(wxDC& dc, std::size_t scale = 1);
     void InitPals(const wxTreeItemId& node);
-    void LoadTileset(uint8_t ts);
-    void LoadTileset(const std::string& name);
-    void LoadBlocks(const std::string& name);
-    void LoadBlocks(uint8_t pri, uint8_t sec);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
@@ -160,27 +155,17 @@ private:
     std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
-    std::vector<PaletteO> m_pal2;
-    std::vector<PaletteO> m_palette;
-    std::shared_ptr<const Tileset> m_tileset;
     ImageBuffer m_imgbuf;
     wxImage m_img;
     std::size_t m_scale;
-    uint8_t m_rpalidx;
-    uint8_t m_tsidx;
-    uint8_t m_bs1;
-    uint8_t m_bs2;
-    uint16_t m_roomnum;
     uint16_t m_sprite_idx;
     uint16_t m_sprite_anim;
     uint16_t m_sprite_frame;
+    uint16_t m_roomnum;
     int m_strtab;
     Mode m_mode;
     bool m_layer_controls_enabled;
     std::vector<std::vector<std::shared_ptr<LSString>>> m_strings;
-    std::vector<uint32_t> m_tilesetOffsets;
-    std::vector<std::vector<uint32_t>> m_blockOffsets;
-    std::vector<MapBlock> m_blocks;
     std::vector<SpriteFrame> m_spriteFrames;
     std::vector<SpriteGraphic> m_spriteGraphics;
     std::map<uint8_t, Sprite> m_sprites;
@@ -194,6 +179,8 @@ private:
     TilesetEditorFrame* m_tilesetEditor;
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
+    std::vector<PaletteO> m_pal2;
+    std::vector<PaletteO> m_palette;
     std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
     std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 
@@ -201,7 +188,6 @@ private:
     std::shared_ptr<TilesetManager> m_tsmgr;
     std::shared_ptr<RoomData> m_rd;
 
-    std::string m_tsname;
-    std::string m_bsname;
+    std::string m_selname;
 };
 #endif // MAINFRAME_H

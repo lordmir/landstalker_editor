@@ -12,6 +12,13 @@
 class RoomData : public DataManager
 {
 public:
+    enum class MiscPaletteType
+    {
+        LAVA,
+        WARP,
+        LANTERN
+    };
+
     RoomData(const filesystem::path& asm_file);
     RoomData(const Rom& rom);
 
@@ -32,6 +39,10 @@ public:
     std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(const std::string& name) const;
     std::shared_ptr<TilesetEntry> GetIntroFont() const;
 
+    std::shared_ptr<PaletteEntry> GetRoomPalette(const std::string& name) const;
+    std::shared_ptr<PaletteEntry> GetRoomPalette(uint8_t index) const;
+    std::vector<std::shared_ptr<PaletteEntry>> GetMiscPalette(const MiscPaletteType& type) const;
+
     std::vector<std::shared_ptr<BlocksetEntry>> GetBlocksetList(const std::string& tileset) const;
     std::shared_ptr<BlocksetEntry> GetBlockset(const std::string& name) const;
     std::shared_ptr<BlocksetEntry> GetBlockset(uint8_t pri, uint8_t sec) const;
@@ -42,8 +53,17 @@ public:
     std::size_t GetRoomCount() const;
     std::shared_ptr<Room> GetRoom(uint16_t index) const;
     std::shared_ptr<Room> GetRoom(const std::string& name) const;
-    std::shared_ptr<Tilemap3DEntry> GetMap(uint16_t roomnum) const;
     std::shared_ptr<Tilemap3DEntry> GetMap(const std::string& name) const;
+    std::shared_ptr<PaletteEntry> GetPaletteForRoom(const std::string& name) const;
+    std::shared_ptr<PaletteEntry> GetPaletteForRoom(uint16_t roomnum) const;
+    std::shared_ptr<TilesetEntry> GetTilesetForRoom(const std::string& name) const;
+    std::shared_ptr<TilesetEntry> GetTilesetForRoom(uint16_t roomnum) const;
+    std::list<std::shared_ptr<BlocksetEntry>> GetBlocksetsForRoom(const std::string& name) const;
+    std::list<std::shared_ptr<BlocksetEntry>> GetBlocksetsForRoom(uint16_t roomnum) const;
+    std::shared_ptr<Blockset> GetCombinedBlocksetForRoom(const std::string& name) const;
+    std::shared_ptr<Blockset> GetCombinedBlocksetForRoom(uint16_t roomnum) const;
+    std::shared_ptr<Tilemap3DEntry> GetMapForRoom(const std::string& name) const;
+    std::shared_ptr<Tilemap3DEntry> GetMapForRoom(uint16_t roomnum) const;
 
     std::list<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
     bool HasFallDestination(uint16_t room) const;
@@ -143,6 +163,7 @@ private:
     WarpList m_warps;
     WarpList m_warps_orig;
 
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_room_pals_by_name;
     std::vector<std::shared_ptr<PaletteEntry>> m_room_pals;
     std::vector<std::shared_ptr<PaletteEntry>> m_room_pals_orig;
     std::vector<std::shared_ptr<PaletteEntry>> m_lava_palette;

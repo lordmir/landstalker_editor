@@ -328,6 +328,33 @@ std::shared_ptr<TilesetEntry> RoomData::GetIntroFont() const
     return m_intro_font;
 }
 
+std::shared_ptr<PaletteEntry> RoomData::GetRoomPalette(const std::string& name) const
+{
+    assert(m_room_pals_by_name.find(name) != m_room_pals_by_name.cend());
+    return m_room_pals_by_name.find(name)->second;
+}
+
+std::shared_ptr<PaletteEntry> RoomData::GetRoomPalette(uint8_t index) const
+{
+    assert(index < m_room_pals.size());
+    return m_room_pals.at(index);
+}
+
+std::vector<std::shared_ptr<PaletteEntry>> RoomData::GetMiscPalette(const MiscPaletteType& type) const
+{
+    switch (type)
+    {
+    case MiscPaletteType::LANTERN:
+        return std::vector<std::shared_ptr<PaletteEntry>>({ m_labrynth_lit_palette });
+    case MiscPaletteType::LAVA:
+        return m_lava_palette;
+    case MiscPaletteType::WARP:
+        return m_warp_palette;
+    default:
+        return std::vector<std::shared_ptr<PaletteEntry>>();
+    }
+}
+
 std::vector<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetList(const std::string& tileset) const
 {
     std::vector<std::shared_ptr<BlocksetEntry>> retval;
@@ -385,16 +412,81 @@ std::shared_ptr<Room> RoomData::GetRoom(const std::string& name) const
     return m_roomlist_by_name.find(name)->second;
 }
 
-std::shared_ptr<Tilemap3DEntry> RoomData::GetMap(uint16_t roomnum) const
-{
-    auto rm = GetRoom(roomnum);
-    return GetMap(rm->map);
-}
-
 std::shared_ptr<Tilemap3DEntry> RoomData::GetMap(const std::string& name) const
 {
     assert(m_maps.find(name) != m_maps.cend());
     return m_maps.find(name)->second;
+}
+
+std::shared_ptr<PaletteEntry> RoomData::GetPaletteForRoom(const std::string& name) const
+{
+    auto rm = GetRoom(name);
+    return GetRoomPalette(rm->room_palette);
+}
+
+std::shared_ptr<PaletteEntry> RoomData::GetPaletteForRoom(uint16_t roomnum) const
+{
+    auto rm = GetRoom(roomnum);
+    return GetRoomPalette(rm->room_palette);
+}
+
+std::shared_ptr<TilesetEntry> RoomData::GetTilesetForRoom(const std::string& name) const
+{
+    auto rm = GetRoom(name);
+    return GetTileset(rm->tileset);
+}
+
+std::shared_ptr<TilesetEntry> RoomData::GetTilesetForRoom(uint16_t roomnum) const
+{
+    auto rm = GetRoom(roomnum);
+    return GetTileset(rm->tileset);
+}
+
+std::list<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetsForRoom(const std::string& name) const
+{
+    std::list<std::shared_ptr<BlocksetEntry>> retval;
+    auto rm = GetRoom(name);
+    retval.push_back(GetBlockset(rm->GetBlocksetId(), 0));
+    retval.push_back(GetBlockset(rm->GetBlocksetId(), rm->sec_blockset + 1));
+    return retval;
+}
+
+std::list<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetsForRoom(uint16_t roomnum) const
+{
+    auto rm = GetRoom(roomnum);
+    return GetBlocksetsForRoom(rm->name);
+}
+
+std::shared_ptr<Blockset> RoomData::GetCombinedBlocksetForRoom(const std::string& name) const
+{
+    auto blockset = std::make_shared<Blockset>();
+    for (const auto& b : GetBlocksetsForRoom(name))
+    {
+        blockset->insert(blockset->end(), b->GetData()->cbegin(), b->GetData()->cend());
+    }
+    return blockset;
+}
+
+std::shared_ptr<Blockset> RoomData::GetCombinedBlocksetForRoom(uint16_t roomnum) const
+{
+    auto blockset = std::make_shared<Blockset>();
+    for (const auto& b : GetBlocksetsForRoom(roomnum))
+    {
+        blockset->insert(blockset->end(), b->GetData()->cbegin(), b->GetData()->cend());
+    }
+    return blockset;
+}
+
+std::shared_ptr<Tilemap3DEntry> RoomData::GetMapForRoom(const std::string& name) const
+{
+    auto rm = GetRoom(name);
+    return GetMap(rm->map);
+}
+
+std::shared_ptr<Tilemap3DEntry> RoomData::GetMapForRoom(uint16_t roomnum) const
+{
+    auto rm = GetRoom(roomnum);
+    return GetMap(rm->map);
 }
 
 std::list<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
@@ -601,6 +693,7 @@ bool RoomData::AsmLoadRoomPalettes()
             auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(palfile));
             auto palette = std::make_shared<Palette>(*raw_data, Palette::Type::ROOM);
             m_room_pals.push_back(e);
+            m_room_pals_by_name.insert({ name, e });
             i++;
         }
         m_room_pals_orig = m_room_pals;
@@ -934,6 +1027,7 @@ bool RoomData::RomLoadRoomPalettes(const Rom& rom)
         auto e = PaletteEntry::Create(rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
         e->SetStartAddress(addr);
         m_room_pals.push_back(e);
+        m_room_pals_by_name.insert({ name, e });
         addr += size;
         i++;
     }

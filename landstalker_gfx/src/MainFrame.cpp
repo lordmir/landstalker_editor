@@ -37,10 +37,6 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_gfxBuffer(65536),
       m_gfxSize(0),
       m_scale(1),
-      m_rpalidx(0),
-      m_tsidx(0),
-      m_bs1(0),
-      m_bs2(0),
       m_roomnum(0),
       m_sprite_idx(0),
       m_sprite_anim(0),
@@ -147,8 +143,6 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_browser->SetImageList(m_imgs);
         m_properties->GetGrid()->Clear();
         m_sprites.clear();
-        m_tilesetOffsets.clear();
-        m_blockOffsets.clear();
         m_strings.clear();
         Sprite::Reset();
         PaletteO::Reset();
@@ -478,22 +472,23 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
     return ReturnCode::ERR;
 }
 
-void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal)
+void MainFrame::DrawBlocks(const std::string& name, std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    if (m_tileset != nullptr)
-    {
-        const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_blocks.size());
-        const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_blocks.size() / ROW_WIDTH + (m_blocks.size() % ROW_WIDTH != 0));
-        Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, m_tileset->GetTileWidth(), m_tileset->GetTileHeight(), 0, 0, 0);
-        m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
-        map.SetTileset(m_tileset);
-        map.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
-        map.Fill(0, 1);
-        map.Draw(m_imgbuf);
-        m_scale = scale;
-        bmp = m_imgbuf.MakeBitmap(m_palette);
-        ForceRepaint();
-    }
+    auto bs = m_rd->GetBlockset(name);
+    auto ts = m_rd->GetTileset(bs->GetTileset())->GetData();
+    auto blockset = bs->GetData();
+
+    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, blockset->size());
+    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, blockset->size() / ROW_WIDTH + (blockset->size() % ROW_WIDTH != 0));
+    Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, ts->GetTileWidth(), ts->GetTileHeight(), 0, 0, 0);
+    m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
+    map.SetTileset(ts);
+    map.SetBlockset(blockset);
+    map.Fill(0, 1);
+    map.Draw(m_imgbuf);
+    m_scale = scale;
+    bmp = m_imgbuf.MakeBitmap(m_palette);
+    ForceRepaint();
 }
 
 void DrawTile(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions, int classification)
@@ -619,9 +614,14 @@ void SetOpacity(wxImage& image, uint8_t opacity)
     }
 }
 
-void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
+void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal, uint16_t room)
 {
-    auto tilemap = m_rd->GetMap(m_roomnum);
+    auto map = m_rd->GetMapForRoom(room)->GetData();
+    auto blocksets = m_rd->GetBlocksetsForRoom(room);
+    auto palette = m_rd->GetPaletteForRoom(room)->GetData();
+    auto tileset = m_rd->GetTilesetForRoom(room)->GetData();
+    auto blockset = m_rd->GetCombinedBlocksetForRoom(room);
+
     m_warp_poly.clear();
     m_link_poly.clear();
 
@@ -633,13 +633,11 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     uint8_t fg2_opacity = m_checkFg2Visible->GetValue() ? m_sliderFg2Opacity->GetValue() : 0;
     uint8_t hm_opacity  = m_checkHeightmapVisible->GetValue() ? m_sliderHeightmapOpacity->GetValue() : 0;
     uint8_t spr_opacity = m_checkSpritesVisible->GetValue() ? m_sliderSpritesOpacity->GetValue() : 0;
-    auto map = tilemap->GetData();
 
     m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
     ImageBuffer fg(map->GetPixelWidth(), map->GetPixelHeight());
-    auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, m_tileset, blockset);
-    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, m_tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
+    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
     std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette, true, bg_opacity));
     std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap(m_palette, true, fg1_opacity, fg2_opacity));
@@ -676,7 +674,7 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
 
 void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
 {
-    auto tilemap = m_rd->GetMap(m_roomnum);
+    auto tilemap = m_rd->GetMapForRoom(room);
     m_warp_poly.clear();
     m_link_poly.clear();
     auto map = tilemap->GetData();
@@ -746,19 +744,21 @@ void MainFrame::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uin
 
 void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
 {
-    if (m_tileset == nullptr)
+    if (m_rd == nullptr)
     {
         return;
     }
-    auto map = m_rd->GetMap(m_roomnum)->GetData();
+    auto map = m_rd->GetMapForRoom(room)->GetData();
+    auto tileset = m_rd->GetTilesetForRoom(room)->GetData();
+    auto palette = m_rd->GetPaletteForRoom(room)->GetData();
+    auto blockset = m_rd->GetCombinedBlocksetForRoom(room);
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 16;
 
     m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
-    auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, m_tileset, blockset);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, m_tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
     std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette));
     wxImage hm_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
@@ -770,7 +770,7 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     hm_gc->SetBrush(*wxBLACK_BRUSH);
     m_warp_poly.clear();
     m_link_poly.clear();
-    auto warps = m_rd->GetWarpsForRoom(m_roomnum);
+    auto warps = m_rd->GetWarpsForRoom(room);
     for (const auto& warp : warps)
     {
         DrawWarp(*hm_gc, warp, map, TILE_WIDTH, TILE_HEIGHT);
@@ -890,23 +890,6 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 		m_activeEditor->UpdateUI();
 	}
 	event.Skip();
-}
-
-void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
-{
-    if (m_tileset == nullptr)
-    {
-        return;
-    }
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16UL, m_tileset->GetTileCount());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128UL, m_tileset->GetTileCount() / ROW_WIDTH + (m_tileset->GetTileCount() % ROW_WIDTH != 0));
-    Tilemap2D map(ROW_WIDTH, ROW_HEIGHT, 0);
-    m_imgbuf.Resize(map.GetWidth() * m_tileset->GetTileWidth(), map.GetHeight() * m_tileset->GetTileHeight());
-    map.FillIncrementing(0);
-    m_imgbuf.InsertMap(0, 0, 0, map, *m_tileset);
-    m_scale = scale;
-    bmp = m_imgbuf.MakeBitmap(m_palette);
-    ForceRepaint();
 }
 
 void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale)
@@ -1101,54 +1084,6 @@ void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
     event.Skip();
 }
 
-void MainFrame::LoadTileset(uint8_t ts)
-{
-    if (m_tsmgr != nullptr)
-    {
-        m_tileset = m_tsmgr->GetTilesetByIdx(ts)->tileset;
-    }
-}
-
-void MainFrame::LoadTileset(const std::string& name)
-{
-    if (m_tsmgr != nullptr)
-    {
-        m_tileset = m_tsmgr->GetTileset(name);
-    }
-}
-
-void MainFrame::LoadBlocks(const std::string& name)
-{
-    if (m_tsmgr != nullptr)
-    {
-        auto bs = m_tsmgr->GetBlockset(name);
-        m_tsidx = bs->tileset;
-        LoadTileset(m_tsidx);
-        m_blocks.clear();
-        if (bs->GetSecondary() != 0)
-        {
-            auto pbs = m_tsmgr->GetBlockset(bs->GetPrimary(), 0);
-            m_blocks.insert(m_blocks.end(), pbs->blockset->begin(), pbs->blockset->end());
-        }
-        m_blocks.insert(m_blocks.end(), bs->blockset->begin(), bs->blockset->end());
-    }
-}
-
-void MainFrame::LoadBlocks(uint8_t pri, uint8_t sec)
-{
-    if (m_tsmgr != nullptr)
-    {
-        auto bs = m_tsmgr->GetBlockset(pri, sec);
-        m_blocks.clear();
-        if (bs->GetSecondary() != 0)
-        {
-            auto pbs = m_tsmgr->GetBlockset(bs->GetPrimary(), 0);
-            m_blocks.insert(m_blocks.end(), pbs->blockset->begin(), pbs->blockset->end());
-        }
-        m_blocks.insert(m_blocks.end(), bs->blockset->begin(), bs->blockset->end());
-    }
-}
-
 MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
 {
     if (!force && CheckForFileChanges())
@@ -1171,8 +1106,6 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
     m_sprites.clear();
-    m_tilesetOffsets.clear();
-    m_blockOffsets.clear();
     m_strings.clear();
     Sprite::Reset();
     PaletteO::Reset();
@@ -1304,11 +1237,7 @@ void MainFrame::InitRoom(uint16_t room)
 {
     m_roomnum = room;
     const auto rd = m_rd->GetRoom(m_roomnum);
-    m_rpalidx = rd->room_palette;
-    m_palette[0] = m_pal2[m_rpalidx];
-    m_tsidx = rd->tileset;
-    LoadTileset(m_tsidx);
-    LoadBlocks(rd->GetBlocksetId(), rd->sec_blockset + 1);
+    m_palette[0] = m_pal2[rd->room_palette];
 }
 
 void MainFrame::PopulateRoomProperties(uint16_t room)
@@ -1316,8 +1245,8 @@ void MainFrame::PopulateRoomProperties(uint16_t room)
     m_properties->GetGrid()->Clear();
     std::ostringstream ss;
     ss.str(std::string());
-    const auto rd = m_rd->GetRoom(m_roomnum);
-    auto tm = m_rd->GetMap(m_roomnum);
+    const auto rd = m_rd->GetRoom(room);
+    auto tm = m_rd->GetMapForRoom(room);
 
     ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
         << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
@@ -1461,23 +1390,19 @@ void MainFrame::Refresh()
     case MODE_TILESET:
     {
         // Display tileset
-        auto ts = m_tsmgr->GetTilesetByName(m_tsname);
+        auto ts = m_tsmgr->GetTilesetByName(m_selname);
         std::string pal_name = m_tsmgr->GetTilesetSavedPalette(ts);
         m_tilesetEditor->SetPalettes(m_palettes);
         m_tilesetEditor->SetActivePalette(pal_name.empty() ? "Room Palette 00" : pal_name);
         m_tilesetEditor->Open(ts);
         ShowTileset();
         EnableLayerControls(false);
-        //LoadTileset(m_tilesetOffsets[m_tsidx]);
-        //DrawTiles(16, 2, m_rpalidx);
         break;
     }
     case MODE_BLOCKSET:
         EnableLayerControls(false);
         ShowBitmap();
-        LoadBlocks(m_bsname);
-        DrawBlocks(16, 1, m_rpalidx);
-        // Display blockset
+        DrawBlocks(m_selname, 16, 1, 0);
         break;
     case MODE_PALETTE:
         // Display palettes
@@ -1489,7 +1414,7 @@ void MainFrame::Refresh()
         EnableLayerControls(true);
         InitRoom(m_roomnum);
         PopulateRoomProperties(m_roomnum);
-        DrawTilemap(1, m_rpalidx);
+        DrawTilemap(1, 0, m_roomnum);
         break;
     case MODE_SPRITE:
     {
@@ -1544,7 +1469,7 @@ bool MainFrame::ExportTxt(const std::string& filename)
         return true;
     case MODE_ROOMMAP:
         {
-            auto map = m_rd->GetMap(m_roomnum)->GetData();
+            auto map = m_rd->GetMapForRoom(m_roomnum)->GetData();
             // Height Map
             std::string heightMapString;
             const std::size_t ROW_WIDTH = map->GetHeightmapWidth();
@@ -1605,20 +1530,17 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:
-        m_tsidx = item_data->GetValue();
-        m_tsname = item_text;
+        m_selname = item_text;
         SetMode(MODE_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:
     {
-        m_bsname = item_text;
+        m_selname = item_text;
         SetMode(MODE_BLOCKSET);
         break;
     }
     case TreeNodeData::NODE_ROOM_PAL:
     {
-        m_rpalidx = item_data->GetValue();
-        m_palette[0] = m_pal2[m_rpalidx];
         Refresh();
         break;
     }
@@ -1741,7 +1663,7 @@ void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
     if (m_rd != nullptr)
     {
-        auto map = m_rd->GetMap(m_roomnum)->GetData();
+        auto map = m_rd->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
             int x, y;
@@ -1778,7 +1700,7 @@ void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
     if (m_rd != nullptr)
     {
-        auto map = m_rd->GetMap(m_roomnum)->GetData();
+        auto map = m_rd->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
             int x, y;
@@ -1832,16 +1754,16 @@ void MainFrame::OnClose(wxCloseEvent& event)
 }
 void MainFrame::OnLayerOpacityChange(wxScrollEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_scale, 0, m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerSelect(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_scale, 0, m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerVisibilityChange(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_scale, 0, m_roomnum);
     event.Skip();
 }
