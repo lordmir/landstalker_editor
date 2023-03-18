@@ -19,7 +19,6 @@
 #include "Images.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
-#include "TilesetManager.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -99,6 +98,7 @@ private:
         MODE_STRING,
         MODE_IMAGE,
         MODE_TILESET,
+        MODE_ANIMATED_TILESET,
         MODE_BLOCKSET,
         MODE_PALETTE,
         MODE_ROOMMAP,
@@ -183,7 +183,6 @@ private:
     std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 
     bool m_asmfile;
-    std::shared_ptr<TilesetManager> m_tsmgr;
     std::shared_ptr<GameData> m_g;
 
     std::string m_selname;

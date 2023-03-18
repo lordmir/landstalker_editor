@@ -268,6 +268,7 @@ Palette::Palette(const std::vector<Colour>& colours, const Type& type)
 				m_pal[i] = *it++;
 			}
 		}
+		m_pal[0].SetTransparent(true);
 	}
 }
 
@@ -314,6 +315,7 @@ Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
 				m_pal[i] = *it++;
 			}
 		}
+		m_pal[0].SetTransparent(true);
 	}
 }
 
@@ -366,6 +368,11 @@ uint8_t Palette::getA(uint8_t index) const
 uint32_t Palette::getRGBA(uint8_t index) const
 {
 	return m_pal[index].GetRGB(true);
+}
+
+uint32_t Palette::getBGRA(uint8_t index) const
+{
+	return m_pal[index].GetBGR(true);
 }
 
 uint16_t Palette::getGenesisColour(uint8_t index) const

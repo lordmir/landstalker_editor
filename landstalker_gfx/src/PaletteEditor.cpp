@@ -20,10 +20,11 @@ PaletteEditor::PaletteEditor(wxWindow* parent)
 	: wxWindow(parent, wxID_ANY),
 	  m_pri_colour(1),
 	  m_sec_colour(0),
-	  m_palettes(nullptr),
-	  m_disabled{false},
-	  m_locked{false}
+	  m_disabled{},
+	  m_locked{},
+	  m_gd(nullptr)
 {
+	m_disabled.assign(16, false);
 	InitialiseBrushes();
 }
 
@@ -32,23 +33,30 @@ PaletteEditor::~PaletteEditor()
 	delete m_alpha_brush;
 }
 
-void PaletteEditor::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
+void PaletteEditor::SetGameData(std::shared_ptr<GameData> gd)
 {
-	m_palettes = palettes;
-	ForceRedraw();
+	m_gd = gd;
+	if (m_gd == nullptr)
+	{
+		m_selected_palette = nullptr;
+		m_selected_palette_entry = nullptr;
+		m_selected_palette_name = "";
+	}
 }
 
 void PaletteEditor::SelectPalette(const std::string& name)
 {
-	if (m_selected_palette != name)
+	if (m_selected_palette_name != name)
 	{
-		m_selected_palette = name;
-		m_locked = GetSelectedPalette().GetLockedColours();
+		m_selected_palette_name = name;
+		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
+		m_selected_palette = m_selected_palette_entry->GetData();
+		m_locked = m_selected_palette->GetLockedColours();
 		ForceRedraw();
 	}
 }
 
-void PaletteEditor::DisableEntries(const std::array<bool, 16>& entries)
+void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 {
 	m_disabled = entries;
 	if ((m_pri_colour >= 0) && (m_disabled[m_pri_colour] == true))
@@ -78,14 +86,14 @@ void PaletteEditor::DisableEntries(const std::array<bool, 16>& entries)
 	Refresh();
 }
 
-const std::array<bool, 16>& PaletteEditor::GetDisabledEntries() const
+const std::vector<bool>& PaletteEditor::GetDisabledEntries() const
 {
 	return m_disabled;
 }
 
 void PaletteEditor::EnableAllEntries()
 {
-	m_disabled.fill(false);
+	m_disabled.assign(16, false);
 	Refresh();
 }
 
@@ -234,21 +242,21 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 	if ((colour_selected != -1) && (!m_locked[colour_selected]))
 	{
 		wxColourData cd;
-		uint16_t orig_colour = GetSelectedPalette().getGenesisColour(colour_selected);
-		cd.SetColour(GetSelectedPalette().getRGBA(colour_selected));
+		uint16_t orig_colour = m_selected_palette->getGenesisColour(colour_selected);
+		cd.SetColour(m_selected_palette->getBGRA(colour_selected));
 		cd.SetChooseFull(true);
 		for (int i = 0; i < 16; ++i)
 		{
-			cd.SetCustomColour(i, GetSelectedPalette().getRGBA(i));
+			cd.SetCustomColour(i, m_selected_palette->getBGRA(i));
 		}
 		wxColourDialog dlg(this, &cd);
 		if (dlg.ShowModal() == wxID_OK)
 		{
 			auto colour = dlg.GetColourData().GetColour();
-			auto result = PaletteO::ToGenesisColour({ colour.Red(), colour.Green(), colour.Blue() });
+			auto result = Palette::Colour::CreateFromBGRA(colour.GetRGBA());
 			if (result != orig_colour)
 			{
-				GetSelectedPalette().setGenesisColour(colour_selected, result);
+				m_selected_palette->setGenesisColour(colour_selected, result.GetGenesis());
 				FireEvent(EVT_PALETTE_CHANGE, "");
 				Refresh();
 			}
@@ -261,19 +269,6 @@ void PaletteEditor::ForceRedraw()
 {
 	Update();
 	Refresh(true);
-}
-
-PaletteO& PaletteEditor::GetSelectedPalette()
-{
-	if (m_palettes)
-	{
-		auto it = m_palettes->find(m_selected_palette);
-		if (it != m_palettes->end())
-		{
-			return it->second;
-		}
-	}
-	return m_default_palette;
 }
 
 int PaletteEditor::ConvertXYToColour(const wxPoint& p) const
@@ -294,7 +289,7 @@ int PaletteEditor::ConvertXYToColour(const wxPoint& p) const
 wxBrush PaletteEditor::GetBrush(int index)
 {
 	if (index < 0) return *wxGREY_BRUSH;
-	auto colour = GetSelectedPalette().getRGBA(index);
+	auto colour = m_selected_palette->getBGRA(index);
 	if ((colour & 0xFF000000) == 0)
 	{
 		return *m_alpha_brush;

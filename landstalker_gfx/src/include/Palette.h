@@ -31,6 +31,13 @@ public:
 			: Colour(0x0000, true)
 		{}
 
+		static Colour CreateFromBGRA(uint32_t bgra)
+		{
+			Colour c;
+			c.FromBGRA(bgra);
+			return c;
+		}
+
 		bool operator==(const Colour& rhs) const
 		{
 			return ((this->m_transparent == rhs.m_transparent) &&
@@ -55,10 +62,27 @@ public:
 			m_b = std::min(0x07, b / 36);
 		}
 
+		inline void FromBGR(uint32_t c, bool transparent = false)
+		{
+			uint8_t b = (c >> 16) & 0xFF;
+			uint8_t g = (c >> 8) & 0xFF;
+			uint8_t r = c & 0xFF;
+			m_transparent = transparent;
+			m_r = std::min(0x07, r / 36);
+			m_g = std::min(0x07, g / 36);
+			m_b = std::min(0x07, b / 36);
+		}
+
 		inline void FromRGBA(uint32_t c)
 		{
 			uint8_t a = (c >> 24) & 0xFF;
 			FromRGB(c, (a == 0x00));
+		}
+
+		inline void FromBGRA(uint32_t c)
+		{
+			uint8_t a = (c >> 24) & 0xFF;
+			FromBGR(c, (a == 0x00));
 		}
 
 		inline uint8_t GetR() const
@@ -76,6 +100,10 @@ public:
 		inline uint8_t GetA() const
 		{
 			return m_transparent ? 0x00 : 0xFF;
+		}
+		inline void SetTransparent(bool transparent)
+		{
+			m_transparent = transparent;
 		}
 		uint16_t GetGenesis() const
 		{
@@ -95,6 +123,18 @@ public:
 			result |= GetR() << 16;
 			result |= GetG() << 8;
 			result |= GetB();
+			return result;
+		}
+		uint32_t GetBGR(bool include_alpha) const
+		{
+			uint32_t result = 0;
+			if (include_alpha == true)
+			{
+				result = GetA() << 24;
+			}
+			result |= GetB() << 16;
+			result |= GetG() << 8;
+			result |= GetR();
 			return result;
 		}
 
@@ -172,6 +212,7 @@ public:
 	uint8_t  getB(uint8_t index) const;
 	uint8_t  getA(uint8_t index) const;
 	uint32_t getRGBA(uint8_t index) const;
+	uint32_t getBGRA(uint8_t index) const;
 	uint16_t getGenesisColour(uint8_t index) const;
 	Colour GetColour(uint8_t index) const;
 	void setGenesisColour(uint8_t index, uint16_t colour);

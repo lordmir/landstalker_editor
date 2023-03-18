@@ -86,7 +86,9 @@ static std::vector<T> CommaListToVec(const std::string& input)
 
 TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
-	  m_title("")
+	  m_title(""),
+	  m_gd(nullptr),
+	  m_animated(false)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -339,6 +341,7 @@ void TilesetEditorFrame::SaveAs()
 
 void TilesetEditorFrame::New()
 {
+	m_tileset = std::make_shared<Tileset>();
 	m_tileset->Clear();
 	m_tileset->InsertTilesBefore(0, 1);
 	m_tilesetEditor->RedrawTiles();
@@ -399,7 +402,7 @@ void TilesetEditorFrame::ExportAsPng()
 		{
 			buf.InsertTile((i % cols) * m_tileset->GetTileWidth(), (i / cols) * m_tileset->GetTileHeight(), 0, i, *m_tileset);
 		}
-		buf.WritePNG(fd.GetPath().ToStdString(), {m_palettes->find(m_selected_palette)->second});
+		buf.WritePNG(fd.GetPath().ToStdString(), {m_selected_palette->GetData()});
 	}
 }
 
@@ -521,6 +524,32 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 	}
 }
 
+template <class T>
+void UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
+{
+	wxPGChoices list;
+	list.Clear();
+	auto rec = entry->GetRecommendedPalettes();
+	for (const auto& pal : rec)
+	{
+		wxPGChoiceEntry e(pal);
+		auto f = e.GetFont();
+		f.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
+		e.SetFont(f);
+		list.Add(e);
+	}
+	for (const auto& pal : entry->GetAllPalettes())
+	{
+		if (list.Index(pal) < 0)
+		{
+			wxPGChoiceEntry e(pal);
+			e.SetFgCol(wxColor(192, 192, 192));
+			list.Add(e);
+		}
+	}
+	props.GetGrid()->GetProperty("P")->SetChoices(list);
+}
+
 void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 {
 	if (ArePropsInitialised() == false)
@@ -529,34 +558,39 @@ void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 	}
 	else
 	{
-		if (m_ts_entry)
+		if (m_animated_tileset_entry)
 		{
-			if (m_ts_entry->type == TilesetManager::Type::ANIMATED_MAP)
+			UpdatePalList(m_animated_tileset_entry, props);
+			props.GetGrid()->SetPropertyValue("N", _(m_animated_tileset_entry->GetName()));
+			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
+			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_animated_tileset_entry->GetStartAddress())));
+			props.GetGrid()->SetPropertyValue("FN", _(m_animated_tileset_entry->GetFilename().str()));
+		}
+		else if (m_tileset_entry)
+		{
+			UpdatePalList(m_tileset_entry, props);
+			props.GetGrid()->SetPropertyValue("N", _(m_tileset_entry->GetName()));
+			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_tileset_entry->GetOrigBytes()->size()));
+			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_tileset_entry->GetStartAddress())));
+			props.GetGrid()->SetPropertyValue("FN", _(m_tileset_entry->GetFilename().str()));
+		}
+		if (m_tileset)
+		{
+
+			if (m_animated)
 			{
-				auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+				auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 				props.GetGrid()->SetPropertyValue("ABT", ats->GetBaseTileset());
 				props.GetGrid()->SetPropertyValue("AST", ats->GetStartTile().GetIndex());
 				props.GetGrid()->SetPropertyValue("A#T", static_cast<int>(ats->GetFrameSizeTiles()));
 				props.GetGrid()->SetPropertyValue("A#F", ats->GetAnimationFrames());
-				props.GetGrid()->SetPropertyValue("AS",  ats->GetAnimationSpeed());
+				props.GetGrid()->SetPropertyValue("AS", ats->GetAnimationSpeed());
 				props.GetGrid()->GetProperty("A")->Hide(false);
 			}
 			else
 			{
 				props.GetGrid()->GetProperty("A")->Hide(true);
 			}
-			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
-			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_ts_entry->raw_data->size()));
-			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_ts_entry->start_address)));
-			props.GetGrid()->SetPropertyValue("N", _(m_ts_entry->name));
-			props.GetGrid()->SetPropertyValue("FN", _(m_ts_entry->filename.str()));
-		}
-		else
-		{
-			props.GetGrid()->GetProperty("A")->Hide(true);
-		}
-		if (m_tileset)
-		{
 			props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
 			props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
 			props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
@@ -566,7 +600,7 @@ void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 			props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
 			props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
 		}
-		props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette));
+		props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette->GetName()));
 	}
 }
 
@@ -583,9 +617,13 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		// Palette change
 		SetActivePalette(property->GetValueAsString().ToStdString());
-		if (m_tsmgr)
+		if (m_tileset_entry)
 		{
-			m_tsmgr->SetTilesetSavedPalette(m_ts_entry, m_tilesetEditor->GetActivePalette());
+			m_tileset_entry->SetDefaultPalette(m_selected_palette->GetName());
+		}
+		if (m_animated_tileset_entry)
+		{
+			m_animated_tileset_entry->SetDefaultPalette(m_selected_palette->GetName());
 		}
 	}
 	else if (name == "I")
@@ -598,29 +636,29 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	}
 	else if (name == "ABT")
 	{
-		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 		ats->SetBaseTileset(property->GetValuePlain().GetLong());
 	}
 	else if (name == "AST")
 	{
-		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 		ats->SetStartTile(property->GetValuePlain().GetLong());
 
 	}
 	else if (name == "A#T")
 	{
-		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 		ats->SetFrameSizeBytes(property->GetValuePlain().GetLong());
 
 	}
 	else if (name == "A#F")
 	{
-		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 		ats->SetAnimationFrames(property->GetValuePlain().GetLong());
 	}
 	else if (name == "AS")
 	{
-		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_ts_entry->tileset);
+		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
 		ats->SetAnimationSpeed(property->GetValuePlain().GetLong());
 	}
 
@@ -770,27 +808,33 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	}
 }
 
-void TilesetEditorFrame::SetTilesetManager(std::shared_ptr<TilesetManager> tsmgr)
+void TilesetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 {
-	m_tsmgr = tsmgr;
+	m_gd = gd;
+	m_tileEditor->SetGameData(gd);
+	m_paletteEditor->SetGameData(gd);
+	m_tilesetEditor->SetGameData(gd);
 }
 
-void TilesetEditorFrame::SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes)
+void TilesetEditorFrame::ClearGameData()
 {
-	m_palettes = palettes;
-	m_tilesetEditor->SetPalettes(palettes);
-	m_paletteEditor->SetPalettes(palettes);
-	m_tileEditor->SetPalettes(palettes);
-	m_palette_list.Clear();
-	for (const auto& pal : *m_palettes)
+	m_gd = nullptr;
+	m_selected_palette = nullptr;
+	m_tileset = nullptr;
+	m_tileset_entry = nullptr;
+	m_animated_tileset_entry = nullptr;
+	m_tilesetEditor->SetGameData(nullptr);
+	m_paletteEditor->SetGameData(nullptr);
+	m_tileEditor->SetGameData(nullptr);
+}
+
+void TilesetEditorFrame::SetActivePalette(std::string name)
+{
+	if (name == "")
 	{
-		m_palette_list.Add(pal.first);
+		name = m_gd->GetAllPalettes().cbegin()->first;
 	}
-}
-
-void TilesetEditorFrame::SetActivePalette(const std::string& name)
-{
-	m_selected_palette = name;
+	m_selected_palette = m_gd->GetPalette(name);
 	m_tilesetEditor->SetActivePalette(name);
 	m_paletteEditor->SelectPalette(name);
 	m_tileEditor->SetActivePalette(name);
@@ -801,6 +845,10 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 {
 	bool retval = false;
 	retval = m_tilesetEditor->Open(pixels, uses_compression, tile_width, tile_height, tile_bitdepth);
+	m_animated = false;
+	m_animated_tileset_entry = nullptr;
+	m_tileset_entry = nullptr;
+	m_tileset = nullptr;
 	if (retval)
 	{
 		m_tileset = m_tilesetEditor->GetTileset();
@@ -814,17 +862,46 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 	return retval;
 }
 
-bool TilesetEditorFrame::Open(std::shared_ptr<TilesetManager::TilesetEntry> ts_entry)
+bool TilesetEditorFrame::Open(const std::string& name)
 {
-	m_ts_entry = ts_entry;
-	bool retval = m_tilesetEditor->Open(m_ts_entry->tileset);
+	auto e = m_gd->GetTileset(name);
+	bool retval = m_tilesetEditor->Open(e->GetData());
+	m_animated = false;
+	m_animated_tileset_entry = nullptr;
+	m_tileset_entry = nullptr;
+	m_tileset = nullptr;
 	if (retval)
 	{
+		m_tileset_entry = e;
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTile(m_tile);
 		m_tileEditor->SetTileset(m_tileset);
+		SetActivePalette(m_tileset_entry->GetDefaultPalette());
+	}
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	return retval;
+}
+
+bool TilesetEditorFrame::OpenAnimated(const std::string& name)
+{
+	auto e = m_gd->GetAnimatedTileset(name);
+	bool retval = m_tilesetEditor->Open(e->GetData());
+	m_animated_tileset_entry = nullptr;
+	m_tileset_entry = nullptr;
+	m_tileset = nullptr;
+	if (retval)
+	{
+		m_animated_tileset_entry = e;
+		m_animated = true;
+		m_tileset = m_tilesetEditor->GetTileset();
+		m_tile = 0;
+		m_tilesetEditor->SelectTile(m_tile.GetIndex());
+		m_tileEditor->SetTile(m_tile);
+		m_tileEditor->SetTileset(m_tileset);
+		SetActivePalette(m_animated_tileset_entry->GetDefaultPalette());
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);

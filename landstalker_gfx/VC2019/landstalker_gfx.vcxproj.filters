@@ -159,6 +159,9 @@
     <ClCompile Include="..\src\GameData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\EntryPreferences.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -326,6 +329,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\GameData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EntryPreferences.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

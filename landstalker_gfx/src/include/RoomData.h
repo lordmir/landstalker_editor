@@ -3,6 +3,7 @@
 
 #include <map>
 #include <vector>
+#include <memory>
 
 #include <DataManager.h>
 #include <DataTypes.h>
@@ -35,19 +36,23 @@ public:
     bool HasAnimatedTilesets(const std::string& tileset) const;
     std::shared_ptr<TilesetEntry> GetTileset(uint8_t index) const;
     std::shared_ptr<TilesetEntry> GetTileset(const std::string& name) const;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> GetAllTilesets() const;
     std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(uint8_t tileset, uint8_t idx) const;
     std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(const std::string& name) const;
+    std::map<std::string, std::shared_ptr<AnimatedTilesetEntry>> GetAllAnimatedTilesets() const;
     std::shared_ptr<TilesetEntry> GetIntroFont() const;
 
     std::shared_ptr<PaletteEntry> GetRoomPalette(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetRoomPalette(uint8_t index) const;
     std::vector<std::shared_ptr<PaletteEntry>> GetMiscPalette(const MiscPaletteType& type) const;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
     std::shared_ptr<PaletteEntry> GetDefaultTilesetPalette(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetDefaultTilesetPalette(uint8_t index) const;
     std::list<std::shared_ptr<PaletteEntry>> GetTilesetRecommendedPalettes(const std::string& name) const;
     std::list<std::shared_ptr<PaletteEntry>> GetTilesetRecommendedPalettes(uint8_t index) const;
 
     std::vector<std::shared_ptr<BlocksetEntry>> GetBlocksetList(const std::string& tileset) const;
+    std::map<std::string, std::shared_ptr<BlocksetEntry>> GetAllBlocksets() const;
     std::shared_ptr<BlocksetEntry> GetBlockset(const std::string& name) const;
     std::shared_ptr<BlocksetEntry> GetBlockset(uint8_t pri, uint8_t sec) const;
     std::shared_ptr<BlocksetEntry> GetBlockset(uint8_t tileset, uint8_t pri, uint8_t sec) const;

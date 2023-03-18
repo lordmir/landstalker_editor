@@ -6,7 +6,9 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "PaletteO.h"
+#include "Palette.h"
+#include "GameData.h"
+#include "DataTypes.h"
 
 class PaletteEditor : public wxWindow
 {
@@ -14,10 +16,10 @@ public:
 	PaletteEditor(wxWindow* parent);
 	~PaletteEditor();
 
-	void SetPalettes(std::shared_ptr<std::map<std::string, PaletteO>> palettes);
+	void SetGameData(std::shared_ptr<GameData> gd);
 	void SelectPalette(const std::string& name);
-	void DisableEntries(const std::array<bool, 16>& entries);
-	const std::array<bool, 16>& GetDisabledEntries() const;
+	void DisableEntries(const std::vector<bool>& entries);
+	const std::vector<bool>& GetDisabledEntries() const;
 	void EnableAllEntries();
 
 	bool SetPrimaryColour(int colour, bool send_event = true);
@@ -33,18 +35,19 @@ private:
 	void OnDoubleClick(wxMouseEvent& evt);
 	void ForceRedraw();
 
-	PaletteO& GetSelectedPalette();
 	int ConvertXYToColour(const wxPoint& p) const;
 	wxBrush GetBrush(int index);
 	void InitialiseBrushes();
 	void FireEvent(const wxEventType& e, const std::string& data);
 
-	std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
-	std::string m_selected_palette;
+	std::shared_ptr<GameData> m_gd;
+	std::string m_selected_palette_name;
+	std::shared_ptr<PaletteEntry> m_selected_palette_entry;
+	std::shared_ptr<Palette> m_selected_palette;
 	wxBrush* m_alpha_brush = nullptr;
-	PaletteO m_default_palette;
-	std::array<bool, 16> m_disabled;
-	std::array<bool, 16> m_locked;
+	Palette m_default_palette;
+	std::vector<bool> m_disabled;
+	std::vector<bool> m_locked;
 
 	int m_pri_colour;
 	int m_sec_colour;

@@ -23,6 +23,7 @@
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
+    <ClCompile Include="..\src\EntryPreferences.cpp" />
     <ClCompile Include="..\src\GameData.cpp" />
     <ClCompile Include="..\src\GraphicsData.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
@@ -81,6 +82,7 @@
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
+    <ClInclude Include="..\src\include\EntryPreferences.h" />
     <ClInclude Include="..\src\include\GameData.h" />
     <ClInclude Include="..\src\include\GraphicsData.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />

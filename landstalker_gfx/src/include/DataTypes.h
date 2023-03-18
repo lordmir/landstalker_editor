@@ -7,13 +7,13 @@
 #include <BlocksetCmp.h>
 #include <Tilemap3DCmp.h>
 #include <AnimatedTileset.h>
+#include <EntryPreferences.h>
 
-
-class TilesetEntry : public DataManager::Entry<Tileset>
+class TilesetEntry : public DataManager::Entry<Tileset>, public PalettePreferences
 {
 public:
-	TilesetEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed = true, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, Tileset::BlockType blocktype = Tileset::BlockType::NORMAL)
-		: Entry(b, name, filename),
+	TilesetEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed = true, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, Tileset::BlockType blocktype = Tileset::BlockType::NORMAL)
+		: Entry(owner, b, name, filename),
 		m_compressed(compressed),
 		m_width(width),
 		m_height(height),
@@ -22,7 +22,7 @@ public:
 		m_index(-1)
 	{}
 
-	static std::shared_ptr<TilesetEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed = true, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, Tileset::BlockType blocktype = Tileset::BlockType::NORMAL);
+	static std::shared_ptr<TilesetEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed = true, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, Tileset::BlockType blocktype = Tileset::BlockType::NORMAL);
 
 	virtual bool Serialise(const std::shared_ptr<Tileset> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Tileset>& out);
@@ -42,11 +42,11 @@ private:
 	int m_index;
 };
 
-class AnimatedTilesetEntry : public DataManager::Entry<AnimatedTileset>
+class AnimatedTilesetEntry : public DataManager::Entry<AnimatedTileset>, public PalettePreferences
 {
 public:
-	AnimatedTilesetEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset)
-		: Entry(b, name, filename),
+	AnimatedTilesetEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset)
+		: Entry(owner, b, name, filename),
 		  m_base(base),
 		  m_length(length),
 		  m_speed(speed),
@@ -55,7 +55,7 @@ public:
 		  m_index({0,0})
 	{}
 
-	static std::shared_ptr<AnimatedTilesetEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset);
+	static std::shared_ptr<AnimatedTilesetEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset);
 
 	virtual bool Serialise(const std::shared_ptr<AnimatedTileset> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<AnimatedTileset>& out);
@@ -78,12 +78,12 @@ private:
 class PaletteEntry : public DataManager::Entry<Palette>
 {
 public:
-	PaletteEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type)
-		: Entry(b, name, filename),
+	PaletteEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type)
+		: Entry(owner, b, name, filename),
 		m_type(type)
 	{}
 
-	static std::shared_ptr<PaletteEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type);
+	static std::shared_ptr<PaletteEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type);
 
 	virtual bool Serialise(const std::shared_ptr<Palette> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Palette>& out);
@@ -91,14 +91,14 @@ private:
 	Palette::Type m_type;
 };
 
-class BlocksetEntry : public DataManager::Entry<Blockset>
+class BlocksetEntry : public DataManager::Entry<Blockset>, public PalettePreferences
 {
 public:
-	BlocksetEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename)
-		: Entry(b, name, filename), pri(0), sec(0)
+	BlocksetEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+		: Entry(owner, b, name, filename), pri(0), sec(0)
 	{}
 
-	static std::shared_ptr<BlocksetEntry> Create(const ByteVector & b, const std::string & name, const filesystem::path & filename);
+	static std::shared_ptr<BlocksetEntry> Create(DataManager* owner, const ByteVector & b, const std::string & name, const filesystem::path & filename);
 
 	virtual bool Serialise(const std::shared_ptr<Blockset> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Blockset>& out);
@@ -113,14 +113,14 @@ private:
 	uint8_t sec;
 };
 
-class Tilemap3DEntry : public DataManager::Entry<Tilemap3D>
+class Tilemap3DEntry : public DataManager::Entry<Tilemap3D>, public PalettePreferences
 {
 public:
-	Tilemap3DEntry(const ByteVector& b, const std::string& name, const filesystem::path& filename)
-		: Entry(b, name, filename)
+	Tilemap3DEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+		: Entry(owner, b, name, filename)
 	{}
 
-	static std::shared_ptr<Tilemap3DEntry> Create(const ByteVector& b, const std::string& name, const filesystem::path& filename);
+	static std::shared_ptr<Tilemap3DEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
 
 	virtual bool Serialise(const std::shared_ptr<Tilemap3D> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap3D>& out);

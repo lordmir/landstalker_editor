@@ -37,6 +37,8 @@ public:
 	std::vector<T> read_array(uint32_t offset, uint32_t count) const;
 	template<class T>
 	std::vector<T> read_array(const std::string& name) const;
+	std::string read_string(const std::string& name) const;
+	std::string read_string(uint32_t offset) const;
 
 	template< class T >
 	void write(const T& data, uint32_t offset);
@@ -60,6 +62,8 @@ public:
 	void write_array(const C<T, N>& arr, uint32_t offset);
 	template<template <typename, std::size_t> typename C, typename T, std::size_t N>
 	void write_array(const C<T, N>& arr, const std::string& name);
+	void write_string(const std::string& str, const std::string& name);
+	void write_string(const std::string& str, uint32_t offset);
 
 
 	template< class T >

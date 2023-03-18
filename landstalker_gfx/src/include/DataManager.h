@@ -21,7 +21,7 @@ public:
 	class Entry
 	{
 	public:
-		Entry(const ByteVector& b, const std::string& name, const filesystem::path& filename);
+		Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
 
 		virtual bool Serialise(const std::shared_ptr<T> in, ByteVectorPtr out) = 0;
 		virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<T>& out) = 0;
@@ -31,6 +31,8 @@ public:
 		virtual void AbandonChanges();
 		virtual bool HasDataChanged() const;
 		virtual bool Save(const filesystem::path& dir);
+
+		DataManager* GetOwner() { return m_owner; }
 
 		std::shared_ptr<T> GetData();
 		std::shared_ptr<const T> GetData() const;
@@ -53,6 +55,7 @@ public:
 		filesystem::path m_filename;
 		ByteVectorPtr m_raw_data;
 		ByteVectorPtr m_cached_raw_data;
+		DataManager* m_owner;
 	};
 
 	DataManager(const filesystem::path& asm_file) : m_asm_filename(asm_file), m_base_path(asm_file.parent_path()) {}
@@ -82,14 +85,15 @@ private:
 };
 
 template<class T>
-inline DataManager::Entry<T>::Entry(const ByteVector& b, const std::string& name, const filesystem::path& filename)
+inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
 	: m_data(std::make_shared<T>()),
 	  m_orig_data(std::make_shared<T>()),
 	  m_raw_data(std::make_shared<ByteVector>(b)),
 	  m_cached_raw_data(std::make_shared<ByteVector>()),
 	  m_name(name),\
 	  m_filename(filename),
-	  m_begin_address(0)
+	  m_begin_address(0),
+	  m_owner(owner)
 {
 }
 
@@ -215,10 +219,10 @@ inline void DataManager::Entry<T>::SetStartAddress(uint32_t addr)
 template<class T>
 inline bool DataManager::Entry<T>::Save(const filesystem::path& dir)
 {
-	Commit();
+	auto bytes = GetBytes();
 	auto fname = dir / m_filename;
 	CreateDirectoryTree(fname);
-	WriteBytes(*m_raw_data, fname);
+	WriteBytes(*bytes, fname);
 	return true;
 }
 

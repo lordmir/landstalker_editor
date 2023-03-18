@@ -71,6 +71,38 @@ void Rom::writeFile(const std::string& filename)
 	WriteBytes(m_rom, filename);
 }
 
+std::string Rom::read_string(const std::string& name) const
+{
+	uint32_t addr = get_address(name);
+	return read_string(addr);
+}
+
+std::string Rom::read_string(uint32_t offset) const
+{
+	std::string s;
+	char c;
+	while (c = inc_read<uint8_t>(offset))
+	{
+		s += c;
+	}
+	return s;
+}
+
+void Rom::write_string(const std::string& str, const std::string& name)
+{
+	uint32_t addr = get_address(name);
+	write_string(str, addr);
+}
+
+void Rom::write_string(const std::string& str, uint32_t offset)
+{
+	for (char c : str)
+	{
+		write<uint8_t>(c, offset++);
+	}
+	write<uint8_t>(0, offset);
+}
+
 uint32_t Rom::get_address(const std::string& name) const
 {
 	auto addrs = RomOffsets::ADDRESS.find(name);

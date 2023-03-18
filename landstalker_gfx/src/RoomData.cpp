@@ -315,6 +315,17 @@ std::shared_ptr<TilesetEntry> RoomData::GetTileset(const std::string& name) cons
     return m_tilesets_by_name.find(name)->second;
 }
 
+std::map<std::string, std::shared_ptr<TilesetEntry>> RoomData::GetAllTilesets() const
+{
+    std::map<std::string, std::shared_ptr<TilesetEntry>> result;
+    for (auto& t : m_tilesets_by_name)
+    {
+        result.insert(t);
+    }
+    result.insert({ m_intro_font->GetName(), m_intro_font });
+    return result;
+}
+
 std::shared_ptr<AnimatedTilesetEntry> RoomData::GetAnimatedTileset(uint8_t tileset, uint8_t idx) const
 {
     assert(m_animated_ts.find({ tileset, idx }) != m_animated_ts.cend());
@@ -325,6 +336,16 @@ std::shared_ptr<AnimatedTilesetEntry> RoomData::GetAnimatedTileset(const std::st
 {
     assert(m_animated_ts_by_name.find(name) != m_animated_ts_by_name.cend());
     return m_animated_ts_by_name.find(name)->second;
+}
+
+std::map<std::string, std::shared_ptr<AnimatedTilesetEntry>> RoomData::GetAllAnimatedTilesets() const
+{
+    std::map<std::string, std::shared_ptr<AnimatedTilesetEntry>> result;
+    for (auto& t : m_animated_ts_by_name)
+    {
+        result.insert(t);
+    }
+    return result;
 }
 
 std::shared_ptr<TilesetEntry> RoomData::GetIntroFont() const
@@ -357,6 +378,25 @@ std::vector<std::shared_ptr<PaletteEntry>> RoomData::GetMiscPalette(const MiscPa
     default:
         return std::vector<std::shared_ptr<PaletteEntry>>();
     }
+}
+
+std::map<std::string, std::shared_ptr<PaletteEntry>> RoomData::GetAllPalettes() const
+{
+    std::map<std::string, std::shared_ptr<PaletteEntry>> result;
+    for (auto& p : m_room_pals_by_name)
+    {
+        result.insert(p);
+    }
+    for (auto& p : m_lava_palette)
+    {
+        result.insert({p->GetName(), p});
+    }
+    for (auto& p : m_warp_palette)
+    {
+        result.insert({p->GetName(), p});
+    }
+    result.insert({ m_labrynth_lit_palette->GetName(), m_labrynth_lit_palette });
+    return result;
 }
 
 std::shared_ptr<PaletteEntry> RoomData::GetDefaultTilesetPalette(const std::string& name) const
@@ -406,6 +446,16 @@ std::vector<std::shared_ptr<BlocksetEntry>> RoomData::GetBlocksetList(const std:
         }
     }
     return retval;
+}
+
+std::map<std::string, std::shared_ptr<BlocksetEntry>> RoomData::GetAllBlocksets() const
+{
+    std::map<std::string, std::shared_ptr<BlocksetEntry>> result;
+    for (const auto& b : m_blocksets_by_name)
+    {
+        result.insert(b);
+    }
+    return result;
 }
 
 std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& name) const
@@ -711,7 +761,7 @@ bool RoomData::AsmLoadMaps()
             file >> lbl >> inc;
             auto mapfile = GetBasePath() / inc.path;
             auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(mapfile));
-            auto map_entry = Tilemap3DEntry::Create(ReadBytes(mapfile), lbl, inc.path);
+            auto map_entry = Tilemap3DEntry::Create(this, ReadBytes(mapfile), lbl, inc.path);
             m_maps[lbl] = map_entry;
         }
         m_maps_orig = m_maps;
@@ -741,7 +791,7 @@ bool RoomData::AsmLoadRoomPalettes()
             }
             file >> inc;
             auto palfile = GetBasePath() / inc.path;
-            auto e = PaletteEntry::Create(ReadBytes(palfile), name, inc.path, Palette::Type::ROOM);
+            auto e = PaletteEntry::Create(this, ReadBytes(palfile), name, inc.path, Palette::Type::ROOM);
             auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(palfile));
             auto palette = std::make_shared<Palette>(*raw_data, Palette::Type::ROOM);
             m_room_pals.push_back(e);
@@ -780,7 +830,7 @@ bool RoomData::AsmLoadMiscPaletteData()
         for(it = data.begin(); it != data.end(); it += size)
         {
             std::vector<uint8_t> bytes(it, it + size);
-            auto e = PaletteEntry::Create(bytes, name, fname, ptype);
+            auto e = PaletteEntry::Create(this, bytes, name, fname, ptype);
             ret.push_back(e);
         }
         return ret;
@@ -808,7 +858,7 @@ bool RoomData::AsmLoadBlocksetData()
         while (dfile.IsGood())
         {
             dfile >> lbl >> inc;
-            auto ep = BlocksetEntry::Create(ReadBytes(GetBasePath() / inc.path), lbl, inc.path);
+            auto ep = BlocksetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), lbl, inc.path);
             m_blocksets_by_name.insert({ ep->GetName(), ep});
         }
         m_blocksets_by_name_orig = m_blocksets_by_name;
@@ -873,7 +923,7 @@ bool RoomData::AsmLoadBlocksetPtrData()
         {
             if (m_blocksets_by_name.find(ptr.first) != m_blocksets_by_name.end())
             {
-                auto e = m_blocksets_by_name[ptr.first];
+                auto& e = m_blocksets_by_name[ptr.first];
                 e->SetIndex(ptr.second);
                 m_blocksets.insert({ ptr.second, e });
             }
@@ -925,7 +975,7 @@ bool RoomData::AsmLoadAnimatedTilesetData()
             datafile.Goto(name);
             datafile >> inc;
             auto fpath = GetBasePath() / inc.path;
-            auto e = AnimatedTilesetEntry::Create(ReadBytes(fpath), name, inc.path, base, length, speed, frames, *ts_idx_it);
+            auto e = AnimatedTilesetEntry::Create(this, ReadBytes(fpath), name, inc.path, base, length, speed, frames, *ts_idx_it);
             e->SetPointerName(ptrname);
             e->SetIndex(*ts_idx_it, ts_counts[*ts_idx_it]);
             m_animated_ts_by_name.insert({ name, e });
@@ -970,7 +1020,7 @@ bool RoomData::AsmLoadTilesetData()
                     AsmFile::IncludeFile inc;
                     datafile.Goto(name);
                     datafile >> inc;
-                    m_intro_font = TilesetEntry::Create(ReadBytes(GetBasePath() / inc.path), name, inc.path, false, 8, 16);
+                    m_intro_font = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, false, 8, 16);
                     m_intro_font->SetPointerName(lbl.label);
                 }
             }
@@ -983,7 +1033,7 @@ bool RoomData::AsmLoadTilesetData()
                     AsmFile::IncludeFile inc;
                     datafile.Goto(name);
                     datafile >> inc;
-                    auto e = TilesetEntry::Create(ReadBytes(GetBasePath() / inc.path), name, inc.path, true);
+                    auto e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, true);
                     m_tilesets_by_name.insert({ name, e });
                     e->SetIndex(i++);
                     m_tilesets.insert({ e->GetIndex(), e});
@@ -1045,7 +1095,7 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
             std::string name = StrPrintf(RomOffsets::Rooms::MAP_FORMAT_STRING, ++count);
             map_names[Hex(begin)] = name;
             auto fname = StrPrintf(RomOffsets::Rooms::MAP_FILENAME_FORMAT_STRING, name.c_str());
-            auto map_entry = Tilemap3DEntry::Create(rom.read_array<uint8_t>(begin, end - begin), name, fname);
+            auto map_entry = Tilemap3DEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, fname);
             map_entry->SetStartAddress(begin);
             m_maps.insert(std::make_pair(name, map_entry));
         }
@@ -1078,7 +1128,7 @@ bool RoomData::RomLoadRoomPalettes(const Rom& rom)
         std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
         auto fname = StrPrintf(RomOffsets::Rooms::PALETTE_FORMAT_STRING, i + 1);
         auto fpath = StrPrintf(RomOffsets::Rooms::PALETTE_FILENAME_FORMAT_STRING, fname.c_str());
-        auto e = PaletteEntry::Create(rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
+        auto e = PaletteEntry::Create(this, rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
         e->SetStartAddress(addr);
         m_room_pals.push_back(e);
         m_room_pals_by_name.insert({ name, e });
@@ -1108,7 +1158,7 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
         for (; addr < end; addr += size)
         {
             auto bytes = rom.read_array<uint8_t>(addr, size);
-            auto e = PaletteEntry::Create(bytes, name, fname, ptype);
+            auto e = PaletteEntry::Create(this, bytes, name, fname, ptype);
             e->SetStartAddress(addr);
             ret.push_back(e);
         }
@@ -1174,7 +1224,7 @@ bool RoomData::RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_
 {
     std::string name = StrPrintf(RomOffsets::Blocksets::BLOCKSET_LABEL, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
     filesystem::path filename = StrPrintf(RomOffsets::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
-    auto e = BlocksetEntry::Create(rom.read_array<uint8_t>(begin, end - begin), name, filename);
+    auto e = BlocksetEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, filename);
     e->SetStartAddress(begin);
     e->SetIndex({ pri, sec });
     m_blocksets_by_name.insert({ name, e });
@@ -1229,7 +1279,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         tilesets.insert({ start_addr, bytes });
     }
     auto introfont_bytes = rom.read_array<uint8_t>(introfont_begin, introfont_size);
-    m_intro_font = TilesetEntry::Create(introfont_bytes, RomOffsets::Tilesets::INTRO_FONT,
+    m_intro_font = TilesetEntry::Create(this, introfont_bytes, RomOffsets::Tilesets::INTRO_FONT,
         RomOffsets::Tilesets::INTRO_FONT_FILENAME, false, 8, 16);
     m_intro_font->SetStartAddress(introfont_begin);
     m_intro_font->SetPointerName(RomOffsets::Tilesets::INTRO_FONT_PTR);
@@ -1246,7 +1296,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         }
         std::string name = StrPrintf(RomOffsets::Tilesets::LABEL_FORMAT_STRING, i + 1);
         std::string fname = StrPrintf(RomOffsets::Tilesets::FILENAME_FORMAT_STRING, i + 1);
-        auto e = TilesetEntry::Create(tilesets[addr], name, fname);
+        auto e = TilesetEntry::Create(this, tilesets[addr], name, fname);
         e->SetStartAddress(addr);
         e->SetIndex(i);
         m_tilesets.insert({ i, e });
@@ -1284,7 +1334,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         auto ptrname = StrPrintf(RomOffsets::Tilesets::ANIM_PTR_LABEL_FORMAT_STRING, *idx + 1, subts);
         auto filename = StrPrintf(RomOffsets::Tilesets::ANIM_FILENAME_FORMAT_STRING, *idx + 1, subts);
         uint32_t addr = rom.read<uint32_t>(ts_addr);
-        auto e = AnimatedTilesetEntry::Create(tilesets[addr], name, filename, base, length, speed, frames, *idx);
+        auto e = AnimatedTilesetEntry::Create(this, tilesets[addr], name, filename, base, length, speed, frames, *idx);
         e->SetStartAddress(addr);
         e->SetPointerName(ptrname);
         e->SetIndex(*idx, subts - 1);
@@ -1732,6 +1782,10 @@ bool RoomData::RomPrepareInjectTilesetData(const Rom& rom)
         auto data = ts.second->GetBytes();
         tilesets.insert(tilesets.end(), data->cbegin(), data->cend());
     }
+    if ((tilesets.size() & 1) == 1)
+    {
+        tilesets.push_back(0xFF);
+    }
     for (const auto& ts : m_animated_ts_by_name)
     {
         addrs[ts.first] = tileset_base + tilesets.size();
@@ -1812,7 +1866,11 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
 
 void RoomData::UpdateTilesetRecommendedPalettes()
 {
-    m_tileset_pals.clear();
+    std::vector<std::string> palettes;
+    for (const auto& p : GetAllPalettes())
+    {
+        palettes.push_back(p.first);
+    }
     std::unordered_map<uint8_t, std::unordered_map<uint8_t, int>> frequencies;
     for (const auto& r : m_roomlist)
     {
@@ -1820,32 +1878,41 @@ void RoomData::UpdateTilesetRecommendedPalettes()
     }
     for (const auto& freqs : frequencies)
     {
-        auto ts = GetTileset(freqs.first)->GetName();
+        auto ts = GetTileset(freqs.first);
         std::vector<std::pair<uint8_t, int>> freqlist(freqs.second.cbegin(), freqs.second.cend());
         std::sort(freqlist.begin(), freqlist.end(), [](const auto& lhs, const auto& rhs) {
             return lhs.second > rhs.second;
             });
+        std::vector<std::string> recommended_pals;
         for (const auto& f : freqlist)
         {
             auto p = GetRoomPalette(f.first);
-            m_tileset_pals[ts].push_back(p);
+            recommended_pals.push_back(p->GetName());
+        }
+        ts->SetAllPalettes(palettes);
+        ts->SetRecommendedPalettes(recommended_pals, true);
+        for (const auto& a : m_animated_ts)
+        {
+            if (a.first.first == freqs.first)
+            {
+                a.second->SetAllPalettes(palettes);
+                a.second->SetRecommendedPalettes(recommended_pals, true);
+            }
         }
     }
 }
 
 void RoomData::ResetTilesetDefaultPalettes()
 {
-    m_tileset_defaultpal.clear();
     for (const auto& ts : m_tilesets_by_name)
     {
-        auto p = m_tileset_pals.find(ts.first);
-        if (p == m_tileset_pals.cend())
+        if (ts.second->GetRecommendedPalettes().size() == 0)
         {
-            m_tileset_defaultpal[ts.first] = m_room_pals.front();
+            ts.second->SetDefaultPalette(m_room_pals.front()->GetName());
         }
         else
         {
-            m_tileset_defaultpal[ts.first] = p->second.front();
+            ts.second->SetDefaultPalette(ts.second->GetRecommendedPalettes().front());
         }
     }
 }

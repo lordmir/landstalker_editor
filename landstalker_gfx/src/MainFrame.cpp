@@ -45,7 +45,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false),
       m_palettes(std::make_shared<std::map<std::string, PaletteO>>()),
-	  m_activeEditor(nullptr)
+	  m_activeEditor(nullptr),
+      m_g(nullptr)
 {
     m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
@@ -136,6 +137,10 @@ void MainFrame::OpenRomFile(const wxString& path)
 {
     try
     {
+        if (CloseFiles() != ReturnCode::OK)
+        {
+            return;
+        }
         m_rom.load_from_file(static_cast<std::string>(path));
         this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
         PopulatePalettes();
@@ -147,8 +152,8 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_strings.clear();
         Sprite::Reset();
         PaletteO::Reset();
-        m_tsmgr.reset();
         m_g = std::make_shared<GameData>(m_rom);
+        m_tilesetEditor->SetGameData(m_g);
         SetMode(MODE_NONE);
 
         const int str_img = m_imgs->GetIdx("string");
@@ -165,6 +170,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
@@ -267,14 +273,12 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
 
-        m_tsmgr = std::make_shared<TilesetManager>(m_rom);
-        m_tilesetEditor->SetTilesetManager(m_tsmgr);
         for (const auto& t : m_g->GetRoomData()->GetTilesets())
         {
             auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
             for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
             {
-                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
             }
             auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
             for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
@@ -283,6 +287,14 @@ void MainFrame::OpenRomFile(const wxString& path)
             }
         }
         m_browser->AppendItem(nodeF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
+        {
+            m_browser->AppendItem(nodeF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetMiscGraphics())
+        {
+            m_browser->AppendItem(nodeG, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
             wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
@@ -316,18 +328,18 @@ void MainFrame::OpenAsmFile(const wxString& path)
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
-        m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
-        m_tilesetEditor->SetTilesetManager(m_tsmgr);
         m_g = std::make_shared<GameData>(path.ToStdString());
+        m_tilesetEditor->SetGameData(m_g);
         for (const auto& t : m_g->GetRoomData()->GetTilesets())
         {
             auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
             for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
             {
-                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
             }
             auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
             for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
@@ -336,6 +348,14 @@ void MainFrame::OpenAsmFile(const wxString& path)
             }
         }
         m_browser->AppendItem(nodeF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
+        {
+            m_browser->AppendItem(nodeF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetMiscGraphics())
+        {
+            m_browser->AppendItem(nodeG, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
             wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
@@ -1114,8 +1134,8 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_strings.clear();
     Sprite::Reset();
     PaletteO::Reset();
-    m_tsmgr.reset();
     m_g.reset();
+    m_tilesetEditor->ClearGameData();
     SetMode(MODE_NONE);
     return ReturnCode::OK;
 }
@@ -1382,11 +1402,17 @@ void MainFrame::Refresh()
     case MODE_TILESET:
     {
         // Display tileset
-        auto ts = m_tsmgr->GetTilesetByName(m_selname);
-        std::string pal_name = m_tsmgr->GetTilesetSavedPalette(ts);
-        m_tilesetEditor->SetPalettes(m_palettes);
-        m_tilesetEditor->SetActivePalette(pal_name.empty() ? "Room Palette 00" : pal_name);
-        m_tilesetEditor->Open(ts);
+        auto ts = m_g->GetTileset(m_selname);
+        m_tilesetEditor->Open(m_selname);
+        ShowTileset();
+        EnableLayerControls(false);
+        break;
+    }
+    case MODE_ANIMATED_TILESET:
+    {
+        // Display animated tileset
+        auto ts = m_g->GetAnimatedTileset(m_selname);
+        m_tilesetEditor->OpenAnimated(m_selname);
         ShowTileset();
         EnableLayerControls(false);
         break;
@@ -1524,6 +1550,10 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     case TreeNodeData::NODE_TILESET:
         m_selname = item_text;
         SetMode(MODE_TILESET);
+        break;
+    case TreeNodeData::NODE_ANIM_TILESET:
+        m_selname = item_text;
+        SetMode(MODE_ANIMATED_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:
     {
