@@ -82,6 +82,18 @@ namespace RomOffsets
 		static const std::string INV_UNUSED2_SIZE("Unused2_2BPPSize");
 		static const std::string INV_PAL1("InvPalette1");
 		static const std::string INV_PAL2("InvPalette2_GreyedOut");
+		static const std::string INV_ITEM_PAL("InvItemPal");
+		static const std::string INV_ITEM_PAL_SECTION("InvItemPalData");
+
+		static const std::string DOWN_ARROW("DownArrowGfx");
+		static const std::string DOWN_ARROW_SECTION("DownArrowGfxSection");
+		static const std::string RIGHT_ARROW("RightArrowGfx");
+		static const std::string RIGHT_ARROW_SECTION("RightArrowGfxSection");
+
+		static const std::string PLAYER_PAL("DefaultPlayerPal");
+		static const std::string HUD_PAL("StatusBarPal");
+		static const std::string HUD_PAL_LEA2("StatusBarPal_Lea2");
+		static const std::string MISC_PAL_SECTION("MiscPalSection");
 
 		static const std::string INV_GRAPHICS_FILE("code/inventory/graphics.asm");
 		static const std::string SYS_FONT_FILE("assets_packed/graphics/fonts/system.bin");
@@ -93,6 +105,11 @@ namespace RomOffsets
 		static const std::string INV_UNUSED2_FILE("assets_packed/graphics/static/inventory/unused2.2bpp");
 		static const std::string INV_PAL1_FILE("assets_packed/graphics/static/inventory/inv1.pal");
 		static const std::string INV_PAL2_FILE("assets_packed/graphics/static/inventory/invitemgreyedout.pal");
+		static const std::string PLAYER_PAL_FILE("assets_packed/graphics/miscpalettes/defaultplayer.pal");
+		static const std::string HUD_PAL_FILE("assets_packed/graphics/static/hud/hud.pal");
+		static const std::string INV_ITEM_PAL_FILE("assets_packed/graphics/static/inventory/invitempal.pal");
+		static const std::string DOWN_ARROW_FILE("assets_packed/graphics/static/textbox/downarrow.bin");
+		static const std::string RIGHT_ARROW_FILE("assets_packed/graphics/static/textbox/rightarrow.bin");
 	}
 
 	namespace Tilesets
@@ -200,6 +217,12 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Graphics::DOWN_ARROW,             {{Region::JP, 0x000000}, {Region::US, 0x02339E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::RIGHT_ARROW,            {{Region::JP, 0x000000}, {Region::US, 0x024998}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_ITEM_PAL,           {{Region::JP, 0x000000}, {Region::US, 0x007876}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_PAL,                {{Region::JP, 0x000000}, {Region::US, 0x008E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_PAL_LEA2,           {{Region::JP, 0x000000}, {Region::US, 0x008FCE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::PLAYER_PAL,             {{Region::JP, 0x000000}, {Region::US, 0x008FB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::STRING_BANK_PTR_PTR,     {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::MAIN_FONT_PTR,          {{Region::JP, 0x000000}, {Region::US, 0x022E84}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_LINE1,      {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -236,6 +259,10 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
+		{ Graphics::DOWN_ARROW_SECTION,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0233BA, 0x02343A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::RIGHT_ARROW_SECTION,      {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0249B4, 0x024A34}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::MISC_PAL_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00901C, 0x009046}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::INV_ITEM_PAL_SECTION,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::INV_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00DC76, 0x00E110}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

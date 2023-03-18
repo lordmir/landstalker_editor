@@ -449,11 +449,11 @@ bool GraphicsData::AsmLoadTextGraphics()
 		file.Goto(RomOffsets::Graphics::DOWN_ARROW);
 		file >> inc;
 		auto down_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::DOWN_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
+			RomOffsets::Graphics::DOWN_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK1X2);
 		file.Goto(RomOffsets::Graphics::RIGHT_ARROW);
 		file >> inc;
 		auto right_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
+			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X1);
 		m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
 		m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
 		m_misc_gfx_internal.insert({ right_arrow->GetName(), right_arrow });

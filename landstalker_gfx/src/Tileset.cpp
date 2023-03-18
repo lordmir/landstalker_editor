@@ -41,6 +41,7 @@ const std::unordered_map<Tileset::BlockType, BlockDimensions> BLOCK_DIMENSIONS =
 {
     {Tileset::BlockType::NORMAL,   {1, 1}},
     {Tileset::BlockType::BLOCK1X2, {1, 2}},
+    {Tileset::BlockType::BLOCK2X1, {2, 1}},
     {Tileset::BlockType::BLOCK2X2, {2, 2}},
     {Tileset::BlockType::BLOCK3X3, {3, 3}},
     {Tileset::BlockType::BLOCK4X4, {4, 4}},

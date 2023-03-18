@@ -46,11 +46,15 @@ private:
     bool AsmLoadStrings();
     bool AsmLoadInventoryGraphics();
     bool AsmLoadCompressedStringData();
+    bool AsmLoadPalettes();
+    bool AsmLoadTextGraphics();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
     bool RomLoadInventoryGraphics(const Rom& rom);
     bool RomLoadCompressedStringData(const Rom& rom);
+    bool RomLoadPalettes(const Rom& rom);
+    bool RomLoadTextGraphics(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -60,6 +64,8 @@ private:
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
     bool RomPrepareInjectCompressedStringData(const Rom& rom);
+    bool RomPrepareInjectPalettes(const Rom& rom);
+    bool RomPrepareInjectTextGraphics(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
