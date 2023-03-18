@@ -39,20 +39,33 @@ namespace RomOffsets
 		static const std::string REGION_CHECK("RegionCheck");
 		static const std::string REGION_CHECK_ROUTINE("RegionCheckRoutine");
 		static const std::string REGION_CHECK_STRINGS("RegionCheckStrings");
-		static const std::string REGION_CHECK_FILE("code/system/regioncheck.asm");
-		static const std::string REGION_CHECK_STRINGS_FILE("code/system/regioncheck_strings.asm");
-		static const std::string REGION_CHECK_ROUTINE_FILE("code/system/regioncheck_routine.asm");
 		static const std::string REGION_CHECK_DATA_SECTION("RegionCheckDataSection");
 		static const std::string REGION_ERROR_LINE1("RegionErrorLine1");
 		static const std::string REGION_ERROR_NTSC("RegionErrorNTSC");
 		static const std::string REGION_ERROR_PAL("RegionErrorPAL");
 		static const std::string REGION_ERROR_LINE3("RegionErrorLine3");
+		static const std::string STRING_SECTION("StringData");
+		static const std::string STRING_BANK("StringBank%01d");
+		static const std::string STRING_BANK_PTR("StringBankPtr");
+		static const std::string STRING_BANK_PTR_DATA("StringBankPtrs");
+		static const std::string STRING_BANK_PTR_PTR("StringPtr");
+		static const std::string STRING_PTRS("StringPtrs");
+
+		static const std::string STRINGS_FILE("code/text/strings.asm");
+		static const std::string STRING_PTR_FILE("code/pointertables/stringbankptr.asm");
+		static const std::string STRING_BANK_PTR_FILE("code/pointertables/strings/stringptrs.asm");
+		static const std::string STRING_BANK_FILE("assets_packed/strings/main/strings%02d.huf");
+		static const std::string REGION_CHECK_FILE("code/system/regioncheck.asm");
+		static const std::string REGION_CHECK_STRINGS_FILE("code/system/regioncheck_strings.asm");
+		static const std::string REGION_CHECK_ROUTINE_FILE("code/system/regioncheck_routine.asm");
 	}
 
 	namespace Graphics
 	{
 		static const std::string SYS_FONT("SystemFont");
 		static const std::string SYS_FONT_SIZE("SystemFontSize");
+		static const std::string MAIN_FONT("MainFont");
+		static const std::string MAIN_FONT_PTR("MainFontPtr");
 
 		static const std::string INV_SECTION("InventoryGraphics");
 		static const std::string INV_FONT("MenuFont");
@@ -73,6 +86,7 @@ namespace RomOffsets
 		static const std::string INV_GRAPHICS_FILE("code/inventory/graphics.asm");
 		static const std::string SYS_FONT_FILE("assets_packed/graphics/fonts/system.bin");
 		static const std::string INV_FONT_FILE("assets_packed/graphics/fonts/menufont.1bpp");
+		static const std::string MAIN_FONT_FILE("assets_packed/graphics/fonts/mainfont.1bpp");
 		static const std::string INV_CURSOR_FILE("assets_packed/graphics/static/inventory/cursor.2bpp");
 		static const std::string INV_ARROW_FILE("assets_packed/graphics/static/inventory/arrow.2bpp");
 		static const std::string INV_UNUSED1_FILE("assets_packed/graphics/static/inventory/unused1.2bpp");
@@ -186,6 +200,9 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Strings::STRING_BANK_PTR_PTR,     {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::MAIN_FONT_PTR,          {{Region::JP, 0x000000}, {Region::US, 0x022E84}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE1,      {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_LINE1,      {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_NTSC,       {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_PAL,        {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -219,6 +236,7 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
+		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::INV_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00DC76, 0x00E110}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Blocksets::SECTION,                 {{Region::JP, {0x1AF800, 0x1E0000}}, {Region::US, {0x1AF800, 0x1E0000}}, {Region::UK, {0x1AF800, 0x1E0000}}, {Region::FR, {0x1AF800, 0x1E0000}}, {Region::DE, {0x1AF800, 0x1E0000}}, {Region::US_BETA, {0x1AF800, 0x1E0000}}}},

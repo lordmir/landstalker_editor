@@ -3,6 +3,7 @@
 
 #include "DataManager.h"
 #include "DataTypes.h"
+#include "LSString.h"
 #include <memory>
 
 /*  TODO
@@ -44,17 +45,21 @@ private:
     bool AsmLoadFonts();
     bool AsmLoadStrings();
     bool AsmLoadInventoryGraphics();
+    bool AsmLoadCompressedStringData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
     bool RomLoadInventoryGraphics(const Rom& rom);
+    bool RomLoadCompressedStringData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
     bool AsmSaveInventoryGraphics(const filesystem::path& dir);
+    bool AsmSaveCompressedStringData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
+    bool RomPrepareInjectCompressedStringData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -63,7 +68,10 @@ private:
     filesystem::path m_region_check_routine_filename;
     filesystem::path m_region_check_strings_filename;
     filesystem::path m_system_font_filename;
+    filesystem::path m_strings_filename;
+    filesystem::path m_string_ptr_filename;
     filesystem::path m_inventory_graphics_filename;
+    filesystem::path m_string_filename_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -76,6 +84,9 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_internal;
     std::array<std::string, 4> m_system_strings;
     std::array<std::string, 4> m_system_strings_orig;
+
+    std::vector<std::vector<std::uint8_t>> m_strings;
+    std::vector<std::vector<std::uint8_t>> m_strings_orig;
 };
 
 #endif // _GRAPHICS_DATA_H_

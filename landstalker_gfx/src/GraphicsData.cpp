@@ -20,6 +20,10 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load inventory graphics data from \'") + m_inventory_graphics_filename.str() + '\'');
 	}
+	if (!AsmLoadCompressedStringData())
+	{
+		throw std::runtime_error(std::string("Unable to load compressed strings from \'") + m_strings_filename.str() + '\'');
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -40,6 +44,10 @@ GraphicsData::GraphicsData(const Rom& rom)
 	if (!RomLoadInventoryGraphics(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load inventory graphics from ROM"));
+	}
+	if (!RomLoadCompressedStringData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load compressed strings from ROM"));
 	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
@@ -68,6 +76,10 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	if (!AsmSaveInventoryGraphics(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save inventory graphics data to \'") + m_inventory_graphics_filename.str() + '\'');
+	}
+	if (!AsmSaveCompressedStringData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save compressed string data to \'") + m_strings_filename.str() + '\'');
 	}
 	return true;
 }
@@ -114,6 +126,10 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	if (!RomPrepareInjectInvGraphics(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare inventory graphics for ROM injection"));
+	}
+	if (!RomPrepareInjectCompressedStringData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare compressed strings for ROM injection"));
 	}
 }
 
@@ -170,6 +186,7 @@ void GraphicsData::CommitAllChanges()
 	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
 	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
+	m_strings_orig = m_strings;
 	m_pending_writes.clear();
 }
 
@@ -181,6 +198,8 @@ bool GraphicsData::LoadAsmFilenames()
 		AsmFile f(GetAsmFilename().str());
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::REGION_CHECK, m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::INV_SECTION, m_inventory_graphics_filename);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_SECTION, m_strings_filename);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_BANK_PTR_DATA, m_string_ptr_filename);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -201,6 +220,9 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_region_check_strings_filename.empty()) m_region_check_strings_filename = RomOffsets::Strings::REGION_CHECK_STRINGS_FILE;
 	if (m_system_font_filename.empty()) m_system_font_filename = RomOffsets::Graphics::SYS_FONT_FILE;
 	if (m_inventory_graphics_filename.empty()) m_inventory_graphics_filename = RomOffsets::Graphics::INV_GRAPHICS_FILE;
+	if (m_strings_filename.empty()) m_strings_filename = RomOffsets::Strings::STRINGS_FILE;
+	if (m_string_ptr_filename.empty()) m_string_ptr_filename = RomOffsets::Strings::STRING_BANK_PTR_FILE;
+	if (m_string_filename_path.empty()) m_string_filename_path = filesystem::path(RomOffsets::Strings::STRING_BANK_FILE).parent_path();
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -211,6 +233,9 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_region_check_strings_filename);
 	retval = retval && CreateDirectoryTree(dir / m_system_font_filename);
 	retval = retval && CreateDirectoryTree(dir / m_inventory_graphics_filename);
+	retval = retval && CreateDirectoryTree(dir / m_strings_filename);
+	retval = retval && CreateDirectoryTree(dir / m_string_ptr_filename);
+	retval = retval && CreateDirectoryTree(dir / m_string_filename_path / "x");
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -232,6 +257,7 @@ void GraphicsData::InitCache()
 	m_system_strings_orig = m_system_strings;
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
+	m_strings_orig = m_strings;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -327,6 +353,37 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 	return false;
 }
 
+bool GraphicsData::AsmLoadCompressedStringData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_strings_filename);
+		AsmFile::Label name;
+		AsmFile::IncludeFile inc;
+		file >> name >> inc;
+		auto font = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, false, 16, 15, 1);
+		m_fonts_by_name.insert({ font->GetName(), font});
+		m_fonts_internal.insert({ RomOffsets::Graphics::MAIN_FONT, font });
+		while (file.IsGood())
+		{
+			file >> name >> inc;
+			m_string_filename_path = inc.path.parent_path();
+			auto bytes = ReadBytes(GetBasePath() / inc.path);
+			auto it = bytes.cbegin();
+			while (it != bytes.cend() && *it != 0x00)
+			{
+				m_strings.push_back(ByteVector(it, it + *it));
+				it += *it;
+			}
+		}
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
 bool GraphicsData::RomLoadFonts(const Rom& rom)
 {
 	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
@@ -407,6 +464,26 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadCompressedStringData(const Rom& rom)
+{
+	uint32_t font_ptr = rom.read<uint32_t>(RomOffsets::Graphics::MAIN_FONT_PTR);
+	uint32_t bank_ptr = rom.read<uint32_t>(RomOffsets::Strings::STRING_BANK_PTR_PTR);
+	uint32_t banks_begin = rom.read<uint32_t>(bank_ptr);
+	auto font_bytes = rom.read_array<uint8_t>(font_ptr, banks_begin - font_ptr);
+	auto string_bytes = rom.read_array<uint8_t>(banks_begin, bank_ptr - banks_begin);
+	auto it = string_bytes.cbegin();
+	while (it != string_bytes.cend() && *it != 0x00)
+	{
+		m_strings.push_back(ByteVector(it, it + *it));
+		it += *it;
+	}
+	auto e = TilesetEntry::Create(this, font_bytes, RomOffsets::Graphics::MAIN_FONT,
+		RomOffsets::Graphics::MAIN_FONT_FILE, false, 16, 15, 1);
+	m_fonts_by_name.insert({ e->GetName(), e });
+	m_fonts_internal.insert({ e->GetName(), e });
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	bool retval = std::all_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), [&](auto& f)
@@ -474,6 +551,42 @@ bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 		write_inc(RomOffsets::Graphics::INV_PAL1, m_palettes_internal);
 		write_inc(RomOffsets::Graphics::INV_PAL2, m_palettes_internal);
 		ifile.WriteFile(dir / m_inventory_graphics_filename);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveCompressedStringData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile sfile, pfile;
+		sfile.WriteFileHeader(m_strings_filename, "Compressed Strings");
+		pfile.WriteFileHeader(m_string_ptr_filename, "Compressed String Bank Pointers");
+		auto font = m_fonts_internal[RomOffsets::Graphics::MAIN_FONT];
+		sfile << AsmFile::Label(font->GetName()) << AsmFile::IncludeFile(font->GetFilename(),AsmFile::FileType::BINARY);
+		pfile << AsmFile::Label(RomOffsets::Strings::STRING_BANK_PTR);
+		int f = 0;
+		for (int i = 0; i < m_strings.size(); i += 256)
+		{
+			ByteVector bytes;
+			for (int j = 0; j < 256 && (i + j) < m_strings.size(); ++j)
+			{
+				const auto& s = m_strings[i + j];
+				bytes.insert(bytes.end(), s.cbegin(), s.cend());
+			}
+			filesystem::path fname = StrPrintf(RomOffsets::Strings::STRING_BANK_FILE, f + 1);
+			std::string pname = StrPrintf(RomOffsets::Strings::STRING_BANK, f);
+			WriteBytes(bytes, dir / m_string_filename_path / fname.filename());
+			pfile << pname;
+			sfile << AsmFile::Label(pname) << AsmFile::IncludeFile(fname, AsmFile::FileType::BINARY);
+			f++;
+		}
+		sfile.WriteFile(dir / m_strings_filename);
+		pfile.WriteFile(dir / m_string_ptr_filename);
 		return true;
 	}
 	catch (const std::exception&)
@@ -572,6 +685,37 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal1_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL2, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal2_lea)) });
 
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectCompressedStringData(const Rom& rom)
+{
+	std::vector<uint32_t> bank_ptrs;
+	uint32_t bank_ptrs_ptr;
+	ByteVectorPtr bytes = std::make_shared<ByteVector>(*m_fonts_internal[RomOffsets::Graphics::MAIN_FONT]->GetBytes());
+	uint32_t begin = rom.get_section(RomOffsets::Strings::STRING_SECTION).begin;
+	for (int i = 0; i < m_strings.size(); i += 256)
+	{
+		bank_ptrs.push_back(begin + bytes->size());
+		for (int j = 0; j < 256 && (i + j) < m_strings.size(); ++j)
+		{
+			const auto& s = m_strings[i + j];
+			bytes->insert(bytes->end(), s.cbegin(), s.cend());
+		}
+	}
+	while ((bytes->size() & 3) != 0)
+	{
+		bytes->push_back(0);
+	}
+	bank_ptrs_ptr = bytes->size() + begin;
+	for (auto p : bank_ptrs)
+	{
+		auto b = Split<uint8_t, uint32_t>(p);
+		bytes->insert(bytes->end(), b.cbegin(), b.cend());
+	}
+	m_pending_writes.push_back({ RomOffsets::Strings::STRING_SECTION, bytes });
+	m_pending_writes.push_back({ RomOffsets::Strings::STRING_BANK_PTR_PTR, std::make_shared<ByteVector>(Split<uint8_t>(bank_ptrs_ptr)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::MAIN_FONT_PTR, std::make_shared<ByteVector>(Split<uint8_t>(begin)) });
 	return true;
 }
 

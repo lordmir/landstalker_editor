@@ -169,8 +169,9 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
         wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Misc. Graphics", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Inventory", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
@@ -286,14 +287,14 @@ void MainFrame::OpenRomFile(const wxString& path)
                 m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
             }
         }
-        m_browser->AppendItem(nodeF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
         {
-            m_browser->AppendItem(nodeF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& ts : m_g->GetGraphicsData()->GetMiscGraphics())
         {
-            m_browser->AppendItem(nodeG, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
@@ -327,8 +328,9 @@ void MainFrame::OpenAsmFile(const wxString& path)
         const int rm_img = m_imgs->GetIdx("room");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Misc. Graphics", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+        wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Inventory", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
@@ -347,14 +349,14 @@ void MainFrame::OpenAsmFile(const wxString& path)
                 m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
             }
         }
-        m_browser->AppendItem(nodeF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
         {
-            m_browser->AppendItem(nodeF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& ts : m_g->GetGraphicsData()->GetMiscGraphics())
         {
-            m_browser->AppendItem(nodeG, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+            m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
