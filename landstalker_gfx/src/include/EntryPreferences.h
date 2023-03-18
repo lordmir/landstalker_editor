@@ -21,4 +21,4 @@ private:
 	std::vector<std::string> m_all_palettes;
 };
 
-#endif _ENTRY_PREFERENCES_H_
+#endif // _ENTRY_PREFERENCES_H_
