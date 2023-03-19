@@ -51,6 +51,10 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load HUD data from \'") + asm_file.str() + '\'');
 	}
+	if (!AsmLoadEndCreditData())
+	{
+		throw std::runtime_error(std::string("Unable to load end credit data from \'") + m_end_credits_path.str() + '\'');
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -100,6 +104,10 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load HUD data from ROM"));
 	}
+	if (!RomLoadEndCreditData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load end credit data from ROM"));
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -143,6 +151,10 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	if (!AsmSaveHuffmanData(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save Huffman data to \'") + directory.str() + '\'');
+	}
+	if (!AsmSaveEndCreditData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save end credit data to \'") + m_end_credits_path.str() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -217,7 +229,15 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_huffman_tables_orig != m_huffman_tables)
+	if (entry_pred(m_end_credits_map))
+	{
+		return true;
+	}
+	if (entry_pred(m_end_credits_palette))
+	{
+		return true;
+	}
+	if (entry_pred(m_end_credits_tileset))
 	{
 		return true;
 	}
@@ -263,6 +283,10 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare HUD data for ROM injection"));
 	}
+	if (!RomPrepareInjectEndCreditData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare end credit data for ROM injection"));
+	}
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTilesets() const
@@ -284,6 +308,7 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 	{
 		result.insert(t);
 	}
+	result.insert({ m_end_credits_tileset->GetName(), m_end_credits_tileset });
 	return result;
 }
 
@@ -327,6 +352,11 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetStatusEffects() cons
 	return retval;
 }
 
+std::shared_ptr<TilesetEntry> GraphicsData::GetEndCreditLogos() const
+{
+	return m_end_credits_tileset;
+}
+
 std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalettes() const
 {
 	std::map<std::string, std::shared_ptr<PaletteEntry>> result;
@@ -334,6 +364,7 @@ std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalette
 	{
 		result.insert(t);
 	}
+	result.insert({ m_end_credits_palette->GetName(), m_end_credits_palette });
 	return result;
 }
 
@@ -358,6 +389,9 @@ void GraphicsData::CommitAllChanges()
 	m_misc_tilemaps_orig = m_misc_tilemaps;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
+	entry_commit(m_end_credits_map);
+	entry_commit(m_end_credits_palette);
+	entry_commit(m_end_credits_tileset);
 	m_pending_writes.clear();
 }
 
@@ -376,6 +410,7 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SWORD_FX_DATA, m_sword_fx_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_OFFSETS, m_huffman_offset_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::END_CREDITS_DATA, m_end_credits_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -404,6 +439,7 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_sword_fx_path.empty()) m_sword_fx_path = RomOffsets::Graphics::SWORD_FX_DATA_FILE;
 	if (m_huffman_offset_path.empty()) m_huffman_offset_path = RomOffsets::Strings::HUFFMAN_OFFSETS_FILE;
 	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
+	if (m_end_credits_path.empty()) m_huffman_table_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -422,6 +458,7 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_sword_fx_path);
 	retval = retval && CreateDirectoryTree(dir / m_huffman_offset_path);
 	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
+	retval = retval && CreateDirectoryTree(dir / m_end_credits_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -446,6 +483,9 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
+	retval = retval && CreateDirectoryTree(dir / m_end_credits_map->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_end_credits_palette->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_end_credits_tileset->GetFilename());
 	return retval;
 }
 
@@ -821,6 +861,43 @@ bool GraphicsData::AsmLoadHudData()
 	return false;
 }
 
+bool GraphicsData::AsmLoadEndCreditData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_end_credits_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		file >> lbl >> inc;
+		std::string pal_name = lbl;
+		auto pal_path = inc.path;
+		auto pal_bytes = ReadBytes(GetBasePath() / pal_path);
+		file >> lbl >> inc;
+		std::string font_name = lbl;
+		auto font_path = inc.path;
+		auto font_bytes = ReadBytes(GetBasePath() / font_path);
+		file >> lbl >> inc;
+		std::string logos_name = lbl;
+		auto logos_path = inc.path;
+		auto logos_bytes = ReadBytes(GetBasePath() / logos_path);
+		file >> lbl >> inc;
+		std::string map_name = lbl;
+		auto map_path = inc.path;
+		auto map_bytes = ReadBytes(GetBasePath() / map_path);
+		m_end_credits_palette = PaletteEntry::Create(this, pal_bytes, pal_name, pal_path, Palette::Type::END_CREDITS);
+		m_end_credits_tileset = TilesetEntry::Create(this, logos_bytes, logos_name, logos_path);
+		m_end_credits_map = Tilemap2DEntry::Create(this, map_bytes, map_name, map_path, Tilemap2D::Compression::RLE, 0x100);
+		auto font = TilesetEntry::Create(this, font_bytes, font_name, font_path, true, 8, 8, 2);
+		m_fonts_by_name.insert({ font->GetName(), font });
+		m_fonts_internal.insert({ RomOffsets::Graphics::END_CREDITS_FONT, font });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
 bool GraphicsData::RomLoadFonts(const Rom& rom)
 {
 	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
@@ -1181,6 +1258,42 @@ bool GraphicsData::RomLoadHudData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadEndCreditData(const Rom& rom)
+{
+	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_PAL),
+		rom.get_address(RomOffsets::Graphics::END_CREDITS_PAL));
+	uint32_t font_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_FONT),
+		rom.get_address(RomOffsets::Graphics::END_CREDITS_FONT));
+	uint32_t logos_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_LOGOS),
+		rom.get_address(RomOffsets::Graphics::END_CREDITS_LOGOS));
+	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_MAP),
+		rom.get_address(RomOffsets::Graphics::END_CREDITS_MAP));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::END_CREDITS_DATA).end;
+
+	uint32_t pal_size = font_addr - pal_addr;
+	uint32_t font_size = logos_addr - font_addr;
+	uint32_t logos_size = map_addr - logos_addr;
+	uint32_t map_size = end - map_addr;
+
+	auto pal_bytes = rom.read_array<uint8_t>(pal_addr, pal_size);
+	auto font_bytes = rom.read_array<uint8_t>(font_addr, font_size);
+	auto logos_bytes = rom.read_array<uint8_t>(logos_addr, logos_size);
+	auto map_bytes = rom.read_array<uint8_t>(map_addr, map_size);
+
+	m_end_credits_palette = PaletteEntry::Create(this, pal_bytes, RomOffsets::Graphics::END_CREDITS_PAL,
+		RomOffsets::Graphics::END_CREDITS_PAL_FILE, Palette::Type::END_CREDITS);
+	m_end_credits_tileset = TilesetEntry::Create(this, logos_bytes, RomOffsets::Graphics::END_CREDITS_LOGOS,
+		RomOffsets::Graphics::END_CREDITS_LOGOS_FILE);
+	m_end_credits_map = Tilemap2DEntry::Create(this, map_bytes, RomOffsets::Graphics::END_CREDITS_MAP,
+		RomOffsets::Graphics::END_CREDITS_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto font = TilesetEntry::Create(this, font_bytes, RomOffsets::Graphics::END_CREDITS_FONT,
+		RomOffsets::Graphics::END_CREDITS_FONT_FILE, true, 8, 8, 2);
+	m_fonts_by_name.insert({ font->GetName(), font });
+	m_fonts_internal.insert({ RomOffsets::Graphics::END_CREDITS_FONT, font });
+
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
@@ -1229,6 +1342,9 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 	{
 		WriteBytes(f.second, dir / f.first);
 	}
+	m_end_credits_map->Save(dir);
+	m_end_credits_palette->Save(dir);
+	m_end_credits_tileset->Save(dir);
 	return retval;
 }
 
@@ -1382,6 +1498,29 @@ bool GraphicsData::AsmSaveHuffmanData(const filesystem::path& dir)
 	WriteBytes(m_huffman_offsets, dir / m_huffman_offset_path);
 	WriteBytes(m_huffman_tables, dir / m_huffman_table_path);
 	return true;
+}
+
+bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_end_credits_path, "End Credits Data File");
+		file << AsmFile::Label(m_end_credits_palette->GetName())
+			<< AsmFile::IncludeFile(m_end_credits_palette->GetFilename(), AsmFile::BINARY);
+		const auto& font = m_fonts_internal[RomOffsets::Graphics::END_CREDITS_FONT];
+		file << AsmFile::Label(font->GetName()) << AsmFile::IncludeFile(font->GetFilename(), AsmFile::BINARY);
+		file << AsmFile::Label(m_end_credits_tileset->GetName())
+			<< AsmFile::IncludeFile(m_end_credits_tileset->GetFilename(), AsmFile::BINARY);
+		file << AsmFile::Label(m_end_credits_map->GetName())
+			<< AsmFile::IncludeFile(m_end_credits_map->GetFilename(), AsmFile::BINARY);
+		file.WriteFile(dir / m_end_credits_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
 }
 
 bool GraphicsData::RomPrepareInjectFonts(const Rom& rom)
@@ -1710,6 +1849,36 @@ bool GraphicsData::RomPrepareInjectHudData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectEndCreditData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::END_CREDITS_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_PAL), begin);
+	auto pal_bytes = m_end_credits_palette->GetBytes();
+	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
+
+	uint32_t font_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_FONT), begin + bytes->size());
+	auto font_bytes = m_fonts_internal[RomOffsets::Graphics::END_CREDITS_FONT]->GetBytes();
+	bytes->insert(bytes->end(), font_bytes->cbegin(), font_bytes->cend());
+
+	uint32_t logos_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_LOGOS), begin + bytes->size());
+	auto logos_bytes = m_end_credits_tileset->GetBytes();
+	bytes->insert(bytes->end(), logos_bytes->cbegin(), logos_bytes->cend());
+
+	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_MAP), begin + bytes->size());
+	auto map_bytes = m_end_credits_map->GetBytes();
+	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_FONT, std::make_shared<ByteVector>(Split<uint8_t>(font_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_LOGOS, std::make_shared<ByteVector>(Split<uint8_t>(logos_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+
+	return true;
+}
+
 void GraphicsData::UpdateTilesetRecommendedPalettes()
 {
 	std::vector<std::string> palettes;
@@ -1729,6 +1898,8 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	set_pals(m_misc_gfx_by_name);
 	set_pals(m_status_fx_frames);
 	set_pals(m_sword_fx);
+	m_end_credits_tileset->SetAllPalettes(palettes);
+	m_end_credits_tileset->SetRecommendedPalettes({ m_end_credits_palette->GetName() });
 }
 
 void GraphicsData::ResetTilesetDefaultPalettes()
@@ -1751,4 +1922,5 @@ void GraphicsData::ResetTilesetDefaultPalettes()
 	set_pals(m_misc_gfx_by_name);
 	set_pals(m_status_fx_frames);
 	set_pals(m_sword_fx);
+	m_end_credits_tileset->SetDefaultPalette(m_end_credits_palette->GetName());
 }

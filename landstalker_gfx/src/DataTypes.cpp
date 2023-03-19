@@ -128,6 +128,6 @@ bool Tilemap2DEntry::Serialise(const std::shared_ptr<Tilemap2D> in, ByteVectorPt
 bool Tilemap2DEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap2D>& out)
 {
 	out = std::make_shared<Tilemap2D>(width, height);
-	out->Open(*in, compression, base);
+	in->resize(out->Open(*in, compression, base));
 	return true;
 }

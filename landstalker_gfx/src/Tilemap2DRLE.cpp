@@ -97,9 +97,9 @@ bool Tilemap2D::Open(const std::string& filename, size_t width, size_t height, T
 	return Open(filename, compression, base);
 }
 
-bool Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compression compression, size_t base)
+uint32_t Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compression compression, size_t base)
 {
-	bool retval = false;
+	uint32_t retval = false;
 	m_base = base;
 	m_compression = compression;
 
@@ -108,32 +108,29 @@ bool Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compression co
 	case NONE:
 		if ((m_width > 0) && (m_height > 0) && (data.size() >= m_width * m_height * 2))
 		{
-			UnpackBytes(data);
-			retval = true;
+			retval = UnpackBytes(data);
 		}
 		break;
 	case RLE:
-		retval = true;
 		try
 		{
-			Uncompress(data);
+			retval = Uncompress(data);
 		}
 		catch (const std::exception& e)
 		{
-			retval = false;
+			retval = 0;
 		}
 		break;
 	case LZ77:
 		if (data.size() >= 0)
 		{
-			retval = true;
 			try
 			{
-				UncompressLZ77(data);
+				retval = UncompressLZ77(data);
 			}
 			catch (const std::exception& e)
 			{
-				retval = false;
+				retval = 0;
 			}
 		}
 		break;
@@ -142,7 +139,7 @@ bool Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compression co
 	return retval;
 }
 
-bool Tilemap2D::Open(const std::vector<uint8_t>& data, size_t width, size_t height, Tilemap2D::Compression compression, size_t base)
+uint32_t Tilemap2D::Open(const std::vector<uint8_t>& data, size_t width, size_t height, Tilemap2D::Compression compression, size_t base)
 {
 	m_width = width;
 	m_height = height;
@@ -358,7 +355,7 @@ std::vector<uint8_t> Tilemap2D::Compress() const
 	return cmp;
 }
 
-void Tilemap2D::Uncompress(const std::vector<uint8_t>& data)
+uint32_t Tilemap2D::Uncompress(const std::vector<uint8_t>& data)
 {
 	auto d = data.begin();
 	const std::size_t size = data.size();
@@ -507,6 +504,7 @@ void Tilemap2D::Uncompress(const std::vector<uint8_t>& data)
 			break;
 		}
 	}
+	return std::distance(data.begin(), d);
 }
 
 std::vector<uint8_t> Tilemap2D::CompressLZ77() const
@@ -523,7 +521,7 @@ std::vector<uint8_t> Tilemap2D::CompressLZ77() const
 	return result;
 }
 
-void Tilemap2D::UncompressLZ77(const std::vector<uint8_t>& data)
+uint32_t Tilemap2D::UncompressLZ77(const std::vector<uint8_t>& data)
 {
 	std::size_t elen = 0;
 	std::vector<uint8_t> result(65536);
@@ -537,17 +535,20 @@ void Tilemap2D::UncompressLZ77(const std::vector<uint8_t>& data)
 	result.erase(result.begin(), result.begin() + 4);
 	if (result.size() < (m_width * m_height * 2)) throw std::runtime_error("Bad LZ77 compressed map!");
 	UnpackBytes(result);
+	return elen;
 }
 
-void Tilemap2D::UnpackBytes(const std::vector<uint8_t>& data)
+uint32_t Tilemap2D::UnpackBytes(const std::vector<uint8_t>& data)
 {
 	m_tiles.clear();
 	m_tiles.reserve(m_width * m_height);
-	for (int i = 0; i < std::min(data.size(), m_width * m_height * 2); i += 2)
+	uint32_t size = std::min(data.size(), m_width * m_height * 2);
+	for (int i = 0; i < size; i += 2)
 	{
 		uint16_t val = (data[i] << 8) | data[i + 1];
 		m_tiles.push_back(val);
 	}
+	return size;
 }
 
 std::vector<uint8_t> Tilemap2D::PackBytes() const

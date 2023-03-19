@@ -130,6 +130,12 @@ namespace RomOffsets
 		static const std::string HUD_TILEMAP("StatusBarTilemap");
 		static const std::string HUD_TILESET("StatusBarGfx");
 
+		static const std::string END_CREDITS_DATA("EndCreditsData");
+		static const std::string END_CREDITS_PAL("EndCreditPal");
+		static const std::string END_CREDITS_FONT("EndCreditFont");
+		static const std::string END_CREDITS_LOGOS("EndCreditLogos");
+		static const std::string END_CREDITS_MAP("EndCreditLogoMap");
+
 		static const std::string INV_GRAPHICS_FILE("code/inventory/graphics.asm");
 		static const std::string SYS_FONT_FILE("assets_packed/graphics/fonts/system.bin");
 		static const std::string INV_FONT_FILE("assets_packed/graphics/fonts/menufont.1bpp");
@@ -164,6 +170,11 @@ namespace RomOffsets
 		static const std::string TEXTBOX_3LINE_MAP_FILE("assets_packed/graphics/static/textbox/threelinetextbox.map");
 		static const std::string HUD_TILEMAP_FILE("assets_packed/graphics/static/hud/hudtilemap.map");
 		static const std::string HUD_TILESET_FILE("assets_packed/graphics/static/hud/hud.lz77");
+		static const std::string END_CREDITS_DATA_FILE("code/ending/endcreditsdata.asm");
+		static const std::string END_CREDITS_PAL_FILE("assets_packed/graphics/static/ending/credits.pal");
+		static const std::string END_CREDITS_FONT_FILE("assets_packed/graphics/fonts/credits.lz77");
+		static const std::string END_CREDITS_LOGOS_FILE("assets_packed/graphics/static/ending/logos.lz77");
+		static const std::string END_CREDITS_MAP_FILE("assets_packed/graphics/static/ending/logos.rle");
 	}
 
 	namespace Tilesets
@@ -273,6 +284,10 @@ namespace RomOffsets
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
 		{ Strings::HUFFMAN_OFFSETS,         {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::HUFFMAN_TABLES,          {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_PAL,        {{Region::JP, 0x000000}, {Region::US, 0x09EC56}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_FONT,       {{Region::JP, 0x000000}, {Region::US, 0x09EC1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_LOGOS,      {{Region::JP, 0x000000}, {Region::US, 0x09EC32}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_MAP,        {{Region::JP, 0x000000}, {Region::US, 0x09EC46}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::HUD_TILEMAP,            {{Region::JP, 0x000000}, {Region::US, 0x008F8C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::HUD_TILESET,            {{Region::JP, 0x000000}, {Region::US, 0x008F34}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::TEXTBOX_2LINE_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x0234D4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -332,6 +347,7 @@ namespace RomOffsets
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
 		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::END_CREDITS_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09FA3A, 0x0A0A00}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::HUD_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009152, 0x0095AC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::SWORD_FX_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007A3C, 0x0085F2}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::STATUS_FX_SECTION,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x016ECA, 0x01776C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

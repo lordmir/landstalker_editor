@@ -9,7 +9,6 @@
 /*  TODO
 Fonts (Main, Menu, System, End Credits)
 2D Maps (Sega Logo, Climax Logo, Island Map, Lithograph, Intro, Credits Logos, File Select)
-HUD (Tiles, Textboxes, Inventory, etc.)
 */
 
 class GraphicsData : public DataManager
@@ -31,6 +30,7 @@ public:
     std::vector<std::shared_ptr<TilesetEntry>> GetMiscGraphics() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetSwordEffects() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetStatusEffects() const;
+    std::shared_ptr<TilesetEntry> GetEndCreditLogos() const;
 
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
 protected:
@@ -51,6 +51,7 @@ private:
     bool AsmLoadStatusFx();
     bool AsmLoadHuffmanData();
     bool AsmLoadHudData();
+    bool AsmLoadEndCreditData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
@@ -62,6 +63,7 @@ private:
     bool RomLoadStatusFx(const Rom& rom);
     bool RomLoadHuffmanData(const Rom& rom);
     bool RomLoadHudData(const Rom& rom);
+    bool RomLoadEndCreditData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -70,6 +72,7 @@ private:
     bool AsmSaveSwordFx(const filesystem::path& dir);
     bool AsmSaveStatusFx(const filesystem::path& dir);
     bool AsmSaveHuffmanData(const filesystem::path& dir);
+    bool AsmSaveEndCreditData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
@@ -80,6 +83,7 @@ private:
     bool RomPrepareInjectStatusFx(const Rom& rom);
     bool RomPrepareInjectHuffmanData(const Rom& rom);
     bool RomPrepareInjectHudData(const Rom& rom);
+    bool RomPrepareInjectEndCreditData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -97,6 +101,7 @@ private:
     filesystem::path m_sword_fx_path;
     filesystem::path m_huffman_offset_path;
     filesystem::path m_huffman_table_path;
+    filesystem::path m_end_credits_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -121,6 +126,9 @@ private:
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_misc_tilemaps_internal;
     std::array<std::string, 4> m_system_strings;
     std::array<std::string, 4> m_system_strings_orig;
+    std::shared_ptr<Tilemap2DEntry> m_end_credits_map;
+    std::shared_ptr<TilesetEntry> m_end_credits_tileset;
+    std::shared_ptr<PaletteEntry> m_end_credits_palette;
 
     std::vector<std::vector<std::uint8_t>> m_strings;
     std::vector<std::vector<std::uint8_t>> m_strings_orig;
