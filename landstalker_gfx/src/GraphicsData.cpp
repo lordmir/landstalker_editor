@@ -43,6 +43,14 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load status graphics from \'") + m_status_fx_path.str() + '\'');
 	}
+	if (!AsmLoadHuffmanData())
+	{
+		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
+	}
+	if (!AsmLoadHudData())
+	{
+		throw std::runtime_error(std::string("Unable to load HUD data from \'") + asm_file.str() + '\'');
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -84,6 +92,14 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load status graphics from ROM"));
 	}
+	if (!RomLoadHuffmanData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load Huffman data from ROM"));
+	}
+	if (!RomLoadHudData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load HUD data from ROM"));
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -123,6 +139,10 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	if (!AsmSaveStatusFx(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save status effects data to \'") + m_status_fx_path.str() + '\'');
+	}
+	if (!AsmSaveHuffmanData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save Huffman data to \'") + directory.str() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -193,6 +213,14 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_huffman_offsets_orig != m_huffman_offsets)
+	{
+		return true;
+	}
+	if (m_huffman_tables_orig != m_huffman_tables)
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -226,6 +254,14 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	if (!RomPrepareInjectStatusFx(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare status effects for ROM injection"));
+	}
+	if (!RomPrepareInjectHuffmanData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare Huffman data for ROM injection"));
+	}
+	if (!RomPrepareInjectHudData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare HUD data for ROM injection"));
 	}
 }
 
@@ -320,6 +356,8 @@ void GraphicsData::CommitAllChanges()
 	m_status_fx_frames_orig = m_status_fx_frames;
 	m_sword_fx_orig = m_sword_fx;
 	m_misc_tilemaps_orig = m_misc_tilemaps;
+	m_huffman_offsets_orig = m_huffman_offsets;
+	m_huffman_tables_orig = m_huffman_tables;
 	m_pending_writes.clear();
 }
 
@@ -336,6 +374,8 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_POINTERS, m_status_fx_pointers_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_DATA, m_status_fx_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SWORD_FX_DATA, m_sword_fx_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_OFFSETS, m_huffman_offset_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -362,6 +402,8 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_status_fx_path.empty()) m_status_fx_path = RomOffsets::Graphics::STATUS_FX_DATA_FILE;
 	if (m_status_fx_pointers_path.empty()) m_status_fx_pointers_path = RomOffsets::Graphics::STATUS_FX_POINTER_FILE;
 	if (m_sword_fx_path.empty()) m_sword_fx_path = RomOffsets::Graphics::SWORD_FX_DATA_FILE;
+	if (m_huffman_offset_path.empty()) m_huffman_offset_path = RomOffsets::Strings::HUFFMAN_OFFSETS_FILE;
+	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -378,6 +420,8 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_status_fx_path);
 	retval = retval && CreateDirectoryTree(dir / m_status_fx_pointers_path);
 	retval = retval && CreateDirectoryTree(dir / m_sword_fx_path);
+	retval = retval && CreateDirectoryTree(dir / m_huffman_offset_path);
+	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -416,6 +460,8 @@ void GraphicsData::InitCache()
 	m_status_fx_orig = m_status_fx;
 	m_status_fx_frames_orig = m_status_fx_frames;
 	m_misc_tilemaps_orig = m_misc_tilemaps;
+	m_huffman_offsets_orig = m_huffman_offsets;
+	m_huffman_tables_orig = m_huffman_tables;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -629,7 +675,7 @@ bool GraphicsData::AsmLoadSwordFx()
 		AsmFile::Label name;
 		file >> name >> inc;
 		auto tilemap_bytes = ReadBytes(GetBasePath() / inc.path);
-		auto m = Tilemap2DEntry::Create(this, tilemap_bytes, name, inc.path, Tilemap2D::Compression::LZ77, 0);
+		auto m = Tilemap2DEntry::Create(this, tilemap_bytes, name, inc.path, Tilemap2D::Compression::LZ77, 0x6B4);
 		m_misc_tilemaps.insert({ m->GetName(), m });
 		m_misc_tilemaps_internal.insert({ RomOffsets::Graphics::INV_TILEMAP, m });
 		auto names = { RomOffsets::Graphics::SWORD_MAGIC, RomOffsets::Graphics::SWORD_THUNDER,
@@ -712,6 +758,61 @@ bool GraphicsData::AsmLoadStatusFx()
 				m_status_fx_frames_internal.insert({ status_frame_name, m_status_fx_frames[status_frames[fi]] });
 			}
 		}
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadHuffmanData()
+{
+	filesystem::path path = GetBasePath() / m_huffman_offset_path;
+	m_huffman_offsets = ReadBytes(path);
+	path = GetBasePath() / m_huffman_table_path;
+	m_huffman_tables = ReadBytes(path);
+	try
+	{
+		AsmFile file(GetAsmFilename());
+		AsmFile::IncludeFile inc;
+		file.Goto(RomOffsets::Graphics::TEXTBOX_2LINE_MAP);
+		file >> inc;
+		auto tb2 = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
+			RomOffsets::Graphics::TEXTBOX_2LINE_MAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
+		file.Goto(RomOffsets::Graphics::TEXTBOX_3LINE_MAP);
+		file >> inc;
+		auto tb3 = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
+			RomOffsets::Graphics::TEXTBOX_3LINE_MAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 8);
+		m_misc_tilemaps.insert({ tb2->GetName(), tb2 });
+		m_misc_tilemaps_internal.insert({ tb2->GetName(), tb2 });
+		m_misc_tilemaps.insert({ tb3->GetName(), tb3 });
+		m_misc_tilemaps_internal.insert({ tb3->GetName(), tb3 });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadHudData()
+{
+	try
+	{
+		AsmFile file(GetAsmFilename());
+		AsmFile::IncludeFile inc;
+		file.Goto(RomOffsets::Graphics::HUD_TILEMAP);
+		file >> inc;
+		auto map = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
+			RomOffsets::Graphics::HUD_TILEMAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 3);
+		file.Goto(RomOffsets::Graphics::HUD_TILESET);
+		file >> inc;
+		auto ts = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), RomOffsets::Graphics::HUD_TILESET, inc.path);
+		m_misc_tilemaps.insert({ map->GetName(), map });
+		m_misc_tilemaps_internal.insert({ map->GetName(), map });
+		m_misc_gfx_by_name.insert({ ts->GetName(), ts });
+		m_misc_gfx_internal.insert({ ts->GetName(), ts });
 		return true;
 	}
 	catch (const std::exception&)
@@ -1018,6 +1119,68 @@ bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadHuffmanData(const Rom& rom)
+{
+	uint32_t textbox_2l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_2LINE_MAP),
+		rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP));
+	uint32_t textbox_3l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_3LINE_MAP),
+		rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP));
+	uint32_t huff_offsets_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_OFFSETS),
+		rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS));
+	uint32_t huff_tables_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_TABLES),
+		rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES));
+	uint32_t end = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).end;
+
+	uint32_t textbox_3l_size = textbox_2l_addr - textbox_3l_addr;
+	uint32_t textbox_2l_size = huff_offsets_addr - textbox_2l_addr;
+	uint32_t huff_offsets_size = huff_tables_addr - huff_offsets_addr;
+	uint32_t huff_tables_size = end - huff_tables_addr;
+
+	auto textbox_3l_bytes = rom.read_array<uint8_t>(textbox_3l_addr, textbox_3l_size);
+	auto textbox_2l_bytes = rom.read_array<uint8_t>(textbox_2l_addr, textbox_2l_size);
+	m_huffman_offsets = rom.read_array<uint8_t>(huff_offsets_addr, huff_offsets_size);
+	m_huffman_tables = rom.read_array<uint8_t>(huff_tables_addr, huff_tables_size);
+
+	auto textbox_3l = Tilemap2DEntry::Create(this, textbox_3l_bytes, RomOffsets::Graphics::TEXTBOX_3LINE_MAP,
+		RomOffsets::Graphics::TEXTBOX_3LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
+	auto textbox_2l = Tilemap2DEntry::Create(this, textbox_2l_bytes, RomOffsets::Graphics::TEXTBOX_2LINE_MAP,
+		RomOffsets::Graphics::TEXTBOX_2LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
+
+	m_misc_tilemaps.insert({ textbox_3l->GetName(), textbox_3l });
+	m_misc_tilemaps_internal.insert({ textbox_3l->GetName(), textbox_3l });
+	m_misc_tilemaps.insert({ textbox_2l->GetName(), textbox_2l });
+	m_misc_tilemaps_internal.insert({ textbox_2l->GetName(), textbox_2l });
+
+	return true;
+}
+
+bool GraphicsData::RomLoadHudData(const Rom& rom)
+{
+	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_TILEMAP),
+		rom.get_address(RomOffsets::Graphics::HUD_TILEMAP));
+	uint32_t ts_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_TILESET),
+		rom.get_address(RomOffsets::Graphics::HUD_TILESET));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::HUD_SECTION).end;
+
+	uint32_t map_size = ts_addr - map_addr;
+	uint32_t ts_size = end - ts_addr;
+
+	auto map_bytes = rom.read_array<uint8_t>(map_addr, map_size);
+	auto ts_bytes = rom.read_array<uint8_t>(ts_addr, ts_size);
+
+	auto map = Tilemap2DEntry::Create(this, map_bytes, RomOffsets::Graphics::HUD_TILEMAP,
+		RomOffsets::Graphics::HUD_TILEMAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 3);
+	auto ts = TilesetEntry::Create(this, ts_bytes, RomOffsets::Graphics::HUD_TILESET,
+		RomOffsets::Graphics::HUD_TILESET_FILE);
+
+	m_misc_tilemaps.insert({ map->GetName(), map });
+	m_misc_tilemaps_internal.insert({ map->GetName(), map });
+	m_misc_gfx_by_name.insert({ ts->GetName(), ts });
+	m_misc_gfx_internal.insert({ ts->GetName(), ts });
+
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
@@ -1034,6 +1197,10 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 			return f.second->Save(dir);
 		});
 	retval = retval && std::all_of(m_status_fx_frames.begin(), m_status_fx_frames.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1208,6 +1375,13 @@ bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
 	{
 	}
 	return false;
+}
+
+bool GraphicsData::AsmSaveHuffmanData(const filesystem::path& dir)
+{
+	WriteBytes(m_huffman_offsets, dir / m_huffman_offset_path);
+	WriteBytes(m_huffman_tables, dir / m_huffman_table_path);
+	return true;
 }
 
 bool GraphicsData::RomPrepareInjectFonts(const Rom& rom)
@@ -1485,6 +1659,54 @@ bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CONFUSION, std::make_shared<ByteVector>(Split<uint8_t>(confusion_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_PARALYSIS, std::make_shared<ByteVector>(Split<uint8_t>(paralysis_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CURSE, std::make_shared<ByteVector>(Split<uint8_t>(curse_lea)) });
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectHuffmanData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t textbox_3l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP), begin);
+	auto textbox_3l_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->GetBytes();
+	bytes->insert(bytes->end(), textbox_3l_bytes->cbegin(), textbox_3l_bytes->cend());
+
+	uint32_t textbox_2l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP), begin + bytes->size());
+	auto textbox_2l_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->GetBytes();
+	bytes->insert(bytes->end(), textbox_2l_bytes->cbegin(), textbox_2l_bytes->cend());
+
+	uint32_t huffman_offsets_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS), begin + bytes->size());
+	bytes->insert(bytes->end(), m_huffman_offsets.cbegin(), m_huffman_offsets.cend());
+
+	uint32_t huffman_tables_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES), begin + bytes->size());
+	bytes->insert(bytes->end(), m_huffman_tables.cbegin(), m_huffman_tables.cend());
+
+	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_SECTION, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_3LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_3l_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_2LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_2l_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_OFFSETS, std::make_shared<ByteVector>(Split<uint8_t>(huffman_offsets_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_TABLES, std::make_shared<ByteVector>(Split<uint8_t>(huffman_tables_lea)) });
+
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectHudData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::HUD_SECTION).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILEMAP), begin);
+	auto map_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::HUD_TILEMAP]->GetBytes();
+	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
+
+	uint32_t ts_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILESET), begin + bytes->size());
+	auto ts_bytes = m_misc_gfx_internal[RomOffsets::Graphics::HUD_TILESET]->GetBytes();
+	bytes->insert(bytes->end(), ts_bytes->cbegin(), ts_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_SECTION, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_TILEMAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_TILESET, std::make_shared<ByteVector>(Split<uint8_t>(ts_lea)) });
+
 	return true;
 }
 

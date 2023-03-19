@@ -130,13 +130,15 @@ public:
 class Tilemap2DEntry : public DataManager::Entry<Tilemap2D>, public PalettePreferences
 {
 public:
-	Tilemap2DEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression map_compression, uint16_t tile_base)
+	Tilemap2DEntry(DataManager * owner, const ByteVector & b, const std::string & name, const filesystem::path & filename, Tilemap2D::Compression map_compression, uint16_t tile_base, uint16_t width = 0, uint16_t height = 0)
 		: Entry(owner, b, name, filename),
 		compression(map_compression),
-		base(tile_base)
+		base(tile_base),
+		width(width),
+		height(height)
 	{}
 
-	static std::shared_ptr<Tilemap2DEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base);
+	static std::shared_ptr<Tilemap2DEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base, uint16_t width = 0, uint16_t height = 0);
 
 	virtual bool Serialise(const std::shared_ptr<Tilemap2D> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap2D>& out);
@@ -151,6 +153,8 @@ private:
 	std::string tileset;
 	Tilemap2D::Compression compression;
 	uint16_t base;
+	uint16_t width;
+	uint16_t height;
 };
 
 #endif // _DATA_TYPES_H_

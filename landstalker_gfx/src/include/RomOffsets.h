@@ -50,6 +50,9 @@ namespace RomOffsets
 		static const std::string STRING_BANK_PTR_DATA("StringBankPtrs");
 		static const std::string STRING_BANK_PTR_PTR("StringPtr");
 		static const std::string STRING_PTRS("StringPtrs");
+		static const std::string HUFFMAN_SECTION("HuffmanSection");
+		static const std::string HUFFMAN_OFFSETS("HuffTableOffsets");
+		static const std::string HUFFMAN_TABLES("HuffTables");
 
 		static const std::string STRINGS_FILE("code/text/strings.asm");
 		static const std::string STRING_PTR_FILE("code/pointertables/stringbankptr.asm");
@@ -58,6 +61,8 @@ namespace RomOffsets
 		static const std::string REGION_CHECK_FILE("code/system/regioncheck.asm");
 		static const std::string REGION_CHECK_STRINGS_FILE("code/system/regioncheck_strings.asm");
 		static const std::string REGION_CHECK_ROUTINE_FILE("code/system/regioncheck_routine.asm");
+		static const std::string HUFFMAN_OFFSETS_FILE("assets_packed/strings/main/huffmancharoffsets.bin");
+		static const std::string HUFFMAN_TABLE_FILE("assets_packed/strings/main/huffmantables.bin");
 	}
 
 	namespace Graphics
@@ -89,6 +94,8 @@ namespace RomOffsets
 		static const std::string DOWN_ARROW_SECTION("DownArrowGfxSection");
 		static const std::string RIGHT_ARROW("RightArrowGfx");
 		static const std::string RIGHT_ARROW_SECTION("RightArrowGfxSection");
+		static const std::string TEXTBOX_2LINE_MAP("InventoryTextBoxTilemap");
+		static const std::string TEXTBOX_3LINE_MAP("TextBoxTilemap");
 
 		static const std::string PLAYER_PAL("DefaultPlayerPal");
 		static const std::string HUD_PAL("StatusBarPal");
@@ -118,6 +125,10 @@ namespace RomOffsets
 		static const std::string SWORD_ICE("IceSwordGfx");
 		static const std::string COINFALL("CoinFallGfx");
 		static const std::string SWORD_FX_SECTION("SwordGfxSection");
+
+		static const std::string HUD_SECTION("HudSection");
+		static const std::string HUD_TILEMAP("StatusBarTilemap");
+		static const std::string HUD_TILESET("StatusBarGfx");
 
 		static const std::string INV_GRAPHICS_FILE("code/inventory/graphics.asm");
 		static const std::string SYS_FONT_FILE("assets_packed/graphics/fonts/system.bin");
@@ -149,6 +160,10 @@ namespace RomOffsets
 		static const std::string SWORD_GAIA_FILE("assets_packed/graphics/static/swordeffects/gaia.lz77");
 		static const std::string SWORD_ICE_FILE("assets_packed/graphics/static/swordeffects/ice.lz77");
 		static const std::string COINFALL_FILE("assets_packed/graphics/static/swordeffects/coinfall.lz77");
+		static const std::string TEXTBOX_2LINE_MAP_FILE("assets_packed/graphics/static/textbox/twolinetextbox.map");
+		static const std::string TEXTBOX_3LINE_MAP_FILE("assets_packed/graphics/static/textbox/threelinetextbox.map");
+		static const std::string HUD_TILEMAP_FILE("assets_packed/graphics/static/hud/hudtilemap.map");
+		static const std::string HUD_TILESET_FILE("assets_packed/graphics/static/hud/hud.lz77");
 	}
 
 	namespace Tilesets
@@ -256,6 +271,12 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Strings::HUFFMAN_OFFSETS,         {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::HUFFMAN_TABLES,          {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_TILEMAP,            {{Region::JP, 0x000000}, {Region::US, 0x008F8C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_TILESET,            {{Region::JP, 0x000000}, {Region::US, 0x008F34}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TEXTBOX_2LINE_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x0234D4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TEXTBOX_3LINE_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x0234E6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::STATUS_FX_POISON,       {{Region::JP, 0x000000}, {Region::US, 0x016E92}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::STATUS_FX_CONFUSION,    {{Region::JP, 0x000000}, {Region::US, 0x016E88}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::STATUS_FX_PARALYSIS,    {{Region::JP, 0x000000}, {Region::US, 0x016E7E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -310,6 +331,8 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
+		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::HUD_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009152, 0x0095AC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::SWORD_FX_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007A3C, 0x0085F2}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::STATUS_FX_SECTION,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x016ECA, 0x01776C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::DOWN_ARROW_SECTION,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0233BA, 0x02343A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

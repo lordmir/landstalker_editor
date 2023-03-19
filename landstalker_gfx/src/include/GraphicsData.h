@@ -10,9 +10,6 @@
 Fonts (Main, Menu, System, End Credits)
 2D Maps (Sega Logo, Climax Logo, Island Map, Lithograph, Intro, Credits Logos, File Select)
 HUD (Tiles, Textboxes, Inventory, etc.)
-SwordGfx
-StatusFx
-Palettes
 */
 
 class GraphicsData : public DataManager
@@ -52,6 +49,8 @@ private:
     bool AsmLoadTextGraphics();
     bool AsmLoadSwordFx();
     bool AsmLoadStatusFx();
+    bool AsmLoadHuffmanData();
+    bool AsmLoadHudData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
@@ -61,6 +60,8 @@ private:
     bool RomLoadTextGraphics(const Rom& rom);
     bool RomLoadSwordFx(const Rom& rom);
     bool RomLoadStatusFx(const Rom& rom);
+    bool RomLoadHuffmanData(const Rom& rom);
+    bool RomLoadHudData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -68,6 +69,7 @@ private:
     bool AsmSaveCompressedStringData(const filesystem::path& dir);
     bool AsmSaveSwordFx(const filesystem::path& dir);
     bool AsmSaveStatusFx(const filesystem::path& dir);
+    bool AsmSaveHuffmanData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
@@ -76,6 +78,8 @@ private:
     bool RomPrepareInjectTextGraphics(const Rom& rom);
     bool RomPrepareInjectSwordFx(const Rom& rom);
     bool RomPrepareInjectStatusFx(const Rom& rom);
+    bool RomPrepareInjectHuffmanData(const Rom& rom);
+    bool RomPrepareInjectHudData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -91,6 +95,8 @@ private:
     filesystem::path m_status_fx_path;
     filesystem::path m_status_fx_pointers_path;
     filesystem::path m_sword_fx_path;
+    filesystem::path m_huffman_offset_path;
+    filesystem::path m_huffman_table_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -118,6 +124,10 @@ private:
 
     std::vector<std::vector<std::uint8_t>> m_strings;
     std::vector<std::vector<std::uint8_t>> m_strings_orig;
+    std::vector<uint8_t> m_huffman_offsets;
+    std::vector<uint8_t> m_huffman_offsets_orig;
+    std::vector<uint8_t> m_huffman_tables;
+    std::vector<uint8_t> m_huffman_tables_orig;
 };
 
 #endif // _GRAPHICS_DATA_H_

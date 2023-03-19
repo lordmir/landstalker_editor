@@ -111,9 +111,9 @@ bool AnimatedTilesetEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<A
 	return true;
 }
 
-std::shared_ptr<Tilemap2DEntry> Tilemap2DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base)
+std::shared_ptr<Tilemap2DEntry> Tilemap2DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base, uint16_t width, uint16_t height)
 {
-	auto o = std::make_shared<Tilemap2DEntry>(owner, b, name, filename, compression, tile_base);
+	auto o = std::make_shared<Tilemap2DEntry>(owner, b, name, filename, compression, tile_base, width, height);
 	o->Initialise();
 	return o;
 }
@@ -127,7 +127,7 @@ bool Tilemap2DEntry::Serialise(const std::shared_ptr<Tilemap2D> in, ByteVectorPt
 
 bool Tilemap2DEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap2D>& out)
 {
-	out = std::make_shared<Tilemap2D>();
+	out = std::make_shared<Tilemap2D>(width, height);
 	out->Open(*in, compression, base);
 	return true;
 }
