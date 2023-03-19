@@ -130,6 +130,16 @@ namespace RomOffsets
 		static const std::string HUD_TILEMAP("StatusBarTilemap");
 		static const std::string HUD_TILESET("StatusBarGfx");
 
+		static const std::string ISLAND_MAP_DATA("IslandMapData");
+		static const std::string ISLAND_MAP_FG_TILES("IslandMapFg");
+		static const std::string ISLAND_MAP_FG_MAP("IslandMapFgMap");
+		static const std::string ISLAND_MAP_FG_PAL("IslandMapFgPal");
+		static const std::string ISLAND_MAP_BG_TILES("IslandMapBg");
+		static const std::string ISLAND_MAP_BG_MAP("IslandMapBgMap");
+		static const std::string ISLAND_MAP_BG_PAL("IslandMapBgPal");
+		static const std::string ISLAND_MAP_DOTS("MapDots");
+		static const std::string ISLAND_MAP_FRIDAY("MapFriday");
+
 		static const std::string END_CREDITS_DATA("EndCreditsData");
 		static const std::string END_CREDITS_PAL("EndCreditPal");
 		static const std::string END_CREDITS_FONT("EndCreditFont");
@@ -175,6 +185,15 @@ namespace RomOffsets
 		static const std::string END_CREDITS_FONT_FILE("assets_packed/graphics/fonts/credits.lz77");
 		static const std::string END_CREDITS_LOGOS_FILE("assets_packed/graphics/static/ending/logos.lz77");
 		static const std::string END_CREDITS_MAP_FILE("assets_packed/graphics/static/ending/logos.rle");
+		static const std::string ISLAND_MAP_DATA_FILE("code/graphics/staticimages/islandmapdata.asm");
+		static const std::string ISLAND_MAP_FG_TILES_FILE("assets_packed/graphics/static/islandmap/foreground.lz77");
+		static const std::string ISLAND_MAP_FG_MAP_FILE("assets_packed/graphics/static/islandmap/foreground.rle");
+		static const std::string ISLAND_MAP_BG_TILES_FILE("assets_packed/graphics/static/islandmap/background.lz77");
+		static const std::string ISLAND_MAP_BG_MAP_FILE("assets_packed/graphics/static/islandmap/background.rle");
+		static const std::string ISLAND_MAP_DOTS_FILE("assets_packed/graphics/static/islandmap/dots.lz77");
+		static const std::string ISLAND_MAP_FRIDAY_FILE("assets_packed/graphics/static/islandmap/friday.lz77");
+		static const std::string ISLAND_MAP_FG_PAL_FILE("assets_packed/graphics/static/islandmap/foreground.pal");
+		static const std::string ISLAND_MAP_BG_PAL_FILE("assets_packed/graphics/static/islandmap/background.pal");
 	}
 
 	namespace Tilesets
@@ -284,6 +303,13 @@ namespace RomOffsets
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
 		{ Strings::HUFFMAN_OFFSETS,         {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::HUFFMAN_TABLES,          {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_TILES,    {{Region::JP, 0x000000}, {Region::US, 0x03E6F2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x03E726}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_BG_TILES,    {{Region::JP, 0x000000}, {Region::US, 0x03E70C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_BG_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x03E766}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_DOTS,        {{Region::JP, 0x000000}, {Region::US, 0x03E694}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FRIDAY,      {{Region::JP, 0x000000}, {Region::US, 0x03E6AE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_PAL,      {{Region::JP, 0x000000}, {Region::US, 0x03E7D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::END_CREDITS_PAL,        {{Region::JP, 0x000000}, {Region::US, 0x09EC56}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::END_CREDITS_FONT,       {{Region::JP, 0x000000}, {Region::US, 0x09EC1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::END_CREDITS_LOGOS,      {{Region::JP, 0x000000}, {Region::US, 0x09EC32}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -347,6 +373,9 @@ namespace RomOffsets
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
 		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::ISLAND_MAP_DATA,          {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x03ED9A, 0x044010}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::END_CREDITS_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09FA3A, 0x0A0A00}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::HUD_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009152, 0x0095AC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::SWORD_FX_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007A3C, 0x0085F2}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
@@ -356,9 +385,7 @@ namespace RomOffsets
 		{ Graphics::EQUIP_PAL_SECTION,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007900, 0x00792C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::MISC_PAL_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00901C, 0x009046}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::INV_ITEM_PAL_SECTION,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
-		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::INV_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00DC76, 0x00E110}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
-		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Blocksets::SECTION,                 {{Region::JP, {0x1AF800, 0x1E0000}}, {Region::US, {0x1AF800, 0x1E0000}}, {Region::UK, {0x1AF800, 0x1E0000}}, {Region::FR, {0x1AF800, 0x1E0000}}, {Region::DE, {0x1AF800, 0x1E0000}}, {Region::US_BETA, {0x1AF800, 0x1E0000}}}},
 		{ Tilesets::SECTION,                  {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
 		{ Tilesets::DATA_LOC,                 {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},

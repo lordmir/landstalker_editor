@@ -7,8 +7,7 @@
 #include <memory>
 
 /*  TODO
-Fonts (Main, Menu, System, End Credits)
-2D Maps (Sega Logo, Climax Logo, Island Map, Lithograph, Intro, Credits Logos, File Select)
+2D Maps (Sega Logo, Climax Logo, Island Map, Lithograph, Intro, File Select)
 */
 
 class GraphicsData : public DataManager
@@ -31,6 +30,7 @@ public:
     std::vector<std::shared_ptr<TilesetEntry>> GetSwordEffects() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetStatusEffects() const;
     std::shared_ptr<TilesetEntry> GetEndCreditLogos() const;
+    std::vector<std::shared_ptr<TilesetEntry>> GetIslandMapTiles() const;
 
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
 protected:
@@ -52,6 +52,7 @@ private:
     bool AsmLoadHuffmanData();
     bool AsmLoadHudData();
     bool AsmLoadEndCreditData();
+    bool AsmLoadIslandMapData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
@@ -64,6 +65,7 @@ private:
     bool RomLoadHuffmanData(const Rom& rom);
     bool RomLoadHudData(const Rom& rom);
     bool RomLoadEndCreditData(const Rom& rom);
+    bool RomLoadIslandMapData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -73,6 +75,7 @@ private:
     bool AsmSaveStatusFx(const filesystem::path& dir);
     bool AsmSaveHuffmanData(const filesystem::path& dir);
     bool AsmSaveEndCreditData(const filesystem::path& dir);
+    bool AsmSaveIslandMapData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
@@ -84,6 +87,7 @@ private:
     bool RomPrepareInjectHuffmanData(const Rom& rom);
     bool RomPrepareInjectHudData(const Rom& rom);
     bool RomPrepareInjectEndCreditData(const Rom& rom);
+    bool RomPrepareInjectIslandMapData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -102,6 +106,7 @@ private:
     filesystem::path m_huffman_offset_path;
     filesystem::path m_huffman_table_path;
     filesystem::path m_end_credits_path;
+    filesystem::path m_island_map_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -129,6 +134,15 @@ private:
     std::shared_ptr<Tilemap2DEntry> m_end_credits_map;
     std::shared_ptr<TilesetEntry> m_end_credits_tileset;
     std::shared_ptr<PaletteEntry> m_end_credits_palette;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps_orig;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps_internal;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_island_map_tiles;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_island_map_tiles_orig;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_island_map_tiles_internal;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals_orig;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals_internal;
 
     std::vector<std::vector<std::uint8_t>> m_strings;
     std::vector<std::vector<std::uint8_t>> m_strings_orig;

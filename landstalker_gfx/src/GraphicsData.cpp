@@ -55,6 +55,10 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load end credit data from \'") + m_end_credits_path.str() + '\'');
 	}
+	if (!AsmLoadIslandMapData())
+	{
+		throw std::runtime_error(std::string("Unable to load island map data from \'") + m_island_map_path.str() + '\'');
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -108,6 +112,10 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load end credit data from ROM"));
 	}
+	if (!RomLoadIslandMapData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load island map data from ROM"));
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -156,6 +164,10 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save end credit data to \'") + m_end_credits_path.str() + '\'');
 	}
+	if (!AsmSaveIslandMapData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save island map data to \'") + m_island_map_path.str() + '\'');
+	}
 	CommitAllChanges();
 	return true;
 }
@@ -193,6 +205,18 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (std::any_of(m_island_map_pals.begin(), m_island_map_pals.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_island_map_tiles.begin(), m_island_map_tiles.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_island_map_tilemaps.begin(), m_island_map_tilemaps.end(), pair_pred))
+	{
+		return true;
+	}
 	if (m_fonts_by_name != m_fonts_by_name_orig)
 	{
 		return true;
@@ -226,6 +250,18 @@ bool GraphicsData::HasBeenModified() const
 		return true;
 	}
 	if (m_huffman_offsets_orig != m_huffman_offsets)
+	{
+		return true;
+	}
+	if (m_island_map_pals_orig != m_island_map_pals)
+	{
+		return true;
+	}
+	if (m_island_map_tilemaps_orig != m_island_map_tilemaps)
+	{
+		return true;
+	}
+	if (m_island_map_tiles_orig != m_island_map_tiles)
 	{
 		return true;
 	}
@@ -287,6 +323,10 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare end credit data for ROM injection"));
 	}
+	if (!RomPrepareInjectIslandMapData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare island map data for ROM injection"));
+	}
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTilesets() const
@@ -305,6 +345,10 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 		result.insert(t);
 	}
 	for (auto& t : m_status_fx_frames)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_island_map_tiles)
 	{
 		result.insert(t);
 	}
@@ -357,10 +401,24 @@ std::shared_ptr<TilesetEntry> GraphicsData::GetEndCreditLogos() const
 	return m_end_credits_tileset;
 }
 
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetIslandMapTiles() const
+{
+	std::vector<std::shared_ptr<TilesetEntry>> retval;
+	for (const auto& t : m_island_map_tiles)
+	{
+		retval.push_back(t.second);
+	}
+	return retval;
+}
+
 std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalettes() const
 {
 	std::map<std::string, std::shared_ptr<PaletteEntry>> result;
 	for (auto& t : m_palettes_by_name)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_island_map_pals)
 	{
 		result.insert(t);
 	}
@@ -378,6 +436,9 @@ void GraphicsData::CommitAllChanges()
 	std::for_each(m_status_fx_frames.begin(), m_status_fx_frames.end(), pair_commit);
 	std::for_each(m_sword_fx.begin(), m_sword_fx.end(), pair_commit);
 	std::for_each(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), pair_commit);
+	std::for_each(m_island_map_pals.begin(), m_island_map_pals.end(), pair_commit);
+	std::for_each(m_island_map_tilemaps.begin(), m_island_map_tilemaps.end(), pair_commit);
+	std::for_each(m_island_map_tiles.begin(), m_island_map_tiles.end(), pair_commit);
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
@@ -389,6 +450,9 @@ void GraphicsData::CommitAllChanges()
 	m_misc_tilemaps_orig = m_misc_tilemaps;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
+	m_island_map_pals_orig = m_island_map_pals;
+	m_island_map_tilemaps_orig = m_island_map_tilemaps;
+	m_island_map_tiles_orig = m_island_map_tiles;
 	entry_commit(m_end_credits_map);
 	entry_commit(m_end_credits_palette);
 	entry_commit(m_end_credits_tileset);
@@ -411,6 +475,7 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_OFFSETS, m_huffman_offset_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::END_CREDITS_DATA, m_end_credits_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::ISLAND_MAP_DATA, m_island_map_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -439,7 +504,8 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_sword_fx_path.empty()) m_sword_fx_path = RomOffsets::Graphics::SWORD_FX_DATA_FILE;
 	if (m_huffman_offset_path.empty()) m_huffman_offset_path = RomOffsets::Strings::HUFFMAN_OFFSETS_FILE;
 	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
-	if (m_end_credits_path.empty()) m_huffman_table_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
+	if (m_end_credits_path.empty()) m_end_credits_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
+	if (m_island_map_path.empty()) m_island_map_path = RomOffsets::Graphics::ISLAND_MAP_DATA_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -459,6 +525,7 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_huffman_offset_path);
 	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_path);
+	retval = retval && CreateDirectoryTree(dir / m_island_map_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -483,6 +550,18 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
+	for (const auto& f : m_island_map_pals)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_island_map_tiles)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_island_map_tilemaps)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_map->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_palette->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_tileset->GetFilename());
@@ -502,6 +581,9 @@ void GraphicsData::InitCache()
 	m_misc_tilemaps_orig = m_misc_tilemaps;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
+	m_island_map_pals_orig = m_island_map_pals;
+	m_island_map_tilemaps_orig = m_island_map_tilemaps;
+	m_island_map_tiles_orig = m_island_map_tiles;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -898,6 +980,58 @@ bool GraphicsData::AsmLoadEndCreditData()
 	return false;
 }
 
+bool GraphicsData::AsmLoadIslandMapData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_island_map_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			auto path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 8);
+		auto fg_tiles = TilesetEntry::Create(this, std::get<2>(entries[0]), std::get<0>(entries[0]), std::get<1>(entries[0]));
+		auto fg_map = Tilemap2DEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]), Tilemap2D::Compression::RLE, 0x100);
+		auto bg_tiles = TilesetEntry::Create(this, std::get<2>(entries[2]), std::get<0>(entries[2]), std::get<1>(entries[2]));
+		auto bg_map = Tilemap2DEntry::Create(this, std::get<2>(entries[3]), std::get<0>(entries[3]), std::get<1>(entries[3]), Tilemap2D::Compression::RLE, 0x100);
+		auto dots_tiles = TilesetEntry::Create(this, std::get<2>(entries[4]), std::get<0>(entries[4]), std::get<1>(entries[4]));
+		auto friday_tiles = TilesetEntry::Create(this, std::get<2>(entries[5]), std::get<0>(entries[5]), std::get<1>(entries[5]), true, 8, 8, 4, Tileset::BLOCK2X2);
+		auto fg_pal = PaletteEntry::Create(this, std::get<2>(entries[6]), std::get<0>(entries[6]), std::get<1>(entries[6]), Palette::Type::FULL);
+		auto bg_pal = PaletteEntry::Create(this, std::get<2>(entries[7]), std::get<0>(entries[7]), std::get<1>(entries[7]), Palette::Type::FULL);
+
+		m_island_map_tiles.insert({ fg_tiles->GetName(), fg_tiles });
+		m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_TILES, fg_tiles });
+		m_island_map_tiles.insert({ bg_tiles->GetName(), bg_tiles });
+		m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_TILES, bg_tiles });
+		m_island_map_tiles.insert({ dots_tiles->GetName(), dots_tiles });
+		m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_DOTS, dots_tiles });
+		m_island_map_tiles.insert({ friday_tiles->GetName(), friday_tiles });
+		m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FRIDAY, friday_tiles });
+
+		m_island_map_tilemaps.insert({ fg_map->GetName(), fg_map });
+		m_island_map_tilemaps_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_MAP, fg_map });
+		m_island_map_tilemaps.insert({ bg_map->GetName(), bg_map });
+		m_island_map_tilemaps_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_MAP, bg_map });
+
+		m_island_map_pals.insert({ fg_pal->GetName(), fg_pal });
+		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, fg_pal });
+		m_island_map_pals.insert({ bg_pal->GetName(), bg_pal });
+		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_PAL, bg_pal });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
 bool GraphicsData::RomLoadFonts(const Rom& rom)
 {
 	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
@@ -1219,7 +1353,7 @@ bool GraphicsData::RomLoadHuffmanData(const Rom& rom)
 	m_huffman_tables = rom.read_array<uint8_t>(huff_tables_addr, huff_tables_size);
 
 	auto textbox_3l = Tilemap2DEntry::Create(this, textbox_3l_bytes, RomOffsets::Graphics::TEXTBOX_3LINE_MAP,
-		RomOffsets::Graphics::TEXTBOX_3LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
+		RomOffsets::Graphics::TEXTBOX_3LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 8);
 	auto textbox_2l = Tilemap2DEntry::Create(this, textbox_2l_bytes, RomOffsets::Graphics::TEXTBOX_2LINE_MAP,
 		RomOffsets::Graphics::TEXTBOX_2LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
 
@@ -1294,6 +1428,73 @@ bool GraphicsData::RomLoadEndCreditData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
+{
+	uint32_t fg_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_TILES),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_TILES));
+	uint32_t fg_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_MAP),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_MAP));
+	uint32_t bg_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_BG_TILES),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_TILES));
+	uint32_t bg_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_BG_MAP),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_MAP));
+	uint32_t dots_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_DOTS),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_DOTS));
+	uint32_t friday_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FRIDAY),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FRIDAY));
+	uint32_t fg_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_PAL),
+		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_PAL));
+
+	uint32_t fg_tiles_size = fg_map_addr - fg_tiles_addr;
+	uint32_t fg_map_size = bg_tiles_addr - fg_map_addr;
+	uint32_t bg_tiles_size = bg_map_addr - bg_tiles_addr;
+	uint32_t bg_map_size = dots_addr - bg_map_addr;
+	uint32_t dots_size = friday_addr - dots_addr;
+	uint32_t friday_size = fg_pal_addr - friday_addr;
+	uint32_t fg_pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+	uint32_t bg_pal_addr = fg_pal_addr + fg_pal_size;
+	uint32_t bg_pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+
+	auto fg_tiles_bytes = rom.read_array<uint8_t>(fg_tiles_addr, fg_tiles_size);
+	auto fg_map_bytes = rom.read_array<uint8_t>(fg_map_addr, fg_map_size);
+	auto bg_tiles_bytes = rom.read_array<uint8_t>(bg_tiles_addr, bg_tiles_size);
+	auto bg_map_bytes = rom.read_array<uint8_t>(bg_map_addr, bg_map_size);
+	auto dots_bytes = rom.read_array<uint8_t>(dots_addr, dots_size);
+	auto friday_bytes = rom.read_array<uint8_t>(friday_addr, friday_size);
+	auto fg_pal_bytes = rom.read_array<uint8_t>(fg_pal_addr, fg_pal_size);
+	auto bg_pal_bytes = rom.read_array<uint8_t>(bg_pal_addr, bg_pal_size);
+
+	auto fg_tiles = TilesetEntry::Create(this, fg_tiles_bytes, RomOffsets::Graphics::ISLAND_MAP_FG_TILES, RomOffsets::Graphics::ISLAND_MAP_FG_TILES_FILE);
+	auto fg_map = Tilemap2DEntry::Create(this, fg_map_bytes, RomOffsets::Graphics::ISLAND_MAP_FG_MAP, RomOffsets::Graphics::ISLAND_MAP_FG_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto bg_tiles = TilesetEntry::Create(this, bg_tiles_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_TILES, RomOffsets::Graphics::ISLAND_MAP_BG_TILES_FILE);
+	auto bg_map = Tilemap2DEntry::Create(this, bg_map_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_MAP, RomOffsets::Graphics::ISLAND_MAP_BG_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto dots_tiles = TilesetEntry::Create(this, dots_bytes, RomOffsets::Graphics::ISLAND_MAP_DOTS, RomOffsets::Graphics::ISLAND_MAP_DOTS_FILE);
+	auto friday_tiles = TilesetEntry::Create(this, friday_bytes, RomOffsets::Graphics::ISLAND_MAP_FRIDAY, RomOffsets::Graphics::ISLAND_MAP_FRIDAY_FILE, true, 8, 8, 4, Tileset::BLOCK2X2);
+	auto fg_pal = PaletteEntry::Create(this, fg_pal_bytes, RomOffsets::Graphics::ISLAND_MAP_FG_PAL, RomOffsets::Graphics::ISLAND_MAP_FG_PAL_FILE, Palette::Type::FULL);
+	auto bg_pal = PaletteEntry::Create(this, bg_pal_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_PAL, RomOffsets::Graphics::ISLAND_MAP_BG_PAL_FILE, Palette::Type::FULL);
+
+	m_island_map_tiles.insert({ fg_tiles->GetName(), fg_tiles });
+	m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_TILES, fg_tiles });
+	m_island_map_tiles.insert({ bg_tiles->GetName(), bg_tiles });
+	m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_TILES, bg_tiles });
+	m_island_map_tiles.insert({ dots_tiles->GetName(), dots_tiles });
+	m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_DOTS, dots_tiles });
+	m_island_map_tiles.insert({ friday_tiles->GetName(), friday_tiles });
+	m_island_map_tiles_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FRIDAY, friday_tiles });
+
+	m_island_map_tilemaps.insert({ fg_map->GetName(), fg_map });
+	m_island_map_tilemaps_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_MAP, fg_map });
+	m_island_map_tilemaps.insert({ bg_map->GetName(), bg_map });
+	m_island_map_tilemaps_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_MAP, bg_map });
+
+	m_island_map_pals.insert({ fg_pal->GetName(), fg_pal });
+	m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, fg_pal });
+	m_island_map_pals.insert({ bg_pal->GetName(), bg_pal });
+	m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_PAL, bg_pal });
+
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
@@ -1314,6 +1515,18 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 			return f.second->Save(dir);
 		});
 	retval = retval && std::all_of(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_island_map_pals.begin(), m_island_map_pals.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_island_map_tilemaps.begin(), m_island_map_tilemaps.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_island_map_tiles.begin(), m_island_map_tiles.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1515,6 +1728,35 @@ bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
 		file << AsmFile::Label(m_end_credits_map->GetName())
 			<< AsmFile::IncludeFile(m_end_credits_map->GetFilename(), AsmFile::BINARY);
 		file.WriteFile(dir / m_end_credits_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_island_map_path, "Island Map Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		write_include(m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FG_TILES]);
+		write_include(m_island_map_tilemaps_internal[RomOffsets::Graphics::ISLAND_MAP_FG_MAP]);
+		write_include(m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_BG_TILES]);
+		write_include(m_island_map_tilemaps_internal[RomOffsets::Graphics::ISLAND_MAP_BG_MAP]);
+		write_include(m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_DOTS]);
+		write_include(m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FRIDAY]);
+		file << AsmFile::Align(2);
+		write_include(m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_FG_PAL]);
+		write_include(m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_BG_PAL]);
+
+		file.WriteFile(dir / m_island_map_path);
 		return true;
 	}
 	catch (const std::exception&)
@@ -1879,6 +2121,53 @@ bool GraphicsData::RomPrepareInjectEndCreditData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::ISLAND_MAP_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t fg_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_TILES), begin);
+	auto fg_tiles_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FG_TILES]->GetBytes();
+	bytes->insert(bytes->end(), fg_tiles_bytes->cbegin(), fg_tiles_bytes->cend());
+
+	uint32_t fg_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_MAP), begin + bytes->size());
+	auto fg_map_bytes = m_island_map_tilemaps[RomOffsets::Graphics::ISLAND_MAP_FG_MAP]->GetBytes();
+	bytes->insert(bytes->end(), fg_map_bytes->cbegin(), fg_map_bytes->cend());
+
+	uint32_t bg_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_TILES), begin + bytes->size());
+	auto bg_tiles_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_BG_TILES]->GetBytes();
+	bytes->insert(bytes->end(), bg_tiles_bytes->cbegin(), bg_tiles_bytes->cend());
+
+	uint32_t bg_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_MAP), begin + bytes->size());
+	auto bg_map_bytes = m_island_map_tilemaps[RomOffsets::Graphics::ISLAND_MAP_BG_MAP]->GetBytes();
+	bytes->insert(bytes->end(), bg_map_bytes->cbegin(), bg_map_bytes->cend());
+
+	uint32_t dots_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_DOTS), begin + bytes->size());
+	auto dots_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_DOTS]->GetBytes();
+	bytes->insert(bytes->end(), dots_bytes->cbegin(), dots_bytes->cend());
+
+	uint32_t friday_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FRIDAY), begin + bytes->size());
+	auto friday_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FRIDAY]->GetBytes();
+	bytes->insert(bytes->end(), friday_bytes->cbegin(), friday_bytes->cend());
+
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_PAL), begin + bytes->size());
+	auto fg_pal_bytes = m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_FG_PAL]->GetBytes();
+	auto bg_pal_bytes = m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_BG_PAL]->GetBytes();
+	bytes->insert(bytes->end(), fg_pal_bytes->cbegin(), fg_pal_bytes->cend());
+	bytes->insert(bytes->end(), bg_pal_bytes->cbegin(), bg_pal_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_TILES, std::make_shared<ByteVector>(Split<uint8_t>(fg_tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_MAP, std::make_shared<ByteVector>(Split<uint8_t>(fg_map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_BG_TILES, std::make_shared<ByteVector>(Split<uint8_t>(bg_tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_BG_MAP, std::make_shared<ByteVector>(Split<uint8_t>(bg_map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_DOTS, std::make_shared<ByteVector>(Split<uint8_t>(dots_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FRIDAY, std::make_shared<ByteVector>(Split<uint8_t>(friday_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	
+	return true;
+}
+
 void GraphicsData::UpdateTilesetRecommendedPalettes()
 {
 	std::vector<std::string> palettes;
@@ -1886,18 +2175,24 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	{
 		palettes.push_back(p.first);
 	}
-	auto set_pals = [&](auto& container)
+	std::vector<std::string> map_palettes;
+	for (const auto& p : m_island_map_pals)
+	{
+		map_palettes.push_back(p.first);
+	}
+	auto set_pals = [&](auto& container, const auto& rec)
 	{
 		for (auto& e : container)
 		{
 			e.second->SetAllPalettes(palettes);
-			e.second->SetRecommendedPalettes(palettes);
+			e.second->SetRecommendedPalettes(rec);
 		}
 	};
-	set_pals(m_fonts_by_name);
-	set_pals(m_misc_gfx_by_name);
-	set_pals(m_status_fx_frames);
-	set_pals(m_sword_fx);
+	set_pals(m_fonts_by_name, palettes);
+	set_pals(m_misc_gfx_by_name, palettes);
+	set_pals(m_status_fx_frames, palettes);
+	set_pals(m_sword_fx, palettes);
+	set_pals(m_island_map_tiles, map_palettes);
 	m_end_credits_tileset->SetAllPalettes(palettes);
 	m_end_credits_tileset->SetRecommendedPalettes({ m_end_credits_palette->GetName() });
 }
@@ -1922,5 +2217,6 @@ void GraphicsData::ResetTilesetDefaultPalettes()
 	set_pals(m_misc_gfx_by_name);
 	set_pals(m_status_fx_frames);
 	set_pals(m_sword_fx);
+	set_pals(m_island_map_tiles);
 	m_end_credits_tileset->SetDefaultPalette(m_end_credits_palette->GetName());
 }
