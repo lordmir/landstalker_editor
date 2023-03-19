@@ -94,6 +94,30 @@ namespace RomOffsets
 		static const std::string HUD_PAL("StatusBarPal");
 		static const std::string HUD_PAL_LEA2("StatusBarPal_Lea2");
 		static const std::string MISC_PAL_SECTION("MiscPalSection");
+		static const std::string EQUIP_PAL_SECTION("EquipPalSection");
+		static const std::string SWORD_PAL_SWAPS("SwordPalSwaps");
+		static const std::string ARMOUR_PAL_SWAPS("ArmourPalSwaps");
+
+		static const std::string STATUS_FX_POINTERS("StatusAnimPtrs");
+		static const std::string STATUS_FX_DATA("StatusAnimData");
+		static const std::string STATUS_FX_POISON("PoisonAnim");
+		static const std::string STATUS_FX_POISON_FRAME("PoisonAnimFrame%d");
+		static const std::string STATUS_FX_CONFUSION("ConfusionAnim");
+		static const std::string STATUS_FX_CONFUSION_FRAME("ConfusionAnimFrame%d");
+		static const std::string STATUS_FX_PARALYSIS("ParalysisAnim");
+		static const std::string STATUS_FX_PARALYSIS_FRAME("ParalysisAnimFrame%d");
+		static const std::string STATUS_FX_CURSE("CurseAnim");
+		static const std::string STATUS_FX_CURSE_FRAME("CurseAnimFrame%d");
+		static const std::string STATUS_FX_SECTION("StatusFxSection");
+
+		static const std::string SWORD_FX_DATA("SwordGfxData");
+		static const std::string INV_TILEMAP("InvScreenTilemap");
+		static const std::string SWORD_MAGIC("MagicSwordGfx");
+		static const std::string SWORD_THUNDER("ThunderSwordGfx");
+		static const std::string SWORD_GAIA("GaiaSwordGfx");
+		static const std::string SWORD_ICE("IceSwordGfx");
+		static const std::string COINFALL("CoinFallGfx");
+		static const std::string SWORD_FX_SECTION("SwordGfxSection");
 
 		static const std::string INV_GRAPHICS_FILE("code/inventory/graphics.asm");
 		static const std::string SYS_FONT_FILE("assets_packed/graphics/fonts/system.bin");
@@ -108,8 +132,23 @@ namespace RomOffsets
 		static const std::string PLAYER_PAL_FILE("assets_packed/graphics/miscpalettes/defaultplayer.pal");
 		static const std::string HUD_PAL_FILE("assets_packed/graphics/static/hud/hud.pal");
 		static const std::string INV_ITEM_PAL_FILE("assets_packed/graphics/static/inventory/invitempal.pal");
+		static const std::string SWORD_PAL_FILE("assets_packed/graphics/miscpalettes/swordpalswaps.pal");
+		static const std::string ARMOUR_PAL_FILE("assets_packed/graphics/miscpalettes/armourpalswaps.pal");
 		static const std::string DOWN_ARROW_FILE("assets_packed/graphics/static/textbox/downarrow.bin");
 		static const std::string RIGHT_ARROW_FILE("assets_packed/graphics/static/textbox/rightarrow.bin");
+		static const std::string STATUS_FX_POINTER_FILE("code/pointertables/graphics/statusanimptrs.asm");
+		static const std::string STATUS_FX_DATA_FILE("code/graphics/staticimages/statusfx.asm");
+		static const std::string STATUS_FX_POISON_FILE("assets_packed/graphics/static/statuseffects/poison%d.lz77");
+		static const std::string STATUS_FX_CONFUSION_FILE("assets_packed/graphics/static/statuseffects/confusion%d.lz77");
+		static const std::string STATUS_FX_PARALYSIS_FILE("assets_packed/graphics/static/statuseffects/paralysis%d.lz77");
+		static const std::string STATUS_FX_CURSE_FILE("assets_packed/graphics/static/statuseffects/curse%d.lz77");
+		static const std::string SWORD_FX_DATA_FILE("code/graphics/staticimages/swordfx.asm");
+		static const std::string INV_TILEMAP_FILE("assets_packed/graphics/static/inventory/invtilemap.lz77");
+		static const std::string SWORD_MAGIC_FILE("assets_packed/graphics/static/swordeffects/magic.lz77");
+		static const std::string SWORD_THUNDER_FILE("assets_packed/graphics/static/swordeffects/thunder.lz77");
+		static const std::string SWORD_GAIA_FILE("assets_packed/graphics/static/swordeffects/gaia.lz77");
+		static const std::string SWORD_ICE_FILE("assets_packed/graphics/static/swordeffects/ice.lz77");
+		static const std::string COINFALL_FILE("assets_packed/graphics/static/swordeffects/coinfall.lz77");
 	}
 
 	namespace Tilesets
@@ -217,8 +256,20 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Graphics::STATUS_FX_POISON,       {{Region::JP, 0x000000}, {Region::US, 0x016E92}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_CONFUSION,    {{Region::JP, 0x000000}, {Region::US, 0x016E88}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_PARALYSIS,    {{Region::JP, 0x000000}, {Region::US, 0x016E7E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_CURSE,        {{Region::JP, 0x000000}, {Region::US, 0x016E70}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_TILEMAP,            {{Region::JP, 0x000000}, {Region::US, 0x007816}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_MAGIC,            {{Region::JP, 0x000000}, {Region::US, 0x0077B2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_THUNDER,          {{Region::JP, 0x000000}, {Region::US, 0x0077BC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_GAIA,             {{Region::JP, 0x000000}, {Region::US, 0x0077C6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_ICE,              {{Region::JP, 0x000000}, {Region::US, 0x0077D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::COINFALL,               {{Region::JP, 0x000000}, {Region::US, 0x0077DA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::DOWN_ARROW,             {{Region::JP, 0x000000}, {Region::US, 0x02339E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::RIGHT_ARROW,            {{Region::JP, 0x000000}, {Region::US, 0x024998}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_PAL_SWAPS,        {{Region::JP, 0x000000}, {Region::US, 0x0078D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ARMOUR_PAL_SWAPS,       {{Region::JP, 0x000000}, {Region::US, 0x0078C0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_ITEM_PAL,           {{Region::JP, 0x000000}, {Region::US, 0x007876}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::HUD_PAL,                {{Region::JP, 0x000000}, {Region::US, 0x008E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::HUD_PAL_LEA2,           {{Region::JP, 0x000000}, {Region::US, 0x008FCE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -259,8 +310,11 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
+		{ Graphics::SWORD_FX_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007A3C, 0x0085F2}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::STATUS_FX_SECTION,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x016ECA, 0x01776C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::DOWN_ARROW_SECTION,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0233BA, 0x02343A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::RIGHT_ARROW_SECTION,      {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0249B4, 0x024A34}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::EQUIP_PAL_SECTION,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007900, 0x00792C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::MISC_PAL_SECTION,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00901C, 0x009046}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::INV_ITEM_PAL_SECTION,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

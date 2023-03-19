@@ -1,6 +1,9 @@
 #include "GraphicsData.h"
 #include "AsmUtils.h"
 
+#include <set>
+#include <numeric>
+
 GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
 {
@@ -31,6 +34,14 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	if (!AsmLoadTextGraphics())
 	{
 		throw std::runtime_error(std::string("Unable to load text graphics from \'") + asm_file.str() + '\'');
+	}
+	if (!AsmLoadSwordFx())
+	{
+		throw std::runtime_error(std::string("Unable to load sword graphics from \'") + m_sword_fx_path.str() + '\'');
+	}
+	if (!AsmLoadStatusFx())
+	{
+		throw std::runtime_error(std::string("Unable to load status graphics from \'") + m_status_fx_path.str() + '\'');
 	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
@@ -65,6 +76,14 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load text graphics from ROM"));
 	}
+	if (!RomLoadSwordFx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load sword effects from ROM"));
+	}
+	if (!RomLoadStatusFx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load status graphics from ROM"));
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -97,6 +116,15 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save compressed string data to \'") + m_strings_filename.str() + '\'');
 	}
+	if (!AsmSaveSwordFx(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save sword effects data to \'") + m_sword_fx_path.str() + '\'');
+	}
+	if (!AsmSaveStatusFx(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save status effects data to \'") + m_status_fx_path.str() + '\'');
+	}
+	CommitAllChanges();
 	return true;
 }
 
@@ -113,6 +141,26 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (std::any_of(m_misc_gfx_by_name.begin(), m_misc_gfx_by_name.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_sword_fx.begin(), m_sword_fx.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_status_fx_frames.begin(), m_status_fx_frames.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), pair_pred))
+	{
+		return true;
+	}
 	if (m_fonts_by_name != m_fonts_by_name_orig)
 	{
 		return true;
@@ -126,6 +174,22 @@ bool GraphicsData::HasBeenModified() const
 		return true;
 	}
 	if (m_misc_gfx_by_name_orig != m_misc_gfx_by_name)
+	{
+		return true;
+	}
+	if (m_sword_fx_orig != m_sword_fx)
+	{
+		return true;
+	}
+	if (m_status_fx_orig != m_status_fx)
+	{
+		return true;
+	}
+	if (m_status_fx_frames_orig != m_status_fx_frames)
+	{
+		return true;
+	}
+	if (m_misc_tilemaps_orig != m_misc_tilemaps)
 	{
 		return true;
 	}
@@ -155,6 +219,14 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare text graphics for ROM injection"));
 	}
+	if (!RomPrepareInjectSwordFx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare sword effects for ROM injection"));
+	}
+	if (!RomPrepareInjectStatusFx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare status effects for ROM injection"));
+	}
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTilesets() const
@@ -165,6 +237,14 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 		result.insert(t);
 	}
 	for (auto& t : m_misc_gfx_by_name)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_sword_fx)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_status_fx_frames)
 	{
 		result.insert(t);
 	}
@@ -191,6 +271,26 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetMiscGraphics() const
 	return retval;
 }
 
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetSwordEffects() const
+{
+	std::vector<std::shared_ptr<TilesetEntry>> retval;
+	for (const auto& t : m_sword_fx)
+	{
+		retval.push_back(t.second);
+	}
+	return retval;
+}
+
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetStatusEffects() const
+{
+	std::vector<std::shared_ptr<TilesetEntry>> retval;
+	for (const auto& t : m_status_fx_frames)
+	{
+		retval.push_back(t.second);
+	}
+	return retval;
+}
+
 std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalettes() const
 {
 	std::map<std::string, std::shared_ptr<PaletteEntry>> result;
@@ -206,11 +306,20 @@ void GraphicsData::CommitAllChanges()
 	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
 	std::for_each(m_fonts_by_name.begin(), m_fonts_by_name.end(), pair_commit);
+	std::for_each(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_commit);
+	std::for_each(m_misc_gfx_by_name.begin(), m_misc_gfx_by_name.end(), pair_commit);
+	std::for_each(m_status_fx_frames.begin(), m_status_fx_frames.end(), pair_commit);
+	std::for_each(m_sword_fx.begin(), m_sword_fx.end(), pair_commit);
+	std::for_each(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), pair_commit);
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
 	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
 	m_strings_orig = m_strings;
+	m_status_fx_orig = m_status_fx;
+	m_status_fx_frames_orig = m_status_fx_frames;
+	m_sword_fx_orig = m_sword_fx;
+	m_misc_tilemaps_orig = m_misc_tilemaps;
 	m_pending_writes.clear();
 }
 
@@ -224,6 +333,9 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::INV_SECTION, m_inventory_graphics_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_SECTION, m_strings_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_BANK_PTR_DATA, m_string_ptr_filename);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_POINTERS, m_status_fx_pointers_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_DATA, m_status_fx_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SWORD_FX_DATA, m_sword_fx_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -247,6 +359,9 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_strings_filename.empty()) m_strings_filename = RomOffsets::Strings::STRINGS_FILE;
 	if (m_string_ptr_filename.empty()) m_string_ptr_filename = RomOffsets::Strings::STRING_BANK_PTR_FILE;
 	if (m_string_filename_path.empty()) m_string_filename_path = filesystem::path(RomOffsets::Strings::STRING_BANK_FILE).parent_path();
+	if (m_status_fx_path.empty()) m_status_fx_path = RomOffsets::Graphics::STATUS_FX_DATA_FILE;
+	if (m_status_fx_pointers_path.empty()) m_status_fx_pointers_path = RomOffsets::Graphics::STATUS_FX_POINTER_FILE;
+	if (m_sword_fx_path.empty()) m_sword_fx_path = RomOffsets::Graphics::SWORD_FX_DATA_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -260,6 +375,9 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_strings_filename);
 	retval = retval && CreateDirectoryTree(dir / m_string_ptr_filename);
 	retval = retval && CreateDirectoryTree(dir / m_string_filename_path / "x");
+	retval = retval && CreateDirectoryTree(dir / m_status_fx_path);
+	retval = retval && CreateDirectoryTree(dir / m_status_fx_pointers_path);
+	retval = retval && CreateDirectoryTree(dir / m_sword_fx_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -272,6 +390,18 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / p.second->GetFilename());
 	}
+	for (const auto& f : m_sword_fx)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_status_fx_frames)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_misc_tilemaps)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
 	return retval;
 }
 
@@ -282,6 +412,10 @@ void GraphicsData::InitCache()
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
 	m_strings_orig = m_strings;
+	m_sword_fx_orig = m_sword_fx;
+	m_status_fx_orig = m_status_fx;
+	m_status_fx_frames_orig = m_status_fx_frames;
+	m_misc_tilemaps_orig = m_misc_tilemaps;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -414,6 +548,17 @@ bool GraphicsData::AsmLoadPalettes()
 	{
 		AsmFile file(GetAsmFilename());
 		AsmFile::IncludeFile inc;
+		auto extract_pals = [&](const ByteVector& bytes, const std::string& name, Palette::Type type)
+		{
+			int idx = 0;
+			for (auto it = bytes.cbegin(); it != bytes.cend(); it += Palette::GetSizeBytes(type))
+			{
+				auto pal_bytes = ByteVector(it, it + Palette::GetSizeBytes(type));
+				auto e = PaletteEntry::Create(this, pal_bytes, name + ":" + std::to_string(idx++), inc.path, type);
+				m_palettes_by_name.insert({ e->GetName(), e });
+				m_palettes_internal.insert({ e->GetName(), e });
+			}
+		};
 		file.Goto(RomOffsets::Graphics::PLAYER_PAL);
 		file >> inc;
 		auto player_pal = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
@@ -425,7 +570,16 @@ bool GraphicsData::AsmLoadPalettes()
 		file.Goto(RomOffsets::Graphics::INV_ITEM_PAL);
 		file >> inc;
 		auto item_pal = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::INV_ITEM_PAL, inc.path, Palette::Type::HUD);
+			RomOffsets::Graphics::INV_ITEM_PAL, inc.path, Palette::Type::FULL);
+		file.Goto(RomOffsets::Graphics::SWORD_PAL_SWAPS);
+		file >> inc;
+		auto sword_pal_bytes = ReadBytes(GetBasePath() / inc.path);
+		extract_pals(sword_pal_bytes, RomOffsets::Graphics::SWORD_PAL_SWAPS, Palette::Type::SWORD);
+		file.Goto(RomOffsets::Graphics::ARMOUR_PAL_SWAPS);
+		file >> inc;
+		auto armour_pal_bytes = ReadBytes(GetBasePath() / inc.path);
+		extract_pals(armour_pal_bytes, RomOffsets::Graphics::ARMOUR_PAL_SWAPS, Palette::Type::ARMOUR);
+
 		m_palettes_by_name.insert({ player_pal->GetName(), player_pal });
 		m_palettes_by_name.insert({ hud_pal->GetName(), hud_pal });
 		m_palettes_by_name.insert({ item_pal->GetName(), item_pal });
@@ -455,9 +609,109 @@ bool GraphicsData::AsmLoadTextGraphics()
 		auto right_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
 			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
 		m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
-		m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
+		m_misc_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
+		m_misc_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
 		m_misc_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
-		m_misc_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadSwordFx()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_sword_fx_path);
+		AsmFile::IncludeFile inc;
+		AsmFile::Label name;
+		file >> name >> inc;
+		auto tilemap_bytes = ReadBytes(GetBasePath() / inc.path);
+		auto m = Tilemap2DEntry::Create(this, tilemap_bytes, name, inc.path, Tilemap2D::Compression::LZ77, 0);
+		m_misc_tilemaps.insert({ m->GetName(), m });
+		m_misc_tilemaps_internal.insert({ RomOffsets::Graphics::INV_TILEMAP, m });
+		auto names = { RomOffsets::Graphics::SWORD_MAGIC, RomOffsets::Graphics::SWORD_THUNDER,
+					   RomOffsets::Graphics::SWORD_GAIA,  RomOffsets::Graphics::SWORD_ICE,
+					   RomOffsets::Graphics::COINFALL };
+		auto names_it = names.begin();
+		int count = 0;
+		while (file.IsGood())
+		{
+			file >> name >> inc;
+			std::shared_ptr<TilesetEntry> e;
+			// Gaia FX, Coinfall FX
+			if ((count == 2) || (count == 4))
+			{
+				e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
+					name, inc.path, true, 8, 8, 4, Tileset::BLOCK4X4);
+			}
+			else
+			{
+				e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
+					name, inc.path, true, 8, 8, 4, Tileset::BLOCK4X6);
+			}
+			m_sword_fx.insert({ e->GetName(), e });
+			if (count < names.size())
+			{
+				m_sword_fx_internal.insert({ *names_it++, e });
+			}
+			else
+			{
+				m_sword_fx_internal.insert({ e->GetName(), e });
+			}
+			count++;
+		}
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadStatusFx()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_status_fx_path);
+		AsmFile::IncludeFile inc;
+		AsmFile::Label name;
+		while (file.IsGood())
+		{
+			file >> name >> inc;
+			std::shared_ptr<TilesetEntry> e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name,
+				inc.path, true, 8, 8, 4, Tileset::BLOCK4X4);
+			m_status_fx_frames.insert({ e->GetName(), e });
+		}
+		AsmFile pfile(GetBasePath() / m_status_fx_pointers_path);
+		std::vector<std::string> status = { RomOffsets::Graphics::STATUS_FX_POISON, RomOffsets::Graphics::STATUS_FX_CONFUSION,
+					   RomOffsets::Graphics::STATUS_FX_PARALYSIS, RomOffsets::Graphics::STATUS_FX_CURSE };
+		std::vector<std::string> status_frame_names = { RomOffsets::Graphics::STATUS_FX_POISON_FRAME, RomOffsets::Graphics::STATUS_FX_CONFUSION_FRAME,
+					   RomOffsets::Graphics::STATUS_FX_PARALYSIS_FRAME, RomOffsets::Graphics::STATUS_FX_CURSE_FRAME };
+		for (const auto& s : status)
+		{
+			pfile.Goto(s);
+			std::string frame;
+			do
+			{
+				pfile >> frame;
+				m_status_fx[s].push_back(frame);
+			} while (pfile.IsGood() && !pfile.IsLabel());
+		}
+		for (int si = 0; si < status.size(); si++)
+		{
+			const auto& status_name = status[si];
+			const auto& status_frame_name = status_frame_names[si];
+			const auto& status_frames = m_status_fx[status_name];
+			for (int fi = 0; fi < status_frames.size(); ++fi)
+			{
+				std::string fname = StrPrintf(status_frame_name, fi + 1);
+				m_status_fx_internal[status_name].push_back(status_frame_name);
+				m_status_fx_frames_internal.insert({ status_frame_name, m_status_fx_frames[status_frames[fi]] });
+			}
+		}
 		return true;
 	}
 	catch (const std::exception&)
@@ -568,21 +822,43 @@ bool GraphicsData::RomLoadCompressedStringData(const Rom& rom)
 
 bool GraphicsData::RomLoadPalettes(const Rom& rom)
 {
+	auto extract_pals = [&](const ByteVector& bytes, const std::string& name, filesystem::path fname, Palette::Type type)
+	{
+		int idx = 0;
+		for (auto it = bytes.cbegin(); it != bytes.cend(); it += Palette::GetSizeBytes(type))
+		{
+			auto pal_bytes = ByteVector(it, it + Palette::GetSizeBytes(type));
+			auto e = PaletteEntry::Create(this, pal_bytes, name + ":" + std::to_string(idx++), fname, type);
+			m_palettes_by_name.insert({ e->GetName(), e });
+			m_palettes_internal.insert({ e->GetName(), e });
+		}
+	};
 	uint32_t player_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::PLAYER_PAL),
 		rom.get_address(RomOffsets::Graphics::PLAYER_PAL));
 	uint32_t hud_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_PAL),
 		rom.get_address(RomOffsets::Graphics::HUD_PAL));
 	uint32_t item_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::INV_ITEM_PAL),
 		rom.get_address(RomOffsets::Graphics::INV_ITEM_PAL));
+	uint32_t sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_PAL_SWAPS),
+		rom.get_address(RomOffsets::Graphics::SWORD_PAL_SWAPS));
+	uint32_t armour_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ARMOUR_PAL_SWAPS),
+		rom.get_address(RomOffsets::Graphics::ARMOUR_PAL_SWAPS));
+	uint32_t armour_end_addr = rom.get_section(RomOffsets::Graphics::EQUIP_PAL_SECTION).end;
+	uint32_t sword_pal_size = armour_addr - sword_addr;
+	uint32_t armour_pal_size = armour_end_addr - armour_addr;
 	auto player_bytes = rom.read_array<uint8_t>(player_addr, Palette::GetSizeBytes(Palette::Type::FULL));
 	auto hud_bytes = rom.read_array<uint8_t>(hud_addr, Palette::GetSizeBytes(Palette::Type::HUD));
 	auto item_bytes = rom.read_array<uint8_t>(item_addr, Palette::GetSizeBytes(Palette::Type::FULL));
+	auto sword_bytes = rom.read_array<uint8_t>(sword_addr, sword_pal_size);
+	auto armour_bytes = rom.read_array<uint8_t>(armour_addr, armour_pal_size);
 	auto player_pal = PaletteEntry::Create(this, player_bytes, RomOffsets::Graphics::PLAYER_PAL,
 		RomOffsets::Graphics::PLAYER_PAL_FILE, Palette::Type::FULL);
 	auto hud_pal = PaletteEntry::Create(this, hud_bytes, RomOffsets::Graphics::HUD_PAL,
 		RomOffsets::Graphics::HUD_PAL_FILE, Palette::Type::HUD);
 	auto item_pal = PaletteEntry::Create(this, item_bytes, RomOffsets::Graphics::INV_ITEM_PAL,
 		RomOffsets::Graphics::INV_ITEM_PAL_FILE, Palette::Type::FULL);
+	extract_pals(sword_bytes, RomOffsets::Graphics::SWORD_PAL_SWAPS, RomOffsets::Graphics::SWORD_PAL_FILE, Palette::Type::SWORD);
+	extract_pals(armour_bytes, RomOffsets::Graphics::ARMOUR_PAL_SWAPS, RomOffsets::Graphics::ARMOUR_PAL_FILE, Palette::Type::ARMOUR);
 	m_palettes_by_name.insert({ player_pal->GetName(), player_pal });
 	m_palettes_internal.insert({ player_pal->GetName(), player_pal });
 	m_palettes_by_name.insert({ hud_pal->GetName(), hud_pal });
@@ -615,8 +891,136 @@ bool GraphicsData::RomLoadTextGraphics(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadSwordFx(const Rom& rom)
+{
+	uint32_t inv_tilemap_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::INV_TILEMAP),
+		rom.get_address(RomOffsets::Graphics::INV_TILEMAP));
+	uint32_t magic_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_MAGIC),
+		rom.get_address(RomOffsets::Graphics::SWORD_MAGIC));
+	uint32_t thunder_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_THUNDER),
+		rom.get_address(RomOffsets::Graphics::SWORD_THUNDER));
+	uint32_t gaia_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_GAIA),
+		rom.get_address(RomOffsets::Graphics::SWORD_GAIA));
+	uint32_t ice_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_ICE),
+		rom.get_address(RomOffsets::Graphics::SWORD_ICE));
+	uint32_t coinfall_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::COINFALL),
+		rom.get_address(RomOffsets::Graphics::COINFALL));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::SWORD_FX_SECTION).end;
+	
+	uint32_t inv_tilemap_size = magic_sword_addr - inv_tilemap_addr;
+	uint32_t magic_sword_size = thunder_sword_addr - magic_sword_addr;
+	uint32_t thunder_sword_size = gaia_sword_addr - thunder_sword_addr;
+	uint32_t gaia_sword_size = ice_sword_addr - gaia_sword_addr;
+	uint32_t ice_sword_size = coinfall_addr - ice_sword_addr;
+	uint32_t coinfall_size = end - coinfall_addr;
+
+	auto inv_tilemap_bytes = rom.read_array<uint8_t>(inv_tilemap_addr, inv_tilemap_size);
+	auto magic_sword_bytes = rom.read_array<uint8_t>(magic_sword_addr, magic_sword_size);
+	auto thunder_sword_bytes = rom.read_array<uint8_t>(thunder_sword_addr, thunder_sword_size);
+	auto gaia_sword_bytes = rom.read_array<uint8_t>(gaia_sword_addr, gaia_sword_size);
+	auto ice_sword_bytes = rom.read_array<uint8_t>(ice_sword_addr, ice_sword_size);
+	auto coinfall_bytes = rom.read_array<uint8_t>(coinfall_addr, coinfall_size);
+
+	auto inv_tilemap = Tilemap2DEntry::Create(this, inv_tilemap_bytes, RomOffsets::Graphics::INV_TILEMAP,
+		RomOffsets::Graphics::INV_TILEMAP_FILE, Tilemap2D::Compression::LZ77, 0);
+	auto magic_sword = TilesetEntry::Create(this, magic_sword_bytes, RomOffsets::Graphics::SWORD_MAGIC,
+		RomOffsets::Graphics::SWORD_MAGIC_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+	auto thunder_sword = TilesetEntry::Create(this, thunder_sword_bytes, RomOffsets::Graphics::SWORD_THUNDER,
+		RomOffsets::Graphics::SWORD_THUNDER_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+	auto gaia_sword = TilesetEntry::Create(this, gaia_sword_bytes, RomOffsets::Graphics::SWORD_GAIA,
+		RomOffsets::Graphics::SWORD_GAIA_FILE, true, 8, 8, 4, Tileset::BLOCK4X4);
+	auto ice_sword = TilesetEntry::Create(this, ice_sword_bytes, RomOffsets::Graphics::SWORD_ICE,
+		RomOffsets::Graphics::SWORD_ICE_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+	auto coinfall = TilesetEntry::Create(this, coinfall_bytes, RomOffsets::Graphics::COINFALL,
+		RomOffsets::Graphics::COINFALL_FILE, true, 8, 8, 4, Tileset::BLOCK4X4);
+
+	inv_tilemap->SetStartAddress(inv_tilemap_addr);
+	magic_sword->SetStartAddress(magic_sword_addr);
+	thunder_sword->SetStartAddress(thunder_sword_addr);
+	gaia_sword->SetStartAddress(gaia_sword_addr);
+	ice_sword->SetStartAddress(ice_sword_addr);
+	coinfall->SetStartAddress(coinfall_addr);
+
+	m_misc_tilemaps.insert({ inv_tilemap->GetName(), inv_tilemap });
+	m_misc_tilemaps_internal.insert({ inv_tilemap->GetName(), inv_tilemap });
+	m_sword_fx.insert({ magic_sword->GetName(), magic_sword });
+	m_sword_fx_internal.insert({ magic_sword->GetName(), magic_sword });
+	m_sword_fx.insert({ thunder_sword->GetName(), thunder_sword });
+	m_sword_fx_internal.insert({ thunder_sword->GetName(), thunder_sword });
+	m_sword_fx.insert({ gaia_sword->GetName(), gaia_sword });
+	m_sword_fx_internal.insert({ gaia_sword->GetName(), gaia_sword });
+	m_sword_fx.insert({ ice_sword->GetName(), ice_sword });
+	m_sword_fx_internal.insert({ ice_sword->GetName(), ice_sword });
+	m_sword_fx.insert({ coinfall->GetName(), coinfall });
+	m_sword_fx_internal.insert({ coinfall->GetName(), coinfall });
+	return true;
+}
+
+bool GraphicsData::RomLoadStatusFx(const Rom& rom)
+{
+	uint32_t poison_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_POISON),
+		rom.get_address(RomOffsets::Graphics::STATUS_FX_POISON));
+	uint32_t confusion_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_CONFUSION),
+		rom.get_address(RomOffsets::Graphics::STATUS_FX_CONFUSION));
+	uint32_t paralysis_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_PARALYSIS),
+		rom.get_address(RomOffsets::Graphics::STATUS_FX_PARALYSIS));
+	uint32_t curse_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_CURSE),
+		rom.get_address(RomOffsets::Graphics::STATUS_FX_CURSE));
+	std::vector<uint32_t> poison_frame_ptrs;
+	std::vector<uint32_t> confusion_frame_ptrs;
+	std::vector<uint32_t> paralysis_frame_ptrs;
+	std::vector<uint32_t> curse_frame_ptrs;
+	
+	uint32_t ptrs_end = 0xFFFFFF;
+	auto get_ptrs = [&](uint32_t addr, uint32_t& end, std::vector<uint32_t>& ptrs)
+	{
+		int i = 0;
+		while (addr < end)
+		{
+			uint32_t p = rom.inc_read<uint32_t>(addr);
+			if (p < ptrs_end)
+			{
+				ptrs_end = p;
+			}
+			ptrs.push_back(p);
+		}
+	};
+	get_ptrs(poison_ptrs_addr, confusion_ptrs_addr, poison_frame_ptrs);
+	get_ptrs(confusion_ptrs_addr, paralysis_ptrs_addr, confusion_frame_ptrs);
+	get_ptrs(paralysis_ptrs_addr, curse_ptrs_addr, paralysis_frame_ptrs);
+	get_ptrs(curse_ptrs_addr, ptrs_end, curse_frame_ptrs);
+	uint32_t end = rom.get_section(RomOffsets::Graphics::STATUS_FX_SECTION).end;
+	auto read_frames = [&](const std::vector<uint32_t>& ptrs, const std::string status_name,
+		const std::string& frame_name, const std::string& filename)
+	{
+		int i = 1;
+		for (const auto& addr : ptrs)
+		{
+			std::string name = StrPrintf(frame_name, i);
+			std::string fname = StrPrintf(filename, i++);
+			auto b = rom.read_array<uint8_t>(addr, end - addr);
+			auto e = TilesetEntry::Create(this, b, name, fname, true, 8, 8, 4, Tileset::BLOCK4X4);
+			e->SetStartAddress(addr);
+			m_status_fx_frames.insert({ name, e });
+			m_status_fx_frames_internal.insert({ name, e });
+			m_status_fx[status_name].push_back(name);
+			m_status_fx_internal[status_name].push_back(name);
+		}
+	};
+	read_frames(poison_frame_ptrs, RomOffsets::Graphics::STATUS_FX_POISON,
+		RomOffsets::Graphics::STATUS_FX_POISON_FRAME, RomOffsets::Graphics::STATUS_FX_POISON_FILE);
+	read_frames(confusion_frame_ptrs, RomOffsets::Graphics::STATUS_FX_CONFUSION,
+		RomOffsets::Graphics::STATUS_FX_CONFUSION_FRAME, RomOffsets::Graphics::STATUS_FX_CONFUSION_FILE);
+	read_frames(paralysis_frame_ptrs, RomOffsets::Graphics::STATUS_FX_PARALYSIS,
+		RomOffsets::Graphics::STATUS_FX_PARALYSIS_FRAME, RomOffsets::Graphics::STATUS_FX_PARALYSIS_FILE);
+	read_frames(curse_frame_ptrs, RomOffsets::Graphics::STATUS_FX_CURSE,
+		RomOffsets::Graphics::STATUS_FX_CURSE_FRAME, RomOffsets::Graphics::STATUS_FX_CURSE_FILE);
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
+	std::unordered_map<std::string, ByteVector> combined;
 	bool retval = std::all_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
@@ -625,10 +1029,39 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 		{
 			return f.second->Save(dir);
 		});
-	retval = retval && std::all_of(m_palettes_by_name.begin(), m_palettes_by_name.end(), [&](auto& f)
+	retval = retval && std::all_of(m_sword_fx.begin(), m_sword_fx.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
+	retval = retval && std::all_of(m_status_fx_frames.begin(), m_status_fx_frames.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_palettes_by_name.begin(), m_palettes_by_name.end(), [&](auto& f)
+		{
+			if (f.first.find(':') == std::string::npos)
+			{
+				return f.second->Save(dir);
+			}
+			else
+			{
+				auto it = combined.find(f.second->GetFilename().str());
+				if (it == combined.cend())
+				{
+					combined.insert({ f.second->GetFilename().str(), *f.second->GetBytes()});
+				}
+				else
+				{
+					auto bytes = f.second->GetBytes();
+					it->second.insert(it->second.end(), bytes->begin(), bytes->end());
+				}
+				return true;
+			}
+		});
+	for (const auto& f : combined)
+	{
+		WriteBytes(f.second, dir / f.first);
+	}
 	return retval;
 }
 
@@ -718,6 +1151,57 @@ bool GraphicsData::AsmSaveCompressedStringData(const filesystem::path& dir)
 		}
 		sfile.WriteFile(dir / m_strings_filename);
 		pfile.WriteFile(dir / m_string_ptr_filename);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveSwordFx(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_sword_fx_path, "Magic Sword Effects");
+		auto invmap = m_misc_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP];
+		file << AsmFile::Label(invmap->GetName()) << AsmFile::IncludeFile(invmap->GetFilename(), AsmFile::BINARY);
+		for (const auto& t : m_sword_fx)
+		{
+			file << AsmFile::Label(t.first) << AsmFile::IncludeFile(t.second->GetFilename(), AsmFile::BINARY);
+		}
+		file.WriteFile(dir / m_sword_fx_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile pfile;
+		pfile.WriteFileHeader(m_status_fx_pointers_path, "Status Effects Pointers File");
+		for (const auto& status : m_status_fx)
+		{
+			pfile << AsmFile::Label(status.first);
+			for (const auto& frame : status.second)
+			{
+				pfile << frame;
+			}
+		}
+		pfile.WriteFile(dir / m_status_fx_pointers_path);
+		AsmFile file;
+		file.WriteFileHeader(m_status_fx_path, "Status Effects Data File");
+		for (const auto& frame : m_status_fx_frames)
+		{
+			file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::BINARY);
+		}
+		file.WriteFile(dir / m_status_fx_path);
 		return true;
 	}
 	catch (const std::exception&)
@@ -866,12 +1350,36 @@ bool GraphicsData::RomPrepareInjectPalettes(const Rom& rom)
 	uint32_t item_pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_ITEM_PAL), item_pal_begin);
 	auto item_pal = m_palettes_internal[RomOffsets::Graphics::INV_ITEM_PAL]->GetBytes();
 
+	uint32_t equip_pal_begin = rom.get_section(RomOffsets::Graphics::EQUIP_PAL_SECTION).begin;
+	uint32_t sword_pal_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Graphics::SWORD_PAL_SWAPS), equip_pal_begin);
+	auto sword_pal_bytes = std::make_shared<ByteVector>();
+	auto armour_pal_bytes = std::make_shared<ByteVector>();
+	for (const auto& p : m_palettes_internal)
+	{
+		if (p.first.find(RomOffsets::Graphics::SWORD_PAL_SWAPS) != std::string::npos)
+		{
+			auto bytes = p.second->GetBytes();
+			sword_pal_bytes->insert(sword_pal_bytes->end(), bytes->cbegin(), bytes->cend());
+		}
+		else if (p.first.find(RomOffsets::Graphics::ARMOUR_PAL_SWAPS) != std::string::npos)
+		{
+			auto bytes = p.second->GetBytes();
+			armour_pal_bytes->insert(armour_pal_bytes->end(), bytes->cbegin(), bytes->cend());
+		}
+	}
+	uint32_t armour_pal_begin = equip_pal_begin + sword_pal_bytes->size();
+	uint32_t armour_pal_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Graphics::ARMOUR_PAL_SWAPS), armour_pal_begin);
+	sword_pal_bytes->insert(sword_pal_bytes->end(), armour_pal_bytes->cbegin(), armour_pal_bytes->cend());
+
 	m_pending_writes.push_back({ RomOffsets::Graphics::MISC_PAL_SECTION, bytes });
 	m_pending_writes.push_back({ RomOffsets::Graphics::PLAYER_PAL, std::make_shared<ByteVector>(Split<uint8_t>(player_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_PAL, std::make_shared<ByteVector>(Split<uint8_t>(hud_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_PAL_LEA2, std::make_shared<ByteVector>(Split<uint8_t>(hud_lea2)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_ITEM_PAL_SECTION, item_pal });
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_ITEM_PAL, std::make_shared<ByteVector>(Split<uint8_t>(item_pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::EQUIP_PAL_SECTION, sword_pal_bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_PAL_SWAPS, std::make_shared<ByteVector>(Split<uint8_t>(sword_pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::ARMOUR_PAL_SWAPS, std::make_shared<ByteVector>(Split<uint8_t>(armour_pal_lea)) });
 
 	return true;
 }
@@ -893,6 +1401,93 @@ bool GraphicsData::RomPrepareInjectTextGraphics(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectSwordFx(const Rom& rom)
+{
+	uint32_t sword_fx_begin = rom.get_section(RomOffsets::Graphics::SWORD_FX_SECTION).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t inv_tilemap_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_TILEMAP), sword_fx_begin);
+	auto inv_tilemap_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP]->GetBytes();
+	bytes->insert(bytes->end(), inv_tilemap_bytes->cbegin(), inv_tilemap_bytes->cend());
+
+	uint32_t magic_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_MAGIC), sword_fx_begin + bytes->size());
+	auto magic_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_MAGIC]->GetBytes();
+	bytes->insert(bytes->end(), magic_sword_bytes->cbegin(), magic_sword_bytes->cend());
+
+	uint32_t thunder_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_THUNDER), sword_fx_begin + bytes->size());
+	auto thunder_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_THUNDER]->GetBytes();
+	bytes->insert(bytes->end(), thunder_sword_bytes->cbegin(), thunder_sword_bytes->cend());
+
+	uint32_t gaia_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_GAIA), sword_fx_begin + bytes->size());
+	auto gaia_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_GAIA]->GetBytes();
+	bytes->insert(bytes->end(), gaia_sword_bytes->cbegin(), gaia_sword_bytes->cend());
+
+	uint32_t ice_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_ICE), sword_fx_begin + bytes->size());
+	auto ice_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_ICE]->GetBytes();
+	bytes->insert(bytes->end(), ice_sword_bytes->cbegin(), ice_sword_bytes->cend());
+
+	uint32_t coinfall_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::COINFALL), sword_fx_begin + bytes->size());
+	auto coinfall_bytes = m_sword_fx_internal[RomOffsets::Graphics::COINFALL]->GetBytes();
+	bytes->insert(bytes->end(), coinfall_bytes->cbegin(), coinfall_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_FX_SECTION, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::INV_TILEMAP, std::make_shared<ByteVector>(Split<uint8_t>(inv_tilemap_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_MAGIC, std::make_shared<ByteVector>(Split<uint8_t>(magic_sword_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_THUNDER, std::make_shared<ByteVector>(Split<uint8_t>(thunder_sword_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_GAIA, std::make_shared<ByteVector>(Split<uint8_t>(gaia_sword_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_ICE, std::make_shared<ByteVector>(Split<uint8_t>(ice_sword_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::COINFALL, std::make_shared<ByteVector>(Split<uint8_t>(coinfall_lea)) });
+
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::STATUS_FX_SECTION).begin;
+	auto bytes = std::make_shared<ByteVector>();
+	uint32_t pointer_table_size = 0;
+	std::unordered_map<std::string, uint32_t> pointers;
+
+	uint32_t poison_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_POISON), begin);
+	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_POISON].size() * sizeof(uint32_t);
+	uint32_t confusion_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_CONFUSION), begin + pointer_table_size);
+	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_CONFUSION].size() * sizeof(uint32_t);
+	uint32_t paralysis_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_PARALYSIS), begin + pointer_table_size);
+	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_PARALYSIS].size() * sizeof(uint32_t);
+	uint32_t curse_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_CURSE), begin + pointer_table_size);
+	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_CURSE].size() * sizeof(uint32_t);
+
+	uint32_t addr = pointer_table_size;
+	bytes->resize(pointer_table_size);
+	for (const auto& f : m_status_fx_frames)
+	{
+		auto fb = f.second->GetBytes();
+		pointers[f.first] = bytes->size() + begin;
+		bytes->insert(bytes->end(), fb->cbegin(), fb->cend());
+	}
+	auto it = bytes->begin();
+	for (const auto& s : { RomOffsets::Graphics::STATUS_FX_POISON,    RomOffsets::Graphics::STATUS_FX_CONFUSION,
+		                   RomOffsets::Graphics::STATUS_FX_PARALYSIS, RomOffsets::Graphics::STATUS_FX_CURSE })
+	{
+		const auto& frames = m_status_fx[s];
+		for (const auto& p : frames)
+		{
+			uint32_t addr = pointers[p];
+			*it++ = (addr >> 24) & 0xFF;
+			*it++ = (addr >> 16) & 0xFF;
+			*it++ = (addr >> 8) & 0xFF;
+			*it++ = addr & 0xFF;
+		}
+	}
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_SECTION, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_POISON, std::make_shared<ByteVector>(Split<uint8_t>(poison_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CONFUSION, std::make_shared<ByteVector>(Split<uint8_t>(confusion_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_PARALYSIS, std::make_shared<ByteVector>(Split<uint8_t>(paralysis_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CURSE, std::make_shared<ByteVector>(Split<uint8_t>(curse_lea)) });
+	return true;
+}
+
 void GraphicsData::UpdateTilesetRecommendedPalettes()
 {
 	std::vector<std::string> palettes;
@@ -910,6 +1505,8 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	};
 	set_pals(m_fonts_by_name);
 	set_pals(m_misc_gfx_by_name);
+	set_pals(m_status_fx_frames);
+	set_pals(m_sword_fx);
 }
 
 void GraphicsData::ResetTilesetDefaultPalettes()
@@ -930,4 +1527,6 @@ void GraphicsData::ResetTilesetDefaultPalettes()
 	};
 	set_pals(m_fonts_by_name);
 	set_pals(m_misc_gfx_by_name);
+	set_pals(m_status_fx_frames);
+	set_pals(m_sword_fx);
 }

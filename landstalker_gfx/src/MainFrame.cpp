@@ -14,6 +14,7 @@
 #include <wx/aboutdlg.h>
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
+#include <wx/richmsgdlg.h>
 #include <wx/colour.h>
 #include <wx/graphics.h>
 
@@ -172,6 +173,8 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Misc. Graphics", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Inventory", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
@@ -296,6 +299,14 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
+        for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
+        {
+            m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
+        {
+            m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
             wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
@@ -331,6 +342,8 @@ void MainFrame::OpenAsmFile(const wxString& path)
         wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Misc. Graphics", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Inventory", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
@@ -357,6 +370,14 @@ void MainFrame::OpenAsmFile(const wxString& path)
         for (const auto& ts : m_g->GetGraphicsData()->GetMiscGraphics())
         {
             m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
+        {
+            m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
+        {
+            m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
@@ -445,19 +466,19 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         }
         if (m_g)
         {
-            std::ostringstream ss;
+            std::ostringstream message, details;
             m_g->RefreshPendingWrites(m_rom);
             auto result = m_g->GetPendingWrites();
             bool warning = false;
             if (!m_g->WillFitInRom(m_rom))
             {
-                ss << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
-                ss << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
+                message << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
+                message << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
                 warning = true;
             }
             else
             {
-                ss << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
+                message << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
             }
             for (const auto& w : result)
             {
@@ -474,11 +495,13 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
                     addr = m_rom.get_address(w.first);
                     size = sizeof(uint32_t);
                 }
-                ss << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
+                details << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
                     << size << " bytes: " << ((w.second->size() <= size) ? "OK" : "BAD") << std::endl;
             }
-            ss << "\nProceed?";
-            int answer = wxMessageBox(ss.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+            message << "\nProceed?";
+            auto msgbox = wxRichMessageDialog(this, message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+            msgbox.ShowDetailedText(details.str());
+            int answer = msgbox.ShowModal();
             if (answer == wxNO)
             {
                 return ReturnCode::CANCELLED;

@@ -93,11 +93,12 @@ bool Tileset::operator!=(const Tileset& rhs) const
     return !(*this == rhs);
 }
 
-void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
+uint32_t Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
 {
     const std::size_t tile_size_bytes = m_width * m_height * m_bit_depth / 8;
     const std::vector<uint8_t>* input = &src;
     m_compressed = compressed;
+    uint32_t ret = src.size();
 
 	std::vector<uint8_t> buffer;
     if (compressed == true)
@@ -107,6 +108,7 @@ void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
         dlen = LZ77::Decode(src.data(), src.size(), buffer.data(), elen);
         buffer.resize(dlen);
         input = &buffer;
+        ret = elen;
     }
     const std::size_t num_tiles = (input->size() + (tile_size_bytes - 1)) / tile_size_bytes;
 
@@ -135,6 +137,7 @@ void Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
         tc += tile_size_bytes;
     }
     TransposeBlock();
+    return ret;
 }
 
 void Tileset::SetParams(std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)

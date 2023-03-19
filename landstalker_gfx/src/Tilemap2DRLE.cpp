@@ -10,6 +10,11 @@
 #include "Utils.h"
 
 
+Tilemap2D::Tilemap2D()
+	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(0), m_compression(NONE)
+{
+}
+
 Tilemap2D::Tilemap2D(size_t width, size_t height, size_t base)
 	: m_width(width), m_height(height), m_base(base), m_compression(NONE)
 {
@@ -38,6 +43,20 @@ Tilemap2D::Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t heig
 	: m_width(width), m_height(height), m_left(0), m_top(0), m_base(base), m_compression(compression)
 {
 	Open(data, width, height, compression, base);
+}
+
+bool Tilemap2D::operator==(const Tilemap2D& rhs) const
+{
+	return ((this->m_width == rhs.m_width) &&
+		(this->m_height == rhs.m_height) &&
+		(this->m_top == rhs.m_top) &&
+		(this->m_left == rhs.m_left) &&
+		(this->m_tiles == rhs.m_tiles));
+}
+
+bool Tilemap2D::operator!=(const Tilemap2D& rhs) const
+{
+	return !(*this == rhs);
 }
 
 bool Tilemap2D::Open(const std::string& filename, Tilemap2D::Compression compression, size_t base)

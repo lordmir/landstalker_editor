@@ -23,10 +23,11 @@ GameData::GameData(const Rom& rom)
 
 bool GameData::Save(const filesystem::path& dir)
 {
-	return std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
+	auto success = std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{
 			return d->Save(dir);
 		});
+	return success;
 }
 
 bool GameData::Save()

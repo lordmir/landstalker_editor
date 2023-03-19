@@ -134,6 +134,7 @@ bool RoomData::Save(const filesystem::path& dir)
     {
         throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.str() + '\'');
     }
+    CommitAllChanges();
     return true;
 }
 
@@ -827,10 +828,11 @@ bool RoomData::AsmLoadMiscPaletteData()
         assert(data.size() % size == 0);
         std::vector<std::shared_ptr<PaletteEntry>> ret;
         auto it = data.begin();
+        int idx = 0;
         for(it = data.begin(); it != data.end(); it += size)
         {
             std::vector<uint8_t> bytes(it, it + size);
-            auto e = PaletteEntry::Create(this, bytes, name, fname, ptype);
+            auto e = PaletteEntry::Create(this, bytes, name + ":" + std::to_string(idx++), fname, ptype);
             ret.push_back(e);
         }
         return ret;
@@ -1155,10 +1157,11 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
         uint32_t size = Palette::GetSizeBytes(ptype);
         unsigned int i = 0;
         std::vector<std::shared_ptr<PaletteEntry>> ret;
+        int idx = 0;
         for (; addr < end; addr += size)
         {
             auto bytes = rom.read_array<uint8_t>(addr, size);
-            auto e = PaletteEntry::Create(this, bytes, name, fname, ptype);
+            auto e = PaletteEntry::Create(this, bytes, name + ":" + std::to_string(idx++), fname, ptype);
             e->SetStartAddress(addr);
             ret.push_back(e);
         }

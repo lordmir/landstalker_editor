@@ -16,11 +16,15 @@ public:
 		LZ77
 	};
 
+	Tilemap2D();
 	Tilemap2D(size_t width, size_t height, size_t base = 0);
 	Tilemap2D(const std::string& filename, Compression compression = RLE, size_t base = 0);
 	Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
 	Tilemap2D(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
 	Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
+
+	bool operator==(const Tilemap2D& rhs) const;
+	bool operator!=(const Tilemap2D& rhs) const;
 
 	bool Open(const std::string& filename, Compression compression = RLE, size_t base = 0);
 	bool Open(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);

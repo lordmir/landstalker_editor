@@ -32,7 +32,7 @@ public:
     bool operator==(const Tileset& rhs) const;
     bool operator!=(const Tileset& rhs) const;
     
-    void SetBits(const std::vector<uint8_t>& src, bool compressed = false);
+    uint32_t SetBits(const std::vector<uint8_t>& src, bool compressed = false);
     void SetParams(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     bool Open(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     std::vector<uint8_t> GetBits(bool compressed = false);

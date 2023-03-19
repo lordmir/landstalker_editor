@@ -6,6 +6,7 @@
 #include <Palette.h>
 #include <BlocksetCmp.h>
 #include <Tilemap3DCmp.h>
+#include <Tilemap2DRLE.h>
 #include <AnimatedTileset.h>
 #include <EntryPreferences.h>
 
@@ -124,6 +125,32 @@ public:
 
 	virtual bool Serialise(const std::shared_ptr<Tilemap3D> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap3D>& out);
+};
+
+class Tilemap2DEntry : public DataManager::Entry<Tilemap2D>, public PalettePreferences
+{
+public:
+	Tilemap2DEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression map_compression, uint16_t tile_base)
+		: Entry(owner, b, name, filename),
+		compression(map_compression),
+		base(tile_base)
+	{}
+
+	static std::shared_ptr<Tilemap2DEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base);
+
+	virtual bool Serialise(const std::shared_ptr<Tilemap2D> in, ByteVectorPtr out);
+	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap2D>& out);
+
+	std::string GetTileset() const { return tileset; }
+	void SetTileset(const std::string& name) { tileset = name; }
+	Tilemap2D::Compression GetCompression() const { return compression; }
+	void SetCompression(Tilemap2D::Compression value) { compression = value; }
+	uint16_t GetBase() const { return base; }
+	void SetBase(uint16_t value) { base = value; }
+private:
+	std::string tileset;
+	Tilemap2D::Compression compression;
+	uint16_t base;
 };
 
 #endif // _DATA_TYPES_H_
