@@ -130,7 +130,8 @@ namespace RomOffsets
 		static const std::string HUD_TILEMAP("StatusBarTilemap");
 		static const std::string HUD_TILESET("StatusBarGfx");
 
-		static const std::string ISLAND_MAP_DATA("IslandMapData");
+		static const std::string ISLAND_MAP_DATA("IslandMap");
+		static const std::string ISLAND_MAP_ROUTINES("IslandMapRoutines");
 		static const std::string ISLAND_MAP_FG_TILES("IslandMapFg");
 		static const std::string ISLAND_MAP_FG_MAP("IslandMapFgMap");
 		static const std::string ISLAND_MAP_FG_PAL("IslandMapFgPal");
@@ -139,6 +140,26 @@ namespace RomOffsets
 		static const std::string ISLAND_MAP_BG_PAL("IslandMapBgPal");
 		static const std::string ISLAND_MAP_DOTS("MapDots");
 		static const std::string ISLAND_MAP_FRIDAY("MapFriday");
+
+		static const std::string TITLE_DATA("TitleScreenData");
+		static const std::string TITLE_PALETTE_BLUE("TitlePaletteBlueFade");
+		static const std::string TITLE_PALETTE_BLUE_LEA("TitlePaletteBlueFadeLea");
+		static const std::string TITLE_PALETTE_YELLOW("TitlePaletteYellowFade");
+		static const std::string TITLE_PALETTE_YELLOW_LEA("TitlePaletteYellowFadeLea");
+		static const std::string TITLE_1_TILES("Title1");
+		static const std::string TITLE_1_MAP("Title1Map");
+		static const std::string TITLE_2_TILES("Title2");
+		static const std::string TITLE_2_MAP("Title2Map");
+		static const std::string TITLE_3_TILES("Title3");
+		static const std::string TITLE_3_MAP("Title3Map");
+		static const std::string TITLE_3_PAL("Title3Palette");
+		static const std::string TITLE_3_PAL_LEA2("Title3Palette_Lea2");
+		static const std::string TITLE_3_PAL_LEA3("Title3Palette_Lea3");
+		static const std::string TITLE_3_PAL_LEA4("Title3Palette_Lea4");
+		static const std::string TITLE_3_PAL_HIGHLIGHT("Title3PaletteHighlight");
+		static const std::string TITLE_ROUTINES_1("TitleRoutines1");
+		static const std::string TITLE_ROUTINES_2("TitleRoutines2");
+		static const std::string TITLE_ROUTINES_3("TitleRoutines3");
 
 		static const std::string END_CREDITS_DATA("EndCreditsData");
 		static const std::string END_CREDITS_PAL("EndCreditPal");
@@ -186,6 +207,7 @@ namespace RomOffsets
 		static const std::string END_CREDITS_LOGOS_FILE("assets_packed/graphics/static/ending/logos.lz77");
 		static const std::string END_CREDITS_MAP_FILE("assets_packed/graphics/static/ending/logos.rle");
 		static const std::string ISLAND_MAP_DATA_FILE("code/graphics/staticimages/islandmapdata.asm");
+		static const std::string ISLAND_MAP_ROUTINES_FILE("code/graphics/staticimages/islandmap.asm");
 		static const std::string ISLAND_MAP_FG_TILES_FILE("assets_packed/graphics/static/islandmap/foreground.lz77");
 		static const std::string ISLAND_MAP_FG_MAP_FILE("assets_packed/graphics/static/islandmap/foreground.rle");
 		static const std::string ISLAND_MAP_BG_TILES_FILE("assets_packed/graphics/static/islandmap/background.lz77");
@@ -194,6 +216,20 @@ namespace RomOffsets
 		static const std::string ISLAND_MAP_FRIDAY_FILE("assets_packed/graphics/static/islandmap/friday.lz77");
 		static const std::string ISLAND_MAP_FG_PAL_FILE("assets_packed/graphics/static/islandmap/foreground.pal");
 		static const std::string ISLAND_MAP_BG_PAL_FILE("assets_packed/graphics/static/islandmap/background.pal");
+		static const std::string TITLE_DATA_FILE("code/title/titlescreendata.asm");
+		static const std::string TITLE_PALETTE_BLUE_FILE("assets_packed/graphics/static/titlescreen/blues.pal");
+		static const std::string TITLE_PALETTE_YELLOW_FILE("assets_packed/graphics/static/titlescreen/yellows.pal");
+		static const std::string TITLE_1_TILES_FILE("assets_packed/graphics/static/titlescreen/title1.lz77");
+		static const std::string TITLE_1_MAP_FILE("assets_packed/graphics/static/titlescreen/title1.rle");
+		static const std::string TITLE_2_TILES_FILE("assets_packed/graphics/static/titlescreen/title2.lz77");
+		static const std::string TITLE_2_MAP_FILE("assets_packed/graphics/static/titlescreen/title2.rle");
+		static const std::string TITLE_3_TILES_FILE("assets_packed/graphics/static/titlescreen/title3.lz77");
+		static const std::string TITLE_3_MAP_FILE("assets_packed/graphics/static/titlescreen/title3.rle");
+		static const std::string TITLE_3_PAL_FILE("assets_packed/graphics/static/titlescreen/title3.pal");
+		static const std::string TITLE_3_PAL_HIGHLIGHT_FILE("assets_packed/graphics/static/titlescreen/title3_highlight.pal");
+		static const std::string TITLE_ROUTINES_1_FILE("code/graphics/staticimages/titlescreen1.asm");
+		static const std::string TITLE_ROUTINES_2_FILE("code/graphics/staticimages/titlescreen2.asm");
+		static const std::string TITLE_ROUTINES_3_FILE("code/graphics/staticimages/titlescreen3.asm");
 	}
 
 	namespace Tilesets
@@ -299,75 +335,88 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, uint32_t>> ADDRESS
 	{
-		{"sprite_table_ptr",                {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
-		{"sprite_data_end",                 {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
-		{ Strings::HUFFMAN_OFFSETS,         {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::HUFFMAN_TABLES,          {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_FG_TILES,    {{Region::JP, 0x000000}, {Region::US, 0x03E6F2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_FG_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x03E726}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_BG_TILES,    {{Region::JP, 0x000000}, {Region::US, 0x03E70C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_BG_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x03E766}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_DOTS,        {{Region::JP, 0x000000}, {Region::US, 0x03E694}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_FRIDAY,      {{Region::JP, 0x000000}, {Region::US, 0x03E6AE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ISLAND_MAP_FG_PAL,      {{Region::JP, 0x000000}, {Region::US, 0x03E7D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::END_CREDITS_PAL,        {{Region::JP, 0x000000}, {Region::US, 0x09EC56}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::END_CREDITS_FONT,       {{Region::JP, 0x000000}, {Region::US, 0x09EC1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::END_CREDITS_LOGOS,      {{Region::JP, 0x000000}, {Region::US, 0x09EC32}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::END_CREDITS_MAP,        {{Region::JP, 0x000000}, {Region::US, 0x09EC46}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::HUD_TILEMAP,            {{Region::JP, 0x000000}, {Region::US, 0x008F8C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::HUD_TILESET,            {{Region::JP, 0x000000}, {Region::US, 0x008F34}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::TEXTBOX_2LINE_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x0234D4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::TEXTBOX_3LINE_MAP,      {{Region::JP, 0x000000}, {Region::US, 0x0234E6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::STATUS_FX_POISON,       {{Region::JP, 0x000000}, {Region::US, 0x016E92}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::STATUS_FX_CONFUSION,    {{Region::JP, 0x000000}, {Region::US, 0x016E88}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::STATUS_FX_PARALYSIS,    {{Region::JP, 0x000000}, {Region::US, 0x016E7E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::STATUS_FX_CURSE,        {{Region::JP, 0x000000}, {Region::US, 0x016E70}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_TILEMAP,            {{Region::JP, 0x000000}, {Region::US, 0x007816}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SWORD_MAGIC,            {{Region::JP, 0x000000}, {Region::US, 0x0077B2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SWORD_THUNDER,          {{Region::JP, 0x000000}, {Region::US, 0x0077BC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SWORD_GAIA,             {{Region::JP, 0x000000}, {Region::US, 0x0077C6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SWORD_ICE,              {{Region::JP, 0x000000}, {Region::US, 0x0077D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::COINFALL,               {{Region::JP, 0x000000}, {Region::US, 0x0077DA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::DOWN_ARROW,             {{Region::JP, 0x000000}, {Region::US, 0x02339E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::RIGHT_ARROW,            {{Region::JP, 0x000000}, {Region::US, 0x024998}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SWORD_PAL_SWAPS,        {{Region::JP, 0x000000}, {Region::US, 0x0078D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::ARMOUR_PAL_SWAPS,       {{Region::JP, 0x000000}, {Region::US, 0x0078C0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_ITEM_PAL,           {{Region::JP, 0x000000}, {Region::US, 0x007876}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::HUD_PAL,                {{Region::JP, 0x000000}, {Region::US, 0x008E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::HUD_PAL_LEA2,           {{Region::JP, 0x000000}, {Region::US, 0x008FCE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::PLAYER_PAL,             {{Region::JP, 0x000000}, {Region::US, 0x008FB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::STRING_BANK_PTR_PTR,     {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::MAIN_FONT_PTR,          {{Region::JP, 0x000000}, {Region::US, 0x022E84}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE1,      {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE1,      {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_NTSC,       {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_PAL,        {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE3,      {{Region::JP, 0x000000}, {Region::US, 0x11EAB8}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SYS_FONT_SIZE,          {{Region::JP, 0x000000}, {Region::US, 0x000800}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::SYS_FONT,               {{Region::JP, 0x000000}, {Region::US, 0x11EAE4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_FONT,               {{Region::JP, 0x000000}, {Region::US, 0x00DA02}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_FONT_SIZE,          {{Region::JP, 0x000000}, {Region::US, 0x000300}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_CURSOR,             {{Region::JP, 0x000000}, {Region::US, 0x00D99C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_CURSOR_SIZE,        {{Region::JP, 0x000000}, {Region::US, 0x000100}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_ARROW,              {{Region::JP, 0x000000}, {Region::US, 0x00D9BE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_ARROW_SIZE,         {{Region::JP, 0x000000}, {Region::US, 0x000040}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED1,            {{Region::JP, 0x000000}, {Region::US, 0x00DA62}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED1_PLUS6,      {{Region::JP, 0x000000}, {Region::US, 0x00DA6A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED1_SIZE,       {{Region::JP, 0x000000}, {Region::US, 0x000016}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED2,            {{Region::JP, 0x000000}, {Region::US, 0x00DA72}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED2_PLUS4,      {{Region::JP, 0x000000}, {Region::US, 0x00DA7A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED2_SIZE,       {{Region::JP, 0x000000}, {Region::US, 0x000014}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_PAL1,               {{Region::JP, 0x000000}, {Region::US, 0x00D2D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_PAL2,               {{Region::JP, 0x000000}, {Region::US, 0x00D2F4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Blocksets::POINTER,               {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
-		{ Rooms::ROOM_DATA_PTR,             {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
-		{ Rooms::ROOM_PALS_PTR,             {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
-		{ Rooms::ROOM_EXITS_PTR,            {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
-		{ Rooms::FALL_TABLE_LEA_LOC,        {{Region::JP, 0x000000}, {Region::US, 0x00A114}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Rooms::CLIMB_TABLE_LEA_LOC,       {{Region::JP, 0x000000}, {Region::US, 0x00A120}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Rooms::TRANSITION_TABLE_LEA_LOC1, {{Region::JP, 0x000000}, {Region::US, 0x00A150}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Rooms::TRANSITION_TABLE_LEA_LOC2, {{Region::JP, 0x000000}, {Region::US, 0x00A186}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Tilesets::INTRO_FONT_PTR,         {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
+		{"sprite_table_ptr",                 {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
+		{"sprite_data_end",                  {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Strings::HUFFMAN_OFFSETS,          {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::HUFFMAN_TABLES,           {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_1_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x03985E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_2_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x039892}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x0398C6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_1_MAP,             {{Region::JP, 0x000000}, {Region::US, 0x039872}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_2_MAP,             {{Region::JP, 0x000000}, {Region::US, 0x0398A6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_MAP,             {{Region::JP, 0x000000}, {Region::US, 0x0398DA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_PAL,             {{Region::JP, 0x000000}, {Region::US, 0x03994C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_PAL_LEA2,        {{Region::JP, 0x000000}, {Region::US, 0x039956}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_PAL_LEA3,        {{Region::JP, 0x000000}, {Region::US, 0x039CC8}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_PAL_LEA4,        {{Region::JP, 0x000000}, {Region::US, 0x039DF4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_3_PAL_HIGHLIGHT,   {{Region::JP, 0x000000}, {Region::US, 0x039D4A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_PALETTE_BLUE_LEA,  {{Region::JP, 0x000000}, {Region::US, 0x039AB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TITLE_PALETTE_YELLOW_LEA,{{Region::JP, 0x000000}, {Region::US, 0x039BC6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_TILES,     {{Region::JP, 0x000000}, {Region::US, 0x03E6F2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_MAP,       {{Region::JP, 0x000000}, {Region::US, 0x03E726}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_BG_TILES,     {{Region::JP, 0x000000}, {Region::US, 0x03E70C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_BG_MAP,       {{Region::JP, 0x000000}, {Region::US, 0x03E766}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_DOTS,         {{Region::JP, 0x000000}, {Region::US, 0x03E694}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FRIDAY,       {{Region::JP, 0x000000}, {Region::US, 0x03E6AE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ISLAND_MAP_FG_PAL,       {{Region::JP, 0x000000}, {Region::US, 0x03E7D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_PAL,         {{Region::JP, 0x000000}, {Region::US, 0x09EC56}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_FONT,        {{Region::JP, 0x000000}, {Region::US, 0x09EC1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_LOGOS,       {{Region::JP, 0x000000}, {Region::US, 0x09EC32}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::END_CREDITS_MAP,         {{Region::JP, 0x000000}, {Region::US, 0x09EC46}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_TILEMAP,             {{Region::JP, 0x000000}, {Region::US, 0x008F8C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_TILESET,             {{Region::JP, 0x000000}, {Region::US, 0x008F34}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TEXTBOX_2LINE_MAP,       {{Region::JP, 0x000000}, {Region::US, 0x0234D4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::TEXTBOX_3LINE_MAP,       {{Region::JP, 0x000000}, {Region::US, 0x0234E6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_POISON,        {{Region::JP, 0x000000}, {Region::US, 0x016E92}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_CONFUSION,     {{Region::JP, 0x000000}, {Region::US, 0x016E88}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_PARALYSIS,     {{Region::JP, 0x000000}, {Region::US, 0x016E7E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::STATUS_FX_CURSE,         {{Region::JP, 0x000000}, {Region::US, 0x016E70}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_TILEMAP,             {{Region::JP, 0x000000}, {Region::US, 0x007816}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_MAGIC,             {{Region::JP, 0x000000}, {Region::US, 0x0077B2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_THUNDER,           {{Region::JP, 0x000000}, {Region::US, 0x0077BC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_GAIA,              {{Region::JP, 0x000000}, {Region::US, 0x0077C6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_ICE,               {{Region::JP, 0x000000}, {Region::US, 0x0077D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::COINFALL,                {{Region::JP, 0x000000}, {Region::US, 0x0077DA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::DOWN_ARROW,              {{Region::JP, 0x000000}, {Region::US, 0x02339E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::RIGHT_ARROW,             {{Region::JP, 0x000000}, {Region::US, 0x024998}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SWORD_PAL_SWAPS,         {{Region::JP, 0x000000}, {Region::US, 0x0078D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::ARMOUR_PAL_SWAPS,        {{Region::JP, 0x000000}, {Region::US, 0x0078C0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_ITEM_PAL,            {{Region::JP, 0x000000}, {Region::US, 0x007876}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_PAL,                 {{Region::JP, 0x000000}, {Region::US, 0x008E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::HUD_PAL_LEA2,            {{Region::JP, 0x000000}, {Region::US, 0x008FCE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::PLAYER_PAL,              {{Region::JP, 0x000000}, {Region::US, 0x008FB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::STRING_BANK_PTR_PTR,      {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::MAIN_FONT_PTR,           {{Region::JP, 0x000000}, {Region::US, 0x022E84}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_NTSC,        {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_PAL,         {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE3,       {{Region::JP, 0x000000}, {Region::US, 0x11EAB8}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SYS_FONT_SIZE,           {{Region::JP, 0x000000}, {Region::US, 0x000800}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SYS_FONT,                {{Region::JP, 0x000000}, {Region::US, 0x11EAE4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_FONT,                {{Region::JP, 0x000000}, {Region::US, 0x00DA02}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_FONT_SIZE,           {{Region::JP, 0x000000}, {Region::US, 0x000300}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_CURSOR,              {{Region::JP, 0x000000}, {Region::US, 0x00D99C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_CURSOR_SIZE,         {{Region::JP, 0x000000}, {Region::US, 0x000100}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_ARROW,               {{Region::JP, 0x000000}, {Region::US, 0x00D9BE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_ARROW_SIZE,          {{Region::JP, 0x000000}, {Region::US, 0x000040}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED1,             {{Region::JP, 0x000000}, {Region::US, 0x00DA62}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED1_PLUS6,       {{Region::JP, 0x000000}, {Region::US, 0x00DA6A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED1_SIZE,        {{Region::JP, 0x000000}, {Region::US, 0x000016}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED2,             {{Region::JP, 0x000000}, {Region::US, 0x00DA72}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED2_PLUS4,       {{Region::JP, 0x000000}, {Region::US, 0x00DA7A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED2_SIZE,        {{Region::JP, 0x000000}, {Region::US, 0x000014}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_PAL1,                {{Region::JP, 0x000000}, {Region::US, 0x00D2D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_PAL2,                {{Region::JP, 0x000000}, {Region::US, 0x00D2F4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Blocksets::POINTER,                {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x1AF800}, {Region::DE, 0x1AF800}, {Region::US_BETA, 0x1AF800}}},
+		{ Rooms::ROOM_DATA_PTR,              {{Region::JP, 0x0A0A00}, {Region::US, 0x0A0A00}, {Region::UK, 0x0A0A00}, {Region::FR, 0x0A0A00}, {Region::DE, 0x0A0A00}, {Region::US_BETA, 0x0A0A00}}},
+		{ Rooms::ROOM_PALS_PTR,              {{Region::JP, 0x0A0A04}, {Region::US, 0x0A0A04}, {Region::UK, 0x0A0A04}, {Region::FR, 0x0A0A04}, {Region::DE, 0x0A0A04}, {Region::US_BETA, 0x0A0A04}}},
+		{ Rooms::ROOM_EXITS_PTR,             {{Region::JP, 0x0A0A08}, {Region::US, 0x0A0A08}, {Region::UK, 0x0A0A08}, {Region::FR, 0x0A0A08}, {Region::DE, 0x0A0A08}, {Region::US_BETA, 0x0A0A08}}},
+		{ Rooms::FALL_TABLE_LEA_LOC,         {{Region::JP, 0x000000}, {Region::US, 0x00A114}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::CLIMB_TABLE_LEA_LOC,        {{Region::JP, 0x000000}, {Region::US, 0x00A120}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::TRANSITION_TABLE_LEA_LOC1,  {{Region::JP, 0x000000}, {Region::US, 0x00A150}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::TRANSITION_TABLE_LEA_LOC2,  {{Region::JP, 0x000000}, {Region::US, 0x00A186}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Tilesets::INTRO_FONT_PTR,          {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
@@ -375,6 +424,9 @@ namespace RomOffsets
 		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::TITLE_DATA,               {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039ED8, 0x03DF0A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::TITLE_PALETTE_BLUE,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039B04, 0x039B3C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::TITLE_PALETTE_YELLOW,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039C3C, 0x039C46}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::ISLAND_MAP_DATA,          {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x03ED9A, 0x044010}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::END_CREDITS_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09FA3A, 0x0A0A00}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::HUD_SECTION,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009152, 0x0095AC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

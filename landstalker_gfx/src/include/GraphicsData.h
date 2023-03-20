@@ -7,7 +7,7 @@
 #include <memory>
 
 /*  TODO
-2D Maps (Sega Logo, Climax Logo, Island Map, Lithograph, Intro, File Select)
+2D Maps (Sega Logo, Climax Logo, Lithograph, Intro, File Select)
 */
 
 class GraphicsData : public DataManager
@@ -31,6 +31,7 @@ public:
     std::vector<std::shared_ptr<TilesetEntry>> GetStatusEffects() const;
     std::shared_ptr<TilesetEntry> GetEndCreditLogos() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetIslandMapTiles() const;
+    std::vector<std::shared_ptr<TilesetEntry>> GetTitleScreenTiles() const;
 
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
 protected:
@@ -53,6 +54,7 @@ private:
     bool AsmLoadHudData();
     bool AsmLoadEndCreditData();
     bool AsmLoadIslandMapData();
+    bool AsmLoadTitleScreenData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
@@ -66,6 +68,7 @@ private:
     bool RomLoadHudData(const Rom& rom);
     bool RomLoadEndCreditData(const Rom& rom);
     bool RomLoadIslandMapData(const Rom& rom);
+    bool RomLoadTitleScreenData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -76,6 +79,7 @@ private:
     bool AsmSaveHuffmanData(const filesystem::path& dir);
     bool AsmSaveEndCreditData(const filesystem::path& dir);
     bool AsmSaveIslandMapData(const filesystem::path& dir);
+    bool AsmSaveTitleScreenData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
@@ -88,6 +92,7 @@ private:
     bool RomPrepareInjectHudData(const Rom& rom);
     bool RomPrepareInjectEndCreditData(const Rom& rom);
     bool RomPrepareInjectIslandMapData(const Rom& rom);
+    bool RomPrepareInjectTitleScreenData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -107,6 +112,11 @@ private:
     filesystem::path m_huffman_table_path;
     filesystem::path m_end_credits_path;
     filesystem::path m_island_map_path;
+    filesystem::path m_island_map_routine_path;
+    filesystem::path m_title_path;
+    filesystem::path m_title_routines_1_path;
+    filesystem::path m_title_routines_2_path;
+    filesystem::path m_title_routines_3_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -143,6 +153,15 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals_orig;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_island_map_pals_internal;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_title_tilemaps;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_title_tilemaps_orig;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_title_tilemaps_internal;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_title_tiles;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_title_tiles_orig;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_title_tiles_internal;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals_orig;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals_internal;
 
     std::vector<std::vector<std::uint8_t>> m_strings;
     std::vector<std::vector<std::uint8_t>> m_strings_orig;

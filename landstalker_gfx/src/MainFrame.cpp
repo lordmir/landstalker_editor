@@ -177,6 +177,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
@@ -314,6 +315,10 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
+        for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
+        {
+            m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {
             wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
@@ -353,6 +358,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
@@ -392,6 +398,10 @@ void MainFrame::OpenAsmFile(const wxString& path)
         for (const auto& ts : m_g->GetGraphicsData()->GetIslandMapTiles())
         {
             m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
+        for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
+        {
+            m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
         }
         for (const auto& room : m_g->GetRoomData()->GetRoomlist())
         {

@@ -59,6 +59,10 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load island map data from \'") + m_island_map_path.str() + '\'');
 	}
+	if (!AsmLoadTitleScreenData())
+	{
+		throw std::runtime_error(std::string("Unable to load title screen data from \'") + m_title_path.str() + '\'');
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -116,6 +120,10 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load island map data from ROM"));
 	}
+	if (!RomLoadTitleScreenData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load title screen data from ROM"));
+	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
 	ResetTilesetDefaultPalettes();
@@ -168,6 +176,10 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save island map data to \'") + m_island_map_path.str() + '\'');
 	}
+	if (!AsmSaveTitleScreenData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save title screen data to \'") + m_title_path.str() + '\'');
+	}
 	CommitAllChanges();
 	return true;
 }
@@ -217,6 +229,18 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (std::any_of(m_title_pals.begin(), m_title_pals.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_title_tilemaps.begin(), m_title_tilemaps.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_title_tiles.begin(), m_title_tiles.end(), pair_pred))
+	{
+		return true;
+	}
 	if (m_fonts_by_name != m_fonts_by_name_orig)
 	{
 		return true;
@@ -262,6 +286,18 @@ bool GraphicsData::HasBeenModified() const
 		return true;
 	}
 	if (m_island_map_tiles_orig != m_island_map_tiles)
+	{
+		return true;
+	}
+	if (m_title_pals_orig != m_title_pals)
+	{
+		return true;
+	}
+	if (m_title_tilemaps_orig != m_title_tilemaps)
+	{
+		return true;
+	}
+	if (m_title_tiles_orig != m_title_tiles)
 	{
 		return true;
 	}
@@ -327,6 +363,10 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare island map data for ROM injection"));
 	}
+	if (!RomPrepareInjectTitleScreenData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare title screen data for ROM injection"));
+	}
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTilesets() const
@@ -349,6 +389,10 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 		result.insert(t);
 	}
 	for (auto& t : m_island_map_tiles)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_title_tiles)
 	{
 		result.insert(t);
 	}
@@ -411,6 +455,16 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetIslandMapTiles() con
 	return retval;
 }
 
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetTitleScreenTiles() const
+{
+	std::vector<std::shared_ptr<TilesetEntry>> retval;
+	for (const auto& t : m_title_tiles)
+	{
+		retval.push_back(t.second);
+	}
+	return retval;
+}
+
 std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalettes() const
 {
 	std::map<std::string, std::shared_ptr<PaletteEntry>> result;
@@ -419,6 +473,10 @@ std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalette
 		result.insert(t);
 	}
 	for (auto& t : m_island_map_pals)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_title_pals)
 	{
 		result.insert(t);
 	}
@@ -439,6 +497,9 @@ void GraphicsData::CommitAllChanges()
 	std::for_each(m_island_map_pals.begin(), m_island_map_pals.end(), pair_commit);
 	std::for_each(m_island_map_tilemaps.begin(), m_island_map_tilemaps.end(), pair_commit);
 	std::for_each(m_island_map_tiles.begin(), m_island_map_tiles.end(), pair_commit);
+	std::for_each(m_title_pals.begin(), m_title_pals.end(), pair_commit);
+	std::for_each(m_title_tilemaps.begin(), m_title_tilemaps.end(), pair_commit);
+	std::for_each(m_title_tiles.begin(), m_title_tiles.end(), pair_commit);
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
@@ -453,6 +514,9 @@ void GraphicsData::CommitAllChanges()
 	m_island_map_pals_orig = m_island_map_pals;
 	m_island_map_tilemaps_orig = m_island_map_tilemaps;
 	m_island_map_tiles_orig = m_island_map_tiles;
+	m_title_pals_orig = m_title_pals;
+	m_title_tilemaps_orig = m_title_tilemaps;
+	m_title_tiles_orig = m_title_tiles;
 	entry_commit(m_end_credits_map);
 	entry_commit(m_end_credits_palette);
 	entry_commit(m_end_credits_tileset);
@@ -476,6 +540,7 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::END_CREDITS_DATA, m_end_credits_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::ISLAND_MAP_DATA, m_island_map_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::TITLE_DATA, m_title_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -506,6 +571,11 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
 	if (m_end_credits_path.empty()) m_end_credits_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
 	if (m_island_map_path.empty()) m_island_map_path = RomOffsets::Graphics::ISLAND_MAP_DATA_FILE;
+	if (m_island_map_routine_path.empty()) m_island_map_routine_path = RomOffsets::Graphics::ISLAND_MAP_ROUTINES_FILE;
+	if (m_title_path.empty()) m_title_path = RomOffsets::Graphics::TITLE_DATA_FILE;
+	if (m_title_routines_1_path.empty()) m_title_routines_1_path = RomOffsets::Graphics::TITLE_ROUTINES_1_FILE;
+	if (m_title_routines_2_path.empty()) m_title_routines_2_path = RomOffsets::Graphics::TITLE_ROUTINES_2_FILE;
+	if (m_title_routines_3_path.empty()) m_title_routines_3_path = RomOffsets::Graphics::TITLE_ROUTINES_3_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -526,6 +596,11 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_path);
 	retval = retval && CreateDirectoryTree(dir / m_island_map_path);
+	retval = retval && CreateDirectoryTree(dir / m_island_map_routine_path);
+	retval = retval && CreateDirectoryTree(dir / m_title_path);
+	retval = retval && CreateDirectoryTree(dir / m_title_routines_1_path);
+	retval = retval && CreateDirectoryTree(dir / m_title_routines_2_path);
+	retval = retval && CreateDirectoryTree(dir / m_title_routines_3_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -562,6 +637,18 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
+	for (const auto& f : m_title_pals)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_title_tilemaps)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_title_tiles)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_map->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_palette->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_tileset->GetFilename());
@@ -584,6 +671,9 @@ void GraphicsData::InitCache()
 	m_island_map_pals_orig = m_island_map_pals;
 	m_island_map_tilemaps_orig = m_island_map_tilemaps;
 	m_island_map_tiles_orig = m_island_map_tiles;
+	m_title_pals_orig = m_title_pals;
+	m_title_tilemaps_orig = m_title_tilemaps;
+	m_title_tiles_orig = m_title_tiles;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -988,6 +1078,8 @@ bool GraphicsData::AsmLoadIslandMapData()
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
 		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		file >> lbl >> inc;
+		m_island_map_routine_path = inc.path;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1024,6 +1116,68 @@ bool GraphicsData::AsmLoadIslandMapData()
 		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, fg_pal });
 		m_island_map_pals.insert({ bg_pal->GetName(), bg_pal });
 		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_PAL, bg_pal });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadTitleScreenData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_title_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			auto path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 13);
+		m_title_routines_1_path = std::get<1>(entries[0]);
+		auto blue_pal = PaletteEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]), Palette::Type::TITLE_BLUE_FADE);
+		m_title_routines_2_path = std::get<1>(entries[2]);
+		auto yellow_pal = PaletteEntry::Create(this, std::get<2>(entries[3]), std::get<0>(entries[3]), std::get<1>(entries[3]), Palette::Type::TITLE_YELLOW);
+		m_title_routines_3_path = std::get<1>(entries[4]);
+		auto title_1_tiles = TilesetEntry::Create(this, std::get<2>(entries[5]), std::get<0>(entries[5]), std::get<1>(entries[5]));
+		auto title_2_tiles = TilesetEntry::Create(this, std::get<2>(entries[6]), std::get<0>(entries[6]), std::get<1>(entries[6]));
+		auto title_3_tiles = TilesetEntry::Create(this, std::get<2>(entries[7]), std::get<0>(entries[7]), std::get<1>(entries[7]));
+		auto title_1_map = Tilemap2DEntry::Create(this, std::get<2>(entries[8]), std::get<0>(entries[8]), std::get<1>(entries[8]), Tilemap2D::Compression::RLE, 0x100);
+		auto title_2_map = Tilemap2DEntry::Create(this, std::get<2>(entries[9]), std::get<0>(entries[9]), std::get<1>(entries[9]), Tilemap2D::Compression::RLE, 0x100);
+		auto title_3_map = Tilemap2DEntry::Create(this, std::get<2>(entries[10]), std::get<0>(entries[10]), std::get<1>(entries[10]), Tilemap2D::Compression::RLE, 0x100);
+		auto title_3_pal = PaletteEntry::Create(this, std::get<2>(entries[11]), std::get<0>(entries[11]), std::get<1>(entries[11]), Palette::Type::FULL);
+		auto title_3_pal_highlight = PaletteEntry::Create(this, std::get<2>(entries[12]), std::get<0>(entries[12]), std::get<1>(entries[12]), Palette::Type::FULL);
+
+		m_title_tiles.insert({ title_1_tiles->GetName(), title_1_tiles });
+		m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_1_TILES, title_1_tiles });
+		m_title_tiles.insert({ title_2_tiles->GetName(), title_2_tiles });
+		m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_2_TILES, title_2_tiles });
+		m_title_tiles.insert({ title_3_tiles->GetName(), title_3_tiles });
+		m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_3_TILES, title_3_tiles });
+
+		m_title_tilemaps.insert({ title_1_map->GetName(), title_1_map });
+		m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_1_MAP, title_1_map });
+		m_title_tilemaps.insert({ title_2_map->GetName(), title_2_map });
+		m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_2_MAP, title_2_map });
+		m_title_tilemaps.insert({ title_3_map->GetName(), title_3_map });
+		m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_3_MAP, title_3_map });
+
+		m_title_pals.insert({ title_3_pal->GetName(), title_3_pal });
+		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_3_PAL, title_3_pal });
+		m_title_pals.insert({ title_3_pal_highlight->GetName(), title_3_pal_highlight });
+		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT, title_3_pal_highlight });
+		m_title_pals.insert({ yellow_pal->GetName(), yellow_pal });
+		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW, yellow_pal });
+		m_title_pals.insert({ blue_pal->GetName(), blue_pal });
+		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_BLUE, blue_pal });
+
 		return true;
 	}
 	catch (const std::exception&)
@@ -1495,6 +1649,98 @@ bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadTitleScreenData(const Rom& rom)
+{
+	uint32_t blue_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA),
+		rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA));
+	uint32_t yellow_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA),
+		rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA));
+	uint32_t title_1_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_1_TILES),
+		rom.get_address(RomOffsets::Graphics::TITLE_1_TILES));
+	uint32_t title_2_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_2_TILES),
+		rom.get_address(RomOffsets::Graphics::TITLE_2_TILES));
+	uint32_t title_3_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_TILES),
+		rom.get_address(RomOffsets::Graphics::TITLE_3_TILES));
+	uint32_t title_1_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_1_MAP),
+		rom.get_address(RomOffsets::Graphics::TITLE_1_MAP));
+	uint32_t title_2_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_2_MAP),
+		rom.get_address(RomOffsets::Graphics::TITLE_2_MAP));
+	uint32_t title_3_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_MAP),
+		rom.get_address(RomOffsets::Graphics::TITLE_3_MAP));
+	uint32_t title_3_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_PAL),
+		rom.get_address(RomOffsets::Graphics::TITLE_3_PAL));
+	uint32_t title_3_pal_highlight_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT),
+		rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT));
+
+	uint32_t blue_pal_size = rom.read<uint16_t>(blue_pal_addr) * 2 + 4;
+	uint32_t yellow_pal_size = Palette::GetSizeBytes(Palette::Type::TITLE_YELLOW);
+	uint32_t title_1_tiles_size = title_2_tiles_addr - title_1_tiles_addr;
+	uint32_t title_2_tiles_size = title_3_tiles_addr - title_2_tiles_addr;
+	uint32_t title_3_tiles_size = title_1_map_addr - title_3_tiles_addr;
+	uint32_t title_1_map_size = title_2_map_addr - title_1_map_addr;
+	uint32_t title_2_map_size = title_3_map_addr - title_2_map_addr;
+	uint32_t title_3_map_size = title_3_pal_addr - title_3_map_addr;
+	uint32_t title_3_pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+	uint32_t title_3_pal_highlight_size = Palette::GetSizeBytes(Palette::Type::FULL);
+
+	auto blue_pal_bytes = rom.read_array<uint8_t>(blue_pal_addr, blue_pal_size);
+	auto yellow_pal_bytes = rom.read_array<uint8_t>(yellow_pal_addr, yellow_pal_size);
+	auto title_1_tiles_bytes = rom.read_array<uint8_t>(title_1_tiles_addr, title_1_tiles_size);
+	auto title_2_tiles_bytes = rom.read_array<uint8_t>(title_2_tiles_addr, title_2_tiles_size);
+	auto title_3_tiles_bytes = rom.read_array<uint8_t>(title_3_tiles_addr, title_3_tiles_size);
+	auto title_1_map_bytes = rom.read_array<uint8_t>(title_1_map_addr, title_1_map_size);
+	auto title_2_map_bytes = rom.read_array<uint8_t>(title_2_map_addr, title_2_map_size);
+	auto title_3_map_bytes = rom.read_array<uint8_t>(title_3_map_addr, title_3_map_size);
+	auto title_3_pal_bytes = rom.read_array<uint8_t>(title_3_pal_addr, title_3_pal_size);
+	auto title_3_pal_highlight_bytes = rom.read_array<uint8_t>(title_3_pal_highlight_addr, title_3_pal_highlight_size);
+
+	auto blue_pal = PaletteEntry::Create(this, blue_pal_bytes, RomOffsets::Graphics::TITLE_PALETTE_BLUE,
+		RomOffsets::Graphics::TITLE_PALETTE_BLUE_FILE, Palette::Type::TITLE_BLUE_FADE);
+	auto yellow_pal = PaletteEntry::Create(this, yellow_pal_bytes, RomOffsets::Graphics::TITLE_PALETTE_YELLOW,
+		RomOffsets::Graphics::TITLE_PALETTE_YELLOW_FILE, Palette::Type::TITLE_YELLOW);
+	auto title_1_tiles = TilesetEntry::Create(this, title_1_tiles_bytes, RomOffsets::Graphics::TITLE_1_TILES,
+		RomOffsets::Graphics::TITLE_1_TILES_FILE);
+	auto title_2_tiles = TilesetEntry::Create(this, title_2_tiles_bytes, RomOffsets::Graphics::TITLE_2_TILES,
+		RomOffsets::Graphics::TITLE_2_TILES_FILE);
+	auto title_3_tiles = TilesetEntry::Create(this, title_3_tiles_bytes, RomOffsets::Graphics::TITLE_3_TILES,
+		RomOffsets::Graphics::TITLE_3_TILES_FILE);
+	auto title_1_map = Tilemap2DEntry::Create(this, title_1_map_bytes, RomOffsets::Graphics::TITLE_1_MAP,
+		RomOffsets::Graphics::TITLE_1_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto title_2_map = Tilemap2DEntry::Create(this, title_2_map_bytes, RomOffsets::Graphics::TITLE_2_MAP,
+		RomOffsets::Graphics::TITLE_2_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto title_3_map = Tilemap2DEntry::Create(this, title_3_map_bytes, RomOffsets::Graphics::TITLE_3_MAP,
+		RomOffsets::Graphics::TITLE_3_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+	auto title_3_pal = PaletteEntry::Create(this, title_3_pal_bytes, RomOffsets::Graphics::TITLE_3_PAL,
+		RomOffsets::Graphics::TITLE_3_PAL_FILE, Palette::Type::FULL);
+	auto title_3_pal_highlight = PaletteEntry::Create(this, title_3_pal_highlight_bytes, RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT,
+		RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT_FILE, Palette::Type::FULL);
+
+	m_title_tiles.insert({ title_1_tiles->GetName(), title_1_tiles });
+	m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_1_TILES, title_1_tiles });
+	m_title_tiles.insert({ title_2_tiles->GetName(), title_2_tiles });
+	m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_2_TILES, title_2_tiles });
+	m_title_tiles.insert({ title_3_tiles->GetName(), title_3_tiles });
+	m_title_tiles_internal.insert({ RomOffsets::Graphics::TITLE_3_TILES, title_3_tiles });
+
+	m_title_tilemaps.insert({ title_1_map->GetName(), title_1_map });
+	m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_1_MAP, title_1_map });
+	m_title_tilemaps.insert({ title_2_map->GetName(), title_2_map });
+	m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_2_MAP, title_2_map });
+	m_title_tilemaps.insert({ title_3_map->GetName(), title_3_map });
+	m_title_tilemaps_internal.insert({ RomOffsets::Graphics::TITLE_3_MAP, title_3_map });
+
+	m_title_pals.insert({ title_3_pal->GetName(), title_3_pal });
+	m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_3_PAL, title_3_pal });
+	m_title_pals.insert({ title_3_pal_highlight->GetName(), title_3_pal_highlight });
+	m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT, title_3_pal_highlight });
+	m_title_pals.insert({ yellow_pal->GetName(), yellow_pal });
+	m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW, yellow_pal });
+	m_title_pals.insert({ blue_pal->GetName(), blue_pal });
+	m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_BLUE, blue_pal });
+
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
@@ -1527,6 +1773,18 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 			return f.second->Save(dir);
 		});
 	retval = retval && std::all_of(m_island_map_tiles.begin(), m_island_map_tiles.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_title_pals.begin(), m_title_pals.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_title_tilemaps.begin(), m_title_tilemaps.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_title_tiles.begin(), m_title_tiles.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1742,6 +2000,7 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 	{
 		AsmFile file;
 		file.WriteFileHeader(m_island_map_path, "Island Map Data File");
+		file << AsmFile::Label(RomOffsets::Graphics::ISLAND_MAP_ROUTINES) << AsmFile::IncludeFile(m_island_map_routine_path, AsmFile::ASSEMBLER);
 		auto write_include = [&](const auto& data)
 		{
 			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
@@ -1757,6 +2016,40 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 		write_include(m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_BG_PAL]);
 
 		file.WriteFile(dir / m_island_map_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveTitleScreenData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_title_path, "Title Screen Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_1) << AsmFile::IncludeFile(m_title_routines_1_path, AsmFile::ASSEMBLER);
+		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_BLUE]);
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_2) << AsmFile::IncludeFile(m_title_routines_2_path, AsmFile::ASSEMBLER);
+		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_YELLOW]);
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_3) << AsmFile::IncludeFile(m_title_routines_3_path, AsmFile::ASSEMBLER);
+		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_1_TILES]);
+		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_2_TILES]);
+		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_3_TILES]);
+		write_include(m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_1_MAP]);
+		write_include(m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_2_MAP]);
+		write_include(m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_3_MAP]);
+		file << AsmFile::Align(2);
+		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL]);
+		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT]);
+
+		file.WriteFile(dir / m_title_path);
 		return true;
 	}
 	catch (const std::exception&)
@@ -2149,6 +2442,11 @@ bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
 	uint32_t friday_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FRIDAY), begin + bytes->size());
 	auto friday_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FRIDAY]->GetBytes();
 	bytes->insert(bytes->end(), friday_bytes->cbegin(), friday_bytes->cend());
+	
+	if (((bytes->size() + begin) & 1) == 1)
+	{
+		bytes->push_back(0xFF);
+	}
 
 	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_PAL), begin + bytes->size());
 	auto fg_pal_bytes = m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_FG_PAL]->GetBytes();
@@ -2168,6 +2466,79 @@ bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
+{
+	uint32_t blue_pal_begin = rom.get_section(RomOffsets::Graphics::TITLE_PALETTE_BLUE).begin;
+	uint32_t blue_pal_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA), blue_pal_begin);
+	auto blue_pal = m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_BLUE]->GetBytes();
+
+	uint32_t yellow_pal_begin = rom.get_section(RomOffsets::Graphics::TITLE_PALETTE_YELLOW).begin;
+	uint32_t yellow_pal_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA), yellow_pal_begin);
+	auto yellow_pal = m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_YELLOW]->GetBytes();
+
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::TITLE_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t title_1_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_1_TILES), begin);
+	auto title_1_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_1_TILES]->GetBytes();
+	bytes->insert(bytes->end(), title_1_tiles_bytes->cbegin(), title_1_tiles_bytes->cend());
+
+	uint32_t title_2_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_2_TILES), begin + bytes->size());
+	auto title_2_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_2_TILES]->GetBytes();
+	bytes->insert(bytes->end(), title_2_tiles_bytes->cbegin(), title_2_tiles_bytes->cend());
+
+	uint32_t title_3_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_TILES), begin + bytes->size());
+	auto title_3_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_3_TILES]->GetBytes();
+	bytes->insert(bytes->end(), title_3_tiles_bytes->cbegin(), title_3_tiles_bytes->cend());
+
+	uint32_t title_1_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_1_MAP), begin + bytes->size());
+	auto title_1_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_1_MAP]->GetBytes();
+	bytes->insert(bytes->end(), title_1_map_bytes->cbegin(), title_1_map_bytes->cend());
+
+	uint32_t title_2_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_2_MAP), begin + bytes->size());
+	auto title_2_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_2_MAP]->GetBytes();
+	bytes->insert(bytes->end(), title_2_map_bytes->cbegin(), title_2_map_bytes->cend());
+
+	uint32_t title_3_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_MAP), begin + bytes->size());
+	auto title_3_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_3_MAP]->GetBytes();
+	bytes->insert(bytes->end(), title_3_map_bytes->cbegin(), title_3_map_bytes->cend());
+
+	if (((bytes->size() + begin) & 1) == 1)
+	{
+		bytes->push_back(0xFF);
+	}
+
+	uint32_t title_3_pal_lea1 = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL), begin + bytes->size());
+	uint32_t title_3_pal_lea2 = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA2), begin + bytes->size());
+	uint32_t title_3_pal_lea3 = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA3), begin + bytes->size());
+	uint32_t title_3_pal_lea4 = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA4), begin + bytes->size());
+	auto title_3_pal_bytes = m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL]->GetBytes();
+	bytes->insert(bytes->end(), title_3_pal_bytes->cbegin(), title_3_pal_bytes->cend());
+
+	uint32_t title_3_pal_highlight_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT), begin + bytes->size());
+	auto title_3_pal_highlight_bytes = m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT]->GetBytes();
+	bytes->insert(bytes->end(), title_3_pal_highlight_bytes->cbegin(), title_3_pal_highlight_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_BLUE, blue_pal });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW, yellow_pal });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA, std::make_shared<ByteVector>(Split<uint8_t>(blue_pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA, std::make_shared<ByteVector>(Split<uint8_t>(yellow_pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_1_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_1_tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_2_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_2_tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_3_tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_1_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_1_map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_2_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_2_map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_3_map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea1)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA2, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea2)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA3, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea3)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA4, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea4)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_highlight_lea)) });
+
+	return true;
+}
+
 void GraphicsData::UpdateTilesetRecommendedPalettes()
 {
 	std::vector<std::string> palettes;
@@ -2179,6 +2550,11 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	for (const auto& p : m_island_map_pals)
 	{
 		map_palettes.push_back(p.first);
+	}
+	std::vector<std::string> title_palettes;
+	for (const auto& p : m_title_pals)
+	{
+		title_palettes.push_back(p.first);
 	}
 	auto set_pals = [&](auto& container, const auto& rec)
 	{
@@ -2193,6 +2569,7 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	set_pals(m_status_fx_frames, palettes);
 	set_pals(m_sword_fx, palettes);
 	set_pals(m_island_map_tiles, map_palettes);
+	set_pals(m_title_tiles, title_palettes);
 	m_end_credits_tileset->SetAllPalettes(palettes);
 	m_end_credits_tileset->SetRecommendedPalettes({ m_end_credits_palette->GetName() });
 }
@@ -2218,5 +2595,6 @@ void GraphicsData::ResetTilesetDefaultPalettes()
 	set_pals(m_status_fx_frames);
 	set_pals(m_sword_fx);
 	set_pals(m_island_map_tiles);
+	set_pals(m_title_tiles);
 	m_end_credits_tileset->SetDefaultPalette(m_end_credits_palette->GetName());
 }

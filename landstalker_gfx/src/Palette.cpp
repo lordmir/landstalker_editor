@@ -78,7 +78,7 @@ std::vector<Palette> CreatePalettes(const std::vector<uint8_t>& input, const Pal
 	{
 		size = (*it << 8) | *(it + 1);
 		it += 2;
-		assert(input.size() % ((size + 1) * 2) == 0);
+		assert(input.size() % ((size + 2) * 2) == 0);
 	}
 	else
 	{
@@ -281,7 +281,7 @@ Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
 	{
 		size = (*it << 8) | *(it + 1);
 		it += 2;
-		assert(bytes.size() == ((size + 1) * 2));
+		assert(bytes.size() == ((size + 2) * 2));
 	}
 	else
 	{
@@ -426,7 +426,7 @@ int Palette::GetSizeBytes() const
 	if (size == -1)
 	{
 		// Var-width palette
-		size = m_pal.size() * 2 + 2;
+		size = m_pal.size() * 2 + 4;
 	}
 	return size * 2;
 }
