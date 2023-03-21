@@ -268,9 +268,6 @@
     <ClInclude Include="..\src\include\Tilemap2DRLE.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\Images.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\include\TilesetEditor.h">
       <Filter>include</Filter>
     </ClInclude>

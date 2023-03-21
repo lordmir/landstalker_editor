@@ -16,7 +16,6 @@
 #include "Sprite.h"
 #include "ImageBuffer.h"
 #include "LSString.h"
-#include "Images.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "GameData.h"
@@ -170,7 +169,6 @@ private:
     std::vector<SpriteGraphic> m_spriteGraphics;
     std::map<uint8_t, Sprite> m_sprites;
     std::string m_selImage;
-    std::map<std::string, Images::Image> m_images;
     std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
     std::string m_selected_palette;
 	ImageList* m_imgs;

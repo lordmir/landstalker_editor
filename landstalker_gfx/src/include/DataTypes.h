@@ -33,6 +33,9 @@ public:
 
 	int GetIndex() const { return m_index; }
 	void SetIndex(int index) { m_index = index; }
+
+	std::string GetPaletteIndicies() const { return m_palindicies; }
+	void SetPalIndicies(const std::string& value) { m_palindicies = value; }
 private:
 	bool m_compressed;
 	std::size_t m_width;
@@ -40,6 +43,7 @@ private:
 	uint8_t m_bit_depth;
 	Tileset::BlockType m_blocktype;
 	std::string m_ptrname;
+	std::string m_palindicies;
 	int m_index;
 };
 

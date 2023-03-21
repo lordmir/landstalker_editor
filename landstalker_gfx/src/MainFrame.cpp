@@ -168,9 +168,8 @@ void MainFrame::OpenRomFile(const wxString& path)
         const int spr_img = m_imgs->GetIdx("sprite");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
         wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
-        wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Misc. Graphics", img_img, img_img, new TreeNodeData());
+        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
         wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
@@ -179,7 +178,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGL = m_browser->AppendItem(nodeG, "Lithograph", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", ts_img, ts_img, new TreeNodeData());
+        wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
@@ -188,12 +187,6 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
         wxTreeItemId x;
-
-        m_images = Images::GetImages(m_rom);
-        for (const auto elem : m_images)
-        {
-            x = m_browser->AppendItem(nodeI, elem.first, img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE, 0));
-        }
 
         x = m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
         x = m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
@@ -374,6 +367,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
+        this->SetLabel("Landstalker Graphics Viewer - " + path);
         const int ts_img = m_imgs->GetIdx("tileset");
         const int ats_img = m_imgs->GetIdx("ats");
         const int img_img = m_imgs->GetIdx("image");
@@ -1040,15 +1034,16 @@ void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::siz
 void MainFrame::DrawImage(const std::string& image, std::size_t scale)
 {
     m_scale = scale;
-    if (m_images.find(image) != m_images.end())
+    auto img = m_g->GetTilemap(image);
+    if (img)
     {
-        const auto& map = *m_images[image].map;
-        const auto& ts = *m_images[image].tileset;
-        m_imgbuf.Resize(map.GetWidth() * ts.GetTileWidth(), map.GetHeight() * ts.GetTileHeight());
-        m_imgbuf.InsertMap(0, 0, 0, map, ts);
-        std::vector<PaletteO> pal;
-        pal.push_back(*m_images[image].palette);
-        bmp = m_imgbuf.MakeBitmap(pal);
+        const auto map = img->GetData();
+        const auto ts_entry = m_g->GetTileset(img->GetTileset());
+        const auto ts = ts_entry->GetData();
+        const auto pal = m_g->GetPalette(ts_entry->GetDefaultPalette())->GetData();
+        m_imgbuf.Resize(map->GetWidth() * ts->GetTileWidth(), map->GetHeight() * ts->GetTileHeight());
+        m_imgbuf.InsertMap(0, 0, 0, *map, *ts);
+        bmp = m_imgbuf.MakeBitmap({pal});
         ForceRepaint();
     }
 }
@@ -1247,6 +1242,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_g.reset();
     m_tilesetEditor->ClearGameData();
     SetMode(MODE_NONE);
+    this->SetLabel("Landstalker Graphics Viewer");
     return ReturnCode::OK;
 }
 

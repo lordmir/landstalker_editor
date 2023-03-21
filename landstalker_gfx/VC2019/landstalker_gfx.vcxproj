@@ -91,7 +91,6 @@
     <ClInclude Include="..\src\include\Icons.h" />
     <ClInclude Include="..\src\include\ImageBuffer.h" />
     <ClInclude Include="..\src\include\ImageList.h" />
-    <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LSString.h" />
     <ClInclude Include="..\src\include\LSTilemapCmp.h" />

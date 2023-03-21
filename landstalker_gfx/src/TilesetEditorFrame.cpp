@@ -60,7 +60,8 @@ static std::string VecToCommaList(const std::vector<T> list)
 {
 	std::ostringstream ss;
 	std::copy(list.begin(), list.end(), std::ostream_iterator<int>(ss, ","));
-	return ss.str();
+	auto val = ss.str();
+	return val.substr(0, val.length() - 1);
 }
 
 template <class T>
@@ -633,6 +634,10 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		m_paletteEditor->Refresh();
 		m_tilesetEditor->RedrawTiles();
 		m_tileEditor->Refresh();
+		if (m_tileset_entry != nullptr)
+		{
+			m_tileset_entry->SetPalIndicies(VecToCommaList(m_tileset->GetColourIndicies()));
+		}
 	}
 	else if (name == "ABT")
 	{
@@ -874,6 +879,7 @@ bool TilesetEditorFrame::Open(const std::string& name)
 	{
 		m_tileset_entry = e;
 		m_tileset = m_tilesetEditor->GetTileset();
+		m_tileset->SetColourIndicies(CommaListToVec<uint8_t>(e->GetPaletteIndicies()));
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTile(m_tile);

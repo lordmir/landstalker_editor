@@ -4,6 +4,7 @@
 #include "DataManager.h"
 #include "RoomData.h"
 #include "GraphicsData.h"
+#include "DataTypes.h"
 
 #include <vector>
 #include <memory>
@@ -32,13 +33,16 @@ public:
     const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
     const std::map<std::string, std::shared_ptr<TilesetEntry>>& GetAllTilesets() const;
     const std::map<std::string, std::shared_ptr<AnimatedTilesetEntry>>& GetAllAnimatedTilesets() const;
+    const std::map<std::string, std::shared_ptr<Tilemap2DEntry>>& GetAllTilemaps() const;
 
     std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
     std::shared_ptr<TilesetEntry> GetTileset(const std::string& name) const;
     std::shared_ptr<AnimatedTilesetEntry> GetAnimatedTileset(const std::string& name) const;
+    std::shared_ptr<Tilemap2DEntry> GetTilemap(const std::string& name) const;
 
 private:
     void CacheData();
+    void SetDefaults();
 
     std::shared_ptr<RoomData> m_rd;
     std::shared_ptr<GraphicsData> m_gd;
@@ -48,6 +52,7 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets;
     std::map<std::string, std::shared_ptr<AnimatedTilesetEntry>> m_anim_tilesets;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_tilemaps;
 };
 
 #endif // _GAME_DATA_H_

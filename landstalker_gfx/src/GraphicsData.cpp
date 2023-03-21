@@ -1799,7 +1799,7 @@ bool GraphicsData::RomLoadSwordFx(const Rom& rom)
 	auto coinfall_bytes = rom.read_array<uint8_t>(coinfall_addr, coinfall_size);
 
 	auto inv_tilemap = Tilemap2DEntry::Create(this, inv_tilemap_bytes, RomOffsets::Graphics::INV_TILEMAP,
-		RomOffsets::Graphics::INV_TILEMAP_FILE, Tilemap2D::Compression::LZ77, 0);
+		RomOffsets::Graphics::INV_TILEMAP_FILE, Tilemap2D::Compression::LZ77, 0x6B4);
 	auto magic_sword = TilesetEntry::Create(this, magic_sword_bytes, RomOffsets::Graphics::SWORD_MAGIC,
 		RomOffsets::Graphics::SWORD_MAGIC_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
 	auto thunder_sword = TilesetEntry::Create(this, thunder_sword_bytes, RomOffsets::Graphics::SWORD_THUNDER,
