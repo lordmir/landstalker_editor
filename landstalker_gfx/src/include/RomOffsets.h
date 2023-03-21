@@ -131,7 +131,6 @@ namespace RomOffsets
 		static const std::string HUD_TILESET("StatusBarGfx");
 
 		static const std::string ISLAND_MAP_DATA("IslandMap");
-		static const std::string ISLAND_MAP_ROUTINES("IslandMapRoutines");
 		static const std::string ISLAND_MAP_FG_TILES("IslandMapFg");
 		static const std::string ISLAND_MAP_FG_MAP("IslandMapFgMap");
 		static const std::string ISLAND_MAP_FG_PAL("IslandMapFgPal");
@@ -141,7 +140,24 @@ namespace RomOffsets
 		static const std::string ISLAND_MAP_DOTS("MapDots");
 		static const std::string ISLAND_MAP_FRIDAY("MapFriday");
 
-		static const std::string TITLE_DATA("TitleScreenData");
+		static const std::string LITHOGRAPH_DATA("LithographData");
+		static const std::string LITHOGRAPH_PAL("LithographPalette");
+		static const std::string LITHOGRAPH_TILES("Lithograph");
+		static const std::string LITHOGRAPH_MAP("LithographTilemap");
+
+		static const std::string SEGA_LOGO_DATA("SegaLogo");
+		static const std::string SEGA_LOGO_ROUTINES1("SegaLogoRoutines1");
+		static const std::string SEGA_LOGO_PAL("SegaLogoPalette");
+		static const std::string SEGA_LOGO_PAL_LEA("SegaLogoPaletteLea");
+		static const std::string SEGA_LOGO_ROUTINES2("SegaLogoRoutines2");
+		static const std::string SEGA_LOGO_TILES("SegaLogoTiles");
+
+		static const std::string CLIMAX_LOGO_DATA("ClimaxLogoData");
+		static const std::string CLIMAX_LOGO_PAL("ClimaxLogoPalette");
+		static const std::string CLIMAX_LOGO_TILES("ClimaxLogo");
+		static const std::string CLIMAX_LOGO_MAP("ClimaxLogoMap");
+
+		static const std::string TITLE_DATA("TitleScreen");
 		static const std::string TITLE_PALETTE_BLUE("TitlePaletteBlueFade");
 		static const std::string TITLE_PALETTE_BLUE_LEA("TitlePaletteBlueFadeLea");
 		static const std::string TITLE_PALETTE_YELLOW("TitlePaletteYellowFade");
@@ -160,6 +176,17 @@ namespace RomOffsets
 		static const std::string TITLE_ROUTINES_1("TitleRoutines1");
 		static const std::string TITLE_ROUTINES_2("TitleRoutines2");
 		static const std::string TITLE_ROUTINES_3("TitleRoutines3");
+
+		static const std::string GAME_LOAD_DATA("GameLoadScreen");
+		static const std::string GAME_LOAD_ROUTINES_1("GameLoadScreenRoutines1");
+		static const std::string GAME_LOAD_ROUTINES_2("GameLoadScreenRoutines2");
+		static const std::string GAME_LOAD_ROUTINES_3("GameLoadScreenRoutines3");
+		static const std::string GAME_LOAD_PALETTE("GameStartPalette");
+		static const std::string GAME_LOAD_PALETTE_LEA("GameLoadScreen");
+		static const std::string GAME_LOAD_PLAYER_PALETTE("InitialPlayerPal");
+		static const std::string GAME_LOAD_CHARS("LoadGameScreenCharsCmp");
+		static const std::string GAME_LOAD_TILES("LoadGameScreenGfxCmp");
+		static const std::string GAME_LOAD_MAP("LoadGameScreenTilemapCmp");
 
 		static const std::string END_CREDITS_DATA("EndCreditsData");
 		static const std::string END_CREDITS_PAL("EndCreditPal");
@@ -206,8 +233,7 @@ namespace RomOffsets
 		static const std::string END_CREDITS_FONT_FILE("assets_packed/graphics/fonts/credits.lz77");
 		static const std::string END_CREDITS_LOGOS_FILE("assets_packed/graphics/static/ending/logos.lz77");
 		static const std::string END_CREDITS_MAP_FILE("assets_packed/graphics/static/ending/logos.rle");
-		static const std::string ISLAND_MAP_DATA_FILE("code/graphics/staticimages/islandmapdata.asm");
-		static const std::string ISLAND_MAP_ROUTINES_FILE("code/graphics/staticimages/islandmap.asm");
+		static const std::string ISLAND_MAP_DATA_FILE("code/graphics/staticimages/islandmap.asm");
 		static const std::string ISLAND_MAP_FG_TILES_FILE("assets_packed/graphics/static/islandmap/foreground.lz77");
 		static const std::string ISLAND_MAP_FG_MAP_FILE("assets_packed/graphics/static/islandmap/foreground.rle");
 		static const std::string ISLAND_MAP_BG_TILES_FILE("assets_packed/graphics/static/islandmap/background.lz77");
@@ -216,7 +242,7 @@ namespace RomOffsets
 		static const std::string ISLAND_MAP_FRIDAY_FILE("assets_packed/graphics/static/islandmap/friday.lz77");
 		static const std::string ISLAND_MAP_FG_PAL_FILE("assets_packed/graphics/static/islandmap/foreground.pal");
 		static const std::string ISLAND_MAP_BG_PAL_FILE("assets_packed/graphics/static/islandmap/background.pal");
-		static const std::string TITLE_DATA_FILE("code/title/titlescreendata.asm");
+		static const std::string TITLE_DATA_FILE("code/graphics/staticimages/titlescreen.asm");
 		static const std::string TITLE_PALETTE_BLUE_FILE("assets_packed/graphics/static/titlescreen/blues.pal");
 		static const std::string TITLE_PALETTE_YELLOW_FILE("assets_packed/graphics/static/titlescreen/yellows.pal");
 		static const std::string TITLE_1_TILES_FILE("assets_packed/graphics/static/titlescreen/title1.lz77");
@@ -230,6 +256,28 @@ namespace RomOffsets
 		static const std::string TITLE_ROUTINES_1_FILE("code/graphics/staticimages/titlescreen1.asm");
 		static const std::string TITLE_ROUTINES_2_FILE("code/graphics/staticimages/titlescreen2.asm");
 		static const std::string TITLE_ROUTINES_3_FILE("code/graphics/staticimages/titlescreen3.asm");
+		static const std::string LITHOGRAPH_DATA_FILE("code/graphics/staticimages/lithographdata.asm");
+		static const std::string LITHOGRAPH_PAL_FILE("assets_packed/graphics/static/lithograph/lithograph.pal");
+		static const std::string LITHOGRAPH_TILES_FILE("assets_packed/graphics/static/lithograph/lithograph.lz77");
+		static const std::string LITHOGRAPH_MAP_FILE("assets_packed/graphics/static/lithograph/lithograph.rle");
+		static const std::string SEGA_LOGO_DATA_FILE("code/graphics/staticimages/segalogo.asm");
+		static const std::string SEGA_LOGO_ROUTINES1_FILE("code/graphics/staticimages/segalogo1.asm");
+		static const std::string SEGA_LOGO_PAL_FILE("assets_packed/graphics/static/logos/sega.pal");
+		static const std::string SEGA_LOGO_ROUTINES2_FILE("code/graphics/staticimages/segalogo2.asm");
+		static const std::string SEGA_LOGO_TILES_FILE("assets_packed/graphics/static/logos/sega.lz77");
+		static const std::string CLIMAX_LOGO_DATA_FILE("code/graphics/staticimages/climaxlogodata.asm");
+		static const std::string CLIMAX_LOGO_PAL_FILE("assets_packed/graphics/static/logos/climax.pal");
+		static const std::string CLIMAX_LOGO_TILES_FILE("assets_packed/graphics/static/logos/climax.lz77");
+		static const std::string CLIMAX_LOGO_MAP_FILE("assets_packed/graphics/static/logos/climax.rle");
+		static const std::string GAME_LOAD_DATA_FILE("code/title/gameloadscreen.asm");
+		static const std::string GAME_LOAD_ROUTINES_1_FILE("code/title/gameloadscreen1.asm");
+		static const std::string GAME_LOAD_ROUTINES_2_FILE("code/title/gameloadscreen2.asm");
+		static const std::string GAME_LOAD_ROUTINES_3_FILE("code/title/gameloadscreen3.asm");
+		static const std::string GAME_LOAD_PALETTE_FILE("assets_packed/graphics/static/loadgame/loadgame.pal");
+		static const std::string GAME_LOAD_PLAYER_PALETTE_FILE("assets_packed/graphics/static/loadgame/nigel.pal");
+		static const std::string GAME_LOAD_CHARS_FILE("assets_packed/graphics/static/loadgame/chars.lz77");
+		static const std::string GAME_LOAD_TILES_FILE("assets_packed/graphics/static/loadgame/tiles.lz77");
+		static const std::string GAME_LOAD_MAP_FILE("assets_packed/graphics/static/loadgame/tilemap.rle");
 	}
 
 	namespace Tilesets
@@ -339,6 +387,19 @@ namespace RomOffsets
 		{"sprite_data_end",                  {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
 		{ Strings::HUFFMAN_OFFSETS,          {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::HUFFMAN_TABLES,           {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::GAME_LOAD_PALETTE_LEA,   {{Region::JP, 0x000000}, {Region::US, 0x00F694}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::GAME_LOAD_PLAYER_PALETTE,{{Region::JP, 0x000000}, {Region::US, 0x00FB1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::GAME_LOAD_CHARS,         {{Region::JP, 0x000000}, {Region::US, 0x00F646}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::GAME_LOAD_TILES,         {{Region::JP, 0x000000}, {Region::US, 0x00F65A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::GAME_LOAD_MAP,           {{Region::JP, 0x000000}, {Region::US, 0x00F66E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::CLIMAX_LOGO_TILES,       {{Region::JP, 0x000000}, {Region::US, 0x03DF2E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::CLIMAX_LOGO_MAP,         {{Region::JP, 0x000000}, {Region::US, 0x03DF42}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::CLIMAX_LOGO_PAL,         {{Region::JP, 0x000000}, {Region::US, 0x03DF62}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SEGA_LOGO_PAL_LEA,       {{Region::JP, 0x000000}, {Region::US, 0x0386B6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::SEGA_LOGO_TILES,         {{Region::JP, 0x000000}, {Region::US, 0x0386D0}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::LITHOGRAPH_PAL,          {{Region::JP, 0x000000}, {Region::US, 0x038AA2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::LITHOGRAPH_TILES,        {{Region::JP, 0x000000}, {Region::US, 0x038A12}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::LITHOGRAPH_MAP,          {{Region::JP, 0x000000}, {Region::US, 0x038A5E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::TITLE_1_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x03985E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::TITLE_2_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x039892}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::TITLE_3_TILES,           {{Region::JP, 0x000000}, {Region::US, 0x0398C6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -421,9 +482,18 @@ namespace RomOffsets
 
 	inline const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
 	{
+		{"sprite_gfx_lookup",                 {{Region::JP, {0x01ABBE, 0x01AD96}}, {Region::US, {0x01ABF2, 0x01ADCA}}, {Region::UK, {0x01ABF2, 0x01ADCA}}, {Region::FR, {0x01ABE6, 0x01ADBE}}, {Region::DE, {0x01ABEC, 0x01ADC4}}, {Region::US_BETA, {0x01ABB8, 0x01AD90}}}},
+		{"sprite_gfx_offset_table",           {{Region::JP, {0x120004, 0x1201B4}}, {Region::US, {0x120004, 0x1201B4}}, {Region::UK, {0x120004, 0x1201B4}}, {Region::FR, {0x120004, 0x1201B4}}, {Region::DE, {0x120004, 0x1201B4}}, {Region::US_BETA, {0x120004, 0x1201B4}}}},
+		{"sprite_palette_lookup",             {{Region::JP, {0x1A453A, 0x1A47E0}}, {Region::US, {0x1A453A, 0x1A47E0}}, {Region::UK, {0x1A453A, 0x1A47E0}}, {Region::FR, {0x1A453A, 0x1A47E0}}, {Region::DE, {0x1A453A, 0x1A47E0}}, {Region::US_BETA, {0x1A453A, 0x1A47E0}}}},
 		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::LITHOGRAPH_DATA,          {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x038AAC, 0x039762}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::SEGA_LOGO_PAL,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0386C2, 0x0386D0}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::SEGA_LOGO_DATA,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0386E4, 0x0389D4}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::CLIMAX_LOGO_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x03DF8A, 0x03E654}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::GAME_LOAD_PALETTE,        {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00F6BC, 0x00F6DC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Graphics::GAME_LOAD_DATA,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00FB32, 0x00FF12}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::TITLE_DATA,               {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039ED8, 0x03DF0A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::TITLE_PALETTE_BLUE,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039B04, 0x039B3C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::TITLE_PALETTE_YELLOW,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x039C3C, 0x039C46}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
@@ -443,9 +513,6 @@ namespace RomOffsets
 		{ Tilesets::DATA_LOC,                 {{Region::JP, {0x043E70, 0x000000}}, {Region::US, {0x044010, 0x09B000}}, {Region::UK, {0x044010, 0x09B000}}, {Region::FR, {0x044010, 0x09B000}}, {Region::DE, {0x044010, 0x09B000}}, {Region::US_BETA, {0x043E70, 0x000000}}}},
 		{ Tilesets::INTRO_FONT,               {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09A4EA, 0x09AC6A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Tilesets::ANIM_DATA_LOC,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009E04, 0x009EF8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
-		{"sprite_gfx_lookup",                 {{Region::JP, {0x01ABBE, 0x01AD96}}, {Region::US, {0x01ABF2, 0x01ADCA}}, {Region::UK, {0x01ABF2, 0x01ADCA}}, {Region::FR, {0x01ABE6, 0x01ADBE}}, {Region::DE, {0x01ABEC, 0x01ADC4}}, {Region::US_BETA, {0x01ABB8, 0x01AD90}}}},
-		{"sprite_gfx_offset_table",           {{Region::JP, {0x120004, 0x1201B4}}, {Region::US, {0x120004, 0x1201B4}}, {Region::UK, {0x120004, 0x1201B4}}, {Region::FR, {0x120004, 0x1201B4}}, {Region::DE, {0x120004, 0x1201B4}}, {Region::US_BETA, {0x120004, 0x1201B4}}}},
-		{"sprite_palette_lookup",             {{Region::JP, {0x1A453A, 0x1A47E0}}, {Region::US, {0x1A453A, 0x1A47E0}}, {Region::UK, {0x1A453A, 0x1A47E0}}, {Region::FR, {0x1A453A, 0x1A47E0}}, {Region::DE, {0x1A453A, 0x1A47E0}}, {Region::US_BETA, {0x1A453A, 0x1A47E0}}}},
 		{ Rooms::ROOM_DATA_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0A0A12, 0x11EA64}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Rooms::ROOM_FALL_DEST,              {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A1A8, 0x00A35A}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Rooms::ROOM_CLIMB_DEST,             {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00A35A, 0x00A3D8}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

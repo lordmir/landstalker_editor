@@ -6,9 +6,6 @@
 #include "LSString.h"
 #include <memory>
 
-/*  TODO
-2D Maps (Sega Logo, Climax Logo, Lithograph, Intro, File Select)
-*/
 
 class GraphicsData : public DataManager
 {
@@ -26,12 +23,25 @@ public:
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> GetAllTilesets() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetFonts() const;
-    std::vector<std::shared_ptr<TilesetEntry>> GetMiscGraphics() const;
+    std::vector<std::shared_ptr<TilesetEntry>> GetUIGraphics() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetSwordEffects() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetStatusEffects() const;
-    std::shared_ptr<TilesetEntry> GetEndCreditLogos() const;
+    std::shared_ptr<TilesetEntry> GetEndCreditLogosTiles() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetIslandMapTiles() const;
+    std::shared_ptr<TilesetEntry> GetLithographTiles() const;
+    std::shared_ptr<TilesetEntry> GetSegaLogoTiles() const;
+    std::shared_ptr<TilesetEntry> GetClimaxLogoTiles() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetTitleScreenTiles() const;
+    std::vector<std::shared_ptr<TilesetEntry>> GetGameLoadScreenTiles() const;
+
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> GetAllMaps() const;
+    std::vector<std::shared_ptr<Tilemap2DEntry>> GetUIMaps() const;
+    std::shared_ptr<Tilemap2DEntry> GetEndCreditLogosMaps() const;
+    std::vector<std::shared_ptr<Tilemap2DEntry>> GetIslandMapMaps() const;
+    std::shared_ptr<Tilemap2DEntry> GetLithographMap() const;
+    std::shared_ptr<Tilemap2DEntry> GetClimaxLogoMap() const;
+    std::vector<std::shared_ptr<Tilemap2DEntry>> GetTitleScreenMap() const;
+    std::shared_ptr<Tilemap2DEntry> GetGameLoadScreenMap() const;
 
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
 protected:
@@ -54,7 +64,11 @@ private:
     bool AsmLoadHudData();
     bool AsmLoadEndCreditData();
     bool AsmLoadIslandMapData();
+    bool AsmLoadLithographData();
     bool AsmLoadTitleScreenData();
+    bool AsmLoadSegaLogoData();
+    bool AsmLoadClimaxLogoData();
+    bool AsmLoadLoadGameScreenData();
 
     bool RomLoadFonts(const Rom& rom);
     bool RomLoadStrings(const Rom& rom);
@@ -68,7 +82,11 @@ private:
     bool RomLoadHudData(const Rom& rom);
     bool RomLoadEndCreditData(const Rom& rom);
     bool RomLoadIslandMapData(const Rom& rom);
+    bool RomLoadLithographData(const Rom& rom);
     bool RomLoadTitleScreenData(const Rom& rom);
+    bool RomLoadSegaLogoData(const Rom& rom);
+    bool RomLoadClimaxLogoData(const Rom& rom);
+    bool RomLoadGameLoadScreenData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
     bool AsmSaveStrings(const filesystem::path& dir);
@@ -79,7 +97,11 @@ private:
     bool AsmSaveHuffmanData(const filesystem::path& dir);
     bool AsmSaveEndCreditData(const filesystem::path& dir);
     bool AsmSaveIslandMapData(const filesystem::path& dir);
+    bool AsmSaveLithographData(const filesystem::path& dir);
     bool AsmSaveTitleScreenData(const filesystem::path& dir);
+    bool AsmSaveSegaLogoData(const filesystem::path& dir);
+    bool AsmSaveClimaxLogoData(const filesystem::path& dir);
+    bool AsmSaveGameLoadData(const filesystem::path& dir);
 
     bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
@@ -92,7 +114,11 @@ private:
     bool RomPrepareInjectHudData(const Rom& rom);
     bool RomPrepareInjectEndCreditData(const Rom& rom);
     bool RomPrepareInjectIslandMapData(const Rom& rom);
+    bool RomPrepareInjectLithographData(const Rom& rom);
     bool RomPrepareInjectTitleScreenData(const Rom& rom);
+    bool RomPrepareInjectSegaLogoData(const Rom& rom);
+    bool RomPrepareInjectClimaxLogoData(const Rom& rom);
+    bool RomPrepareInjectGameLoadScreenData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -112,18 +138,26 @@ private:
     filesystem::path m_huffman_table_path;
     filesystem::path m_end_credits_path;
     filesystem::path m_island_map_path;
-    filesystem::path m_island_map_routine_path;
     filesystem::path m_title_path;
     filesystem::path m_title_routines_1_path;
     filesystem::path m_title_routines_2_path;
     filesystem::path m_title_routines_3_path;
+    filesystem::path m_sega_logo_path;
+    filesystem::path m_sega_logo_routines_1_path;
+    filesystem::path m_sega_logo_routines_2_path;
+    filesystem::path m_climax_logo_path;
+    filesystem::path m_load_game_path;
+    filesystem::path m_load_game_routines_1_path;
+    filesystem::path m_load_game_routines_2_path;
+    filesystem::path m_load_game_routines_3_path;
+    filesystem::path m_lithograph_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_internal;
-    std::map<std::string, std::shared_ptr<TilesetEntry>> m_misc_gfx_by_name;
-    std::map<std::string, std::shared_ptr<TilesetEntry>> m_misc_gfx_by_name_orig;
-    std::map<std::string, std::shared_ptr<TilesetEntry>> m_misc_gfx_internal;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_ui_gfx_by_name;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_ui_gfx_by_name_orig;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_ui_gfx_internal;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_sword_fx;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_sword_fx_orig;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_sword_fx_internal;
@@ -136,14 +170,23 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_by_name;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_by_name_orig;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_internal;
-    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_misc_tilemaps;
-    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_misc_tilemaps_orig;
-    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_misc_tilemaps_internal;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_orig;
+    std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_internal;
     std::array<std::string, 4> m_system_strings;
     std::array<std::string, 4> m_system_strings_orig;
     std::shared_ptr<Tilemap2DEntry> m_end_credits_map;
     std::shared_ptr<TilesetEntry> m_end_credits_tileset;
     std::shared_ptr<PaletteEntry> m_end_credits_palette;
+    std::shared_ptr<TilesetEntry> m_sega_logo_tileset;
+    std::shared_ptr<PaletteEntry> m_sega_logo_palette;
+    std::shared_ptr<Tilemap2DEntry> m_climax_logo_map;
+    std::shared_ptr<TilesetEntry> m_climax_logo_tileset;
+    std::shared_ptr<PaletteEntry> m_climax_logo_palette;
+    std::shared_ptr<Tilemap2DEntry> m_load_game_map;
+    std::shared_ptr<Tilemap2DEntry> m_lithograph_map;
+    std::shared_ptr<TilesetEntry> m_lithograph_tileset;
+    std::shared_ptr<PaletteEntry> m_lithograph_palette;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps_orig;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_island_map_tilemaps_internal;
@@ -162,6 +205,12 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals_orig;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_title_pals_internal;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_load_game_tiles;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_load_game_tiles_orig;
+    std::map<std::string, std::shared_ptr<TilesetEntry>> m_load_game_tiles_internal;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals_orig;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals_internal;
 
     std::vector<std::vector<std::uint8_t>> m_strings;
     std::vector<std::vector<std::uint8_t>> m_strings_orig;

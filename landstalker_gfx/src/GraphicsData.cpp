@@ -59,9 +59,25 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load island map data from \'") + m_island_map_path.str() + '\'');
 	}
+	if (!AsmLoadLithographData())
+	{
+		throw std::runtime_error(std::string("Unable to load lithograph data from \'") + m_lithograph_path.str() + '\'');
+	}
 	if (!AsmLoadTitleScreenData())
 	{
 		throw std::runtime_error(std::string("Unable to load title screen data from \'") + m_title_path.str() + '\'');
+	}
+	if (!AsmLoadSegaLogoData())
+	{
+		throw std::runtime_error(std::string("Unable to load Sega logo data from \'") + m_sega_logo_path.str() + '\'');
+	}
+	if (!AsmLoadClimaxLogoData())
+	{
+		throw std::runtime_error(std::string("Unable to load Climax logo data from \'") + m_climax_logo_path.str() + '\'');
+	}
+	if (!AsmLoadLoadGameScreenData())
+	{
+		throw std::runtime_error(std::string("Unable to load Load Game screen data from \'") + m_load_game_path.str() + '\'');
 	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
@@ -120,9 +136,25 @@ GraphicsData::GraphicsData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load island map data from ROM"));
 	}
+	if (!RomLoadLithographData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load Lithograph data from ROM"));
+	}
 	if (!RomLoadTitleScreenData(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load title screen data from ROM"));
+	}
+	if (!RomLoadSegaLogoData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load Sega logo data from ROM"));
+	}
+	if (!RomLoadClimaxLogoData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load Climax logo data from ROM"));
+	}
+	if (!RomLoadGameLoadScreenData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load Load Game screen data from ROM"));
 	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
@@ -176,9 +208,25 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save island map data to \'") + m_island_map_path.str() + '\'');
 	}
+	if (!AsmSaveLithographData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save lithograph data to \'") + m_lithograph_path.str() + '\'');
+	}
 	if (!AsmSaveTitleScreenData(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save title screen data to \'") + m_title_path.str() + '\'');
+	}
+	if (!AsmSaveSegaLogoData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save Sega logo data to \'") + m_sega_logo_path.str() + '\'');
+	}
+	if (!AsmSaveClimaxLogoData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save Climax logo data to \'") + m_climax_logo_path.str() + '\'');
+	}
+	if (!AsmSaveGameLoadData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save load game screen data to \'") + m_load_game_path.str() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -197,7 +245,7 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (std::any_of(m_misc_gfx_by_name.begin(), m_misc_gfx_by_name.end(), pair_pred))
+	if (std::any_of(m_ui_gfx_by_name.begin(), m_ui_gfx_by_name.end(), pair_pred))
 	{
 		return true;
 	}
@@ -213,7 +261,7 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (std::any_of(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), pair_pred))
+	if (std::any_of(m_ui_tilemaps.begin(), m_ui_tilemaps.end(), pair_pred))
 	{
 		return true;
 	}
@@ -241,6 +289,14 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (std::any_of(m_load_game_pals.begin(), m_load_game_pals.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_load_game_tiles.begin(), m_load_game_tiles.end(), pair_pred))
+	{
+		return true;
+	}
 	if (m_fonts_by_name != m_fonts_by_name_orig)
 	{
 		return true;
@@ -253,7 +309,7 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_misc_gfx_by_name_orig != m_misc_gfx_by_name)
+	if (m_ui_gfx_by_name_orig != m_ui_gfx_by_name)
 	{
 		return true;
 	}
@@ -269,7 +325,7 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_misc_tilemaps_orig != m_misc_tilemaps)
+	if (m_ui_tilemaps_orig != m_ui_tilemaps)
 	{
 		return true;
 	}
@@ -301,6 +357,14 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_load_game_pals_orig != m_load_game_pals)
+	{
+		return true;
+	}
+	if (m_load_game_tiles_orig != m_load_game_tiles)
+	{
+		return true;
+	}
 	if (entry_pred(m_end_credits_map))
 	{
 		return true;
@@ -310,6 +374,42 @@ bool GraphicsData::HasBeenModified() const
 		return true;
 	}
 	if (entry_pred(m_end_credits_tileset))
+	{
+		return true;
+	}
+	if (entry_pred(m_lithograph_map))
+	{
+		return true;
+	}
+	if (entry_pred(m_lithograph_tileset))
+	{
+		return true;
+	}
+	if (entry_pred(m_lithograph_palette))
+	{
+		return true;
+	}
+	if (entry_pred(m_sega_logo_palette))
+	{
+		return true;
+	}
+	if (entry_pred(m_sega_logo_tileset))
+	{
+		return true;
+	}
+	if (entry_pred(m_climax_logo_map))
+	{
+		return true;
+	}
+	if (entry_pred(m_climax_logo_tileset))
+	{
+		return true;
+	}
+	if (entry_pred(m_climax_logo_palette))
+	{
+		return true;
+	}
+	if (entry_pred(m_load_game_map))
 	{
 		return true;
 	}
@@ -363,9 +463,25 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare island map data for ROM injection"));
 	}
+	if (!RomPrepareInjectLithographData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare lithograph data for ROM injection"));
+	}
 	if (!RomPrepareInjectTitleScreenData(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare title screen data for ROM injection"));
+	}
+	if (!RomPrepareInjectSegaLogoData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare Sega logo data for ROM injection"));
+	}
+	if (!RomPrepareInjectClimaxLogoData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare Climax logo data for ROM injection"));
+	}
+	if (!RomPrepareInjectGameLoadScreenData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare load game screen data for ROM injection"));
 	}
 }
 
@@ -376,7 +492,7 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 	{
 		result.insert(t);
 	}
-	for (auto& t : m_misc_gfx_by_name)
+	for (auto& t : m_ui_gfx_by_name)
 	{
 		result.insert(t);
 	}
@@ -396,7 +512,14 @@ std::map<std::string, std::shared_ptr<TilesetEntry>> GraphicsData::GetAllTileset
 	{
 		result.insert(t);
 	}
+	for (auto& t : m_load_game_tiles)
+	{
+		result.insert(t);
+	}
 	result.insert({ m_end_credits_tileset->GetName(), m_end_credits_tileset });
+	result.insert({ m_lithograph_tileset->GetName(), m_lithograph_tileset });
+	result.insert({ m_sega_logo_tileset->GetName(), m_sega_logo_tileset });
+	result.insert({ m_climax_logo_tileset->GetName(), m_climax_logo_tileset });
 	return result;
 }
 
@@ -410,10 +533,10 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetFonts() const
 	return retval;
 }
 
-std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetMiscGraphics() const
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetUIGraphics() const
 {
 	std::vector<std::shared_ptr<TilesetEntry>> retval;
-	for (const auto& t : m_misc_gfx_by_name)
+	for (const auto& t : m_ui_gfx_by_name)
 	{
 		retval.push_back(t.second);
 	}
@@ -440,7 +563,7 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetStatusEffects() cons
 	return retval;
 }
 
-std::shared_ptr<TilesetEntry> GraphicsData::GetEndCreditLogos() const
+std::shared_ptr<TilesetEntry> GraphicsData::GetEndCreditLogosTiles() const
 {
 	return m_end_credits_tileset;
 }
@@ -455,6 +578,21 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetIslandMapTiles() con
 	return retval;
 }
 
+std::shared_ptr<TilesetEntry> GraphicsData::GetLithographTiles() const
+{
+	return m_lithograph_tileset;
+}
+
+std::shared_ptr<TilesetEntry> GraphicsData::GetSegaLogoTiles() const
+{
+	return m_sega_logo_tileset;
+}
+
+std::shared_ptr<TilesetEntry> GraphicsData::GetClimaxLogoTiles() const
+{
+	return m_climax_logo_tileset;
+}
+
 std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetTitleScreenTiles() const
 {
 	std::vector<std::shared_ptr<TilesetEntry>> retval;
@@ -463,6 +601,88 @@ std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetTitleScreenTiles() c
 		retval.push_back(t.second);
 	}
 	return retval;
+}
+
+std::vector<std::shared_ptr<TilesetEntry>> GraphicsData::GetGameLoadScreenTiles() const
+{
+	std::vector<std::shared_ptr<TilesetEntry>> retval;
+	for (const auto& t : m_load_game_tiles)
+	{
+		retval.push_back(t.second);
+	}
+	return retval;
+}
+
+std::map<std::string, std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetAllMaps() const
+{
+	std::map<std::string, std::shared_ptr<Tilemap2DEntry>> result;
+	for (auto& t : m_ui_tilemaps)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_island_map_tilemaps)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_title_tilemaps)
+	{
+		result.insert(t);
+	}
+	result.insert({ m_end_credits_map->GetName(), m_end_credits_map });
+	result.insert({ m_lithograph_map->GetName(), m_lithograph_map });
+	result.insert({ m_climax_logo_map->GetName(), m_climax_logo_map });
+	result.insert({ m_load_game_map->GetName(), m_load_game_map });
+	return result;
+}
+
+std::vector<std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetUIMaps() const
+{
+	std::vector<std::shared_ptr<Tilemap2DEntry>> result;
+	for (auto& t : m_ui_tilemaps)
+	{
+		result.push_back(t.second);
+	}
+	return result;
+}
+
+std::shared_ptr<Tilemap2DEntry> GraphicsData::GetEndCreditLogosMaps() const
+{
+	return m_end_credits_map;
+}
+
+std::vector<std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetIslandMapMaps() const
+{
+	std::vector<std::shared_ptr<Tilemap2DEntry>> result;
+	for (auto& t : m_island_map_tilemaps)
+	{
+		result.push_back(t.second);
+	}
+	return result;
+}
+
+std::shared_ptr<Tilemap2DEntry> GraphicsData::GetLithographMap() const
+{
+	return m_lithograph_map;
+}
+
+std::shared_ptr<Tilemap2DEntry> GraphicsData::GetClimaxLogoMap() const
+{
+	return m_climax_logo_map;
+}
+
+std::vector<std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetTitleScreenMap() const
+{
+	std::vector<std::shared_ptr<Tilemap2DEntry>> result;
+	for (auto& t : m_title_tilemaps)
+	{
+		result.push_back(t.second);
+	}
+	return result;
+}
+
+std::shared_ptr<Tilemap2DEntry> GraphicsData::GetGameLoadScreenMap() const
+{
+	return m_load_game_map;
 }
 
 std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalettes() const
@@ -480,7 +700,14 @@ std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalette
 	{
 		result.insert(t);
 	}
+	for (auto& t : m_load_game_pals)
+	{
+		result.insert(t);
+	}
 	result.insert({ m_end_credits_palette->GetName(), m_end_credits_palette });
+	result.insert({ m_lithograph_palette->GetName(), m_lithograph_palette });
+	result.insert({ m_sega_logo_palette->GetName(), m_sega_logo_palette });
+	result.insert({ m_climax_logo_palette->GetName(), m_climax_logo_palette });
 	return result;
 }
 
@@ -488,27 +715,31 @@ void GraphicsData::CommitAllChanges()
 {
 	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
+
 	std::for_each(m_fonts_by_name.begin(), m_fonts_by_name.end(), pair_commit);
 	std::for_each(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_commit);
-	std::for_each(m_misc_gfx_by_name.begin(), m_misc_gfx_by_name.end(), pair_commit);
+	std::for_each(m_ui_gfx_by_name.begin(), m_ui_gfx_by_name.end(), pair_commit);
 	std::for_each(m_status_fx_frames.begin(), m_status_fx_frames.end(), pair_commit);
 	std::for_each(m_sword_fx.begin(), m_sword_fx.end(), pair_commit);
-	std::for_each(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), pair_commit);
+	std::for_each(m_ui_tilemaps.begin(), m_ui_tilemaps.end(), pair_commit);
 	std::for_each(m_island_map_pals.begin(), m_island_map_pals.end(), pair_commit);
 	std::for_each(m_island_map_tilemaps.begin(), m_island_map_tilemaps.end(), pair_commit);
 	std::for_each(m_island_map_tiles.begin(), m_island_map_tiles.end(), pair_commit);
 	std::for_each(m_title_pals.begin(), m_title_pals.end(), pair_commit);
 	std::for_each(m_title_tilemaps.begin(), m_title_tilemaps.end(), pair_commit);
 	std::for_each(m_title_tiles.begin(), m_title_tiles.end(), pair_commit);
+	std::for_each(m_load_game_tiles.begin(), m_load_game_tiles.end(), pair_commit);
+	std::for_each(m_load_game_pals.begin(), m_load_game_pals.end(), pair_commit);
+
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
-	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
+	m_ui_gfx_by_name_orig = m_ui_gfx_by_name;
 	m_strings_orig = m_strings;
 	m_status_fx_orig = m_status_fx;
 	m_status_fx_frames_orig = m_status_fx_frames;
 	m_sword_fx_orig = m_sword_fx;
-	m_misc_tilemaps_orig = m_misc_tilemaps;
+	m_ui_tilemaps_orig = m_ui_tilemaps;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
 	m_island_map_pals_orig = m_island_map_pals;
@@ -517,9 +748,21 @@ void GraphicsData::CommitAllChanges()
 	m_title_pals_orig = m_title_pals;
 	m_title_tilemaps_orig = m_title_tilemaps;
 	m_title_tiles_orig = m_title_tiles;
+	m_load_game_pals_orig = m_load_game_pals;
+	m_load_game_tiles_orig = m_load_game_tiles;
+
 	entry_commit(m_end_credits_map);
 	entry_commit(m_end_credits_palette);
 	entry_commit(m_end_credits_tileset);
+	entry_commit(m_lithograph_map);
+	entry_commit(m_lithograph_palette);
+	entry_commit(m_lithograph_tileset);
+	entry_commit(m_sega_logo_palette);
+	entry_commit(m_sega_logo_tileset);
+	entry_commit(m_climax_logo_map);
+	entry_commit(m_climax_logo_palette);
+	entry_commit(m_climax_logo_tileset);
+	entry_commit(m_load_game_map);
 	m_pending_writes.clear();
 }
 
@@ -540,7 +783,11 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::END_CREDITS_DATA, m_end_credits_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::ISLAND_MAP_DATA, m_island_map_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::LITHOGRAPH_DATA, m_lithograph_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::TITLE_DATA, m_title_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SEGA_LOGO_DATA, m_sega_logo_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::CLIMAX_LOGO_DATA, m_climax_logo_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::GAME_LOAD_DATA, m_load_game_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -571,11 +818,19 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
 	if (m_end_credits_path.empty()) m_end_credits_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
 	if (m_island_map_path.empty()) m_island_map_path = RomOffsets::Graphics::ISLAND_MAP_DATA_FILE;
-	if (m_island_map_routine_path.empty()) m_island_map_routine_path = RomOffsets::Graphics::ISLAND_MAP_ROUTINES_FILE;
+	if (m_lithograph_path.empty()) m_lithograph_path = RomOffsets::Graphics::LITHOGRAPH_DATA_FILE;
 	if (m_title_path.empty()) m_title_path = RomOffsets::Graphics::TITLE_DATA_FILE;
 	if (m_title_routines_1_path.empty()) m_title_routines_1_path = RomOffsets::Graphics::TITLE_ROUTINES_1_FILE;
 	if (m_title_routines_2_path.empty()) m_title_routines_2_path = RomOffsets::Graphics::TITLE_ROUTINES_2_FILE;
 	if (m_title_routines_3_path.empty()) m_title_routines_3_path = RomOffsets::Graphics::TITLE_ROUTINES_3_FILE;
+	if (m_sega_logo_path.empty()) m_sega_logo_path = RomOffsets::Graphics::SEGA_LOGO_DATA_FILE;
+	if (m_sega_logo_routines_1_path.empty()) m_sega_logo_routines_1_path = RomOffsets::Graphics::SEGA_LOGO_ROUTINES1_FILE;
+	if (m_sega_logo_routines_2_path.empty()) m_sega_logo_routines_2_path = RomOffsets::Graphics::SEGA_LOGO_ROUTINES2_FILE;
+	if (m_climax_logo_path.empty()) m_climax_logo_path = RomOffsets::Graphics::CLIMAX_LOGO_DATA_FILE;
+	if (m_load_game_path.empty()) m_load_game_path = RomOffsets::Graphics::GAME_LOAD_DATA_FILE;
+	if (m_load_game_routines_1_path.empty()) m_load_game_routines_1_path = RomOffsets::Graphics::GAME_LOAD_ROUTINES_1_FILE;
+	if (m_load_game_routines_2_path.empty()) m_load_game_routines_2_path = RomOffsets::Graphics::GAME_LOAD_ROUTINES_2_FILE;
+	if (m_load_game_routines_3_path.empty()) m_load_game_routines_3_path = RomOffsets::Graphics::GAME_LOAD_ROUTINES_3_FILE;
 }
 
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -596,16 +851,24 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_path);
 	retval = retval && CreateDirectoryTree(dir / m_island_map_path);
-	retval = retval && CreateDirectoryTree(dir / m_island_map_routine_path);
+	retval = retval && CreateDirectoryTree(dir / m_lithograph_path);
 	retval = retval && CreateDirectoryTree(dir / m_title_path);
 	retval = retval && CreateDirectoryTree(dir / m_title_routines_1_path);
 	retval = retval && CreateDirectoryTree(dir / m_title_routines_2_path);
 	retval = retval && CreateDirectoryTree(dir / m_title_routines_3_path);
+	retval = retval && CreateDirectoryTree(dir / m_sega_logo_path);
+	retval = retval && CreateDirectoryTree(dir / m_sega_logo_routines_1_path);
+	retval = retval && CreateDirectoryTree(dir / m_sega_logo_routines_1_path);
+	retval = retval && CreateDirectoryTree(dir / m_climax_logo_path);
+	retval = retval && CreateDirectoryTree(dir / m_load_game_path);
+	retval = retval && CreateDirectoryTree(dir / m_load_game_routines_1_path);
+	retval = retval && CreateDirectoryTree(dir / m_load_game_routines_2_path);
+	retval = retval && CreateDirectoryTree(dir / m_load_game_routines_3_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
-	for (const auto& g : m_misc_gfx_by_name)
+	for (const auto& g : m_ui_gfx_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / g.second->GetFilename());
 	}
@@ -621,7 +884,7 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
-	for (const auto& f : m_misc_tilemaps)
+	for (const auto& f : m_ui_tilemaps)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
@@ -649,9 +912,26 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
 	}
+	for (const auto& f : m_load_game_pals)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
+	for (const auto& f : m_load_game_tiles)
+	{
+		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
+	}
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_map->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_palette->GetFilename());
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_tileset->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_lithograph_map->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_lithograph_palette->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_lithograph_tileset->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_sega_logo_palette->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_sega_logo_tileset->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_climax_logo_map->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_climax_logo_palette->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_climax_logo_tileset->GetFilename());
+	retval = retval && CreateDirectoryTree(dir / m_load_game_map->GetFilename());
 	return retval;
 }
 
@@ -660,12 +940,12 @@ void GraphicsData::InitCache()
 	m_palettes_by_name_orig = m_palettes_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_fonts_by_name_orig = m_fonts_by_name;
-	m_misc_gfx_by_name_orig = m_misc_gfx_by_name;
+	m_ui_gfx_by_name_orig = m_ui_gfx_by_name;
 	m_strings_orig = m_strings;
 	m_sword_fx_orig = m_sword_fx;
 	m_status_fx_orig = m_status_fx;
 	m_status_fx_frames_orig = m_status_fx_frames;
-	m_misc_tilemaps_orig = m_misc_tilemaps;
+	m_ui_tilemaps_orig = m_ui_tilemaps;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
 	m_island_map_pals_orig = m_island_map_pals;
@@ -674,6 +954,8 @@ void GraphicsData::InitCache()
 	m_title_pals_orig = m_title_pals;
 	m_title_tilemaps_orig = m_title_tilemaps;
 	m_title_tiles_orig = m_title_tiles;
+	m_load_game_pals_orig = m_load_game_pals;
+	m_load_game_tiles_orig = m_load_game_tiles;
 }
 
 bool GraphicsData::AsmLoadFonts()
@@ -748,17 +1030,17 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		auto pal2 = PaletteEntry::Create(this, *std::get<2>(gfx[6]), std::get<0>(gfx[6]),
 			std::get<1>(gfx[6]), Palette::Type::FULL);
 		m_fonts_by_name.insert({ menufont->GetName(), menufont });
-		m_misc_gfx_by_name.insert({ menucursor->GetName(), menucursor });
-		m_misc_gfx_by_name.insert({ arrow->GetName(), arrow });
-		m_misc_gfx_by_name.insert({ unused1->GetName(), unused1 });
-		m_misc_gfx_by_name.insert({ unused2->GetName(), unused2 });
+		m_ui_gfx_by_name.insert({ menucursor->GetName(), menucursor });
+		m_ui_gfx_by_name.insert({ arrow->GetName(), arrow });
+		m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
+		m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
 		m_palettes_by_name.insert({ pal1->GetName(), pal1 });
 		m_palettes_by_name.insert({ pal2->GetName(), pal2 });
 		m_fonts_internal.insert({ menufont->GetName(), menufont });
-		m_misc_gfx_internal.insert({ menucursor->GetName(), menucursor });
-		m_misc_gfx_internal.insert({ arrow->GetName(), arrow });
-		m_misc_gfx_internal.insert({ unused1->GetName(), unused1 });
-		m_misc_gfx_internal.insert({ unused2->GetName(), unused2 });
+		m_ui_gfx_internal.insert({ menucursor->GetName(), menucursor });
+		m_ui_gfx_internal.insert({ arrow->GetName(), arrow });
+		m_ui_gfx_internal.insert({ unused1->GetName(), unused1 });
+		m_ui_gfx_internal.insert({ unused2->GetName(), unused2 });
 		m_palettes_internal.insert({ pal1->GetName(), pal1 });
 		m_palettes_internal.insert({ pal2->GetName(), pal2 });
 		return true;
@@ -866,10 +1148,10 @@ bool GraphicsData::AsmLoadTextGraphics()
 		file >> inc;
 		auto right_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
 			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
-		m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
-		m_misc_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
-		m_misc_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
-		m_misc_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
+		m_ui_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
+		m_ui_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
+		m_ui_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
+		m_ui_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
 		return true;
 	}
 	catch (const std::exception&)
@@ -888,8 +1170,8 @@ bool GraphicsData::AsmLoadSwordFx()
 		file >> name >> inc;
 		auto tilemap_bytes = ReadBytes(GetBasePath() / inc.path);
 		auto m = Tilemap2DEntry::Create(this, tilemap_bytes, name, inc.path, Tilemap2D::Compression::LZ77, 0x6B4);
-		m_misc_tilemaps.insert({ m->GetName(), m });
-		m_misc_tilemaps_internal.insert({ RomOffsets::Graphics::INV_TILEMAP, m });
+		m_ui_tilemaps.insert({ m->GetName(), m });
+		m_ui_tilemaps_internal.insert({ RomOffsets::Graphics::INV_TILEMAP, m });
 		auto names = { RomOffsets::Graphics::SWORD_MAGIC, RomOffsets::Graphics::SWORD_THUNDER,
 					   RomOffsets::Graphics::SWORD_GAIA,  RomOffsets::Graphics::SWORD_ICE,
 					   RomOffsets::Graphics::COINFALL };
@@ -996,10 +1278,10 @@ bool GraphicsData::AsmLoadHuffmanData()
 		file >> inc;
 		auto tb3 = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
 			RomOffsets::Graphics::TEXTBOX_3LINE_MAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 8);
-		m_misc_tilemaps.insert({ tb2->GetName(), tb2 });
-		m_misc_tilemaps_internal.insert({ tb2->GetName(), tb2 });
-		m_misc_tilemaps.insert({ tb3->GetName(), tb3 });
-		m_misc_tilemaps_internal.insert({ tb3->GetName(), tb3 });
+		m_ui_tilemaps.insert({ tb2->GetName(), tb2 });
+		m_ui_tilemaps_internal.insert({ tb2->GetName(), tb2 });
+		m_ui_tilemaps.insert({ tb3->GetName(), tb3 });
+		m_ui_tilemaps_internal.insert({ tb3->GetName(), tb3 });
 		return true;
 	}
 	catch (const std::exception&)
@@ -1021,10 +1303,10 @@ bool GraphicsData::AsmLoadHudData()
 		file.Goto(RomOffsets::Graphics::HUD_TILESET);
 		file >> inc;
 		auto ts = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), RomOffsets::Graphics::HUD_TILESET, inc.path);
-		m_misc_tilemaps.insert({ map->GetName(), map });
-		m_misc_tilemaps_internal.insert({ map->GetName(), map });
-		m_misc_gfx_by_name.insert({ ts->GetName(), ts });
-		m_misc_gfx_internal.insert({ ts->GetName(), ts });
+		m_ui_tilemaps.insert({ map->GetName(), map });
+		m_ui_tilemaps_internal.insert({ map->GetName(), map });
+		m_ui_gfx_by_name.insert({ ts->GetName(), ts });
+		m_ui_gfx_internal.insert({ ts->GetName(), ts });
 		return true;
 	}
 	catch (const std::exception&)
@@ -1078,8 +1360,6 @@ bool GraphicsData::AsmLoadIslandMapData()
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
 		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
-		file >> lbl >> inc;
-		m_island_map_routine_path = inc.path;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1116,6 +1396,35 @@ bool GraphicsData::AsmLoadIslandMapData()
 		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, fg_pal });
 		m_island_map_pals.insert({ bg_pal->GetName(), bg_pal });
 		m_island_map_pals_internal.insert({ RomOffsets::Graphics::ISLAND_MAP_BG_PAL, bg_pal });
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadLithographData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_lithograph_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			auto path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 3);
+		m_lithograph_palette = PaletteEntry::Create(this, std::get<2>(entries[0]), std::get<0>(entries[0]), std::get<1>(entries[0]), Palette::Type::FULL);
+		m_lithograph_tileset = TilesetEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]));
+		m_lithograph_map = Tilemap2DEntry::Create(this, std::get<2>(entries[2]), std::get<0>(entries[2]), std::get<1>(entries[2]), Tilemap2D::Compression::RLE, 0x100);
+
 		return true;
 	}
 	catch (const std::exception&)
@@ -1177,6 +1486,108 @@ bool GraphicsData::AsmLoadTitleScreenData()
 		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW, yellow_pal });
 		m_title_pals.insert({ blue_pal->GetName(), blue_pal });
 		m_title_pals_internal.insert({ RomOffsets::Graphics::TITLE_PALETTE_BLUE, blue_pal });
+
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadSegaLogoData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_sega_logo_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			const auto& path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 4);
+		m_sega_logo_routines_1_path = std::get<1>(entries[0]);
+		m_sega_logo_palette = PaletteEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]), Palette::Type::SEGA_LOGO);
+		m_sega_logo_routines_2_path = std::get<1>(entries[2]);
+		m_sega_logo_tileset = TilesetEntry::Create(this, std::get<2>(entries[3]), std::get<0>(entries[3]), std::get<1>(entries[3]));
+
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadClimaxLogoData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_climax_logo_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			const auto& path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 3);
+		m_climax_logo_tileset = TilesetEntry::Create(this, std::get<2>(entries[0]), std::get<0>(entries[0]), std::get<1>(entries[0]));
+		m_climax_logo_map = Tilemap2DEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]), Tilemap2D::Compression::RLE, 0x100);
+		m_climax_logo_palette = PaletteEntry::Create(this, std::get<2>(entries[2]), std::get<0>(entries[2]), std::get<1>(entries[2]), Palette::Type::CLIMAX_LOGO);
+
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmLoadLoadGameScreenData()
+{
+	try
+	{
+		AsmFile file(GetBasePath() / m_load_game_path);
+		AsmFile::Label lbl;
+		AsmFile::IncludeFile inc;
+		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		while (file.IsGood())
+		{
+			file >> lbl >> inc;
+			std::string name = lbl;
+			const auto& path = inc.path;
+			auto bytes = ReadBytes(GetBasePath() / path);
+			entries.push_back({ name, path, bytes });
+		}
+		assert(entries.size() >= 8);
+		m_load_game_routines_1_path = std::get<1>(entries[0]);
+		auto pal = PaletteEntry::Create(this, std::get<2>(entries[1]), std::get<0>(entries[1]), std::get<1>(entries[1]), Palette::Type::FULL);
+		m_load_game_routines_2_path = std::get<1>(entries[2]);
+		auto player_pal = PaletteEntry::Create(this, std::get<2>(entries[3]), std::get<0>(entries[3]), std::get<1>(entries[3]), Palette::Type::FULL);
+		auto chars = TilesetEntry::Create(this, std::get<2>(entries[4]), std::get<0>(entries[4]), std::get<1>(entries[4]));
+		auto tiles = TilesetEntry::Create(this, std::get<2>(entries[5]), std::get<0>(entries[5]), std::get<1>(entries[5]));
+		m_load_game_map = Tilemap2DEntry::Create(this, std::get<2>(entries[6]), std::get<0>(entries[6]), std::get<1>(entries[6]), Tilemap2D::Compression::RLE, 0x100);
+		m_load_game_routines_3_path = std::get<1>(entries[7]);
+
+		m_load_game_pals.insert({ pal->GetName(), pal });
+		m_load_game_pals_internal.insert({ RomOffsets::Graphics::GAME_LOAD_PALETTE, pal });
+		m_load_game_pals.insert({ player_pal->GetName(), player_pal });
+		m_load_game_pals_internal.insert({ RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE, player_pal });
+		m_load_game_tiles.insert({ chars->GetName(), chars });
+		m_load_game_tiles_internal.insert({ RomOffsets::Graphics::GAME_LOAD_CHARS, chars });
+		m_load_game_tiles.insert({ tiles->GetName(), tiles });
+		m_load_game_tiles_internal.insert({ RomOffsets::Graphics::GAME_LOAD_TILES, tiles });
 
 		return true;
 	}
@@ -1251,14 +1662,14 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 		RomOffsets::Graphics::INV_PAL2, RomOffsets::Graphics::INV_PAL2_FILE, Palette::Type::FULL);
 	m_fonts_by_name.insert({ menu_font->GetName(), menu_font });
 	m_fonts_internal.insert({ RomOffsets::Graphics::INV_FONT, menu_font });
-	m_misc_gfx_by_name.insert({ cursor->GetName(), cursor });
-	m_misc_gfx_internal.insert({ RomOffsets::Graphics::INV_CURSOR, cursor });
-	m_misc_gfx_by_name.insert({ arrow->GetName(), arrow });
-	m_misc_gfx_internal.insert({ RomOffsets::Graphics::INV_ARROW, arrow });
-	m_misc_gfx_by_name.insert({ unused1->GetName(), unused1 });
-	m_misc_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED1, unused1 });
-	m_misc_gfx_by_name.insert({ unused2->GetName(), unused2 });
-	m_misc_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED2, unused2 });
+	m_ui_gfx_by_name.insert({ cursor->GetName(), cursor });
+	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_CURSOR, cursor });
+	m_ui_gfx_by_name.insert({ arrow->GetName(), arrow });
+	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_ARROW, arrow });
+	m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
+	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED1, unused1 });
+	m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
+	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED2, unused2 });
 	m_palettes_by_name.insert({ pal1->GetName(), pal1 });
 	m_palettes_internal.insert({ RomOffsets::Graphics::INV_PAL1, pal1 });
 	m_palettes_by_name.insert({ pal2->GetName(), pal2 });
@@ -1350,10 +1761,10 @@ bool GraphicsData::RomLoadTextGraphics(const Rom& rom)
 		RomOffsets::Graphics::RIGHT_ARROW_FILE, false, 8, 8, 4, Tileset::BLOCK2X2);
 	down_arrow->SetStartAddress(down_arrow_size);
 	right_arrow->SetStartAddress(right_arrow_size);
-	m_misc_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
-	m_misc_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
-	m_misc_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
-	m_misc_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
+	m_ui_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
+	m_ui_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
+	m_ui_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
+	m_ui_gfx_internal.insert({ right_arrow->GetName(), right_arrow });
 	return true;
 }
 
@@ -1407,8 +1818,8 @@ bool GraphicsData::RomLoadSwordFx(const Rom& rom)
 	ice_sword->SetStartAddress(ice_sword_addr);
 	coinfall->SetStartAddress(coinfall_addr);
 
-	m_misc_tilemaps.insert({ inv_tilemap->GetName(), inv_tilemap });
-	m_misc_tilemaps_internal.insert({ inv_tilemap->GetName(), inv_tilemap });
+	m_ui_tilemaps.insert({ inv_tilemap->GetName(), inv_tilemap });
+	m_ui_tilemaps_internal.insert({ inv_tilemap->GetName(), inv_tilemap });
 	m_sword_fx.insert({ magic_sword->GetName(), magic_sword });
 	m_sword_fx_internal.insert({ magic_sword->GetName(), magic_sword });
 	m_sword_fx.insert({ thunder_sword->GetName(), thunder_sword });
@@ -1511,10 +1922,10 @@ bool GraphicsData::RomLoadHuffmanData(const Rom& rom)
 	auto textbox_2l = Tilemap2DEntry::Create(this, textbox_2l_bytes, RomOffsets::Graphics::TEXTBOX_2LINE_MAP,
 		RomOffsets::Graphics::TEXTBOX_2LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
 
-	m_misc_tilemaps.insert({ textbox_3l->GetName(), textbox_3l });
-	m_misc_tilemaps_internal.insert({ textbox_3l->GetName(), textbox_3l });
-	m_misc_tilemaps.insert({ textbox_2l->GetName(), textbox_2l });
-	m_misc_tilemaps_internal.insert({ textbox_2l->GetName(), textbox_2l });
+	m_ui_tilemaps.insert({ textbox_3l->GetName(), textbox_3l });
+	m_ui_tilemaps_internal.insert({ textbox_3l->GetName(), textbox_3l });
+	m_ui_tilemaps.insert({ textbox_2l->GetName(), textbox_2l });
+	m_ui_tilemaps_internal.insert({ textbox_2l->GetName(), textbox_2l });
 
 	return true;
 }
@@ -1538,10 +1949,10 @@ bool GraphicsData::RomLoadHudData(const Rom& rom)
 	auto ts = TilesetEntry::Create(this, ts_bytes, RomOffsets::Graphics::HUD_TILESET,
 		RomOffsets::Graphics::HUD_TILESET_FILE);
 
-	m_misc_tilemaps.insert({ map->GetName(), map });
-	m_misc_tilemaps_internal.insert({ map->GetName(), map });
-	m_misc_gfx_by_name.insert({ ts->GetName(), ts });
-	m_misc_gfx_internal.insert({ ts->GetName(), ts });
+	m_ui_tilemaps.insert({ map->GetName(), map });
+	m_ui_tilemaps_internal.insert({ map->GetName(), map });
+	m_ui_gfx_by_name.insert({ ts->GetName(), ts });
+	m_ui_gfx_internal.insert({ ts->GetName(), ts });
 
 	return true;
 }
@@ -1649,6 +2060,34 @@ bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadLithographData(const Rom& rom)
+{
+	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_PAL),
+		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_PAL));
+	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_TILES),
+		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_TILES));
+	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_MAP),
+		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_MAP));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::LITHOGRAPH_DATA).end;
+
+	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+	uint32_t tiles_size = map_addr - tiles_addr;
+	uint32_t map_size = end - map_addr;
+
+	auto pal_bytes = rom.read_array<uint8_t>(pal_addr, pal_size);
+	auto tiles_bytes = rom.read_array<uint8_t>(tiles_addr, tiles_size);
+	auto map_bytes = rom.read_array<uint8_t>(map_addr, map_size);
+
+	m_lithograph_palette = PaletteEntry::Create(this, pal_bytes, RomOffsets::Graphics::LITHOGRAPH_PAL,
+		RomOffsets::Graphics::LITHOGRAPH_PAL_FILE, Palette::Type::FULL);
+	m_lithograph_tileset = TilesetEntry::Create(this, tiles_bytes, RomOffsets::Graphics::LITHOGRAPH_TILES,
+		RomOffsets::Graphics::LITHOGRAPH_TILES_FILE);
+	m_lithograph_map = Tilemap2DEntry::Create(this, map_bytes, RomOffsets::Graphics::LITHOGRAPH_MAP,
+		RomOffsets::Graphics::LITHOGRAPH_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+
+	return true;
+}
+
 bool GraphicsData::RomLoadTitleScreenData(const Rom& rom)
 {
 	uint32_t blue_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA),
@@ -1741,6 +2180,105 @@ bool GraphicsData::RomLoadTitleScreenData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomLoadSegaLogoData(const Rom& rom)
+{
+	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA),
+		rom.get_address(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA));
+	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SEGA_LOGO_TILES),
+		rom.get_address(RomOffsets::Graphics::SEGA_LOGO_TILES));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_DATA).end;
+
+	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::SEGA_LOGO);
+	uint32_t tiles_size = end - tiles_addr;
+
+	auto pal_bytes = rom.read_array<uint8_t>(pal_addr, pal_size);
+	auto tiles_bytes = rom.read_array<uint8_t>(tiles_addr, tiles_size);
+
+	m_sega_logo_palette = PaletteEntry::Create(this, pal_bytes, RomOffsets::Graphics::SEGA_LOGO_PAL,
+		RomOffsets::Graphics::SEGA_LOGO_PAL_FILE, Palette::Type::SEGA_LOGO);
+	m_sega_logo_tileset = TilesetEntry::Create(this, tiles_bytes, RomOffsets::Graphics::SEGA_LOGO_TILES,
+		RomOffsets::Graphics::SEGA_LOGO_TILES_FILE);
+
+	return true;
+}
+
+bool GraphicsData::RomLoadClimaxLogoData(const Rom& rom)
+{
+	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_PAL),
+		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_PAL));
+	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_TILES),
+		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_TILES));
+	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_MAP),
+		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_MAP));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::CLIMAX_LOGO_DATA).end;
+
+	uint32_t tiles_size = map_addr - tiles_addr;
+	uint32_t map_size = pal_addr - map_addr;
+	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::CLIMAX_LOGO);
+
+	auto pal_bytes = rom.read_array<uint8_t>(pal_addr, pal_size);
+	auto tiles_bytes = rom.read_array<uint8_t>(tiles_addr, tiles_size);
+	auto map_bytes = rom.read_array<uint8_t>(map_addr, map_size);
+
+	m_climax_logo_palette = PaletteEntry::Create(this, pal_bytes, RomOffsets::Graphics::CLIMAX_LOGO_PAL,
+		RomOffsets::Graphics::CLIMAX_LOGO_PAL_FILE, Palette::Type::CLIMAX_LOGO);
+	m_climax_logo_tileset = TilesetEntry::Create(this, tiles_bytes, RomOffsets::Graphics::CLIMAX_LOGO_TILES,
+		RomOffsets::Graphics::CLIMAX_LOGO_TILES_FILE);
+	m_climax_logo_map = Tilemap2DEntry::Create(this, map_bytes, RomOffsets::Graphics::CLIMAX_LOGO_MAP,
+		RomOffsets::Graphics::CLIMAX_LOGO_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+
+	return true;
+}
+
+bool GraphicsData::RomLoadGameLoadScreenData(const Rom& rom)
+{
+	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA),
+		rom.get_address(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA));
+	uint32_t player_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE),
+		rom.get_address(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE));
+	uint32_t chars_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_CHARS),
+		rom.get_address(RomOffsets::Graphics::GAME_LOAD_CHARS));
+	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_TILES),
+		rom.get_address(RomOffsets::Graphics::GAME_LOAD_TILES));
+	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_MAP),
+		rom.get_address(RomOffsets::Graphics::GAME_LOAD_MAP));
+	uint32_t end = rom.get_section(RomOffsets::Graphics::GAME_LOAD_DATA).end;
+
+	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+	uint32_t player_pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
+	uint32_t chars_size = tiles_addr - chars_addr;
+	uint32_t tiles_size = map_addr - tiles_addr;
+	uint32_t map_size = end - map_addr;
+
+	auto pal_bytes = rom.read_array<uint8_t>(pal_addr, pal_size);
+	auto player_pal_bytes = rom.read_array<uint8_t>(player_pal_addr, player_pal_size);
+	auto chars_bytes = rom.read_array<uint8_t>(chars_addr, chars_size);
+	auto tiles_bytes = rom.read_array<uint8_t>(tiles_addr, tiles_size);
+	auto map_bytes = rom.read_array<uint8_t>(map_addr, map_size);
+
+	auto pal = PaletteEntry::Create(this, pal_bytes, RomOffsets::Graphics::GAME_LOAD_PALETTE,
+		RomOffsets::Graphics::GAME_LOAD_PALETTE_FILE, Palette::Type::FULL);
+	auto player_pal = PaletteEntry::Create(this, player_pal_bytes, RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE,
+		RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE_FILE, Palette::Type::FULL);
+	auto chars = TilesetEntry::Create(this, chars_bytes, RomOffsets::Graphics::GAME_LOAD_CHARS,
+		RomOffsets::Graphics::GAME_LOAD_CHARS_FILE);
+	auto tiles = TilesetEntry::Create(this, tiles_bytes, RomOffsets::Graphics::GAME_LOAD_TILES,
+		RomOffsets::Graphics::GAME_LOAD_TILES_FILE);
+	m_load_game_map = Tilemap2DEntry::Create(this, map_bytes, RomOffsets::Graphics::GAME_LOAD_MAP,
+		RomOffsets::Graphics::GAME_LOAD_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
+
+	m_load_game_pals.insert({ pal->GetName(), pal });
+	m_load_game_pals_internal.insert({ RomOffsets::Graphics::GAME_LOAD_PALETTE, pal });
+	m_load_game_pals.insert({ player_pal->GetName(), player_pal });
+	m_load_game_pals_internal.insert({ RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE, player_pal });
+	m_load_game_tiles.insert({ chars->GetName(), chars });
+	m_load_game_tiles_internal.insert({ RomOffsets::Graphics::GAME_LOAD_CHARS, chars });
+	m_load_game_tiles.insert({ tiles->GetName(), tiles });
+	m_load_game_tiles_internal.insert({ RomOffsets::Graphics::GAME_LOAD_TILES, tiles });
+
+	return true;
+}
+
 bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
@@ -1748,7 +2286,7 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 		{
 			return f.second->Save(dir);
 		});
-	retval = retval && std::all_of(m_misc_gfx_by_name.begin(), m_misc_gfx_by_name.end(), [&](auto& f)
+	retval = retval && std::all_of(m_ui_gfx_by_name.begin(), m_ui_gfx_by_name.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1760,7 +2298,7 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 		{
 			return f.second->Save(dir);
 		});
-	retval = retval && std::all_of(m_misc_tilemaps.begin(), m_misc_tilemaps.end(), [&](auto& f)
+	retval = retval && std::all_of(m_ui_tilemaps.begin(), m_ui_tilemaps.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1785,6 +2323,14 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 			return f.second->Save(dir);
 		});
 	retval = retval && std::all_of(m_title_tiles.begin(), m_title_tiles.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_load_game_pals.begin(), m_load_game_pals.end(), [&](auto& f)
+		{
+			return f.second->Save(dir);
+		});
+	retval = retval && std::all_of(m_load_game_tiles.begin(), m_load_game_tiles.end(), [&](auto& f)
 		{
 			return f.second->Save(dir);
 		});
@@ -1816,6 +2362,15 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 	m_end_credits_map->Save(dir);
 	m_end_credits_palette->Save(dir);
 	m_end_credits_tileset->Save(dir);
+	m_lithograph_map->Save(dir);
+	m_lithograph_palette->Save(dir);
+	m_lithograph_tileset->Save(dir);
+	m_sega_logo_palette->Save(dir);
+	m_sega_logo_tileset->Save(dir);
+	m_climax_logo_map->Save(dir);
+	m_climax_logo_palette->Save(dir);
+	m_climax_logo_tileset->Save(dir);
+	m_load_game_map->Save(dir);
 	return retval;
 }
 
@@ -1862,10 +2417,10 @@ bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 		};
 		ifile.WriteFileHeader(m_inventory_graphics_filename, "Inventory Graphics Data");
 		write_inc(RomOffsets::Graphics::INV_FONT, m_fonts_internal);
-		write_inc(RomOffsets::Graphics::INV_CURSOR, m_misc_gfx_internal);
-		write_inc(RomOffsets::Graphics::INV_ARROW, m_misc_gfx_internal);
-		write_inc(RomOffsets::Graphics::INV_UNUSED1, m_misc_gfx_internal);
-		write_inc(RomOffsets::Graphics::INV_UNUSED2, m_misc_gfx_internal);
+		write_inc(RomOffsets::Graphics::INV_CURSOR, m_ui_gfx_internal);
+		write_inc(RomOffsets::Graphics::INV_ARROW, m_ui_gfx_internal);
+		write_inc(RomOffsets::Graphics::INV_UNUSED1, m_ui_gfx_internal);
+		write_inc(RomOffsets::Graphics::INV_UNUSED2, m_ui_gfx_internal);
 		write_inc(RomOffsets::Graphics::INV_PAL1, m_palettes_internal);
 		write_inc(RomOffsets::Graphics::INV_PAL2, m_palettes_internal);
 		ifile.WriteFile(dir / m_inventory_graphics_filename);
@@ -1919,7 +2474,7 @@ bool GraphicsData::AsmSaveSwordFx(const filesystem::path& dir)
 	{
 		AsmFile file;
 		file.WriteFileHeader(m_sword_fx_path, "Magic Sword Effects");
-		auto invmap = m_misc_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP];
+		auto invmap = m_ui_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP];
 		file << AsmFile::Label(invmap->GetName()) << AsmFile::IncludeFile(invmap->GetFilename(), AsmFile::BINARY);
 		for (const auto& t : m_sword_fx)
 		{
@@ -2000,7 +2555,6 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 	{
 		AsmFile file;
 		file.WriteFileHeader(m_island_map_path, "Island Map Data File");
-		file << AsmFile::Label(RomOffsets::Graphics::ISLAND_MAP_ROUTINES) << AsmFile::IncludeFile(m_island_map_routine_path, AsmFile::ASSEMBLER);
 		auto write_include = [&](const auto& data)
 		{
 			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
@@ -2016,6 +2570,30 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 		write_include(m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_BG_PAL]);
 
 		file.WriteFile(dir / m_island_map_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveLithographData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_lithograph_path, "Lithograph Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		write_include(m_lithograph_palette);
+		write_include(m_lithograph_tileset);
+		write_include(m_lithograph_map);
+		file << AsmFile::Align(2);
+
+		file.WriteFile(dir / m_lithograph_path);
 		return true;
 	}
 	catch (const std::exception&)
@@ -2050,6 +2628,89 @@ bool GraphicsData::AsmSaveTitleScreenData(const filesystem::path& dir)
 		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT]);
 
 		file.WriteFile(dir / m_title_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveSegaLogoData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_sega_logo_path, "Sega Logo Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		file << AsmFile::Label(RomOffsets::Graphics::SEGA_LOGO_ROUTINES1)
+			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES1_FILE, AsmFile::ASSEMBLER);
+		write_include(m_sega_logo_palette);
+		file << AsmFile::Label(RomOffsets::Graphics::SEGA_LOGO_ROUTINES2)
+			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES2_FILE, AsmFile::ASSEMBLER);
+		write_include(m_sega_logo_tileset);
+		file << AsmFile::Align(2);
+
+		file.WriteFile(dir / m_sega_logo_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveClimaxLogoData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_climax_logo_path, "Climax Logo Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		write_include(m_climax_logo_tileset);
+		write_include(m_climax_logo_map);
+		file << AsmFile::Align(2);
+		write_include(m_climax_logo_palette);
+
+		file.WriteFile(dir / m_climax_logo_path);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool GraphicsData::AsmSaveGameLoadData(const filesystem::path& dir)
+{
+	try
+	{
+		AsmFile file;
+		file.WriteFileHeader(m_load_game_path, "Load Game Screen Data File");
+		auto write_include = [&](const auto& data)
+		{
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+		};
+		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_1)
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_1_FILE, AsmFile::ASSEMBLER);
+		write_include(m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PALETTE]);
+		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_2)
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_2_FILE, AsmFile::ASSEMBLER);
+		write_include(m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE]);
+		write_include(m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_CHARS]);
+		write_include(m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_TILES]);
+		write_include(m_load_game_map);
+		file << AsmFile::Align(2);
+		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_3)
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_3_FILE, AsmFile::ASSEMBLER);
+
+		file.WriteFile(dir / m_load_game_path);
 		return true;
 	}
 	catch (const std::exception&)
@@ -2108,16 +2769,16 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 	auto inv_font = m_fonts_internal[RomOffsets::Graphics::INV_FONT]->GetBytes();
 	bytes->insert(bytes->end(), inv_font->cbegin(), inv_font->cend());
 	addrs[1] = base + bytes->size();
-	auto inv_cursor = m_misc_gfx_internal[RomOffsets::Graphics::INV_CURSOR]->GetBytes();
+	auto inv_cursor = m_ui_gfx_internal[RomOffsets::Graphics::INV_CURSOR]->GetBytes();
 	bytes->insert(bytes->end(), inv_cursor->cbegin(), inv_cursor->cend());
 	addrs[2] = base + bytes->size();
-	auto inv_arrow = m_misc_gfx_internal[RomOffsets::Graphics::INV_ARROW]->GetBytes();
+	auto inv_arrow = m_ui_gfx_internal[RomOffsets::Graphics::INV_ARROW]->GetBytes();
 	bytes->insert(bytes->end(), inv_arrow->cbegin(), inv_arrow->cend());
 	addrs[3] = base + bytes->size();
-	auto inv_unused1 = m_misc_gfx_internal[RomOffsets::Graphics::INV_UNUSED1]->GetBytes();
+	auto inv_unused1 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED1]->GetBytes();
 	bytes->insert(bytes->end(), inv_unused1->cbegin(), inv_unused1->cend());
 	addrs[4] = base + bytes->size();
-	auto inv_unused2 = m_misc_gfx_internal[RomOffsets::Graphics::INV_UNUSED2]->GetBytes();
+	auto inv_unused2 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED2]->GetBytes();
 	bytes->insert(bytes->end(), inv_unused2->cbegin(), inv_unused2->cend());
 	addrs[5] = base + bytes->size();
 	auto inv_pal1 = m_palettes_internal[RomOffsets::Graphics::INV_PAL1]->GetBytes();
@@ -2236,10 +2897,10 @@ bool GraphicsData::RomPrepareInjectTextGraphics(const Rom& rom)
 {
 	uint32_t down_arrow_begin = rom.get_section(RomOffsets::Graphics::DOWN_ARROW_SECTION).begin;
 	uint32_t down_arrow_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::DOWN_ARROW), down_arrow_begin);
-	auto down_arrow_bytes = m_misc_gfx_internal[RomOffsets::Graphics::DOWN_ARROW]->GetBytes();
+	auto down_arrow_bytes = m_ui_gfx_internal[RomOffsets::Graphics::DOWN_ARROW]->GetBytes();
 	uint32_t right_arrow_begin = rom.get_section(RomOffsets::Graphics::RIGHT_ARROW_SECTION).begin;
 	uint32_t right_arrow_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::RIGHT_ARROW), right_arrow_begin);
-	auto right_arrow_bytes = m_misc_gfx_internal[RomOffsets::Graphics::RIGHT_ARROW]->GetBytes();
+	auto right_arrow_bytes = m_ui_gfx_internal[RomOffsets::Graphics::RIGHT_ARROW]->GetBytes();
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::DOWN_ARROW_SECTION, down_arrow_bytes });
 	m_pending_writes.push_back({ RomOffsets::Graphics::RIGHT_ARROW_SECTION, right_arrow_bytes });
@@ -2255,7 +2916,7 @@ bool GraphicsData::RomPrepareInjectSwordFx(const Rom& rom)
 	auto bytes = std::make_shared<ByteVector>();
 
 	uint32_t inv_tilemap_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_TILEMAP), sword_fx_begin);
-	auto inv_tilemap_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP]->GetBytes();
+	auto inv_tilemap_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP]->GetBytes();
 	bytes->insert(bytes->end(), inv_tilemap_bytes->cbegin(), inv_tilemap_bytes->cend());
 
 	uint32_t magic_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_MAGIC), sword_fx_begin + bytes->size());
@@ -2342,11 +3003,11 @@ bool GraphicsData::RomPrepareInjectHuffmanData(const Rom& rom)
 	auto bytes = std::make_shared<ByteVector>();
 
 	uint32_t textbox_3l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP), begin);
-	auto textbox_3l_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->GetBytes();
+	auto textbox_3l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->GetBytes();
 	bytes->insert(bytes->end(), textbox_3l_bytes->cbegin(), textbox_3l_bytes->cend());
 
 	uint32_t textbox_2l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP), begin + bytes->size());
-	auto textbox_2l_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->GetBytes();
+	auto textbox_2l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->GetBytes();
 	bytes->insert(bytes->end(), textbox_2l_bytes->cbegin(), textbox_2l_bytes->cend());
 
 	uint32_t huffman_offsets_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS), begin + bytes->size());
@@ -2370,11 +3031,11 @@ bool GraphicsData::RomPrepareInjectHudData(const Rom& rom)
 	auto bytes = std::make_shared<ByteVector>();
 
 	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILEMAP), begin);
-	auto map_bytes = m_misc_tilemaps_internal[RomOffsets::Graphics::HUD_TILEMAP]->GetBytes();
+	auto map_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::HUD_TILEMAP]->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
 	uint32_t ts_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILESET), begin + bytes->size());
-	auto ts_bytes = m_misc_gfx_internal[RomOffsets::Graphics::HUD_TILESET]->GetBytes();
+	auto ts_bytes = m_ui_gfx_internal[RomOffsets::Graphics::HUD_TILESET]->GetBytes();
 	bytes->insert(bytes->end(), ts_bytes->cbegin(), ts_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_SECTION, bytes });
@@ -2466,6 +3127,31 @@ bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectLithographData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::LITHOGRAPH_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_PAL), begin);
+	auto pal_bytes = m_lithograph_palette->GetBytes();
+	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
+
+	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_TILES), begin + bytes->size());
+	auto tiles_bytes = m_lithograph_tileset->GetBytes();
+	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
+
+	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_MAP), begin + bytes->size());
+	auto map_bytes = m_lithograph_map->GetBytes();
+	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+
+	return true;
+}
+
 bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
 {
 	uint32_t blue_pal_begin = rom.get_section(RomOffsets::Graphics::TITLE_PALETTE_BLUE).begin;
@@ -2539,6 +3225,89 @@ bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
 	return true;
 }
 
+bool GraphicsData::RomPrepareInjectSegaLogoData(const Rom& rom)
+{
+	uint32_t pal_begin = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_PAL).begin;
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA), pal_begin);
+	auto pal_bytes = m_sega_logo_palette->GetBytes();
+	
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_DATA).begin;
+	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SEGA_LOGO_TILES), begin);
+	auto tiles_bytes = m_sega_logo_tileset->GetBytes();
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_PAL, pal_bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_DATA, tiles_bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_PAL_LEA, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
+	
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectClimaxLogoData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::CLIMAX_LOGO_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_TILES), begin);
+	auto tiles_bytes = m_climax_logo_tileset->GetBytes();
+	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
+
+	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_MAP), begin + bytes->size());
+	auto map_bytes = m_climax_logo_map->GetBytes();
+	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
+
+	if (((bytes->size() + begin) & 1) == 1)
+	{
+		bytes->push_back(0xFF);
+	}
+
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_PAL), begin + bytes->size());
+	auto pal_bytes = m_climax_logo_palette->GetBytes();
+	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+
+	return true;
+}
+
+bool GraphicsData::RomPrepareInjectGameLoadScreenData(const Rom& rom)
+{
+	uint32_t pal_begin = rom.get_section(RomOffsets::Graphics::GAME_LOAD_PALETTE).begin;
+	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA), pal_begin);
+	auto pal_bytes = m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PALETTE]->GetBytes();
+
+	uint32_t begin = rom.get_section(RomOffsets::Graphics::GAME_LOAD_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>();
+
+	uint32_t player_pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE), begin);
+	auto player_pal_bytes = m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE]->GetBytes();
+	bytes->insert(bytes->end(), player_pal_bytes->cbegin(), player_pal_bytes->cend());
+
+	uint32_t chars_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_CHARS), begin + bytes->size());
+	auto chars_bytes = m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_CHARS]->GetBytes();
+	bytes->insert(bytes->end(), chars_bytes->cbegin(), chars_bytes->cend());
+
+	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_TILES), begin + bytes->size());
+	auto tiles_bytes = m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_TILES]->GetBytes();
+	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
+
+	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_MAP), begin + bytes->size());
+	auto map_bytes = m_load_game_map->GetBytes();
+	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
+
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_PALETTE, pal_bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_DATA, bytes });
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE, std::make_shared<ByteVector>(Split<uint8_t>(player_pal_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_CHARS, std::make_shared<ByteVector>(Split<uint8_t>(chars_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
+	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+
+	return true;
+}
+
 void GraphicsData::UpdateTilesetRecommendedPalettes()
 {
 	std::vector<std::string> palettes;
@@ -2556,6 +3325,11 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 	{
 		title_palettes.push_back(p.first);
 	}
+	std::vector<std::string> loadgame_palettes;
+	for (const auto& p : m_load_game_pals)
+	{
+		loadgame_palettes.push_back(p.first);
+	}
 	auto set_pals = [&](auto& container, const auto& rec)
 	{
 		for (auto& e : container)
@@ -2565,36 +3339,53 @@ void GraphicsData::UpdateTilesetRecommendedPalettes()
 		}
 	};
 	set_pals(m_fonts_by_name, palettes);
-	set_pals(m_misc_gfx_by_name, palettes);
+	set_pals(m_ui_gfx_by_name, palettes);
 	set_pals(m_status_fx_frames, palettes);
 	set_pals(m_sword_fx, palettes);
 	set_pals(m_island_map_tiles, map_palettes);
 	set_pals(m_title_tiles, title_palettes);
+	set_pals(m_load_game_tiles, loadgame_palettes);
 	m_end_credits_tileset->SetAllPalettes(palettes);
 	m_end_credits_tileset->SetRecommendedPalettes({ m_end_credits_palette->GetName() });
+	m_lithograph_tileset->SetAllPalettes(palettes);
+	m_lithograph_tileset->SetRecommendedPalettes({ m_lithograph_palette->GetName() });
+	m_sega_logo_tileset->SetAllPalettes(palettes);
+	m_sega_logo_tileset->SetRecommendedPalettes({ m_sega_logo_palette->GetName() });
+	m_climax_logo_tileset->SetAllPalettes(palettes);
+	m_climax_logo_tileset->SetRecommendedPalettes({ m_climax_logo_palette->GetName() });
 }
 
 void GraphicsData::ResetTilesetDefaultPalettes()
 {
+	auto set_pal = [&](auto& pal)
+	{
+		if (pal->GetRecommendedPalettes().size() == 0)
+		{
+			pal->SetDefaultPalette(m_palettes_by_name.begin()->second->GetName());
+		}
+		else
+		{
+			pal->SetDefaultPalette(pal->GetRecommendedPalettes().front());
+		}
+	};
 	auto set_pals = [&](auto& container)
 	{
 		for (const auto& e : container)
 		{
-			if (e.second->GetRecommendedPalettes().size() == 0)
-			{
-				e.second->SetDefaultPalette(m_palettes_by_name.begin()->second->GetName());
-			}
-			else
-			{
-				e.second->SetDefaultPalette(e.second->GetRecommendedPalettes().front());
-			}
+			set_pal(e.second);
 		}
 	};
 	set_pals(m_fonts_by_name);
-	set_pals(m_misc_gfx_by_name);
+	set_pals(m_ui_gfx_by_name);
 	set_pals(m_status_fx_frames);
 	set_pals(m_sword_fx);
 	set_pals(m_island_map_tiles);
 	set_pals(m_title_tiles);
+	set_pals(m_load_game_tiles);
+	set_pal(m_end_credits_tileset);
+	set_pal(m_lithograph_tileset);
+	set_pal(m_sega_logo_tileset);
+	set_pal(m_climax_logo_tileset);
+
 	m_end_credits_tileset->SetDefaultPalette(m_end_credits_palette->GetName());
 }
