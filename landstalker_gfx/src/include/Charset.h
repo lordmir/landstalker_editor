@@ -96,6 +96,22 @@ namespace Charset
 
 	inline const LSString::DiacriticMap DEFAULT_DIACRITIC_MAP = {};
 
+	static RomOffsets::Region DeduceRegion(uint32_t printable_charset_size)
+	{
+		switch (printable_charset_size)
+		{
+		case 237:
+			return RomOffsets::Region::JP;
+		case 98:
+			return RomOffsets::Region::FR;
+		case 63:
+			return RomOffsets::Region::DE;
+		case 85:
+		default:
+			return RomOffsets::Region::US;
+		}
+	}
+
 	static const LSString::CharacterSet& GetDefaultCharset(RomOffsets::Region region)
 	{
 		switch (region)

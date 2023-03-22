@@ -1,4 +1,5 @@
 #include "LSString.h"
+#include "Charset.h"
 
 #include <stdexcept>
 #include <unordered_map>
@@ -7,32 +8,22 @@
 #include <iostream>
 #include <vector>
 
-const LSString::CharacterSet LSString::DEFAULT_CHARACTER_SET = {
-	{ 0, L" "}, { 1, L"0"}, { 2, L"1"}, { 3, L"2"}, { 4, L"3"}, { 5, L"4"}, { 6, L"5"}, { 7, L"6"},
-	{ 8, L"7"}, { 9, L"8"}, {10, L"9"}, {11, L"A"}, {12, L"B"}, {13, L"C"}, {14, L"D"}, {15, L"E"},
-	{16, L"F"}, {17, L"G"}, {18, L"H"}, {19, L"I"}, {20, L"J"}, {21, L"K"}, {22, L"L"}, {23, L"M"},
-	{24, L"N"}, {25, L"O"}, {26, L"P"}, {27, L"Q"}, {28, L"R"}, {29, L"S"}, {30, L"T"}, {31, L"U"},
-	{32, L"V"}, {33, L"W"}, {34, L"X"}, {35, L"Y"}, {36, L"Z"}, {37, L"a"}, {38, L"b"}, {39, L"c"},
-	{40, L"d"}, {41, L"e"}, {42, L"f"}, {43, L"g"}, {44, L"h"}, {45, L"i"}, {46, L"j"}, {47, L"k"},
-	{48, L"l"}, {49, L"m"}, {50, L"n"}, {51, L"o"}, {52, L"p"}, {53, L"q"}, {54, L"r"}, {55, L"s"},
-	{56, L"t"}, {57, L"u"}, {58, L"v"}, {59, L"w"}, {60, L"x"}, {61, L"y"}, {62, L"z"}, {63, L"*"},
-	{64, L"."}, {65, L","}, {66, L"?"}, {67, L"!"}, {68, L"/"}, {69, L"<"}, {70, L">"}, {71, L":"},
-	{72, L"-"}, {73, L"\'"}, {74, L"\""}, {75, L"%"}, {76, L"#"}, {77, L"&"}, {78, L"("}, {79, L")"},
-	{80, L"="}, {81, L"{NW}"}, {82, L"{NE}"}, {83, L"{SE}"}, {84, L"{SW}"}
-};
+const LSString::CharacterSet& LSString::DEFAULT_CHARACTER_SET = Charset::DEFAULT_ENGLISH_CHARSET;
 
-const LSString::DiacriticMap LSString::DEFAULT_DIACRITIC_MAP = {};
+const LSString::DiacriticMap& LSString::DEFAULT_DIACRITIC_MAP = Charset::DEFAULT_DIACRITIC_MAP;
 
 LSString::LSString(const LSString::CharacterSet& charset, const LSString::DiacriticMap& diacritic_map)
 	: m_charset(charset),
-	  m_diacritic_map(diacritic_map)
+	  m_diacritic_map(diacritic_map),
+	  m_eos_marker(DEFAULT_EOS_MARKER)
 {
 }
 
 LSString::LSString(const StringType& s, const LSString::CharacterSet& charset, const LSString::DiacriticMap& diacritic_map)
 	: m_str(),
 	  m_charset(charset),
-	  m_diacritic_map(diacritic_map)
+	  m_diacritic_map(diacritic_map),
+	  m_eos_marker(DEFAULT_EOS_MARKER)
 {
 	Deserialise(s);
 }
@@ -73,7 +64,7 @@ void LSString::AddFrequencyCounts(FrequencyCounts& frequencies) const
 {
 	std::vector<uint8_t> buffer(1024);
 	buffer.resize(EncodeString(buffer.data(), buffer.size()));
-	uint8_t last = 0x55;
+	uint8_t last = m_eos_marker;
 	for (auto c : buffer)
 	{
 		frequencies[last][c]++;

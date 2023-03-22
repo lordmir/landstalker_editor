@@ -119,11 +119,11 @@ void HuffmanTrees::RecalculateTrees(const std::vector<std::shared_ptr<LSString>>
 	Debug("Recalculating Huffman trees...");
 	m_trees.clear();
 	LSString::FrequencyCounts frequencies;
-	for (const auto s : strings)
+	for (const auto& s : strings)
 	{
 		s->AddFrequencyCounts(frequencies);
 	}
-	for (const auto c : frequencies)
+	for (const auto& c : frequencies)
 	{
 		m_trees[c.first] = std::make_shared<HuffmanTree>(c.second);
 	}

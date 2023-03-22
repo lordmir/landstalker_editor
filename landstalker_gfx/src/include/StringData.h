@@ -3,6 +3,10 @@
 
 #include "DataManager.h"
 #include "DataTypes.h"
+#include "HuffmanString.h"
+#include "IntroString.h"
+#include "EndCreditString.h"
+#include "Charset.h"
 
 class StringData : public DataManager
 {
@@ -31,6 +35,9 @@ private:
     void SetDefaultFilenames();
     bool CreateDirectoryStructure(const filesystem::path& dir);
     void InitCache();
+    bool DecompressStrings();
+    bool CompressStrings();
+    uint32_t GetCharsetSize() const;
 
     bool AsmLoadSystemFont();
     bool AsmLoadSystemStrings();
@@ -70,12 +77,16 @@ private:
 
     std::vector<std::vector<std::uint8_t>> m_compressed_strings;
     std::vector<std::vector<std::uint8_t>> m_compressed_strings_orig;
+    std::vector<LSString::StringType> m_decompressed_strings;
+    std::vector<LSString::StringType> m_decompressed_strings_orig;
     std::array<std::string, 4> m_system_strings;
     std::array<std::string, 4> m_system_strings_orig;
     std::vector<uint8_t> m_huffman_offsets;
     std::vector<uint8_t> m_huffman_offsets_orig;
     std::vector<uint8_t> m_huffman_tables;
     std::vector<uint8_t> m_huffman_tables_orig;
+
+    RomOffsets::Region m_region;
 };
 
 #endif // _STRING_DATA_H_

@@ -31,8 +31,9 @@ public:
 		return ApplyDiacritics(m_str);
 	}
 
-	static const CharacterSet DEFAULT_CHARACTER_SET;
-	static const DiacriticMap DEFAULT_DIACRITIC_MAP;
+	static const CharacterSet& DEFAULT_CHARACTER_SET;
+	static const DiacriticMap& DEFAULT_DIACRITIC_MAP;
+	static const uint8_t DEFAULT_EOS_MARKER = 0x55;
 protected:
 	virtual size_t DecodeString(const uint8_t* string, size_t len);
 	virtual size_t EncodeString(uint8_t* string, size_t len) const;
@@ -41,6 +42,8 @@ protected:
 	CharacterSet m_charset;
 	DiacriticMap m_diacritic_map;
 	StringType m_str;
+	uint8_t m_eos_marker;
+
 private:
 	StringType ApplyDiacritics(const StringType& str) const;
 	StringType RemoveDiacritics(const StringType& str) const;

@@ -24,11 +24,14 @@ StringData::StringData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
 	}
+	m_region = Charset::DeduceRegion(GetCharsetSize());
+	DecompressStrings();
 	InitCache();
 }
 
 StringData::StringData(const Rom& rom)
-	: DataManager(rom)
+	: DataManager(rom),
+	  m_region(rom.get_region())
 {
 	SetDefaultFilenames();
 	if (!RomLoadSystemFont(rom))
@@ -47,12 +50,14 @@ StringData::StringData(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to load Huffman data from ROM"));
 	}
+	DecompressStrings();
 	InitCache();
 }
 
 bool StringData::Save(const filesystem::path& dir)
 {
 	auto directory = dir;
+	CompressStrings();
 	if (directory.exists() && directory.is_file())
 	{
 		directory = directory.parent_path();
@@ -98,6 +103,10 @@ bool StringData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_decompressed_strings_orig != m_decompressed_strings)
+	{
+		return true;
+	}
 	if (m_fonts_by_name_orig != m_fonts_by_name)
 	{
 		return true;
@@ -107,10 +116,6 @@ bool StringData::HasBeenModified() const
 		return true;
 	}
 	if (m_system_strings_orig != m_system_strings)
-	{
-		return true;
-	}
-	if (m_compressed_strings_orig != m_compressed_strings)
 	{
 		return true;
 	}
@@ -128,6 +133,7 @@ bool StringData::HasBeenModified() const
 void StringData::RefreshPendingWrites(const Rom& rom)
 {
 	DataManager::RefreshPendingWrites(rom);
+	CompressStrings();
 	if (!RomPrepareInjectSystemText(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare system text data for ROM injection"));
@@ -181,6 +187,7 @@ void StringData::CommitAllChanges()
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_ui_tilemaps_orig = m_ui_tilemaps;
 	m_system_strings_orig = m_system_strings;
+	m_decompressed_strings_orig = m_decompressed_strings;
 	m_compressed_strings_orig = m_compressed_strings;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
@@ -254,8 +261,59 @@ void StringData::InitCache()
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_system_strings_orig = m_system_strings;
 	m_compressed_strings_orig = m_compressed_strings;
+	m_decompressed_strings_orig = m_decompressed_strings;
 	m_huffman_offsets_orig = m_huffman_offsets;
 	m_huffman_tables_orig = m_huffman_tables;
+	m_decompressed_strings_orig = m_decompressed_strings;
+}
+
+bool StringData::DecompressStrings()
+{
+	auto huff_trees = std::make_shared<HuffmanTrees>(m_huffman_offsets.data(), m_huffman_offsets.size(), m_huffman_tables.data(), m_huffman_tables.size(), m_huffman_offsets.size() / 2);
+	auto charset = Charset::GetDefaultCharset(m_region);
+	auto eos_marker = Charset::GetEOSChar(m_region);
+	auto diacritic_map = Charset::GetDiacriticMap(m_region);
+	auto decoder = HuffmanString(huff_trees, charset, eos_marker, diacritic_map);
+	m_decompressed_strings.clear();
+	for (const auto& s : m_compressed_strings)
+	{
+		decoder.Decode(s.data(), s[0]);
+		m_decompressed_strings.push_back(decoder.Str());
+	}
+	return true;
+}
+
+bool StringData::CompressStrings()
+{
+	if (m_decompressed_strings_orig != m_decompressed_strings)
+	{
+		auto huff_trees = std::make_shared<HuffmanTrees>();
+		auto charset = Charset::GetDefaultCharset(m_region);
+		auto eos_marker = Charset::GetEOSChar(m_region);
+		auto diacritic_map = Charset::GetDiacriticMap(m_region);
+		m_compressed_strings.clear();
+		std::vector<std::shared_ptr<LSString>> strs;
+		for (const auto& s : m_decompressed_strings)
+		{
+			strs.push_back(std::make_shared<HuffmanString>(s, huff_trees, charset, eos_marker, diacritic_map));
+		}
+		huff_trees->RecalculateTrees(strs);
+		huff_trees->EncodeTrees(m_huffman_offsets, m_huffman_tables);
+		for (const auto& s : strs)
+		{
+			m_compressed_strings.push_back(ByteVector(256));
+			auto sz = s->Encode(m_compressed_strings.back().data(), m_compressed_strings.back().size());
+			m_compressed_strings.back().resize(sz);
+		}
+	}
+	return true;
+}
+
+uint32_t StringData::GetCharsetSize() const
+{
+	const auto& font = m_fonts_internal.at(RomOffsets::Graphics::MAIN_FONT);
+	const auto& orig_font = m_fonts_by_name.at(font->GetName());
+	return orig_font->GetData()->GetTileCount();
 }
 
 bool StringData::AsmLoadSystemFont()
