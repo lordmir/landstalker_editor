@@ -162,6 +162,9 @@
     <ClCompile Include="..\src\EntryPreferences.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\StringData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -329,6 +332,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntryPreferences.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\StringData.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

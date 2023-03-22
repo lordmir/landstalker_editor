@@ -47,6 +47,7 @@
     <ClCompile Include="..\src\Sprite.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
+    <ClCompile Include="..\src\StringData.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
     <ClCompile Include="..\src\TileEditor.cpp" />
@@ -108,6 +109,7 @@
     <ClInclude Include="..\src\include\Sprite.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\SpriteGraphic.h" />
+    <ClInclude Include="..\src\include\StringData.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
     <ClInclude Include="..\src\include\TileEditor.h" />

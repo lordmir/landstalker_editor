@@ -52,15 +52,11 @@ private:
     bool CreateDirectoryStructure(const filesystem::path& dir);
     void InitCache();
 
-    bool AsmLoadFonts();
-    bool AsmLoadStrings();
     bool AsmLoadInventoryGraphics();
-    bool AsmLoadCompressedStringData();
     bool AsmLoadPalettes();
     bool AsmLoadTextGraphics();
     bool AsmLoadSwordFx();
     bool AsmLoadStatusFx();
-    bool AsmLoadHuffmanData();
     bool AsmLoadHudData();
     bool AsmLoadEndCreditData();
     bool AsmLoadIslandMapData();
@@ -70,15 +66,11 @@ private:
     bool AsmLoadClimaxLogoData();
     bool AsmLoadLoadGameScreenData();
 
-    bool RomLoadFonts(const Rom& rom);
-    bool RomLoadStrings(const Rom& rom);
     bool RomLoadInventoryGraphics(const Rom& rom);
-    bool RomLoadCompressedStringData(const Rom& rom);
     bool RomLoadPalettes(const Rom& rom);
     bool RomLoadTextGraphics(const Rom& rom);
     bool RomLoadSwordFx(const Rom& rom);
     bool RomLoadStatusFx(const Rom& rom);
-    bool RomLoadHuffmanData(const Rom& rom);
     bool RomLoadHudData(const Rom& rom);
     bool RomLoadEndCreditData(const Rom& rom);
     bool RomLoadIslandMapData(const Rom& rom);
@@ -89,12 +81,9 @@ private:
     bool RomLoadGameLoadScreenData(const Rom& rom);
 
     bool AsmSaveGraphics(const filesystem::path& dir);
-    bool AsmSaveStrings(const filesystem::path& dir);
     bool AsmSaveInventoryGraphics(const filesystem::path& dir);
-    bool AsmSaveCompressedStringData(const filesystem::path& dir);
     bool AsmSaveSwordFx(const filesystem::path& dir);
     bool AsmSaveStatusFx(const filesystem::path& dir);
-    bool AsmSaveHuffmanData(const filesystem::path& dir);
     bool AsmSaveEndCreditData(const filesystem::path& dir);
     bool AsmSaveIslandMapData(const filesystem::path& dir);
     bool AsmSaveLithographData(const filesystem::path& dir);
@@ -103,14 +92,11 @@ private:
     bool AsmSaveClimaxLogoData(const filesystem::path& dir);
     bool AsmSaveGameLoadData(const filesystem::path& dir);
 
-    bool RomPrepareInjectFonts(const Rom& rom);
     bool RomPrepareInjectInvGraphics(const Rom& rom);
-    bool RomPrepareInjectCompressedStringData(const Rom& rom);
     bool RomPrepareInjectPalettes(const Rom& rom);
     bool RomPrepareInjectTextGraphics(const Rom& rom);
     bool RomPrepareInjectSwordFx(const Rom& rom);
     bool RomPrepareInjectStatusFx(const Rom& rom);
-    bool RomPrepareInjectHuffmanData(const Rom& rom);
     bool RomPrepareInjectHudData(const Rom& rom);
     bool RomPrepareInjectEndCreditData(const Rom& rom);
     bool RomPrepareInjectIslandMapData(const Rom& rom);
@@ -123,19 +109,10 @@ private:
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
 
-    filesystem::path m_region_check_filename;
-    filesystem::path m_region_check_routine_filename;
-    filesystem::path m_region_check_strings_filename;
-    filesystem::path m_system_font_filename;
-    filesystem::path m_strings_filename;
-    filesystem::path m_string_ptr_filename;
     filesystem::path m_inventory_graphics_filename;
-    filesystem::path m_string_filename_path;
     filesystem::path m_status_fx_path;
     filesystem::path m_status_fx_pointers_path;
     filesystem::path m_sword_fx_path;
-    filesystem::path m_huffman_offset_path;
-    filesystem::path m_huffman_table_path;
     filesystem::path m_end_credits_path;
     filesystem::path m_island_map_path;
     filesystem::path m_title_path;
@@ -173,8 +150,6 @@ private:
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_orig;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_internal;
-    std::array<std::string, 4> m_system_strings;
-    std::array<std::string, 4> m_system_strings_orig;
     std::shared_ptr<Tilemap2DEntry> m_end_credits_map;
     std::shared_ptr<TilesetEntry> m_end_credits_tileset;
     std::shared_ptr<PaletteEntry> m_end_credits_palette;
@@ -211,13 +186,6 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals_orig;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_load_game_pals_internal;
-
-    std::vector<std::vector<std::uint8_t>> m_strings;
-    std::vector<std::vector<std::uint8_t>> m_strings_orig;
-    std::vector<uint8_t> m_huffman_offsets;
-    std::vector<uint8_t> m_huffman_offsets_orig;
-    std::vector<uint8_t> m_huffman_tables;
-    std::vector<uint8_t> m_huffman_tables_orig;
 };
 
 #endif // _GRAPHICS_DATA_H_

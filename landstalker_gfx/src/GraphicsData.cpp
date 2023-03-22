@@ -11,21 +11,9 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
 	}
-	if (!AsmLoadFonts())
-	{
-		throw std::runtime_error(std::string("Unable to load font data from \'") + asm_file.str() + '\'');
-	}
-	if (!AsmLoadStrings())
-	{
-		throw std::runtime_error(std::string("Unable to load string data from \'") + asm_file.str() + '\'');
-	}
 	if (!AsmLoadInventoryGraphics())
 	{
 		throw std::runtime_error(std::string("Unable to load inventory graphics data from \'") + m_inventory_graphics_filename.str() + '\'');
-	}
-	if (!AsmLoadCompressedStringData())
-	{
-		throw std::runtime_error(std::string("Unable to load compressed strings from \'") + m_strings_filename.str() + '\'');
 	}
 	if (!AsmLoadPalettes())
 	{
@@ -42,10 +30,6 @@ GraphicsData::GraphicsData(const filesystem::path& asm_file)
 	if (!AsmLoadStatusFx())
 	{
 		throw std::runtime_error(std::string("Unable to load status graphics from \'") + m_status_fx_path.str() + '\'');
-	}
-	if (!AsmLoadHuffmanData())
-	{
-		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
 	}
 	if (!AsmLoadHudData())
 	{
@@ -88,21 +72,9 @@ GraphicsData::GraphicsData(const Rom& rom)
 	: DataManager(rom)
 {
 	SetDefaultFilenames();
-	if (!RomLoadFonts(rom))
-	{
-		throw std::runtime_error(std::string("Unable to load font data from ROM"));
-	}
-	if (!RomLoadStrings(rom))
-	{
-		throw std::runtime_error(std::string("Unable to load string data from ROM"));
-	}
 	if (!RomLoadInventoryGraphics(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load inventory graphics from ROM"));
-	}
-	if (!RomLoadCompressedStringData(rom))
-	{
-		throw std::runtime_error(std::string("Unable to load compressed strings from ROM"));
 	}
 	if (!RomLoadPalettes(rom))
 	{
@@ -119,10 +91,6 @@ GraphicsData::GraphicsData(const Rom& rom)
 	if (!RomLoadStatusFx(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load status graphics from ROM"));
-	}
-	if (!RomLoadHuffmanData(rom))
-	{
-		throw std::runtime_error(std::string("Unable to load Huffman data from ROM"));
 	}
 	if (!RomLoadHudData(rom))
 	{
@@ -172,10 +140,6 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
 	}
-	if (!AsmSaveStrings(dir))
-	{
-		throw std::runtime_error(std::string("Unable to save string data to \'") + m_region_check_strings_filename.str() + '\'');
-	}
 	if (!AsmSaveGraphics(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save graphics data to \'") + directory.str() + '\'');
@@ -184,10 +148,6 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save inventory graphics data to \'") + m_inventory_graphics_filename.str() + '\'');
 	}
-	if (!AsmSaveCompressedStringData(dir))
-	{
-		throw std::runtime_error(std::string("Unable to save compressed string data to \'") + m_strings_filename.str() + '\'');
-	}
 	if (!AsmSaveSwordFx(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save sword effects data to \'") + m_sword_fx_path.str() + '\'');
@@ -195,10 +155,6 @@ bool GraphicsData::Save(const filesystem::path& dir)
 	if (!AsmSaveStatusFx(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save status effects data to \'") + m_status_fx_path.str() + '\'');
-	}
-	if (!AsmSaveHuffmanData(dir))
-	{
-		throw std::runtime_error(std::string("Unable to save Huffman data to \'") + directory.str() + '\'');
 	}
 	if (!AsmSaveEndCreditData(dir))
 	{
@@ -301,10 +257,6 @@ bool GraphicsData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_system_strings != m_system_strings_orig)
-	{
-		return true;
-	}
 	if (m_palettes_by_name_orig != m_palettes_by_name)
 	{
 		return true;
@@ -326,10 +278,6 @@ bool GraphicsData::HasBeenModified() const
 		return true;
 	}
 	if (m_ui_tilemaps_orig != m_ui_tilemaps)
-	{
-		return true;
-	}
-	if (m_huffman_offsets_orig != m_huffman_offsets)
 	{
 		return true;
 	}
@@ -419,17 +367,9 @@ bool GraphicsData::HasBeenModified() const
 void GraphicsData::RefreshPendingWrites(const Rom& rom)
 {
 	DataManager::RefreshPendingWrites(rom);
-	if (!RomPrepareInjectFonts(rom))
-	{
-		throw std::runtime_error(std::string("Unable to prepare fonts for ROM injection"));
-	}
 	if (!RomPrepareInjectInvGraphics(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare inventory graphics for ROM injection"));
-	}
-	if (!RomPrepareInjectCompressedStringData(rom))
-	{
-		throw std::runtime_error(std::string("Unable to prepare compressed strings for ROM injection"));
 	}
 	if (!RomPrepareInjectPalettes(rom))
 	{
@@ -446,10 +386,6 @@ void GraphicsData::RefreshPendingWrites(const Rom& rom)
 	if (!RomPrepareInjectStatusFx(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare status effects for ROM injection"));
-	}
-	if (!RomPrepareInjectHuffmanData(rom))
-	{
-		throw std::runtime_error(std::string("Unable to prepare Huffman data for ROM injection"));
 	}
 	if (!RomPrepareInjectHudData(rom))
 	{
@@ -732,16 +668,12 @@ void GraphicsData::CommitAllChanges()
 	std::for_each(m_load_game_pals.begin(), m_load_game_pals.end(), pair_commit);
 
 	m_fonts_by_name_orig = m_fonts_by_name;
-	m_system_strings_orig = m_system_strings;
 	m_palettes_by_name_orig = m_palettes_by_name;
 	m_ui_gfx_by_name_orig = m_ui_gfx_by_name;
-	m_strings_orig = m_strings;
 	m_status_fx_orig = m_status_fx;
 	m_status_fx_frames_orig = m_status_fx_frames;
 	m_sword_fx_orig = m_sword_fx;
 	m_ui_tilemaps_orig = m_ui_tilemaps;
-	m_huffman_offsets_orig = m_huffman_offsets;
-	m_huffman_tables_orig = m_huffman_tables;
 	m_island_map_pals_orig = m_island_map_pals;
 	m_island_map_tilemaps_orig = m_island_map_tilemaps;
 	m_island_map_tiles_orig = m_island_map_tiles;
@@ -772,15 +704,10 @@ bool GraphicsData::LoadAsmFilenames()
 	{
 		bool retval = true;
 		AsmFile f(GetAsmFilename().str());
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::REGION_CHECK, m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::INV_SECTION, m_inventory_graphics_filename);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_SECTION, m_strings_filename);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_BANK_PTR_DATA, m_string_ptr_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_POINTERS, m_status_fx_pointers_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::STATUS_FX_DATA, m_status_fx_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SWORD_FX_DATA, m_sword_fx_path);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_OFFSETS, m_huffman_offset_path);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_TABLES, m_huffman_table_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::END_CREDITS_DATA, m_end_credits_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::ISLAND_MAP_DATA, m_island_map_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::LITHOGRAPH_DATA, m_lithograph_path);
@@ -788,10 +715,6 @@ bool GraphicsData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::SEGA_LOGO_DATA, m_sega_logo_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::CLIMAX_LOGO_DATA, m_climax_logo_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Graphics::GAME_LOAD_DATA, m_load_game_path);
-		AsmFile r(GetBasePath() / m_region_check_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Graphics::SYS_FONT, m_system_font_filename);
 		
 		return retval;
 	}
@@ -803,19 +726,10 @@ bool GraphicsData::LoadAsmFilenames()
 
 void GraphicsData::SetDefaultFilenames()
 {
-	if (m_region_check_filename.empty()) m_region_check_filename = RomOffsets::Strings::REGION_CHECK_FILE;
-	if (m_region_check_routine_filename.empty()) m_region_check_routine_filename = RomOffsets::Strings::REGION_CHECK_ROUTINE_FILE;
-	if (m_region_check_strings_filename.empty()) m_region_check_strings_filename = RomOffsets::Strings::REGION_CHECK_STRINGS_FILE;
-	if (m_system_font_filename.empty()) m_system_font_filename = RomOffsets::Graphics::SYS_FONT_FILE;
 	if (m_inventory_graphics_filename.empty()) m_inventory_graphics_filename = RomOffsets::Graphics::INV_GRAPHICS_FILE;
-	if (m_strings_filename.empty()) m_strings_filename = RomOffsets::Strings::STRINGS_FILE;
-	if (m_string_ptr_filename.empty()) m_string_ptr_filename = RomOffsets::Strings::STRING_BANK_PTR_FILE;
-	if (m_string_filename_path.empty()) m_string_filename_path = filesystem::path(RomOffsets::Strings::STRING_BANK_FILE).parent_path();
 	if (m_status_fx_path.empty()) m_status_fx_path = RomOffsets::Graphics::STATUS_FX_DATA_FILE;
 	if (m_status_fx_pointers_path.empty()) m_status_fx_pointers_path = RomOffsets::Graphics::STATUS_FX_POINTER_FILE;
 	if (m_sword_fx_path.empty()) m_sword_fx_path = RomOffsets::Graphics::SWORD_FX_DATA_FILE;
-	if (m_huffman_offset_path.empty()) m_huffman_offset_path = RomOffsets::Strings::HUFFMAN_OFFSETS_FILE;
-	if (m_huffman_table_path.empty()) m_huffman_table_path = RomOffsets::Strings::HUFFMAN_TABLE_FILE;
 	if (m_end_credits_path.empty()) m_end_credits_path = RomOffsets::Graphics::END_CREDITS_DATA_FILE;
 	if (m_island_map_path.empty()) m_island_map_path = RomOffsets::Graphics::ISLAND_MAP_DATA_FILE;
 	if (m_lithograph_path.empty()) m_lithograph_path = RomOffsets::Graphics::LITHOGRAPH_DATA_FILE;
@@ -836,19 +750,10 @@ void GraphicsData::SetDefaultFilenames()
 bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 {
 	bool retval = true;
-	retval = retval && CreateDirectoryTree(dir / m_region_check_filename);
-	retval = retval && CreateDirectoryTree(dir / m_region_check_routine_filename);
-	retval = retval && CreateDirectoryTree(dir / m_region_check_strings_filename);
-	retval = retval && CreateDirectoryTree(dir / m_system_font_filename);
 	retval = retval && CreateDirectoryTree(dir / m_inventory_graphics_filename);
-	retval = retval && CreateDirectoryTree(dir / m_strings_filename);
-	retval = retval && CreateDirectoryTree(dir / m_string_ptr_filename);
-	retval = retval && CreateDirectoryTree(dir / m_string_filename_path / "x");
 	retval = retval && CreateDirectoryTree(dir / m_status_fx_path);
 	retval = retval && CreateDirectoryTree(dir / m_status_fx_pointers_path);
 	retval = retval && CreateDirectoryTree(dir / m_sword_fx_path);
-	retval = retval && CreateDirectoryTree(dir / m_huffman_offset_path);
-	retval = retval && CreateDirectoryTree(dir / m_huffman_table_path);
 	retval = retval && CreateDirectoryTree(dir / m_end_credits_path);
 	retval = retval && CreateDirectoryTree(dir / m_island_map_path);
 	retval = retval && CreateDirectoryTree(dir / m_lithograph_path);
@@ -938,16 +843,12 @@ bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
 void GraphicsData::InitCache()
 {
 	m_palettes_by_name_orig = m_palettes_by_name;
-	m_system_strings_orig = m_system_strings;
 	m_fonts_by_name_orig = m_fonts_by_name;
 	m_ui_gfx_by_name_orig = m_ui_gfx_by_name;
-	m_strings_orig = m_strings;
 	m_sword_fx_orig = m_sword_fx;
 	m_status_fx_orig = m_status_fx;
 	m_status_fx_frames_orig = m_status_fx_frames;
 	m_ui_tilemaps_orig = m_ui_tilemaps;
-	m_huffman_offsets_orig = m_huffman_offsets;
-	m_huffman_tables_orig = m_huffman_tables;
 	m_island_map_pals_orig = m_island_map_pals;
 	m_island_map_tilemaps_orig = m_island_map_tilemaps;
 	m_island_map_tiles_orig = m_island_map_tiles;
@@ -956,48 +857,6 @@ void GraphicsData::InitCache()
 	m_title_tiles_orig = m_title_tiles;
 	m_load_game_pals_orig = m_load_game_pals;
 	m_load_game_tiles_orig = m_load_game_tiles;
-}
-
-bool GraphicsData::AsmLoadFonts()
-{
-	filesystem::path path = GetBasePath() / m_system_font_filename;
-	auto e = TilesetEntry::Create(this, ReadBytes(path), RomOffsets::Graphics::SYS_FONT, m_system_font_filename, false, 8, 8);
-	m_fonts_by_name.insert({ RomOffsets::Graphics::SYS_FONT, e });
-	m_fonts_internal.insert({ RomOffsets::Graphics::SYS_FONT, e });
-	return true;
-}
-
-bool GraphicsData::AsmLoadStrings()
-{
-	try
-	{
-		AsmFile file(GetBasePath() / m_region_check_strings_filename);
-		auto read_str = [&](std::string& s)
-		{
-			char c;
-			do
-			{
-				file >> c;
-				if (c != 0)
-				{
-					s += c;
-				}
-			} while (c != 0);
-		};
-		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE1);
-		read_str(m_system_strings[0]);
-		file.Goto(RomOffsets::Strings::REGION_ERROR_NTSC);
-		read_str(m_system_strings[1]);
-		file.Goto(RomOffsets::Strings::REGION_ERROR_PAL);
-		read_str(m_system_strings[2]);
-		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE3);
-		read_str(m_system_strings[3]);
-		return true;
-	}
-	catch (const std::exception&)
-	{
-	}
-	return false;
 }
 
 bool GraphicsData::AsmLoadInventoryGraphics()
@@ -1043,37 +902,6 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		m_ui_gfx_internal.insert({ unused2->GetName(), unused2 });
 		m_palettes_internal.insert({ pal1->GetName(), pal1 });
 		m_palettes_internal.insert({ pal2->GetName(), pal2 });
-		return true;
-	}
-	catch (const std::exception&)
-	{
-	}
-	return false;
-}
-
-bool GraphicsData::AsmLoadCompressedStringData()
-{
-	try
-	{
-		AsmFile file(GetBasePath() / m_strings_filename);
-		AsmFile::Label name;
-		AsmFile::IncludeFile inc;
-		file >> name >> inc;
-		auto font = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, false, 16, 15, 1);
-		m_fonts_by_name.insert({ font->GetName(), font});
-		m_fonts_internal.insert({ RomOffsets::Graphics::MAIN_FONT, font });
-		while (file.IsGood())
-		{
-			file >> name >> inc;
-			m_string_filename_path = inc.path.parent_path();
-			auto bytes = ReadBytes(GetBasePath() / inc.path);
-			auto it = bytes.cbegin();
-			while (it != bytes.cend() && *it != 0x00)
-			{
-				m_strings.push_back(ByteVector(it, it + *it));
-				it += *it;
-			}
-		}
 		return true;
 	}
 	catch (const std::exception&)
@@ -1252,36 +1080,6 @@ bool GraphicsData::AsmLoadStatusFx()
 				m_status_fx_frames_internal.insert({ status_frame_name, m_status_fx_frames[status_frames[fi]] });
 			}
 		}
-		return true;
-	}
-	catch (const std::exception&)
-	{
-	}
-	return false;
-}
-
-bool GraphicsData::AsmLoadHuffmanData()
-{
-	filesystem::path path = GetBasePath() / m_huffman_offset_path;
-	m_huffman_offsets = ReadBytes(path);
-	path = GetBasePath() / m_huffman_table_path;
-	m_huffman_tables = ReadBytes(path);
-	try
-	{
-		AsmFile file(GetAsmFilename());
-		AsmFile::IncludeFile inc;
-		file.Goto(RomOffsets::Graphics::TEXTBOX_2LINE_MAP);
-		file >> inc;
-		auto tb2 = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::TEXTBOX_2LINE_MAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
-		file.Goto(RomOffsets::Graphics::TEXTBOX_3LINE_MAP);
-		file >> inc;
-		auto tb3 = Tilemap2DEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::TEXTBOX_3LINE_MAP, inc.path, Tilemap2D::Compression::NONE, 0x6B4, 40, 8);
-		m_ui_tilemaps.insert({ tb2->GetName(), tb2 });
-		m_ui_tilemaps_internal.insert({ tb2->GetName(), tb2 });
-		m_ui_tilemaps.insert({ tb3->GetName(), tb3 });
-		m_ui_tilemaps_internal.insert({ tb3->GetName(), tb3 });
 		return true;
 	}
 	catch (const std::exception&)
@@ -1597,37 +1395,6 @@ bool GraphicsData::AsmLoadLoadGameScreenData()
 	return false;
 }
 
-bool GraphicsData::RomLoadFonts(const Rom& rom)
-{
-	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
-	uint32_t sys_font_begin = Disasm::LEA_PCRel(sys_font_lea, rom.get_address(RomOffsets::Graphics::SYS_FONT));
-	uint32_t sys_font_size = rom.get_address(RomOffsets::Graphics::SYS_FONT_SIZE);
-	auto sys_font_bytes = rom.read_array<uint8_t>(sys_font_begin, sys_font_size);
-	auto sys_font = TilesetEntry::Create(this, sys_font_bytes, RomOffsets::Graphics::SYS_FONT,
-		RomOffsets::Graphics::SYS_FONT_FILE, false);
-	sys_font->SetStartAddress(sys_font_begin);
-	m_fonts_by_name.insert({ sys_font->GetName(), sys_font });
-	m_fonts_internal.insert({ sys_font->GetName(), sys_font });
-	return true;
-}
-
-bool GraphicsData::RomLoadStrings(const Rom& rom)
-{
-	uint32_t line1_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE1);
-	uint32_t line1_begin = Disasm::LEA_PCRel(line1_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE1));
-	m_system_strings[0] = rom.read_string(line1_begin);
-	uint32_t line2_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_NTSC);
-	uint32_t line2_begin = Disasm::LEA_PCRel(line2_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_NTSC));
-	m_system_strings[1] = rom.read_string(line2_begin);
-	uint32_t line3_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_PAL);
-	uint32_t line3_begin = Disasm::LEA_PCRel(line3_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_PAL));
-	m_system_strings[2] = rom.read_string(line3_begin);
-	uint32_t line4_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE3);
-	uint32_t line4_begin = Disasm::LEA_PCRel(line4_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE3));
-	m_system_strings[3] = rom.read_string(line4_begin);
-	return true;
-}
-
 bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 {
 	auto load_bytes = [&](const std::string& lea_loc, const std::string& size)
@@ -1674,26 +1441,6 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 	m_palettes_internal.insert({ RomOffsets::Graphics::INV_PAL1, pal1 });
 	m_palettes_by_name.insert({ pal2->GetName(), pal2 });
 	m_palettes_internal.insert({ RomOffsets::Graphics::INV_PAL2, pal2 });
-	return true;
-}
-
-bool GraphicsData::RomLoadCompressedStringData(const Rom& rom)
-{
-	uint32_t font_ptr = rom.read<uint32_t>(RomOffsets::Graphics::MAIN_FONT_PTR);
-	uint32_t bank_ptr = rom.read<uint32_t>(RomOffsets::Strings::STRING_BANK_PTR_PTR);
-	uint32_t banks_begin = rom.read<uint32_t>(bank_ptr);
-	auto font_bytes = rom.read_array<uint8_t>(font_ptr, banks_begin - font_ptr);
-	auto string_bytes = rom.read_array<uint8_t>(banks_begin, bank_ptr - banks_begin);
-	auto it = string_bytes.cbegin();
-	while (it != string_bytes.cend() && *it != 0x00)
-	{
-		m_strings.push_back(ByteVector(it, it + *it));
-		it += *it;
-	}
-	auto e = TilesetEntry::Create(this, font_bytes, RomOffsets::Graphics::MAIN_FONT,
-		RomOffsets::Graphics::MAIN_FONT_FILE, false, 16, 15, 1);
-	m_fonts_by_name.insert({ e->GetName(), e });
-	m_fonts_internal.insert({ e->GetName(), e });
 	return true;
 }
 
@@ -1892,41 +1639,6 @@ bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 		RomOffsets::Graphics::STATUS_FX_PARALYSIS_FRAME, RomOffsets::Graphics::STATUS_FX_PARALYSIS_FILE);
 	read_frames(curse_frame_ptrs, RomOffsets::Graphics::STATUS_FX_CURSE,
 		RomOffsets::Graphics::STATUS_FX_CURSE_FRAME, RomOffsets::Graphics::STATUS_FX_CURSE_FILE);
-	return true;
-}
-
-bool GraphicsData::RomLoadHuffmanData(const Rom& rom)
-{
-	uint32_t textbox_2l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_2LINE_MAP),
-		rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP));
-	uint32_t textbox_3l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_3LINE_MAP),
-		rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP));
-	uint32_t huff_offsets_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_OFFSETS),
-		rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS));
-	uint32_t huff_tables_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_TABLES),
-		rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES));
-	uint32_t end = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).end;
-
-	uint32_t textbox_3l_size = textbox_2l_addr - textbox_3l_addr;
-	uint32_t textbox_2l_size = huff_offsets_addr - textbox_2l_addr;
-	uint32_t huff_offsets_size = huff_tables_addr - huff_offsets_addr;
-	uint32_t huff_tables_size = end - huff_tables_addr;
-
-	auto textbox_3l_bytes = rom.read_array<uint8_t>(textbox_3l_addr, textbox_3l_size);
-	auto textbox_2l_bytes = rom.read_array<uint8_t>(textbox_2l_addr, textbox_2l_size);
-	m_huffman_offsets = rom.read_array<uint8_t>(huff_offsets_addr, huff_offsets_size);
-	m_huffman_tables = rom.read_array<uint8_t>(huff_tables_addr, huff_tables_size);
-
-	auto textbox_3l = Tilemap2DEntry::Create(this, textbox_3l_bytes, RomOffsets::Graphics::TEXTBOX_3LINE_MAP,
-		RomOffsets::Graphics::TEXTBOX_3LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 8);
-	auto textbox_2l = Tilemap2DEntry::Create(this, textbox_2l_bytes, RomOffsets::Graphics::TEXTBOX_2LINE_MAP,
-		RomOffsets::Graphics::TEXTBOX_2LINE_MAP_FILE, Tilemap2D::Compression::NONE, 0x6B4, 40, 6);
-
-	m_ui_tilemaps.insert({ textbox_3l->GetName(), textbox_3l });
-	m_ui_tilemaps_internal.insert({ textbox_3l->GetName(), textbox_3l });
-	m_ui_tilemaps.insert({ textbox_2l->GetName(), textbox_2l });
-	m_ui_tilemaps_internal.insert({ textbox_2l->GetName(), textbox_2l });
-
 	return true;
 }
 
@@ -2374,36 +2086,6 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 	return retval;
 }
 
-bool GraphicsData::AsmSaveStrings(const filesystem::path& dir)
-{
-	try
-	{
-		AsmFile sfile, ifile;
-		ByteVector str[4];
-		ifile.WriteFileHeader(m_region_check_filename, "Region Check");
-		ifile << AsmFile::Label(RomOffsets::Strings::REGION_CHECK_ROUTINE) << AsmFile::IncludeFile(m_region_check_routine_filename, AsmFile::FileType::ASSEMBLER);
-		ifile << AsmFile::Label(RomOffsets::Strings::REGION_CHECK_STRINGS) << AsmFile::IncludeFile(m_region_check_strings_filename, AsmFile::FileType::ASSEMBLER);
-		ifile << AsmFile::Align(2) << AsmFile::Label(RomOffsets::Graphics::SYS_FONT) << AsmFile::IncludeFile(m_system_font_filename, AsmFile::FileType::BINARY);
-		ifile.WriteFile(dir / m_region_check_filename);
-		sfile.WriteFileHeader(m_region_check_strings_filename, "Region Check System Strings");
-		for (int i = 0; i < 4; ++i)
-		{
-			str[i].insert(str[i].end(), m_system_strings[i].cbegin(), m_system_strings[i].cend());
-			str[i].push_back(0);
-		}
-		sfile << AsmFile::Label(RomOffsets::Strings::REGION_ERROR_LINE1) << str[0];
-		sfile << AsmFile::Label(RomOffsets::Strings::REGION_ERROR_NTSC) << str[1];
-		sfile << AsmFile::Label(RomOffsets::Strings::REGION_ERROR_PAL) << str[2];
-		sfile << AsmFile::Label(RomOffsets::Strings::REGION_ERROR_LINE3) << str[3];
-		sfile.WriteFile(dir / m_region_check_strings_filename);
-		return true;
-	}
-	catch (const std::exception&)
-	{
-	}
-	return false;
-}
-
 bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 {
 
@@ -2424,42 +2106,6 @@ bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 		write_inc(RomOffsets::Graphics::INV_PAL1, m_palettes_internal);
 		write_inc(RomOffsets::Graphics::INV_PAL2, m_palettes_internal);
 		ifile.WriteFile(dir / m_inventory_graphics_filename);
-		return true;
-	}
-	catch (const std::exception&)
-	{
-	}
-	return false;
-}
-
-bool GraphicsData::AsmSaveCompressedStringData(const filesystem::path& dir)
-{
-	try
-	{
-		AsmFile sfile, pfile;
-		sfile.WriteFileHeader(m_strings_filename, "Compressed Strings");
-		pfile.WriteFileHeader(m_string_ptr_filename, "Compressed String Bank Pointers");
-		auto font = m_fonts_internal[RomOffsets::Graphics::MAIN_FONT];
-		sfile << AsmFile::Label(font->GetName()) << AsmFile::IncludeFile(font->GetFilename(),AsmFile::FileType::BINARY);
-		pfile << AsmFile::Label(RomOffsets::Strings::STRING_BANK_PTR);
-		int f = 0;
-		for (int i = 0; i < m_strings.size(); i += 256)
-		{
-			ByteVector bytes;
-			for (int j = 0; j < 256 && (i + j) < m_strings.size(); ++j)
-			{
-				const auto& s = m_strings[i + j];
-				bytes.insert(bytes.end(), s.cbegin(), s.cend());
-			}
-			filesystem::path fname = StrPrintf(RomOffsets::Strings::STRING_BANK_FILE, f + 1);
-			std::string pname = StrPrintf(RomOffsets::Strings::STRING_BANK, f);
-			WriteBytes(bytes, dir / m_string_filename_path / fname.filename());
-			pfile << pname;
-			sfile << AsmFile::Label(pname) << AsmFile::IncludeFile(fname, AsmFile::FileType::BINARY);
-			f++;
-		}
-		sfile.WriteFile(dir / m_strings_filename);
-		pfile.WriteFile(dir / m_string_ptr_filename);
 		return true;
 	}
 	catch (const std::exception&)
@@ -2517,13 +2163,6 @@ bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
 	{
 	}
 	return false;
-}
-
-bool GraphicsData::AsmSaveHuffmanData(const filesystem::path& dir)
-{
-	WriteBytes(m_huffman_offsets, dir / m_huffman_offset_path);
-	WriteBytes(m_huffman_tables, dir / m_huffman_table_path);
-	return true;
 }
 
 bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
@@ -2719,47 +2358,6 @@ bool GraphicsData::AsmSaveGameLoadData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::RomPrepareInjectFonts(const Rom& rom)
-{
-	auto system_font_bytes = m_fonts_by_name[RomOffsets::Graphics::SYS_FONT]->GetBytes();
-	ByteVectorPtr bytes = std::make_shared<ByteVector>();
-	auto write_string = [](ByteVectorPtr& bytes, const std::string& in)
-	{
-		for (char c : in)
-		{
-			bytes->push_back(c);
-		}
-		bytes->push_back(0);
-	};
-	uint32_t addrs[5];
-	uint32_t begin = rom.get_section(RomOffsets::Strings::REGION_CHECK_DATA_SECTION).begin;
-	for (int i = 0; i < 4; ++i)
-	{
-		addrs[i] = begin + bytes->size();
-		write_string(bytes, m_system_strings[i]);
-	}
-	if ((bytes->size() & 1) == 1)
-	{
-		bytes->push_back(0xFF);
-	}
-	addrs[4] = begin + bytes->size();
-	bytes->insert(bytes->end(), system_font_bytes->cbegin(), system_font_bytes->cend());
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_CHECK_DATA_SECTION, bytes });
-	uint32_t line1_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE1), addrs[0]);
-	uint32_t line2_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_NTSC), addrs[1]);
-	uint32_t line3_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_PAL), addrs[2]);
-	uint32_t line4_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE3), addrs[3]);
-	uint32_t font_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SYS_FONT), addrs[4]);
-
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_LINE1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line1_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_NTSC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line2_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_PAL, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line3_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_LINE3, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line4_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SYS_FONT, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(font_lea)) });
-
-	return true;
-}
-
 bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 {
 	ByteVectorPtr bytes = std::make_shared<ByteVector>();
@@ -2809,37 +2407,6 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal1_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL2, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal2_lea)) });
 
-	return true;
-}
-
-bool GraphicsData::RomPrepareInjectCompressedStringData(const Rom& rom)
-{
-	std::vector<uint32_t> bank_ptrs;
-	uint32_t bank_ptrs_ptr;
-	ByteVectorPtr bytes = std::make_shared<ByteVector>(*m_fonts_internal[RomOffsets::Graphics::MAIN_FONT]->GetBytes());
-	uint32_t begin = rom.get_section(RomOffsets::Strings::STRING_SECTION).begin;
-	for (int i = 0; i < m_strings.size(); i += 256)
-	{
-		bank_ptrs.push_back(begin + bytes->size());
-		for (int j = 0; j < 256 && (i + j) < m_strings.size(); ++j)
-		{
-			const auto& s = m_strings[i + j];
-			bytes->insert(bytes->end(), s.cbegin(), s.cend());
-		}
-	}
-	while ((bytes->size() & 3) != 0)
-	{
-		bytes->push_back(0);
-	}
-	bank_ptrs_ptr = bytes->size() + begin;
-	for (auto p : bank_ptrs)
-	{
-		auto b = Split<uint8_t, uint32_t>(p);
-		bytes->insert(bytes->end(), b.cbegin(), b.cend());
-	}
-	m_pending_writes.push_back({ RomOffsets::Strings::STRING_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Strings::STRING_BANK_PTR_PTR, std::make_shared<ByteVector>(Split<uint8_t>(bank_ptrs_ptr)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::MAIN_FONT_PTR, std::make_shared<ByteVector>(Split<uint8_t>(begin)) });
 	return true;
 }
 
@@ -2994,34 +2561,6 @@ bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CONFUSION, std::make_shared<ByteVector>(Split<uint8_t>(confusion_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_PARALYSIS, std::make_shared<ByteVector>(Split<uint8_t>(paralysis_lea)) });
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CURSE, std::make_shared<ByteVector>(Split<uint8_t>(curse_lea)) });
-	return true;
-}
-
-bool GraphicsData::RomPrepareInjectHuffmanData(const Rom& rom)
-{
-	uint32_t begin = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).begin;
-	auto bytes = std::make_shared<ByteVector>();
-
-	uint32_t textbox_3l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP), begin);
-	auto textbox_3l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->GetBytes();
-	bytes->insert(bytes->end(), textbox_3l_bytes->cbegin(), textbox_3l_bytes->cend());
-
-	uint32_t textbox_2l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP), begin + bytes->size());
-	auto textbox_2l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->GetBytes();
-	bytes->insert(bytes->end(), textbox_2l_bytes->cbegin(), textbox_2l_bytes->cend());
-
-	uint32_t huffman_offsets_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS), begin + bytes->size());
-	bytes->insert(bytes->end(), m_huffman_offsets.cbegin(), m_huffman_offsets.cend());
-
-	uint32_t huffman_tables_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES), begin + bytes->size());
-	bytes->insert(bytes->end(), m_huffman_tables.cbegin(), m_huffman_tables.cend());
-
-	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_3LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_3l_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_2LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_2l_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_OFFSETS, std::make_shared<ByteVector>(Split<uint8_t>(huffman_offsets_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_TABLES, std::make_shared<ByteVector>(Split<uint8_t>(huffman_tables_lea)) });
-
 	return true;
 }
 

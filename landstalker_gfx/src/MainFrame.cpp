@@ -295,6 +295,10 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
         }
+        for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
+        {
+            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+        }
         m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
         for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
         {
@@ -309,6 +313,10 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
 
         m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& ts : m_g->GetStringData()->GetFonts())
+        {
+            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
         {
             m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
@@ -411,6 +419,10 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
         }
+        for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
+        {
+            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+        }
         m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
         for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
         {
@@ -425,6 +437,10 @@ void MainFrame::OpenAsmFile(const wxString& path)
         m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
 
         m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& ts : m_g->GetStringData()->GetFonts())
+        {
+            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        }
         for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
         {
             m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));

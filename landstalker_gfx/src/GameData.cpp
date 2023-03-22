@@ -4,10 +4,12 @@
 GameData::GameData(const filesystem::path& asm_file)
 	: DataManager(asm_file),
 	  m_rd(std::make_shared<RoomData>(asm_file)),
-	  m_gd(std::make_shared<GraphicsData>(asm_file))
+	  m_gd(std::make_shared<GraphicsData>(asm_file)),
+	  m_sd(std::make_shared<StringData>(asm_file))
 {
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
+	m_data.push_back(m_sd);
 	CacheData();
 	SetDefaults();
 }
@@ -15,10 +17,12 @@ GameData::GameData(const filesystem::path& asm_file)
 GameData::GameData(const Rom& rom)
 	: DataManager(rom),
 	  m_rd(std::make_shared<RoomData>(rom)),
-	  m_gd(std::make_shared<GraphicsData>(rom))
+	  m_gd(std::make_shared<GraphicsData>(rom)),
+	  m_sd(std::make_shared<StringData>(rom))
 {
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
+	m_data.push_back(m_sd);
 	CacheData();
 	SetDefaults();
 }
@@ -134,12 +138,16 @@ void GameData::CacheData()
 	m_tilesets.insert(room_ts.cbegin(), room_ts.cend());
 	auto gfx_ts = m_gd->GetAllTilesets();
 	m_tilesets.insert(gfx_ts.cbegin(), gfx_ts.cend());
+	auto font_ts = m_sd->GetAllTilesets();
+	m_tilesets.insert(font_ts.cbegin(), font_ts.cend());
 
 	auto anim_ts = m_rd->GetAllAnimatedTilesets();
 	m_anim_tilesets.insert(anim_ts.cbegin(), anim_ts.cend());
 
 	auto maps = m_gd->GetAllMaps();
 	m_tilemaps.insert(maps.cbegin(), maps.cend());
+	auto textbox_maps = m_sd->GetAllMaps();
+	m_tilemaps.insert(textbox_maps.cbegin(), textbox_maps.cend());
 }
 
 void GameData::SetDefaults()
