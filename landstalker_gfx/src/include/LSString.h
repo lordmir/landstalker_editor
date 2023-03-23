@@ -16,6 +16,9 @@ public:
 	LSString(const CharacterSet& charset = DEFAULT_CHARACTER_SET, const DiacriticMap& diacritic_map = DEFAULT_DIACRITIC_MAP);
 	LSString(const StringType& s, const CharacterSet& charset = DEFAULT_CHARACTER_SET, const DiacriticMap& diacritic_map = DEFAULT_DIACRITIC_MAP);
 
+	bool operator==(const LSString& rhs) const;
+	bool operator!=(const LSString& rhs) const;
+
 	virtual size_t Decode(const uint8_t* buffer, size_t size);
 	virtual size_t Encode(uint8_t* buffer, size_t size) const;
 	virtual StringType Serialise() const;

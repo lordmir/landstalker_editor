@@ -165,6 +165,12 @@
     <ClCompile Include="..\src\StringData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\StringEditorFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ResizeableGrid.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -335,6 +341,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\StringData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\StringEditorFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ResizeableGrid.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

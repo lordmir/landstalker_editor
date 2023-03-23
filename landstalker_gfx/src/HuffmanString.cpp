@@ -28,6 +28,16 @@ HuffmanString::HuffmanString(std::shared_ptr<HuffmanTrees> ht, const HuffmanStri
 	m_eos_marker = eos_marker;
 }
 
+bool HuffmanString::operator==(const HuffmanString& rhs) const
+{
+	return this->m_str == rhs.m_str;
+}
+
+bool HuffmanString::operator!=(const HuffmanString& rhs) const
+{
+	return !(*this == rhs);
+}
+
 size_t HuffmanString::Decode(const uint8_t* buffer, size_t size)
 {
 	if (size == 0 || size < *buffer)

@@ -18,6 +18,7 @@
 #include "LSString.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
+#include "StringEditorFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -174,6 +175,7 @@ private:
 	ImageList* m_imgs;
     wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
+    StringEditorFrame* m_stringEditor;
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
     std::vector<PaletteO> m_palette;

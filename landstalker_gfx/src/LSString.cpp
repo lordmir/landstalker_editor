@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include "include\LSString.h"
 
 const LSString::CharacterSet& LSString::DEFAULT_CHARACTER_SET = Charset::DEFAULT_ENGLISH_CHARSET;
 
@@ -26,6 +27,16 @@ LSString::LSString(const StringType& s, const LSString::CharacterSet& charset, c
 	  m_eos_marker(DEFAULT_EOS_MARKER)
 {
 	Deserialise(s);
+}
+
+bool LSString::operator==(const LSString& rhs) const
+{
+	return this->m_str == rhs.m_str;
+}
+
+bool LSString::operator!=(const LSString& rhs) const
+{
+	return !(*this == rhs);
 }
 
 size_t LSString::Decode(const uint8_t* buffer, size_t size)

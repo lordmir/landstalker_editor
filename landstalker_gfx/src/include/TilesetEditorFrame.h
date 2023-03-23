@@ -16,6 +16,7 @@
 #include "EditorFrame.h"
 #include "GameData.h"
 
+
 class TilesetEditorFrame : public EditorFrame
 {
 public:

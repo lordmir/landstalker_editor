@@ -53,6 +53,22 @@ namespace RomOffsets
 		static const std::string HUFFMAN_SECTION("HuffmanSection");
 		static const std::string HUFFMAN_OFFSETS("HuffTableOffsets");
 		static const std::string HUFFMAN_TABLES("HuffTables");
+		
+		static const std::string STRING_TABLE_DATA("StringTables");
+		static const std::string SAVE_GAME_LOCATIONS("SaveGameLocations");
+		static const std::string SAVE_GAME_LOCATIONS_LEA("SaveGameLocationsLea");
+		static const std::string ISLAND_MAP_LOCATIONS("IslandMapLocations");
+		static const std::string CHAR_NAME_TABLE("CharacterNameTable");
+		static const std::string SPECIAL_CHAR_NAME_TABLE("SpecialCharacterNameTable");
+		static const std::string DEFAULT_NAME("DefaultName");
+		static const std::string ITEM_NAME_TABLE("ItemNameTable");
+		static const std::string MENU_STRING_TABLE("MenuStringTable");
+
+		static const std::string INTRO_STRING_DATA("IntroStrings");
+		static const std::string INTRO_STRING_PTRS("IntroStringPointers");
+		static const std::string INTRO_STRING("IntroString%d");
+		static const std::string END_CREDIT_STRING_SECTION("EndCreditTextSection");
+		static const std::string END_CREDIT_STRINGS("EndCreditText");
 
 		static const std::string STRINGS_FILE("code/text/strings.asm");
 		static const std::string STRING_PTR_FILE("code/pointertables/stringbankptr.asm");
@@ -63,6 +79,18 @@ namespace RomOffsets
 		static const std::string REGION_CHECK_ROUTINE_FILE("code/system/regioncheck_routine.asm");
 		static const std::string HUFFMAN_OFFSETS_FILE("assets_packed/strings/main/huffmancharoffsets.bin");
 		static const std::string HUFFMAN_TABLE_FILE("assets_packed/strings/main/huffmantables.bin");
+		static const std::string STRING_TABLE_DATA_FILE("code/text/stringtables.asm");
+		static const std::string SAVE_GAME_LOCATIONS_FILE("assets_packed/script/savegamelocations.bin");
+		static const std::string ISLAND_MAP_LOCATIONS_FILE("assets_packed/script/islandmaplocations.bin");
+		static const std::string CHAR_NAME_TABLE_FILE("assets_packed/strings/names/characternames.bin");
+		static const std::string SPECIAL_CHAR_NAME_TABLE_FILE("assets_packed/strings/names/specialcharacternames.bin");
+		static const std::string DEFAULT_NAME_FILE("assets_packed/strings/names/defaultname.bin");
+		static const std::string ITEM_NAME_TABLE_FILE("assets_packed/strings/names/itemnames.bin");
+		static const std::string MENU_STRING_TABLE_FILE("assets_packed/strings/names/system.bin");
+		static const std::string INTRO_STRING_DATA_FILE("code/text/introstrings.asm");
+		static const std::string INTRO_STRING_PTRS_FILE("code/pointertables/strings/introstringptrs.asm");
+		static const std::string INTRO_STRING_FILE("assets_packed/strings/intro/string%02d.bin");
+		static const std::string END_CREDIT_STRINGS_FILE("assets_packed/strings/ending/credits.bin");
 	}
 
 	namespace Graphics
@@ -340,6 +368,15 @@ namespace RomOffsets
 		static const std::string PALETTE_WARP("KazaltWarpPalette");
 		static const std::string PALETTE_LANTERN("LabrynthLitPal");
 
+		static const std::string MISC_WARP_SECTION("MiscWarpSection");
+		static const std::string FALL_TABLE_LEA_LOC("FallTableLeaLoc");
+		static const std::string CLIMB_TABLE_LEA_LOC("ClimbTableLeaLoc");
+		static const std::string TRANSITION_TABLE_LEA_LOC1("TransitionTableLeaLoc1");
+		static const std::string TRANSITION_TABLE_LEA_LOC2("TransitionTableLeaLoc2");
+		static const std::string ROOM_DATA_SECTION("RoomDataSection");
+
+		static const std::string ROOM_VISIT_FLAGS("RoomVisitedFlagLookup");
+
 		static const std::string ROOM_DATA_FILE("code/pointertables/maps/roomlist.asm");
 		static const std::string MAP_DATA_FILE("code/graphics/roommaps.asm");
 		static const std::string MAP_FILENAME_FORMAT_STRING("assets_packed/maps/%s.cmp");
@@ -352,13 +389,7 @@ namespace RomOffsets
 		static const std::string PALETTE_LAVA_FILENAME("assets_packed/graphics/miscpalettes/lavapalette.pal");
 		static const std::string PALETTE_WARP_FILENAME("assets_packed/graphics/miscpalettes/kazaltwarp.pal");
 		static const std::string PALETTE_LANTERN_FILENAME("assets_packed/graphics/miscpalettes/labrynthlit.pal");
-
-		static const std::string MISC_WARP_SECTION("MiscWarpSection");
-		static const std::string FALL_TABLE_LEA_LOC("FallTableLeaLoc");
-		static const std::string CLIMB_TABLE_LEA_LOC("ClimbTableLeaLoc");
-		static const std::string TRANSITION_TABLE_LEA_LOC1("TransitionTableLeaLoc1");
-		static const std::string TRANSITION_TABLE_LEA_LOC2("TransitionTableLeaLoc2");
-		static const std::string ROOM_DATA_SECTION("RoomDataSection");
+		static const std::string ROOM_VISIT_FLAGS_FILE("assets_packed/roomdata/flagactions/roomvisitflags.bin");
 	}
 
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
@@ -385,8 +416,23 @@ namespace RomOffsets
 	{
 		{"sprite_table_ptr",                 {{Region::JP, 0x120000}, {Region::US, 0x120000}, {Region::UK, 0x120000}, {Region::FR, 0x120000}, {Region::DE, 0x120000}, {Region::US_BETA, 0x120000}}},
 		{"sprite_data_end",                  {{Region::JP, 0x1A4400}, {Region::US, 0x1A4400}, {Region::UK, 0x1A4400}, {Region::FR, 0x1A4400}, {Region::DE, 0x1A4400}, {Region::US_BETA, 0x1A4400}}},
+		{ Strings::SAVE_GAME_LOCATIONS_LEA,  {{Region::JP, 0x000000}, {Region::US, 0x0294CC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::ISLAND_MAP_LOCATIONS,     {{Region::JP, 0x000000}, {Region::US, 0x02951A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::CHAR_NAME_TABLE,          {{Region::JP, 0x000000}, {Region::US, 0x029490}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::SPECIAL_CHAR_NAME_TABLE,  {{Region::JP, 0x000000}, {Region::US, 0x02947C}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::DEFAULT_NAME,             {{Region::JP, 0x000000}, {Region::US, 0x02948A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::ITEM_NAME_TABLE,          {{Region::JP, 0x000000}, {Region::US, 0x0294A2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::MENU_STRING_TABLE,        {{Region::JP, 0x000000}, {Region::US, 0x0294AC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::STRING_BANK_PTR_PTR,      {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::HUFFMAN_OFFSETS,          {{Region::JP, 0x000000}, {Region::US, 0x0246CA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Strings::HUFFMAN_TABLES,           {{Region::JP, 0x000000}, {Region::US, 0x0246D2}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::INTRO_STRING_PTRS,        {{Region::JP, 0x000000}, {Region::US, 0x00C482}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::END_CREDIT_STRINGS,       {{Region::JP, 0x000000}, {Region::US, 0x09EC96}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_NTSC,        {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_PAL,         {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Strings::REGION_ERROR_LINE3,       {{Region::JP, 0x000000}, {Region::US, 0x11EAB8}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::GAME_LOAD_PALETTE_LEA,   {{Region::JP, 0x000000}, {Region::US, 0x00F694}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::GAME_LOAD_PLAYER_PALETTE,{{Region::JP, 0x000000}, {Region::US, 0x00FB1E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::GAME_LOAD_CHARS,         {{Region::JP, 0x000000}, {Region::US, 0x00F646}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -446,13 +492,7 @@ namespace RomOffsets
 		{ Graphics::HUD_PAL,                 {{Region::JP, 0x000000}, {Region::US, 0x008E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::HUD_PAL_LEA2,            {{Region::JP, 0x000000}, {Region::US, 0x008FCE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::PLAYER_PAL,              {{Region::JP, 0x000000}, {Region::US, 0x008FB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::STRING_BANK_PTR_PTR,      {{Region::JP, 0x000000}, {Region::US, 0x022E80}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::MAIN_FONT_PTR,           {{Region::JP, 0x000000}, {Region::US, 0x022E84}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE1,       {{Region::JP, 0x000000}, {Region::US, 0x11EA82}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_NTSC,        {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_PAL,         {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Strings::REGION_ERROR_LINE3,       {{Region::JP, 0x000000}, {Region::US, 0x11EAB8}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::SYS_FONT_SIZE,           {{Region::JP, 0x000000}, {Region::US, 0x000800}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::SYS_FONT,                {{Region::JP, 0x000000}, {Region::US, 0x11EAE4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_FONT,                {{Region::JP, 0x000000}, {Region::US, 0x00DA02}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
@@ -476,7 +516,8 @@ namespace RomOffsets
 		{ Rooms::FALL_TABLE_LEA_LOC,         {{Region::JP, 0x000000}, {Region::US, 0x00A114}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Rooms::CLIMB_TABLE_LEA_LOC,        {{Region::JP, 0x000000}, {Region::US, 0x00A120}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Rooms::TRANSITION_TABLE_LEA_LOC1,  {{Region::JP, 0x000000}, {Region::US, 0x00A150}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Rooms::TRANSITION_TABLE_LEA_LOC2,  {{Region::JP, 0x000000}, {Region::US, 0x00A186}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Rooms::TRANSITION_TABLE_LEA_LOC2,  {{Region::JP, 0x000000}, {Region::US, 0x00A186}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::ROOM_VISIT_FLAGS,           {{Region::JP, 0x000000}, {Region::US, 0x002942}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Tilesets::INTRO_FONT_PTR,          {{Region::JP, 0x000000}, {Region::US, 0x00C528}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
@@ -485,8 +526,12 @@ namespace RomOffsets
 		{"sprite_gfx_lookup",                 {{Region::JP, {0x01ABBE, 0x01AD96}}, {Region::US, {0x01ABF2, 0x01ADCA}}, {Region::UK, {0x01ABF2, 0x01ADCA}}, {Region::FR, {0x01ABE6, 0x01ADBE}}, {Region::DE, {0x01ABEC, 0x01ADC4}}, {Region::US_BETA, {0x01ABB8, 0x01AD90}}}},
 		{"sprite_gfx_offset_table",           {{Region::JP, {0x120004, 0x1201B4}}, {Region::US, {0x120004, 0x1201B4}}, {Region::UK, {0x120004, 0x1201B4}}, {Region::FR, {0x120004, 0x1201B4}}, {Region::DE, {0x120004, 0x1201B4}}, {Region::US_BETA, {0x120004, 0x1201B4}}}},
 		{"sprite_palette_lookup",             {{Region::JP, {0x1A453A, 0x1A47E0}}, {Region::US, {0x1A453A, 0x1A47E0}}, {Region::UK, {0x1A453A, 0x1A47E0}}, {Region::FR, {0x1A453A, 0x1A47E0}}, {Region::DE, {0x1A453A, 0x1A47E0}}, {Region::US_BETA, {0x1A453A, 0x1A47E0}}}},
-		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::STRING_SECTION,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x02A884, 0x038600}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::HUFFMAN_SECTION,           {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x023900, 0x02469C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::SAVE_GAME_LOCATIONS,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0294E6, 0x029516}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::STRING_TABLE_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x029536, 0x029ACC}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::INTRO_STRING_DATA,         {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00C59E, 0x00CDAE}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::END_CREDIT_STRING_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x09ED1A, 0x09F644}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION, {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::LITHOGRAPH_DATA,          {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x038AAC, 0x039762}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::SEGA_LOGO_PAL,            {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0386C2, 0x0386D0}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},

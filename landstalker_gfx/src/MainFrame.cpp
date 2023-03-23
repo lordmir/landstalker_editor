@@ -53,13 +53,16 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     wxGridSizer* sizer = new wxGridSizer(1);
     m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
+    m_stringEditor = new StringEditorFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
     sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
+    sizer->Add(m_stringEditor, 1, wxEXPAND | wxALL);
     sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
     sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
     sizer->Hide(m_stringView);
     sizer->Hide(m_tilesetEditor);
+    sizer->Hide(m_stringEditor);
     sizer->Hide(m_canvas);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
@@ -155,6 +158,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         PaletteO::Reset();
         m_g = std::make_shared<GameData>(m_rom);
         m_tilesetEditor->SetGameData(m_g);
+        m_stringEditor->SetGameData(m_g);
         SetMode(MODE_NONE);
 
         const int str_img = m_imgs->GetIdx("string");
@@ -186,65 +190,24 @@ void MainFrame::OpenRomFile(const wxString& path)
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
         wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
-        wxTreeItemId x;
-
-        x = m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
-        x = m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
-        x = m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
-        x = m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
-        x = m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 4));
-        x = m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 5));
-        x = m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 6));
-        x = m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 7));
-        auto huffman_trees = m_rom.read_array<uint8_t>("huff_tables");
-        auto huffman_tree_offsets = m_rom.read_array<uint8_t>("huff_table_offsets");
-        auto huff_trees = std::make_shared<HuffmanTrees>(huffman_tree_offsets.data(), huffman_tree_offsets.size(), huffman_trees.data(), huffman_trees.size(), huffman_tree_offsets.size()/2);
-        auto string_bank_pointers = m_rom.read_array<uint32_t>("compressed_string_banks");
-        auto charset = Charset::GetDefaultCharset(m_rom.get_region());
-        auto eos_marker = Charset::GetEOSChar(m_rom.get_region());
-        auto diacritic_map = Charset::GetDiacriticMap(m_rom.get_region());
-        uint32_t p = string_bank_pointers[0];
-        m_strings.push_back({});
-        do
-        {
-            m_strings.back().push_back(std::make_shared<HuffmanString>(huff_trees, charset, eos_marker, diacritic_map));
-            p += m_strings.back().back()->Decode(m_rom.data(p), m_rom.read<uint8_t>(p));
-        } while (m_rom.read<uint8_t>(p) != 0xFF && m_rom.read<uint8_t>(p) != 0);
-
-        auto decode_table = [&](const std::vector<uint8_t> & table)
-        {
-            const uint8_t* ptr = table.data();
-            const uint8_t* end = ptr + table.size();
-            m_strings.push_back({});
-            do
-            {
-                m_strings.back().push_back(std::make_shared<LSString>(charset, diacritic_map));
-                ptr += m_strings.back().back()->Decode(ptr, end - ptr);
-            } while (*ptr != 0xFF && *ptr + ptr < end);
-        };
-        decode_table(m_rom.read_array<uint8_t>("character_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("special_char_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("default_char_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("item_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("menu_string_table"));
-
-        auto intro_string_pointers = m_rom.read_array<uint32_t>("intro_string_pointers");
-        m_strings.push_back({});
-        for(auto s : intro_string_pointers)
-        {
-            m_strings.back().push_back(std::make_shared<IntroString>());
-            m_strings.back().back()->Decode(m_rom.data(s), 255);
-        }
-        
-        auto end_credit_strings = m_rom.read_array<uint8_t>("end_credit_strings");
-        const uint8_t* ptr = end_credit_strings.data();
-        const uint8_t* end = ptr + end_credit_strings.size();
-        m_strings.push_back({});
-        do
-        {
-            m_strings.back().push_back(std::make_shared<EndCreditString>());
-            ptr += m_strings.back().back()->Decode(ptr, end - ptr);
-        } while (ptr < end - 2);
+        m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+        m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+        m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+        m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+        m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+        m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+        m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+        m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
+        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
 
         for (std::size_t i = 0; i < 255; i++)
         {
@@ -376,6 +339,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
             return;
         }
         this->SetLabel("Landstalker Graphics Viewer - " + path);
+        const int str_img = m_imgs->GetIdx("string");
         const int ts_img = m_imgs->GetIdx("tileset");
         const int ats_img = m_imgs->GetIdx("ats");
         const int img_img = m_imgs->GetIdx("image");
@@ -383,6 +347,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         const int bs_img = m_imgs->GetIdx("big_tiles");
         const int rm_img = m_imgs->GetIdx("room");
         wxTreeItemId nodeRoot = m_browser->AddRoot("");
+        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
         wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
         wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
         wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
@@ -399,8 +364,28 @@ void MainFrame::OpenAsmFile(const wxString& path)
         wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
         wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
 
+        m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+        m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+        m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+        m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+        m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+        m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+        m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+        m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
+        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+
         m_g = std::make_shared<GameData>(path.ToStdString());
         m_tilesetEditor->SetGameData(m_g);
+        m_stringEditor->SetGameData(m_g);
         for (const auto& t : m_g->GetRoomData()->GetTilesets())
         {
             auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
@@ -1132,14 +1117,14 @@ void MainFrame::PopulatePalettes()
 
 void MainFrame::ShowStrings()
 {
-    if (!m_stringView->IsShown())
+    if (!m_stringEditor->IsShown())
     {
-        m_activeEditor = nullptr;
-        m_stringView->Show();
+        m_activeEditor = m_stringEditor;
+        m_stringEditor->Show();
         m_tilesetEditor->Hide();
         m_canvas->Hide();
         this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Add(m_stringEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
     }
 }
@@ -1149,7 +1134,7 @@ void MainFrame::ShowTileset()
     if (!m_tilesetEditor->IsShown())
     {
         m_activeEditor = m_tilesetEditor;
-        m_stringView->Hide();
+        m_stringEditor->Hide();
         m_tilesetEditor->Show();
         m_canvas->Hide();
         this->m_scrollwindow->GetSizer()->Clear();
@@ -1163,7 +1148,7 @@ void MainFrame::ShowBitmap()
     if (!m_canvas->IsShown())
     {
         m_activeEditor = nullptr;
-        m_stringView->Hide();
+        m_stringEditor->Hide();
         m_tilesetEditor->Hide();
         m_canvas->Show();
         this->m_scrollwindow->GetSizer()->Clear();
@@ -1257,6 +1242,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     PaletteO::Reset();
     m_g.reset();
     m_tilesetEditor->ClearGameData();
+    m_stringEditor->ClearGameData();
     SetMode(MODE_NONE);
     this->SetLabel("Landstalker Graphics Viewer");
     return ReturnCode::OK;
@@ -1463,60 +1449,6 @@ void MainFrame::Refresh()
     case MODE_STRING:
     {
         ClearScreen();
-        m_stringView->ClearColumns();
-        m_stringView->DeleteAllItems();
-        m_stringView->AppendTextColumn("ID");
-        if (m_strtab == 6)
-        {
-            m_stringView->AppendTextColumn("Display Time");
-            m_stringView->AppendTextColumn("Line 1 X");
-            m_stringView->AppendTextColumn("Line 1 Y");
-            m_stringView->AppendTextColumn("Line 2 X");
-            m_stringView->AppendTextColumn("Line 2 Y");
-            m_stringView->AppendTextColumn("Line 1")->SetWidth(150);
-            m_stringView->AppendTextColumn("Line 2");
-        }
-        else if (m_strtab == 7)
-        {
-            m_stringView->AppendTextColumn("Column");
-            m_stringView->AppendTextColumn("Height");
-            m_stringView->AppendTextColumn("String");
-        }
-        else
-        {
-            m_stringView->AppendTextColumn("String");
-        }
-        wxVector<wxVariant> data;
-        for (std::size_t i = 0; i < m_strings[m_strtab].size(); ++i)
-        {
-            data.clear();
-            data.push_back(wxVariant(wxString::Format("%000lu", i)));
-            if (m_strtab == 6)
-            {
-                auto intro_string = std::dynamic_pointer_cast<IntroString>(m_strings[m_strtab][i]);
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetDisplayTime())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1X())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1Y())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2X())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2Y())));
-                data.push_back(wxVariant(intro_string->GetLine(0)));
-                data.push_back(wxVariant(intro_string->GetLine(1)));
-            }
-            else if (m_strtab == 7)
-            {
-                auto end_credit_string = std::dynamic_pointer_cast<EndCreditString>(m_strings[m_strtab][i]);
-                int col = end_credit_string->GetColumn();
-                col = col > 0x7F ? col - 0x100: col;
-                data.push_back(wxVariant(wxString::Format("%d", col)));
-                data.push_back(wxVariant(wxString::Format("%u", end_credit_string->GetHeight())));
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
-            }
-            else
-            {
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
-            }
-            m_stringView->AppendItem(data);
-        }
         ShowStrings();
         EnableLayerControls(false);
         break;
@@ -1666,7 +1598,7 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:
-        m_strtab = item_data->GetValue();
+        m_stringEditor->SetMode(static_cast<StringEditorFrame::Mode>(item_data->GetValue()));
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:

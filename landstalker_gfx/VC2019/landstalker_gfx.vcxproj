@@ -40,6 +40,7 @@
     <ClCompile Include="..\src\Palette.cpp" />
     <ClCompile Include="..\src\PaletteO.cpp" />
     <ClCompile Include="..\src\PaletteEditor.cpp" />
+    <ClCompile Include="..\src\ResizeableGrid.cpp" />
     <ClCompile Include="..\src\Rom.cpp" />
     <ClCompile Include="..\src\Room.cpp" />
     <ClCompile Include="..\src\DataTypes.cpp" />
@@ -48,6 +49,7 @@
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\SpriteGraphic.cpp" />
     <ClCompile Include="..\src\StringData.cpp" />
+    <ClCompile Include="..\src\StringEditorFrame.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
     <ClCompile Include="..\src\TileEditor.cpp" />
@@ -100,6 +102,7 @@
     <ClInclude Include="..\src\include\Palette.h" />
     <ClInclude Include="..\src\include\PaletteO.h" />
     <ClInclude Include="..\src\include\PaletteEditor.h" />
+    <ClInclude Include="..\src\include\ResizeableGrid.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
@@ -110,6 +113,7 @@
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\SpriteGraphic.h" />
     <ClInclude Include="..\src\include\StringData.h" />
+    <ClInclude Include="..\src\include\StringEditorFrame.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
     <ClInclude Include="..\src\include\TileEditor.h" />

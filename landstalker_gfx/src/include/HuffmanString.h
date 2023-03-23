@@ -22,6 +22,9 @@ public:
 	              uint8_t eos_marker = DEFAULT_EOS_MARKER,
 	              const DiacriticMap& diacritic_map = DEFAULT_DIACRITIC_MAP);
 
+	bool operator==(const HuffmanString& rhs) const;
+	bool operator!=(const HuffmanString& rhs) const;
+
 	virtual size_t Decode(const uint8_t* buffer, size_t size);
 	virtual size_t Encode(uint8_t* buffer, size_t size) const;
 	virtual std::string GetEncodedFileExt() const;
