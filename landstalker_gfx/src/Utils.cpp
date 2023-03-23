@@ -96,6 +96,14 @@ std::string RemoveQuotes(const std::string& str)
 	return s;
 }
 
+std::string ReformatPath(const std::string& str)
+{
+	auto s = RemoveQuotes(str);
+	// Convert Backslashes to forward slashes
+	std::replace(s.begin(), s.end(), '\\', '/');
+	return s;
+}
+
 bool CreateDirectoryTree(const filesystem::path& path)
 {
 	if (!path.parent_path().is_directory() &&
