@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-#include "include\LSString.h"
+#include "LSString.h"
 
 const LSString::CharacterSet& LSString::DEFAULT_CHARACTER_SET = Charset::DEFAULT_ENGLISH_CHARSET;
 
