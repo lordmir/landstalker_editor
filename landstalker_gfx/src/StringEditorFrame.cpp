@@ -1,4 +1,4 @@
-#include "include\StringEditorFrame.h"
+#include "StringEditorFrame.h"
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
