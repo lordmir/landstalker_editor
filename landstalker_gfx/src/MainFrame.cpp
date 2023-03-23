@@ -1120,9 +1120,9 @@ void MainFrame::ShowStrings()
     if (!m_stringEditor->IsShown())
     {
         m_activeEditor = m_stringEditor;
-        m_stringEditor->Show();
         m_tilesetEditor->Hide();
         m_canvas->Hide();
+        m_stringEditor->Show();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_stringEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
@@ -1135,8 +1135,8 @@ void MainFrame::ShowTileset()
     {
         m_activeEditor = m_tilesetEditor;
         m_stringEditor->Hide();
-        m_tilesetEditor->Show();
         m_canvas->Hide();
+        m_tilesetEditor->Show();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();

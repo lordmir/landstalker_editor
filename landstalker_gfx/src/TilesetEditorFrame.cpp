@@ -493,7 +493,6 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 {
 	if(ArePropsInitialised() == false)
 	{
-		EditorFrame::InitProperties(props);
 		for (const auto& b : Tileset::BLOCKTYPE_STRINGS)
 		{
 			m_blocktype_list.Add(b);
@@ -521,12 +520,13 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxIntProperty("Tile Height", "H", 0))->Enable(false);
 		props.Append(new wxIntProperty("Tile Bitdepth", "D", 0))->Enable(false);
 		props.Append(new wxEnumProperty("Tile Block Layout", "B", m_blocktype_list))->Enable(false);
-		UpdateProperties(props);
+		RefreshProperties(props);
 	}
+	EditorFrame::InitProperties(props);
 }
 
 template <class T>
-void UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
+wxPGChoices UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
 {
 	wxPGChoices list;
 	list.Clear();
@@ -548,63 +548,62 @@ void UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
 			list.Add(e);
 		}
 	}
-	if (props.GetGrid() != nullptr && props.GetGrid()->GetProperty("P") != nullptr)
+	return list;
+}
+
+void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
+{
+	if (m_animated_tileset_entry)
 	{
-		props.GetGrid()->GetProperty("P")->SetChoices(list);
+		props.GetGrid()->GetProperty("P")->SetChoices(UpdatePalList(m_animated_tileset_entry, props));
+		props.GetGrid()->SetPropertyValue("N", _(m_animated_tileset_entry->GetName()));
+		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
+		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_animated_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("FN", _(m_animated_tileset_entry->GetFilename().str()));
 	}
+	else if (m_tileset_entry)
+	{
+		props.GetGrid()->GetProperty("P")->SetChoices(UpdatePalList(m_tileset_entry, props));
+		props.GetGrid()->SetPropertyValue("N", _(m_tileset_entry->GetName()));
+		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_tileset_entry->GetOrigBytes()->size()));
+		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("FN", _(m_tileset_entry->GetFilename().str()));
+	}
+	if (m_tileset)
+	{
+
+		if (m_animated)
+		{
+			auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
+			props.GetGrid()->SetPropertyValue("ABT", ats->GetBaseTileset());
+			props.GetGrid()->SetPropertyValue("AST", ats->GetStartTile().GetIndex());
+			props.GetGrid()->SetPropertyValue("A#T", static_cast<int>(ats->GetFrameSizeTiles()));
+			props.GetGrid()->SetPropertyValue("A#F", ats->GetAnimationFrames());
+			props.GetGrid()->SetPropertyValue("AS", ats->GetAnimationSpeed());
+			props.GetGrid()->GetProperty("A")->Hide(false);
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("A")->Hide(true);
+		}
+		props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
+		props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
+		props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
+		props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
+		props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
+		props.GetGrid()->SetPropertyValue("B", wxString(Tileset::BLOCKTYPE_STRINGS[m_tileset->GetTileBlockType()]));
+		props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
+		props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
+	}
+	props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette->GetName()));
 }
 
 void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 {
-	if (ArePropsInitialised() == false)
+	EditorFrame::UpdateProperties(props);
+	if (ArePropsInitialised() == true)
 	{
-		InitProperties(props);
-	}
-	else
-	{
-		if (m_animated_tileset_entry)
-		{
-			UpdatePalList(m_animated_tileset_entry, props);
-			props.GetGrid()->SetPropertyValue("N", _(m_animated_tileset_entry->GetName()));
-			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
-			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_animated_tileset_entry->GetStartAddress())));
-			props.GetGrid()->SetPropertyValue("FN", _(m_animated_tileset_entry->GetFilename().str()));
-		}
-		else if (m_tileset_entry)
-		{
-			UpdatePalList(m_tileset_entry, props);
-			props.GetGrid()->SetPropertyValue("N", _(m_tileset_entry->GetName()));
-			props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_tileset_entry->GetOrigBytes()->size()));
-			props.GetGrid()->SetPropertyValue("SA", _(Hex(m_tileset_entry->GetStartAddress())));
-			props.GetGrid()->SetPropertyValue("FN", _(m_tileset_entry->GetFilename().str()));
-		}
-		if (m_tileset)
-		{
-
-			if (m_animated)
-			{
-				auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
-				props.GetGrid()->SetPropertyValue("ABT", ats->GetBaseTileset());
-				props.GetGrid()->SetPropertyValue("AST", ats->GetStartTile().GetIndex());
-				props.GetGrid()->SetPropertyValue("A#T", static_cast<int>(ats->GetFrameSizeTiles()));
-				props.GetGrid()->SetPropertyValue("A#F", ats->GetAnimationFrames());
-				props.GetGrid()->SetPropertyValue("AS", ats->GetAnimationSpeed());
-				props.GetGrid()->GetProperty("A")->Hide(false);
-			}
-			else
-			{
-				props.GetGrid()->GetProperty("A")->Hide(true);
-			}
-			props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
-			props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
-			props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
-			props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
-			props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
-			props.GetGrid()->SetPropertyValue("B", wxString(Tileset::BLOCKTYPE_STRINGS[m_tileset->GetTileBlockType()]));
-			props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
-			props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
-		}
-		props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette->GetName()));
+		RefreshProperties(props);
 	}
 }
 

@@ -101,19 +101,24 @@ void EditorFrame::OnMenuClick(wxMenuEvent& evt)
 
 bool EditorFrame::Show(bool show)
 {
-	if (show == true)
+	if(show != IsShown())
 	{
-		FireEvent(EVT_STATUSBAR_INIT);
-		FireEvent(EVT_PROPERTIES_INIT);
-		FireEvent(EVT_MENU_INIT);
+		if (show == true)
+		{
+			m_props_init = false;
+			FireEvent(EVT_STATUSBAR_INIT);
+			FireEvent(EVT_PROPERTIES_INIT);
+			FireEvent(EVT_MENU_INIT);
+		}
+		else
+		{
+			FireEvent(EVT_STATUSBAR_CLEAR);
+			FireEvent(EVT_PROPERTIES_CLEAR);
+			FireEvent(EVT_MENU_CLEAR);
+		}
+		return wxWindow::Show(show);
 	}
-	else
-	{
-		FireEvent(EVT_STATUSBAR_CLEAR);
-		FireEvent(EVT_PROPERTIES_CLEAR);
-		FireEvent(EVT_MENU_CLEAR);
-	}
-	return wxWindow::Show(show);
+	return false;
 }
 
 void EditorFrame::UpdateUI() const

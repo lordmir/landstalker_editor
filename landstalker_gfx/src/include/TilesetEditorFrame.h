@@ -74,6 +74,7 @@ private:
 	void InjectIntoRom();
 
 	void UpdateUI() const;
+	void RefreshProperties(wxPropertyGridManager& props) const;
 
 	TilesetEditor* m_tilesetEditor = nullptr;
 	PaletteEditor* m_paletteEditor = nullptr;
