@@ -5,6 +5,7 @@
 #include "RoomData.h"
 #include "GraphicsData.h"
 #include "StringData.h"
+#include "SpriteData.h"
 #include "DataTypes.h"
 
 #include <vector>
@@ -31,6 +32,7 @@ public:
     std::shared_ptr<RoomData> GetRoomData() const { return m_rd; }
     std::shared_ptr<GraphicsData> GetGraphicsData() const { return m_gd; }
     std::shared_ptr<StringData> GetStringData() const { return m_sd; }
+    std::shared_ptr<SpriteData> GetSpriteData() const { return m_spd; }
 
     const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
     const std::map<std::string, std::shared_ptr<TilesetEntry>>& GetAllTilesets() const;
@@ -49,6 +51,7 @@ private:
     std::shared_ptr<RoomData> m_rd;
     std::shared_ptr<GraphicsData> m_gd;
     std::shared_ptr<StringData> m_sd;
+    std::shared_ptr<SpriteData> m_spd;
 
     std::vector<std::shared_ptr<DataManager>> m_data;
 

@@ -51,18 +51,15 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 {
     m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
-    m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
     m_stringEditor = new StringEditorFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
-    sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
     sizer->Add(m_stringEditor, 1, wxEXPAND | wxALL);
     sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
     sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
-    sizer->Hide(m_stringView);
-    sizer->Hide(m_tilesetEditor);
     sizer->Hide(m_stringEditor);
+    sizer->Hide(m_tilesetEditor);
     sizer->Hide(m_canvas);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
@@ -153,7 +150,6 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_browser->SetImageList(m_imgs);
         m_properties->GetGrid()->Clear();
         m_sprites.clear();
-        m_strings.clear();
         Sprite::Reset();
         PaletteO::Reset();
         m_g = std::make_shared<GameData>(m_rom);
@@ -1237,7 +1233,6 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
     m_sprites.clear();
-    m_strings.clear();
     Sprite::Reset();
     PaletteO::Reset();
     m_g.reset();
@@ -1526,18 +1521,6 @@ bool MainFrame::ExportTxt(const std::string& filename)
     switch (m_mode)
     {
     case MODE_STRING:
-        {
-            auto& strings = m_strings[m_strtab];
-            std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
-            if (strings.front()->GetHeaderRow() != "")
-            {
-                ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
-            }
-            for (auto string : strings)
-            {
-                ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
-            }
-        }
         return true;
     case MODE_ROOMMAP:
         {

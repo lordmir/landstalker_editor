@@ -171,6 +171,9 @@
     <ClCompile Include="..\src\ResizeableGrid.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\SpriteData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -347,6 +350,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\ResizeableGrid.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteData.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

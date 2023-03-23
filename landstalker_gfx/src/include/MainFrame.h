@@ -6,16 +6,12 @@
 #include <memory>
 #include <wx/dcmemory.h>
 #include <wx/dataview.h>
-#include "Block.h"
-#include "Tileset.h"
 #include "PaletteO.h"
-#include "LSTilemapCmp.h"
 #include "Rom.h"
 #include "SpriteGraphic.h"
 #include "SpriteFrame.h"
 #include "Sprite.h"
 #include "ImageBuffer.h"
-#include "LSString.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "StringEditorFrame.h"
@@ -165,7 +161,6 @@ private:
     int m_strtab;
     Mode m_mode;
     bool m_layer_controls_enabled;
-    std::vector<std::vector<std::shared_ptr<LSString>>> m_strings;
     std::vector<SpriteFrame> m_spriteFrames;
     std::vector<SpriteGraphic> m_spriteGraphics;
     std::map<uint8_t, Sprite> m_sprites;
@@ -173,7 +168,6 @@ private:
     std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
     std::string m_selected_palette;
 	ImageList* m_imgs;
-    wxDataViewListCtrl* m_stringView;
     TilesetEditorFrame* m_tilesetEditor;
     StringEditorFrame* m_stringEditor;
 	EditorFrame* m_activeEditor;

@@ -5,11 +5,13 @@ GameData::GameData(const filesystem::path& asm_file)
 	: DataManager(asm_file),
 	  m_rd(std::make_shared<RoomData>(asm_file)),
 	  m_gd(std::make_shared<GraphicsData>(asm_file)),
-	  m_sd(std::make_shared<StringData>(asm_file))
+	  m_sd(std::make_shared<StringData>(asm_file)),
+	  m_spd(std::make_shared<SpriteData>(asm_file))
 {
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
 	m_data.push_back(m_sd);
+	m_data.push_back(m_spd);
 	CacheData();
 	SetDefaults();
 }
@@ -18,11 +20,13 @@ GameData::GameData(const Rom& rom)
 	: DataManager(rom),
 	  m_rd(std::make_shared<RoomData>(rom)),
 	  m_gd(std::make_shared<GraphicsData>(rom)),
-	  m_sd(std::make_shared<StringData>(rom))
+	  m_sd(std::make_shared<StringData>(rom)),
+	  m_spd(std::make_shared<SpriteData>(rom))
 {
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
 	m_data.push_back(m_sd);
+	m_data.push_back(m_spd);
 	CacheData();
 	SetDefaults();
 }
