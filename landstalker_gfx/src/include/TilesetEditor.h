@@ -137,7 +137,7 @@ private:
 
 	ImageBuffer m_buf;
 	wxBitmap m_bmp;
-	wxBitmap* m_tiles_bmp;
+	wxBitmap* m_tiles_bmp = nullptr;
 	wxBitmap m_bg_bmp;
 
 	wxDECLARE_EVENT_TABLE();

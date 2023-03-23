@@ -548,7 +548,10 @@ void UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
 			list.Add(e);
 		}
 	}
-	props.GetGrid()->GetProperty("P")->SetChoices(list);
+	if (props.GetGrid() != nullptr && props.GetGrid()->GetProperty("P") != nullptr)
+	{
+		props.GetGrid()->GetProperty("P")->SetChoices(list);
+	}
 }
 
 void TilesetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const

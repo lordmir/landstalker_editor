@@ -282,7 +282,7 @@ void StringEditorFrame::RefreshIntroString(int idx)
     m_stringView->SetCellValue(idx, 6, intro_string.GetLine(1));
     if (m_gd->GetStringData()->HasIntroStringChanged(idx))
     {
-        const auto& intro_string_orig = m_gd->GetStringData()->GetIntroString(idx);
+        const auto& intro_string_orig = m_gd->GetStringData()->GetOrigIntroString(idx);
         m_stringView->SetCellTextColour(idx, 0, intro_string.GetDisplayTime() != intro_string_orig.GetDisplayTime() ? *wxRED : *wxBLACK);
         m_stringView->SetCellTextColour(idx, 1, intro_string.GetLine1X() != intro_string_orig.GetLine1X() ? *wxRED : *wxBLACK);
         m_stringView->SetCellTextColour(idx, 2, intro_string.GetLine1Y() != intro_string_orig.GetLine1Y() ? *wxRED : *wxBLACK);
@@ -301,7 +301,7 @@ void StringEditorFrame::RefreshEndingString(int idx)
     m_stringView->SetCellValue(idx, 2, end_string.Str());
     if (m_gd->GetStringData()->HasEndCreditStringChanged(idx))
     {
-        const auto& end_string_orig = m_gd->GetStringData()->GetEndCreditString(idx);
+        const auto& end_string_orig = m_gd->GetStringData()->GetOrigEndCreditString(idx);
         m_stringView->SetCellTextColour(idx, 0, end_string.GetColumn() != end_string_orig.GetColumn() ? *wxRED : *wxBLACK);
         m_stringView->SetCellTextColour(idx, 1, end_string.GetHeight() != end_string_orig.GetHeight() ? *wxRED : *wxBLACK);
         m_stringView->SetCellTextColour(idx, 2, end_string.Str() != end_string_orig.Str() ? *wxRED : *wxBLACK);
