@@ -424,7 +424,7 @@ inline bool create_directories(const path& p) {
         return false;
 
     if (errno == ENOENT) {
-        if (create_directory(p.parent_path()))
+        if (create_directories(p.parent_path()))
             return mkdir(p.str().c_str(), S_IRWXU) == 0;
         else
             return false;
