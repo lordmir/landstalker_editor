@@ -1257,7 +1257,8 @@ bool MainFrame::CheckForFileChanges()
 void MainFrame::OpenFile(const wxString& path)
 {
     auto extension = std::filesystem::path(path.ToStdString()).extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+        [](const unsigned char i) { return std::tolower(i); });
     if (extension == ".asm")
     {
         OpenAsmFile(path);
@@ -1354,7 +1355,8 @@ void MainFrame::OnExport(wxCommandEvent& event)
         if (filename.find_last_of('.') != std::string::npos)
         {
             extension = filename.substr(filename.find_last_of('.') + 1);
-            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+            std::transform(extension.begin(), extension.end(), extension.begin(),
+                [](const unsigned char i) { return std::tolower(i); });
         }
         if (extension == "png")
         {
