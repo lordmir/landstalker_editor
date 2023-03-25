@@ -109,7 +109,7 @@ std::vector<T> Split(U data)
 }
 
 template<class T, class Iter>
-typename Iter Insert(Iter it, T data)
+Iter Insert(Iter it, T data)
 {
 	assert(sizeof(Iter::value_type) <= sizeof(T));
 	assert(sizeof(T) % sizeof(Iter::value_type) == 0);
