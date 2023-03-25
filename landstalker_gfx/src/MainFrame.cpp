@@ -579,13 +579,18 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
             auto msgbox = wxRichMessageDialog(this, message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
             msgbox.ShowDetailedText(details.str());
             int answer = msgbox.ShowModal();
-            if (answer == wxNO)
+            if (answer == wxID_NO)
             {
+                m_g->AbandomRomInjection();
                 return ReturnCode::CANCELLED;
             }
-            m_g->InjectIntoRom(m_rom);
-            m_rom.writeFile(path);
-            return ReturnCode::OK;
+            else
+            {
+                Rom output(m_rom);
+                m_g->InjectIntoRom(output);
+                output.writeFile(path);
+                return ReturnCode::OK;
+            }
         }
     }
     catch (const std::exception& e)

@@ -56,8 +56,15 @@ bool DataManager::InjectIntoRom(Rom& rom)
 			throw std::runtime_error("Section \"" + w.first + "\" does not exist!");
 		}
 		rom.write_array(*w.second, addr);
+		Debug(StrPrintf("ROM WRITE @ 0x%06X - %06d bytes (finish 0x%06X)", addr, w.second->size(), addr + w.second->size()));
 	}
 	CommitAllChanges();
+	m_pending_writes.clear();
+	return true;
+}
+
+bool DataManager::AbandomRomInjection()
+{
 	m_pending_writes.clear();
 	return true;
 }

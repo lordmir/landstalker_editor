@@ -67,6 +67,7 @@ public:
 	virtual bool WillFitInRom(const Rom& rom) const;
 	virtual bool HasBeenModified() const;
 	virtual bool InjectIntoRom(Rom& rom);
+	virtual bool AbandomRomInjection();
 	virtual bool Save(const filesystem::path& dir);
 	virtual bool Save();
 	virtual void RefreshPendingWrites(const Rom& rom);
