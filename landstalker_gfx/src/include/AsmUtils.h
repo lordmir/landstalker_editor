@@ -27,14 +27,23 @@ enum class AReg
 	SP = 7
 };
 
+enum class Width
+{
+	B = 1,
+	W = 3,
+	L = 2
+};
+
 namespace Asm
 {
 	uint32_t LEA_PCRel(AReg reg, uint32_t pc, uint32_t loc);
+	uint32_t MOVE_DOffset_PCRel(Width width, DReg reg, uint32_t pc, uint32_t loc);
 }
 
 namespace Disasm
 {
 	uint32_t LEA_PCRel(uint32_t ins, uint32_t pc);
+	uint32_t MOVE_DOffset_PCRel(uint32_t ins, uint32_t pc);
 }
 
 #endif // _ASM_UTILS_H_

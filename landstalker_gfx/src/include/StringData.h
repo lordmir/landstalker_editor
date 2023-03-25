@@ -96,6 +96,9 @@ private:
     bool EncodeStrings(const std::vector<LSString::StringType>& strings, std::vector<uint8_t>& bytes);
     bool EncodeString(const LSString::StringType& string, std::vector<uint8_t>& bytes);
     std::map<uint16_t, std::pair<uint8_t, uint8_t>> DeserialiseLocationMap(const std::vector<uint8_t>& bytes);
+
+    std::map<uint8_t, uint8_t> DeserialiseSfxMap(const ByteVector& bytes);
+    ByteVector SerialiseSfxMap(const std::map<uint8_t, uint8_t>& map);
     std::vector<uint8_t> SerialiseLocationMap(const std::map<uint16_t, std::pair<uint8_t, uint8_t>>& locs);
     void DeserialiseVisitFlags(const std::vector<uint8_t>& bytes);
     std::vector<uint8_t> SerialiseVisitFlags();
@@ -108,6 +111,7 @@ private:
     bool AsmLoadStringTables();
     bool AsmLoadIntroStrings();
     bool AsmLoadEndCreditStrings();
+    bool AsmLoadTalkSfx();
 
     bool RomLoadSystemFont(const Rom& rom);
     bool RomLoadSystemStrings(const Rom& rom);
@@ -116,6 +120,7 @@ private:
     bool RomLoadStringTables(const Rom& rom);
     bool RomLoadIntroStrings(const Rom& rom);
     bool RomLoadEndCreditStrings(const Rom& rom);
+    bool RomLoadTalkSfx(const Rom& rom);
 
     bool AsmSaveFonts(const filesystem::path& dir);
     bool AsmSaveSystemText(const filesystem::path& dir);
@@ -124,6 +129,7 @@ private:
     bool AsmSaveStringTables(const filesystem::path& dir);
     bool AsmSaveIntroStrings(const filesystem::path& dir);
     bool AsmSaveEndCreditStrings(const filesystem::path& dir);
+    bool AsmSaveTalkSfx(const filesystem::path& dir);
 
     bool RomPrepareInjectSystemText(const Rom& rom);
     bool RomPrepareInjectCompressedStringData(const Rom& rom);
@@ -131,6 +137,7 @@ private:
     bool RomPrepareInjectStringTables(const Rom& rom);
     bool RomPrepareInjectIntroStrings(const Rom& rom);
     bool RomPrepareInjectEndCreditStrings(const Rom& rom);
+    bool RomPrepareInjectTalkSfx(const Rom& rom);
 
     filesystem::path m_region_check_filename;
     filesystem::path m_region_check_routine_filename;
@@ -154,6 +161,8 @@ private:
     std::vector<filesystem::path> m_intro_strings_path;
     filesystem::path m_room_visit_flags_path;
     filesystem::path m_end_credit_strings_path;
+    filesystem::path m_char_talk_sfx_path;
+    filesystem::path m_sprite_talk_sfx_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -193,6 +202,10 @@ private:
     std::map<uint16_t, std::pair<uint8_t, uint8_t>> m_save_game_locations_orig;
     std::vector<uint16_t> m_room_visit_flags;
     std::vector<uint16_t> m_room_visit_flags_orig;
+    std::vector<uint8_t> m_char_talk_sfx;
+    std::vector<uint8_t> m_char_talk_sfx_orig;
+    std::map<uint8_t, uint8_t> m_sprite_talk_sfx;
+    std::map<uint8_t, uint8_t> m_sprite_talk_sfx_orig;
 
     RomOffsets::Region m_region;
 };

@@ -92,7 +92,7 @@ Sprite::Sprite(const Rom& rom, uint8_t id)
 	{
 		PopulateLUT(rom.read_array<uint8_t>("sprite_gfx_lookup"), m_sprite_gfx_lookup, true);
 		PopulateLUT(rom.read_array<uint8_t>("sprite_palette_lookup"), m_sprite_palette_lookup);
-		const uint32_t start_of_anim_table = rom.read<uint32_t>("sprite_table_ptr");
+		const uint32_t start_of_anim_table = rom.read<uint32_t>(RomOffsets::Sprites::POINTER);
 		const uint32_t start_of_frame_table = rom.read<uint32_t>(start_of_anim_table);
 		const uint32_t start_of_frames = rom.read<uint32_t>(start_of_frame_table);
 

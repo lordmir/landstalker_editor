@@ -92,7 +92,10 @@ void DataManager::CommitAllChanges()
 
 bool DataManager::GetFilenameFromAsm(AsmFile& file, const std::string& label, filesystem::path& path)
 {
-	file.Goto(label);
+	if (file.Goto(label) == false)
+	{
+		throw std::runtime_error("Could not locate label \"" + label + "\" in file \"" + file.GetFilename() + "\"");
+	}
 	file >> path;
 	return filesystem::path(m_base_path / path).exists();
 }

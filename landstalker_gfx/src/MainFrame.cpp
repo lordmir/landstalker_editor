@@ -502,8 +502,9 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         return ReturnCode::OK;
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        throw;
     }
     return ReturnCode::ERR;
 }
@@ -587,8 +588,9 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
             return ReturnCode::OK;
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        throw;
     }
     return ReturnCode::ERR;
 }
@@ -1292,18 +1294,34 @@ void MainFrame::OnOpen(wxCommandEvent& event)
 
 void MainFrame::OnSaveAsAsm(wxCommandEvent& event)
 {
-    if (SaveAsAsm() == ReturnCode::ERR)
+    try
     {
-        wxMessageBox("Failed to save as assembler", "Error", wxICON_ERROR);
+        auto result = SaveAsAsm();
+        if (result == ReturnCode::ERR)
+        {
+            wxMessageBox("Failed to save as assembler.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(std::string("Failed to save as assembler: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
 }
 
 void MainFrame::OnSaveToRom(wxCommandEvent& event)
 {
-    if (SaveToRom() == ReturnCode::ERR)
+    try
     {
-        wxMessageBox("Failed to save to ROM", "Error", wxICON_ERROR);
+        auto result = SaveToRom();
+        if (result == ReturnCode::ERR)
+        {
+            wxMessageBox("Failed to save to ROM.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(std::string("Failed to save to ROM: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
 }

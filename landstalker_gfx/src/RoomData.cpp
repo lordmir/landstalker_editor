@@ -1097,6 +1097,7 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
             std::string name = StrPrintf(RomOffsets::Rooms::MAP_FORMAT_STRING, ++count);
             map_names[Hex(begin)] = name;
             auto fname = StrPrintf(RomOffsets::Rooms::MAP_FILENAME_FORMAT_STRING, name.c_str());
+            std::transform(fname.begin(), fname.end(), fname.begin(), std::tolower);
             auto map_entry = Tilemap3DEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, fname);
             map_entry->SetStartAddress(begin);
             m_maps.insert(std::make_pair(name, map_entry));
@@ -1130,6 +1131,7 @@ bool RoomData::RomLoadRoomPalettes(const Rom& rom)
         std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
         auto fname = StrPrintf(RomOffsets::Rooms::PALETTE_FORMAT_STRING, i + 1);
         auto fpath = StrPrintf(RomOffsets::Rooms::PALETTE_FILENAME_FORMAT_STRING, fname.c_str());
+        std::transform(fpath.begin(), fpath.end(), fpath.begin(), std::tolower);
         auto e = PaletteEntry::Create(this, rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
         e->SetStartAddress(addr);
         m_room_pals.push_back(e);

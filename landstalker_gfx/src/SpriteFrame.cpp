@@ -19,6 +19,23 @@ SpriteFrame::SpriteFrame(const std::string& filename)
 	Open(filename);
 }
 
+SpriteFrame::SpriteFrame()
+	: m_compressed(false)
+{
+}
+
+bool SpriteFrame::operator==(const SpriteFrame& rhs) const
+{
+	return ((this->m_subsprites == rhs.m_subsprites) &&
+		    (this->m_sprite_gfx == rhs.m_sprite_gfx) &&
+		    (this->m_compressed == rhs.m_compressed));
+}
+
+bool SpriteFrame::operator!=(const SpriteFrame& rhs) const
+{
+	return !(*this == rhs);
+}
+
 bool SpriteFrame::Open(const std::string& filename)
 {
 	bool retval = false;
@@ -159,7 +176,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	return bits;
 }
 
-void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
+std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 {
 	auto it = src.begin();
 	std::size_t tile_idx = 0;
@@ -236,6 +253,7 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 	m_sprite_gfx.SetBits(sprite_gfx);
 
 	Debug("Done!");
+	return std::distance(src.begin(), it);
 }
 
 bool SpriteFrame::Save(const std::string& filename, bool use_compression)

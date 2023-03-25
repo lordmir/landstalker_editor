@@ -16,13 +16,31 @@ public:
 		std::size_t w;
 		std::size_t h;
 		std::size_t tile_idx;
+
+		bool operator==(const SubSprite& rhs) const
+		{
+			return ((this->x == rhs.x) &&
+			        (this->y == rhs.y) &&
+			        (this->w == rhs.w) &&
+			        (this->h == rhs.h) &&
+			        (this->tile_idx == rhs.tile_idx));
+		}
+		bool operator!=(const SubSprite& rhs) const
+		{
+			return !(*this == rhs);
+		}
 	};
 
 	SpriteFrame(const std::vector<uint8_t>& src);
 	SpriteFrame(const std::string& filename);
+	SpriteFrame();
+
+	bool operator==(const SpriteFrame& rhs) const;
+	bool operator!=(const SpriteFrame& rhs) const;
+
 	bool Open(const std::string& filename);
 	std::vector<uint8_t> GetBits();
-	void SetBits(const std::vector<uint8_t>& src);
+	std::size_t SetBits(const std::vector<uint8_t>& src);
 	bool Save(const std::string& filename, bool use_compression = false);
 	void Clear();
 	std::vector<uint8_t>  GetTile(const Tile& tile) const;

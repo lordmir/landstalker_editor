@@ -8,6 +8,7 @@
 #include <Tilemap3DCmp.h>
 #include <Tilemap2DRLE.h>
 #include <AnimatedTileset.h>
+#include <SpriteFrame.h>
 #include <EntryPreferences.h>
 
 class TilesetEntry : public DataManager::Entry<Tileset>, public PalettePreferences
@@ -159,6 +160,24 @@ private:
 	uint16_t base;
 	uint16_t width;
 	uint16_t height;
+};
+
+class SpriteFrameEntry : public DataManager::Entry<SpriteFrame>, public PalettePreferences
+{
+public:
+	SpriteFrameEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+		: Entry(owner, b, name, filename)
+	{}
+
+	static std::shared_ptr<SpriteFrameEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
+
+	virtual bool Serialise(const std::shared_ptr<SpriteFrame> in, ByteVectorPtr out);
+	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<SpriteFrame>& out);
+
+	uint8_t GetSprite() const { return m_sprite; }
+	void SetSprite(uint8_t val) { m_sprite = val; }
+private:
+	uint8_t m_sprite;
 };
 
 #endif // _DATA_TYPES_H_

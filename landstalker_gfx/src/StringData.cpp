@@ -37,6 +37,10 @@ StringData::StringData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load end credit strings from \'") + m_end_credit_strings_path.str() + '\'');
 	}
+	if (!AsmLoadTalkSfx())
+	{
+		throw std::runtime_error(std::string("Unable to load talk sound effects from \'") + asm_file.str() + '\'');
+	}
 	DecompressStrings();
 	InitCache();
 }
@@ -73,6 +77,10 @@ StringData::StringData(const Rom& rom)
 	if (!RomLoadEndCreditStrings(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load end credit strings from ROM"));
+	}
+	if (!RomLoadTalkSfx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load talk sound effects from ROM"));
 	}
 	DecompressStrings();
 	InitCache();
@@ -117,6 +125,10 @@ bool StringData::Save(const filesystem::path& dir)
 	if (!AsmSaveEndCreditStrings(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save end credit strings to \'") + directory.str() + '\'');
+	}
+	if (!AsmSaveEndCreditStrings(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.str() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -207,6 +219,14 @@ bool StringData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_char_talk_sfx_orig != m_char_talk_sfx)
+	{
+		return true;
+	}
+	if (m_sprite_talk_sfx_orig != m_sprite_talk_sfx)
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -237,6 +257,10 @@ void StringData::RefreshPendingWrites(const Rom& rom)
 	if (!RomPrepareInjectEndCreditStrings(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare end credit strings for ROM injection"));
+	}
+	if (!RomPrepareInjectTalkSfx(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare talk sound effects for ROM injection"));
 	}
 }
 
@@ -551,6 +575,8 @@ void StringData::CommitAllChanges()
 	m_intro_strings_orig = m_intro_strings;
 	m_room_visit_flags_orig = m_room_visit_flags;
 	m_ending_strings_orig = m_ending_strings;
+	m_char_talk_sfx_orig = m_char_talk_sfx;
+	m_sprite_talk_sfx_orig = m_sprite_talk_sfx;
 	m_pending_writes.clear();
 }
 
@@ -571,6 +597,8 @@ bool StringData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::INTRO_STRING_DATA, m_intro_string_data_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_VISIT_FLAGS, m_room_visit_flags_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::END_CREDIT_STRINGS, m_end_credit_strings_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::CHARACTER_TALK_SFX, m_char_talk_sfx_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::SPRITE_TALK_SFX, m_sprite_talk_sfx_path);
 		AsmFile r(GetBasePath() / m_region_check_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
 		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
@@ -622,6 +650,8 @@ void StringData::SetDefaultFilenames()
 	if (m_intro_string_ptrtable_path.empty()) m_intro_string_ptrtable_path = RomOffsets::Strings::INTRO_STRING_PTRS_FILE;
 	if (m_room_visit_flags_path.empty()) m_room_visit_flags_path = RomOffsets::Rooms::ROOM_VISIT_FLAGS_FILE;
 	if (m_end_credit_strings_path.empty()) m_end_credit_strings_path = RomOffsets::Strings::END_CREDIT_STRINGS_FILE;
+	if (m_char_talk_sfx_path.empty()) m_char_talk_sfx_path = RomOffsets::Strings::CHARACTER_TALK_SFX_FILE;
+	if (m_sprite_talk_sfx_path.empty()) m_sprite_talk_sfx_path = RomOffsets::Strings::SPRITE_TALK_SFX_FILE;
 }
 
 bool StringData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -649,6 +679,8 @@ bool StringData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_intro_string_ptrtable_path);
 	retval = retval && CreateDirectoryTree(dir / m_room_visit_flags_path);
 	retval = retval && CreateDirectoryTree(dir / m_end_credit_strings_path);
+	retval = retval && CreateDirectoryTree(dir / m_char_talk_sfx_path);
+	retval = retval && CreateDirectoryTree(dir / m_sprite_talk_sfx_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -685,6 +717,8 @@ void StringData::InitCache()
 	m_intro_strings_orig = m_intro_strings;
 	m_room_visit_flags_orig = m_room_visit_flags;
 	m_ending_strings_orig = m_ending_strings;
+	m_char_talk_sfx_orig = m_char_talk_sfx;
+	m_sprite_talk_sfx_orig = m_sprite_talk_sfx;
 }
 
 bool StringData::DecompressStrings()
@@ -802,6 +836,39 @@ std::map<uint16_t, std::pair<uint8_t, uint8_t>> StringData::DeserialiseLocationM
 			break;
 		}
 	}
+	return result;
+}
+
+std::map<uint8_t, uint8_t> StringData::DeserialiseSfxMap(const ByteVector& bytes)
+{
+	std::map<uint8_t, uint8_t> result;
+
+	assert((bytes.size() & 1) == 0);
+	for (int i = 0; i < bytes.size(); i += 2)
+	{
+		if (bytes[i] == 0xFF || bytes[i + 1] == 0xFF)
+		{
+			break;
+		}
+		result.insert({ bytes[i], bytes[i + 1] });
+	}
+
+	return result;
+}
+
+ByteVector StringData::SerialiseSfxMap(const std::map<uint8_t, uint8_t>& map)
+{
+	ByteVector result;
+
+	result.reserve(map.size() * 2 + 2);
+	for ( const auto& elem : map )
+	{
+		result.push_back(elem.first);
+		result.push_back(elem.second);
+	}
+	result.push_back(0xFF);
+	result.push_back(0xFF);
+
 	return result;
 }
 
@@ -992,6 +1059,18 @@ bool StringData::AsmLoadEndCreditStrings()
 	return true;
 }
 
+bool StringData::AsmLoadTalkSfx()
+{
+	m_char_talk_sfx = ReadBytes(GetBasePath() / m_char_talk_sfx_path);
+	m_sprite_talk_sfx = DeserialiseSfxMap(ReadBytes(GetBasePath() / m_sprite_talk_sfx_path));
+	while (m_char_talk_sfx.back() == 0xFF)
+	{
+		m_char_talk_sfx.pop_back();
+	}
+
+	return true;
+}
+
 bool StringData::RomLoadSystemFont(const Rom& rom)
 {
 	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
@@ -1166,6 +1245,40 @@ bool StringData::RomLoadEndCreditStrings(const Rom& rom)
 		m_ending_strings.emplace_back(EndCreditString());
 		offset += m_ending_strings.back().Decode(bytes.data() + offset, bytes.size() - offset);
 	}
+	return true;
+}
+
+bool StringData::RomLoadTalkSfx(const Rom& rom)
+{
+	uint32_t addr = Disasm::MOVE_DOffset_PCRel(rom.read<uint32_t>(RomOffsets::Strings::CHARACTER_TALK_SFX),
+		rom.get_address(RomOffsets::Strings::CHARACTER_TALK_SFX));
+
+	uint8_t sfx;
+	for (;;)
+	{
+		sfx = rom.inc_read<uint8_t>(addr);
+		if (sfx == 0xFF)
+		{
+			break;
+		}
+		m_char_talk_sfx.push_back(sfx);
+	}
+
+	addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::SPRITE_TALK_SFX),
+		rom.get_address(RomOffsets::Strings::SPRITE_TALK_SFX));
+
+	uint8_t sprite;
+	for (;;)
+	{
+		sprite = rom.inc_read<uint8_t>(addr);
+		sfx = rom.inc_read<uint8_t>(addr);
+		if ((sprite == 0xFF) || (sfx == 0xFF))
+		{
+			break;
+		}
+		m_sprite_talk_sfx.insert({ sprite, sfx });
+	}
+	
 	return true;
 }
 
@@ -1344,6 +1457,15 @@ bool StringData::AsmSaveEndCreditStrings(const filesystem::path& dir)
 	}
 	b.resize(offset);
 	WriteBytes(b, dir / m_end_credit_strings_path);
+	return true;
+}
+
+bool StringData::AsmSaveTalkSfx(const filesystem::path& dir)
+{
+	ByteVector bytes(m_char_talk_sfx);
+	bytes.push_back(0xFF);
+	WriteBytes(bytes, dir / m_char_talk_sfx_path);
+	WriteBytes(SerialiseSfxMap(m_sprite_talk_sfx), dir / m_sprite_talk_sfx_path);
 	return true;
 }
 
@@ -1545,5 +1667,24 @@ bool StringData::RomPrepareInjectEndCreditStrings(const Rom& rom)
 	b->resize(offset);
 	m_pending_writes.push_back({ RomOffsets::Strings::END_CREDIT_STRING_SECTION, b });
 	m_pending_writes.push_back({ RomOffsets::Strings::END_CREDIT_STRINGS, std::make_shared<ByteVector>(Split<uint8_t>(lea)) });
+	return true;
+}
+
+bool StringData::RomPrepareInjectTalkSfx(const Rom& rom)
+{
+	uint32_t char_begin = rom.get_section(RomOffsets::Strings::CHARACTER_TALK_SFX_SECTION).begin;
+	uint32_t char_ins = Asm::MOVE_DOffset_PCRel(Width::B, DReg::D0, rom.get_address(RomOffsets::Strings::CHARACTER_TALK_SFX), char_begin);
+	uint32_t sprite_begin = rom.get_section(RomOffsets::Strings::SPRITE_TALK_SFX_SECTION).begin;
+	uint32_t sprite_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::SPRITE_TALK_SFX), sprite_begin);
+
+	ByteVectorPtr char_bytes = std::make_shared<ByteVector>(m_char_talk_sfx);
+	char_bytes->push_back(0xFF);
+	ByteVectorPtr sprite_bytes = std::make_shared<ByteVector>(SerialiseSfxMap(m_sprite_talk_sfx));
+
+	m_pending_writes.push_back({ RomOffsets::Strings::CHARACTER_TALK_SFX_SECTION, char_bytes });
+	m_pending_writes.push_back({ RomOffsets::Strings::SPRITE_TALK_SFX_SECTION, sprite_bytes });
+	m_pending_writes.push_back({ RomOffsets::Strings::CHARACTER_TALK_SFX, std::make_shared<ByteVector>(Split<uint8_t>(char_ins)) });
+	m_pending_writes.push_back({ RomOffsets::Strings::SPRITE_TALK_SFX, std::make_shared<ByteVector>(Split<uint8_t>(sprite_lea)) });
+
 	return true;
 }

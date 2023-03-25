@@ -428,7 +428,6 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		for (const auto& frame : m_frames)
 		{
 			frm_file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::BINARY);
-			frm_file << AsmFile::Align(2);
 		}
 		frm_file.WriteFile(dir / m_sprite_frames_data_file);
 		anim_file.WriteFileHeader(m_sprite_anim_frames_file, "Sprite Frame Pointers");

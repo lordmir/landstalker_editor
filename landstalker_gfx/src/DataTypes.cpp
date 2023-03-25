@@ -131,3 +131,23 @@ bool Tilemap2DEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap
 	in->resize(out->Open(*in, compression, base));
 	return true;
 }
+
+std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+{
+	auto o = std::make_shared<SpriteFrameEntry>(owner, b, name, filename);
+	o->Initialise();
+	return o;
+}
+
+bool SpriteFrameEntry::Serialise(const std::shared_ptr<SpriteFrame> in, ByteVectorPtr out)
+{
+	out = std::make_shared<ByteVector>(in->GetBits());
+	return true;
+}
+
+bool SpriteFrameEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<SpriteFrame>& out)
+{
+	out = std::make_shared<SpriteFrame>();
+	in->resize(out->SetBits(*in));
+	return true;
+}
