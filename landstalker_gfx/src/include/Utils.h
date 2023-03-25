@@ -111,16 +111,16 @@ std::vector<T> Split(U data)
 template<class T, class Iter>
 Iter Insert(Iter it, T data)
 {
-	assert(sizeof(Iter::value_type) <= sizeof(T));
-	assert(sizeof(T) % sizeof(Iter::value_type) == 0);
-	int elems = sizeof(T) / sizeof(Iter::value_type);
-	const T mask = (1 << (8 * sizeof(Iter::value_type))) - 1;
+	assert(sizeof(typename Iter::value_type) <= sizeof(T));
+	assert(sizeof(T) % sizeof(typename Iter::value_type) == 0);
+	int elems = sizeof(T) / sizeof(typename Iter::value_type);
+	const T mask = (1 << (8 * sizeof(typename Iter::value_type))) - 1;
 	it += elems;
 	auto wit = it;
 	for (int i = 0; i < elems; ++i)
 	{
-		*--wit = static_cast<Iter::value_type>(data & mask);
-		data >>= (sizeof(Iter::value_type) * 8);
+		*--wit = static_cast<typename Iter::value_type>(data & mask);
+		data >>= (sizeof(typename Iter::value_type) * 8);
 	}
 	return it;
 }
