@@ -6,7 +6,7 @@
         {
             "label": "Build Release",
             "type": "shell",
-            "command": "make clean && make all",
+            "command": "make clean && make all -j8",
             "options": {
                 "cwd": "${workspaceFolder}/landstalker_gfx"
             },
@@ -19,7 +19,7 @@
         {
             "label": "Build Debug",
             "type": "shell",
-            "command": "make clean && make all DEBUG=yes",
+            "command": "make clean && make all -j8 DEBUG=yes",
             "options": {
                 "cwd": "${workspaceFolder}/landstalker_gfx"
             },
