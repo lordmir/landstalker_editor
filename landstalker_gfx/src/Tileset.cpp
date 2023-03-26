@@ -275,7 +275,7 @@ void Tileset::Clear()
     m_tiles.clear();
 }
 
-std::vector<uint8_t> Tileset::GetTileRGB(const Tile& tile, const PaletteO& palette) const
+std::vector<uint8_t> Tileset::GetTileRGB(const Tile& tile, const Palette& palette) const
 {
     auto t = GetTile(tile);
     std::vector<uint8_t> ret;
@@ -299,7 +299,7 @@ std::vector<uint8_t> Tileset::GetTileRGB(const Tile& tile, const PaletteO& palet
     return ret;
 }
 
-std::vector<uint8_t> Tileset::GetTileA(const Tile& tile, const PaletteO& palette) const
+std::vector<uint8_t> Tileset::GetTileA(const Tile& tile, const Palette& palette) const
 {
     auto t = GetTile(tile);
     std::vector<uint8_t> ret;
@@ -318,7 +318,7 @@ std::vector<uint8_t> Tileset::GetTileA(const Tile& tile, const PaletteO& palette
     return ret;
 }
 
-std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const PaletteO& palette) const
+std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const Palette& palette) const
 {
     auto t = GetTile(tile);
     std::vector<uint32_t> ret;

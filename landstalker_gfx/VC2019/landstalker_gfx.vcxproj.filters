@@ -45,9 +45,6 @@
     <ClCompile Include="..\src\LSString.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\LSTilemapCmp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\LZ77.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -57,16 +54,7 @@
     <ClCompile Include="..\src\MainFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\PaletteO.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Sprite.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\SpriteFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\SpriteGraphic.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Tile.cpp">
@@ -223,16 +211,10 @@
     <ClInclude Include="..\src\include\LSString.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\LSTilemapCmp.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\include\LZ77.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\MainFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\PaletteO.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\resource.h">
@@ -244,13 +226,7 @@
     <ClInclude Include="..\src\include\RomOffsets.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\Sprite.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\include\SpriteFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\SpriteGraphic.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Tile.h">
@@ -353,6 +329,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\SpriteData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Images.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

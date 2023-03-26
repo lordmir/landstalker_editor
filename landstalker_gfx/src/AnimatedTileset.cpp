@@ -68,27 +68,6 @@ std::vector<uint8_t>& AnimatedTileset::GetTilePixels(int tile_index, uint8_t fra
 	return Tileset::GetTilePixels(t + f_offset);
 }
 
-std::vector<uint8_t> AnimatedTileset::GetTileRGB(const Tile& tile, const PaletteO& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileRGB(t + f_offset, palette);
-}
-
-std::vector<uint8_t> AnimatedTileset::GetTileA(const Tile& tile, const PaletteO& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileA(t + f_offset, palette);
-}
-
-std::vector<uint32_t> AnimatedTileset::GetTileRGBA(const Tile& tile, const PaletteO& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileRGBA(t + f_offset, palette);
-}
-
 uint16_t AnimatedTileset::GetBaseBytes() const
 {
 	return m_base;

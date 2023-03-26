@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include "Palette.h"
 #include "TileAttributes.h"
-#include "PaletteO.h"
 #include "Tile.h"
     
 class Tileset
@@ -40,9 +40,9 @@ public:
     void Clear();
     std::vector<uint8_t> GetTile(const Tile& tile) const;
     std::vector<uint8_t>& GetTilePixels(int tile_index);
-    std::vector<uint8_t> GetTileRGB(const Tile& tile, const PaletteO& palette) const;
-    std::vector<uint8_t> GetTileA(const Tile& tile, const PaletteO& palette) const;
-    std::vector<uint32_t> GetTileRGBA(const Tile& tile, const PaletteO& palette) const;
+    std::vector<uint8_t> GetTileRGB(const Tile& tile, const Palette& palette) const;
+    std::vector<uint8_t> GetTileA(const Tile& tile, const Palette& palette) const;
+    std::vector<uint32_t> GetTileRGBA(const Tile& tile, const Palette& palette) const;
     void SetColourIndicies(const std::vector<uint8_t>& colour_indicies);
     std::vector<uint8_t> GetColourIndicies() const;
     std::vector<uint8_t> GetDefaultColourIndicies() const;

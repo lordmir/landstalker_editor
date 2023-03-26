@@ -6,7 +6,7 @@
 #include <wx/gdicmn.h>
 
 #include "Tileset.h"
-#include "PaletteO.h"
+#include "Palette.h"
 #include "ImageBuffer.h"
 
 struct TilePoint
