@@ -114,9 +114,6 @@
     <ClCompile Include="..\src\Rom.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\TilesetManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\Room.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -272,9 +269,6 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\ImageList.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TilesetManager.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AsmFile.h">
