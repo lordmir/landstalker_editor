@@ -42,6 +42,7 @@ private:
 	void OnTileEditRequested(wxCommandEvent& evt);
 	void OnPaletteChanged(wxCommandEvent& evt);
 	void OnPaletteColourSelect(wxCommandEvent& evt);
+	void OnPaletteColourHover(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
 	void OnTilesetChange(wxCommandEvent& evt);
 	void OnTilePixelHover(wxCommandEvent& evt);

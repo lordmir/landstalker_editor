@@ -342,6 +342,11 @@ uint8_t Palette::getA(uint8_t index) const
     return m_pal[index]->GetA();
 }
 
+uint32_t Palette::getRGB(uint8_t index) const
+{
+	return m_pal[index]->GetRGB(false);
+}
+
 uint32_t Palette::getRGBA(uint8_t index) const
 {
 	return m_pal[index]->GetRGB(true);
@@ -350,6 +355,11 @@ uint32_t Palette::getRGBA(uint8_t index) const
 uint32_t Palette::getBGRA(uint8_t index) const
 {
 	return m_pal[index]->GetBGR(true);
+}
+
+std::string Palette::getOwner(uint8_t index) const
+{
+	return m_owner[index];
 }
 
 uint16_t Palette::getGenesisColour(uint8_t index) const

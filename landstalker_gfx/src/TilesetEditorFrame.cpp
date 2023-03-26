@@ -47,6 +47,7 @@ enum MENU_IDS
 wxBEGIN_EVENT_TABLE(TilesetEditorFrame, wxWindow)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_CHANGE, TilesetEditorFrame::OnPaletteChanged)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, TilesetEditorFrame::OnPaletteColourSelect)
+EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, TilesetEditorFrame::OnPaletteColourHover)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, TilesetEditorFrame::OnTileEditRequested)
 EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, TilesetEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, TilesetEditorFrame::OnTilePixelHover)
@@ -145,6 +146,7 @@ void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 	m_tilesetEditor->RedrawTiles();
 	m_tileEditor->SetTile(m_tilesetEditor->GetSelectedTile());
 	m_tileEditor->Redraw();
+	m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
@@ -361,6 +363,7 @@ void TilesetEditorFrame::ImportFromBin()
 		m_tileset->SetBits(bytes, use_compression);
 		m_tilesetEditor->ForceRedraw();
 		m_tilesetEditor->SelectTile(0);
+		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 
 		FireEvent(EVT_PROPERTIES_UPDATE);
 	}
@@ -464,14 +467,22 @@ void TilesetEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void TilesetEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
+{
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
 void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status) const
 {
 	std::ostringstream ss;
 	ss << "Selected Tile " << m_tile.GetIndex();
+	int colour = m_paletteEditor->GetHoveredColour();
 	if (m_tileEditor->IsHoverValid())
 	{
 		const auto selection = m_tileEditor->GetHoveredPixel();
-		ss << ": (" << selection.x << ", " << selection.y << ")";
+		colour = m_tileEditor->GetColourAtPixel(selection);
+		ss << ": (" << selection.x << ", " << selection.y << ") - Colour " << colour;
 	}
 	status.SetStatusText(ss.str(), 0);
 	ss.str(std::string());
@@ -479,6 +490,17 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status) const
 	{
 		const auto selection = m_tilesetEditor->GetHoveredTile();
 		ss << "Tile at mouse: " << selection.GetIndex();
+	}
+	else if (colour != -1)
+	{
+		const auto& pal = m_selected_palette->GetData();
+		const auto& name = pal->getOwner(colour);
+		ss << StrPrintf("Colour at mouse: Index %d - Genesis 0x%04X, RGB #%06X %s", colour,
+			pal->getGenesisColour(colour), pal->getRGB(colour), pal->getA(colour) == 0 ? " [Transparent]" : "");
+		if (!name.empty())
+		{
+			ss << ", Palette: \"" << name << "\"";
+		}
 	}
 	status.SetStatusText(ss.str(), 1);
 	ss.str(std::string());
@@ -633,7 +655,7 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		// Indicies change
 		m_tileset->SetColourIndicies(CommaListToVec<uint8_t>(property->GetValueAsString().ToStdString()));
-		m_paletteEditor->Refresh();
+		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
 		m_tilesetEditor->RedrawTiles();
 		m_tileEditor->Refresh();
 		if (m_tileset_entry != nullptr)
@@ -863,6 +885,7 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTileset(m_tileset);
 		m_tileEditor->SetTile(m_tile);
+		m_paletteEditor->SetBitsPerPixel(tile_bitdepth);
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -887,6 +910,8 @@ bool TilesetEditorFrame::Open(const std::string& name)
 		m_tileEditor->SetTile(m_tile);
 		m_tileEditor->SetTileset(m_tileset);
 		SetActivePalette(m_tileset_entry->GetDefaultPalette());
+		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
+		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -910,6 +935,8 @@ bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 		m_tileEditor->SetTile(m_tile);
 		m_tileEditor->SetTileset(m_tileset);
 		SetActivePalette(m_animated_tileset_entry->GetDefaultPalette());
+		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
+		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);

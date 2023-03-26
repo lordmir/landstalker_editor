@@ -219,8 +219,10 @@ public:
 	uint8_t  getG(uint8_t index) const;
 	uint8_t  getB(uint8_t index) const;
 	uint8_t  getA(uint8_t index) const;
+	uint32_t getRGB(uint8_t index) const;
 	uint32_t getRGBA(uint8_t index) const;
 	uint32_t getBGRA(uint8_t index) const;
+	std::string getOwner(uint8_t index) const;
 	uint16_t getGenesisColour(uint8_t index) const;
 	Colour GetColour(uint8_t index) const;
 	void setGenesisColour(uint8_t index, uint16_t colour);
