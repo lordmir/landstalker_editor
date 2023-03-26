@@ -1644,15 +1644,10 @@ bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
     uint32_t climb_addr = fall_addr + fall_bytes.size();
     uint32_t transition_addr = climb_addr + climb_bytes.size();
 
-    uint32_t fall_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::FALL_TABLE_LEA_LOC), fall_addr);
-    uint32_t climb_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC), climb_addr);
-    uint32_t t1_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1), transition_addr);
-    uint32_t t2_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2), transition_addr);
-
-    m_pending_writes.push_back({ RomOffsets::Rooms::FALL_TABLE_LEA_LOC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(fall_lea)) });
-    m_pending_writes.push_back({ RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(climb_lea)) });
-    m_pending_writes.push_back({ RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(t1_lea)) });
-    m_pending_writes.push_back({ RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(t2_lea)) });
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::FALL_TABLE_LEA_LOC, fall_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC, climb_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1, transition_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2, transition_addr));
 
     return true;
 }

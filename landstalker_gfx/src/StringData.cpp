@@ -1051,10 +1051,11 @@ bool StringData::AsmLoadEndCreditStrings()
 	auto bytes = ReadBytes(GetBasePath() / m_end_credit_strings_path);
 
 	size_t offset = 0;
-	while (offset < bytes.size())
+	while ((offset < (bytes.size() - 1)) && (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF))
 	{
 		m_ending_strings.emplace_back(EndCreditString());
 		offset += m_ending_strings.back().Decode(bytes.data() + offset, bytes.size() - offset);
+
 	}
 	return true;
 }
@@ -1073,8 +1074,7 @@ bool StringData::AsmLoadTalkSfx()
 
 bool StringData::RomLoadSystemFont(const Rom& rom)
 {
-	uint32_t sys_font_lea = rom.read<uint32_t>(RomOffsets::Graphics::SYS_FONT);
-	uint32_t sys_font_begin = Disasm::LEA_PCRel(sys_font_lea, rom.get_address(RomOffsets::Graphics::SYS_FONT));
+	uint32_t sys_font_begin = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SYS_FONT);
 	uint32_t sys_font_size = rom.get_address(RomOffsets::Graphics::SYS_FONT_SIZE);
 	auto sys_font_bytes = rom.read_array<uint8_t>(sys_font_begin, sys_font_size);
 	auto sys_font = TilesetEntry::Create(this, sys_font_bytes, RomOffsets::Graphics::SYS_FONT,
@@ -1088,16 +1088,16 @@ bool StringData::RomLoadSystemFont(const Rom& rom)
 bool StringData::RomLoadSystemStrings(const Rom& rom)
 {
 	uint32_t line1_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE1);
-	uint32_t line1_begin = Disasm::LEA_PCRel(line1_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE1));
+	uint32_t line1_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE1);
 	m_system_strings[0] = rom.read_string(line1_begin);
 	uint32_t line2_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_NTSC);
-	uint32_t line2_begin = Disasm::LEA_PCRel(line2_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_NTSC));
+	uint32_t line2_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_NTSC);
 	m_system_strings[1] = rom.read_string(line2_begin);
 	uint32_t line3_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_PAL);
-	uint32_t line3_begin = Disasm::LEA_PCRel(line3_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_PAL));
+	uint32_t line3_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_PAL);
 	m_system_strings[2] = rom.read_string(line3_begin);
 	uint32_t line4_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE3);
-	uint32_t line4_begin = Disasm::LEA_PCRel(line4_lea, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE3));
+	uint32_t line4_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE3);
 	m_system_strings[3] = rom.read_string(line4_begin);
 	return true;
 }
@@ -1124,14 +1124,10 @@ bool StringData::RomLoadCompressedStringData(const Rom& rom)
 
 bool StringData::RomLoadHuffmanData(const Rom& rom)
 {
-	uint32_t textbox_2l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_2LINE_MAP),
-		rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP));
-	uint32_t textbox_3l_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TEXTBOX_3LINE_MAP),
-		rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP));
-	uint32_t huff_offsets_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_OFFSETS),
-		rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS));
-	uint32_t huff_tables_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::HUFFMAN_TABLES),
-		rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES));
+	uint32_t textbox_2l_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TEXTBOX_2LINE_MAP);
+	uint32_t textbox_3l_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TEXTBOX_3LINE_MAP);
+	uint32_t huff_offsets_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::HUFFMAN_OFFSETS);
+	uint32_t huff_tables_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::HUFFMAN_TABLES);
 	uint32_t end = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).end;
 
 	uint32_t textbox_3l_size = textbox_2l_addr - textbox_3l_addr;
@@ -1159,20 +1155,13 @@ bool StringData::RomLoadHuffmanData(const Rom& rom)
 
 bool StringData::RomLoadStringTables(const Rom& rom)
 {
-	uint32_t save_loc_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA),
-		rom.get_address(RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA));
-	uint32_t map_loc_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::ISLAND_MAP_LOCATIONS),
-		rom.get_address(RomOffsets::Strings::ISLAND_MAP_LOCATIONS));
-	uint32_t chars_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::CHAR_NAME_TABLE),
-		rom.get_address(RomOffsets::Strings::CHAR_NAME_TABLE));
-	uint32_t schars_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE),
-		rom.get_address(RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE));
-	uint32_t dchars_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::DEFAULT_NAME),
-		rom.get_address(RomOffsets::Strings::DEFAULT_NAME));
-	uint32_t items_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::ITEM_NAME_TABLE),
-		rom.get_address(RomOffsets::Strings::ITEM_NAME_TABLE));
-	uint32_t menu_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::MENU_STRING_TABLE),
-		rom.get_address(RomOffsets::Strings::MENU_STRING_TABLE));
+	uint32_t save_loc_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA);
+	uint32_t map_loc_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::ISLAND_MAP_LOCATIONS);
+	uint32_t chars_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::CHAR_NAME_TABLE);
+	uint32_t schars_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE);
+	uint32_t dchars_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::DEFAULT_NAME);
+	uint32_t items_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::ITEM_NAME_TABLE);
+	uint32_t menu_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::MENU_STRING_TABLE);
 	uint32_t end = rom.get_section(RomOffsets::Strings::STRING_TABLE_DATA).end;
 
 	uint32_t save_loc_size = rom.get_section(RomOffsets::Strings::SAVE_GAME_LOCATIONS).size();
@@ -1204,8 +1193,7 @@ bool StringData::RomLoadStringTables(const Rom& rom)
 
 bool StringData::RomLoadIntroStrings(const Rom& rom)
 {
-	uint32_t ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::INTRO_STRING_PTRS),
-		rom.get_address(RomOffsets::Strings::INTRO_STRING_PTRS));
+	uint32_t ptrs_addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::INTRO_STRING_PTRS);
 	uint32_t room_flags_addr = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_VISIT_FLAGS);
 	uint32_t room_flags_end = rom.get_section(RomOffsets::Strings::INTRO_STRING_DATA).end;
 	uint32_t end_addr = rom.size();
@@ -1235,12 +1223,11 @@ bool StringData::RomLoadIntroStrings(const Rom& rom)
 
 bool StringData::RomLoadEndCreditStrings(const Rom& rom)
 {
-	uint32_t addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::END_CREDIT_STRINGS),
-		rom.get_address(RomOffsets::Strings::END_CREDIT_STRINGS));
+	uint32_t addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::END_CREDIT_STRINGS);
 	uint32_t end = rom.get_section(RomOffsets::Strings::END_CREDIT_STRING_SECTION).end;
 	auto bytes = rom.read_array<uint8_t>(addr, end - addr);
 	size_t offset = 0;
-	while (offset < bytes.size())
+	while ((offset < (bytes.size() - 1)) && (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF))
 	{
 		m_ending_strings.emplace_back(EndCreditString());
 		offset += m_ending_strings.back().Decode(bytes.data() + offset, bytes.size() - offset);
@@ -1250,8 +1237,7 @@ bool StringData::RomLoadEndCreditStrings(const Rom& rom)
 
 bool StringData::RomLoadTalkSfx(const Rom& rom)
 {
-	uint32_t addr = Disasm::MOVE_DOffset_PCRel(rom.read<uint32_t>(RomOffsets::Strings::CHARACTER_TALK_SFX),
-		rom.get_address(RomOffsets::Strings::CHARACTER_TALK_SFX));
+	uint32_t addr = Disasm::ReadOffset8(rom, RomOffsets::Strings::CHARACTER_TALK_SFX);
 
 	uint8_t sfx;
 	for (;;)
@@ -1264,8 +1250,7 @@ bool StringData::RomLoadTalkSfx(const Rom& rom)
 		m_char_talk_sfx.push_back(sfx);
 	}
 
-	addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Strings::SPRITE_TALK_SFX),
-		rom.get_address(RomOffsets::Strings::SPRITE_TALK_SFX));
+	addr = Disasm::ReadOffset16(rom, RomOffsets::Strings::SPRITE_TALK_SFX);
 
 	uint8_t sprite;
 	for (;;)
@@ -1495,17 +1480,11 @@ bool StringData::RomPrepareInjectSystemText(const Rom& rom)
 	addrs[4] = begin + bytes->size();
 	bytes->insert(bytes->end(), system_font_bytes->cbegin(), system_font_bytes->cend());
 	m_pending_writes.push_back({ RomOffsets::Strings::REGION_CHECK_DATA_SECTION, bytes });
-	uint32_t line1_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE1), addrs[0]);
-	uint32_t line2_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_NTSC), addrs[1]);
-	uint32_t line3_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_PAL), addrs[2]);
-	uint32_t line4_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::REGION_ERROR_LINE3), addrs[3]);
-	uint32_t font_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SYS_FONT), addrs[4]);
-
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_LINE1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line1_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_NTSC, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line2_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_PAL, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line3_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::REGION_ERROR_LINE3, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(line4_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SYS_FONT, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(font_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE1, addrs[0]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::REGION_ERROR_NTSC, addrs[1]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::REGION_ERROR_PAL, addrs[2]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE3, addrs[3]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SYS_FONT, addrs[4]));
 
 	return true;
 }
@@ -1536,8 +1515,8 @@ bool StringData::RomPrepareInjectCompressedStringData(const Rom& rom)
 		bytes->insert(bytes->end(), b.cbegin(), b.cend());
 	}
 	m_pending_writes.push_back({ RomOffsets::Strings::STRING_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Strings::STRING_BANK_PTR_PTR, std::make_shared<ByteVector>(Split<uint8_t>(bank_ptrs_ptr)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::MAIN_FONT_PTR, std::make_shared<ByteVector>(Split<uint8_t>(begin)) });
+	m_pending_writes.push_back(Asm::WriteAddress32(RomOffsets::Strings::STRING_BANK_PTR_PTR, bank_ptrs_ptr));
+	m_pending_writes.push_back(Asm::WriteAddress32(RomOffsets::Graphics::MAIN_FONT_PTR, begin));
 	return true;
 }
 
@@ -1546,25 +1525,25 @@ bool StringData::RomPrepareInjectHuffmanData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Strings::HUFFMAN_SECTION).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t textbox_3l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_3LINE_MAP), begin);
+	uint32_t textbox_3l_begin = begin;
 	auto textbox_3l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->GetBytes();
 	bytes->insert(bytes->end(), textbox_3l_bytes->cbegin(), textbox_3l_bytes->cend());
 
-	uint32_t textbox_2l_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TEXTBOX_2LINE_MAP), begin + bytes->size());
+	uint32_t textbox_2l_begin = begin + bytes->size();
 	auto textbox_2l_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->GetBytes();
 	bytes->insert(bytes->end(), textbox_2l_bytes->cbegin(), textbox_2l_bytes->cend());
 
-	uint32_t huffman_offsets_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_OFFSETS), begin + bytes->size());
+	uint32_t huffman_offsets_begin = begin + bytes->size();
 	bytes->insert(bytes->end(), m_huffman_offsets.cbegin(), m_huffman_offsets.cend());
 
-	uint32_t huffman_tables_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Strings::HUFFMAN_TABLES), begin + bytes->size());
+	uint32_t huffman_tables_begin = begin + bytes->size();
 	bytes->insert(bytes->end(), m_huffman_tables.cbegin(), m_huffman_tables.cend());
 
 	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_3LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_3l_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TEXTBOX_2LINE_MAP, std::make_shared<ByteVector>(Split<uint8_t>(textbox_2l_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_OFFSETS, std::make_shared<ByteVector>(Split<uint8_t>(huffman_offsets_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::HUFFMAN_TABLES, std::make_shared<ByteVector>(Split<uint8_t>(huffman_tables_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TEXTBOX_3LINE_MAP, textbox_3l_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TEXTBOX_2LINE_MAP, textbox_2l_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::HUFFMAN_OFFSETS, huffman_offsets_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::HUFFMAN_TABLES, huffman_tables_begin));
 
 	return true;
 }
@@ -1572,47 +1551,46 @@ bool StringData::RomPrepareInjectHuffmanData(const Rom& rom)
 bool StringData::RomPrepareInjectStringTables(const Rom& rom)
 {
 	uint32_t save_begin = rom.get_section(RomOffsets::Strings::SAVE_GAME_LOCATIONS).begin;
-	uint32_t save_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA), save_begin);
 	auto save_bytes = std::make_shared<ByteVector>(SerialiseLocationMap(m_save_game_locations));
 	
 	uint32_t begin = rom.get_section(RomOffsets::Strings::STRING_TABLE_DATA).begin;
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::ISLAND_MAP_LOCATIONS), begin);
+	uint32_t map_begin = begin;
 	auto bytes = std::make_shared<ByteVector>(SerialiseLocationMap(m_island_map_locations));
 
-	uint32_t chars_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::CHAR_NAME_TABLE), begin + bytes->size());
+	uint32_t chars_begin = begin + bytes->size();
 	ByteVector chars_bytes;
 	EncodeStrings(m_character_names, chars_bytes);
 	bytes->insert(bytes->end(), chars_bytes.cbegin(), chars_bytes.cend());
 
-	uint32_t schars_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE), begin + bytes->size());
+	uint32_t schars_begin = begin + bytes->size();
 	ByteVector schars_bytes;
 	EncodeStrings(m_special_character_names, schars_bytes);
 	bytes->insert(bytes->end(), schars_bytes.cbegin(), schars_bytes.cend());
 
-	uint32_t dchars_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::DEFAULT_NAME), begin + bytes->size());
+	uint32_t dchars_begin = begin + bytes->size();
 	ByteVector dchars_bytes;
 	EncodeString(m_default_character_name, dchars_bytes);
 	bytes->insert(bytes->end(), dchars_bytes.cbegin(), dchars_bytes.cend());
 
-	uint32_t items_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::ITEM_NAME_TABLE), begin + bytes->size());
+	uint32_t items_begin = begin + bytes->size();
 	ByteVector items_bytes;
 	EncodeStrings(m_item_names, items_bytes);
 	bytes->insert(bytes->end(), items_bytes.cbegin(), items_bytes.cend());
 
-	uint32_t menu_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::MENU_STRING_TABLE), begin + bytes->size());
+	uint32_t menu_begin = begin + bytes->size();
 	ByteVector menu_bytes;
 	EncodeStrings(m_menu_strings, menu_bytes);
 	bytes->insert(bytes->end(), menu_bytes.cbegin(), menu_bytes.cend());
 	
 	m_pending_writes.push_back({ RomOffsets::Strings::SAVE_GAME_LOCATIONS, save_bytes });
 	m_pending_writes.push_back({ RomOffsets::Strings::STRING_TABLE_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA, std::make_shared<ByteVector>(Split<uint8_t>(save_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::ISLAND_MAP_LOCATIONS, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::CHAR_NAME_TABLE, std::make_shared<ByteVector>(Split<uint8_t>(chars_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE, std::make_shared<ByteVector>(Split<uint8_t>(schars_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::DEFAULT_NAME, std::make_shared<ByteVector>(Split<uint8_t>(dchars_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::ITEM_NAME_TABLE, std::make_shared<ByteVector>(Split<uint8_t>(items_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::MENU_STRING_TABLE, std::make_shared<ByteVector>(Split<uint8_t>(menu_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::SAVE_GAME_LOCATIONS_LEA, save_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::ISLAND_MAP_LOCATIONS, map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::CHAR_NAME_TABLE, chars_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE, schars_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::DEFAULT_NAME, dchars_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::ITEM_NAME_TABLE, items_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::MENU_STRING_TABLE, menu_begin));
 
 	return true;
 }
@@ -1621,7 +1599,6 @@ bool StringData::RomPrepareInjectIntroStrings(const Rom& rom)
 {
 	ByteVectorPtr bytes = std::make_shared<ByteVector>(sizeof(uint32_t) * m_intro_strings.size());
 	uint32_t begin = rom.get_section(RomOffsets::Strings::INTRO_STRING_DATA).begin;
-	uint32_t lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Strings::INTRO_STRING_PTRS), begin);
 	int ptr_offset = 0;
 	for (const auto& s : m_intro_strings)
 	{
@@ -1648,8 +1625,8 @@ bool StringData::RomPrepareInjectIntroStrings(const Rom& rom)
 	}
 
 	m_pending_writes.push_back({ RomOffsets::Strings::INTRO_STRING_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Strings::INTRO_STRING_PTRS, std::make_shared<ByteVector>(Split<uint8_t>(lea)) });
-	m_pending_writes.push_back({ RomOffsets::Rooms::ROOM_VISIT_FLAGS, std::make_shared<ByteVector>(Split<uint8_t>(visit_begin)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::INTRO_STRING_PTRS, begin));
+	m_pending_writes.push_back(Asm::WriteAddress32(RomOffsets::Rooms::ROOM_VISIT_FLAGS, visit_begin));
 
 	return true;
 }
@@ -1657,7 +1634,6 @@ bool StringData::RomPrepareInjectIntroStrings(const Rom& rom)
 bool StringData::RomPrepareInjectEndCreditStrings(const Rom& rom)
 {
 	uint32_t begin = rom.get_section(RomOffsets::Strings::END_CREDIT_STRING_SECTION).begin;
-	uint32_t lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::END_CREDIT_STRINGS), begin);
 	ByteVectorPtr b = std::make_shared<ByteVector>(65536);
 	std::size_t offset = 0;
 	for (const auto& s : m_ending_strings)
@@ -1666,16 +1642,14 @@ bool StringData::RomPrepareInjectEndCreditStrings(const Rom& rom)
 	}
 	b->resize(offset);
 	m_pending_writes.push_back({ RomOffsets::Strings::END_CREDIT_STRING_SECTION, b });
-	m_pending_writes.push_back({ RomOffsets::Strings::END_CREDIT_STRINGS, std::make_shared<ByteVector>(Split<uint8_t>(lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::END_CREDIT_STRINGS, begin));
 	return true;
 }
 
 bool StringData::RomPrepareInjectTalkSfx(const Rom& rom)
 {
 	uint32_t char_begin = rom.get_section(RomOffsets::Strings::CHARACTER_TALK_SFX_SECTION).begin;
-	uint32_t char_ins = Asm::MOVE_DOffset_PCRel(Width::B, DReg::D0, rom.get_address(RomOffsets::Strings::CHARACTER_TALK_SFX), char_begin);
 	uint32_t sprite_begin = rom.get_section(RomOffsets::Strings::SPRITE_TALK_SFX_SECTION).begin;
-	uint32_t sprite_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Strings::SPRITE_TALK_SFX), sprite_begin);
 
 	ByteVectorPtr char_bytes = std::make_shared<ByteVector>(m_char_talk_sfx);
 	char_bytes->push_back(0xFF);
@@ -1683,8 +1657,8 @@ bool StringData::RomPrepareInjectTalkSfx(const Rom& rom)
 
 	m_pending_writes.push_back({ RomOffsets::Strings::CHARACTER_TALK_SFX_SECTION, char_bytes });
 	m_pending_writes.push_back({ RomOffsets::Strings::SPRITE_TALK_SFX_SECTION, sprite_bytes });
-	m_pending_writes.push_back({ RomOffsets::Strings::CHARACTER_TALK_SFX, std::make_shared<ByteVector>(Split<uint8_t>(char_ins)) });
-	m_pending_writes.push_back({ RomOffsets::Strings::SPRITE_TALK_SFX, std::make_shared<ByteVector>(Split<uint8_t>(sprite_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Strings::CHARACTER_TALK_SFX, char_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::SPRITE_TALK_SFX, sprite_begin));
 
 	return true;
 }

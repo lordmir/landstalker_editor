@@ -2,6 +2,157 @@
 
 #include <set>
 #include <numeric>
+#include "AsmUtils.h"
+
+
+template <std::size_t N>
+std::vector<std::array<uint8_t, N>> DeserialiseFixedWidth(const std::vector<uint8_t>& bytes)
+{
+	std::vector<std::array<uint8_t, N>> result;
+	int i = 0, j = 0;
+	result.push_back(std::array<uint8_t, N>());
+	while (i < bytes.size())
+	{
+		if (j >= N)
+		{
+			if (bytes[i] == 0xFF)
+			{
+				break;
+			}
+			j = 0;
+			result.push_back(std::array<uint8_t, N>());
+		}
+		result.back()[j++] = bytes[i++];
+	}
+	if (j != N)
+	{
+		result.pop_back();
+	}
+	return result;
+}
+
+template <std::size_t N>
+std::vector<uint8_t> SerialiseFixedWidth(const std::vector<std::array<uint8_t, N>>& data, bool terminate_data = true)
+{
+	std::vector<uint8_t> result;
+	result.reserve(data.size() * N);
+
+	for (const auto& d : data)
+	{
+		for (const auto& e : d)
+		{
+			result.push_back(e);
+		}
+	}
+
+	if (terminate_data)
+	{
+		result.push_back(0xFF);
+		if ((result.size() & 1) == 1)
+		{
+			result.push_back(0xFF);
+		}
+	}
+	return result;
+}
+
+template <std::size_t N>
+std::map<uint8_t, std::array<uint8_t, N>> DeserialiseMap(const std::vector<uint8_t>& bytes)
+{
+	std::map<uint8_t, std::array<uint8_t, N>> result;
+	int i = 0, j = 0;
+	uint8_t key = bytes[i++];
+	std::array<uint8_t, N> buf;
+	while (i < bytes.size())
+	{
+		if (j >= N)
+		{
+			j = 0;
+			result.insert({key, buf});
+			key = bytes[i++];
+			if (key == 0xFF)
+			{
+				break;
+			}
+		}
+		buf[j++] = bytes[i++];
+	}
+	return result;
+}
+
+template <std::size_t N>
+std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, std::array<uint8_t, N>>& data, bool terminate_data = true)
+{
+	std::vector<uint8_t> result;
+	result.reserve(data.size() * (N + sizeof(uint8_t)));
+
+	for (const auto& d : data)
+	{
+		result.push_back(d.first);
+		for (const auto& e : d.second)
+		{
+			result.push_back(e);
+		}
+	}
+
+	if (terminate_data)
+	{
+		result.push_back(0xFF);
+		if ((result.size() & 1) == 1)
+		{
+			result.push_back(0xFF);
+		}
+	}
+	return result;
+}
+
+std::map<uint8_t, uint8_t> DeserialiseMap(const std::vector<uint8_t>& bytes, bool reverse_key_value = false)
+{
+	std::map<uint8_t, uint8_t> result;
+	int i = 0, j = 0;
+	while (i < bytes.size())
+	{
+		uint8_t key = bytes[i++];
+		uint8_t val = bytes[i++];
+		if (reverse_key_value)
+		{
+			std::swap(key, val);
+		}
+		if (val == 0xFF || key == 0xFF)
+		{
+			break;
+		}
+		result.insert({ key, val });
+	}
+	return result;
+}
+
+std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, uint8_t>& data, bool reverse_key_value = false, bool terminate_data = true)
+{
+	std::vector<uint8_t> result;
+	result.reserve(data.size() * 2);
+
+	for (const auto& d : data)
+	{
+		if (reverse_key_value)
+		{
+			result.push_back(d.second);
+			result.push_back(d.first);
+		}
+		else
+		{
+			result.push_back(d.first);
+			result.push_back(d.second);
+		}
+	}
+
+	if (terminate_data)
+	{
+		result.push_back(0xFF);
+		result.push_back(0xFF);
+	}
+	return result;
+}
 
 SpriteData::SpriteData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
@@ -18,6 +169,14 @@ SpriteData::SpriteData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load sprite pointer data from \'") + m_sprite_anim_frames_file.str() + '\'');
 	}
+	if (!AsmLoadSpritePalettes())
+	{
+		throw std::runtime_error(std::string("Unable to load sprite palette data from \'") + m_palette_data_file.str() + '\'');
+	}
+	if (!AsmLoadSpriteData())
+	{
+		throw std::runtime_error(std::string("Unable to load sprite data from \'") + asm_file.str() + '\'');
+	}
 	InitCache();
 }
 
@@ -28,6 +187,14 @@ SpriteData::SpriteData(const Rom& rom)
 	if (!RomLoadSpriteFrames(rom))
 	{
 		throw std::runtime_error("Unable to load sprite frame data from ROM");
+	}
+	if (!RomLoadSpritePalettes(rom))
+	{
+		throw std::runtime_error("Unable to load sprite palette data from ROM");
+	}
+	if (!RomLoadSpriteData(rom))
+	{
+		throw std::runtime_error("Unable to load sprite data from ROM");
 	}
 
 	InitCache();
@@ -56,6 +223,14 @@ bool SpriteData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save sprite frame data to \'") + m_sprite_frames_data_file.str() + '\'');
 	}
+	if (!AsmSaveSpritePalettes(directory))
+	{
+		throw std::runtime_error(std::string("Unable to save sprite palette data to \'") + m_palette_data_file.str() + '\'');
+	}
+	if (!AsmSaveSpriteData(directory))
+	{
+		throw std::runtime_error(std::string("Unable to save sprite data to \'") + directory.str() + '\'');
+	}
 	CommitAllChanges();
 	return true;
 }
@@ -70,6 +245,10 @@ bool SpriteData::HasBeenModified() const
 	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasDataChanged(); };
 	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasDataChanged(); };
 	if (std::any_of(m_frames.begin(), m_frames.end(), pair_pred))
+	{
+		return true;
+	}
+	if (std::any_of(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_pred))
 	{
 		return true;
 	}
@@ -89,6 +268,86 @@ bool SpriteData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_lo_palettes_orig != m_lo_palettes)
+	{
+		return true;
+	}
+	if (m_hi_palettes_orig != m_hi_palettes)
+	{
+		return true;
+	}
+	if (m_projectile1_palettes_orig != m_projectile1_palettes)
+	{
+		return true;
+	}
+	if (m_projectile2_palettes_orig != m_projectile2_palettes)
+	{
+		return true;
+	}
+	if (m_lo_palette_lookup_orig != m_lo_palette_lookup)
+	{
+		return true;
+	}
+	if (m_hi_palette_lookup_orig != m_hi_palette_lookup)
+	{
+		return true;
+	}
+	if (m_sprite_visibility_flags_orig != m_sprite_visibility_flags)
+	{
+		return true;
+	}
+	if (m_one_time_event_flags_orig != m_one_time_event_flags)
+	{
+		return true;
+	}
+	if (m_room_clear_flags_orig != m_room_clear_flags)
+	{
+		return true;
+	}
+	if (m_locked_door_flags_orig != m_locked_door_flags)
+	{
+		return true;
+	}
+	if (m_permanent_switch_flags_orig != m_permanent_switch_flags)
+	{
+		return true;
+	}
+	if (m_sacred_tree_flags_orig != m_sacred_tree_flags)
+	{
+		return true;
+	}
+	if (m_sprite_dimensions_orig != m_sprite_dimensions)
+	{
+		return true;
+	}
+	if (m_enemy_stats_orig != m_enemy_stats)
+	{
+		return true;
+	}
+	if (m_sprite_to_entity_lookup_orig != m_sprite_to_entity_lookup)
+	{
+		return true;
+	}
+	if (m_room_entities_orig != m_room_entities)
+	{
+		return true;
+	}
+	if (m_item_properties_orig != m_item_properties)
+	{
+		return true;
+	}
+	if (m_sprite_behaviours_orig != m_sprite_behaviours)
+	{
+		return true;
+	}
+	if (m_sprite_behaviour_offsets_orig != m_sprite_behaviour_offsets)
+	{
+		return true;
+	}
+	if (m_unknown_entity_lookup_orig != m_unknown_entity_lookup)
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -99,6 +358,91 @@ void SpriteData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare sprite frame data for ROM injection"));
 	}
+	if (!RomPrepareInjectSpritePalettes(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare sprite palette data for ROM injection"));
+	}
+	if (!RomPrepareInjectSpriteData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare sprite data for ROM injection"));
+	}
+}
+
+const std::map<std::string, std::shared_ptr<PaletteEntry>>& SpriteData::GetAllPalettes() const
+{
+	return m_palettes_by_name;
+}
+
+std::shared_ptr<PaletteEntry> SpriteData::GetPalette(const std::string& name) const
+{
+	assert(m_palettes_by_name.find(name) != m_palettes_by_name.end());
+	return m_palettes_by_name.find(name)->second;
+}
+
+std::shared_ptr<Palette> SpriteData::GetSpritePalette(int lo, int hi) const
+{
+	return std::shared_ptr<Palette>();
+}
+
+std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
+{
+	int lo = -1;
+	int hi = -1;
+
+	if (m_lo_palette_lookup.find(idx) != m_lo_palette_lookup.cend())
+	{
+		lo = m_lo_palette_lookup.find(idx)->second->GetIndex();
+	}
+	if (m_hi_palette_lookup.find(idx) != m_hi_palette_lookup.cend())
+	{
+		hi = m_hi_palette_lookup.find(idx)->second->GetIndex();
+	}
+
+	return GetSpritePalette(lo, hi);
+}
+
+uint8_t SpriteData::GetLoPaletteCount() const
+{
+	return m_lo_palettes.size();
+}
+
+std::shared_ptr<PaletteEntry> SpriteData::GetLoPalette(uint8_t idx) const
+{
+	assert(idx < m_lo_palettes.size());
+	return m_lo_palettes[idx];
+}
+
+uint8_t SpriteData::GetHiPaletteCount() const
+{
+	return m_hi_palettes.size();
+}
+
+std::shared_ptr<PaletteEntry> SpriteData::GetHiPalette(uint8_t idx) const
+{
+	assert(idx < m_hi_palettes.size());
+	return m_hi_palettes[idx];
+}
+
+uint8_t SpriteData::GetProjectile1PaletteCount() const
+{
+	return m_projectile1_palettes.size();
+}
+
+std::shared_ptr<PaletteEntry> SpriteData::GetProjectile1Palette(uint8_t idx) const
+{
+	assert(idx < m_projectile1_palettes.size());
+	return m_projectile1_palettes[idx];
+}
+
+uint8_t SpriteData::GetProjectile2PaletteCount() const
+{
+	return m_projectile2_palettes.size();
+}
+
+std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) const
+{
+	assert(idx < m_projectile2_palettes.size());
+	return m_projectile2_palettes[idx];
 }
 
 void SpriteData::CommitAllChanges()
@@ -106,10 +450,31 @@ void SpriteData::CommitAllChanges()
 	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
 	std::for_each(m_frames.begin(), m_frames.end(), pair_commit);
+	std::for_each(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_commit);
 	m_frames_orig = m_frames;
 	m_animations_orig = m_animations;
 	m_animation_frames_orig = m_animation_frames;
 	m_sprite_mystery_data_orig = m_sprite_mystery_data;
+	m_lo_palettes_orig = m_lo_palettes;
+	m_hi_palettes_orig = m_hi_palettes;
+	m_projectile1_palettes_orig = m_projectile1_palettes;
+	m_projectile2_palettes_orig = m_projectile2_palettes;
+	m_hi_palette_lookup_orig = m_hi_palette_lookup;
+	m_lo_palette_lookup_orig = m_lo_palette_lookup;
+	m_sprite_visibility_flags_orig = m_sprite_visibility_flags;
+	m_one_time_event_flags_orig = m_one_time_event_flags;
+	m_room_clear_flags_orig = m_room_clear_flags;
+	m_locked_door_flags_orig = m_locked_door_flags;
+	m_permanent_switch_flags_orig = m_permanent_switch_flags;
+	m_sacred_tree_flags_orig = m_sacred_tree_flags;
+	m_sprite_dimensions_orig = m_sprite_dimensions;
+	m_enemy_stats_orig = m_enemy_stats;
+	m_sprite_to_entity_lookup_orig = m_sprite_to_entity_lookup;
+	m_room_entities_orig = m_room_entities;
+	m_item_properties_orig = m_item_properties;
+	m_sprite_behaviours_orig = m_sprite_behaviours;
+	m_sprite_behaviour_offsets_orig = m_sprite_behaviour_offsets;
+	m_unknown_entity_lookup_orig = m_unknown_entity_lookup;
 	m_pending_writes.clear();
 }
 
@@ -139,8 +504,8 @@ bool SpriteData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_ANIM_PTR_DATA, m_sprite_anims_file);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_FRAME_PTR_DATA, m_sprite_anim_frames_file);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_DATA, m_palette_data_file);
-		AsmFile p(GetBasePath() / m_palette_data_file);
-		retval = retval && GetFilenameFromAsm(p, RomOffsets::Sprites::PALETTE_LUT, m_palette_lut_file);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file);
 		return retval;
 	}
 	catch (std::exception&)
@@ -152,27 +517,29 @@ bool SpriteData::LoadAsmFilenames()
 
 void SpriteData::SetDefaultFilenames()
 {
-	if (m_unknown_sprite_lookup_file.empty())        m_unknown_sprite_lookup_file = RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_FILE;
-	if (m_sprite_visibility_flags_file.empty())      m_sprite_visibility_flags_file = RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS_FILE;
-	if (m_one_time_event_flags_file.empty())         m_one_time_event_flags_file = RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS_FILE;
-	if (m_room_clear_flags_file.empty())             m_room_clear_flags_file = RomOffsets::Sprites::ROOM_CLEAR_FLAGS_FILE;
-	if (m_locked_door_sprite_flags_file.empty())     m_locked_door_sprite_flags_file = RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS_FILE;
-	if (m_permanent_switch_flags_file.empty())       m_permanent_switch_flags_file = RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS_FILE;
-	if (m_sacred_tree_flags_file.empty())            m_sacred_tree_flags_file = RomOffsets::Sprites::SACRED_TREE_FLAGS_FILE;
-	if (m_sprite_gfx_idx_lookup_file.empty())        m_sprite_gfx_idx_lookup_file = RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP_FILE;
-	if (m_sprite_dimensions_lookup_file.empty())     m_sprite_dimensions_lookup_file = RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP_FILE;
+	if (m_unknown_sprite_lookup_file.empty())        m_unknown_sprite_lookup_file     = RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_FILE;
+	if (m_sprite_visibility_flags_file.empty())      m_sprite_visibility_flags_file   = RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS_FILE;
+	if (m_one_time_event_flags_file.empty())         m_one_time_event_flags_file      = RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS_FILE;
+	if (m_room_clear_flags_file.empty())             m_room_clear_flags_file          = RomOffsets::Sprites::ROOM_CLEAR_FLAGS_FILE;
+	if (m_locked_door_sprite_flags_file.empty())     m_locked_door_sprite_flags_file  = RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS_FILE;
+	if (m_permanent_switch_flags_file.empty())       m_permanent_switch_flags_file    = RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS_FILE;
+	if (m_sacred_tree_flags_file.empty())            m_sacred_tree_flags_file         = RomOffsets::Sprites::SACRED_TREE_FLAGS_FILE;
+	if (m_sprite_gfx_idx_lookup_file.empty())        m_sprite_gfx_idx_lookup_file     = RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP_FILE;
+	if (m_sprite_dimensions_lookup_file.empty())     m_sprite_dimensions_lookup_file  = RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP_FILE;
 	if (m_room_sprite_table_offsets_file.empty())    m_room_sprite_table_offsets_file = RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS_FILE;
-	if (m_enemy_stats_file.empty())                  m_enemy_stats_file = RomOffsets::Sprites::ENEMY_STATS_FILE;
-	if (m_room_sprite_table_file.empty())            m_room_sprite_table_file = RomOffsets::Sprites::ROOM_SPRITE_TABLE_FILE;
-	if (m_item_properties_file.empty())              m_item_properties_file = RomOffsets::Sprites::ITEM_PROPERTIES_FILE;
-	if (m_sprite_behaviour_offset_file.empty())      m_sprite_behaviour_offset_file = RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSET_FILE;
-	if (m_sprite_behaviour_table_file.empty())       m_sprite_behaviour_table_file = RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE_FILE;
-	if (m_palette_data_file.empty())                 m_palette_data_file = RomOffsets::Sprites::PALETTE_DATA_FILE;
-	if (m_palette_lut_file.empty())                  m_palette_lut_file = RomOffsets::Sprites::PALETTE_LUT_FILE;
-	if (m_sprite_lut_file.empty())                   m_sprite_lut_file = RomOffsets::Sprites::SPRITE_LUT_FILE;
-	if (m_sprite_anims_file.empty())                 m_sprite_anims_file = RomOffsets::Sprites::SPRITE_ANIMS_FILE;
-	if (m_sprite_anim_frames_file.empty())           m_sprite_anim_frames_file = RomOffsets::Sprites::SPRITE_ANIM_FRAMES_FILE;
-	if (m_sprite_frames_data_file.empty())           m_sprite_frames_data_file = RomOffsets::Sprites::SPRITE_FRAME_DATA_FILE;
+	if (m_enemy_stats_file.empty())                  m_enemy_stats_file               = RomOffsets::Sprites::ENEMY_STATS_FILE;
+	if (m_room_sprite_table_file.empty())            m_room_sprite_table_file         = RomOffsets::Sprites::ROOM_SPRITE_TABLE_FILE;
+	if (m_item_properties_file.empty())              m_item_properties_file           = RomOffsets::Sprites::ITEM_PROPERTIES_FILE;
+	if (m_sprite_behaviour_offset_file.empty())      m_sprite_behaviour_offset_file   = RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSET_FILE;
+	if (m_sprite_behaviour_table_file.empty())       m_sprite_behaviour_table_file    = RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE_FILE;
+	if (m_palette_data_file.empty())                 m_palette_data_file              = RomOffsets::Sprites::PALETTE_DATA_FILE;
+	if (m_palette_lut_file.empty())                  m_palette_lut_file               = RomOffsets::Sprites::PALETTE_LUT_FILE;
+	if (m_sprite_lut_file.empty())                   m_sprite_lut_file                = RomOffsets::Sprites::SPRITE_LUT_FILE;
+	if (m_sprite_anims_file.empty())                 m_sprite_anims_file              = RomOffsets::Sprites::SPRITE_ANIMS_FILE;
+	if (m_sprite_anim_frames_file.empty())           m_sprite_anim_frames_file        = RomOffsets::Sprites::SPRITE_ANIM_FRAMES_FILE;
+	if (m_sprite_frames_data_file.empty())           m_sprite_frames_data_file        = RomOffsets::Sprites::SPRITE_FRAME_DATA_FILE;
+	if (m_proj1_pal_file.empty())                    m_proj1_pal_file                 = RomOffsets::Sprites::PALETTE_PROJECTILE_1_FILE;
+	if (m_proj2_pal_file.empty())                    m_proj2_pal_file                 = RomOffsets::Sprites::PALETTE_PROJECTILE_2_FILE;
 }
 
 bool SpriteData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -199,7 +566,13 @@ bool SpriteData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_sprite_anims_file);
 	retval = retval && CreateDirectoryTree(dir / m_sprite_anim_frames_file);
 	retval = retval && CreateDirectoryTree(dir / m_sprite_frames_data_file);
+	retval = retval && CreateDirectoryTree(dir / m_proj1_pal_file);
+	retval = retval && CreateDirectoryTree(dir / m_proj2_pal_file);
 	for (const auto& m : m_frames)
+	{
+		retval = retval && CreateDirectoryTree(dir / m.second->GetFilename());
+	}
+	for (const auto& m : m_palettes_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / m.second->GetFilename());
 	}
@@ -212,6 +585,167 @@ void SpriteData::InitCache()
 	m_animation_frames_orig = m_animation_frames;
 	m_frames_orig = m_frames;
 	m_sprite_mystery_data_orig = m_sprite_mystery_data;
+	m_lo_palettes_orig = m_lo_palettes;
+	m_hi_palettes_orig = m_hi_palettes;
+	m_projectile1_palettes_orig = m_projectile1_palettes;
+	m_projectile2_palettes_orig = m_projectile2_palettes;
+	m_hi_palette_lookup_orig = m_hi_palette_lookup;
+	m_lo_palette_lookup_orig = m_lo_palette_lookup;
+	m_sprite_visibility_flags_orig = m_sprite_visibility_flags;
+	m_one_time_event_flags_orig = m_one_time_event_flags;
+	m_room_clear_flags_orig = m_room_clear_flags;
+	m_locked_door_flags_orig = m_locked_door_flags;
+	m_permanent_switch_flags_orig = m_permanent_switch_flags;
+	m_sacred_tree_flags_orig = m_sacred_tree_flags;
+	m_sprite_dimensions_orig = m_sprite_dimensions;
+	m_enemy_stats_orig = m_enemy_stats;
+	m_sprite_to_entity_lookup_orig = m_sprite_to_entity_lookup;
+	m_room_entities_orig = m_room_entities;
+	m_item_properties_orig = m_item_properties;
+	m_sprite_behaviours_orig = m_sprite_behaviours;
+	m_sprite_behaviour_offsets_orig = m_sprite_behaviour_offsets;
+	m_unknown_entity_lookup_orig = m_unknown_entity_lookup;
+}
+
+ByteVector SpriteData::SerialisePaletteLUT() const
+{
+	ByteVector result;
+	for (uint8_t i = 0; i < 0xFF; ++i)
+	{
+		if (m_lo_palette_lookup.find(i) != m_lo_palette_lookup.cend())
+		{
+			result.push_back(i);
+			result.push_back(m_lo_palette_lookup.at(i)->GetIndex());
+		}
+		if (m_hi_palette_lookup.find(i) != m_hi_palette_lookup.cend())
+		{
+			result.push_back(i);
+			result.push_back(0x80 | m_hi_palette_lookup.at(i)->GetIndex());
+		}
+	}
+	result.push_back(0xFF);
+	result.push_back(0xFF);
+	return result;
+}
+
+void SpriteData::DeserialisePaletteLUT(const ByteVector& bytes)
+{
+	for (int i = 0; i < bytes.size(); i += 2)
+	{
+		uint8_t sprite = bytes[i];
+		uint8_t pal = bytes[i + 1];
+		if (sprite == 0xFF || pal == 0xFF)
+		{
+			break;
+		}
+		if ((pal & 0x80) == 0)
+		{
+			assert(pal < m_lo_palettes.size());
+			m_lo_palette_lookup.insert({ sprite, m_lo_palettes[pal]});
+		}
+		else
+		{
+			pal &= 0x7F;
+			assert(pal < m_hi_palettes.size());
+			m_hi_palette_lookup.insert({ sprite, m_hi_palettes[pal] });
+		}
+	}
+}
+
+ByteVector SpriteData::SerialisePalArray(const std::vector<std::shared_ptr<PaletteEntry>>& pals) const
+{
+	ByteVector bytes;
+	for (const auto& p : pals)
+	{
+		auto b = p->GetBytes();
+		bytes.insert(bytes.end(), b->cbegin(), b->cend());
+	}
+	return bytes;
+}
+
+std::vector<std::shared_ptr<PaletteEntry>> SpriteData::DeserialisePalArray(const ByteVector& bytes, const std::string& name,
+	const filesystem::path& path, Palette::Type type, bool unique_path)
+{
+	std::vector<std::shared_ptr<PaletteEntry>> result;
+	const uint32_t size = Palette::GetSizeBytes(type);
+	assert(bytes.size() % size == 0);
+	auto it = bytes.cbegin();
+	int idx = 0;
+	bool format_name = (name.find('%') != std::string::npos);
+	while (it != bytes.cend())
+	{
+		auto fname = format_name ? StrPrintf(name, idx + 1) : name + StrPrintf(":%d", idx);
+		auto fpath = unique_path ? StrPrintf(path.str(), idx + 1) : path.str();
+		auto b = ByteVector(it, it + size);
+		if (b[0] > 0x0E)
+		{
+			// Invalid colour, probably signals end-of-data
+			break;
+		}
+		auto e = PaletteEntry::Create(this, b, fname, fpath, type);
+		e->SetIndex(idx);
+		result.push_back(e);
+		m_palettes_by_name.insert({ fname, e });
+		it += size;
+		idx++;
+	}
+	auto old_name = result.back()->GetName();
+	if ((result.size() == 1) && (old_name.find(':') != std::string::npos))
+	{
+		auto pal = m_palettes_by_name.extract(old_name);
+		auto new_name = old_name.substr(0, old_name.find(':'));
+		pal.key() = new_name;
+		pal.mapped()->SetName(new_name);
+		m_palettes_by_name.insert(std::move(pal));
+		
+	}
+	return result;
+}
+
+void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const ByteVector& bytes)
+{
+	for (int i = 0; (i * 2) < offsets.size(); ++i)
+	{
+		uint16_t offset = (offsets[i * 2] << 8) | offsets[i * 2 + 1];
+		if (offset == 0)
+		{
+			continue;
+		}
+		offset--;
+		m_room_entities.insert({ i, std::vector<std::array<uint8_t, 8>>() });
+		while (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF)
+		{
+			m_room_entities[i].emplace_back();
+			std::copy_n(bytes.cbegin() + offset, 8, m_room_entities[i].back().begin());
+			offset += 8;
+		}
+	}
+}
+
+std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
+{
+	ByteVector bytes, offsets;
+	offsets.reserve((m_room_entities.rbegin()->first + 1) * sizeof(uint16_t));
+	for (int i = 0; i <= m_room_entities.rbegin()->first; ++i)
+	{
+		auto res = m_room_entities.find(i);
+		if (res == m_room_entities.cend())
+		{
+			offsets.push_back(0);
+			offsets.push_back(0);
+			continue;
+		}
+		uint16_t offset = bytes.size() + 1;
+		offsets.push_back((offset >> 8) & 0xFF);
+		offsets.push_back(offset & 0xFF);
+		for (const auto& ent : res->second)
+		{
+			bytes.insert(bytes.end(), std::begin(ent), std::end(ent));
+		}
+		bytes.push_back(0xFF);
+		bytes.push_back(0xFF);
+	}
+	return { bytes, offsets };
 }
 
 bool SpriteData::AsmLoadSpriteFrames()
@@ -292,6 +826,72 @@ bool SpriteData::AsmLoadSpritePointers()
 	{
 	}
 	return false;
+}
+
+bool SpriteData::AsmLoadSpritePalettes()
+{
+	std::vector<std::pair<uint16_t, uint16_t>> lut;
+	try
+	{
+		AsmFile file(GetBasePath() / m_palette_data_file);
+		AsmFile::IncludeFile inc;
+		file.Goto(RomOffsets::Sprites::PALETTE_LUT);
+		file >> inc;
+		m_palette_lut_file = inc.path;
+		int idx = 0;
+		file.Goto(RomOffsets::Sprites::PALETTE_LO_DATA);
+		do
+		{
+			file >> inc;
+			std::string name = StrPrintf(RomOffsets::Sprites::PALETTE_LO, idx + 1);
+			auto e = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, Palette::Type::SPRITE_LOW);
+			e->SetIndex(idx++);
+			m_lo_palettes.push_back(e);
+			m_palettes_by_name.insert({ name, e });
+		} while (file.IsGood() && !file.IsLabel(RomOffsets::Sprites::PALETTE_HI_DATA));
+		idx = 0;
+		file.Goto(RomOffsets::Sprites::PALETTE_HI_DATA);
+		do
+		{
+			file >> inc;
+			std::string name = StrPrintf(RomOffsets::Sprites::PALETTE_HI, idx + 1);
+			auto e = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, Palette::Type::SPRITE_HIGH);
+			e->SetIndex(idx++);
+			m_hi_palettes.push_back(e);
+			m_palettes_by_name.insert({ name, e });
+		} while (file.IsGood() && !file.IsLabel(RomOffsets::Sprites::PALETTE_LO_DATA));
+		DeserialisePaletteLUT(ReadBytes(GetBasePath() / m_palette_lut_file));
+		auto proj1_bytes = ReadBytes(GetBasePath() / m_proj1_pal_file);
+		auto proj2_bytes = ReadBytes(GetBasePath() / m_proj2_pal_file);
+		m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file, Palette::Type::PROJECTILE);
+		m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file, Palette::Type::PROJECTILE2);
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool SpriteData::AsmLoadSpriteData()
+{
+	m_sprite_visibility_flags  = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file));
+	m_one_time_event_flags     = DeserialiseFixedWidth<6>(ReadBytes(GetBasePath() / m_one_time_event_flags_file));
+	m_room_clear_flags         = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file));
+	m_locked_door_flags        = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file));
+	m_permanent_switch_flags   = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_permanent_switch_flags_file));
+	m_sacred_tree_flags        = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sacred_tree_flags_file));
+	m_item_properties          = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_item_properties_file));
+	m_enemy_stats              = DeserialiseMap<5>(ReadBytes(GetBasePath() / m_enemy_stats_file));
+	m_sprite_dimensions        = DeserialiseMap<2>(ReadBytes(GetBasePath() / m_sprite_dimensions_lookup_file));
+	m_sprite_to_entity_lookup  = DeserialiseMap(ReadBytes(GetBasePath() / m_sprite_gfx_idx_lookup_file), true);
+	m_unknown_entity_lookup    = DeserialiseMap(ReadBytes(GetBasePath() / m_unknown_sprite_lookup_file));
+	m_sprite_behaviour_offsets = ReadBytes(GetBasePath() / m_sprite_behaviour_offset_file);
+	m_sprite_behaviours        = ReadBytes(GetBasePath() / m_sprite_behaviour_table_file);
+	DeserialiseRoomEntityTable(ReadBytes(GetBasePath() / m_room_sprite_table_offsets_file),
+		ReadBytes(GetBasePath() / m_room_sprite_table_file));
+
+	return true;
 }
 
 bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
@@ -413,6 +1013,108 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 	return true;
 }
 
+bool SpriteData::RomLoadSpritePalettes(const Rom& rom)
+{
+	uint32_t lut_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_LUT);
+	uint32_t lo_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_LO_DATA);
+	uint32_t hi_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_HI_DATA);
+	uint32_t hi_end    = rom.get_section(RomOffsets::Sprites::PALETTE_DATA).end;
+	uint32_t proj1_begin = Disasm::ReadOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW1);
+	uint32_t proj1_end = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_1).end;
+	uint32_t proj2_begin = Disasm::ReadOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW1);
+	uint32_t proj2_end = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_2).end;
+
+	uint32_t lut_size = (lo_begin - lut_begin);
+	uint32_t lo_size = (hi_begin - lo_begin);
+	uint32_t hi_size = (hi_end - hi_begin);
+	uint32_t proj1_size = (proj1_end - proj1_begin);
+	uint32_t proj2_size = (proj2_end - proj2_begin);
+	lut_size -= (lut_size % 2);
+	lo_size -= (lo_size % Palette::GetSizeBytes(Palette::Type::SPRITE_LOW));
+	hi_size -= (hi_size % Palette::GetSizeBytes(Palette::Type::SPRITE_HIGH));
+	proj1_size -= (proj1_size % Palette::GetSizeBytes(Palette::Type::PROJECTILE));
+	proj2_size -= (proj2_size % Palette::GetSizeBytes(Palette::Type::PROJECTILE2));
+
+	auto lut_bytes = rom.read_array<uint8_t>(lut_begin, lut_size);
+	auto hi_bytes = rom.read_array<uint8_t>(hi_begin, hi_size);
+	auto lo_bytes = rom.read_array<uint8_t>(lo_begin, lo_size);
+	auto proj1_bytes = rom.read_array<uint8_t>(proj1_begin, proj1_size);
+	auto proj2_bytes = rom.read_array<uint8_t>(proj2_begin, proj2_size);
+
+	m_hi_palettes = DeserialisePalArray(hi_bytes, RomOffsets::Sprites::PALETTE_HI, RomOffsets::Sprites::PALETTE_HI_FILE,
+		Palette::Type::SPRITE_HIGH, true);
+	m_lo_palettes = DeserialisePalArray(lo_bytes, RomOffsets::Sprites::PALETTE_LO, RomOffsets::Sprites::PALETTE_LO_FILE,
+		Palette::Type::SPRITE_LOW, true);
+	m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_1,
+		RomOffsets::Sprites::PALETTE_PROJECTILE_1_FILE, Palette::Type::PROJECTILE, false);
+	m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_2,
+		RomOffsets::Sprites::PALETTE_PROJECTILE_2_FILE, Palette::Type::PROJECTILE2, false);
+
+	DeserialisePaletteLUT(lut_bytes);
+
+	return true;
+}
+
+bool SpriteData::RomLoadSpriteData(const Rom& rom)
+{
+	const uint32_t items_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ITEM_PROPERTIES);
+	const uint32_t items_size = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).end - items_begin;
+	const uint32_t unk_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP);
+	const uint32_t unk_size = rom.get_section(RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).end - unk_begin;
+
+	const uint32_t behav_offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSETS);
+	const uint32_t behav_table_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE);
+	const uint32_t behav_table_end = rom.get_section(RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION).end;
+	const uint32_t behav_offsets_size = behav_table_begin - behav_offsets_begin;
+	const uint32_t behav_table_size = behav_table_end - behav_table_begin;
+
+
+	const uint32_t visib_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS);
+	const uint32_t onetime_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS);
+	const uint32_t room_clear_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ROOM_CLEAR_FLAGS);
+	const uint32_t locked_doors_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS);
+	const uint32_t permanent_switch_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS);
+	const uint32_t trees_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SACRED_TREE_FLAGS);
+	const uint32_t sprite_ent_lut_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP);
+	const uint32_t sprite_dims_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP);
+	const uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS);
+	const uint32_t enemy_data_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ENEMY_STATS);
+	const uint32_t entity_table_begin = rom.read<uint32_t>(RomOffsets::Sprites::ROOM_SPRITE_TABLE);
+	const uint32_t entity_table_end = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).end;
+
+	const uint32_t visib_size = onetime_begin - visib_begin;
+	const uint32_t onetime_size = room_clear_begin - onetime_begin;
+	const uint32_t room_clear_size = locked_doors_begin - room_clear_begin;
+	const uint32_t locked_doors_size = permanent_switch_begin - locked_doors_begin;
+	const uint32_t permanent_switch_size = trees_begin - permanent_switch_begin;
+	const uint32_t trees_size = sprite_ent_lut_begin - trees_begin;
+	const uint32_t sprite_ent_lut_size = sprite_dims_begin - sprite_ent_lut_begin;
+	const uint32_t sprite_dims_size = offsets_begin - sprite_dims_begin;
+	const uint32_t offsets_size = enemy_data_begin - offsets_begin;
+	const uint32_t enemy_data_size = entity_table_begin - enemy_data_begin;
+	const uint32_t entity_table_size = entity_table_end - entity_table_begin;
+
+
+
+	m_sprite_visibility_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size));
+	m_one_time_event_flags = DeserialiseFixedWidth<6>(rom.read_array<uint8_t>(onetime_begin, onetime_size));
+	m_room_clear_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size));
+	m_locked_door_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size));
+	m_permanent_switch_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(permanent_switch_begin, permanent_switch_size));
+	m_sacred_tree_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(trees_begin, trees_size));
+	m_item_properties = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(items_begin, items_size));
+	m_enemy_stats = DeserialiseMap<5>(rom.read_array<uint8_t>(enemy_data_begin, enemy_data_size));
+	m_sprite_dimensions = DeserialiseMap<2>(rom.read_array<uint8_t>(sprite_dims_begin, sprite_dims_size));
+	m_sprite_to_entity_lookup = DeserialiseMap(rom.read_array<uint8_t>(sprite_ent_lut_begin, sprite_ent_lut_size), true);
+	m_unknown_entity_lookup = DeserialiseMap(rom.read_array<uint8_t>(unk_begin, unk_size));
+	m_sprite_behaviour_offsets = rom.read_array<uint8_t>(behav_offsets_begin, behav_offsets_size);
+	m_sprite_behaviours = rom.read_array<uint8_t>(behav_table_begin, behav_table_size);
+	DeserialiseRoomEntityTable(rom.read_array<uint8_t>(offsets_begin, offsets_size),
+		rom.read_array<uint8_t>(entity_table_begin, entity_table_size));
+
+	return true;
+}
+
 bool SpriteData::AsmSaveSpriteFrames(const filesystem::path& dir)
 {
 	return std::all_of(m_frames.begin(), m_frames.end(), [&](auto& f) { return f.second->Save(dir); });
@@ -472,6 +1174,63 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 	return false;
 }
 
+bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
+{
+	try
+	{
+		auto proj1_bytes = SerialisePalArray(m_projectile1_palettes);
+		WriteBytes(proj1_bytes, dir / m_proj1_pal_file);
+		auto proj2_bytes = SerialisePalArray(m_projectile2_palettes);
+		WriteBytes(proj2_bytes, dir / m_proj2_pal_file);
+		auto lookup_bytes = SerialisePaletteLUT();
+		WriteBytes(lookup_bytes, dir / m_palette_lut_file);
+
+		AsmFile file;
+		file.WriteFileHeader(m_palette_data_file, "Sprite Palette Data");
+		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LUT) << AsmFile::IncludeFile(m_palette_lut_file, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LO_DATA);
+		for (const auto& pal : m_lo_palettes)
+		{
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			pal->Save(dir);
+		}
+		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_HI_DATA);
+		for (const auto& pal : m_hi_palettes)
+		{
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			pal->Save(dir);
+		}
+		file.WriteFile(dir / m_palette_data_file);
+
+		return true;
+	}
+	catch (const std::exception&)
+	{
+	}
+	return false;
+}
+
+bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
+{
+	WriteBytes(SerialiseFixedWidth<4>(m_sprite_visibility_flags), dir / m_sprite_visibility_flags_file);
+	WriteBytes(SerialiseFixedWidth<6>(m_one_time_event_flags), dir / m_one_time_event_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(m_room_clear_flags), dir / m_room_clear_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(m_locked_door_flags), dir / m_locked_door_sprite_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(m_permanent_switch_flags), dir / m_permanent_switch_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(m_sacred_tree_flags), dir / m_sacred_tree_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(m_item_properties, false), dir / m_item_properties_file);
+	WriteBytes(SerialiseMap<5>(m_enemy_stats), dir / m_enemy_stats_file);
+	WriteBytes(SerialiseMap<2>(m_sprite_dimensions), dir / m_sprite_dimensions_lookup_file);
+	WriteBytes(SerialiseMap(m_sprite_to_entity_lookup, true), dir / m_sprite_gfx_idx_lookup_file);
+	WriteBytes(SerialiseMap(m_unknown_entity_lookup), dir / m_unknown_sprite_lookup_file);
+	WriteBytes(m_sprite_behaviour_offsets, dir / m_sprite_behaviour_offset_file);
+	WriteBytes(m_sprite_behaviours, dir / m_sprite_behaviour_table_file);
+	auto result = SerialiseRoomEntityTable();
+	WriteBytes(result.first, dir / m_room_sprite_table_file);
+	WriteBytes(result.second, dir / m_room_sprite_table_offsets_file);
+	return true;
+}
+
 bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 {
 	uint32_t begin = rom.get_section(RomOffsets::Sprites::SPRITE_SECTION).begin;
@@ -523,6 +1282,130 @@ bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 	}
 
 	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_SECTION, bytes });
+
+	return true;
+}
+
+bool SpriteData::RomPrepareInjectSpritePalettes(const Rom& rom)
+{
+	uint32_t proj1_begin = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_1).begin;
+	auto proj1_bytes = std::make_shared<ByteVector>(SerialisePalArray(m_projectile1_palettes));
+
+	uint32_t proj2_begin = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_2).begin;
+	auto proj2_bytes = std::make_shared<ByteVector>(SerialisePalArray(m_projectile2_palettes));
+
+	uint32_t pal_lut_begin = rom.get_section(RomOffsets::Sprites::PALETTE_DATA).begin;
+	auto bytes = std::make_shared<ByteVector>(SerialisePaletteLUT());
+	uint32_t lo_pals_begin = pal_lut_begin + bytes->size();
+	for (const auto& p : m_lo_palettes)
+	{
+		auto b = p->GetBytes();
+		bytes->insert(bytes->end(), b->cbegin(), b->cend());
+	}
+	uint32_t hi_pals_begin = pal_lut_begin + bytes->size();
+	for (const auto& p : m_hi_palettes)
+	{
+		auto b = p->GetBytes();
+		bytes->insert(bytes->end(), b->cbegin(), b->cend());
+	}
+
+	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_DATA, bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_LUT, pal_lut_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_LO_DATA, lo_pals_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_HI_DATA, hi_pals_begin));
+	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_PROJECTILE_1, proj1_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW1, proj1_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW2, proj1_begin + 2));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW3, proj1_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW4, proj1_begin + 2));
+	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_PROJECTILE_2, proj2_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW1, proj2_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW2, proj2_begin + 2));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW3, proj2_begin + 4));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW4, proj2_begin + 6));
+
+	return true;
+}
+
+bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
+{
+	auto room_entities = SerialiseRoomEntityTable();
+
+	uint32_t item_begin = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).begin;
+	auto item_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(m_item_properties, false));
+
+	uint32_t unk_begin = rom.get_section(RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).begin;
+	auto unk_bytes = std::make_shared<ByteVector>(SerialiseMap(m_unknown_entity_lookup));
+
+	uint32_t behavoff_begin = rom.get_section(RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION).begin;
+	auto behav_bytes = std::make_shared<ByteVector>(m_sprite_behaviour_offsets);
+	uint32_t behavtab_begin = behavoff_begin + behav_bytes->size();
+	behav_bytes->insert(behav_bytes->end(), m_sprite_behaviours.cbegin(), m_sprite_behaviours.cend());
+
+	uint32_t visib_begin = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).begin;
+	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(m_sprite_visibility_flags));
+
+	uint32_t onetime_begin = data_bytes->size() + visib_begin;
+	auto onetime_bytes = SerialiseFixedWidth<6>(m_one_time_event_flags);
+	data_bytes->insert(data_bytes->end(), onetime_bytes.cbegin(), onetime_bytes.cend());
+
+	uint32_t clear_begin = data_bytes->size() + visib_begin;
+	auto clear_bytes = SerialiseFixedWidth<4>(m_room_clear_flags);
+	data_bytes->insert(data_bytes->end(), clear_bytes.cbegin(), clear_bytes.cend());
+
+	uint32_t door_begin = data_bytes->size() + visib_begin;
+	auto door_bytes = SerialiseFixedWidth<4>(m_locked_door_flags);
+	data_bytes->insert(data_bytes->end(), door_bytes.cbegin(), door_bytes.cend());
+
+	uint32_t switch_begin = data_bytes->size() + visib_begin;
+	auto switch_bytes = SerialiseFixedWidth<4>(m_permanent_switch_flags);
+	data_bytes->insert(data_bytes->end(), switch_bytes.cbegin(), switch_bytes.cend());
+
+	uint32_t tree_begin = data_bytes->size() + visib_begin;
+	auto tree_bytes = SerialiseFixedWidth<4>(m_sacred_tree_flags);
+	data_bytes->insert(data_bytes->end(), tree_bytes.cbegin(), tree_bytes.cend());
+
+	uint32_t sprent_begin = data_bytes->size() + visib_begin;
+	auto sprent_bytes = SerialiseMap(m_sprite_to_entity_lookup, true);
+	data_bytes->insert(data_bytes->end(), sprent_bytes.cbegin(), sprent_bytes.cend());
+
+	uint32_t hitbox_begin = data_bytes->size() + visib_begin;
+	auto hitbox_bytes = SerialiseMap<2>(m_sprite_dimensions);
+	data_bytes->insert(data_bytes->end(), hitbox_bytes.cbegin(), hitbox_bytes.cend());
+	if ((data_bytes->size() & 1) == 1)
+	{
+		data_bytes->push_back(0xFF);
+	}
+
+	uint32_t offsets_begin = data_bytes->size() + visib_begin;
+	data_bytes->insert(data_bytes->end(), room_entities.second.cbegin(), room_entities.second.cend());
+
+	uint32_t enemy_begin = data_bytes->size() + visib_begin;
+	auto enemy_bytes = SerialiseMap<5>(m_enemy_stats);
+	data_bytes->insert(data_bytes->end(), enemy_bytes.cbegin(), enemy_bytes.cend());
+
+	uint32_t table_begin = data_bytes->size() + visib_begin;
+	data_bytes->insert(data_bytes->end(), room_entities.first.cbegin(), room_entities.first.cend());
+
+	m_pending_writes.push_back({ RomOffsets::Sprites::ITEM_PROPERTIES_SECTION, item_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::ITEM_PROPERTIES, item_begin));
+	m_pending_writes.push_back({ RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION, unk_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP, unk_begin));
+	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION, behav_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSETS, behavoff_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE, behavtab_begin));
+	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_DATA_SECTION, data_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS, visib_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS, onetime_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ROOM_CLEAR_FLAGS, clear_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS, door_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS, switch_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SACRED_TREE_FLAGS, tree_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP, sprent_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP, hitbox_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS, offsets_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ENEMY_STATS, enemy_begin));
+	m_pending_writes.push_back(Asm::WriteAddress32(RomOffsets::Sprites::ROOM_SPRITE_TABLE, table_begin));
 
 	return true;
 }

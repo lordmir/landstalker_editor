@@ -18,6 +18,19 @@ public:
 	virtual bool HasBeenModified() const;
 	virtual void RefreshPendingWrites(const Rom& rom);
 
+	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
+	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
+	std::shared_ptr<Palette> GetSpritePalette(int lo, int hi = -1) const;
+	std::shared_ptr<Palette> GetSpritePalette(uint8_t idx) const;
+	uint8_t GetLoPaletteCount() const;
+	std::shared_ptr<PaletteEntry> GetLoPalette(uint8_t idx) const;
+	uint8_t GetHiPaletteCount() const;
+	std::shared_ptr<PaletteEntry> GetHiPalette(uint8_t idx) const;
+	uint8_t GetProjectile1PaletteCount() const;
+	std::shared_ptr<PaletteEntry> GetProjectile1Palette(uint8_t idx) const;
+	uint8_t GetProjectile2PaletteCount() const;
+	std::shared_ptr<PaletteEntry> GetProjectile2Palette(uint8_t idx) const;
+
 protected:
 	virtual void CommitAllChanges();
 private:
@@ -26,18 +39,36 @@ private:
 	bool CreateDirectoryStructure(const filesystem::path& dir);
 	void InitCache();
 
+	ByteVector SerialisePaletteLUT() const;
+	void DeserialisePaletteLUT(const ByteVector& bytes);
+	ByteVector SerialisePalArray(const std::vector<std::shared_ptr<PaletteEntry>>& pals) const;
+	std::vector<std::shared_ptr<PaletteEntry>> DeserialisePalArray(const ByteVector& bytes, const std::string& name,
+		const filesystem::path& path, Palette::Type type, bool unique_path = false);
+	void DeserialiseRoomEntityTable(const ByteVector& offsets, const ByteVector& bytes);
+	std::pair<ByteVector, ByteVector> SerialiseRoomEntityTable() const;
+
 	bool AsmLoadSpriteFrames();
 	bool AsmLoadSpritePointers();
+	bool AsmLoadSpritePalettes();
+	bool AsmLoadSpriteData();
 
 	bool RomLoadSpriteFrames(const Rom& rom);
+	bool RomLoadSpritePalettes(const Rom& rom);
+	bool RomLoadSpriteData(const Rom& rom);
 
 	bool AsmSaveSpriteFrames(const filesystem::path& dir);
 	bool AsmSaveSpritePointers(const filesystem::path& dir);
+	bool AsmSaveSpritePalettes(const filesystem::path& dir);
+	bool AsmSaveSpriteData(const filesystem::path& dir);
 
 	bool RomPrepareInjectSpriteFrames(const Rom& rom);
+	bool RomPrepareInjectSpritePalettes(const Rom& rom);
+	bool RomPrepareInjectSpriteData(const Rom& rom);
 
 	filesystem::path m_palette_data_file;
 	filesystem::path m_palette_lut_file;
+	filesystem::path m_proj1_pal_file;
+	filesystem::path m_proj2_pal_file;
 	filesystem::path m_sprite_lut_file;
 	filesystem::path m_sprite_anims_file;
 	filesystem::path m_sprite_anim_frames_file;
@@ -66,6 +97,53 @@ private:
 	std::map<std::string, std::vector<std::string>> m_animation_frames_orig;
 	std::map<std::string, std::shared_ptr<SpriteFrameEntry>> m_frames;
 	std::map<std::string, std::shared_ptr<SpriteFrameEntry>> m_frames_orig;
+
+	std::vector<std::shared_ptr<PaletteEntry>> m_lo_palettes;
+	std::vector<std::shared_ptr<PaletteEntry>> m_lo_palettes_orig;
+	std::vector<std::shared_ptr<PaletteEntry>> m_hi_palettes;
+	std::vector<std::shared_ptr<PaletteEntry>> m_hi_palettes_orig;
+	std::vector<std::shared_ptr<PaletteEntry>> m_projectile1_palettes;
+	std::vector<std::shared_ptr<PaletteEntry>> m_projectile1_palettes_orig;
+	std::vector<std::shared_ptr<PaletteEntry>> m_projectile2_palettes;
+	std::vector<std::shared_ptr<PaletteEntry>> m_projectile2_palettes_orig;
+	std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_by_name;
+
+	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_lo_palette_lookup;
+	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_lo_palette_lookup_orig;
+	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup;
+	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup_orig;
+
+	std::vector<std::array<uint8_t, 4>> m_sprite_visibility_flags;
+	std::vector<std::array<uint8_t, 4>> m_sprite_visibility_flags_orig;
+	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags;
+	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags_orig;
+	std::vector<std::array<uint8_t, 4>> m_room_clear_flags;
+	std::vector<std::array<uint8_t, 4>> m_room_clear_flags_orig;
+	std::vector<std::array<uint8_t, 4>> m_locked_door_flags;
+	std::vector<std::array<uint8_t, 4>> m_locked_door_flags_orig;
+	std::vector<std::array<uint8_t, 4>> m_permanent_switch_flags;
+	std::vector<std::array<uint8_t, 4>> m_permanent_switch_flags_orig;
+	std::vector<std::array<uint8_t, 4>> m_sacred_tree_flags;
+	std::vector<std::array<uint8_t, 4>> m_sacred_tree_flags_orig;
+
+	std::map<uint8_t, uint8_t> m_sprite_to_entity_lookup;
+	std::map<uint8_t, uint8_t> m_sprite_to_entity_lookup_orig;
+	std::map<uint8_t, std::array<uint8_t, 2>> m_sprite_dimensions;
+	std::map<uint8_t, std::array<uint8_t, 2>> m_sprite_dimensions_orig;
+	std::map<uint8_t, std::array<uint8_t, 5>> m_enemy_stats;
+	std::map<uint8_t, std::array<uint8_t, 5>> m_enemy_stats_orig;
+	std::vector<std::array<uint8_t, 4>> m_item_properties;
+	std::vector<std::array<uint8_t, 4>> m_item_properties_orig;
+	std::map<uint8_t, uint8_t> m_unknown_entity_lookup;
+	std::map<uint8_t, uint8_t> m_unknown_entity_lookup_orig;
+
+	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities;
+	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities_orig;
+
+	std::vector<uint8_t> m_sprite_behaviours;
+	std::vector<uint8_t> m_sprite_behaviours_orig;
+	std::vector<uint8_t> m_sprite_behaviour_offsets;
+	std::vector<uint8_t> m_sprite_behaviour_offsets_orig;
 };
 
 #endif // _SPRITE_DATA_H_

@@ -137,6 +137,8 @@ void GameData::CacheData()
 	m_palettes.insert(room_pals.cbegin(), room_pals.cend());
 	auto gfx_pals = m_gd->GetAllPalettes();
 	m_palettes.insert(gfx_pals.cbegin(), gfx_pals.cend());
+	const auto& sprite_pals = m_spd->GetAllPalettes();
+	m_palettes.insert(sprite_pals.cbegin(), sprite_pals.cend());
 
 	auto room_ts = m_rd->GetAllTilesets();
 	m_tilesets.insert(room_ts.cbegin(), room_ts.cend());

@@ -86,15 +86,20 @@ class PaletteEntry : public DataManager::Entry<Palette>
 public:
 	PaletteEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type)
 		: Entry(owner, b, name, filename),
-		m_type(type)
+		m_type(type),
+		m_index(-1)
 	{}
 
 	static std::shared_ptr<PaletteEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type);
 
 	virtual bool Serialise(const std::shared_ptr<Palette> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<Palette>& out);
+
+	int GetIndex() const { return m_index; }
+	void SetIndex(int val) { m_index = val; }
 private:
 	Palette::Type m_type;
+	int m_index;
 };
 
 class BlocksetEntry : public DataManager::Entry<Blockset>, public PalettePreferences

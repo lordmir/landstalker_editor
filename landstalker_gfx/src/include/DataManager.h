@@ -40,7 +40,9 @@ public:
 		std::shared_ptr<const ByteVector> GetBytes();
 		std::shared_ptr<const ByteVector> GetOrigBytes() const;
 		std::string GetName() const;
+		void SetName(const std::string& val);
 		filesystem::path GetFilename() const;
+		void SetFilename(const filesystem::path& val) const;
 		uint32_t GetStartAddress() const;
 		uint32_t GetDataLength();
 		uint32_t GetEndAddress() const;
@@ -171,9 +173,21 @@ inline std::string DataManager::Entry<T>::GetName() const
 }
 
 template<class T>
+inline void DataManager::Entry<T>::SetName(const std::string& val)
+{
+	m_name = val;
+}
+
+template<class T>
 inline filesystem::path DataManager::Entry<T>::GetFilename() const
 {
 	return m_filename;
+}
+
+template<class T>
+inline void DataManager::Entry<T>::SetFilename(const filesystem::path& val) const
+{
+	m_filename = val;
 }
 
 template<class T>

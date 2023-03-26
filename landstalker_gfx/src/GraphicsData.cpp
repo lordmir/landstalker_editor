@@ -1399,17 +1399,13 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 {
 	auto load_bytes = [&](const std::string& lea_loc, const std::string& size)
 	{
-		uint32_t pc = rom.get_address(lea_loc);
-		uint32_t lea = rom.read<uint32_t>(pc);
-		uint32_t start = Disasm::LEA_PCRel(lea, pc);
+		uint32_t start = Disasm::ReadOffset16(rom, lea_loc);
 		uint32_t sz = rom.get_address(size);
 		return rom.read_array<uint8_t>(start, sz);
 	};
 	auto load_pal = [&](const std::string& lea_loc, Palette::Type type)
 	{
-		uint32_t pc = rom.get_address(lea_loc);
-		uint32_t lea = rom.read<uint32_t>(pc);
-		uint32_t start = Disasm::LEA_PCRel(lea, pc);
+		uint32_t start = Disasm::ReadOffset16(rom, lea_loc);
 		uint32_t sz = Palette::GetSizeBytes(type);
 		return rom.read_array<uint8_t>(start, sz);
 	};
@@ -1457,16 +1453,11 @@ bool GraphicsData::RomLoadPalettes(const Rom& rom)
 			m_palettes_internal.insert({ e->GetName(), e });
 		}
 	};
-	uint32_t player_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::PLAYER_PAL),
-		rom.get_address(RomOffsets::Graphics::PLAYER_PAL));
-	uint32_t hud_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_PAL),
-		rom.get_address(RomOffsets::Graphics::HUD_PAL));
-	uint32_t item_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::INV_ITEM_PAL),
-		rom.get_address(RomOffsets::Graphics::INV_ITEM_PAL));
-	uint32_t sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_PAL_SWAPS),
-		rom.get_address(RomOffsets::Graphics::SWORD_PAL_SWAPS));
-	uint32_t armour_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ARMOUR_PAL_SWAPS),
-		rom.get_address(RomOffsets::Graphics::ARMOUR_PAL_SWAPS));
+	uint32_t player_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::PLAYER_PAL);
+	uint32_t hud_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::HUD_PAL);
+	uint32_t item_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::INV_ITEM_PAL);
+	uint32_t sword_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SWORD_PAL_SWAPS);
+	uint32_t armour_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ARMOUR_PAL_SWAPS);
 	uint32_t armour_end_addr = rom.get_section(RomOffsets::Graphics::EQUIP_PAL_SECTION).end;
 	uint32_t sword_pal_size = armour_addr - sword_addr;
 	uint32_t armour_pal_size = armour_end_addr - armour_addr;
@@ -1494,11 +1485,9 @@ bool GraphicsData::RomLoadPalettes(const Rom& rom)
 
 bool GraphicsData::RomLoadTextGraphics(const Rom& rom)
 {
-	uint32_t down_arrow_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::DOWN_ARROW),
-		rom.get_address(RomOffsets::Graphics::DOWN_ARROW));
+	uint32_t down_arrow_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::DOWN_ARROW);
 	uint32_t down_arrow_size = rom.get_section(RomOffsets::Graphics::DOWN_ARROW_SECTION).size();
-	uint32_t right_arrow_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::RIGHT_ARROW),
-		rom.get_address(RomOffsets::Graphics::RIGHT_ARROW));
+	uint32_t right_arrow_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::RIGHT_ARROW);
 	uint32_t right_arrow_size = rom.get_section(RomOffsets::Graphics::RIGHT_ARROW_SECTION).size();
 	auto down_arrow_bytes = rom.read_array<uint8_t>(down_arrow_addr, down_arrow_size);
 	auto right_arrow_bytes = rom.read_array<uint8_t>(right_arrow_addr, right_arrow_size);
@@ -1517,18 +1506,12 @@ bool GraphicsData::RomLoadTextGraphics(const Rom& rom)
 
 bool GraphicsData::RomLoadSwordFx(const Rom& rom)
 {
-	uint32_t inv_tilemap_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::INV_TILEMAP),
-		rom.get_address(RomOffsets::Graphics::INV_TILEMAP));
-	uint32_t magic_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_MAGIC),
-		rom.get_address(RomOffsets::Graphics::SWORD_MAGIC));
-	uint32_t thunder_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_THUNDER),
-		rom.get_address(RomOffsets::Graphics::SWORD_THUNDER));
-	uint32_t gaia_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_GAIA),
-		rom.get_address(RomOffsets::Graphics::SWORD_GAIA));
-	uint32_t ice_sword_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SWORD_ICE),
-		rom.get_address(RomOffsets::Graphics::SWORD_ICE));
-	uint32_t coinfall_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::COINFALL),
-		rom.get_address(RomOffsets::Graphics::COINFALL));
+	uint32_t inv_tilemap_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::INV_TILEMAP);
+	uint32_t magic_sword_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SWORD_MAGIC);
+	uint32_t thunder_sword_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SWORD_THUNDER);
+	uint32_t gaia_sword_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SWORD_GAIA);
+	uint32_t ice_sword_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SWORD_ICE);
+	uint32_t coinfall_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::COINFALL);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::SWORD_FX_SECTION).end;
 	
 	uint32_t inv_tilemap_size = magic_sword_addr - inv_tilemap_addr;
@@ -1582,14 +1565,10 @@ bool GraphicsData::RomLoadSwordFx(const Rom& rom)
 
 bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 {
-	uint32_t poison_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_POISON),
-		rom.get_address(RomOffsets::Graphics::STATUS_FX_POISON));
-	uint32_t confusion_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_CONFUSION),
-		rom.get_address(RomOffsets::Graphics::STATUS_FX_CONFUSION));
-	uint32_t paralysis_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_PARALYSIS),
-		rom.get_address(RomOffsets::Graphics::STATUS_FX_PARALYSIS));
-	uint32_t curse_ptrs_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::STATUS_FX_CURSE),
-		rom.get_address(RomOffsets::Graphics::STATUS_FX_CURSE));
+	uint32_t poison_ptrs_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::STATUS_FX_POISON);
+	uint32_t confusion_ptrs_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::STATUS_FX_CONFUSION);
+	uint32_t paralysis_ptrs_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::STATUS_FX_PARALYSIS);
+	uint32_t curse_ptrs_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::STATUS_FX_CURSE);
 	std::vector<uint32_t> poison_frame_ptrs;
 	std::vector<uint32_t> confusion_frame_ptrs;
 	std::vector<uint32_t> paralysis_frame_ptrs;
@@ -1644,10 +1623,8 @@ bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 
 bool GraphicsData::RomLoadHudData(const Rom& rom)
 {
-	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_TILEMAP),
-		rom.get_address(RomOffsets::Graphics::HUD_TILEMAP));
-	uint32_t ts_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::HUD_TILESET),
-		rom.get_address(RomOffsets::Graphics::HUD_TILESET));
+	uint32_t map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::HUD_TILEMAP);
+	uint32_t ts_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::HUD_TILESET);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::HUD_SECTION).end;
 
 	uint32_t map_size = ts_addr - map_addr;
@@ -1671,14 +1648,10 @@ bool GraphicsData::RomLoadHudData(const Rom& rom)
 
 bool GraphicsData::RomLoadEndCreditData(const Rom& rom)
 {
-	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_PAL),
-		rom.get_address(RomOffsets::Graphics::END_CREDITS_PAL));
-	uint32_t font_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_FONT),
-		rom.get_address(RomOffsets::Graphics::END_CREDITS_FONT));
-	uint32_t logos_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_LOGOS),
-		rom.get_address(RomOffsets::Graphics::END_CREDITS_LOGOS));
-	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::END_CREDITS_MAP),
-		rom.get_address(RomOffsets::Graphics::END_CREDITS_MAP));
+	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::END_CREDITS_PAL);
+	uint32_t font_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::END_CREDITS_FONT);
+	uint32_t logos_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::END_CREDITS_LOGOS);
+	uint32_t map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::END_CREDITS_MAP);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::END_CREDITS_DATA).end;
 
 	uint32_t pal_size = font_addr - pal_addr;
@@ -1707,20 +1680,13 @@ bool GraphicsData::RomLoadEndCreditData(const Rom& rom)
 
 bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
 {
-	uint32_t fg_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_TILES),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_TILES));
-	uint32_t fg_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_MAP),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_MAP));
-	uint32_t bg_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_BG_TILES),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_TILES));
-	uint32_t bg_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_BG_MAP),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_MAP));
-	uint32_t dots_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_DOTS),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_DOTS));
-	uint32_t friday_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FRIDAY),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FRIDAY));
-	uint32_t fg_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::ISLAND_MAP_FG_PAL),
-		rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_PAL));
+	uint32_t fg_tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_TILES);
+	uint32_t fg_map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_MAP);
+	uint32_t bg_tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_BG_TILES);
+	uint32_t bg_map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_BG_MAP);
+	uint32_t dots_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_DOTS);
+	uint32_t friday_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FRIDAY);
+	uint32_t fg_pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_PAL);
 
 	uint32_t fg_tiles_size = fg_map_addr - fg_tiles_addr;
 	uint32_t fg_map_size = bg_tiles_addr - fg_map_addr;
@@ -1774,12 +1740,9 @@ bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
 
 bool GraphicsData::RomLoadLithographData(const Rom& rom)
 {
-	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_PAL),
-		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_PAL));
-	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_TILES),
-		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_TILES));
-	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::LITHOGRAPH_MAP),
-		rom.get_address(RomOffsets::Graphics::LITHOGRAPH_MAP));
+	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_PAL);
+	uint32_t tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_TILES);
+	uint32_t map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_MAP);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::LITHOGRAPH_DATA).end;
 
 	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
@@ -1802,26 +1765,16 @@ bool GraphicsData::RomLoadLithographData(const Rom& rom)
 
 bool GraphicsData::RomLoadTitleScreenData(const Rom& rom)
 {
-	uint32_t blue_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA),
-		rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA));
-	uint32_t yellow_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA),
-		rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA));
-	uint32_t title_1_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_1_TILES),
-		rom.get_address(RomOffsets::Graphics::TITLE_1_TILES));
-	uint32_t title_2_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_2_TILES),
-		rom.get_address(RomOffsets::Graphics::TITLE_2_TILES));
-	uint32_t title_3_tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_TILES),
-		rom.get_address(RomOffsets::Graphics::TITLE_3_TILES));
-	uint32_t title_1_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_1_MAP),
-		rom.get_address(RomOffsets::Graphics::TITLE_1_MAP));
-	uint32_t title_2_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_2_MAP),
-		rom.get_address(RomOffsets::Graphics::TITLE_2_MAP));
-	uint32_t title_3_map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_MAP),
-		rom.get_address(RomOffsets::Graphics::TITLE_3_MAP));
-	uint32_t title_3_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_PAL),
-		rom.get_address(RomOffsets::Graphics::TITLE_3_PAL));
-	uint32_t title_3_pal_highlight_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT),
-		rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT));
+	uint32_t blue_pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA);
+	uint32_t yellow_pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA);
+	uint32_t title_1_tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_1_TILES);
+	uint32_t title_2_tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_2_TILES);
+	uint32_t title_3_tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_3_TILES);
+	uint32_t title_1_map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_1_MAP);
+	uint32_t title_2_map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_2_MAP);
+	uint32_t title_3_map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_3_MAP);
+	uint32_t title_3_pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL);
+	uint32_t title_3_pal_highlight_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT);
 
 	uint32_t blue_pal_size = rom.read<uint16_t>(blue_pal_addr) * 2 + 4;
 	uint32_t yellow_pal_size = Palette::GetSizeBytes(Palette::Type::TITLE_YELLOW);
@@ -1894,10 +1847,8 @@ bool GraphicsData::RomLoadTitleScreenData(const Rom& rom)
 
 bool GraphicsData::RomLoadSegaLogoData(const Rom& rom)
 {
-	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA),
-		rom.get_address(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA));
-	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::SEGA_LOGO_TILES),
-		rom.get_address(RomOffsets::Graphics::SEGA_LOGO_TILES));
+	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SEGA_LOGO_PAL_LEA);
+	uint32_t tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SEGA_LOGO_TILES);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_DATA).end;
 
 	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::SEGA_LOGO);
@@ -1916,12 +1867,9 @@ bool GraphicsData::RomLoadSegaLogoData(const Rom& rom)
 
 bool GraphicsData::RomLoadClimaxLogoData(const Rom& rom)
 {
-	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_PAL),
-		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_PAL));
-	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_TILES),
-		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_TILES));
-	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::CLIMAX_LOGO_MAP),
-		rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_MAP));
+	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_PAL);
+	uint32_t tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_TILES);
+	uint32_t map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_MAP);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::CLIMAX_LOGO_DATA).end;
 
 	uint32_t tiles_size = map_addr - tiles_addr;
@@ -1944,16 +1892,11 @@ bool GraphicsData::RomLoadClimaxLogoData(const Rom& rom)
 
 bool GraphicsData::RomLoadGameLoadScreenData(const Rom& rom)
 {
-	uint32_t pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA),
-		rom.get_address(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA));
-	uint32_t player_pal_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE),
-		rom.get_address(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE));
-	uint32_t chars_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_CHARS),
-		rom.get_address(RomOffsets::Graphics::GAME_LOAD_CHARS));
-	uint32_t tiles_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_TILES),
-		rom.get_address(RomOffsets::Graphics::GAME_LOAD_TILES));
-	uint32_t map_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Graphics::GAME_LOAD_MAP),
-		rom.get_address(RomOffsets::Graphics::GAME_LOAD_MAP));
+	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA);
+	uint32_t player_pal_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE);
+	uint32_t chars_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::GAME_LOAD_CHARS);
+	uint32_t tiles_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::GAME_LOAD_TILES);
+	uint32_t map_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::GAME_LOAD_MAP);
 	uint32_t end = rom.get_section(RomOffsets::Graphics::GAME_LOAD_DATA).end;
 
 	uint32_t pal_size = Palette::GetSizeBytes(Palette::Type::FULL);
@@ -2386,26 +2329,15 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 	bytes->insert(bytes->end(), inv_pal2->cbegin(), inv_pal2->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_SECTION, bytes });
-
-	uint32_t font_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_FONT), addrs[0]);
-	uint32_t cursor_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_CURSOR), addrs[1]);
-	uint32_t arrow_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_ARROW), addrs[2]);
-	uint32_t unused1_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_UNUSED1), addrs[3]);
-	uint32_t unused1p6_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_UNUSED1_PLUS6), addrs[3] + 12);
-	uint32_t unused2_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_UNUSED2), addrs[4]);
-	uint32_t unused2p4_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::INV_UNUSED2_PLUS4), addrs[4] + 8);
-	uint32_t pal1_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_PAL1), addrs[5]);
-	uint32_t pal2_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_PAL2), addrs[6]);
-
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_FONT, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(font_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_CURSOR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(cursor_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_ARROW, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(arrow_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_UNUSED1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(unused1_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_UNUSED1_PLUS6, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(unused1p6_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_UNUSED2, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(unused2_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_UNUSED2_PLUS4, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(unused2p4_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL1, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal1_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_PAL2, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal2_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_FONT, addrs[0]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_CURSOR, addrs[1]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_ARROW, addrs[2]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1, addrs[3]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1_PLUS6, addrs[3]+12));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2, addrs[4]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2_PLUS4, addrs[4]+8));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL1, addrs[5]));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL2, addrs[6]));
 
 	return true;
 }
@@ -2413,21 +2345,19 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 bool GraphicsData::RomPrepareInjectPalettes(const Rom& rom)
 {
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::MISC_PAL_SECTION).begin;
-	uint32_t player_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::PLAYER_PAL), begin);
+	uint32_t player_begin = begin;
 	auto bytes = std::make_shared<ByteVector>();
 	auto player_pal = m_palettes_internal[RomOffsets::Graphics::PLAYER_PAL]->GetBytes();
 	bytes->insert(bytes->end(), player_pal->cbegin(), player_pal->cend());
-	uint32_t hud_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_PAL), begin + bytes->size());
-	uint32_t hud_lea2 = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_PAL_LEA2), begin + bytes->size());
+
+	uint32_t hud_begin = begin + bytes->size();
 	auto hud_pal = m_palettes_internal[RomOffsets::Graphics::HUD_PAL]->GetBytes();
 	bytes->insert(bytes->end(), hud_pal->cbegin(), hud_pal->cend());
-	
+
 	uint32_t item_pal_begin = rom.get_section(RomOffsets::Graphics::INV_ITEM_PAL_SECTION).begin;
-	uint32_t item_pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_ITEM_PAL), item_pal_begin);
 	auto item_pal = m_palettes_internal[RomOffsets::Graphics::INV_ITEM_PAL]->GetBytes();
 
 	uint32_t equip_pal_begin = rom.get_section(RomOffsets::Graphics::EQUIP_PAL_SECTION).begin;
-	uint32_t sword_pal_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Graphics::SWORD_PAL_SWAPS), equip_pal_begin);
 	auto sword_pal_bytes = std::make_shared<ByteVector>();
 	auto armour_pal_bytes = std::make_shared<ByteVector>();
 	for (const auto& p : m_palettes_internal)
@@ -2444,18 +2374,17 @@ bool GraphicsData::RomPrepareInjectPalettes(const Rom& rom)
 		}
 	}
 	uint32_t armour_pal_begin = equip_pal_begin + sword_pal_bytes->size();
-	uint32_t armour_pal_lea = Asm::LEA_PCRel(AReg::A2, rom.get_address(RomOffsets::Graphics::ARMOUR_PAL_SWAPS), armour_pal_begin);
 	sword_pal_bytes->insert(sword_pal_bytes->end(), armour_pal_bytes->cbegin(), armour_pal_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::MISC_PAL_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::PLAYER_PAL, std::make_shared<ByteVector>(Split<uint8_t>(player_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_PAL, std::make_shared<ByteVector>(Split<uint8_t>(hud_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_PAL_LEA2, std::make_shared<ByteVector>(Split<uint8_t>(hud_lea2)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::PLAYER_PAL, player_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::HUD_PAL, hud_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::HUD_PAL_LEA2, hud_begin));
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_ITEM_PAL_SECTION, item_pal });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_ITEM_PAL, std::make_shared<ByteVector>(Split<uint8_t>(item_pal_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_ITEM_PAL, item_pal_begin));
 	m_pending_writes.push_back({ RomOffsets::Graphics::EQUIP_PAL_SECTION, sword_pal_bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_PAL_SWAPS, std::make_shared<ByteVector>(Split<uint8_t>(sword_pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ARMOUR_PAL_SWAPS, std::make_shared<ByteVector>(Split<uint8_t>(armour_pal_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_PAL_SWAPS, equip_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ARMOUR_PAL_SWAPS, armour_pal_begin));
 
 	return true;
 }
@@ -2463,16 +2392,14 @@ bool GraphicsData::RomPrepareInjectPalettes(const Rom& rom)
 bool GraphicsData::RomPrepareInjectTextGraphics(const Rom& rom)
 {
 	uint32_t down_arrow_begin = rom.get_section(RomOffsets::Graphics::DOWN_ARROW_SECTION).begin;
-	uint32_t down_arrow_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::DOWN_ARROW), down_arrow_begin);
 	auto down_arrow_bytes = m_ui_gfx_internal[RomOffsets::Graphics::DOWN_ARROW]->GetBytes();
 	uint32_t right_arrow_begin = rom.get_section(RomOffsets::Graphics::RIGHT_ARROW_SECTION).begin;
-	uint32_t right_arrow_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::RIGHT_ARROW), right_arrow_begin);
 	auto right_arrow_bytes = m_ui_gfx_internal[RomOffsets::Graphics::RIGHT_ARROW]->GetBytes();
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::DOWN_ARROW_SECTION, down_arrow_bytes });
 	m_pending_writes.push_back({ RomOffsets::Graphics::RIGHT_ARROW_SECTION, right_arrow_bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::DOWN_ARROW, std::make_shared<ByteVector>(Split<uint8_t>(down_arrow_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::RIGHT_ARROW, std::make_shared<ByteVector>(Split<uint8_t>(right_arrow_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::DOWN_ARROW, down_arrow_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::RIGHT_ARROW, right_arrow_begin));
 
 	return true;
 }
@@ -2482,37 +2409,37 @@ bool GraphicsData::RomPrepareInjectSwordFx(const Rom& rom)
 	uint32_t sword_fx_begin = rom.get_section(RomOffsets::Graphics::SWORD_FX_SECTION).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t inv_tilemap_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::INV_TILEMAP), sword_fx_begin);
+	uint32_t inv_tilemap_begin = sword_fx_begin;
 	auto inv_tilemap_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP]->GetBytes();
 	bytes->insert(bytes->end(), inv_tilemap_bytes->cbegin(), inv_tilemap_bytes->cend());
 
-	uint32_t magic_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_MAGIC), sword_fx_begin + bytes->size());
+	uint32_t magic_sword_begin = sword_fx_begin + bytes->size();
 	auto magic_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_MAGIC]->GetBytes();
 	bytes->insert(bytes->end(), magic_sword_bytes->cbegin(), magic_sword_bytes->cend());
 
-	uint32_t thunder_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_THUNDER), sword_fx_begin + bytes->size());
+	uint32_t thunder_sword_begin = sword_fx_begin + bytes->size();
 	auto thunder_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_THUNDER]->GetBytes();
 	bytes->insert(bytes->end(), thunder_sword_bytes->cbegin(), thunder_sword_bytes->cend());
 
-	uint32_t gaia_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_GAIA), sword_fx_begin + bytes->size());
+	uint32_t gaia_sword_begin = sword_fx_begin + bytes->size();
 	auto gaia_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_GAIA]->GetBytes();
 	bytes->insert(bytes->end(), gaia_sword_bytes->cbegin(), gaia_sword_bytes->cend());
 
-	uint32_t ice_sword_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SWORD_ICE), sword_fx_begin + bytes->size());
+	uint32_t ice_sword_begin = sword_fx_begin + bytes->size();
 	auto ice_sword_bytes = m_sword_fx_internal[RomOffsets::Graphics::SWORD_ICE]->GetBytes();
 	bytes->insert(bytes->end(), ice_sword_bytes->cbegin(), ice_sword_bytes->cend());
 
-	uint32_t coinfall_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::COINFALL), sword_fx_begin + bytes->size());
+	uint32_t coinfall_begin = sword_fx_begin + bytes->size();
 	auto coinfall_bytes = m_sword_fx_internal[RomOffsets::Graphics::COINFALL]->GetBytes();
 	bytes->insert(bytes->end(), coinfall_bytes->cbegin(), coinfall_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_FX_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::INV_TILEMAP, std::make_shared<ByteVector>(Split<uint8_t>(inv_tilemap_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_MAGIC, std::make_shared<ByteVector>(Split<uint8_t>(magic_sword_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_THUNDER, std::make_shared<ByteVector>(Split<uint8_t>(thunder_sword_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_GAIA, std::make_shared<ByteVector>(Split<uint8_t>(gaia_sword_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_ICE, std::make_shared<ByteVector>(Split<uint8_t>(ice_sword_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::COINFALL, std::make_shared<ByteVector>(Split<uint8_t>(coinfall_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_TILEMAP, inv_tilemap_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_MAGIC, magic_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_THUNDER, thunder_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_GAIA, gaia_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_ICE, ice_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::COINFALL, coinfall_begin));
 
 	return true;
 }
@@ -2524,13 +2451,13 @@ bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
 	uint32_t pointer_table_size = 0;
 	std::unordered_map<std::string, uint32_t> pointers;
 
-	uint32_t poison_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_POISON), begin);
+	uint32_t poison_begin = begin;
 	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_POISON].size() * sizeof(uint32_t);
-	uint32_t confusion_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_CONFUSION), begin + pointer_table_size);
+	uint32_t confusion_begin = begin + pointer_table_size;
 	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_CONFUSION].size() * sizeof(uint32_t);
-	uint32_t paralysis_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_PARALYSIS), begin + pointer_table_size);
+	uint32_t paralysis_begin = begin + pointer_table_size;
 	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_PARALYSIS].size() * sizeof(uint32_t);
-	uint32_t curse_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::STATUS_FX_CURSE), begin + pointer_table_size);
+	uint32_t curse_begin = begin + pointer_table_size;
 	pointer_table_size += m_status_fx[RomOffsets::Graphics::STATUS_FX_CURSE].size() * sizeof(uint32_t);
 
 	uint32_t addr = pointer_table_size;
@@ -2557,10 +2484,10 @@ bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
 	}
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_POISON, std::make_shared<ByteVector>(Split<uint8_t>(poison_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CONFUSION, std::make_shared<ByteVector>(Split<uint8_t>(confusion_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_PARALYSIS, std::make_shared<ByteVector>(Split<uint8_t>(paralysis_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::STATUS_FX_CURSE, std::make_shared<ByteVector>(Split<uint8_t>(curse_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::STATUS_FX_POISON, poison_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::STATUS_FX_CONFUSION, confusion_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::STATUS_FX_PARALYSIS, paralysis_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::STATUS_FX_CURSE, curse_begin));
 	return true;
 }
 
@@ -2569,17 +2496,17 @@ bool GraphicsData::RomPrepareInjectHudData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::HUD_SECTION).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILEMAP), begin);
+	uint32_t map_begin = begin;
 	auto map_bytes = m_ui_tilemaps_internal[RomOffsets::Graphics::HUD_TILEMAP]->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
-	uint32_t ts_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::HUD_TILESET), begin + bytes->size());
+	uint32_t ts_begin = begin + bytes->size();
 	auto ts_bytes = m_ui_gfx_internal[RomOffsets::Graphics::HUD_TILESET]->GetBytes();
 	bytes->insert(bytes->end(), ts_bytes->cbegin(), ts_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_SECTION, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_TILEMAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::HUD_TILESET, std::make_shared<ByteVector>(Split<uint8_t>(ts_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::HUD_TILEMAP, map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::HUD_TILESET, ts_begin));
 
 	return true;
 }
@@ -2589,27 +2516,27 @@ bool GraphicsData::RomPrepareInjectEndCreditData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::END_CREDITS_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_PAL), begin);
+	uint32_t pal_begin = begin;
 	auto pal_bytes = m_end_credits_palette->GetBytes();
 	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
 
-	uint32_t font_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_FONT), begin + bytes->size());
+	uint32_t font_begin = begin + bytes->size();
 	auto font_bytes = m_fonts_internal[RomOffsets::Graphics::END_CREDITS_FONT]->GetBytes();
 	bytes->insert(bytes->end(), font_bytes->cbegin(), font_bytes->cend());
 
-	uint32_t logos_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_LOGOS), begin + bytes->size());
+	uint32_t logos_begin = begin + bytes->size();
 	auto logos_bytes = m_end_credits_tileset->GetBytes();
 	bytes->insert(bytes->end(), logos_bytes->cbegin(), logos_bytes->cend());
 
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::END_CREDITS_MAP), begin + bytes->size());
+	uint32_t map_begin = begin + bytes->size();
 	auto map_bytes = m_end_credits_map->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_FONT, std::make_shared<ByteVector>(Split<uint8_t>(font_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_LOGOS, std::make_shared<ByteVector>(Split<uint8_t>(logos_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::END_CREDITS_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::END_CREDITS_PAL, pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::END_CREDITS_FONT, font_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::END_CREDITS_LOGOS, logos_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::END_CREDITS_MAP, map_begin));
 
 	return true;
 }
@@ -2619,27 +2546,27 @@ bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::ISLAND_MAP_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t fg_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_TILES), begin);
+	uint32_t fg_tiles_begin = begin;
 	auto fg_tiles_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FG_TILES]->GetBytes();
 	bytes->insert(bytes->end(), fg_tiles_bytes->cbegin(), fg_tiles_bytes->cend());
 
-	uint32_t fg_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_MAP), begin + bytes->size());
+	uint32_t fg_map_begin = begin + bytes->size();
 	auto fg_map_bytes = m_island_map_tilemaps[RomOffsets::Graphics::ISLAND_MAP_FG_MAP]->GetBytes();
 	bytes->insert(bytes->end(), fg_map_bytes->cbegin(), fg_map_bytes->cend());
 
-	uint32_t bg_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_TILES), begin + bytes->size());
+	uint32_t bg_tiles_begin = begin + bytes->size();
 	auto bg_tiles_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_BG_TILES]->GetBytes();
 	bytes->insert(bytes->end(), bg_tiles_bytes->cbegin(), bg_tiles_bytes->cend());
 
-	uint32_t bg_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_BG_MAP), begin + bytes->size());
+	uint32_t bg_map_begin = begin + bytes->size();
 	auto bg_map_bytes = m_island_map_tilemaps[RomOffsets::Graphics::ISLAND_MAP_BG_MAP]->GetBytes();
 	bytes->insert(bytes->end(), bg_map_bytes->cbegin(), bg_map_bytes->cend());
 
-	uint32_t dots_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_DOTS), begin + bytes->size());
+	uint32_t dots_begin = begin + bytes->size();
 	auto dots_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_DOTS]->GetBytes();
 	bytes->insert(bytes->end(), dots_bytes->cbegin(), dots_bytes->cend());
 
-	uint32_t friday_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FRIDAY), begin + bytes->size());
+	uint32_t friday_begin = begin + bytes->size();
 	auto friday_bytes = m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FRIDAY]->GetBytes();
 	bytes->insert(bytes->end(), friday_bytes->cbegin(), friday_bytes->cend());
 	
@@ -2648,20 +2575,20 @@ bool GraphicsData::RomPrepareInjectIslandMapData(const Rom& rom)
 		bytes->push_back(0xFF);
 	}
 
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::ISLAND_MAP_FG_PAL), begin + bytes->size());
+	uint32_t pal_begin = begin + bytes->size();
 	auto fg_pal_bytes = m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_FG_PAL]->GetBytes();
 	auto bg_pal_bytes = m_island_map_pals_internal[RomOffsets::Graphics::ISLAND_MAP_BG_PAL]->GetBytes();
 	bytes->insert(bytes->end(), fg_pal_bytes->cbegin(), fg_pal_bytes->cend());
 	bytes->insert(bytes->end(), bg_pal_bytes->cbegin(), bg_pal_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_TILES, std::make_shared<ByteVector>(Split<uint8_t>(fg_tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_MAP, std::make_shared<ByteVector>(Split<uint8_t>(fg_map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_BG_TILES, std::make_shared<ByteVector>(Split<uint8_t>(bg_tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_BG_MAP, std::make_shared<ByteVector>(Split<uint8_t>(bg_map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_DOTS, std::make_shared<ByteVector>(Split<uint8_t>(dots_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FRIDAY, std::make_shared<ByteVector>(Split<uint8_t>(friday_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::ISLAND_MAP_FG_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_TILES, fg_tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_MAP, fg_map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_BG_TILES, bg_tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_BG_MAP, bg_map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_DOTS, dots_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FRIDAY, friday_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::ISLAND_MAP_FG_PAL, pal_begin));
 	
 	return true;
 }
@@ -2671,22 +2598,22 @@ bool GraphicsData::RomPrepareInjectLithographData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::LITHOGRAPH_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_PAL), begin);
+	uint32_t pal_begin = begin;
 	auto pal_bytes = m_lithograph_palette->GetBytes();
 	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
 
-	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_TILES), begin + bytes->size());
+	uint32_t tiles_begin = begin + bytes->size();
 	auto tiles_bytes = m_lithograph_tileset->GetBytes();
 	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
 
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::LITHOGRAPH_MAP), begin + bytes->size());
+	uint32_t map_begin = begin + bytes->size();
 	auto map_bytes = m_lithograph_map->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::LITHOGRAPH_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_PAL, pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_TILES, tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::LITHOGRAPH_MAP, map_begin));
 
 	return true;
 }
@@ -2694,37 +2621,35 @@ bool GraphicsData::RomPrepareInjectLithographData(const Rom& rom)
 bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
 {
 	uint32_t blue_pal_begin = rom.get_section(RomOffsets::Graphics::TITLE_PALETTE_BLUE).begin;
-	uint32_t blue_pal_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA), blue_pal_begin);
 	auto blue_pal = m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_BLUE]->GetBytes();
 
 	uint32_t yellow_pal_begin = rom.get_section(RomOffsets::Graphics::TITLE_PALETTE_YELLOW).begin;
-	uint32_t yellow_pal_lea = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA), yellow_pal_begin);
 	auto yellow_pal = m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_YELLOW]->GetBytes();
 
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::TITLE_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t title_1_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_1_TILES), begin);
+	uint32_t title_1_tiles_begin = begin;
 	auto title_1_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_1_TILES]->GetBytes();
 	bytes->insert(bytes->end(), title_1_tiles_bytes->cbegin(), title_1_tiles_bytes->cend());
 
-	uint32_t title_2_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_2_TILES), begin + bytes->size());
+	uint32_t title_2_tiles_begin = begin + bytes->size();
 	auto title_2_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_2_TILES]->GetBytes();
 	bytes->insert(bytes->end(), title_2_tiles_bytes->cbegin(), title_2_tiles_bytes->cend());
 
-	uint32_t title_3_tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_TILES), begin + bytes->size());
+	uint32_t title_3_tiles_begin = begin + bytes->size();
 	auto title_3_tiles_bytes = m_title_tiles_internal[RomOffsets::Graphics::TITLE_3_TILES]->GetBytes();
 	bytes->insert(bytes->end(), title_3_tiles_bytes->cbegin(), title_3_tiles_bytes->cend());
 
-	uint32_t title_1_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_1_MAP), begin + bytes->size());
+	uint32_t title_1_map_begin = begin + bytes->size();
 	auto title_1_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_1_MAP]->GetBytes();
 	bytes->insert(bytes->end(), title_1_map_bytes->cbegin(), title_1_map_bytes->cend());
 
-	uint32_t title_2_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_2_MAP), begin + bytes->size());
+	uint32_t title_2_map_begin = begin + bytes->size();
 	auto title_2_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_2_MAP]->GetBytes();
 	bytes->insert(bytes->end(), title_2_map_bytes->cbegin(), title_2_map_bytes->cend());
 
-	uint32_t title_3_map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_MAP), begin + bytes->size());
+	uint32_t title_3_map_begin = begin + bytes->size();
 	auto title_3_map_bytes = m_title_tilemaps_internal[RomOffsets::Graphics::TITLE_3_MAP]->GetBytes();
 	bytes->insert(bytes->end(), title_3_map_bytes->cbegin(), title_3_map_bytes->cend());
 
@@ -2733,33 +2658,30 @@ bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
 		bytes->push_back(0xFF);
 	}
 
-	uint32_t title_3_pal_lea1 = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL), begin + bytes->size());
-	uint32_t title_3_pal_lea2 = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA2), begin + bytes->size());
-	uint32_t title_3_pal_lea3 = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA3), begin + bytes->size());
-	uint32_t title_3_pal_lea4 = Asm::LEA_PCRel(AReg::A1, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_LEA4), begin + bytes->size());
+	uint32_t title_3_pal_begin = begin + bytes->size();
 	auto title_3_pal_bytes = m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL]->GetBytes();
 	bytes->insert(bytes->end(), title_3_pal_bytes->cbegin(), title_3_pal_bytes->cend());
 
-	uint32_t title_3_pal_highlight_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT), begin + bytes->size());
+	uint32_t title_3_pal_highlight_begin = begin + bytes->size();
 	auto title_3_pal_highlight_bytes = m_title_pals_internal[RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT]->GetBytes();
 	bytes->insert(bytes->end(), title_3_pal_highlight_bytes->cbegin(), title_3_pal_highlight_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_BLUE, blue_pal });
 	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW, yellow_pal });
 	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA, std::make_shared<ByteVector>(Split<uint8_t>(blue_pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA, std::make_shared<ByteVector>(Split<uint8_t>(yellow_pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_1_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_1_tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_2_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_2_tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_TILES, std::make_shared<ByteVector>(Split<uint8_t>(title_3_tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_1_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_1_map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_2_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_2_map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_MAP, std::make_shared<ByteVector>(Split<uint8_t>(title_3_map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea1)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA2, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea2)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA3, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea3)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_LEA4, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_lea4)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT, std::make_shared<ByteVector>(Split<uint8_t>(title_3_pal_highlight_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_PALETTE_BLUE_LEA, blue_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_PALETTE_YELLOW_LEA, yellow_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_1_TILES, title_1_tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_2_TILES, title_2_tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_TILES, title_3_tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_1_MAP, title_1_map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_2_MAP, title_2_map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_MAP, title_3_map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL, title_3_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL_LEA2, title_3_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL_LEA3, title_3_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL_LEA4, title_3_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::TITLE_3_PAL_HIGHLIGHT, title_3_pal_highlight_begin));
 
 	return true;
 }
@@ -2767,17 +2689,15 @@ bool GraphicsData::RomPrepareInjectTitleScreenData(const Rom& rom)
 bool GraphicsData::RomPrepareInjectSegaLogoData(const Rom& rom)
 {
 	uint32_t pal_begin = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_PAL).begin;
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SEGA_LOGO_PAL_LEA), pal_begin);
 	auto pal_bytes = m_sega_logo_palette->GetBytes();
 	
-	uint32_t begin = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_DATA).begin;
-	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::SEGA_LOGO_TILES), begin);
+	uint32_t tiles_begin = rom.get_section(RomOffsets::Graphics::SEGA_LOGO_DATA).begin;
 	auto tiles_bytes = m_sega_logo_tileset->GetBytes();
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_PAL, pal_bytes });
 	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_DATA, tiles_bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_PAL_LEA, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::SEGA_LOGO_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SEGA_LOGO_PAL_LEA, pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SEGA_LOGO_TILES, tiles_begin));
 	
 	return true;
 }
@@ -2787,11 +2707,11 @@ bool GraphicsData::RomPrepareInjectClimaxLogoData(const Rom& rom)
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::CLIMAX_LOGO_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_TILES), begin);
+	uint32_t tiles_begin = begin;
 	auto tiles_bytes = m_climax_logo_tileset->GetBytes();
 	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
 
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_MAP), begin + bytes->size());
+	uint32_t map_begin = begin + bytes->size();
 	auto map_bytes = m_climax_logo_map->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
@@ -2800,14 +2720,14 @@ bool GraphicsData::RomPrepareInjectClimaxLogoData(const Rom& rom)
 		bytes->push_back(0xFF);
 	}
 
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::CLIMAX_LOGO_PAL), begin + bytes->size());
+	uint32_t pal_begin = begin + bytes->size();
 	auto pal_bytes = m_climax_logo_palette->GetBytes();
 	bytes->insert(bytes->end(), pal_bytes->cbegin(), pal_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::CLIMAX_LOGO_PAL, std::make_shared<ByteVector>(Split<uint8_t>(pal_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_TILES, tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_MAP, map_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::CLIMAX_LOGO_PAL, pal_begin));
 
 	return true;
 }
@@ -2815,34 +2735,33 @@ bool GraphicsData::RomPrepareInjectClimaxLogoData(const Rom& rom)
 bool GraphicsData::RomPrepareInjectGameLoadScreenData(const Rom& rom)
 {
 	uint32_t pal_begin = rom.get_section(RomOffsets::Graphics::GAME_LOAD_PALETTE).begin;
-	uint32_t pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_PALETTE_LEA), pal_begin);
 	auto pal_bytes = m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PALETTE]->GetBytes();
 
 	uint32_t begin = rom.get_section(RomOffsets::Graphics::GAME_LOAD_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>();
 
-	uint32_t player_pal_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE), begin);
+	uint32_t player_pal_begin = begin;
 	auto player_pal_bytes = m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE]->GetBytes();
 	bytes->insert(bytes->end(), player_pal_bytes->cbegin(), player_pal_bytes->cend());
 
-	uint32_t chars_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_CHARS), begin + bytes->size());
+	uint32_t chars_begin = begin + bytes->size();
 	auto chars_bytes = m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_CHARS]->GetBytes();
 	bytes->insert(bytes->end(), chars_bytes->cbegin(), chars_bytes->cend());
 
-	uint32_t tiles_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_TILES), begin + bytes->size());
+	uint32_t tiles_begin = begin + bytes->size();
 	auto tiles_bytes = m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_TILES]->GetBytes();
 	bytes->insert(bytes->end(), tiles_bytes->cbegin(), tiles_bytes->cend());
 
-	uint32_t map_lea = Asm::LEA_PCRel(AReg::A0, rom.get_address(RomOffsets::Graphics::GAME_LOAD_MAP), begin + bytes->size());
+	uint32_t map_begin = begin + bytes->size();
 	auto map_bytes = m_load_game_map->GetBytes();
 	bytes->insert(bytes->end(), map_bytes->cbegin(), map_bytes->cend());
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_PALETTE, pal_bytes });
 	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_DATA, bytes });
-	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE, std::make_shared<ByteVector>(Split<uint8_t>(player_pal_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_CHARS, std::make_shared<ByteVector>(Split<uint8_t>(chars_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_TILES, std::make_shared<ByteVector>(Split<uint8_t>(tiles_lea)) });
-	m_pending_writes.push_back({ RomOffsets::Graphics::GAME_LOAD_MAP, std::make_shared<ByteVector>(Split<uint8_t>(map_lea)) });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE, player_pal_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::GAME_LOAD_CHARS, chars_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::GAME_LOAD_TILES, tiles_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::GAME_LOAD_MAP, map_begin));
 
 	return true;
 }

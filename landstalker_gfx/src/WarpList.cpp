@@ -29,9 +29,9 @@ uint32_t FindMarker(const Rom& rom, uint32_t start_addr)
 
 WarpList::WarpList(const Rom& rom)
 {
-	uint32_t fall_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::FALL_TABLE_LEA_LOC), rom.get_address(RomOffsets::Rooms::FALL_TABLE_LEA_LOC));
-	uint32_t climb_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC), rom.get_address(RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC));
-	uint32_t transition_start_addr = Disasm::LEA_PCRel(rom.read<uint32_t>(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1), rom.get_address(RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1));
+	uint32_t fall_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::FALL_TABLE_LEA_LOC);
+	uint32_t climb_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC);
+	uint32_t transition_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1);
 
 	uint32_t start = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
 	auto warp_bytes = rom.read_array<uint8_t>(start, FindMarker(rom, start) - start);
