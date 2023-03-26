@@ -368,6 +368,209 @@ void SpriteData::RefreshPendingWrites(const Rom& rom)
 	}
 }
 
+uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
+{
+	assert(m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+	return m_sprite_to_entity_lookup.find(id)->second;
+}
+
+std::vector<uint8_t> SpriteData::GetEntitiesFromSprite(uint8_t id) const
+{
+	std::vector<uint8_t> results;
+	for (const auto& lookup : m_sprite_to_entity_lookup)
+	{
+		if (lookup.second == id)
+		{
+			results.push_back(lookup.first);
+		}
+	}
+	return results;
+}
+
+std::pair<uint8_t, uint8_t> SpriteData::GetSpriteHitbox(uint8_t id) const
+{
+	assert(m_sprite_dimensions.find(id) != m_sprite_dimensions.cend());
+	const auto& result = m_sprite_dimensions.find(id)->second;
+	return { result[0], result[1] };
+}
+
+void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base)
+{
+	assert(m_sprite_dimensions.find(id) != m_sprite_dimensions.cend());
+	auto& result = m_sprite_dimensions.find(id)->second;
+	result[0] = height;
+	result[1] = base;
+}
+
+bool SpriteData::IsEntity(uint8_t id) const
+{
+	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+}
+
+bool SpriteData::IsSprite(uint8_t id) const
+{
+	return (m_names.find(id) != m_names.cend());;
+}
+
+bool SpriteData::IsItem(uint8_t sprite_id) const
+{
+	auto entities = GetEntitiesFromSprite(sprite_id);
+	return std::all_of(entities.cbegin(), entities.cend(), [](uint8_t v) { return v >= 0xC0; });
+}
+
+std::string SpriteData::GetSpriteName(uint8_t id) const
+{
+	assert(m_names.find(id) != m_names.cend());
+	return m_names.find(id)->second;
+}
+
+uint8_t SpriteData::GetSpriteId(const std::string& name) const
+{
+	assert(m_ids.find(name) != m_ids.cend());
+	return m_ids.find(name)->second;
+}
+
+uint32_t SpriteData::GetSpriteAnimationCount(uint8_t id) const
+{
+	assert(m_animations.find(id) != m_animations.cend());
+	return m_animations.find(id)->second.size();
+}
+
+std::vector<std::string> SpriteData::GetSpriteAnimations(uint8_t id) const
+{
+	assert(m_animations.find(id) != m_animations.cend());
+	return m_animations.find(id)->second;
+}
+
+std::vector<std::string> SpriteData::GetSpriteAnimations(const std::string& name) const
+{
+	auto id = GetSpriteId(name);
+	assert(m_animations.find(id) != m_animations.cend());
+	return m_animations.find(id)->second;
+}
+
+uint32_t SpriteData::GetSpriteFrameCount(uint8_t id) const
+{
+	assert(m_sprite_frames.find(id) != m_sprite_frames.cend());
+	return m_sprite_frames.find(id)->second.size();
+}
+
+std::vector<std::string> SpriteData::GetSpriteFrames(uint8_t id) const
+{
+	assert(m_sprite_frames.find(id) != m_sprite_frames.cend());
+	const auto& result = m_sprite_frames.find(id)->second;
+	return std::vector<std::string> (result.cbegin(), result.cend());
+}
+
+std::vector<std::string> SpriteData::GetSpriteFrames(const std::string& name) const
+{
+	return GetSpriteFrames(GetSpriteId(name));
+}
+
+std::shared_ptr<SpriteFrameEntry> SpriteData::GetDefaultEntityFrame(uint8_t id) const
+{
+	uint8_t spr_id = GetSpriteFromEntity(id);
+	if (id >= 0xC0)
+	{
+		// Item
+		return GetSpriteFrame(spr_id, (id >> 3) & 7, id & 0x07);
+	}
+	else
+	{
+		if (GetSpriteAnimationCount(spr_id) > 1)
+		{
+			return GetSpriteFrame(spr_id, 1, 0);
+		}
+		else
+		{
+			return GetSpriteFrame(spr_id, 0, 0);
+		}
+	}
+	
+}
+
+std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(const std::string& name) const
+{
+	assert(m_frames.find(name) != m_frames.cend());
+	return m_frames.find(name)->second;
+}
+
+std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t frame) const
+{
+	assert(m_sprite_frames.find(id) != m_sprite_frames.cend());
+	assert(m_sprite_frames.find(id)->second.size() > frame);
+	auto it = m_sprite_frames.find(id)->second.cbegin();
+	std::advance(it, frame);
+	assert(m_frames.find(*it) != m_frames.cend());
+	return m_frames.find(*it)->second;
+}
+
+std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t anim, uint8_t frame) const
+{
+	assert(m_animations.find(id) != m_animations.cend());
+	assert(m_animations.find(id)->second.size() > frame);
+	const auto& name = m_animations.find(id)->second[anim];
+	return GetSpriteFrame(name, frame);
+}
+
+std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(const std::string& anim_name, uint8_t frame) const
+{
+	assert(m_animation_frames.find(anim_name) != m_animation_frames.cend());
+	assert(m_animation_frames.find(anim_name)->second.size() > frame);
+	const auto& name = m_animation_frames.find(anim_name)->second[frame];
+	assert(m_frames.find(name) != m_frames.cend());
+	return m_frames.find(name)->second;
+}
+
+uint32_t SpriteData::GetSpriteAnimationFrameCount(uint8_t id, uint8_t anim_id) const
+{
+	return GetSpriteAnimationFrames(id, anim_id).size();
+}
+
+uint32_t SpriteData::GetSpriteAnimationFrameCount(const std::string& name) const
+{
+	assert(m_animation_frames.find(name) != m_animation_frames.cend());
+	return m_animation_frames.find(name)->second.size();
+}
+
+std::vector<std::string> SpriteData::GetSpriteAnimationFrames(uint8_t id, uint8_t anim_id) const
+{
+	assert(m_animations.find(id) != m_animations.cend());
+	assert(m_animations.find(id)->second.size() > anim_id);
+	const auto& name = m_animations.find(id)->second[anim_id];
+	return GetSpriteAnimationFrames(name);
+}
+
+std::vector<std::string> SpriteData::GetSpriteAnimationFrames(const std::string& anim) const
+{
+	assert(m_animation_frames.find(anim) != m_animation_frames.cend());
+	return m_animation_frames.find(anim)->second;
+}
+
+std::vector<std::string> SpriteData::GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const
+{
+	auto id = GetSpriteId(name);
+	return GetSpriteAnimationFrames(id, anim_id);
+}
+
+std::vector<std::array<uint8_t, 8>> SpriteData::GetRoomEntities(uint16_t room) const
+{
+	auto it = m_room_entities.find(room);
+	if (it == m_room_entities.cend())
+	{
+		return std::vector<std::array<uint8_t, 8>>();
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
+void SpriteData::SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities)
+{
+	m_room_entities[room] = entities;
+}
+
 const std::map<std::string, std::shared_ptr<PaletteEntry>>& SpriteData::GetAllPalettes() const
 {
 	return m_palettes_by_name;
@@ -381,7 +584,18 @@ std::shared_ptr<PaletteEntry> SpriteData::GetPalette(const std::string& name) co
 
 std::shared_ptr<Palette> SpriteData::GetSpritePalette(int lo, int hi) const
 {
-	return std::shared_ptr<Palette>();
+	std::vector<std::shared_ptr<Palette>> pals;
+
+	if (lo >= 0)
+	{
+		pals.push_back(m_lo_palettes.at(lo)->GetData());
+	}
+	if (hi >= 0)
+	{
+		pals.push_back(m_hi_palettes.at(hi)->GetData());
+	}
+
+	return std::make_shared<Palette>(pals);
 }
 
 std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
@@ -786,6 +1000,18 @@ bool SpriteData::AsmLoadSpritePointers()
 		std::string ptrname;
 		for (int spr = 0; spr < lut.size(); ++spr)
 		{
+			std::string sprname = StrPrintf(RomOffsets::Sprites::SPRITE_GFX, spr);
+			if (anim_file.IsLabel())
+			{
+				AsmFile::Label lbl;
+				anim_file >> lbl;
+				if (lbl.label != RomOffsets::Sprites::SPRITE_SECTION)
+				{
+					sprname = lbl.label;
+				}
+			}
+			m_names.insert({ spr, sprname });
+			m_ids.insert({ sprname, spr });
 			m_sprite_mystery_data[spr] = lut[spr].second;
 			m_animations.insert({ spr, std::vector<std::string>() });
 			int anim_end = 0xFFFF;
@@ -817,6 +1043,11 @@ bool SpriteData::AsmLoadSpritePointers()
 					assert(m_frames.find(ptrname) != m_frames.cend());
 					m_animation_frames[animation].push_back(ptrname);
 					m_frames[ptrname]->SetSprite(spr.first);
+					if (m_sprite_frames.find(spr.first) == m_sprite_frames.cend())
+					{
+						m_sprite_frames.insert({spr.first, std::set<std::string>()});
+					}
+					m_sprite_frames[spr.first].insert(ptrname);
 				} while (frame_file.IsGood() && !frame_file.IsLabel());
 			}
 		}
@@ -942,7 +1173,10 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 	for (int i = 0; i < offset_table.size() / 2; ++i)
 	{
 		int sprite_frame_count = 0;
+		std::string sprname = StrPrintf(RomOffsets::Sprites::SPRITE_GFX, i);
 		m_sprite_mystery_data.insert({ i, offset_table[i * 2 + 1] });
+		m_names.insert({ i, sprname });
+		m_ids.insert({ sprname, i });
 		uint16_t anim_count;
 		if ((i * 2 + 2) < offset_table.size())
 		{
@@ -1008,6 +1242,11 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 		e->SetStartAddress(addr.first);
 		e->SetSprite(frame_sprite[addr.first]);
 		m_frames.insert({ e->GetName(), e });
+		if (m_sprite_frames.find(e->GetSprite()) == m_sprite_frames.cend())
+		{
+			m_sprite_frames.insert({ e->GetSprite(), std::set<std::string>() });
+		}
+		m_sprite_frames[e->GetSprite()].insert(e->GetName());
 	}
 
 	return true;
@@ -1147,7 +1386,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		spr_file << AsmFile::Label(RomOffsets::Sprites::SPRITE_SECTION);
 		for (const auto& spr : m_animations)
 		{
-			spr_file << AsmFile::Label(StrPrintf(RomOffsets::Sprites::SPRITE_GFX, spr.first));
+			spr_file << AsmFile::Label(m_names[spr.first]);
 			for (const auto& anim : spr.second)
 			{
 				spr_file << anim;

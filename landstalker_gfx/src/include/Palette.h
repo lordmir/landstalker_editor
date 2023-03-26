@@ -85,6 +85,14 @@ public:
 			FromBGR(c, (a == 0x00));
 		}
 
+		inline void FromGenesis(uint16_t c, bool transparent = false)
+		{
+			m_b = (c & 0x0E00) >> 9;
+			m_g = (c & 0x00E0) >> 5;
+			m_r = (c & 0x000E) >> 1;
+			m_transparent = transparent;
+		}
+
 		inline uint8_t GetR() const
 		{
 			return std::min(0xFF, m_r * 36);
@@ -192,9 +200,11 @@ public:
 		END_CREDITS
 	};
 
-	Palette(const Type& type = Type::FULL);
-	Palette(const std::vector<Colour>& colours, const Type& type);
-	Palette(const std::vector<uint8_t>& bytes, const Palette::Type& type);
+	Palette(const std::string& name = "default", const Type& type = Type::FULL);
+	Palette(const std::string& name, const std::vector<Colour>& colours, const Type& type);
+	Palette(const std::string& name, const std::vector<uint8_t>& bytes, const Palette::Type& type);
+	Palette(const Palette& pal);
+	Palette(const std::vector<std::shared_ptr<Palette>>& pals);
 
 	bool operator==(const Palette& rhs) const;
 	bool operator!=(const Palette& rhs) const;
@@ -203,10 +213,6 @@ public:
 
 	void Clear();
 	void LoadDebugPal();
-	void AddHighPalette(const Palette& high_palette);
-	void RemoveHighPalette();
-	void AddLowPalette(const Palette& low_palette);
-	void RemoveLowPalette();
 
 	uint8_t  getR(uint8_t index) const;
 	uint8_t  getG(uint8_t index) const;
@@ -231,10 +237,10 @@ public:
 private:
 
 	Type m_type;
-	std::vector<Colour> m_pal;
+	std::string m_name;
+	std::vector<std::shared_ptr<Colour>> m_pal;
+	std::vector<std::string> m_owner;
+	std::vector<bool> m_locked;
 };
-
-std::vector<Palette> CreatePalettes(const std::vector<uint8_t>& bytes, const Palette::Type& type);
-std::vector<uint8_t> GetPaletteBytes(const std::vector<Palette>& palettes);
 
 #endif // PALETTE_H

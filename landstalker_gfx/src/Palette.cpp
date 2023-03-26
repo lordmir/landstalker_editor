@@ -72,56 +72,21 @@ std::unordered_map<Palette::Type, int> PALETTE_SIZES =
 	{Palette::Type::END_CREDITS,          4}
 };
 
-std::vector<Palette> CreatePalettes(const std::vector<uint8_t>& input, const Palette::Type& type)
-{
-	// Input must contain a whole number of palettes
-	int size = PALETTE_SIZES[type];
-	auto it = input.begin();
-	if (size == -1) // Variable width palette
-	{
-		size = (*it << 8) | *(it + 1);
-		it += 2;
-		assert(input.size() % ((size + 2) * 2) == 0);
-	}
-	else
-	{
-		assert(input.size() % (size * 2) == 0);
-	}
-
-	size_t i = 0;
-	std::vector<Palette> pals;
-	std::vector<Palette::Colour> colours;
-	colours.reserve(size);
-	for (; it != input.end(); it += 2)
-	{
-		colours.emplace_back((*it << 8) | *(it + 1));
-		if (colours.size() == size)
-		{
-			pals.emplace_back(colours, type);
-			colours.clear();
-		}
-	}
-	return pals;
-}
-
-std::vector<uint8_t> GetPaletteBytes(const std::vector<Palette>& palettes)
-{
-	std::vector<uint8_t> retval;
-	retval.reserve(std::accumulate(palettes.begin(), palettes.end(), 0, [](int sum, const Palette& p) {
-		return sum + p.GetSize() * 2;
-	}));
-	for (const auto& pal : palettes)
-	{
-		auto bytes = pal.GetBytes();
-		retval.insert(retval.end(), bytes.begin(), bytes.end());
-	}
-	return retval;
-}
-
-Palette::Palette(const Type& type)
-	: m_type(type)
+Palette::Palette(const std::string& name, const Type& type)
+	: m_name(name),
+	  m_type(type)
 {
 	m_pal.resize(16);
+	std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
+	m_owner.resize(m_pal.size(), "");
+	m_locked = LOCKED_ENTRIES.at(type);
+	for (int i = 0; i < m_pal.size(); ++i)
+	{
+		if (!m_locked[i])
+		{
+			m_owner[i] = m_name;
+		}
+	}
 	Clear();
 	LoadDebugPal();
 }
@@ -130,117 +95,48 @@ void Palette::Clear()
 {
 	if (m_pal.size() > 0)
 	{
-		m_pal[0] = Colour(0x0000, true);
+		m_pal[0]->FromGenesis(0x0000, true);
 	}
 	if (m_pal.size() > 1)
 	{
-		m_pal[1] = Colour(0x0CCC);
+		m_pal[1]->FromGenesis(0x0CCC);
 	}
 	for (size_t i = 2; i < m_pal.size(); ++i)
 	{
-		m_pal[i] = Colour(0x0000);
+		m_pal[i]->FromGenesis(0x0000);
 	}
 }
 
 void Palette::LoadDebugPal()
 {
-	m_pal[0] = Colour(0x0C0C);
-	m_pal[1] = Colour(0x0CCC);
-	m_pal[2] = Colour(0x000E);
-	m_pal[3] = Colour(0x00E0);
-	m_pal[4] = Colour(0x00EE);
-	m_pal[5] = Colour(0x0E00);
-	m_pal[6] = Colour(0x0EE0);
-	m_pal[7] = Colour(0x0EEE);
-	m_pal[8] = Colour(0x0888);
-	m_pal[9] = Colour(0x0008);
-	m_pal[10] = Colour(0x0080);
-	m_pal[11] = Colour(0x0088);
-	m_pal[12] = Colour(0x0800);
-	m_pal[13] = Colour(0x0808);
-	m_pal[14] = Colour(0x0880);
-	m_pal[15] = Colour(0x0000);
-}
-
-void Palette::AddHighPalette(const Palette& high_palette)
-{
-	if (m_type == Type::SPRITE_LOW)
-	{
-		m_type = Type::SPRITE_FULL;
-	}
-	else
-	{
-		m_type = Type::SPRITE_HIGH;
-	}
-	const std::size_t begin = std::find(LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin(), LOCKED_ENTRIES.at(Type::SPRITE_HIGH).end(), false) - LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin();
-	const std::size_t end = std::find(LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin() + begin, LOCKED_ENTRIES.at(Type::SPRITE_HIGH).end(), true) - LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin();
-	for (auto i = begin; i != end; ++i)
-	{
-		m_pal[i] = high_palette.m_pal[i];
-	}
-}
-
-void Palette::RemoveHighPalette()
-{
-	if (m_type == Type::SPRITE_FULL)
-	{
-		m_type = Type::SPRITE_LOW;
-	}
-	else
-	{
-		m_type = Type::NONE;
-	}
-	const std::size_t begin = std::find(LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin(), LOCKED_ENTRIES.at(Type::SPRITE_HIGH).end(), false) - LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin();
-	const std::size_t end = std::find(LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin() + begin, LOCKED_ENTRIES.at(Type::SPRITE_HIGH).end(), true) - LOCKED_ENTRIES.at(Type::SPRITE_HIGH).begin();
-	for (auto i = begin; i != end; ++i)
-	{
-		m_pal[i] = Colour(0, 0, 0);
-	}
-}
-
-void Palette::AddLowPalette(const Palette& low_palette)
-{
-	if (m_type == Type::SPRITE_HIGH)
-	{
-		m_type = Type::SPRITE_FULL;
-	}
-	else
-	{
-		m_type = Type::SPRITE_LOW;
-	}
-	const std::size_t begin = std::find(LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin(), LOCKED_ENTRIES.at(Type::SPRITE_LOW).end(), false) - LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin();
-	const std::size_t end = std::find(LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin() + begin, LOCKED_ENTRIES.at(Type::SPRITE_LOW).end(), true) - LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin();
-	for (auto i = begin; i != end; ++i)
-	{
-		m_pal[i] = low_palette.m_pal[i];
-	}
-}
-
-void Palette::RemoveLowPalette()
-{
-	if (m_type == Type::SPRITE_HIGH)
-	{
-		m_type = Type::SPRITE_FULL;
-	}
-	else
-	{
-		m_type = Type::NONE;
-	}
-	m_type = Type::SPRITE_HIGH;
-	const std::size_t begin = std::find(LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin(), LOCKED_ENTRIES.at(Type::SPRITE_LOW).end(), false) - LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin();
-	const std::size_t end = std::find(LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin() + begin, LOCKED_ENTRIES.at(Type::SPRITE_LOW).end(), true) - LOCKED_ENTRIES.at(Type::SPRITE_LOW).begin();
-	for (auto i = begin; i != end; ++i)
-	{
-		m_pal[i] = Colour(0, 0, 0);
-	}
+	m_pal[0]->FromGenesis(0x0C0C);
+	m_pal[1]->FromGenesis(0x0CCC);
+	m_pal[2]->FromGenesis(0x000E);
+	m_pal[3]->FromGenesis(0x00E0);
+	m_pal[4]->FromGenesis(0x00EE);
+	m_pal[5]->FromGenesis(0x0E00);
+	m_pal[6]->FromGenesis(0x0EE0);
+	m_pal[7]->FromGenesis(0x0EEE);
+	m_pal[8]->FromGenesis(0x0888);
+	m_pal[9]->FromGenesis(0x0008);
+	m_pal[10]->FromGenesis(0x0080);
+	m_pal[11]->FromGenesis(0x0088);
+	m_pal[12]->FromGenesis(0x0800);
+	m_pal[13]->FromGenesis(0x0808);
+	m_pal[14]->FromGenesis(0x0880);
+	m_pal[15]->FromGenesis(0x0000);
 }
 
 bool Palette::operator==(const Palette& rhs) const
 {
 	bool retval = (this->m_type == rhs.m_type);
+	retval = retval && (this->m_pal.size() == rhs.m_pal.size());
 	if (retval)
 	{
-		retval = (this->m_pal == rhs.m_pal);
+		for (int i = 0; i < m_pal.size(); ++i)
+		{
+			retval = retval && (*this->m_pal[i] == *rhs.m_pal[i]);
+		}
 	}
 	return retval;
 }
@@ -250,33 +146,49 @@ bool Palette::operator!=(const Palette& rhs) const
 	return !(*this == rhs);
 }
 
-Palette::Palette(const std::vector<Colour>& colours, const Type& type)
-	: m_type(type)
+Palette::Palette(const std::string& name, const std::vector<Colour>& colours, const Type& type)
+	: m_name(name),
+	  m_type(type)
 {
 	int size = GetSize();
 	assert(colours.size() == size);
 	if (IsVarWidth())
 	{
-		std::copy(colours.begin(), colours.end(), std::back_inserter(m_pal));
+		auto it = colours.cbegin();
+		m_pal.resize(colours.size());
+		std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*it++); });
+		m_owner.resize(m_pal.size(), m_name);
+		m_locked.resize(m_pal.size(), false);
 	}
 	else
 	{
 		m_pal.resize(16);
+		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
 		auto it = colours.begin();
 		for (int i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
-				m_pal[i] = *it++;
+				*m_pal[i] = *it++;
 			}
 		}
-		m_pal[0].SetTransparent(true);
+		m_pal[0]->SetTransparent(true);
+		m_owner.resize(m_pal.size(), "");
+		m_locked = LOCKED_ENTRIES.at(type);
+		for (int i = 0; i < m_pal.size(); ++i)
+		{
+			if (!m_locked[i])
+			{
+				m_owner[i] = m_name;
+			}
+		}
 	}
 }
 
-Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
-	: m_type(type)
+Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, const Type& type)
+	: m_name(name),
+	  m_type(type)
 {	// Input must contain the right number of colours
 	int size = PALETTE_SIZES[m_type];
 	auto it = bytes.begin();
@@ -304,21 +216,83 @@ Palette::Palette(const std::vector<uint8_t>& bytes, const Type& type)
 	}
 	if (IsVarWidth())
 	{
-		std::copy(colours.begin(), colours.end(), std::back_inserter(m_pal));
+		auto it = colours.cbegin();
+		m_pal.resize(colours.size());
+		std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*it++); });
+		m_owner.resize(m_pal.size(), m_name);
+		m_locked.resize(m_pal.size(), false);
 	}
 	else
 	{
 		m_pal.resize(16);
+		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
 		auto it = colours.begin();
 		for (int i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
-				m_pal[i] = *it++;
+				*m_pal[i] = *it++;
 			}
 		}
-		m_pal[0].SetTransparent(true);
+		m_pal[0]->SetTransparent(true);
+		m_owner.resize(m_pal.size(), "");
+		m_locked = LOCKED_ENTRIES.at(type);
+		for (int i = 0; i < m_pal.size(); ++i)
+		{
+			if (!m_locked[i])
+			{
+				m_owner[i] = m_name;
+			}
+		}
+	}
+}
+
+Palette::Palette(const Palette& pal)
+	: m_name(pal.m_name),
+	  m_type(pal.m_type),
+	  m_locked(pal.m_locked),
+	  m_owner(pal.m_owner)
+{
+	m_pal.resize(pal.m_pal.size());
+	auto it = pal.m_pal.cbegin();
+	std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*(*it++)); });
+}
+
+Palette::Palette(const std::vector<std::shared_ptr<Palette>>& pals)
+	: m_type(Type::FULL)
+{
+	if (pals.size() > 0)
+	{
+		m_pal.resize(pals.front()->m_pal.size());
+		assert(std::all_of(pals.cbegin(), pals.cend(), [&](const auto& p) { return p->m_pal.size() == m_pal.size(); }));
+		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
+		m_locked.resize(m_pal.size(), true);
+		m_owner.resize(m_pal.size(), "");
+		Clear();
+		for (const auto& pal : pals)
+		{
+			for (int i = 0; i < m_pal.size(); ++i)
+			{
+				if (pal->m_locked[i] == false)
+				{
+					m_locked[i] = false;
+					m_owner[i] = pal->m_name;
+					m_pal[i] = pal->m_pal[i];
+				}
+			}
+		}
+		m_name = std::accumulate(std::next(pals.cbegin()), pals.cend(), pals.front()->m_name, [](std::string list, const auto& p) {
+			return std::move(list) + ',' + p->m_name;
+			});
+	}
+	else
+	{
+		m_pal.resize(16);
+		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
+		m_owner.resize(m_pal.size(), "Default");
+		m_locked.resize(m_pal.size(), true);
+		Clear();
 	}
 }
 
@@ -340,7 +314,7 @@ std::vector<uint8_t> Palette::GetBytes() const
 	{
 		if (!LOCKED_ENTRIES.at(m_type).at(i))
 		{
-			uint16_t c = m_pal[i].GetGenesis();
+			uint16_t c = m_pal[i]->GetGenesis();
 			retval.push_back((c & 0xFF00) >> 8);
 			retval.push_back(c & 0xFF);
 		}
@@ -350,47 +324,47 @@ std::vector<uint8_t> Palette::GetBytes() const
 
 uint8_t Palette::getR(uint8_t index) const
 {
-    return m_pal[index].GetR();
+    return m_pal[index]->GetR();
 }
 
 uint8_t Palette::getG(uint8_t index) const
 {
-    return m_pal[index].GetG();
+    return m_pal[index]->GetG();
 }
 
 uint8_t Palette::getB(uint8_t index) const
 {
-    return m_pal[index].GetB();
+    return m_pal[index]->GetB();
 }
 
 uint8_t Palette::getA(uint8_t index) const
 {
-    return m_pal[index].GetA();
+    return m_pal[index]->GetA();
 }
 
 uint32_t Palette::getRGBA(uint8_t index) const
 {
-	return m_pal[index].GetRGB(true);
+	return m_pal[index]->GetRGB(true);
 }
 
 uint32_t Palette::getBGRA(uint8_t index) const
 {
-	return m_pal[index].GetBGR(true);
+	return m_pal[index]->GetBGR(true);
 }
 
 uint16_t Palette::getGenesisColour(uint8_t index) const
 {
-	return m_pal[index].GetGenesis();
+	return m_pal[index]->GetGenesis();
 }
 
 Palette::Colour Palette::GetColour(uint8_t index) const
 {
-	return m_pal[index];
+	return *m_pal[index];
 }
 
 void Palette::setGenesisColour(uint8_t index, uint16_t colour)
 {
-	m_pal[index] = Palette::Colour(colour);
+	*m_pal[index] = Palette::Colour(colour);
 }
 
 bool Palette::ColourInRange(uint8_t colour) const
@@ -402,14 +376,14 @@ bool Palette::ColourEditable(uint8_t colour) const
 {
 	if (colour < m_pal.size())
 	{
-		return !LOCKED_ENTRIES.at(m_type).at(colour);
+		return !m_locked.at(colour);
 	}
 	return false;
 }
 
 const std::vector<bool>& Palette::GetLockedColours() const
 {
-	return GetLockedColours(m_type);
+	return m_locked;
 }
 
 int Palette::GetSize() const

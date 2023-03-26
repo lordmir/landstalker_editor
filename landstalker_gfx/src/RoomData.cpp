@@ -793,8 +793,6 @@ bool RoomData::AsmLoadRoomPalettes()
             file >> inc;
             auto palfile = GetBasePath() / inc.path;
             auto e = PaletteEntry::Create(this, ReadBytes(palfile), name, inc.path, Palette::Type::ROOM);
-            auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(palfile));
-            auto palette = std::make_shared<Palette>(*raw_data, Palette::Type::ROOM);
             m_room_pals.push_back(e);
             m_room_pals_by_name.insert({ name, e });
             i++;

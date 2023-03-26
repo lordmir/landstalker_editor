@@ -6,11 +6,7 @@
 #include <memory>
 #include <wx/dcmemory.h>
 #include <wx/dataview.h>
-#include "PaletteO.h"
 #include "Rom.h"
-#include "SpriteGraphic.h"
-#include "SpriteFrame.h"
-#include "Sprite.h"
 #include "ImageBuffer.h"
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
@@ -115,11 +111,10 @@ private:
     void DrawTilemap(uint16_t room, std::size_t scale=1);
     void DrawHeightmap(uint16_t room, std::size_t scale=1);
     void DrawWarps(uint16_t room, std::size_t scale=1);
-    void DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale = 4);
+    void DrawSprite(const std::string& name, int data, std::size_t scale = 4);
     void DrawImage(const std::string& image, std::size_t scale);
     void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> tilemap, int tile_width, int tile_height);
     void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
-    void PopulatePalettes();
     void ShowStrings();
     void ShowTileset();
     void ShowBitmap();
@@ -127,12 +122,12 @@ private:
     void ClearScreen();
     void GoToRoom(uint16_t room);
     void PaintNow(wxDC& dc, std::size_t scale = 1);
-    void InitPals(const wxTreeItemId& node);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
     void OpenRomFile(const wxString& path);
     void OpenAsmFile(const wxString& path);
+    void InitUI();
     ReturnCode Save();
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
@@ -147,32 +142,19 @@ private:
     void ProcessSelectedBrowserItem(const wxTreeItemId& item);
     
     Rom m_rom;
-    std::vector<uint8_t> m_gfxBuffer;
-    std::size_t m_gfxSize;
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;
     ImageBuffer m_imgbuf;
     wxImage m_img;
     std::size_t m_scale;
-    uint16_t m_sprite_idx;
-    uint16_t m_sprite_anim;
-    uint16_t m_sprite_frame;
     uint16_t m_roomnum;
-    int m_strtab;
     Mode m_mode;
     bool m_layer_controls_enabled;
-    std::vector<SpriteFrame> m_spriteFrames;
-    std::vector<SpriteGraphic> m_spriteGraphics;
-    std::map<uint8_t, Sprite> m_sprites;
-    std::string m_selImage;
-    std::shared_ptr<std::map<std::string, PaletteO>> m_palettes;
-    std::string m_selected_palette;
 	ImageList* m_imgs;
     TilesetEditorFrame* m_tilesetEditor;
     StringEditorFrame* m_stringEditor;
 	EditorFrame* m_activeEditor;
     wxScrolledCanvas* m_canvas;
-    std::vector<PaletteO> m_palette;
     std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
     std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 
@@ -180,5 +162,6 @@ private:
     std::shared_ptr<GameData> m_g;
 
     std::string m_selname;
+    int m_seldata;
 };
 #endif // MAINFRAME_H

@@ -18,34 +18,16 @@
 #include <wx/colour.h>
 #include <wx/graphics.h>
 
-#include "LZ77.h"
-#include "BlocksetCmp.h"
-#include "LSTilemapCmp.h"
 #include "Rom.h"
-#include "ImageBuffer.h"
-#include "SpriteFrame.h"
-#include "Utils.h"
-#include "Tilemap2DRLE.h"
 #include "Blockmap2D.h"
-#include "RomOffsets.h"
-#include "HuffmanString.h"
-#include "IntroString.h"
-#include "EndCreditString.h"
-#include "Charset.h"
+#include "ImageBuffer.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
-      m_gfxBuffer(65536),
-      m_gfxSize(0),
       m_scale(1),
       m_roomnum(0),
-      m_sprite_idx(0),
-      m_sprite_anim(0),
-      m_sprite_frame(0),
-      m_strtab(0),
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false),
-      m_palettes(std::make_shared<std::map<std::string, PaletteO>>()),
 	  m_activeEditor(nullptr),
       m_g(nullptr)
 {
@@ -64,6 +46,9 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
     SetMode(MODE_NONE);
+    m_mnu_save_as_asm->Enable(false);
+    m_mnu_save_to_rom->Enable(false);
+    m_mnu_export->Enable(false);
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
@@ -143,182 +128,12 @@ void MainFrame::OpenRomFile(const wxString& path)
             return;
         }
         m_rom.load_from_file(static_cast<std::string>(path));
-        this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
-        PopulatePalettes();
-
-        m_browser->DeleteAllItems();
-        m_browser->SetImageList(m_imgs);
-        m_properties->GetGrid()->Clear();
-        m_sprites.clear();
-        Sprite::Reset();
-        PaletteO::Reset();
         m_g = std::make_shared<GameData>(m_rom);
-        m_tilesetEditor->SetGameData(m_g);
-        m_stringEditor->SetGameData(m_g);
-        SetMode(MODE_NONE);
-
-        const int str_img = m_imgs->GetIdx("string");
-        const int img_img = m_imgs->GetIdx("image");
-        const int ts_img = m_imgs->GetIdx("tileset");
-        const int ats_img = m_imgs->GetIdx("ats");
-        const int fonts_img = m_imgs->GetIdx("fonts");
-        const int bs_img = m_imgs->GetIdx("big_tiles");
-        const int pal_img = m_imgs->GetIdx("palette");
-        const int rm_img = m_imgs->GetIdx("room");
-        const int spr_img = m_imgs->GetIdx("sprite");
-        wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-        wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGL = m_browser->AppendItem(nodeG, "Lithograph", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
-        wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
-        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
-        wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
-
-        m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
-        m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
-        m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
-        m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
-        m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
-        m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
-        m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
-        m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
-        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
-
-        for (std::size_t i = 0; i < 255; i++)
-        {
-            m_sprites.emplace(i, Sprite(m_rom, i));
-			// Remove any sprites that do not have any corresponding graphics
-			if (m_sprites[i].GetGraphicsIdx() == -1)
-			{
-				m_sprites.erase(i);
-			}
-        }
-
-        for (const auto& sprite : m_sprites)
-        {
-            const auto& sg = sprite.second.GetGraphics();
-            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE,
-                                             sprite.second.GetDefaultAnimationId() << 16 | sprite.second.GetDefaultFrameId() << 8 | sprite.first));
-
-            for (std::size_t a = 0; a != sg.GetAnimationCount(); ++a)
-            {
-                std::ostringstream ss;
-                ss.str(std::string());
-                ss << "ANIM" << a;
-                wxTreeItemId anim = m_browser->AppendItem(spr, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | sprite.first));
-                for (std::size_t f = 0; f != sg.GetFrameCount(a); ++f)
-                {
-                    ss.str(std::string());
-                    ss << "FRAME" << f;
-                    m_browser->AppendItem(anim, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | f << 8 | sprite.first));
-                }
-            }
-        }
-
-        for (const auto& t : m_g->GetRoomData()->GetTilesets())
-        {
-            auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-            for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
-            {
-                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
-            }
-            auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
-            for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
-            {
-                m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
-            }
-        }
-
-        for (const auto& map : m_g->GetGraphicsData()->GetUIMaps())
-        {
-            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
-        {
-            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
-        {
-            m_browser->AppendItem(nodeGI, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        for (const auto& map : m_g->GetGraphicsData()->GetTitleScreenMap())
-        {
-            m_browser->AppendItem(nodeGT, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-
-        m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetStringData()->GetFonts())
-        {
-            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
-        {
-            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetUIGraphics())
-        {
-            m_browser->AppendItem(nodeGU, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
-        {
-            m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
-        {
-            m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetIslandMapTiles())
-        {
-            m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
-        {
-            m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGSe, m_g->GetGraphicsData()->GetSegaLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetGameLoadScreenTiles())
-        {
-            m_browser->AppendItem(nodeGLo, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-
-        for (const auto& room : m_g->GetRoomData()->GetRoomlist())
-        {
-            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
-            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
-            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
-        }
-        InitPals(nodeRPal);
+        this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
+        InitUI();
         m_asmfile = false;
     }
-    catch(const std::runtime_error& e)
+    catch (const std::runtime_error& e)
     {
         CloseFiles(true);
         wxMessageBox(e.what());
@@ -334,133 +149,9 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
-        this->SetLabel("Landstalker Graphics Viewer - " + path);
-        const int str_img = m_imgs->GetIdx("string");
-        const int ts_img = m_imgs->GetIdx("tileset");
-        const int ats_img = m_imgs->GetIdx("ats");
-        const int img_img = m_imgs->GetIdx("image");
-        const int fonts_img = m_imgs->GetIdx("fonts");
-        const int bs_img = m_imgs->GetIdx("big_tiles");
-        const int rm_img = m_imgs->GetIdx("room");
-        wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-        wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGL = m_browser->AppendItem(nodeG, "Lithograph", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
-        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
-
-        m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
-        m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
-        m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
-        m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
-        m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
-        m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
-        m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
-        m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
-        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-            static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
-
         m_g = std::make_shared<GameData>(path.ToStdString());
-        m_tilesetEditor->SetGameData(m_g);
-        m_stringEditor->SetGameData(m_g);
-        for (const auto& t : m_g->GetRoomData()->GetTilesets())
-        {
-            auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-            for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
-            {
-                m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
-            }
-            auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
-            for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
-            {
-                m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
-            }
-        }
-
-        for (const auto& map : m_g->GetGraphicsData()->GetUIMaps())
-        {
-            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
-        {
-            m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
-        {
-            m_browser->AppendItem(nodeGI, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        for (const auto& map : m_g->GetGraphicsData()->GetTitleScreenMap())
-        {
-            m_browser->AppendItem(nodeGT, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        }
-        m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-        m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
-
-        m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetStringData()->GetFonts())
-        {
-            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
-        {
-            m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetUIGraphics())
-        {
-            m_browser->AppendItem(nodeGU, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
-        {
-            m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
-        {
-            m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetIslandMapTiles())
-        {
-            m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
-        {
-            m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        m_browser->AppendItem(nodeGSe, m_g->GetGraphicsData()->GetSegaLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        for (const auto& ts : m_g->GetGraphicsData()->GetGameLoadScreenTiles())
-        {
-            m_browser->AppendItem(nodeGLo, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-
-        for (const auto& room : m_g->GetRoomData()->GetRoomlist())
-        {
-            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
-            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
-            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
-        }
+        this->SetLabel("Landstalker Graphics Viewer - " + path);
+        InitUI();
         m_asmfile = true;
     }
     catch (const std::runtime_error& e)
@@ -468,6 +159,180 @@ void MainFrame::OpenAsmFile(const wxString& path)
         CloseFiles(true);
         wxMessageBox(e.what());
     }
+}
+
+void MainFrame::InitUI()
+{
+    m_browser->DeleteAllItems();
+    m_browser->SetImageList(m_imgs);
+    m_properties->GetGrid()->Clear();
+    m_tilesetEditor->SetGameData(m_g);
+    m_stringEditor->SetGameData(m_g);
+    SetMode(MODE_NONE);
+
+    const int str_img = m_imgs->GetIdx("string");
+    const int img_img = m_imgs->GetIdx("image");
+    const int ts_img = m_imgs->GetIdx("tileset");
+    const int ats_img = m_imgs->GetIdx("ats");
+    const int fonts_img = m_imgs->GetIdx("fonts");
+    const int bs_img = m_imgs->GetIdx("big_tiles");
+    const int pal_img = m_imgs->GetIdx("palette");
+    const int rm_img = m_imgs->GetIdx("room");
+    const int spr_img = m_imgs->GetIdx("sprite");
+    wxTreeItemId nodeRoot = m_browser->AddRoot("");
+    wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
+    wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+    wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGL = m_browser->AppendItem(nodeG, "Lithograph", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
+    wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
+    wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
+    wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
+
+    m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+    m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+    m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+    m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+    m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+    m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+    m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+    m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
+    m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+
+    for (int i = 0; i < 255; ++i)
+    {
+        if (!m_g->GetSpriteData()->IsSprite(i))
+        {
+            continue;
+        }
+        auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
+        const auto& entities = m_g->GetSpriteData()->GetEntitiesFromSprite(i);
+        const auto& anims = m_g->GetSpriteData()->GetSpriteAnimations(i);
+        wxTreeItemId spr_node;
+        if (entities.size() > 0)
+        {
+            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entities[0]));
+            for (const auto& entity : entities)
+            {
+                auto entity_node = m_browser->AppendItem(spr_node, StrPrintf("Entity %03d", entity), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entity));
+                for (const auto& anim : anims)
+                {
+                    auto anim_node = m_browser->AppendItem(entity_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (1 << 8) | entity));
+                    const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
+                    for (const auto& frame : frames)
+                    {
+                        m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (2 << 8) | entity));
+                    }
+                }
+            }
+        }
+        else
+        {
+            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+        }
+    }
+
+    for (const auto& t : m_g->GetRoomData()->GetTilesets())
+    {
+        auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
+        {
+            m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
+        }
+        auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+        for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
+        {
+            m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
+        }
+    }
+
+    for (const auto& map : m_g->GetGraphicsData()->GetUIMaps())
+    {
+        m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
+    {
+        m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
+    {
+        m_browser->AppendItem(nodeGI, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    for (const auto& map : m_g->GetGraphicsData()->GetTitleScreenMap())
+    {
+        m_browser->AppendItem(nodeGT, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+
+    m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetStringData()->GetFonts())
+    {
+        m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
+    {
+        m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetUIGraphics())
+    {
+        m_browser->AppendItem(nodeGU, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
+    {
+        m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
+    {
+        m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetIslandMapTiles())
+    {
+        m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
+    {
+        m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGSe, m_g->GetGraphicsData()->GetSegaLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetGameLoadScreenTiles())
+    {
+        m_browser->AppendItem(nodeGLo, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+
+    for (const auto& room : m_g->GetRoomData()->GetRoomlist())
+    {
+        wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
+        m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
+        m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
+    }
+    m_mnu_save_as_asm->Enable(true);
+    m_mnu_save_to_rom->Enable(true);
+    m_mnu_export->Enable(true);
 }
 
 MainFrame::ReturnCode MainFrame::Save()
@@ -1025,13 +890,29 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 	event.Skip();
 }
 
-void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale)
+void MainFrame::DrawSprite(const std::string& name, int data, std::size_t scale)
 {
+    uint8_t entity = data & 0xFF;
+    uint8_t mode = (data >> 8);
+    auto pal = m_g->GetSpriteData()->GetSpritePalette(entity);
+    uint8_t spr = m_g->GetSpriteData()->GetSpriteFromEntity(entity);
+    std::shared_ptr<SpriteFrameEntry> frame;
+    if (mode == 0)
+    {
+        frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity);
+    }
+    else if (mode == 1)
+    {
+        frame = m_g->GetSpriteData()->GetSpriteFrame(name, 0);
+    }
+    else
+    {
+        frame = m_g->GetSpriteData()->GetSpriteFrame(name);
+    }
     m_scale = scale;
-	m_palette[2] = sprite.GetPalette();
 	m_imgbuf.Resize(160, 160);
-	sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
-    bmp = m_imgbuf.MakeBitmap(m_palette);
+    m_imgbuf.InsertSprite(80, 80, 0, *frame->GetData());
+    bmp = m_imgbuf.MakeBitmap({pal});
     ForceRepaint();
 }
 
@@ -1050,72 +931,6 @@ void MainFrame::DrawImage(const std::string& image, std::size_t scale)
         bmp = m_imgbuf.MakeBitmap({pal});
         ForceRepaint();
     }
-}
-
-void MainFrame::PopulatePalettes()
-{
-    PaletteO dummy_palette(m_rom);
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::ROOM); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Room Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::ROOM));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::LAVA); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Lava Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::LAVA));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::WARP); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Warp Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::WARP));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::FULL); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Full Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::FULL));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::LOW8); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Low8 Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::LOW8));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::HUD); ++i)
-    {
-        m_palettes->emplace(wxString::Format("HUD Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::HUD));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::SWORD); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Sword Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::SWORD));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::ARMOUR); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Armour Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::ARMOUR));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::PROJECTILE); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Projectile Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::PROJECTILE));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::SEGA_LOGO); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Sega Logo Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::SEGA_LOGO));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::CLIMAX_LOGO); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Climax Logo Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::CLIMAX_LOGO));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_YELLOW); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Yellow Fade Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_YELLOW));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_BLUE_FADE); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Blue Fade Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_BLUE_FADE));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::TITLE_SINGLE_COLOUR); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Block Colour Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::TITLE_SINGLE_COLOUR));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(PaletteO::Type::END_CREDITS); ++i)
-    {
-        m_palettes->emplace(wxString::Format("End Credits Palette %02d", i).ToStdString(), PaletteO(m_rom, i, PaletteO::Type::END_CREDITS));
-    }
-    m_selected_palette = m_palettes->find("Room Palette 00")->first;
 }
 
 void MainFrame::ShowStrings()
@@ -1239,14 +1054,14 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
-    m_sprites.clear();
-    Sprite::Reset();
-    PaletteO::Reset();
     m_g.reset();
     m_tilesetEditor->ClearGameData();
     m_stringEditor->ClearGameData();
     SetMode(MODE_NONE);
     this->SetLabel("Landstalker Graphics Viewer");
+    m_mnu_save_as_asm->Enable(false);
+    m_mnu_save_to_rom->Enable(false);
+    m_mnu_export->Enable(false);
     return ReturnCode::OK;
 }
 
@@ -1272,15 +1087,6 @@ void MainFrame::OpenFile(const wxString& path)
     {
         OpenRomFile(path);
     }
-}
-
-void MainFrame::InitPals(const wxTreeItemId& node)
-{
-    m_palette.clear();
-    m_palette.emplace_back(m_rom);
-    m_palette.emplace_back(m_rom);
-    m_palette.emplace_back(m_rom);
-    m_palette.emplace_back(m_rom);
 }
 
 void MainFrame::OnOpen(wxCommandEvent& event)
@@ -1504,25 +1310,23 @@ void MainFrame::Refresh()
         // Display room map
         ShowBitmap();
         EnableLayerControls(true);
-        InitRoom(m_roomnum);
-        PopulateRoomProperties(m_roomnum);
-        DrawTilemap(m_roomnum);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawTilemap(m_seldata);
         break;
     case MODE_SPRITE:
     {
         // Display sprite
         ShowBitmap();
         EnableLayerControls(false);
-        const auto& sprite = m_sprites[m_sprite_idx];
-        m_palette[1] = sprite.GetPalette();
-        DrawSprite(sprite, m_sprite_anim, m_sprite_frame, 4);
+        DrawSprite(m_selname, m_seldata, 4);
         break;
     }
     case MODE_IMAGE:
         // Display image
         ShowBitmap();
         EnableLayerControls(false);
-        DrawImage(m_selImage, 2);
+        DrawImage(m_selname, 2);
         break;
     case MODE_NONE:
     default:
@@ -1535,7 +1339,6 @@ void MainFrame::Refresh()
 
 bool MainFrame::ExportPng(const std::string& filename)
 {
-    m_imgbuf.WritePNG(filename, m_palette);
     return false;
 }
 
@@ -1600,26 +1403,23 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 
 void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
 {
-    auto item_text = m_browser->GetItemText(item);
+    m_selname = m_browser->GetItemText(item);
     TreeNodeData* item_data = static_cast<TreeNodeData*>(m_browser->GetItemData(item));
-    //m_properties->GetGrid()->Clear();
+    m_seldata = item_data->GetValue();
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:
-        m_stringEditor->SetMode(static_cast<StringEditorFrame::Mode>(item_data->GetValue()));
+        m_stringEditor->SetMode(static_cast<StringEditorFrame::Mode>(m_seldata));
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:
-        m_selname = item_text;
         SetMode(MODE_TILESET);
         break;
     case TreeNodeData::NODE_ANIM_TILESET:
-        m_selname = item_text;
         SetMode(MODE_ANIMATED_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:
     {
-        m_selname = item_text;
         SetMode(MODE_BLOCKSET);
         break;
     }
@@ -1629,33 +1429,26 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         break;
     }
     case TreeNodeData::NODE_ROOM:
-        m_roomnum = item_data->GetValue();
         SetMode(MODE_ROOMMAP);
         break;
     case TreeNodeData::NODE_ROOM_HEIGHTMAP:
         SetMode(MODE_ROOMMAP);
-        InitRoom(item_data->GetValue());
-        PopulateRoomProperties(m_roomnum);
-        DrawHeightmap(m_roomnum);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawHeightmap(m_seldata);
         break;
     case TreeNodeData::NODE_ROOM_WARPS:
         SetMode(MODE_ROOMMAP);
-        InitRoom(item_data->GetValue());
-        PopulateRoomProperties(m_roomnum);
-        DrawWarps(m_roomnum);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawWarps(m_seldata);
         break;
     case TreeNodeData::NODE_SPRITE:
     {
-        PaletteO pal;
-        uint32_t data = item_data->GetValue();
-        m_sprite_idx = data & 0xFF;
-        m_sprite_anim = (data >> 16) & 0xFF;
-        m_sprite_frame = (data >> 8) & 0xFF;
         SetMode(MODE_SPRITE);
         break;
     }
     case TreeNodeData::NODE_IMAGE:
-        m_selImage = item_text;
         SetMode(MODE_IMAGE);
         break;
     default:

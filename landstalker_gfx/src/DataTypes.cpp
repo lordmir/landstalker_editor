@@ -36,7 +36,7 @@ bool PaletteEntry::Serialise(const std::shared_ptr<Palette> in, ByteVectorPtr ou
 
 bool PaletteEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Palette>& out)
 {
-	out = std::make_shared<Palette>(*in, m_type);
+	out = std::make_shared<Palette>(GetName(), *in, m_type);
 	return true;
 }
 

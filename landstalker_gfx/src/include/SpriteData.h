@@ -3,6 +3,7 @@
 
 #include "DataManager.h"
 #include "DataTypes.h"
+#include <set>
 
 class SpriteData : public DataManager
 {
@@ -17,6 +18,38 @@ public:
 
 	virtual bool HasBeenModified() const;
 	virtual void RefreshPendingWrites(const Rom& rom);
+
+	bool IsEntity(uint8_t id) const;
+	bool IsSprite(uint8_t id) const;
+	bool IsItem(uint8_t sprite_id) const;
+	std::string GetSpriteName(uint8_t id) const;
+	uint8_t GetSpriteId(const std::string& name) const;
+	uint8_t GetSpriteFromEntity(uint8_t id) const;
+	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
+
+	std::pair<uint8_t, uint8_t> GetSpriteHitbox(uint8_t id) const;
+	void SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base);
+
+
+	uint32_t GetSpriteAnimationCount(uint8_t id) const;
+	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
+	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
+	uint32_t GetSpriteFrameCount(uint8_t id) const;
+	std::vector<std::string> GetSpriteFrames(uint8_t id) const;
+	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
+	std::shared_ptr<SpriteFrameEntry> GetDefaultEntityFrame(uint8_t id) const;
+	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& name) const;
+	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t frame) const;
+	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t anim, uint8_t frame) const;
+	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& anim_name, uint8_t frame) const;
+	uint32_t GetSpriteAnimationFrameCount(uint8_t id, uint8_t anim_id) const;
+	uint32_t GetSpriteAnimationFrameCount(const std::string& name) const;
+	std::vector<std::string> GetSpriteAnimationFrames(uint8_t id, uint8_t anim_id) const;
+	std::vector<std::string> GetSpriteAnimationFrames(const std::string& anim) const;
+	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
+
+	std::vector<std::array<uint8_t, 8>> GetRoomEntities(uint16_t room) const;
+	void SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities);
 
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
@@ -88,6 +121,10 @@ private:
 	filesystem::path m_room_sprite_table_offsets_file;
 	filesystem::path m_enemy_stats_file;
 	filesystem::path m_room_sprite_table_file;
+
+	std::map<uint8_t, std::string> m_names;
+	std::map<std::string, uint8_t> m_ids;
+	std::map<uint8_t, std::set<std::string>> m_sprite_frames;
 
 	std::map<uint8_t, uint16_t> m_sprite_mystery_data;
 	std::map<uint8_t, uint16_t> m_sprite_mystery_data_orig;

@@ -77,6 +77,22 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
     }
 }
 
+void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame)
+{
+    for (std::size_t i = 0; i < frame.GetSubSpriteCount(); ++i)
+    {
+        const auto& subs = frame.GetSubSprite(i);
+        std::size_t index = subs.tile_idx;
+        for (std::size_t xi = 0; xi < subs.w; ++xi)
+            for (std::size_t yi = 0; yi < subs.h; ++yi)
+            {
+                int xx = subs.x + xi * 8 + x;
+                int yy = subs.y + yi * 8 + y;
+                InsertTile(xx, yy, palette_index, Tile(index++), frame.GetTileset());
+            }
+    }
+}
+
 void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset)
 {
     for (int yy = 0; yy < map.GetHeight(); ++yy)
