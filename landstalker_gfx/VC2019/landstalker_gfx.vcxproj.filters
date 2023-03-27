@@ -159,7 +159,7 @@
     <ClCompile Include="..\src\SpriteData.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\include\PaletteListFrame.cpp">
+    <ClCompile Include="..\src\PaletteListFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

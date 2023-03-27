@@ -366,6 +366,11 @@ std::shared_ptr<PaletteEntry> RoomData::GetRoomPalette(uint8_t index) const
     return m_room_pals.at(index);
 }
 
+const std::vector<std::shared_ptr<PaletteEntry>>& RoomData::GetRoomPalettes() const
+{
+    return m_room_pals;
+}
+
 std::vector<std::shared_ptr<PaletteEntry>> RoomData::GetMiscPalette(const MiscPaletteType& type) const
 {
     switch (type)

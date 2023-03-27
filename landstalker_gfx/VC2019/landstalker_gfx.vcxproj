@@ -31,7 +31,7 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
-    <ClCompile Include="..\src\include\PaletteListFrame.cpp" />
+    <ClCompile Include="..\src\PaletteListFrame.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
     <ClCompile Include="..\src\LZ77.cpp" />

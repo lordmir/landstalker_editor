@@ -1,5 +1,4 @@
 #include "PaletteListFrame.h"
-#include "wx/textctrl.h"
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
@@ -7,7 +6,7 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	  m_mode(Mode::ROOM)
 {
 	m_mgr.SetManagedWindow(this);
-	m_test = new wxTextCtrl(this, wxID_ANY, "");
+	m_test = new wxListBox(this, wxID_ANY);
 
 	m_mgr.AddPane(m_test, wxAuiPaneInfo().CenterPane());
 
@@ -28,18 +27,66 @@ void PaletteListFrame::SetMode(Mode mode)
 
 void PaletteListFrame::Update()
 {
+    m_test->Clear();
     if (m_gd != nullptr)
     {
         switch (m_mode)
         {
         case Mode::ROOM:
-            m_test->SetValue("Room Palette");
+            for (const auto& p : m_gd->GetRoomData()->GetRoomPalettes())
+            {
+                m_test->Append(p->GetName());
+            }
             break;
         case Mode::ROOM_MISC:
-            m_test->SetValue("Misc Room Palettes");
+            for (const auto& type : { RoomData::MiscPaletteType::LANTERN, RoomData::MiscPaletteType::LAVA,
+                RoomData::MiscPaletteType::WARP })
+            {
+                for (const auto& p : m_gd->GetRoomData()->GetMiscPalette(type))
+                {
+                    m_test->Append(p->GetName());
+                }
+            }
+            break;
+        case Mode::MISC:
+            for (const auto& p : m_gd->GetGraphicsData()->GetOtherPalettes())
+            {
+                m_test->Append(p.first);
+            }
+            break;
+        case Mode::EQUIP:
+            for (const auto& p : m_gd->GetGraphicsData()->GetSwordPalettes())
+            {
+                m_test->Append(p.first);
+            }
+            for (const auto& p : m_gd->GetGraphicsData()->GetArmourPalettes())
+            {
+                m_test->Append(p.first);
+            }
+            break;
+        case Mode::SPRITE_HI:
+            for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
+            {
+                m_test->Append(m_gd->GetSpriteData()->GetHiPalette(i)->GetName());
+            }
+            break;
+        case Mode::SPRITE_LO:
+            for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
+            {
+                m_test->Append(m_gd->GetSpriteData()->GetLoPalette(i)->GetName());
+            }
+            break;
+        case Mode::PROJECTILE:
+            for (int i = 0; i < m_gd->GetSpriteData()->GetProjectile1PaletteCount(); ++i)
+            {
+                m_test->Append(m_gd->GetSpriteData()->GetProjectile1Palette(i)->GetName());
+            }
+            for (int i = 0; i < m_gd->GetSpriteData()->GetProjectile2PaletteCount(); ++i)
+            {
+                m_test->Append(m_gd->GetSpriteData()->GetProjectile2Palette(i)->GetName());
+            }
             break;
         default:
-            m_test->SetValue("???");
             break;
         }
     }

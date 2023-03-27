@@ -3,7 +3,7 @@
 
 #include "EditorFrame.h"
 #include "GameData.h"
-#include "wx/textctrl.h"
+#include "wx/listbox.h"
 
 class PaletteListFrame : public EditorFrame
 {
@@ -31,7 +31,7 @@ public:
 private:
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;
-	wxTextCtrl* m_test;
+	wxListBox* m_test;
 	std::string m_title;
 };
 

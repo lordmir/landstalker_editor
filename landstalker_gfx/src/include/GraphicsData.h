@@ -44,6 +44,9 @@ public:
     std::shared_ptr<Tilemap2DEntry> GetGameLoadScreenMap() const;
 
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> GetSwordPalettes() const;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> GetArmourPalettes() const;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> GetOtherPalettes() const;
 protected:
     virtual void CommitAllChanges();
 private:
@@ -147,6 +150,9 @@ private:
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_by_name;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_by_name_orig;
     std::map<std::string, std::shared_ptr<PaletteEntry>> m_palettes_internal;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_sword_palettes;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_armour_palettes;
+    std::map<std::string, std::shared_ptr<PaletteEntry>> m_misc_palettes;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_orig;
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> m_ui_tilemaps_internal;

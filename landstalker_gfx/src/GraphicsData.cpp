@@ -647,6 +647,42 @@ std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetAllPalette
 	return result;
 }
 
+std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetSwordPalettes() const
+{
+	return m_sword_palettes;
+}
+
+std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetArmourPalettes() const
+{
+	return m_armour_palettes;
+}
+
+std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetOtherPalettes() const
+{
+	std::map<std::string, std::shared_ptr<PaletteEntry>> result;
+	for (auto& t : m_misc_palettes)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_island_map_pals)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_title_pals)
+	{
+		result.insert(t);
+	}
+	for (auto& t : m_load_game_pals)
+	{
+		result.insert(t);
+	}
+	result.insert({ m_end_credits_palette->GetName(), m_end_credits_palette });
+	result.insert({ m_lithograph_palette->GetName(), m_lithograph_palette });
+	result.insert({ m_sega_logo_palette->GetName(), m_sega_logo_palette });
+	result.insert({ m_climax_logo_palette->GetName(), m_climax_logo_palette });
+	return result;
+}
+
 void GraphicsData::CommitAllChanges()
 {
 	auto entry_commit = [](const auto& e) {return e->Commit(); };
@@ -925,6 +961,18 @@ bool GraphicsData::AsmLoadPalettes()
 				auto e = PaletteEntry::Create(this, pal_bytes, name + ":" + std::to_string(idx++), inc.path, type);
 				m_palettes_by_name.insert({ e->GetName(), e });
 				m_palettes_internal.insert({ e->GetName(), e });
+				if (type == Palette::Type::SWORD)
+				{
+					m_sword_palettes.insert({ e->GetName(), e });
+				}
+				else if (type == Palette::Type::ARMOUR)
+				{
+					m_armour_palettes.insert({ e->GetName(), e });
+				}
+				else
+				{
+					m_misc_palettes.insert({ e->GetName(), e });
+				}
 			}
 		};
 		file.Goto(RomOffsets::Graphics::PLAYER_PAL);
@@ -1451,6 +1499,18 @@ bool GraphicsData::RomLoadPalettes(const Rom& rom)
 			auto e = PaletteEntry::Create(this, pal_bytes, name + ":" + std::to_string(idx++), fname, type);
 			m_palettes_by_name.insert({ e->GetName(), e });
 			m_palettes_internal.insert({ e->GetName(), e });
+			if (type == Palette::Type::SWORD)
+			{
+				m_sword_palettes.insert({ e->GetName(), e });
+			}
+			else if (type == Palette::Type::ARMOUR)
+			{
+				m_armour_palettes.insert({ e->GetName(), e });
+			}
+			else
+			{
+				m_misc_palettes.insert({ e->GetName(), e });
+			}
 		}
 	};
 	uint32_t player_addr = Disasm::ReadOffset16(rom, RomOffsets::Graphics::PLAYER_PAL);

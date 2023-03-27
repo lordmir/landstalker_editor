@@ -44,6 +44,7 @@ public:
 
     std::shared_ptr<PaletteEntry> GetRoomPalette(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetRoomPalette(uint8_t index) const;
+    const std::vector<std::shared_ptr<PaletteEntry>>& GetRoomPalettes() const;
     std::vector<std::shared_ptr<PaletteEntry>> GetMiscPalette(const MiscPaletteType& type) const;
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetAllPalettes() const;
     std::shared_ptr<PaletteEntry> GetDefaultTilesetPalette(const std::string& name) const;
