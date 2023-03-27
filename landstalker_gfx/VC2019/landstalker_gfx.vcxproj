@@ -31,6 +31,7 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
+    <ClCompile Include="..\src\include\PaletteListFrame.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
     <ClCompile Include="..\src\LZ77.cpp" />
@@ -97,6 +98,7 @@
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />
     <ClInclude Include="..\src\include\PaletteEditor.h" />
+    <ClInclude Include="..\src\include\PaletteListFrame.h" />
     <ClInclude Include="..\src\include\ResizeableGrid.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />

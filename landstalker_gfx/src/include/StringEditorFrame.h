@@ -29,8 +29,8 @@ public:
 	void SetMode(Mode mode);
 	void Update();
 
-	void SetGameData(std::shared_ptr<GameData> gd);
-	void ClearGameData();
+	virtual void SetGameData(std::shared_ptr<GameData> gd);
+	virtual void ClearGameData();
 private:
 	void InitColumns();
 	void ShowMainStrings();
@@ -58,7 +58,6 @@ private:
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	ResizeableGrid* m_stringView;
-	std::shared_ptr<GameData> m_gd;
 	std::string m_title;
 };
 

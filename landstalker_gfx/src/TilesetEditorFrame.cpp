@@ -89,7 +89,6 @@ static std::vector<T> CommaListToVec(const std::string& input)
 TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
 	  m_title(""),
-	  m_gd(nullptr),
 	  m_animated(false)
 {
 	m_mgr.SetManagedWindow(this);

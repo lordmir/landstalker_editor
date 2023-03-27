@@ -35,13 +35,18 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     wxGridSizer* sizer = new wxGridSizer(1);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
     m_stringEditor = new StringEditorFrame(this->m_scrollwindow);
+    m_paletteEditor = new PaletteListFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
+    m_editors.insert({ EditorType::TILESET, m_tilesetEditor });
+    m_editors.insert({ EditorType::STRING, m_stringEditor});
+    m_editors.insert({ EditorType::PALETTE, m_paletteEditor });
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
-    sizer->Add(m_stringEditor, 1, wxEXPAND | wxALL);
-    sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
+    for (const auto& editor : m_editors)
+    {
+        sizer->Add(editor.second, 1, wxEXPAND | wxALL);
+        sizer->Hide(editor.second);
+    }
     sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
-    sizer->Hide(m_stringEditor);
-    sizer->Hide(m_tilesetEditor);
     sizer->Hide(m_canvas);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
@@ -166,8 +171,10 @@ void MainFrame::InitUI()
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
-    m_tilesetEditor->SetGameData(m_g);
-    m_stringEditor->SetGameData(m_g);
+    for (const auto& editor : m_editors)
+    {
+        editor.second->SetGameData(m_g);
+    }
     SetMode(MODE_NONE);
 
     const int str_img = m_imgs->GetIdx("string");
@@ -195,7 +202,7 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
-    wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
+    wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
     wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
@@ -217,6 +224,21 @@ void MainFrame::InitUI()
         static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
     m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
         static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+
+    m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::ROOM)));
+    m_browser->AppendItem(nodeP, "Misc Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::ROOM_MISC)));
+    m_browser->AppendItem(nodeP, "Sprite Low Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::SPRITE_LO)));
+    m_browser->AppendItem(nodeP, "Sprite High Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::SPRITE_HI)));
+    m_browser->AppendItem(nodeP, "Sprite Projectile Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::PROJECTILE)));
+    m_browser->AppendItem(nodeP, "Equipment Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::EQUIP)));
+    m_browser->AppendItem(nodeP, "Misc Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::MISC)));
 
     for (int i = 0; i < 255; ++i)
     {
@@ -947,18 +969,38 @@ void MainFrame::ShowStrings()
     }
 }
 
-void MainFrame::ShowTileset()
+void MainFrame::ShowEditor(EditorType editor)
 {
-    if (!m_tilesetEditor->IsShown())
+    if (!m_editors.at(editor)->IsShown())
     {
-        m_activeEditor = m_tilesetEditor;
-        m_stringEditor->Hide();
+        m_activeEditor = m_editors.at(editor);
+        for (const auto& editor : m_editors)
+        {
+            if (editor.second != m_activeEditor)
+            {
+                editor.second->Hide();
+            }
+        }
         m_canvas->Hide();
-        m_tilesetEditor->Show();
+        m_activeEditor->Show();
         this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
     }
+}
+
+void MainFrame::HideAllEditors()
+{
+    m_activeEditor = nullptr;
+    for (const auto& editor : m_editors)
+    {
+        editor.second->Hide();
+    }
+}
+
+void MainFrame::ShowTileset()
+{
+    ShowEditor(EditorType::TILESET);
 }
 
 void MainFrame::ShowBitmap()
@@ -966,8 +1008,7 @@ void MainFrame::ShowBitmap()
     if (!m_canvas->IsShown())
     {
         m_activeEditor = nullptr;
-        m_stringEditor->Hide();
-        m_tilesetEditor->Hide();
+        HideAllEditors();
         m_canvas->Show();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_canvas, 1, wxALL | wxEXPAND);
@@ -1055,8 +1096,10 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
     m_g.reset();
-    m_tilesetEditor->ClearGameData();
-    m_stringEditor->ClearGameData();
+    for (const auto& editor : m_editors)
+    {
+        editor.second->ClearGameData();
+    }
     SetMode(MODE_NONE);
     this->SetLabel("Landstalker Graphics Viewer");
     m_mnu_save_as_asm->Enable(false);
@@ -1275,7 +1318,7 @@ void MainFrame::Refresh()
     case MODE_STRING:
     {
         ClearScreen();
-        ShowStrings();
+        ShowEditor(EditorType::STRING);
         EnableLayerControls(false);
         break;
     }
@@ -1284,7 +1327,7 @@ void MainFrame::Refresh()
         // Display tileset
         auto ts = m_g->GetTileset(m_selname);
         m_tilesetEditor->Open(m_selname);
-        ShowTileset();
+        ShowEditor(EditorType::TILESET);
         EnableLayerControls(false);
         break;
     }
@@ -1293,7 +1336,7 @@ void MainFrame::Refresh()
         // Display animated tileset
         auto ts = m_g->GetAnimatedTileset(m_selname);
         m_tilesetEditor->OpenAnimated(m_selname);
-        ShowTileset();
+        ShowEditor(EditorType::TILESET);
         EnableLayerControls(false);
         break;
     }
@@ -1304,7 +1347,9 @@ void MainFrame::Refresh()
         break;
     case MODE_PALETTE:
         // Display palettes
-        ShowBitmap();
+        ClearScreen();
+        ShowEditor(EditorType::PALETTE);
+        EnableLayerControls(false);
         break;
     case MODE_ROOMMAP:
         // Display room map
@@ -1423,9 +1468,10 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         SetMode(MODE_BLOCKSET);
         break;
     }
-    case TreeNodeData::NODE_ROOM_PAL:
+    case TreeNodeData::NODE_PALETTE:
     {
-        Refresh();
+        static_cast<PaletteListFrame*>(m_editors.at(EditorType::PALETTE))->SetMode(static_cast<PaletteListFrame::Mode>(m_seldata));
+        SetMode(MODE_PALETTE);
         break;
     }
     case TreeNodeData::NODE_ROOM:

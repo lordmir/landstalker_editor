@@ -29,8 +29,8 @@ public:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
-	void SetGameData(std::shared_ptr<GameData> gd);
-	void ClearGameData();
+	virtual void SetGameData(std::shared_ptr<GameData> gd);
+	virtual void ClearGameData();
 	void SetActivePalette(std::string name);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool Open(const std::string& name);
@@ -90,7 +90,6 @@ private:
 	Tile m_tile;
 	int m_inputBuffer;
 	mutable wxAuiManager m_mgr;
-	std::shared_ptr<GameData> m_gd;
 	bool m_animated;
 
 	std::string m_title;

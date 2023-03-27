@@ -159,6 +159,9 @@
     <ClCompile Include="..\src\SpriteData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\include\PaletteListFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -326,6 +329,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Images.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\PaletteListFrame.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,7 +2,6 @@
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
-	  m_gd(nullptr),
 	  m_title(""),
       m_mode(Mode::MODE_MAIN)
 {

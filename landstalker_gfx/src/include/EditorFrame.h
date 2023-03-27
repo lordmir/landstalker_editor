@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include <ImageList.h>
+#include "GameData.h"
 
 class EditorFrame : public wxWindow
 {
@@ -27,6 +28,8 @@ public:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	virtual bool Show(bool show = true);
 	virtual void UpdateUI() const;
+	virtual void SetGameData(std::shared_ptr<GameData> gd) {}
+	virtual void ClearGameData() { m_gd = nullptr; }
 protected:
 	void CheckMenuItem(int id, bool checked) const;
 	void CheckToolbarItem(const std::string& name, int id, bool checked) const;
@@ -45,6 +48,8 @@ protected:
 	wxAuiToolBar* GetToolbar(const std::string name) const;
 
 	void OnPaneClose(wxAuiManagerEvent& event);
+
+	std::shared_ptr<GameData> m_gd;
 
 private:
 	mutable bool m_props_init;

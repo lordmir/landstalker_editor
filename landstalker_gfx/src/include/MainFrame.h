@@ -11,6 +11,7 @@
 #include "ImageList.h"
 #include "TilesetEditorFrame.h"
 #include "StringEditorFrame.h"
+#include "PaletteListFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -70,7 +71,7 @@ private:
             NODE_TILESET,
             NODE_ANIM_TILESET,
             NODE_BLOCKSET,
-            NODE_ROOM_PAL,
+            NODE_PALETTE,
             NODE_ROOM,
             NODE_ROOM_HEIGHTMAP,
             NODE_ROOM_WARPS,
@@ -96,6 +97,15 @@ private:
         MODE_ROOMMAP,
         MODE_SPRITE
     };
+
+    enum class EditorType
+    {
+        TILESET,
+        STRING,
+        PALETTE,
+        MAP_VIEW,
+        NONE
+    };
 	void OnStatusBarInit(wxCommandEvent& event);
 	void OnStatusBarUpdate(wxCommandEvent& event);
 	void OnStatusBarClear(wxCommandEvent& event);
@@ -118,6 +128,8 @@ private:
     void ShowStrings();
     void ShowTileset();
     void ShowBitmap();
+    void ShowEditor(EditorType editor);
+    void HideAllEditors();
     void ForceRepaint();
     void ClearScreen();
     void GoToRoom(uint16_t room);
@@ -153,7 +165,9 @@ private:
 	ImageList* m_imgs;
     TilesetEditorFrame* m_tilesetEditor;
     StringEditorFrame* m_stringEditor;
-	EditorFrame* m_activeEditor;
+    PaletteListFrame* m_paletteEditor;
+    EditorFrame* m_activeEditor;
+    std::map<EditorType, EditorFrame*> m_editors;
     wxScrolledCanvas* m_canvas;
     std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
     std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
