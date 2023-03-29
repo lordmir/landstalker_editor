@@ -1,6 +1,5 @@
 #include "PaletteListFrame.h"
 #include <cstdint>
-#include <wx/window.h>
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
@@ -204,6 +203,7 @@ void PaletteListFrame::OnKeyPress(wxKeyEvent& evt)
     case WXK_RIGHT:
         m_renderer->MoveCursorRight();
         m_list->Refresh();
+        m_model->ValueChanged(m_list->GetSelection(), 1);
         break;
     }
     evt.Skip();

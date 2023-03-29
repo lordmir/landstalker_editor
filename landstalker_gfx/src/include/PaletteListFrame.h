@@ -1,7 +1,7 @@
 #ifndef _PALETTE_LIST_FRAME_H_
 #define _PALETTE_LIST_FRAME_H_
 
-#include "wx/dataview.h"
+#include <wx/dataview.h>
 #include "DataViewCtrlPaletteModel.h"
 #include "DataViewCtrlPaletteRenderer.h"
 #include "EditorFrame.h"
