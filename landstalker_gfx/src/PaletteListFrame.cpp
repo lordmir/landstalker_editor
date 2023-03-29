@@ -7,13 +7,13 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	  m_mode(Mode::ROOM)
 {
 	m_mgr.SetManagedWindow(this);
-	m_list = new wxDataViewCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_VARIABLE_LINE_HEIGHT);
+	m_list = new wxDataViewCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_NO_HEADER | wxDV_VARIABLE_LINE_HEIGHT | wxWANTS_CHARS);
 
     wxDataViewTextRenderer* tr = new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_INERT);
     m_renderer = new DataViewCtrlPaletteRenderer(this, wxDATAVIEW_CELL_ACTIVATABLE);
 
     wxDataViewColumn* column0 = new wxDataViewColumn("Name", tr, 0, 200, wxALIGN_LEFT,
-            wxDATAVIEW_COL_SORTABLE | wxDATAVIEW_COL_RESIZABLE);
+            wxDATAVIEW_COL_RESIZABLE);
     wxDataViewColumn* column1 = new wxDataViewColumn("Palette", m_renderer, 1, 30, wxALIGN_LEFT,
             wxDATAVIEW_COL_RESIZABLE);
 
@@ -34,6 +34,7 @@ PaletteListFrame::~PaletteListFrame()
 {
     m_list->Disconnect(wxEVT_CHAR, wxKeyEventHandler(PaletteListFrame::OnKeyPress), nullptr, this);
     m_list->GetMainWindow()->Disconnect(wxEVT_MOTION, wxMouseEventHandler(PaletteListFrame::OnMouseMove), nullptr, this);
+    m_list->GetMainWindow()->Disconnect(wxEVT_LEAVE_WINDOW, wxMouseEventHandler(PaletteListFrame::OnMouseLeave), nullptr, this);
 }
 
 void PaletteListFrame::SetMode(Mode mode)
@@ -126,69 +127,69 @@ void PaletteListFrame::ClearGameData()
 
 void PaletteListFrame::UpdateStatusBar(wxStatusBar& status) const
 {
-    status.SetStatusText(m_status_text, 0);
+    int sel_colour = m_renderer->GetCursorPosition();
+    auto sel_item = m_list->GetSelection();
+    if(sel_item != m_prev_itm || sel_colour != m_prev_colour)
+    {
+        if(sel_item.IsOk() && sel_colour >= 0)
+        {
+            int row = reinterpret_cast<intptr_t>(sel_item.GetID()) - 1;
+            wxVariant data;
+            m_model->GetValueByRow(data, row, 1);
+            PaletteEntry* p = static_cast<PaletteEntry*>(data.GetVoidPtr());
+            if(sel_colour < p->GetData()->GetSize())
+            {
+                const auto& c = p->GetData()->GetNthUnlockedColour(sel_colour);
+                status.SetStatusText(StrPrintf("%s, Index %d - Genesis: 0x%04X, RGB: #%06X",
+                    p->GetName().c_str(), p->GetData()->GetNthUnlockedIndex(sel_colour), c.GetGenesis(), c.GetRGB(false)), 0);
+            }
+        }
+        else
+        {
+            status.SetStatusText("");
+        }
+        m_prev_itm = sel_item;
+        m_prev_colour = sel_colour;
+    }
 }
 
 void PaletteListFrame::OnMouseMove(wxMouseEvent& evt)
 {
     // The HitTest() function uses this way to convert the coordinates
     wxPoint pos = m_list->ScreenToClient(m_list->GetMainWindow()->ClientToScreen(evt.GetPosition()));
-
-    bool show_tip = false;
     wxDataViewItem itm;
     wxDataViewColumn* col;
     m_list->HitTest(pos, itm, col);
 
-    if (itm.IsOk() && col->GetModelColumn() == 1)
+    if (itm.IsOk())
     {
-        auto rect = m_list->GetItemRect(itm, col);
-        int colour = m_renderer->HitColour({evt.GetX() - rect.GetX(), evt.GetY()}, false);
-        if (itm != m_prev_itm || colour != m_prev_colour)
+        int colour = 0;
+        if (col->GetModelColumn() == 1)
         {
-            m_prev_itm = itm;
-            m_prev_colour = colour;
-            wxVariant data;
-            m_model->GetValueByRow(data, reinterpret_cast<std::intptr_t>(itm.GetID()) - 1, 1);
-            PaletteEntry* p = static_cast<PaletteEntry*>(data.GetVoidPtr());
-            wxLogDebug("%s - %d", p->GetName(), colour);
-            if (colour >= 0 && colour < p->GetData()->GetSize())
-            {
-                const auto& c = p->GetData()->GetNthUnlockedColour(colour);
-                m_list->Select(itm);
-                m_renderer->SetCursorPosition(colour);
-                m_list->GetMainWindow()->SetToolTip(wxString::Format("%s, Index %d\n0x%04X, #%06X",
-                    p->GetName(), p->GetData()->GetNthUnlockedIndex(colour), c.GetGenesis(), c.GetRGB(false)));
-                m_status_text = StrPrintf("%s, Index %d - Genesis: 0x%04X, RGB: #%06X",
-                    p->GetName().c_str(), p->GetData()->GetNthUnlockedIndex(colour), c.GetGenesis(), c.GetRGB(false));
-                show_tip = true;
-                m_showing_tip = true;
-                FireEvent(EVT_STATUSBAR_UPDATE);
-            }
-            else
-            {
-                m_list->GetMainWindow()->SetToolTip("");
-                m_status_text = "";
-                FireEvent(EVT_STATUSBAR_UPDATE);
-                m_showing_tip = false;
-            }
+            auto rect = m_list->GetItemRect(itm, col);
+            colour = m_renderer->HitColour({evt.GetX() - rect.GetX(), evt.GetY()}, false);
         }
+        if (itm != m_prev_itm)
+        {
+            m_list->Select(itm);
+        }
+        if (colour != m_prev_colour)
+        {
+            m_renderer->SetCursorPosition(colour);
+            m_model->ValueChanged(itm, 1);
+        }
+        FireEvent(EVT_STATUSBAR_UPDATE);
     }
     else
     {
-        m_list->GetMainWindow()->SetToolTip("");
-        m_status_text = "";
         FireEvent(EVT_STATUSBAR_UPDATE);
-        m_showing_tip = false;
     }
     evt.Skip();
 }
 
 void PaletteListFrame::OnMouseLeave(wxMouseEvent& evt)
 {
-    m_list->GetMainWindow()->SetToolTip("");
-    m_status_text = "";
     FireEvent(EVT_STATUSBAR_UPDATE);
-    m_showing_tip = false;
     evt.Skip();
 }
 
@@ -198,14 +199,21 @@ void PaletteListFrame::OnKeyPress(wxKeyEvent& evt)
     {
     case WXK_LEFT:
         m_renderer->MoveCursorLeft();
-        m_list->Refresh();
+        m_list->Refresh(true);
+        m_model->ValueChanged(m_list->GetSelection(), 1);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        evt.Skip(false);
         break;
     case WXK_RIGHT:
         m_renderer->MoveCursorRight();
-        m_list->Refresh();
+        m_list->Refresh(true);
         m_model->ValueChanged(m_list->GetSelection(), 1);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        evt.Skip(false);
         break;
+    default:
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        evt.Skip();
     }
-    evt.Skip();
 }
 
