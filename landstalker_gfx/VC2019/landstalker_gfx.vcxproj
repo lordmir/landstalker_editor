@@ -21,6 +21,8 @@
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
     <ClCompile Include="..\src\DataManager.cpp" />
+    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
+    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\EntryPreferences.cpp" />
@@ -31,8 +33,6 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
-    <ClCompile Include="..\src\include\DataViewCtrlPaletteModel.cpp" />
-    <ClCompile Include="..\src\include\DataViewCtrlPaletteRenderer.cpp" />
     <ClCompile Include="..\src\PaletteListFrame.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />

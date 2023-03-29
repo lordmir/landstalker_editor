@@ -162,10 +162,10 @@
     <ClCompile Include="..\src\PaletteListFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\include\DataViewCtrlPaletteRenderer.cpp">
+    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\include\DataViewCtrlPaletteModel.cpp">
+    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
