@@ -14,57 +14,46 @@
 #include <wx/aboutdlg.h>
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
+#include <wx/richmsgdlg.h>
 #include <wx/colour.h>
 #include <wx/graphics.h>
 
-#include "LZ77.h"
-#include "BlocksetCmp.h"
-#include "LSTilemapCmp.h"
 #include "Rom.h"
-#include "ImageBuffer.h"
-#include "SpriteFrame.h"
-#include "Utils.h"
-#include "Tilemap2DRLE.h"
 #include "Blockmap2D.h"
-#include "RomOffsets.h"
-#include "HuffmanString.h"
-#include "IntroString.h"
-#include "EndCreditString.h"
-#include "Charset.h"
+#include "ImageBuffer.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
-      m_gfxBuffer(65536),
-      m_gfxSize(0),
       m_scale(1),
-      m_rpalidx(0),
-      m_tsidx(0),
-      m_bs1(0),
-      m_bs2(0),
       m_roomnum(0),
-      m_sprite_idx(0),
-      m_sprite_anim(0),
-      m_sprite_frame(0),
-      m_strtab(0),
       m_mode(MODE_NONE),
       m_layer_controls_enabled(false),
-      m_palettes(std::make_shared<std::map<std::string, Palette>>()),
-	  m_activeEditor(nullptr)
+	  m_activeEditor(nullptr),
+      m_g(nullptr)
 {
     m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
-    m_stringView = new wxDataViewListCtrl(this->m_scrollwindow, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
+    m_stringEditor = new StringEditorFrame(this->m_scrollwindow);
+    m_paletteEditor = new PaletteListFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
-    sizer->Add(m_stringView, 1, wxEXPAND | wxALL);
-    sizer->Add(m_tilesetEditor, 1, wxEXPAND | wxALL);
+    m_editors.insert({ EditorType::TILESET, m_tilesetEditor });
+    m_editors.insert({ EditorType::STRING, m_stringEditor});
+    m_editors.insert({ EditorType::PALETTE, m_paletteEditor });
+    m_scrollwindow->SetBackgroundColour(*wxBLACK);
+    for (const auto& editor : m_editors)
+    {
+        sizer->Add(editor.second, 1, wxEXPAND | wxALL);
+        sizer->Hide(editor.second);
+    }
     sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
-    sizer->Hide(m_stringView);
-    sizer->Hide(m_tilesetEditor);
     sizer->Hide(m_canvas);
     this->m_scrollwindow->SetSizer(sizer);
     sizer->Layout();
     SetMode(MODE_NONE);
+    m_mnu_save_as_asm->Enable(false);
+    m_mnu_save_to_rom->Enable(false);
+    m_mnu_export->Enable(false);
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
@@ -116,6 +105,8 @@ MainFrame::~MainFrame()
     m_canvas->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrame::OnScrollWindowKeyUp), NULL, this);
     m_canvas->Disconnect(wxEVT_MOTION, wxMouseEventHandler(MainFrame::OnScrollWindowMouseMove), NULL, this);
     m_canvas->Disconnect(wxEVT_SIZE, wxSizeEventHandler(MainFrame::OnScrollWindowResize), NULL, this);
+
+    delete m_imgs;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)
@@ -139,178 +130,17 @@ void MainFrame::OpenRomFile(const wxString& path)
 {
     try
     {
+        if (CloseFiles() != ReturnCode::OK)
+        {
+            return;
+        }
         m_rom.load_from_file(static_cast<std::string>(path));
+        m_g = std::make_shared<GameData>(m_rom);
         this->SetLabel("Landstalker Graphics Viewer - " + m_rom.get_description());
-        PopulatePalettes();
-
-        m_browser->DeleteAllItems();
-        m_browser->SetImageList(m_imgs);
-        m_properties->GetGrid()->Clear();
-        m_sprites.clear();
-        m_tilesetOffsets.clear();
-        m_blockOffsets.clear();
-        m_strings.clear();
-        Sprite::Reset();
-        Palette::Reset();
-        m_tsmgr.reset();
-        m_rmgr.reset();
-        SetMode(MODE_NONE);
-
-        const int str_img = m_imgs->GetIdx("string");
-        const int img_img = m_imgs->GetIdx("image");
-        const int ts_img = m_imgs->GetIdx("tileset");
-        const int ats_img = m_imgs->GetIdx("ats");
-        const int fonts_img = m_imgs->GetIdx("fonts");
-        const int bs_img = m_imgs->GetIdx("big_tiles");
-        const int pal_img = m_imgs->GetIdx("palette");
-        const int rm_img = m_imgs->GetIdx("room");
-        const int spr_img = m_imgs->GetIdx("sprite");
-        wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
-        wxTreeItemId nodeI = m_browser->AppendItem(nodeRoot, "Images", img_img, img_img, new TreeNodeData());
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
-        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-        wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
-        wxTreeItemId nodeRPal = m_browser->AppendItem(nodeRoot, "Room Palettes", pal_img, pal_img, new TreeNodeData());
-        wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
-        wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
-
-        wxTreeItemId x;
-
-        m_images = Images::GetImages(m_rom);
-        for (const auto elem : m_images)
-        {
-            x = m_browser->AppendItem(nodeI, elem.first, img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE, 0));
-        }
-
-        x = m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 0));
-        x = m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 1));
-        x = m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 2));
-        x = m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 3));
-        x = m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 4));
-        x = m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 5));
-        x = m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 6));
-        x = m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING, 7));
-        auto huffman_trees = m_rom.read_array<uint8_t>("huff_tables");
-        auto huffman_tree_offsets = m_rom.read_array<uint8_t>("huff_table_offsets");
-        auto huff_trees = std::make_shared<HuffmanTrees>(huffman_tree_offsets.data(), huffman_tree_offsets.size(), huffman_trees.data(), huffman_trees.size(), huffman_tree_offsets.size()/2);
-        auto string_bank_pointers = m_rom.read_array<uint32_t>("compressed_string_banks");
-        auto charset = Charset::GetDefaultCharset(m_rom.get_region());
-        auto eos_marker = Charset::GetEOSChar(m_rom.get_region());
-        auto diacritic_map = Charset::GetDiacriticMap(m_rom.get_region());
-        uint32_t p = string_bank_pointers[0];
-        m_strings.push_back({});
-        do
-        {
-            m_strings.back().push_back(std::make_shared<HuffmanString>(huff_trees, charset, eos_marker, diacritic_map));
-            p += m_strings.back().back()->Decode(m_rom.data(p), m_rom.read<uint8_t>(p));
-        } while (m_rom.read<uint8_t>(p) != 0xFF && m_rom.read<uint8_t>(p) != 0);
-
-        auto decode_table = [&](const std::vector<uint8_t> & table)
-        {
-            const uint8_t* ptr = table.data();
-            const uint8_t* end = ptr + table.size();
-            m_strings.push_back({});
-            do
-            {
-                m_strings.back().push_back(std::make_shared<LSString>(charset, diacritic_map));
-                ptr += m_strings.back().back()->Decode(ptr, end - ptr);
-            } while (*ptr != 0xFF && *ptr + ptr < end);
-        };
-        decode_table(m_rom.read_array<uint8_t>("character_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("special_char_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("default_char_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("item_name_table"));
-        decode_table(m_rom.read_array<uint8_t>("menu_string_table"));
-
-        auto intro_string_pointers = m_rom.read_array<uint32_t>("intro_string_pointers");
-        m_strings.push_back({});
-        for(auto s : intro_string_pointers)
-        {
-            m_strings.back().push_back(std::make_shared<IntroString>());
-            m_strings.back().back()->Decode(m_rom.data(s), 255);
-        }
-        
-        auto end_credit_strings = m_rom.read_array<uint8_t>("end_credit_strings");
-        const uint8_t* ptr = end_credit_strings.data();
-        const uint8_t* end = ptr + end_credit_strings.size();
-        m_strings.push_back({});
-        do
-        {
-            m_strings.back().push_back(std::make_shared<EndCreditString>());
-            ptr += m_strings.back().back()->Decode(ptr, end - ptr);
-        } while (ptr < end - 2);
-
-        for (std::size_t i = 0; i < 255; i++)
-        {
-            m_sprites.emplace(i, Sprite(m_rom, i));
-			// Remove any sprites that do not have any corresponding graphics
-			if (m_sprites[i].GetGraphicsIdx() == -1)
-			{
-				m_sprites.erase(i);
-			}
-        }
-
-        for (const auto& sprite : m_sprites)
-        {
-            const auto& sg = sprite.second.GetGraphics();
-            auto spr = m_browser->AppendItem(nodeSprites, sprite.second.GetName(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE,
-                                             sprite.second.GetDefaultAnimationId() << 16 | sprite.second.GetDefaultFrameId() << 8 | sprite.first));
-
-            for (std::size_t a = 0; a != sg.GetAnimationCount(); ++a)
-            {
-                std::ostringstream ss;
-                ss.str(std::string());
-                ss << "ANIM" << a;
-                wxTreeItemId anim = m_browser->AppendItem(spr, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | sprite.first));
-                for (std::size_t f = 0; f != sg.GetFrameCount(a); ++f)
-                {
-                    ss.str(std::string());
-                    ss << "FRAME" << f;
-                    m_browser->AppendItem(anim, ss.str(), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, a << 16 | f << 8 | sprite.first));
-                }
-            }
-        }
-
-        m_tilesetOffsets = m_rom.read_array<uint32_t>("tileset_offset_table");
-        m_tsmgr = std::make_shared<TilesetManager>(m_rom);
-        m_tilesetEditor->SetTilesetManager(m_tsmgr);
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
-        {
-            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
-        {
-            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
-        {
-            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        auto bt = m_rom.read_array<uint32_t>("blockset_ptr_table");
-        for (std::size_t i = 0; i < bt.size(); ++i)
-        {
-			auto bt_ptr = bt[i];
-            m_blockOffsets.push_back(m_rom.read_array<uint32_t>(bt_ptr, 9));
-            wxTreeItemId curTn = m_browser->AppendItem(nodeBs, Hex(bt_ptr), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16));
-            for (std::size_t j = 0; j < 9; ++j)
-            {
-                m_browser->AppendItem(curTn, Hex(m_blockOffsets.back()[j]), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, i << 16 | j));
-            }
-        }
-        m_rmgr = std::make_shared<RoomManager>(m_rom);
-        for (std::size_t i = 0; i < m_rmgr->GetRoomCount(); i++)
-        {
-            std::string name = StrPrintf("Room%03u", i);
-            wxTreeItemId cRm = m_browser->AppendItem(nodeRm, name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, i));
-            m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, i));
-            m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, i));
-        }
-        InitPals(nodeRPal);
+        InitUI();
         m_asmfile = false;
     }
-    catch(const std::runtime_error& e)
+    catch (const std::runtime_error& e)
     {
         CloseFiles(true);
         wxMessageBox(e.what());
@@ -326,29 +156,9 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
-        const int ts_img = m_imgs->GetIdx("tileset");
-        const int ats_img = m_imgs->GetIdx("ats");
-        const int fonts_img = m_imgs->GetIdx("fonts");
-        wxTreeItemId nodeRoot = m_browser->AddRoot("");
-        wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
-        wxTreeItemId nodeATs = m_browser->AppendItem(nodeRoot, "Animated Tilesets", ats_img, ats_img, new TreeNodeData());
-        wxTreeItemId nodeF = m_browser->AppendItem(nodeRoot, "Fonts", fonts_img, fonts_img, new TreeNodeData());
-
-        m_tsmgr = std::make_shared<TilesetManager>(path.ToStdString());
-        m_tilesetEditor->SetTilesetManager(m_tsmgr);
-        m_rmgr = std::make_shared<RoomManager>(path.ToStdString());
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::MAP))
-        {
-            m_browser->AppendItem(nodeTs, t, ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::ANIMATED_MAP))
-        {
-            m_browser->AppendItem(nodeATs, t, ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
-        for (const auto& t : m_tsmgr->GetTilesetList(TilesetManager::Type::FONT))
-        {
-            m_browser->AppendItem(nodeF, t, fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
-        }
+        m_g = std::make_shared<GameData>(path.ToStdString());
+        this->SetLabel("Landstalker Graphics Viewer - " + path);
+        InitUI();
         m_asmfile = true;
     }
     catch (const std::runtime_error& e)
@@ -356,6 +166,197 @@ void MainFrame::OpenAsmFile(const wxString& path)
         CloseFiles(true);
         wxMessageBox(e.what());
     }
+}
+
+void MainFrame::InitUI()
+{
+    m_browser->DeleteAllItems();
+    m_browser->SetImageList(m_imgs);
+    m_properties->GetGrid()->Clear();
+    for (const auto& editor : m_editors)
+    {
+        editor.second->SetGameData(m_g);
+    }
+    SetMode(MODE_NONE);
+
+    const int str_img = m_imgs->GetIdx("string");
+    const int img_img = m_imgs->GetIdx("image");
+    const int ts_img = m_imgs->GetIdx("tileset");
+    const int ats_img = m_imgs->GetIdx("ats");
+    const int fonts_img = m_imgs->GetIdx("fonts");
+    const int bs_img = m_imgs->GetIdx("big_tiles");
+    const int pal_img = m_imgs->GetIdx("palette");
+    const int rm_img = m_imgs->GetIdx("room");
+    const int spr_img = m_imgs->GetIdx("sprite");
+    wxTreeItemId nodeRoot = m_browser->AddRoot("");
+    wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
+    wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
+    wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGS = m_browser->AppendItem(nodeG, "Status Effects", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGW = m_browser->AppendItem(nodeG, "Sword Effects", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeGE = m_browser->AppendItem(nodeG, "End Credits", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGI = m_browser->AppendItem(nodeG, "Island Map", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGL = m_browser->AppendItem(nodeG, "Lithograph", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGT = m_browser->AppendItem(nodeG, "Title Screen", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
+    wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
+    wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
+    wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
+
+    m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+    m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+    m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+    m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+    m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+    m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+    m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+    m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
+    m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+        static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+
+    m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::ROOM)));
+    m_browser->AppendItem(nodeP, "Misc Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::ROOM_MISC)));
+    m_browser->AppendItem(nodeP, "Sprite Low Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::SPRITE_LO)));
+    m_browser->AppendItem(nodeP, "Sprite High Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::SPRITE_HI)));
+    m_browser->AppendItem(nodeP, "Sprite Projectile Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::PROJECTILE)));
+    m_browser->AppendItem(nodeP, "Equipment Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::EQUIP)));
+    m_browser->AppendItem(nodeP, "Misc Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
+        static_cast<int>(PaletteListFrame::Mode::MISC)));
+
+    for (int i = 0; i < 255; ++i)
+    {
+        if (!m_g->GetSpriteData()->IsSprite(i))
+        {
+            continue;
+        }
+        auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
+        const auto& entities = m_g->GetSpriteData()->GetEntitiesFromSprite(i);
+        const auto& anims = m_g->GetSpriteData()->GetSpriteAnimations(i);
+        wxTreeItemId spr_node;
+        if (entities.size() > 0)
+        {
+            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entities[0]));
+            for (const auto& entity : entities)
+            {
+                auto entity_node = m_browser->AppendItem(spr_node, StrPrintf("Entity %03d", entity), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entity));
+                for (const auto& anim : anims)
+                {
+                    auto anim_node = m_browser->AppendItem(entity_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (1 << 8) | entity));
+                    const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
+                    for (const auto& frame : frames)
+                    {
+                        m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (2 << 8) | entity));
+                    }
+                }
+            }
+        }
+        else
+        {
+            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+        }
+    }
+
+    for (const auto& t : m_g->GetRoomData()->GetTilesets())
+    {
+        auto ts_node = m_browser->AppendItem(nodeTs, t->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+        for (const auto& at : m_g->GetRoomData()->GetAnimatedTilesets(t->GetName()))
+        {
+            m_browser->AppendItem(ts_node, at->GetName(), ats_img, ats_img, new TreeNodeData(TreeNodeData::NODE_ANIM_TILESET));
+        }
+        auto pri = m_browser->AppendItem(nodeBs, t->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+        for (const auto& bs : m_g->GetRoomData()->GetBlocksetList(t->GetName()))
+        {
+            m_browser->AppendItem(pri, bs->GetName(), bs_img, bs_img, new TreeNodeData(TreeNodeData::NODE_BLOCKSET, (bs->GetIndex().first << 8) | bs->GetIndex().second));
+        }
+    }
+
+    for (const auto& map : m_g->GetGraphicsData()->GetUIMaps())
+    {
+        m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    for (const auto& map : m_g->GetStringData()->GetTextboxMaps())
+    {
+        m_browser->AppendItem(nodeGU, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosMaps()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    for (const auto& map : m_g->GetGraphicsData()->GetIslandMapMaps())
+    {
+        m_browser->AppendItem(nodeGI, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    for (const auto& map : m_g->GetGraphicsData()->GetTitleScreenMap())
+    {
+        m_browser->AppendItem(nodeGT, map->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    }
+    m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+    m_browser->AppendItem(nodeGLo, m_g->GetGraphicsData()->GetGameLoadScreenMap()->GetName(), img_img, img_img, new TreeNodeData(TreeNodeData::NODE_IMAGE));
+
+    m_browser->AppendItem(nodeGF, m_g->GetRoomData()->GetIntroFont()->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetStringData()->GetFonts())
+    {
+        m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetFonts())
+    {
+        m_browser->AppendItem(nodeGF, ts->GetName(), fonts_img, fonts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetUIGraphics())
+    {
+        m_browser->AppendItem(nodeGU, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetStatusEffects())
+    {
+        m_browser->AppendItem(nodeGS, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    for (const auto& ts : m_g->GetGraphicsData()->GetSwordEffects())
+    {
+        m_browser->AppendItem(nodeGW, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGE, m_g->GetGraphicsData()->GetEndCreditLogosTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetIslandMapTiles())
+    {
+        m_browser->AppendItem(nodeGI, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGL, m_g->GetGraphicsData()->GetLithographTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetTitleScreenTiles())
+    {
+        m_browser->AppendItem(nodeGT, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+    m_browser->AppendItem(nodeGSe, m_g->GetGraphicsData()->GetSegaLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    m_browser->AppendItem(nodeGC, m_g->GetGraphicsData()->GetClimaxLogoTiles()->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    for (const auto& ts : m_g->GetGraphicsData()->GetGameLoadScreenTiles())
+    {
+        m_browser->AppendItem(nodeGLo, ts->GetName(), ts_img, ts_img, new TreeNodeData(TreeNodeData::NODE_TILESET));
+    }
+
+    for (const auto& room : m_g->GetRoomData()->GetRoomlist())
+    {
+        wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
+        m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
+        m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
+    }
+    m_mnu_save_as_asm->Enable(true);
+    m_mnu_save_to_rom->Enable(true);
+    m_mnu_export->Enable(true);
 }
 
 MainFrame::ReturnCode MainFrame::Save()
@@ -384,18 +385,15 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
             }
             path = dlg.GetPath().ToStdString();
         }
-        if (m_tsmgr)
+        if (m_g)
         {
-            m_tsmgr->Save(path);
-        }
-        if (m_rmgr)
-        {
-            m_rmgr->Save(path);
+            m_g->Save(path);
         }
         return ReturnCode::OK;
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        throw;
     }
     return ReturnCode::ERR;
 }
@@ -432,48 +430,86 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
             }
             path = fdlog.GetPath().ToStdString();
         }
-        if (m_tsmgr)
+        if (m_g)
         {
-            int ts_size, anim_ts_size;
-            if (m_tsmgr->CheckDataWillFitInRom(m_rom, ts_size, anim_ts_size) == false)
+            std::ostringstream message, details;
+            m_g->RefreshPendingWrites(m_rom);
+            auto result = m_g->GetPendingWrites();
+            bool warning = false;
+            if (!m_g->WillFitInRom(m_rom))
             {
-                std::ostringstream ss;
-                ss << "Warning: Data will not fit in ROM without overwriting existing structures!\n"
-                    << "  Animated tileset table has"
-                    << ((anim_ts_size < 0) ? " overrun by " : " spare space of ") << std::abs(anim_ts_size)
-                    << " bytes.\n" << "  Tileset listing has" << ((ts_size < 0) ? " overrun by " : " spare space of ")
-                    << std::abs(ts_size) << " bytes.\n\n"
-                    << "To work around this issue, is recommended to use a disassembly source.\n"
-                    << "Still proceed with saving to ROM?";
-                int answer = wxMessageBox(ss.str(), "Warning", wxYES_NO | wxICON_EXCLAMATION);
-                if (answer == wxNO)
-                {
-                    return ReturnCode::CANCELLED;
-                }
+                message << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
+                message << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
+                warning = true;
             }
-            m_tsmgr->InjectIntoRom(m_rom);
-            m_rom.writeFile(path);
-            return ReturnCode::OK;
+            else
+            {
+                message << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
+            }
+            for (const auto& w : result)
+            {
+                uint32_t addr = 0;
+                uint32_t size = 0;
+                if (m_rom.section_exists(w.first))
+                {
+                    auto sec = m_rom.get_section(w.first);
+                    addr = sec.begin;
+                    size = sec.size();
+                }
+                else if (m_rom.address_exists(w.first))
+                {
+                    addr = m_rom.get_address(w.first);
+                    size = sizeof(uint32_t);
+                }
+                details << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
+                    << size << " bytes: " << ((w.second->size() <= size) ? "OK" : "BAD") << std::endl;
+            }
+            message << "\nProceed?";
+            auto msgbox = wxRichMessageDialog(this, message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+            msgbox.ShowDetailedText(details.str());
+            int answer = msgbox.ShowModal();
+            if (answer != wxID_YES)
+            {
+                m_g->AbandomRomInjection();
+                return ReturnCode::CANCELLED;
+            }
+            else
+            {
+                Rom output(m_rom);
+                m_g->InjectIntoRom(output);
+                output.writeFile(path);
+                return ReturnCode::OK;
+            }
         }
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        throw;
     }
     return ReturnCode::ERR;
 }
 
-void MainFrame::DrawBlocks(std::size_t row_width, std::size_t scale, uint8_t pal)
+void MainFrame::DrawBlocks(const std::string& name, std::size_t row_width, std::size_t scale, uint8_t pal)
 {
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, m_blocks.size());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, m_blocks.size() / ROW_WIDTH + (m_blocks.size() % ROW_WIDTH != 0));
-    Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, m_tilebmps.GetTileWidth(), m_tilebmps.GetTileHeight(), 0, 0, 0);
-    m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
-    map.SetTileset(std::make_shared<Tileset>(m_tilebmps));
-    map.SetBlockset(std::make_shared<std::vector<MapBlock>>(m_blocks));
-    map.Fill(0, 1);
-    map.Draw(m_imgbuf);
+    auto bs = m_g->GetRoomData()->GetBlockset(name);
+    auto ts = m_g->GetRoomData()->GetTileset(bs->GetTileset())->GetData();
+    auto blockset = bs->GetData();
+    auto palette = m_g->GetRoomData()->GetDefaultTilesetPalette(bs->GetTileset())->GetData();
+
+    m_imgbuf.Clear();
+    if (blockset->size() > 0)
+    {
+        const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, blockset->size());
+        const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, blockset->size() / ROW_WIDTH + (blockset->size() % ROW_WIDTH != 0));
+        Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, ts->GetTileWidth(), ts->GetTileHeight(), 0, 0, 0);
+        m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
+        map.SetTileset(ts);
+        map.SetBlockset(blockset);
+        map.Fill(0, 1, blockset->size());
+        map.Draw(m_imgbuf);
+    }
     m_scale = scale;
-    bmp = m_imgbuf.MakeBitmap(m_palette);
+    bmp = m_imgbuf.MakeBitmap({ palette });
     ForceRepaint();
 }
 
@@ -545,7 +581,7 @@ void DrawTile(wxGraphicsContext& gc, int x, int y, int z, int width, int height,
     }
 }
 
-void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<RoomManager::MapEntry> tilemap, int tile_width, int tile_height)
+void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height)
 {
     int x = 0;
     int y = 0;
@@ -559,8 +595,8 @@ void MainFrame::DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std:
         x = warp.x2;
         y = warp.y2;
     }
-    int z = tilemap->map->GetHeight({ x - 12,y - 12 });
-    auto xy = tilemap->map->Iso3DToPixel({ x,y,z });
+    int z = map->GetHeight({ x - 12,y - 12 });
+    auto xy = map->Iso3DToPixel({ x,y,z });
     int width = tile_width;
     int height = tile_height;
     std::vector<wxPoint2DDouble> tile_points = {
@@ -600,9 +636,14 @@ void SetOpacity(wxImage& image, uint8_t opacity)
     }
 }
 
-void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
+void MainFrame::DrawTilemap(uint16_t room, std::size_t scale)
 {
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    auto map = m_g->GetRoomData()->GetMapForRoom(room)->GetData();
+    auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(room);
+    auto palette = m_g->GetRoomData()->GetPaletteForRoom(room)->GetData();
+    auto tileset = m_g->GetRoomData()->GetTilesetForRoom(room)->GetData();
+    auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(room);
+
     m_warp_poly.clear();
     m_link_poly.clear();
 
@@ -615,15 +656,13 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     uint8_t hm_opacity  = m_checkHeightmapVisible->GetValue() ? m_sliderHeightmapOpacity->GetValue() : 0;
     uint8_t spr_opacity = m_checkSpritesVisible->GetValue() ? m_sliderSpritesOpacity->GetValue() : 0;
 
-    m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
-    ImageBuffer fg(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
-    auto tileset = std::make_shared<Tileset>(m_tilebmps);
-    auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, tileset, blockset);
-    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, tilemap->map, tileset, blockset);
+    m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
+    ImageBuffer fg(map->GetPixelWidth(), map->GetPixelHeight());
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
+    fg.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
-    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette, true, bg_opacity));
-    std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap(m_palette, true, fg1_opacity, fg2_opacity));
+    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap({ palette }, true, bg_opacity));
+    std::shared_ptr<wxBitmap> fg_bmp(fg.MakeBitmap({ palette }, true, fg1_opacity, fg2_opacity));
     wxImage hm_img(fg.GetWidth(), fg.GetHeight());
     wxImage disp_img(fg.GetWidth(), fg.GetHeight());
     hm_img.InitAlpha();
@@ -631,15 +670,15 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     wxGraphicsContext* hm_gc = wxGraphicsContext::Create(hm_img);
     hm_gc->SetPen(*wxWHITE_PEN);
     hm_gc->SetBrush(*wxBLACK_BRUSH);
-    for (int y = 0; y < tilemap->map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < tilemap->map->GetHeightmapWidth(); ++x)
+    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
+        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
         {
             // Only display cells that are not completely restricted
-            if ((tilemap->map->GetHeight({x, y}) > 0 || (tilemap->map->GetCellProps({x, y}) != 0x04)))
+            if ((map->GetHeight({x, y}) > 0 || (map->GetCellProps({x, y}) != 0x04)))
             {
-                int z = tilemap->map->GetHeight({x, y});
-                auto xy(tilemap->map->Iso3DToPixel({ x + 12, y + 12, z }));
-                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, tilemap->map->GetCellProps({x,y}), tilemap->map->GetCellType({x,y}));
+                int z = map->GetHeight({x, y});
+                auto xy(map->Iso3DToPixel({ x + 12, y + 12, z }));
+                DrawTile(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT, map->GetCellProps({x,y}), map->GetCellType({x,y}));
             }
         }
     delete hm_gc;
@@ -655,16 +694,17 @@ void MainFrame::DrawTilemap(std::size_t scale, uint8_t pal)
     ForceRepaint();
 }
 
-void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
+void MainFrame::DrawHeightmap(uint16_t room, std::size_t scale)
 {
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    auto tilemap = m_g->GetRoomData()->GetMapForRoom(room);
     m_warp_poly.clear();
     m_link_poly.clear();
+    auto map = tilemap->GetData();
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 32;
-    const std::size_t ROW_WIDTH = tilemap->map->GetHeightmapWidth();
-    const std::size_t ROW_HEIGHT = tilemap->map->GetHeightmapHeight();
+    const std::size_t ROW_WIDTH = map->GetHeightmapWidth();
+    const std::size_t ROW_HEIGHT = map->GetHeightmapHeight();
     const std::size_t BMP_WIDTH = ROW_WIDTH * TILE_WIDTH + 1;
     const std::size_t BMP_HEIGHT = ROW_HEIGHT * TILE_WIDTH + 1;
     //std::size_t x = 0;
@@ -681,13 +721,13 @@ void MainFrame::DrawHeightmap(std::size_t scale, uint16_t room)
         for(int x = 0; x < ROW_WIDTH; ++x)
         {
             // Only display cells that are not completely restricted
-            if ((tilemap->map->GetHeight({ x, y }) > 0 || (tilemap->map->GetCellProps({ x, y }) != 0x04)))
+            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
             {
                 memDc.DrawRectangle(x * TILE_WIDTH, y*TILE_HEIGHT, TILE_WIDTH+1, TILE_HEIGHT+1);
                 std::stringstream ss;
-                ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tilemap->map->GetHeight({x,y})) << ","
-                << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tilemap->map->GetCellProps({x,y})) << "\n"
-                << std::setfill('0') << std::setw(2) << static_cast<unsigned>(tilemap->map->GetCellType({x,y}));
+                ss << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetHeight({x,y})) << ","
+                << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetCellProps({x,y})) << "\n"
+                << std::setfill('0') << std::setw(2) << static_cast<unsigned>(map->GetCellType({x,y}));
                 memDc.DrawText(ss.str(),x*TILE_WIDTH+2, y*TILE_HEIGHT + 1);
             }
         }
@@ -724,20 +764,25 @@ void MainFrame::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uin
     } });
 }
 
-void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
+void MainFrame::DrawWarps(uint16_t room, std::size_t scale)
 {
-    auto tilemap = m_rmgr->GetMap(m_roomnum);
+    if (m_g == nullptr)
+    {
+        return;
+    }
+    auto map = m_g->GetRoomData()->GetMapForRoom(room)->GetData();
+    auto tileset = m_g->GetRoomData()->GetTilesetForRoom(room)->GetData();
+    auto palette = m_g->GetRoomData()->GetPaletteForRoom(room)->GetData();
+    auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(room);
 
     const std::size_t TILE_WIDTH = 32;
     const std::size_t TILE_HEIGHT = 16;
 
-    m_imgbuf.Resize(tilemap->map->GetPixelWidth(), tilemap->map->GetPixelHeight());
-    auto tileset = std::make_shared<Tileset>(m_tilebmps);
-    auto blockset = std::make_shared<std::vector<MapBlock>>(m_blocks);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, tilemap->map, tileset, blockset);
-    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, tilemap->map, tileset, blockset);
+    m_imgbuf.Resize(map->GetPixelWidth(), map->GetPixelHeight());
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
+    m_imgbuf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
     m_scale = scale;
-    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap(m_palette));
+    std::shared_ptr<wxBitmap> bg_bmp(m_imgbuf.MakeBitmap({ palette }));
     wxImage hm_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
     wxImage disp_img(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
     hm_img.InitAlpha();
@@ -747,29 +792,29 @@ void MainFrame::DrawWarps(std::size_t scale, uint16_t room)
     hm_gc->SetBrush(*wxBLACK_BRUSH);
     m_warp_poly.clear();
     m_link_poly.clear();
-    auto warps = m_rmgr->GetWarpsForRoom(m_roomnum);
+    auto warps = m_g->GetRoomData()->GetWarpsForRoom(room);
     for (const auto& warp : warps)
     {
-        DrawWarp(*hm_gc, warp, tilemap, TILE_WIDTH, TILE_HEIGHT);
+        DrawWarp(*hm_gc, warp, map, TILE_WIDTH, TILE_HEIGHT);
     }
     wxColour bkColor(*wxBLACK);
     wxColour textColor(*wxWHITE);
     int line = 0;
-    if (m_rmgr->HasClimbDestination(m_roomnum))
+    if (m_g->GetRoomData()->HasClimbDestination(room))
     {
-        AddRoomLink(hm_gc, "Climb Destination:", m_rmgr->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
+        AddRoomLink(hm_gc, "Climb Destination:", m_g->GetRoomData()->GetClimbDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    if (m_rmgr->HasFallDestination(m_roomnum))
+    if (m_g->GetRoomData()->HasFallDestination(room))
     {
-        AddRoomLink(hm_gc, "Fall Destination:", m_rmgr->GetFallDestination(m_roomnum), 5, 5 + line * 16);
+        AddRoomLink(hm_gc, "Fall Destination:", m_g->GetRoomData()->GetFallDestination(m_roomnum), 5, 5 + line * 16);
         line++;
     }
-    auto txns = m_rmgr->GetTransitions(m_roomnum);
+    auto txns = m_g->GetRoomData()->GetTransitions(room);
     for (const auto t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == m_roomnum) ? "SET" : "CLEAR");
-        uint16_t dest = (t.first.first == m_roomnum) ? t.first.second : t.first.first;
+        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == room) ? "SET" : "CLEAR");
+        uint16_t dest = (t.first.first == room) ? t.first.second : t.first.first;
         AddRoomLink(hm_gc, label, dest, 5, 5 + line * 16);
         line++;
     }
@@ -869,137 +914,95 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 	event.Skip();
 }
 
-void MainFrame::DrawTiles(std::size_t row_width, std::size_t scale, uint8_t pal)
+void MainFrame::DrawSprite(const std::string& name, int data, std::size_t scale)
 {
-    const std::size_t ROW_WIDTH = std::min<std::size_t>(16UL, m_tilebmps.GetTileCount());
-    const std::size_t ROW_HEIGHT = std::min<std::size_t>(128UL, m_tilebmps.GetTileCount() / ROW_WIDTH + (m_tilebmps.GetTileCount() % ROW_WIDTH != 0));
-    Tilemap2D map(ROW_WIDTH, ROW_HEIGHT, 0);
-    m_imgbuf.Resize(map.GetWidth() * m_tilebmps.GetTileWidth(), map.GetHeight() * m_tilebmps.GetTileHeight());
-    map.FillIncrementing(0);
-    m_imgbuf.InsertMap(0, 0, 0, map, m_tilebmps);
+    uint8_t entity = data & 0xFF;
+    uint8_t mode = (data >> 8);
+    auto pal = m_g->GetSpriteData()->GetSpritePalette(entity);
+    uint8_t spr = m_g->GetSpriteData()->GetSpriteFromEntity(entity);
+    std::shared_ptr<SpriteFrameEntry> frame;
+    if (mode == 0)
+    {
+        frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity);
+    }
+    else if (mode == 1)
+    {
+        frame = m_g->GetSpriteData()->GetSpriteFrame(name, 0);
+    }
+    else
+    {
+        frame = m_g->GetSpriteData()->GetSpriteFrame(name);
+    }
     m_scale = scale;
-    bmp = m_imgbuf.MakeBitmap(m_palette);
-    ForceRepaint();
-}
-
-void MainFrame::DrawSprite(const Sprite& sprite, std::size_t animation, std::size_t frame, std::size_t scale)
-{
-    m_scale = scale;
-	m_palette[2] = sprite.GetPalette();
 	m_imgbuf.Resize(160, 160);
-	sprite.Draw(m_imgbuf, animation, frame, 2, 80, 80);
-    bmp = m_imgbuf.MakeBitmap(m_palette);
+    m_imgbuf.InsertSprite(80, 80, 0, *frame->GetData());
+    bmp = m_imgbuf.MakeBitmap({pal});
     ForceRepaint();
 }
 
 void MainFrame::DrawImage(const std::string& image, std::size_t scale)
 {
     m_scale = scale;
-    if (m_images.find(image) != m_images.end())
+    auto img = m_g->GetTilemap(image);
+    if (img)
     {
-        const auto& map = *m_images[image].map;
-        const auto& ts = *m_images[image].tileset;
-        m_imgbuf.Resize(map.GetWidth() * ts.GetTileWidth(), map.GetHeight() * ts.GetTileHeight());
-        m_imgbuf.InsertMap(0, 0, 0, map, ts);
-        std::vector<Palette> pal;
-        pal.push_back(*m_images[image].palette);
-        bmp = m_imgbuf.MakeBitmap(pal);
+        const auto map = img->GetData();
+        const auto ts_entry = m_g->GetTileset(img->GetTileset());
+        const auto ts = ts_entry->GetData();
+        const auto pal = m_g->GetPalette(ts_entry->GetDefaultPalette())->GetData();
+        m_imgbuf.Resize(map->GetWidth() * ts->GetTileWidth(), map->GetHeight() * ts->GetTileHeight());
+        m_imgbuf.InsertMap(0, 0, 0, *map, *ts);
+        bmp = m_imgbuf.MakeBitmap({pal});
         ForceRepaint();
     }
 }
 
-void MainFrame::PopulatePalettes()
-{
-    Palette dummy_palette(m_rom);
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ROOM); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Room Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ROOM));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LAVA); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Lava Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LAVA));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::WARP); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Warp Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::WARP));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::FULL); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Full Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::FULL));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::LOW8); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Low8 Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::LOW8));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::HUD); ++i)
-    {
-        m_palettes->emplace(wxString::Format("HUD Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::HUD));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SWORD); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Sword Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SWORD));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::ARMOUR); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Armour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::ARMOUR));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::PROJECTILE); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Projectile Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::PROJECTILE));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::SEGA_LOGO); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Sega Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::SEGA_LOGO));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::CLIMAX_LOGO); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Climax Logo Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::CLIMAX_LOGO));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_YELLOW); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Yellow Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_YELLOW));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_BLUE_FADE); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Blue Fade Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_BLUE_FADE));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::TITLE_SINGLE_COLOUR); ++i)
-    {
-        m_palettes->emplace(wxString::Format("Title Sequence Block Colour Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::TITLE_SINGLE_COLOUR));
-    }
-    for (int i = 0; i < dummy_palette.GetPaletteCount(Palette::Type::END_CREDITS); ++i)
-    {
-        m_palettes->emplace(wxString::Format("End Credits Palette %02d", i).ToStdString(), Palette(m_rom, i, Palette::Type::END_CREDITS));
-    }
-    m_selected_palette = m_palettes->find("Room Palette 00")->first;
-}
-
 void MainFrame::ShowStrings()
 {
-    if (!m_stringView->IsShown())
+    if (!m_stringEditor->IsShown())
     {
-        m_activeEditor = nullptr;
-        m_stringView->Show();
+        m_activeEditor = m_stringEditor;
         m_tilesetEditor->Hide();
         m_canvas->Hide();
+        m_stringEditor->Show();
         this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_stringView, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Add(m_stringEditor, 1, wxALL | wxEXPAND);
         this->m_scrollwindow->GetSizer()->Layout();
+    }
+}
+
+void MainFrame::ShowEditor(EditorType editor)
+{
+    if (!m_editors.at(editor)->IsShown())
+    {
+        m_activeEditor = m_editors.at(editor);
+        for (const auto& editor : m_editors)
+        {
+            if (editor.second != m_activeEditor)
+            {
+                editor.second->Hide();
+            }
+        }
+        m_canvas->Hide();
+        m_activeEditor->Show();
+        this->m_scrollwindow->GetSizer()->Clear();
+        this->m_scrollwindow->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
+        this->m_scrollwindow->GetSizer()->Layout();
+    }
+}
+
+void MainFrame::HideAllEditors()
+{
+    m_activeEditor = nullptr;
+    for (const auto& editor : m_editors)
+    {
+        editor.second->Hide();
     }
 }
 
 void MainFrame::ShowTileset()
 {
-    if (!m_tilesetEditor->IsShown())
-    {
-        m_activeEditor = m_tilesetEditor;
-        m_stringView->Hide();
-        m_tilesetEditor->Show();
-        m_canvas->Hide();
-        this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_tilesetEditor, 1, wxALL | wxEXPAND);
-        this->m_scrollwindow->GetSizer()->Layout();
-    }
+    ShowEditor(EditorType::TILESET);
 }
 
 void MainFrame::ShowBitmap()
@@ -1007,8 +1010,7 @@ void MainFrame::ShowBitmap()
     if (!m_canvas->IsShown())
     {
         m_activeEditor = nullptr;
-        m_stringView->Hide();
-        m_tilesetEditor->Hide();
+        HideAllEditors();
         m_canvas->Show();
         this->m_scrollwindow->GetSizer()->Clear();
         this->m_scrollwindow->GetSizer()->Add(m_canvas, 1, wxALL | wxEXPAND);
@@ -1074,19 +1076,6 @@ void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
     event.Skip();
 }
 
-void MainFrame::LoadTileset(std::size_t offset)
-{
-    std::fill(m_gfxBuffer.begin(), m_gfxBuffer.end(), 0);
-    std::size_t elen = 0;
-    m_gfxSize = LZ77::Decode(m_rom.data(offset), m_gfxBuffer.size(), m_gfxBuffer.data(), elen);
-    m_tilebmps.SetBits(m_gfxBuffer, false);
-}
-
-void MainFrame::LoadBlocks(std::size_t offset)
-{
-    BlocksetCmp::Decode(m_rom.data(offset), m_rom.size(offset), m_blocks);
-}
-
 MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
 {
     if (!force && CheckForFileChanges())
@@ -1108,25 +1097,22 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
-    m_sprites.clear();
-    m_tilesetOffsets.clear();
-    m_blockOffsets.clear();
-    m_strings.clear();
-    Sprite::Reset();
-    Palette::Reset();
-    m_tsmgr.reset();
-    m_rmgr.reset();
+    m_g.reset();
+    for (const auto& editor : m_editors)
+    {
+        editor.second->ClearGameData();
+    }
     SetMode(MODE_NONE);
+    this->SetLabel("Landstalker Graphics Viewer");
+    m_mnu_save_as_asm->Enable(false);
+    m_mnu_save_to_rom->Enable(false);
+    m_mnu_export->Enable(false);
     return ReturnCode::OK;
 }
 
 bool MainFrame::CheckForFileChanges()
 {
-    if (m_tsmgr && m_tsmgr->HasBeenModified())
-    {
-        return true;
-    }
-    if (m_rmgr && m_rmgr->HasBeenModified())
+    if (m_g && m_g->HasBeenModified())
     {
         return true;
     }
@@ -1136,7 +1122,8 @@ bool MainFrame::CheckForFileChanges()
 void MainFrame::OpenFile(const wxString& path)
 {
     auto extension = std::filesystem::path(path.ToStdString()).extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+        [](const unsigned char i) { return std::tolower(i); });
     if (extension == ".asm")
     {
         OpenAsmFile(path);
@@ -1145,26 +1132,6 @@ void MainFrame::OpenFile(const wxString& path)
     {
         OpenRomFile(path);
     }
-}
-
-void MainFrame::InitPals(const wxTreeItemId& node)
-{
-    const uint8_t* const base_pal = m_rom.data(m_rom.read<uint32_t>(0xA0A04));
-    const uint8_t* pal = base_pal;
-    for(std::size_t i = 0; i < 54; ++i)
-    {
-        m_pal2.push_back(Palette(m_rom, i, Palette::Type::ROOM));
-
-        std::ostringstream ss;
-        ss << std::dec << std::setw(2) << std::setfill('0') << i;
-        m_browser->AppendItem(node, ss.str(), 2, 2, new TreeNodeData(TreeNodeData::NODE_ROOM_PAL, i));
-    }
-
-    m_palette.clear();
-    m_palette.emplace_back(m_pal2[0]);
-    m_palette.emplace_back(m_rom);
-    m_palette.emplace_back(m_rom);
-    m_palette.emplace_back(m_rom);
 }
 
 void MainFrame::OnOpen(wxCommandEvent& event)
@@ -1184,18 +1151,34 @@ void MainFrame::OnOpen(wxCommandEvent& event)
 
 void MainFrame::OnSaveAsAsm(wxCommandEvent& event)
 {
-    if (SaveAsAsm() == ReturnCode::ERR)
+    try
     {
-        wxMessageBox("Failed to save as assembler", "Error", wxICON_ERROR);
+        auto result = SaveAsAsm();
+        if (result == ReturnCode::ERR)
+        {
+            wxMessageBox("Failed to save as assembler.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(std::string("Failed to save as assembler: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
 }
 
 void MainFrame::OnSaveToRom(wxCommandEvent& event)
 {
-    if (SaveToRom() == ReturnCode::ERR)
+    try
     {
-        wxMessageBox("Failed to save to ROM", "Error", wxICON_ERROR);
+        auto result = SaveToRom();
+        if (result == ReturnCode::ERR)
+        {
+            wxMessageBox("Failed to save to ROM.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(std::string("Failed to save to ROM: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
 }
@@ -1228,7 +1211,8 @@ void MainFrame::OnExport(wxCommandEvent& event)
         if (filename.find_last_of('.') != std::string::npos)
         {
             extension = filename.substr(filename.find_last_of('.') + 1);
-            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+            std::transform(extension.begin(), extension.end(), extension.begin(),
+                [](const unsigned char i) { return std::tolower(i); });
         }
         if (extension == "png")
         {
@@ -1245,14 +1229,6 @@ void MainFrame::OnExport(wxCommandEvent& event)
 void MainFrame::InitRoom(uint16_t room)
 {
     m_roomnum = room;
-    const auto& rd = m_rmgr->GetRoom(m_roomnum);
-    m_rpalidx = rd.room_palette;
-    m_palette[0] = m_pal2[m_rpalidx];
-    m_tsidx = rd.tileset;
-    LoadTileset(m_tilesetOffsets[m_tsidx]);
-    m_blocks.clear();
-    LoadBlocks(m_blockOffsets[rd.GetBlocksetId()][0]);
-    LoadBlocks(m_blockOffsets[rd.GetBlocksetId()][1 + rd.sec_blockset]);
 }
 
 void MainFrame::PopulateRoomProperties(uint16_t room)
@@ -1260,36 +1236,36 @@ void MainFrame::PopulateRoomProperties(uint16_t room)
     m_properties->GetGrid()->Clear();
     std::ostringstream ss;
     ss.str(std::string());
-    const auto& rd = m_rmgr->GetRoom(m_roomnum);
-    auto tm = m_rmgr->GetMap(m_roomnum);
+    const auto rd = m_g->GetRoomData()->GetRoom(room);
+    auto tm = m_g->GetRoomData()->GetMapForRoom(room);
 
-    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room
-        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.tileset)
-        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.room_palette)
-        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.pri_blockset)
-        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd.sec_blockset)
-        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd.bgm)
-        << " Map: " << rd.map;
+    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
+        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
+        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
+        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->pri_blockset)
+        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->sec_blockset)
+        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->bgm)
+        << " Map: " << rd->map;
     SetStatusText(ss.str());
     ss.str(std::string());
     ss << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << room;
-    m_properties->Append(new wxStringProperty("Room Number", "RN", ss.str()));
-    m_properties->Append(new wxStringProperty("Tileset", "TS", Hex(rd.tileset)));
-    m_properties->Append(new wxStringProperty("Room Palette", "RP", Hex(rd.room_palette)));
-    m_properties->Append(new wxStringProperty("Primary Blockset", "PBT", std::to_string(rd.pri_blockset)));
-    m_properties->Append(new wxStringProperty("Secondary Blockset", "SBT", Hex(rd.sec_blockset)));
-    m_properties->Append(new wxStringProperty("BGM", "BGM", Hex(rd.bgm)));
-    m_properties->Append(new wxStringProperty("Map", "M", rd.map));
-    m_properties->Append(new wxStringProperty("Unknown Parameter 1", "UP1", std::to_string(rd.unknown_param1)));
-    m_properties->Append(new wxStringProperty("Unknown Parameter 2", "UP2", std::to_string(rd.unknown_param2)));
-    m_properties->Append(new wxStringProperty("Z Begin", "ZB", std::to_string(rd.room_z_begin)));
-    m_properties->Append(new wxStringProperty("Z End", "ZE", std::to_string(rd.room_z_end)));
-    m_properties->Append(new wxStringProperty("Tilemap Left Offset", "TLO", std::to_string(tm->map->GetLeft())));
-    m_properties->Append(new wxStringProperty("Tilemap Top Offset",  "TTO", std::to_string(tm->map->GetTop())));
-    m_properties->Append(new wxStringProperty("Tilemap Width", "TW", std::to_string(tm->map->GetWidth())));
-    m_properties->Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->map->GetHeight())));
-    m_properties->Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->map->GetHeightmapWidth())));
-    m_properties->Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->map->GetHeightmapHeight())));
+    m_properties->Append(new wxStringProperty("Room Number", "RN", std::to_string(rd->index)));
+    m_properties->Append(new wxStringProperty("Tileset", "TS", Hex(rd->tileset)));
+    m_properties->Append(new wxStringProperty("Room Palette", "RP", Hex(rd->room_palette)));
+    m_properties->Append(new wxStringProperty("Primary Blockset", "PBT", std::to_string(rd->pri_blockset)));
+    m_properties->Append(new wxStringProperty("Secondary Blockset", "SBT", Hex(rd->sec_blockset)));
+    m_properties->Append(new wxStringProperty("BGM", "BGM", Hex(rd->bgm)));
+    m_properties->Append(new wxStringProperty("Map", "M", rd->map));
+    m_properties->Append(new wxStringProperty("Unknown Parameter 1", "UP1", std::to_string(rd->unknown_param1)));
+    m_properties->Append(new wxStringProperty("Unknown Parameter 2", "UP2", std::to_string(rd->unknown_param2)));
+    m_properties->Append(new wxStringProperty("Z Begin", "ZB", std::to_string(rd->room_z_begin)));
+    m_properties->Append(new wxStringProperty("Z End", "ZE", std::to_string(rd->room_z_end)));
+    m_properties->Append(new wxStringProperty("Tilemap Left Offset", "TLO", std::to_string(tm->GetData()->GetLeft())));
+    m_properties->Append(new wxStringProperty("Tilemap Top Offset",  "TTO", std::to_string(tm->GetData()->GetTop())));
+    m_properties->Append(new wxStringProperty("Tilemap Width", "TW", std::to_string(tm->GetData()->GetWidth())));
+    m_properties->Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->GetData()->GetHeight())));
+    m_properties->Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->GetData()->GetHeightmapWidth())));
+    m_properties->Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->GetData()->GetHeightmapHeight())));
 }
 
 void MainFrame::EnableLayerControls(bool state)
@@ -1344,117 +1320,60 @@ void MainFrame::Refresh()
     case MODE_STRING:
     {
         ClearScreen();
-        m_stringView->ClearColumns();
-        m_stringView->DeleteAllItems();
-        m_stringView->AppendTextColumn("ID");
-        if (m_strtab == 6)
-        {
-            m_stringView->AppendTextColumn("Display Time");
-            m_stringView->AppendTextColumn("Line 1 X");
-            m_stringView->AppendTextColumn("Line 1 Y");
-            m_stringView->AppendTextColumn("Line 2 X");
-            m_stringView->AppendTextColumn("Line 2 Y");
-            m_stringView->AppendTextColumn("Line 1")->SetWidth(150);
-            m_stringView->AppendTextColumn("Line 2");
-        }
-        else if (m_strtab == 7)
-        {
-            m_stringView->AppendTextColumn("Column");
-            m_stringView->AppendTextColumn("Height");
-            m_stringView->AppendTextColumn("String");
-        }
-        else
-        {
-            m_stringView->AppendTextColumn("String");
-        }
-        wxVector<wxVariant> data;
-        for (std::size_t i = 0; i < m_strings[m_strtab].size(); ++i)
-        {
-            data.clear();
-            data.push_back(wxVariant(wxString::Format("%000lu", i)));
-            if (m_strtab == 6)
-            {
-                auto intro_string = std::dynamic_pointer_cast<IntroString>(m_strings[m_strtab][i]);
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetDisplayTime())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1X())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine1Y())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2X())));
-                data.push_back(wxVariant(wxString::Format("%u", intro_string->GetLine2Y())));
-                data.push_back(wxVariant(intro_string->GetLine(0)));
-                data.push_back(wxVariant(intro_string->GetLine(1)));
-            }
-            else if (m_strtab == 7)
-            {
-                auto end_credit_string = std::dynamic_pointer_cast<EndCreditString>(m_strings[m_strtab][i]);
-                int col = end_credit_string->GetColumn();
-                col = col > 0x7F ? col - 0x100: col;
-                data.push_back(wxVariant(wxString::Format("%d", col)));
-                data.push_back(wxVariant(wxString::Format("%u", end_credit_string->GetHeight())));
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
-            }
-            else
-            {
-                data.push_back(wxVariant(m_strings[m_strtab][i]->Str()));
-            }
-            m_stringView->AppendItem(data);
-        }
-        ShowStrings();
+        ShowEditor(EditorType::STRING);
         EnableLayerControls(false);
         break;
     }
     case MODE_TILESET:
     {
         // Display tileset
-        auto ts = m_tsmgr->GetTilesetByName(m_tsname);
-        std::string pal_name = m_tsmgr->GetTilesetSavedPalette(ts);
-        m_tilesetEditor->SetPalettes(m_palettes);
-        m_tilesetEditor->SetActivePalette(pal_name.empty() ? "Room Palette 00" : pal_name);
-        m_tilesetEditor->Open(ts);
-        ShowTileset();
+        auto ts = m_g->GetTileset(m_selname);
+        m_tilesetEditor->Open(m_selname);
+        ShowEditor(EditorType::TILESET);
         EnableLayerControls(false);
-        //LoadTileset(m_tilesetOffsets[m_tsidx]);
-        //DrawTiles(16, 2, m_rpalidx);
+        break;
+    }
+    case MODE_ANIMATED_TILESET:
+    {
+        // Display animated tileset
+        auto ts = m_g->GetAnimatedTileset(m_selname);
+        m_tilesetEditor->OpenAnimated(m_selname);
+        ShowEditor(EditorType::TILESET);
+        EnableLayerControls(false);
         break;
     }
     case MODE_BLOCKSET:
         EnableLayerControls(false);
         ShowBitmap();
-        LoadTileset(m_tilesetOffsets[m_tsidx]);
-        LoadBlocks(m_blockOffsets[m_bs2][0]);
-        if (m_bs2 > 0)
-        {
-            LoadBlocks(m_blockOffsets[m_bs1][m_bs2]);
-        }
-        DrawBlocks(16, 1, m_rpalidx);
-        // Display blockset
+        DrawBlocks(m_selname, 16, 1, 0);
         break;
     case MODE_PALETTE:
         // Display palettes
-        ShowBitmap();
+        ClearScreen();
+        ShowEditor(EditorType::PALETTE);
+        EnableLayerControls(false);
         break;
     case MODE_ROOMMAP:
         // Display room map
         ShowBitmap();
         EnableLayerControls(true);
-        InitRoom(m_roomnum);
-        PopulateRoomProperties(m_roomnum);
-        DrawTilemap(1, m_rpalidx);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawTilemap(m_seldata);
         break;
     case MODE_SPRITE:
     {
         // Display sprite
         ShowBitmap();
         EnableLayerControls(false);
-        const auto& sprite = m_sprites[m_sprite_idx];
-        m_palette[1] = sprite.GetPalette();
-        DrawSprite(sprite, m_sprite_anim, m_sprite_frame, 4);
+        DrawSprite(m_selname, m_seldata, 4);
         break;
     }
     case MODE_IMAGE:
         // Display image
         ShowBitmap();
         EnableLayerControls(false);
-        DrawImage(m_selImage, 2);
+        DrawImage(m_selname, 2);
         break;
     case MODE_NONE:
     default:
@@ -1467,7 +1386,6 @@ void MainFrame::Refresh()
 
 bool MainFrame::ExportPng(const std::string& filename)
 {
-    m_imgbuf.WritePNG(filename, m_palette);
     return false;
 }
 
@@ -1478,26 +1396,14 @@ bool MainFrame::ExportTxt(const std::string& filename)
     switch (m_mode)
     {
     case MODE_STRING:
-        {
-            auto& strings = m_strings[m_strtab];
-            std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
-            if (strings.front()->GetHeaderRow() != "")
-            {
-                ofs << utf8_conv.to_bytes(strings.front()->GetHeaderRow()) << std::endl;
-            }
-            for (auto string : strings)
-            {
-                ofs << utf8_conv.to_bytes(string->Serialise()) << std::endl;
-            }
-        }
         return true;
     case MODE_ROOMMAP:
         {
-            auto tm = m_rmgr->GetMap(m_roomnum);
+            auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
             // Height Map
             std::string heightMapString;
-            const std::size_t ROW_WIDTH = tm->map->GetHeightmapWidth();
-            const std::size_t ROW_HEIGHT = tm->map->GetHeightmapHeight();
+            const std::size_t ROW_WIDTH = map->GetHeightmapWidth();
+            const std::size_t ROW_HEIGHT = map->GetHeightmapHeight();
 
             ofs << "#HEIGHTMAP: X Y HEIGHT RESTRICTIONS CLASSIFICATION" << std::endl;
             for (int y = 0; y < ROW_HEIGHT; ++y)
@@ -1506,9 +1412,9 @@ bool MainFrame::ExportTxt(const std::string& filename)
                     std::stringstream ss;
                     ss << static_cast<unsigned>(x) << " "
                         << static_cast<unsigned>(y) << " "
-                        << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tm->map->GetHeight({x,y})) << " "
-                        << std::setfill('0') << std::setw(1) << static_cast<unsigned>(tm->map->GetCellProps({x,y})) << " "
-                        << std::setfill('0') << std::setw(2) << static_cast<unsigned>(tm->map->GetCellType({x,y}));
+                        << std::hex << std::uppercase << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetHeight({x,y})) << " "
+                        << std::setfill('0') << std::setw(1) << static_cast<unsigned>(map->GetCellProps({x,y})) << " "
+                        << std::setfill('0') << std::setw(2) << static_cast<unsigned>(map->GetCellType({x,y}));
                     ofs << ss.str() << std::endl;
                 }
 
@@ -1517,13 +1423,13 @@ bool MainFrame::ExportTxt(const std::string& filename)
             const std::size_t TILE_HEIGHT = 16;
 
             ofs << "#MAP: X Y XY.X XY.Y FG BG" << std::endl;
-            for (int y = 0; y < tm->map->GetHeight(); ++y)
-                for (int x = 0; x < tm->map->GetWidth(); ++x)
+            for (int y = 0; y < map->GetHeight(); ++y)
+                for (int x = 0; x < map->GetWidth(); ++x)
                 {
-                    auto xy(tm->map->ToIsometric({x, y}));
+                    auto xy(map->ToIsometric({x, y}));
                     ofs << x << " " << y << " " << xy.x << " " << xy.y << " "
-                        << static_cast<unsigned>(tm->map->GetBlock(xy, Tilemap3D::Layer::FG)) << " "
-                        << static_cast<unsigned>(tm->map->GetBlock(xy, Tilemap3D::Layer::BG)) << std::endl;
+                        << static_cast<unsigned>(map->GetBlock(xy, Tilemap3D::Layer::FG)) << " "
+                        << static_cast<unsigned>(map->GetBlock(xy, Tilemap3D::Layer::BG)) << std::endl;
                 }
         }
         return true;
@@ -1544,62 +1450,53 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 
 void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
 {
-    auto item_text = m_browser->GetItemText(item);
+    m_selname = m_browser->GetItemText(item);
     TreeNodeData* item_data = static_cast<TreeNodeData*>(m_browser->GetItemData(item));
-    //m_properties->GetGrid()->Clear();
+    m_seldata = item_data->GetValue();
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:
-        m_strtab = item_data->GetValue();
+        m_stringEditor->SetMode(static_cast<StringEditorFrame::Mode>(m_seldata));
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:
-        m_tsidx = item_data->GetValue();
-        m_tsname = item_text;
         SetMode(MODE_TILESET);
+        break;
+    case TreeNodeData::NODE_ANIM_TILESET:
+        SetMode(MODE_ANIMATED_TILESET);
         break;
     case TreeNodeData::NODE_BLOCKSET:
     {
-        std::size_t sel = item_data->GetValue();
-        m_bs1 = sel >> 16;
-        m_bs2 = sel & 0xFFFF;
-        m_tsidx = m_bs1 & 0x1F;
         SetMode(MODE_BLOCKSET);
         break;
     }
-    case TreeNodeData::NODE_ROOM_PAL:
+    case TreeNodeData::NODE_PALETTE:
     {
-        m_rpalidx = item_data->GetValue();
-        m_palette[0] = m_pal2[m_rpalidx];
-        Refresh();
+        static_cast<PaletteListFrame*>(m_editors.at(EditorType::PALETTE))->SetMode(static_cast<PaletteListFrame::Mode>(m_seldata));
+        SetMode(MODE_PALETTE);
         break;
     }
     case TreeNodeData::NODE_ROOM:
-        m_roomnum = item_data->GetValue();
         SetMode(MODE_ROOMMAP);
         break;
     case TreeNodeData::NODE_ROOM_HEIGHTMAP:
-        InitRoom(item_data->GetValue());
-        PopulateRoomProperties(m_roomnum);
-        DrawHeightmap(1, m_roomnum);
+        SetMode(MODE_ROOMMAP);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawHeightmap(m_seldata);
         break;
     case TreeNodeData::NODE_ROOM_WARPS:
-        InitRoom(item_data->GetValue());
-        PopulateRoomProperties(m_roomnum);
-        DrawWarps(1, m_roomnum);
+        SetMode(MODE_ROOMMAP);
+        InitRoom(m_seldata);
+        PopulateRoomProperties(m_seldata);
+        DrawWarps(m_seldata);
         break;
     case TreeNodeData::NODE_SPRITE:
     {
-        Palette pal;
-        uint32_t data = item_data->GetValue();
-        m_sprite_idx = data & 0xFF;
-        m_sprite_anim = (data >> 16) & 0xFF;
-        m_sprite_frame = (data >> 8) & 0xFF;
         SetMode(MODE_SPRITE);
         break;
     }
     case TreeNodeData::NODE_IMAGE:
-        m_selImage = item_text;
         SetMode(MODE_IMAGE);
         break;
     default:
@@ -1691,10 +1588,10 @@ void MainFrame::GoToRoom(uint16_t room)
 
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)
 {
-    if (m_rmgr != nullptr)
+    if (m_g != nullptr && m_mode == Mode::MODE_ROOMMAP)
     {
-        auto tilemap = m_rmgr->GetMap(m_roomnum);
-        if (tilemap)
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (map)
         {
             int x, y;
             m_canvas->GetViewStart(&x, &y);
@@ -1728,16 +1625,16 @@ void MainFrame::OnScrollWindowMousewheel(wxMouseEvent& event)
 
 void MainFrame::OnScrollWindowMouseMove(wxMouseEvent& event)
 {
-    if (m_rmgr != nullptr)
+    if (m_g != nullptr && m_mode == Mode::MODE_ROOMMAP)
     {
-        auto tilemap = m_rmgr->GetMap(m_roomnum);
-        if (tilemap)
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (map)
         {
             int x, y;
             m_canvas->GetViewStart(&x, &y);
             x += event.GetX();
             y += event.GetY();
-            auto r = tilemap->map->PixelToHMPoint({ x,y });
+            auto r = map->PixelToHMPoint({ x,y });
             auto msg = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
             m_canvas->SetCursor(wxCURSOR_ARROW);
             for (const auto& wp : m_warp_poly)
@@ -1784,16 +1681,16 @@ void MainFrame::OnClose(wxCloseEvent& event)
 }
 void MainFrame::OnLayerOpacityChange(wxScrollEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerSelect(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }
 void MainFrame::OnLayerVisibilityChange(wxCommandEvent& event)
 {
-    DrawTilemap(m_scale, m_rpalidx);
+    DrawTilemap(m_roomnum);
     event.Skip();
 }

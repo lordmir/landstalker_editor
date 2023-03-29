@@ -71,7 +71,39 @@ void Rom::writeFile(const std::string& filename)
 	WriteBytes(m_rom, filename);
 }
 
-std::size_t Rom::get_address(const std::string& name) const
+std::string Rom::read_string(const std::string& name) const
+{
+	uint32_t addr = get_address(name);
+	return read_string(addr);
+}
+
+std::string Rom::read_string(uint32_t offset) const
+{
+	std::string s;
+	char c;
+	while (c = inc_read<uint8_t>(offset))
+	{
+		s += c;
+	}
+	return s;
+}
+
+void Rom::write_string(const std::string& str, const std::string& name)
+{
+	uint32_t addr = get_address(name);
+	write_string(str, addr);
+}
+
+void Rom::write_string(const std::string& str, uint32_t offset)
+{
+	for (char c : str)
+	{
+		write<uint8_t>(c, offset++);
+	}
+	write<uint8_t>(0, offset);
+}
+
+uint32_t Rom::get_address(const std::string& name) const
 {
 	auto addrs = RomOffsets::ADDRESS.find(name);
 	if (addrs == RomOffsets::ADDRESS.end())
@@ -101,12 +133,12 @@ RomOffsets::Section Rom::get_section(const std::string& name) const
 	return addr->second;
 }
 
-const uint8_t* Rom::data(std::size_t address) const
+const uint8_t* Rom::data(uint32_t address) const
 {
 	return m_rom.data() + address;
 }
 
-std::size_t Rom::size(std::size_t address) const
+std::size_t Rom::size(uint32_t address) const
 {
 	return m_rom.size() - address;
 }
@@ -129,6 +161,16 @@ RomOffsets::Region Rom::get_region() const
 const std::vector<uint8_t>& Rom::get_vec() const
 {
 	return m_rom;
+}
+
+bool Rom::section_exists(const std::string& name)
+{
+	return RomOffsets::SECTION.find(name) != RomOffsets::SECTION.cend();
+}
+
+bool Rom::address_exists(const std::string& name)
+{
+	return RomOffsets::ADDRESS.find(name) != RomOffsets::ADDRESS.cend();
 }
 
 void Rom::ValidateRomChecksum()

@@ -43,6 +43,22 @@ IntroString::IntroString(const IntroString::StringType& serialised)
 	Deserialise(serialised);
 }
 
+bool IntroString::operator==(const IntroString& rhs) const
+{
+	return ((this->m_displayTime == rhs.m_displayTime) &&
+		    (this->m_line1X == rhs.m_line1X) &&
+		    (this->m_line1Y == rhs.m_line1Y) &&
+		    (this->m_line2X == rhs.m_line2X) &&
+		    (this->m_line2Y == rhs.m_line2Y) &&
+		    (this->m_line2 == rhs.m_line2) &&
+		    (this->m_str == rhs.m_str));
+}
+
+bool IntroString::operator!=(const IntroString& rhs) const
+{
+	return !(*this == rhs);
+}
+
 IntroString::StringType IntroString::Serialise() const
 {
 	std::basic_ostringstream<IntroString::StringType::value_type> ss;
@@ -155,9 +171,19 @@ uint16_t IntroString::GetLine1Y() const
 	return m_line1Y;
 }
 
+void IntroString::SetLine1Y(uint16_t val)
+{
+	m_line1Y = val;
+}
+
 uint16_t IntroString::GetLine1X() const
 {
 	return m_line1X;
+}
+
+void IntroString::SetLine1X(uint16_t val)
+{
+	m_line1X = val;
 }
 
 uint16_t IntroString::GetLine2Y() const
@@ -165,14 +191,29 @@ uint16_t IntroString::GetLine2Y() const
 	return m_line2Y;
 }
 
+void IntroString::SetLine2Y(uint16_t val)
+{
+	m_line2Y = val;
+}
+
 uint16_t IntroString::GetLine2X() const
 {
 	return m_line2X;
 }
 
+void IntroString::SetLine2X(uint16_t val)
+{
+	m_line2X = val;
+}
+
 uint16_t IntroString::GetDisplayTime() const
 {
 	return m_displayTime;
+}
+
+void IntroString::SetDisplayTime(uint16_t val)
+{
+	m_displayTime = val;
 }
 
 IntroString::StringType IntroString::GetLine(int line) const
@@ -184,6 +225,30 @@ IntroString::StringType IntroString::GetLine(int line) const
 	else
 	{
 		return m_line2;
+	}
+}
+
+void IntroString::SetLine(int line, const StringType& str)
+{
+	if (line == 0)
+	{
+		m_str = str;
+		if (m_str.size() > 16)
+		{
+			m_str = m_str.substr(0, 16);
+		}
+		if (m_str.size() < 16)
+		{
+			m_str = m_str.append(16 - m_str.size(), ' ');
+		}
+	}
+	else if (line == 1)
+	{
+		m_line2 = str;
+		if (m_line2.size() > 16)
+		{
+			m_line2 = m_line2.substr(0, 16);
+		}
 	}
 }
 

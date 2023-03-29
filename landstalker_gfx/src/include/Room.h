@@ -22,6 +22,8 @@ class Room
     // B - BGM
 public:
     std::string map;
+    std::string name;
+    uint16_t index;
     uint8_t tileset;
     uint8_t pri_blockset;
     uint8_t sec_blockset;
@@ -32,8 +34,11 @@ public:
     uint8_t unknown_param1;
     uint8_t unknown_param2;
 
-    Room(const std::string& map_name, const std::vector<uint8_t>& params);
-    Room(const std::string& map_name, uint8_t params[4]);
+    Room(const std::string& name_, const std::string& map_name, uint16_t index_, const std::vector<uint8_t>& params);
+    Room(const std::string& name_, const std::string& map_name, uint16_t index_, uint8_t params[4]);
+
+    bool operator==(const Room& rhs) const;
+    bool operator!=(const Room& rhs) const;
 
     void SetParams(uint8_t param0, uint8_t param1, uint8_t param2, uint8_t param3);
     std::array<uint8_t, 4> GetParams() const;

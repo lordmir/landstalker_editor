@@ -2,17 +2,40 @@
 
 #include <cassert>
 
-Room::Room(const std::string& map_name, const std::vector<uint8_t>& params)
-    : map(map_name)
+Room::Room(const std::string& name_, const std::string& map_name, uint16_t index_, const std::vector<uint8_t>& params)
+    : name(name_),
+      map(map_name),
+      index(index_)
 {
     assert(params.size() == 4);
     SetParams(params[0], params[1], params[2], params[3]);
 }
 
-Room::Room(const std::string& map_name, uint8_t params[4])
-    : map(map_name)
+Room::Room(const std::string& name_, const std::string& map_name, uint16_t index_, uint8_t params[4])
+    : name(name_),
+      map(map_name),
+      index(index_)
 {
     SetParams(params[0], params[1], params[2], params[3]);
+}
+
+bool Room::operator==(const Room& rhs) const
+{
+    return ((this->bgm == rhs.bgm) &&
+            (this->map == rhs.map) &&
+            (this->pri_blockset == rhs.pri_blockset) &&
+            (this->room_palette == rhs.room_palette) &&
+            (this->room_z_begin == rhs.room_z_begin) &&
+            (this->room_z_end == rhs.room_z_end) &&
+            (this->sec_blockset == rhs.sec_blockset) &&
+            (this->tileset == rhs.tileset) &&
+            (this->unknown_param1 == rhs.unknown_param1) &&
+            (this->unknown_param2 == rhs.unknown_param2));
+}
+
+bool Room::operator!=(const Room& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void Room::SetParams(uint8_t param0, uint8_t param1, uint8_t param2, uint8_t param3)

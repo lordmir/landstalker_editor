@@ -77,6 +77,22 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
     }
 }
 
+void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame)
+{
+    for (std::size_t i = 0; i < frame.GetSubSpriteCount(); ++i)
+    {
+        const auto& subs = frame.GetSubSprite(i);
+        std::size_t index = subs.tile_idx;
+        for (std::size_t xi = 0; xi < subs.w; ++xi)
+            for (std::size_t yi = 0; yi < subs.h; ++yi)
+            {
+                int xx = subs.x + xi * 8 + x;
+                int yy = subs.y + yi * 8 + y;
+                InsertTile(xx, yy, palette_index, Tile(index++), frame.GetTileset());
+            }
+    }
+}
+
 void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset)
 {
     for (int yy = 0; yy < map.GetHeight(); ++yy)
@@ -91,7 +107,7 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
     }
 }
 
-void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<Tilemap3D> map, const std::shared_ptr<Tileset> tileset, const std::shared_ptr<std::vector<MapBlock>> blockset)
+void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<const Tilemap3D> map, const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset)
 {
     Point2D tilepos = {0, 0};
     for (int y = 0; y < map->GetHeight(); ++y)
@@ -117,7 +133,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
         }
 }
 
-bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palette>& palettes)
+bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::shared_ptr<Palette>>& palettes)
 {
     bool retval = false;
 
@@ -138,16 +154,16 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<Palett
 
     png_color png_palette[256] = { 0 };
     png_byte png_alpha[256] = { 0 };
-    
+
     std::size_t entry = 0;
     for (const auto& pal : palettes)
     {
         for (std::size_t i = 0; i < 16; ++i)
         {
-            png_palette[entry + i].red   = pal.getR(i);
-            png_palette[entry + i].green = pal.getG(i);
-            png_palette[entry + i].blue  = pal.getB(i);
-            png_alpha[entry + i]         = pal.getA(i);
+            png_palette[entry + i].red = pal->getR(i);
+            png_palette[entry + i].green = pal->getG(i);
+            png_palette[entry + i].blue = pal->getB(i);
+            png_alpha[entry + i] = pal->getA(i);
         }
         entry += 16;
     }
@@ -198,34 +214,34 @@ void ImageBuffer::InsertBlock(std::size_t x, std::size_t y, uint8_t palette_inde
     }
 }
 
-const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<Palette>& pals) const
+const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<std::shared_ptr<Palette>>& pals) const
 {
-	m_rgb.resize(m_width * m_height * 3);
+    m_rgb.resize(m_width * m_height * 3);
     auto it = m_rgb.begin();
-	for (const auto& pixel : m_pixels)
-	{
-        *it++ = (pals[pixel >> 4].getR(pixel & 0x0F));
-        *it++ = (pals[pixel >> 4].getG(pixel & 0x0F));
-        *it++ = (pals[pixel >> 4].getB(pixel & 0x0F));
-	}
-	return m_rgb;
+    for (const auto& pixel : m_pixels)
+    {
+        *it++ = (pals[pixel >> 4]->getR(pixel & 0x0F));
+        *it++ = (pals[pixel >> 4]->getG(pixel & 0x0F));
+        *it++ = (pals[pixel >> 4]->getB(pixel & 0x0F));
+    }
+    return m_rgb;
 }
 
-const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<Palette>& pals, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<std::shared_ptr<Palette>>& pals, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
     m_alpha.resize(m_width * m_height);
     auto pri = m_priority.cbegin();
     auto it = m_alpha.begin();
-	for (const auto& pixel : m_pixels)
-	{
-        uint8_t alpha = pals[pixel >> 4].getA(pixel & 0x0F);
+    for (const auto& pixel : m_pixels)
+    {
+        uint8_t alpha = pals[pixel >> 4]->getA(pixel & 0x0F);
         uint8_t max_opacity = *pri++ ? high_pri_max_opacity : low_pri_max_opacity;
         *it++ = std::min(max_opacity, alpha);
-	}
-	return m_alpha;
+    }
+    return m_alpha;
 }
 
-std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<std::shared_ptr<Palette>>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
     GetRGB(pals);
     wxImage img(m_width, m_height, m_rgb.data(), true);
@@ -238,16 +254,16 @@ std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<Palette>& pa
     return ret;
 }
 
-wxImage ImageBuffer::MakeImage(const std::vector<Palette>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
+wxImage ImageBuffer::MakeImage(const std::vector<std::shared_ptr<Palette>>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
-	GetRGB(pals);
-	wxImage img(m_width, m_height, m_rgb.data(), true);
-	if (use_alpha)
-	{
-		GetAlpha(pals, low_pri_max_opacity, high_pri_max_opacity);
-		img.SetAlpha(m_alpha.data(), true);
-	}
-	return img;
+    GetRGB(pals);
+    wxImage img(m_width, m_height, m_rgb.data(), true);
+    if (use_alpha)
+    {
+        GetAlpha(pals, low_pri_max_opacity, high_pri_max_opacity);
+        img.SetAlpha(m_alpha.data(), true);
+    }
+    return img;
 }
 
 std::size_t ImageBuffer::GetHeight() const

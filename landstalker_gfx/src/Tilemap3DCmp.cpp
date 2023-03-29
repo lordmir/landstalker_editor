@@ -209,6 +209,7 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
             heightmap[dst_addr++] = hm_pattern;
         }
     }
+    bb.advanceNextByte();
     return static_cast<uint16_t>(bb.getBytePosition());
 }
 

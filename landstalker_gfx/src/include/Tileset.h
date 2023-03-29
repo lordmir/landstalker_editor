@@ -4,8 +4,9 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
-#include "TileAttributes.h"
+#include <array>
 #include "Palette.h"
+#include "TileAttributes.h"
 #include "Tile.h"
     
 class Tileset
@@ -15,19 +16,23 @@ public:
     {
         NORMAL,
         BLOCK1X2,
+        BLOCK2X1,
         BLOCK2X2,
         BLOCK3X3,
         BLOCK4X4,
         BLOCK4X6
     };
-	inline static const std::array<std::string, 6> BLOCKTYPE_STRINGS = { "Normal", "Block 1x2", "Block 2x2", "Block 3x3", "Block 4x4", "Block 4x6" };
+	inline static const std::array<std::string, 7> BLOCKTYPE_STRINGS = { "Normal", "Block 1x2", "Block 2x1", "Block 2x2", "Block 3x3", "Block 4x4", "Block 4x6" };
 
     Tileset(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     Tileset(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     Tileset(const std::vector<uint8_t>& src, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     ~Tileset();
+
+    bool operator==(const Tileset& rhs) const;
+    bool operator!=(const Tileset& rhs) const;
     
-    void SetBits(const std::vector<uint8_t>& src, bool compressed = false);
+    uint32_t SetBits(const std::vector<uint8_t>& src, bool compressed = false);
     void SetParams(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     bool Open(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
     std::vector<uint8_t> GetBits(bool compressed = false);
@@ -68,7 +73,6 @@ private:
     std::size_t m_tilewidth;
     std::size_t m_tileheight;
     bool m_compressed;
-    const std::size_t MAXIMUM_CAPACITY = 0x400;
     
     BlockType m_blocktype;
     std::vector<std::vector<uint8_t>> m_tiles;

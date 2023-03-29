@@ -39,6 +39,18 @@ EndCreditString::EndCreditString(const EndCreditString::StringType& serialised)
 	Deserialise(serialised);
 }
 
+bool EndCreditString::operator==(const EndCreditString& rhs) const
+{
+	return ((this->m_column == rhs.m_column) &&
+		    (this->m_height == rhs.m_height) &&
+		    (this->m_str == rhs.m_str));
+}
+
+bool EndCreditString::operator!=(const EndCreditString& rhs) const
+{
+	return !(*this == rhs);
+}
+
 size_t EndCreditString::Decode(const uint8_t* buffer, size_t size)
 {
 	size_t ret = 0;
@@ -118,14 +130,29 @@ EndCreditString::StringType EndCreditString::GetHeaderRow() const
 	return EndCreditString::StringType(ret, ret + strlen(ret));
 }
 
-uint8_t EndCreditString::GetHeight() const
+int8_t EndCreditString::GetHeight() const
 {
 	return m_height;
 }
 
-uint8_t EndCreditString::GetColumn() const
+int8_t EndCreditString::GetColumn() const
 {
 	return m_column;
+}
+
+void EndCreditString::SetHeight(int8_t val)
+{
+	m_height = val;
+}
+
+void EndCreditString::SetColumn(int8_t val)
+{
+	m_column = val;
+}
+
+void EndCreditString::SetStr(const StringType& str)
+{
+	m_str = str;
 }
 
 size_t EndCreditString::DecodeString(const uint8_t* string, size_t len)

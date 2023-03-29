@@ -1,6 +1,7 @@
 #include "WarpList.h"
 
 #include <cassert>
+#include "AsmUtils.h"
 
 WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
 {
@@ -28,15 +29,33 @@ uint32_t FindMarker(const Rom& rom, uint32_t start_addr)
 
 WarpList::WarpList(const Rom& rom)
 {
+	uint32_t fall_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::FALL_TABLE_LEA_LOC);
+	uint32_t climb_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC);
+	uint32_t transition_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1);
+
 	uint32_t start = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
 	auto warp_bytes = rom.read_array<uint8_t>(start, FindMarker(rom, start) - start);
-	auto fall_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_FALL_DEST);
-	auto climb_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_CLIMB_DEST);
-	auto transition_bytes = rom.read_array<uint8_t>(RomOffsets::Rooms::ROOM_TRANSITIONS);
+	auto fall_bytes = rom.read_array<uint8_t>(fall_start_addr, FindMarker(rom, fall_start_addr) - fall_start_addr);
+	auto climb_bytes = rom.read_array<uint8_t>(climb_start_addr, FindMarker(rom, climb_start_addr) - climb_start_addr);
+	auto transition_bytes = rom.read_array<uint8_t>(transition_start_addr, FindMarker(rom, transition_start_addr) - transition_start_addr + 2);
+
 	ProcessWarpList(warp_bytes);
 	ProcessRouteList(fall_bytes, m_fall_dests);
 	ProcessRouteList(climb_bytes, m_climb_dests);
 	ProcessTransitionList(transition_bytes);
+}
+
+bool WarpList::operator==(const WarpList& rhs) const
+{
+	return ((this->m_warps == rhs.m_warps) &&
+            (this->m_fall_dests == rhs.m_fall_dests) &&
+            (this->m_climb_dests == rhs.m_climb_dests) &&
+            (this->m_transitions == rhs.m_transitions));
+}
+
+bool WarpList::operator!=(const WarpList& rhs) const
+{
+	return !(*this == rhs);
 }
 
 std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
@@ -90,6 +109,76 @@ std::map<std::pair<uint16_t, uint16_t>, uint16_t> WarpList::GetTransitions(uint1
 			retval.emplace(t);
 		}
 	}
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetWarpBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_warps.size() * 8 + 2);
+
+	for (const auto& warp : m_warps)
+	{
+		auto bytes = warp.GetRaw();
+		retval.insert(retval.end(), bytes.begin(), bytes.end());
+	}
+
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetFallBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_fall_dests.size() * 4 + 2);
+
+	for (const auto& dest : m_fall_dests)
+	{
+		retval.push_back(dest.first >> 8);
+		retval.push_back(dest.first & 0xFF);
+		retval.push_back(dest.second >> 8);
+		retval.push_back(dest.second & 0xFF);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetClimbBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_climb_dests.size() * 4 + 2);
+
+	for (const auto& dest : m_climb_dests)
+	{
+		retval.push_back(dest.first >> 8);
+		retval.push_back(dest.first & 0xFF);
+		retval.push_back(dest.second >> 8);
+		retval.push_back(dest.second & 0xFF);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	return retval;
+}
+
+std::vector<uint8_t> WarpList::GetTransitionBytes() const
+{
+	std::vector<uint8_t> retval;
+	retval.reserve(m_transitions.size() * 6 + 4);
+	for (const auto& dest : m_transitions)
+	{
+		retval.push_back(dest.first.first >> 8);
+		retval.push_back(dest.first.first & 0xFF);
+		retval.push_back(dest.first.second >> 8);
+		retval.push_back(dest.first.second & 0xFF);
+		retval.push_back((dest.second >> 3) & 0xFF);
+		retval.push_back(dest.second & 0x07);
+	}
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
+	retval.push_back(0xFF);
 	return retval;
 }
 
@@ -178,7 +267,7 @@ WarpList::Warp::Warp(const std::vector<uint8_t>& raw)
 	}
 }
 
-std::vector<uint8_t> WarpList::Warp::GetRaw()
+std::vector<uint8_t> WarpList::Warp::GetRaw() const
 {
 	std::vector<uint8_t> retval(8);
 
@@ -197,4 +286,21 @@ std::vector<uint8_t> WarpList::Warp::GetRaw()
 	retval[0] |= (type == Type::STAIR_SW) ? 0x40 : 0;
 
 	return retval;
+}
+
+bool WarpList::Warp::operator==(const Warp& rhs) const
+{
+	return ((this->type == rhs.type) && (this->x_size == rhs.x_size) &&
+		    (this->y_size == rhs.y_size) &&
+		    ((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
+			 (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
+			 (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
+		    ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
+		  	 (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
+			 (this->x2 == rhs.x1) && (this->y2 == rhs.y1)));
+}
+
+bool WarpList::Warp::operator!=(const Warp& rhs) const
+{
+	return !(*this == rhs);
 }

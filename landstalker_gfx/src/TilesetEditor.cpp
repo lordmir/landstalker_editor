@@ -39,12 +39,12 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	m_columns(0),
 	m_rows(0),
 	m_redraw_all(true),
-	m_default_palette(),
 	m_enablealpha(true),
 	m_enableborders(true),
 	m_enabletilenumbers(false),
 	m_enableselection(true),
-	m_enablehover(true)
+	m_enablehover(true),
+	m_gd(nullptr)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -52,10 +52,9 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	InitialiseBrushesAndPens();
 }
 
-TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset, std::shared_ptr<std::map<std::string, Palette>> palettes)
+TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset)
 	: TilesetEditor(parent)
 {
-	m_palettes = palettes;
 	m_tileset = tileset;
 }
 
@@ -72,9 +71,16 @@ void TilesetEditor::SetColour(int c)
 {
 }
 
-void TilesetEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void TilesetEditor::SetGameData(std::shared_ptr<GameData> gd)
 {
-	m_palettes = palettes;
+	m_gd = gd;
+	if (m_gd == nullptr)
+	{
+		m_tileset = nullptr;
+		m_selected_palette = nullptr;
+		m_selected_palette_entry = nullptr;
+		m_selected_palette_name = "";
+	}
 }
 
 std::shared_ptr<Tileset> TilesetEditor::GetTileset()
@@ -308,7 +314,7 @@ void TilesetEditor::DrawAllTiles(wxDC& dest)
 			y++;
 		}
 	}
-	auto img = m_buf.MakeImage({ m_palettes->find(m_selected_palette)->second }, true);
+	auto img = m_buf.MakeImage( { m_selected_palette }, true);
 	if (m_tiles_bmp)
 	{
 		delete m_tiles_bmp;
@@ -343,7 +349,7 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 		}
 		it++;
 	}
-	auto img = m_buf.MakeImage({ m_palettes->find(m_selected_palette)->second }, true);
+	auto img = m_buf.MakeImage({ m_selected_palette }, true);
 	if (m_tiles_bmp)
 	{
 		delete m_tiles_bmp;
@@ -506,19 +512,6 @@ void TilesetEditor::ForceRedraw()
 	Refresh();
 }
 
-const Palette& TilesetEditor::GetSelectedPalette()
-{
-	if (m_palettes)
-	{
-		auto it = m_palettes->find(m_selected_palette);
-		if (it != m_palettes->end())
-		{
-			return it->second;
-		}
-	}
-	return m_default_palette;
-}
-
 void TilesetEditor::SetPixelSize(int n)
 {
 	m_pixelsize = n;
@@ -553,16 +546,18 @@ std::vector<uint8_t> TilesetEditor::GetColourMap() const
 
 void TilesetEditor::SetActivePalette(const std::string& name)
 {
-	if (m_selected_palette != name)
+	if (m_selected_palette_name != name)
 	{
-		m_selected_palette = name;
+		m_selected_palette_name = name;
+		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
+		m_selected_palette = m_selected_palette_entry->GetData();
 		ForceRedraw();
 	}
 }
 
 std::string TilesetEditor::GetActivePalette() const
 {
-	return m_selected_palette;
+	return m_selected_palette_name;
 }
 
 std::array<bool, 16> TilesetEditor::GetLockedColours() const

@@ -9,7 +9,8 @@
 class ImageList : public wxImageList
 {
 public:
-	ImageList();
+	ImageList(bool img32x32 = false);
+	virtual ~ImageList() {}
 	const wxBitmap& GetImage(const std::string& name) const;
 	wxBitmap& GetImage(const std::string& name);
 	int GetIdx(const std::string& name) const;

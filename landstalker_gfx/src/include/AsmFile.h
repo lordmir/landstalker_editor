@@ -31,7 +31,7 @@ public:
 	struct IncludeFile
 	{
 		IncludeFile(const std::string& ppath, FileType ptype)
-			: path(RemoveQuotes(ppath)), type(ptype)
+			: path(ReformatPath(ppath)), type(ptype)
 		{}
 		IncludeFile(const filesystem::path& ppath, FileType ptype)
 			: path(ppath), type(ptype)

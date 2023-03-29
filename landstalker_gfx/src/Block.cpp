@@ -19,6 +19,18 @@ Block<N,M>::Block(const std::vector<Tile>::const_iterator& begin, const std::vec
 }
 
 template<std::size_t N, std::size_t M>
+bool Block<N, M>::operator==(const Block& rhs) const
+{
+    return this->tiles == rhs.tiles;
+}
+
+template<std::size_t N, std::size_t M>
+bool Block<N, M>::operator!=(const Block& rhs) const
+{
+    return !(*this == rhs);
+}
+
+template<std::size_t N, std::size_t M>
 std::string Block<N,M>::Print() const
 {
     std::ostringstream ss;

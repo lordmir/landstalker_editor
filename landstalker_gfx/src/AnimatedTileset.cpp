@@ -2,19 +2,56 @@
 
 AnimatedTileset::AnimatedTileset(uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: m_base(base),
+	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
 	  m_frames(frames)
 {
 }
 
+AnimatedTileset::AnimatedTileset(const std::vector<uint8_t>& bytes, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
+	: Tileset(bytes),
+	m_base(base),
+	m_base_tileset(0),
+	m_length(length),
+	m_speed(speed),
+	m_frames(frames)
+{
+}
+
 AnimatedTileset::AnimatedTileset(const std::string& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(filename),
 	  m_base(base),
+	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
 	  m_frames(frames)
 {
+}
+
+AnimatedTileset::AnimatedTileset()
+	: Tileset(),
+	  m_base(0),
+	  m_base_tileset(0),
+	  m_frames(0),
+	  m_length(0),
+	  m_speed(0)
+{
+}
+
+bool AnimatedTileset::operator==(const AnimatedTileset& rhs) const
+{
+	return ((*static_cast<const Tileset*>(this) == *static_cast<const Tileset*>(&rhs)) &&
+		(this->m_base == rhs.m_base) &&
+		(this->m_frames == rhs.m_frames) &&
+		(this->m_length == rhs.m_length) &&
+		(this->m_speed == rhs.m_speed) &&
+		(this->m_base_tileset == rhs.m_base_tileset));
+}
+
+bool AnimatedTileset::operator!=(const AnimatedTileset& rhs) const
+{
+	return !(*this == rhs);
 }
 
 std::vector<uint8_t> AnimatedTileset::GetTile(const Tile& tile, uint8_t frame) const
@@ -29,27 +66,6 @@ std::vector<uint8_t>& AnimatedTileset::GetTilePixels(int tile_index, uint8_t fra
 	auto t = tile_index - GetStartTile().GetIndex();
 	auto f_offset = frame * GetFrameSizeTiles();
 	return Tileset::GetTilePixels(t + f_offset);
-}
-
-std::vector<uint8_t> AnimatedTileset::GetTileRGB(const Tile& tile, const Palette& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileRGB(t + f_offset, palette);
-}
-
-std::vector<uint8_t> AnimatedTileset::GetTileA(const Tile& tile, const Palette& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileA(t + f_offset, palette);
-}
-
-std::vector<uint32_t> AnimatedTileset::GetTileRGBA(const Tile& tile, const Palette& palette, uint8_t frame) const
-{
-	auto t = tile.GetIndex() - GetStartTile().GetIndex();
-	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTileRGBA(t + f_offset, palette);
 }
 
 uint16_t AnimatedTileset::GetBaseBytes() const

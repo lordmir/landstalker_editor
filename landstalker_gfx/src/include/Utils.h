@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <cassert>
 #include <wjakob/filesystem/path.h>
 
 void Debug(const std::string& message);
@@ -85,5 +86,45 @@ bool IsHex(const std::string& str);
 std::string Trim(const std::string& str);
 
 std::string RemoveQuotes(const std::string& str);
+
+std::string ReformatPath(const std::string& str);
+
+bool StrToHex(const std::string& s, uint32_t& val);
+
+bool CreateDirectoryTree(const filesystem::path& path);
+
+template<class T, class U>
+std::vector<T> Split(U data)
+{
+	assert(sizeof(T) <= sizeof(U));
+	assert(sizeof(U) % sizeof(T) == 0);
+	std::vector<T> ret;
+	int elems = sizeof(U) / sizeof(T);
+	const U mask = (1 << (8 * sizeof(T))) - 1;
+	ret.resize(elems);
+	for (int i = 0; i < elems; ++i)
+	{
+		ret[elems - i - 1] = static_cast<T>(data & mask);
+		data >>= (sizeof(T) * 8);
+	}
+	return ret;
+}
+
+template<class T, class Iter>
+Iter Insert(Iter it, T data)
+{
+	assert(sizeof(typename Iter::value_type) <= sizeof(T));
+	assert(sizeof(T) % sizeof(typename Iter::value_type) == 0);
+	int elems = sizeof(T) / sizeof(typename Iter::value_type);
+	const T mask = (1 << (8 * sizeof(typename Iter::value_type))) - 1;
+	it += elems;
+	auto wit = it;
+	for (int i = 0; i < elems; ++i)
+	{
+		*--wit = static_cast<typename Iter::value_type>(data & mask);
+		data >>= (sizeof(typename Iter::value_type) * 8);
+	}
+	return it;
+}
 
 #endif // UTILS_H

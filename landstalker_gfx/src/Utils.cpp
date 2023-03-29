@@ -95,3 +95,49 @@ std::string RemoveQuotes(const std::string& str)
 	s.erase(std::remove(s.begin(), s.end(), '\"'), s.end());
 	return s;
 }
+
+std::string ReformatPath(const std::string& str)
+{
+	auto s = RemoveQuotes(str);
+	// Convert Backslashes to forward slashes
+	std::replace(s.begin(), s.end(), '\\', '/');
+	return s;
+}
+
+bool StrToHex(const std::string& s, uint32_t& val)
+{
+	bool valid = false;
+	val = 0;
+	for (char c : s)
+	{
+		if (c >= '0' && c <= '9')
+		{
+			val <<= 4;
+			val |= (c - '0');
+			valid = true;
+		}
+		else if (c >= 'a' && c <= 'f')
+		{
+			val <<= 4;
+			val |= (c - 'a' + 10);
+			valid = true;
+		}
+		else if (c >= 'A' && c <= 'F')
+		{
+			val <<= 4;
+			val |= (c - 'A' + 10);
+			valid = true;
+		}
+	}
+	return valid;
+}
+
+bool CreateDirectoryTree(const filesystem::path& path)
+{
+	if (!path.parent_path().is_directory() &&
+		!filesystem::create_directories(path.parent_path()))
+	{
+		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().str() + "\"");
+	}
+	return true;
+}

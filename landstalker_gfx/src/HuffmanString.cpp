@@ -5,9 +5,9 @@ HuffmanString::HuffmanString(const uint8_t* data, size_t len, std::shared_ptr<Hu
                              const HuffmanString::CharacterSet& charset, uint8_t eos_marker,
                              const DiacriticMap& diacritic_map)
 	: LSString(charset, diacritic_map),
-	  m_ht(ht),
-	  m_eos_marker(eos_marker)
+	  m_ht(ht)
 {
+	m_eos_marker = eos_marker;
 	Decode(data, len);
 }
 
@@ -15,17 +15,27 @@ HuffmanString::HuffmanString(const HuffmanString::StringType& str, std::shared_p
                              const HuffmanString::CharacterSet& charset, uint8_t eos_marker,
                              const DiacriticMap& diacritic_map)
 	: LSString(str, charset, diacritic_map),
-	  m_ht(ht),
-	  m_eos_marker(eos_marker)
+	  m_ht(ht)
 {
+	m_eos_marker = eos_marker;
 }
 
 HuffmanString::HuffmanString(std::shared_ptr<HuffmanTrees> ht, const HuffmanString::CharacterSet& charset,
                              uint8_t eos_marker, const DiacriticMap& diacritic_map)
 	: LSString(charset, diacritic_map),
-	  m_ht(ht),
-	  m_eos_marker(eos_marker)
+	  m_ht(ht)
 {
+	m_eos_marker = eos_marker;
+}
+
+bool HuffmanString::operator==(const HuffmanString& rhs) const
+{
+	return this->m_str == rhs.m_str;
+}
+
+bool HuffmanString::operator!=(const HuffmanString& rhs) const
+{
+	return !(*this == rhs);
 }
 
 size_t HuffmanString::Decode(const uint8_t* buffer, size_t size)

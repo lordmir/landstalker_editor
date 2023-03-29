@@ -15,6 +15,9 @@ public:
     
     Block();
     Block(const TileVector::const_iterator& begin, const TileVector::const_iterator& end);
+
+    bool operator==(const Block& rhs) const;
+    bool operator!=(const Block& rhs) const;
     
     const Tile& GetTile(std::size_t tileIndex) const;
     const Tile& GetTile(std::size_t x, std::size_t y) const;
@@ -29,8 +32,8 @@ private:
 };
 
 typedef Block<2, 2> MapBlock;
-typedef std::vector<MapBlock> BlockSet;
-typedef std::shared_ptr<BlockSet> BlockSetPtr;
-typedef std::pair<BlockSetPtr, BlockSetPtr> BlockSets;
+typedef std::vector<MapBlock> Blockset;
+typedef std::shared_ptr<Blockset> BlocksetPtr;
+typedef std::pair<BlocksetPtr, BlocksetPtr> BlocksetPair;
 
 #endif // BLOCK_H

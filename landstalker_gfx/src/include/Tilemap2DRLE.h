@@ -16,16 +16,20 @@ public:
 		LZ77
 	};
 
+	Tilemap2D();
 	Tilemap2D(size_t width, size_t height, size_t base = 0);
 	Tilemap2D(const std::string& filename, Compression compression = RLE, size_t base = 0);
 	Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
 	Tilemap2D(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
 	Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
 
+	bool operator==(const Tilemap2D& rhs) const;
+	bool operator!=(const Tilemap2D& rhs) const;
+
 	bool Open(const std::string& filename, Compression compression = RLE, size_t base = 0);
 	bool Open(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
-	bool Open(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
-	bool Open(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
+	uint32_t Open(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
+	uint32_t Open(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
 
 	bool GetBits(std::vector<uint8_t>& data, Compression compression = NONE);
 	bool Save(const std::string& filename, Compression compression = NONE);
@@ -56,10 +60,10 @@ public:
 	Tile* Data();
 private:
 	std::vector<uint8_t> Compress() const;
-	void Uncompress(const std::vector<uint8_t>& data);
+	uint32_t Uncompress(const std::vector<uint8_t>& data);
 	std::vector<uint8_t> CompressLZ77() const;
-	void UncompressLZ77(const std::vector<uint8_t>& data);
-	void UnpackBytes(const std::vector<uint8_t>& data);
+	uint32_t UncompressLZ77(const std::vector<uint8_t>& data);
+	uint32_t UnpackBytes(const std::vector<uint8_t>& data);
 	std::vector<uint8_t> PackBytes() const;
 	size_t m_width;
 	size_t m_height;

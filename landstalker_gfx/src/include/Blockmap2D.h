@@ -15,10 +15,9 @@ public:
 	virtual TilePoint XYToTilePoint(const wxPoint& point) const;
 	virtual wxPoint ToXYPoint(const TilePoint& point) const;
 	virtual void Draw(ImageBuffer& imgbuf) const;
-	void SetTileset(std::shared_ptr<Tileset> tileset);
-	std::shared_ptr<Tileset> GetTileset();
+	void SetTileset(std::shared_ptr<const Tileset> tileset);
 	std::shared_ptr<const Tileset> GetTileset() const;
-	void SetBlockset(BlockSetPtr blockset);
+	void SetBlockset(BlocksetPtr blockset);
 	std::shared_ptr<std::vector<MapBlock>> GetBlockset();
 	std::shared_ptr<const std::vector<MapBlock>> GetBlockset() const;
 	const MapBlock& GetBigTile(const TilePoint& point) const;
@@ -27,8 +26,8 @@ public:
 	virtual std::size_t GetWidthInTiles() const;
 	virtual std::size_t GetHeightInTiles() const;
 private:
-	std::shared_ptr<Tileset> m_tileset;
-	BlockSetPtr m_blockset;
+	std::shared_ptr<const Tileset> m_tileset;
+	BlocksetPtr m_blockset;
 };
 
 #endif // TILEMAP2D_H

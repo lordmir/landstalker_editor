@@ -13,33 +13,43 @@
   <ItemGroup>
     <ClCompile Include="..\src\AnimatedTileset.cpp" />
     <ClCompile Include="..\src\AsmFile.cpp" />
+    <ClCompile Include="..\src\AsmUtils.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\DataManager.cpp" />
+    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
+    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
+    <ClCompile Include="..\src\EntryPreferences.cpp" />
+    <ClCompile Include="..\src\GameData.cpp" />
+    <ClCompile Include="..\src\GraphicsData.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
     <ClCompile Include="..\src\HuffmanTree.cpp" />
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
+    <ClCompile Include="..\src\PaletteListFrame.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
-    <ClCompile Include="..\src\LSTilemapCmp.cpp" />
     <ClCompile Include="..\src\LZ77.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\MainFrame.cpp" />
     <ClCompile Include="..\src\Palette.cpp" />
     <ClCompile Include="..\src\PaletteEditor.cpp" />
+    <ClCompile Include="..\src\ResizeableGrid.cpp" />
     <ClCompile Include="..\src\Rom.cpp" />
     <ClCompile Include="..\src\Room.cpp" />
-    <ClCompile Include="..\src\RoomManager.cpp" />
-    <ClCompile Include="..\src\Sprite.cpp" />
+    <ClCompile Include="..\src\DataTypes.cpp" />
+    <ClCompile Include="..\src\RoomData.cpp" />
+    <ClCompile Include="..\src\SpriteData.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
-    <ClCompile Include="..\src\SpriteGraphic.cpp" />
+    <ClCompile Include="..\src\StringData.cpp" />
+    <ClCompile Include="..\src\StringEditorFrame.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
     <ClCompile Include="..\src\TileEditor.cpp" />
@@ -49,7 +59,6 @@
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
-    <ClCompile Include="..\src\TilesetManager.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\WarpList.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
@@ -64,6 +73,7 @@
     <ClInclude Include="..\src\include\AnimatedTileset.h" />
     <ClInclude Include="..\src\include\AsmFile.h" />
     <ClInclude Include="..\src\include\AsmFile_inl.h" />
+    <ClInclude Include="..\src\include\AsmUtils.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
     <ClInclude Include="..\src\include\Block.h" />
@@ -71,8 +81,14 @@
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\DataManager.h" />
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
+    <ClInclude Include="..\src\include\EntryPreferences.h" />
+    <ClInclude Include="..\src\include\GameData.h" />
+    <ClInclude Include="..\src\include\GraphicsData.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />
     <ClInclude Include="..\src\include\HuffmanTrees.h" />
@@ -82,19 +98,22 @@
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LSString.h" />
-    <ClInclude Include="..\src\include\LSTilemapCmp.h" />
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />
     <ClInclude Include="..\src\include\PaletteEditor.h" />
+    <ClInclude Include="..\src\include\PaletteListFrame.h" />
+    <ClInclude Include="..\src\include\ResizeableGrid.h" />
     <ClInclude Include="..\src\include\resource.h" />
     <ClInclude Include="..\src\include\Rom.h" />
     <ClInclude Include="..\src\include\RomOffsets.h" />
     <ClInclude Include="..\src\include\Room.h" />
-    <ClInclude Include="..\src\include\RoomManager.h" />
-    <ClInclude Include="..\src\include\Sprite.h" />
+    <ClInclude Include="..\src\include\DataTypes.h" />
+    <ClInclude Include="..\src\include\RoomData.h" />
+    <ClInclude Include="..\src\include\SpriteData.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
-    <ClInclude Include="..\src\include\SpriteGraphic.h" />
+    <ClInclude Include="..\src\include\StringData.h" />
+    <ClInclude Include="..\src\include\StringEditorFrame.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
     <ClInclude Include="..\src\include\TileEditor.h" />
@@ -103,7 +122,6 @@
     <ClInclude Include="..\src\include\Tilemap3DCmp.h" />
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
-    <ClInclude Include="..\src\include\TilesetManager.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\WarpList.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
@@ -148,7 +166,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
@@ -169,7 +187,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>

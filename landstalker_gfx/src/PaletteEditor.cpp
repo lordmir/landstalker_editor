@@ -4,6 +4,7 @@
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
 #include <wx/colordlg.h>
+#include <numeric>
 
 wxBEGIN_EVENT_TABLE(PaletteEditor, wxWindow)
 EVT_PAINT(PaletteEditor::OnPaint)
@@ -11,19 +12,28 @@ EVT_SIZE(PaletteEditor::OnSize)
 EVT_LEFT_DOWN(PaletteEditor::OnMouseDown)
 EVT_RIGHT_DOWN(PaletteEditor::OnMouseDown)
 EVT_LEFT_DCLICK(PaletteEditor::OnDoubleClick)
+EVT_MOTION(PaletteEditor::OnMouseMove)
+EVT_LEAVE_WINDOW(PaletteEditor::OnMouseLeave)
+EVT_ENTER_WINDOW(PaletteEditor::OnMouseEnter)
 wxEND_EVENT_TABLE()
 
 wxDEFINE_EVENT(EVT_PALETTE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_PALETTE_COLOUR_SELECT, wxCommandEvent);
+wxDEFINE_EVENT(EVT_PALETTE_COLOUR_HOVER, wxCommandEvent);
 
 PaletteEditor::PaletteEditor(wxWindow* parent)
 	: wxWindow(parent, wxID_ANY),
 	  m_pri_colour(1),
 	  m_sec_colour(0),
-	  m_palettes(nullptr),
-	  m_disabled{false},
-	  m_locked{false}
+	  m_hovered_colour(-1),
+	  m_bpp(4),
+	  m_disabled{},
+	  m_locked{},
+	  m_gd(nullptr)
 {
+	m_disabled.assign(16, false);
+	m_indicies.assign(16, 0);
+	std::iota(m_indicies.begin(), m_indicies.end(), 0);
 	InitialiseBrushes();
 }
 
@@ -32,23 +42,62 @@ PaletteEditor::~PaletteEditor()
 	delete m_alpha_brush;
 }
 
-void PaletteEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void PaletteEditor::SetGameData(std::shared_ptr<GameData> gd)
 {
-	m_palettes = palettes;
-	ForceRedraw();
+	m_gd = gd;
+	if (m_gd == nullptr)
+	{
+		m_selected_palette = nullptr;
+		m_selected_palette_entry = nullptr;
+		m_selected_palette_name = "";
+	}
 }
 
 void PaletteEditor::SelectPalette(const std::string& name)
 {
-	if (m_selected_palette != name)
+	if (m_selected_palette_name != name)
 	{
-		m_selected_palette = name;
-		m_locked = GetSelectedPalette().GetLockedColours();
+		m_selected_palette_name = name;
+		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
+		m_selected_palette = m_selected_palette_entry->GetData();
+		m_locked = m_selected_palette->GetLockedColours();
+		m_indicies.resize(1 << m_bpp);
+		std::iota(m_indicies.begin(), m_indicies.end(), 0);
 		ForceRedraw();
 	}
 }
 
-void PaletteEditor::DisableEntries(const std::array<bool, 16>& entries)
+void PaletteEditor::SetBitsPerPixel(uint8_t bpp)
+{
+	if (bpp != m_bpp)
+	{
+		m_bpp = bpp;
+		m_indicies.resize(1 << m_bpp);
+		std::iota(m_indicies.begin(), m_indicies.end(), 0);
+		if (m_pri_colour >= (1 << m_bpp))
+		{
+			SetPrimaryColour(1, true);
+		}
+		if (m_sec_colour >= (1 << m_bpp))
+		{
+			SetSecondaryColour(0, true);
+		}
+		ForceRedraw();
+	}
+}
+
+void PaletteEditor::SetColourIndicies(const std::vector<uint8_t>& entries)
+{
+	if (entries != m_indicies)
+	{
+		std::iota(m_indicies.begin(), m_indicies.end(), 0);
+		std::copy_n(entries.cbegin(), std::min(entries.size(), m_indicies.size()), m_indicies.begin());
+		m_indicies = entries;
+		ForceRedraw();
+	}
+}
+
+void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 {
 	m_disabled = entries;
 	if ((m_pri_colour >= 0) && (m_disabled[m_pri_colour] == true))
@@ -78,14 +127,14 @@ void PaletteEditor::DisableEntries(const std::array<bool, 16>& entries)
 	Refresh();
 }
 
-const std::array<bool, 16>& PaletteEditor::GetDisabledEntries() const
+const std::vector<bool>& PaletteEditor::GetDisabledEntries() const
 {
 	return m_disabled;
 }
 
 void PaletteEditor::EnableAllEntries()
 {
-	m_disabled.fill(false);
+	m_disabled.assign(16, false);
 	Refresh();
 }
 
@@ -137,56 +186,80 @@ int PaletteEditor::GetSecondaryColour() const
 	return m_sec_colour;
 }
 
+int PaletteEditor::GetHoveredColour() const
+{
+	return m_hovered_colour;
+}
+
 void PaletteEditor::OnDraw(wxDC& dc)
 {
 	int ctrlwidth, ctrlheight;
 	this->GetClientSize(&ctrlwidth, &ctrlheight);
 	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
 	dc.Clear();
+	dc.SetTextForeground(*wxLIGHT_GREY);
+	dc.SetBackgroundMode(wxTRANSPARENT);
+	wxFont font = dc.GetFont();
+	dc.SetFont(font.MakeBold());
+
+	auto draw_text_br = [&](const std::string& label, int x, int y, int w, int h)
+	{
+		int lblx = x + w;
+		int lbly = y + h;
+		auto extent = dc.GetTextExtent(label);
+		lblx -= extent.GetWidth() + 2;
+		lbly -= extent.GetHeight() + 1;
+		dc.SetTextForeground(*wxWHITE);
+		dc.DrawText(label, lblx - 1, lbly);
+		dc.DrawText(label, lblx + 1, lbly);
+		dc.DrawText(label, lblx, lbly - 1);
+		dc.DrawText(label, lblx, lbly + 1);
+		dc.SetTextForeground(*wxBLACK);
+		dc.DrawText(label, lblx, lbly);
+	};
 
 	int sel_colour_box_width = std::max(16, std::min(ctrlwidth / 19, ctrlheight/2 - 1));
 
 	dc.SetPen(*wxBLACK_PEN);
 	dc.SetBrush(GetBrush(m_sec_colour));
 	dc.DrawRectangle(0, 0, sel_colour_box_width * 3 + 1, sel_colour_box_width * 2 + 1);
+	draw_text_br(std::to_string(GetColour(m_sec_colour)), 0, 0, sel_colour_box_width * 3 + 1, sel_colour_box_width * 2 + 1);
 	dc.SetBrush(GetBrush(m_pri_colour));
 	dc.DrawRectangle(sel_colour_box_width / 2, sel_colour_box_width / 2, 4 * sel_colour_box_width / 2 + 1, sel_colour_box_width + 1);
+	draw_text_br(std::to_string(GetColour(m_pri_colour)), sel_colour_box_width / 2, sel_colour_box_width / 2, 4 * sel_colour_box_width / 2 + 1, sel_colour_box_width + 1);
 
-	for (int i = 0; i < 16; ++i)
+	dc.SetBackgroundMode(wxTRANSPARENT);
+
+	int w = sel_colour_box_width * 2;
+	int h = sel_colour_box_width;
+	if (m_bpp < 4)
 	{
-		int x = 3 * sel_colour_box_width + (i % 8) * sel_colour_box_width * 2;
-		int y = (i / 8) * sel_colour_box_width;
-
-		dc.SetBrush(GetBrush(i));
-		dc.DrawRectangle(x, y, sel_colour_box_width * 2 + 1, sel_colour_box_width + 1);
+		h <<= 1;
 	}
-	dc.SetBrush(*wxTRANSPARENT_BRUSH);
-	dc.SetPen(*wxRED_PEN);
-	dc.SetTextBackground(*wxRED);
-	dc.SetTextForeground(*wxYELLOW);
-	dc.SetBackgroundMode(wxSOLID);
-	wxFont font = dc.GetFont();
-	dc.SetFont(font.MakeBold());
-	wxString label = "L";
-	for (int i = 0; i < 16; ++i)
+	if (m_bpp < 3)
 	{
-		if (m_disabled[i] == true)
+		w <<= (3 - m_bpp);
+	}
+	int x_begin = 3 * sel_colour_box_width;
+	int x = x_begin;
+	int y = 0;
+	for (int i = 0; i < (1 << m_bpp); ++i)
+	{
+		dc.SetBrush(GetBrush(i));
+		dc.DrawRectangle(x, y, w + 1, h + 1);
+		if (m_disabled[GetColour(i)] == true)
 		{
-			int x1 = 3 * sel_colour_box_width + (i % 8) * sel_colour_box_width * 2 + 1;
-			int y1 = (i / 8) * sel_colour_box_width + 1;
-			int x2 = x1 + sel_colour_box_width * 2;
-			int y2 = y1 + sel_colour_box_width;
-
-			dc.DrawLine(x1, y2, x2, y1);
+			dc.DrawLine(x, y + h + 1, x + w + 1, y);
 		}
-		if (m_locked[i] == true)
+		if (m_locked[GetColour(i)] == true)
 		{
-			int x = 5 * sel_colour_box_width + (i % 8) * sel_colour_box_width * 2 - 1;
-			int y = ((i / 8) + 1) * sel_colour_box_width;
-			auto extent = dc.GetTextExtent(label);
-			x -= extent.GetWidth();
-			y -= extent.GetHeight();
-			dc.DrawText(label, x, y);
+			draw_text_br("L", x, y, w + 1, h + 1);
+		}
+		x += w;
+		if (i == 7)
+		{
+			x = x_begin;
+			y += h;
 		}
 	}
 }
@@ -234,21 +307,21 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 	if ((colour_selected != -1) && (!m_locked[colour_selected]))
 	{
 		wxColourData cd;
-		uint16_t orig_colour = GetSelectedPalette().getGenesisColour(colour_selected);
-		cd.SetColour(GetSelectedPalette().getRGBA(colour_selected));
+		uint16_t orig_colour = m_selected_palette->getGenesisColour(colour_selected);
+		cd.SetColour(m_selected_palette->getBGRA(colour_selected));
 		cd.SetChooseFull(true);
 		for (int i = 0; i < 16; ++i)
 		{
-			cd.SetCustomColour(i, GetSelectedPalette().getRGBA(i));
+			cd.SetCustomColour(i, m_selected_palette->getBGRA(i));
 		}
 		wxColourDialog dlg(this, &cd);
 		if (dlg.ShowModal() == wxID_OK)
 		{
 			auto colour = dlg.GetColourData().GetColour();
-			auto result = Palette::ToGenesisColour({ colour.Red(), colour.Green(), colour.Blue() });
+			auto result = Palette::Colour::CreateFromBGRA(colour.GetRGBA());
 			if (result != orig_colour)
 			{
-				GetSelectedPalette().setGenesisColour(colour_selected, result);
+				m_selected_palette->setGenesisColour(colour_selected, result.GetGenesis());
 				FireEvent(EVT_PALETTE_CHANGE, "");
 				Refresh();
 			}
@@ -257,23 +330,25 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 	evt.Skip();
 }
 
+void PaletteEditor::OnMouseMove(wxMouseEvent& evt)
+{
+	OnHover(ConvertXYToColour(evt.GetPosition()));
+}
+
+void PaletteEditor::OnMouseLeave(wxMouseEvent& evt)
+{
+	OnHover(-1);
+}
+
+void PaletteEditor::OnMouseEnter(wxMouseEvent& evt)
+{
+	OnHover(ConvertXYToColour(evt.GetPosition()));
+}
+
 void PaletteEditor::ForceRedraw()
 {
 	Update();
 	Refresh(true);
-}
-
-Palette& PaletteEditor::GetSelectedPalette()
-{
-	if (m_palettes)
-	{
-		auto it = m_palettes->find(m_selected_palette);
-		if (it != m_palettes->end())
-		{
-			return it->second;
-		}
-	}
-	return m_default_palette;
 }
 
 int PaletteEditor::ConvertXYToColour(const wxPoint& p) const
@@ -282,19 +357,44 @@ int PaletteEditor::ConvertXYToColour(const wxPoint& p) const
 	int ctrlwidth, ctrlheight;
 	this->GetClientSize(&ctrlwidth, &ctrlheight);
 	int sel_colour_box_width = std::max(16, std::min(ctrlwidth / 19, ctrlheight / 2 - 1));
+
+	if (p.x < 3 * sel_colour_box_width)
+	{
+		if ((p.x > sel_colour_box_width / 2) && (p.x < 5 * sel_colour_box_width / 2) &&
+			(p.y > sel_colour_box_width / 2) && (p.y < 3 * sel_colour_box_width / 2))
+		{
+			return GetColour(m_pri_colour);
+		}
+		else if ((p.x > 0) && (p.x < 3 * sel_colour_box_width) && (p.y > 0) && (p.y < sel_colour_box_width * 2))
+		{
+			return GetColour(m_sec_colour);
+		}
+	}
 	int x = (p.x - 3 * sel_colour_box_width) / (sel_colour_box_width * 2);
 	int y = p.y / sel_colour_box_width;
 	if ((x >= 0) && (x < 8) && (y >= 0) && (y < 2))
 	{
+		if (m_bpp < 4)
+		{
+			y = 0;
+		}
+		if (m_bpp < 3)
+		{
+			x /= (3 - m_bpp) * 2;
+		}
 		colour_selected = y * 8 + x;
 	}
-	return colour_selected;
+	if (colour_selected < (1 << m_bpp))
+	{
+		return GetColour(colour_selected);
+	}
+	return -1;
 }
 
 wxBrush PaletteEditor::GetBrush(int index)
 {
 	if (index < 0) return *wxGREY_BRUSH;
-	auto colour = GetSelectedPalette().getRGBA(index);
+	auto colour = m_selected_palette->getBGRA(GetColour(index));
 	if ((colour & 0xFF000000) == 0)
 	{
 		return *m_alpha_brush;
@@ -330,4 +430,22 @@ void PaletteEditor::FireEvent(const wxEventType& e, const std::string& data)
 	evt.SetString(data);
 	evt.SetClientData(this);
 	wxPostEvent(this->GetParent(), evt);
+}
+
+void PaletteEditor::OnHover(int colour)
+{
+	if (colour != m_hovered_colour)
+	{
+		m_hovered_colour = colour;
+		FireEvent(EVT_PALETTE_COLOUR_HOVER, "");
+	}
+}
+
+int PaletteEditor::GetColour(int index) const
+{
+	if (index < m_indicies.size())
+	{
+		return m_indicies[index];
+	}
+	return index;
 }

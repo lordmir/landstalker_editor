@@ -11,6 +11,8 @@
 #include "Palette.h"
 #include "Tileset.h"
 #include "Tile.h"
+#include "GameData.h"
+#include "DataTypes.h"
 
 class TileEditor : public wxHVScrolledWindow
 {
@@ -39,7 +41,7 @@ public:
 	TileEditor(wxWindow* parent);
 	~TileEditor();
 
-	void SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes);
+	void SetGameData(std::shared_ptr<GameData> gd);
 	void SetTileset(std::shared_ptr<Tileset> tileset);
 	void SetTile(const Tile& tile);
 
@@ -69,6 +71,7 @@ public:
 
 	int GetColourAtPixel(const Point& point) const;
 	bool SetColourAtPixel(const Point& point, int colour);
+	int GetColour(int index) const;
 	void Clear();
 
 	int  ConvertXYToPixel(const Point& point);
@@ -89,11 +92,11 @@ private:
 	void OnTilesetFocus(wxFocusEvent& evt);
 	int  ConvertMouseXYToPixel(const wxPoint& point);
 	void ForceRedraw();
+	void AutoSize();
 
 	bool SetColour(const Point& point, int colour);
 	void SetPixelSize(int n);
-	int ValidateColour(int colour);
-	const Palette& GetSelectedPalette();
+	int ValidateColour(int colour) const;
 	void InitialiseBrushesAndPens();
 	wxBrush GetBrush(int index);
 
@@ -118,10 +121,11 @@ private:
 	bool m_enableedit;
 	bool m_enablealpha;
 
-	std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+	std::shared_ptr<GameData> m_gd;
 	std::shared_ptr<Tileset> m_tileset;
-	std::string m_selected_palette;
-	Palette m_default_palette;
+	std::string m_selected_palette_name;
+	std::shared_ptr<PaletteEntry> m_selected_palette_entry;
+	std::shared_ptr<Palette> m_selected_palette;
 	Tile m_tile;
 	std::vector<uint8_t> m_pixels;
 

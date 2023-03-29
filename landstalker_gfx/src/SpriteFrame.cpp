@@ -19,6 +19,23 @@ SpriteFrame::SpriteFrame(const std::string& filename)
 	Open(filename);
 }
 
+SpriteFrame::SpriteFrame()
+	: m_compressed(false)
+{
+}
+
+bool SpriteFrame::operator==(const SpriteFrame& rhs) const
+{
+	return ((this->m_subsprites == rhs.m_subsprites) &&
+		    (this->m_sprite_gfx == rhs.m_sprite_gfx) &&
+		    (this->m_compressed == rhs.m_compressed));
+}
+
+bool SpriteFrame::operator!=(const SpriteFrame& rhs) const
+{
+	return !(*this == rhs);
+}
+
 bool SpriteFrame::Open(const std::string& filename)
 {
 	bool retval = false;
@@ -159,7 +176,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	return bits;
 }
 
-void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
+std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 {
 	auto it = src.begin();
 	std::size_t tile_idx = 0;
@@ -236,6 +253,7 @@ void SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 	m_sprite_gfx.SetBits(sprite_gfx);
 
 	Debug("Done!");
+	return std::distance(src.begin(), it);
 }
 
 bool SpriteFrame::Save(const std::string& filename, bool use_compression)
@@ -286,24 +304,6 @@ std::pair<int, int> SpriteFrame::GetTilePosition(const Tile& tile) const
 std::vector<uint8_t>& SpriteFrame::GetTilePixels(int tile_index)
 {
 	return m_sprite_gfx.GetTilePixels(tile_index);
-}
-
-std::vector<uint8_t> SpriteFrame::GetTileRGB(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
-{
-	Palette p = GetSpritePalette(low_palette, high_palette);
-	return m_sprite_gfx.GetTileRGB(tile, p);
-}
-
-std::vector<uint8_t> SpriteFrame::GetTileA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
-{
-	Palette p = GetSpritePalette(low_palette, high_palette);
-	return m_sprite_gfx.GetTileA(tile, p);
-}
-
-std::vector<uint32_t> SpriteFrame::GetTileRGBA(const Tile& tile, std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
-{
-	Palette p = GetSpritePalette(low_palette, high_palette);
-	return m_sprite_gfx.GetTileRGBA(tile, p);
 }
 
 const Tileset& SpriteFrame::GetTileset() const
@@ -384,26 +384,4 @@ void SpriteFrame::DeleteSubSprite(std::size_t idx)
 void SpriteFrame::SwapSubSprite(std::size_t src1, std::size_t src2)
 {
 	std::swap(m_subsprites[src1], m_subsprites[src2]);	
-}
-
-Palette SpriteFrame::GetSpritePalette(std::optional<Palette> low_palette, std::optional<Palette> high_palette) const
-{
-	Palette p;
-	if (low_palette)
-	{
-		p = *low_palette;
-	}
-	else if (high_palette)
-	{
-		p = *high_palette;
-	}
-	else
-	{
-		p.LoadDebugPal();
-	}
-	if (low_palette && high_palette)
-	{
-		p.AddHighPalette(*high_palette);
-	}
-	return p;
 }

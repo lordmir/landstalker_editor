@@ -28,54 +28,61 @@ public:
 	void writeFile(const std::string& filename);
 
 	template< class T >
-	T read(std::size_t offset) const;
+	T read(uint32_t offset) const;
 	template< class T >
 	T read(const std::string& name) const;
 	template< class T >
-	T inc_read(std::size_t& offset) const;
+	T inc_read(uint32_t& offset) const;
 	template<class T>
-	std::vector<T> read_array(std::size_t offset, std::size_t count) const;
+	std::vector<T> read_array(uint32_t offset, uint32_t count) const;
 	template<class T>
 	std::vector<T> read_array(const std::string& name) const;
+	std::string read_string(const std::string& name) const;
+	std::string read_string(uint32_t offset) const;
 
 	template< class T >
-	void write(const T& data, std::size_t offset);
+	void write(const T& data, uint32_t offset);
 	template< class T >
 	void write(const T& data, const std::string& name);
 	template< class T >
-	void inc_write(const T& data, std::size_t& offset);
+	void inc_write(const T& data, uint32_t& offset);
 	template<class Iter>
-	void write_array(Iter begin, Iter end, std::size_t offset);
+	void write_array(Iter begin, Iter end, uint32_t offset);
 	template<class Iter>
 	void write_array(Iter begin, Iter end, const std::string& name);
 	template<template <typename T, typename... Rest> typename C, typename T, typename... Rest>
-	void write_array(const C<T, Rest...>& container, std::size_t offset);
+	void write_array(const C<T, Rest...>& container, uint32_t offset);
 	template<template <typename T, typename... Rest> typename C, typename T, typename... Rest>
 	void write_array(const C<T, Rest...>& container, const std::string& name);
 	template<typename T, std::size_t N>
-	void write_array(const T(&arr)[N], std::size_t offset);
+	void write_array(const T(&arr)[N], uint32_t offset);
 	template<typename T, std::size_t N>
 	void write_array(const T(&arr)[N], const std::string& name);
 	template<template <typename, std::size_t> typename C, typename T, std::size_t N>
-	void write_array(const C<T, N>& arr, std::size_t offset);
+	void write_array(const C<T, N>& arr, uint32_t offset);
 	template<template <typename, std::size_t> typename C, typename T, std::size_t N>
 	void write_array(const C<T, N>& arr, const std::string& name);
+	void write_string(const std::string& str, const std::string& name);
+	void write_string(const std::string& str, uint32_t offset);
 
 
 	template< class T >
-	T deref(std::size_t address, std::size_t offset = 0) const
+	T deref(uint32_t address, uint32_t offset = 0) const
 	{
 		return read<T>(read<uint32_t>(address) + offset * sizeof(T));
 	}
 
-	std::size_t get_address(const std::string& name) const;
+	uint32_t get_address(const std::string& name) const;
 	RomOffsets::Section get_section(const std::string& name) const;
-	const uint8_t* data(std::size_t address = 0) const;
-	std::size_t size(std::size_t address = 0) const;
+	const uint8_t* data(uint32_t address = 0) const;
+	std::size_t size(uint32_t address = 0) const;
 	void resize(std::size_t amt);
 	std::string get_description() const;
 	RomOffsets::Region get_region() const;
 	const std::vector<uint8_t>& get_vec() const;
+
+	static bool section_exists(const std::string& name);
+	static bool address_exists(const std::string& name);
 
 private:
 	void ValidateRomChecksum();
@@ -88,14 +95,14 @@ private:
 };
 
 template< class T >
-inline T Rom::read(std::size_t offset) const
+inline T Rom::read(uint32_t offset) const
 {
 	T retval = 0;
 	if (m_initialised == false)
 	{
 		throw std::runtime_error("Attempt to read from uninitialised ROM.");
 	}
-	for (std::size_t i = 0; i < sizeof(T); ++i)
+	for (uint32_t i = 0; i < sizeof(T); ++i)
 	{
 		retval <<= (8 % (8 * sizeof(T)));
 		retval |= m_rom[offset + i];
@@ -104,7 +111,7 @@ inline T Rom::read(std::size_t offset) const
 }
 
 template<>
-inline bool Rom::read<bool>(std::size_t offset) const
+inline bool Rom::read<bool>(uint32_t offset) const
 {
 	if (m_initialised == false)
 	{
@@ -130,7 +137,7 @@ inline T Rom::read(const std::string& name) const
 }
 
 template< class T >
-inline T Rom::inc_read(std::size_t& offset) const
+inline T Rom::inc_read(uint32_t& offset) const
 {
 	auto ret = read<T>(offset);
 	offset += sizeof(T);
@@ -138,11 +145,11 @@ inline T Rom::inc_read(std::size_t& offset) const
 }
 
 template<class T>
-inline std::vector<T> Rom::read_array(size_t offset, std::size_t count) const
+inline std::vector<T> Rom::read_array(uint32_t offset, uint32_t count) const
 {
 	std::vector<T> ret;
 	ret.reserve(count);
-	for (std::size_t i = 0; i < count; ++i)
+	for (uint32_t i = 0; i < count; ++i)
 	{
 		ret.push_back(read<T>(offset + i * sizeof(T)));
 	}
@@ -150,11 +157,11 @@ inline std::vector<T> Rom::read_array(size_t offset, std::size_t count) const
 }
 
 template<>
-inline std::vector<bool> Rom::read_array(std::size_t offset, std::size_t count) const
+inline std::vector<bool> Rom::read_array(uint32_t offset, uint32_t count) const
 {
 	std::vector<bool> ret;
 	ret.reserve(count);
-	for (std::size_t i = 0; i < count; ++i)
+	for (uint32_t i = 0; i < count; ++i)
 	{
 		ret.push_back(read<bool>(offset + i));
 	}
@@ -194,13 +201,13 @@ inline std::vector<bool> Rom::read_array<bool>(const std::string& name) const
 }
 
 template<class T>
-inline void Rom::write(const T& data, std::size_t offset)
+inline void Rom::write(const T& data, uint32_t offset)
 {
 	if (m_initialised == false)
 	{
 		throw std::runtime_error("Attempt to write to uninitialised ROM.");
 	}
-	for (std::size_t i = 0; i < sizeof(T); ++i)
+	for (uint32_t i = 0; i < sizeof(T); ++i)
 	{
 		m_rom[offset++] = (data >> ((sizeof(T) - i - 1) * 8)) & 0xFF;
 	}
@@ -213,12 +220,12 @@ inline void Rom::write(const T& data, const std::string& name)
 	{
 		throw std::runtime_error("Attempt to write to uninitialised ROM.");
 	}
-	std::size_t offset = get_address(name);
+	uint32_t offset = get_address(name);
 	write<T>(data, offset);
 }
 
 template<class T>
-inline void Rom::inc_write(const T& data, std::size_t& offset)
+inline void Rom::inc_write(const T& data, uint32_t& offset)
 {
 	if (m_initialised == false)
 	{
@@ -229,7 +236,7 @@ inline void Rom::inc_write(const T& data, std::size_t& offset)
 }
 
 template<class Iter>
-inline void Rom::write_array(Iter begin, Iter end, std::size_t offset)
+inline void Rom::write_array(Iter begin, Iter end, uint32_t offset)
 {
 	if (m_initialised == false)
 	{
@@ -244,12 +251,12 @@ inline void Rom::write_array(Iter begin, Iter end, std::size_t offset)
 template<class Iter>
 inline void Rom::write_array(Iter begin, Iter end, const std::string& name)
 {
-	std::size_t offset = get_address(name);
+	uint32_t offset = get_address(name);
 	write_array(begin, end, offset);
 }
 
 template<template <typename T, typename... Rest> typename C, typename T, typename... Rest>
-inline void Rom::write_array(const C<T, Rest...>& container, std::size_t offset)
+inline void Rom::write_array(const C<T, Rest...>& container, uint32_t offset)
 {
 	write_array(container.begin(), container.end(), offset);
 }
@@ -257,12 +264,12 @@ inline void Rom::write_array(const C<T, Rest...>& container, std::size_t offset)
 template<template <typename T, typename... Rest> typename C, typename T, typename... Rest>
 inline void Rom::write_array(const C<T, Rest...>& container, const std::string& name)
 {
-	std::size_t offset = get_address(name);
+	uint32_t offset = get_address(name);
 	write_array(container, offset);
 }
 
 template<typename T, std::size_t N>
-inline void Rom::write_array(const T(&arr)[N], std::size_t offset)
+inline void Rom::write_array(const T(&arr)[N], uint32_t offset)
 {
 	const T* begin = arr;
 	const T* end = arr + N;
@@ -272,7 +279,7 @@ inline void Rom::write_array(const T(&arr)[N], std::size_t offset)
 template<typename T, std::size_t N>
 inline void Rom::write_array(const T(&arr)[N], const std::string& name)
 {
-	std::size_t offset = get_address(name);
+	uint32_t offset = get_address(name);
 	write_array(arr, offset);
 }
 
@@ -283,7 +290,7 @@ inline void Rom::write_array(const C<T, N>& arr, const std::string& name)
 }
 
 template<template <typename, std::size_t> typename C, typename T, std::size_t N>
-inline void Rom::write_array(const C<T, N>& arr, std::size_t offset)
+inline void Rom::write_array(const C<T, N>& arr, uint32_t offset)
 {
 	write_array(arr.begin(), arr.end(), offset);
 }

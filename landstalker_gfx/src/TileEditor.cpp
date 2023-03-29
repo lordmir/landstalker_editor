@@ -26,7 +26,6 @@ TileEditor::TileEditor(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY),
 	  m_tileset(nullptr),
 	  m_tile(0),
-	  m_palettes(nullptr),
 	  m_pixelsize(16),
 	  m_primary_colour(1),
 	  m_secondary_colour(0),
@@ -36,7 +35,8 @@ TileEditor::TileEditor(wxWindow* parent)
 	  m_enableedit(true),
 	  m_enablealpha(true),
 	  m_secondary_active(false),
-	  m_drawing(false)
+	  m_drawing(false),
+	  m_gd(nullptr)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 
@@ -54,10 +54,17 @@ TileEditor::~TileEditor()
 	delete m_highlighted_brush;
 }
 
-void TileEditor::SetPalettes(std::shared_ptr<std::map<std::string, Palette>> palettes)
+void TileEditor::SetGameData(std::shared_ptr<GameData> gd)
 {
-	m_palettes = palettes;
-	ForceRedraw();
+	m_gd = gd;
+	if (m_gd == nullptr)
+	{
+		m_tileset = nullptr;
+		m_tile.SetTileValue(0);
+		m_selected_palette = nullptr;
+		m_selected_palette_entry = nullptr;
+		m_selected_palette_name = "";
+	}
 }
 
 void TileEditor::SetTileset(std::shared_ptr<Tileset> tileset)
@@ -65,6 +72,7 @@ void TileEditor::SetTileset(std::shared_ptr<Tileset> tileset)
 	m_tileset = tileset;
 	m_pixels = m_tileset->GetTilePixels(m_tile.GetIndex());
 	SetRowColumnCount(m_tileset->GetTileHeight(), m_tileset->GetTileWidth());
+	AutoSize();
 	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
 	Redraw();
@@ -96,16 +104,18 @@ int TileEditor::GetPixelSize() const
 
 void TileEditor::SetActivePalette(const std::string& name)
 {
-	if (m_selected_palette != name)
+	if (m_selected_palette_name != name)
 	{
-		m_selected_palette = name;
+		m_selected_palette_name = name;
+		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
+		m_selected_palette = m_selected_palette_entry->GetData();
 		ForceRedraw();
 	}
 }
 
 std::string TileEditor::GetActivePalette() const
 {
-	return m_selected_palette;
+	return m_selected_palette_name;
 }
 
 const Tile& TileEditor::GetTile() const
@@ -218,7 +228,7 @@ TileEditor::Point TileEditor::GetHoveredPixel() const
 int TileEditor::GetColourAtPixel(const Point& point) const
 {
 	if (m_pixels.empty()) throw std::runtime_error("m_pixels is empty");
-	return (m_pixels)[point.x + point.y * m_tileset->GetTileWidth()];
+	return m_pixels[point.x + point.y * m_tileset->GetTileWidth()];
 }
 
 bool TileEditor::SetColourAtPixel(const Point& point, int colour)
@@ -314,24 +324,9 @@ void TileEditor::SetPixelSize(int n)
 
 void TileEditor::OnSize(wxSizeEvent& evt)
 {
-	if (m_tileset != nullptr)
-	{
-		this->GetClientSize(&m_ctrlwidth, &m_ctrlheight);
-		int pixwidth = m_ctrlwidth / m_tileset->GetTileWidth();
-		int pixheight = m_ctrlheight / m_tileset->GetTileHeight();
-		int new_pixelsize = std::min(pixwidth, pixheight);
-		if (new_pixelsize <= 0)
-		{
-			new_pixelsize = 1;
-		}
-		if (new_pixelsize != m_pixelsize)
-		{
-			SetPixelSize(new_pixelsize);
-		}
-	}
+	AutoSize();
 	wxVarHScrollHelper::HandleOnSize(evt);
 	wxVarVScrollHelper::HandleOnSize(evt);
-	Refresh(false);
 	evt.Skip();
 }
 
@@ -469,6 +464,26 @@ void TileEditor::ForceRedraw()
 	Refresh(true);
 }
 
+void TileEditor::AutoSize()
+{
+	if (m_tileset != nullptr)
+	{
+		this->GetClientSize(&m_ctrlwidth, &m_ctrlheight);
+		int pixwidth = m_ctrlwidth / m_tileset->GetTileWidth();
+		int pixheight = m_ctrlheight / m_tileset->GetTileHeight();
+		int new_pixelsize = std::min(pixwidth, pixheight);
+		if (new_pixelsize <= 0)
+		{
+			new_pixelsize = 1;
+		}
+		if (new_pixelsize != m_pixelsize)
+		{
+			SetPixelSize(new_pixelsize);
+		}
+	}
+	Refresh(false);
+}
+
 int TileEditor::ConvertXYToPixel(const Point& point)
 {
 	if (IsPointValid(point))
@@ -505,7 +520,7 @@ bool TileEditor::SetColour(const Point& point, int colour)
 	return retval;
 }
 
-int TileEditor::ValidateColour(int colour)
+int TileEditor::ValidateColour(int colour) const
 {
 	auto cmap = m_tileset->GetColourIndicies();
 	if (cmap.empty())
@@ -526,17 +541,21 @@ int TileEditor::ValidateColour(int colour)
 	return -1;
 }
 
-const Palette& TileEditor::GetSelectedPalette()
+int TileEditor::GetColour(int index) const
 {
-	if (m_palettes)
+	auto cmap = m_tileset->GetColourIndicies();
+	if (index >= cmap.size())
 	{
-		auto it = m_palettes->find(m_selected_palette);
-		if (it != m_palettes->end())
+		if (index < (1 << m_tileset->GetTileBitDepth()))
 		{
-			return it->second;
+			return index;
 		}
 	}
-	return m_default_palette;
+	else
+	{
+		return cmap[index];
+	}
+	return -1;
 }
 
 void TileEditor::InitialiseBrushesAndPens()
@@ -568,11 +587,11 @@ wxBrush TileEditor::GetBrush(int index)
 	uint32_t colour;
 	if (!m_tileset->GetColourIndicies().empty())
 	{
-		colour = GetSelectedPalette().getRGBA(m_tileset->GetColourIndicies()[index]);
+		colour = m_selected_palette->getBGRA(m_tileset->GetColourIndicies()[index]);
 	}
 	else
 	{
-		colour = GetSelectedPalette().getRGBA(index);
+		colour = m_selected_palette->getBGRA(index);
 	}
 	if (m_enablealpha && ((colour & 0xFF000000) == 0))
 	{
