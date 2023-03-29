@@ -1,4 +1,5 @@
 #include "PaletteListFrame.h"
+#include <wx/window.h>
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
@@ -147,7 +148,7 @@ void PaletteListFrame::OnMouseMove(wxMouseEvent& evt)
             m_prev_itm = itm;
             m_prev_colour = colour;
             wxVariant data;
-            m_model->GetValueByRow(data, (int)itm.GetID() - 1, 1);
+            m_model->GetValueByRow(data, reinterpret_cast<int>(itm.GetID()) - 1, 1);
             PaletteEntry* p = static_cast<PaletteEntry*>(data.GetVoidPtr());
             wxLogDebug("%s - %d", p->GetName(), colour);
             if (colour >= 0 && colour < p->GetData()->GetSize())
