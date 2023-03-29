@@ -1,6 +1,6 @@
 #include "DataViewCtrlPaletteRenderer.h"
 
-#include <wx\dc.h>
+#include <wx/dc.h>
 
 DataViewCtrlPaletteRenderer::DataViewCtrlPaletteRenderer(wxWindow* owner, wxDataViewCellMode mode)
     : wxDataViewCustomRenderer("void*", mode, wxALIGN_LEFT),
