@@ -1,9 +1,11 @@
 #ifndef _PALETTE_LIST_FRAME_H_
 #define _PALETTE_LIST_FRAME_H_
 
+#include "wx/dataview.h"
+#include "DataViewCtrlPaletteModel.h"
+#include "DataViewCtrlPaletteRenderer.h"
 #include "EditorFrame.h"
 #include "GameData.h"
-#include "wx/listbox.h"
 
 class PaletteListFrame : public EditorFrame
 {
@@ -29,9 +31,21 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 private:
+	virtual void UpdateStatusBar(wxStatusBar& status) const;
+
+	void OnMouseMove(wxMouseEvent& evt);
+	void OnMouseLeave(wxMouseEvent& evt);
+	void OnKeyPress(wxKeyEvent& evt);
+
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;
-	wxListBox* m_test;
+	wxDataViewCtrl* m_list;
+	DataViewCtrlPaletteModel* m_model;
+	DataViewCtrlPaletteRenderer* m_renderer;
+	wxDataViewItem m_prev_itm;
+	int m_prev_colour = -1;
+	bool m_showing_tip = false;
+	std::string m_status_text;
 	std::string m_title;
 };
 

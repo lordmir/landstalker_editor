@@ -225,6 +225,9 @@ public:
 	std::string getOwner(uint8_t index) const;
 	uint16_t getGenesisColour(uint8_t index) const;
 	Colour GetColour(uint8_t index) const;
+	uint8_t GetNthUnlockedIndex(uint8_t n) const;
+	Colour GetNthUnlockedColour(uint8_t n) const;
+	void SetNthUnlockedGenesisColour(uint8_t n, uint16_t colour);
 	void setGenesisColour(uint8_t index, uint16_t colour);
 	bool ColourInRange(uint8_t colour) const;
 	bool ColourEditable(uint8_t colour) const;

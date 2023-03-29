@@ -162,6 +162,12 @@
     <ClCompile Include="..\src\PaletteListFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\include\DataViewCtrlPaletteRenderer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\include\DataViewCtrlPaletteModel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -332,6 +338,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\PaletteListFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

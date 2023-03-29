@@ -228,7 +228,7 @@ TileEditor::Point TileEditor::GetHoveredPixel() const
 int TileEditor::GetColourAtPixel(const Point& point) const
 {
 	if (m_pixels.empty()) throw std::runtime_error("m_pixels is empty");
-	return (m_pixels)[point.x + point.y * m_tileset->GetTileWidth()];
+	return m_pixels[point.x + point.y * m_tileset->GetTileWidth()];
 }
 
 bool TileEditor::SetColourAtPixel(const Point& point, int colour)
@@ -520,7 +520,7 @@ bool TileEditor::SetColour(const Point& point, int colour)
 	return retval;
 }
 
-int TileEditor::ValidateColour(int colour)
+int TileEditor::ValidateColour(int colour) const
 {
 	auto cmap = m_tileset->GetColourIndicies();
 	if (cmap.empty())
@@ -537,6 +537,23 @@ int TileEditor::ValidateColour(int colour)
 		{
 			return result;
 		}
+	}
+	return -1;
+}
+
+int TileEditor::GetColour(int index) const
+{
+	auto cmap = m_tileset->GetColourIndicies();
+	if (index >= cmap.size())
+	{
+		if (index < (1 << m_tileset->GetTileBitDepth()))
+		{
+			return index;
+		}
+	}
+	else
+	{
+		return cmap[index];
 	}
 	return -1;
 }

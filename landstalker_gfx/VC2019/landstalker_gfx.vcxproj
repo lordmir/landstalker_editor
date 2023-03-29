@@ -31,6 +31,8 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
+    <ClCompile Include="..\src\include\DataViewCtrlPaletteModel.cpp" />
+    <ClCompile Include="..\src\include\DataViewCtrlPaletteRenderer.cpp" />
     <ClCompile Include="..\src\PaletteListFrame.cpp" />
     <ClCompile Include="..\src\IntroString.cpp" />
     <ClCompile Include="..\src\LSString.cpp" />
@@ -80,6 +82,8 @@
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\include\Charset.h" />
     <ClInclude Include="..\src\include\DataManager.h" />
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\EntryPreferences.h" />

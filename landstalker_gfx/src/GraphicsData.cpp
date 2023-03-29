@@ -1002,6 +1002,9 @@ bool GraphicsData::AsmLoadPalettes()
 		m_palettes_internal.insert({ player_pal->GetName(), player_pal });
 		m_palettes_internal.insert({ hud_pal->GetName(), hud_pal });
 		m_palettes_internal.insert({ item_pal->GetName(), item_pal });
+		m_misc_palettes.insert({ player_pal->GetName(), player_pal });
+		m_misc_palettes.insert({ hud_pal->GetName(), hud_pal });
+		m_misc_palettes.insert({ item_pal->GetName(), item_pal });
 		return true;
 	}
 	catch (const std::exception&)
@@ -1540,6 +1543,9 @@ bool GraphicsData::RomLoadPalettes(const Rom& rom)
 	m_palettes_internal.insert({ hud_pal->GetName(), hud_pal });
 	m_palettes_by_name.insert({ item_pal->GetName(), item_pal });
 	m_palettes_internal.insert({ item_pal->GetName(), item_pal });
+	m_misc_palettes.insert({ player_pal->GetName(), player_pal });
+	m_misc_palettes.insert({ hud_pal->GetName(), hud_pal });
+	m_misc_palettes.insert({ item_pal->GetName(), item_pal });
 	return true;
 }
 

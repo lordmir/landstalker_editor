@@ -372,6 +372,35 @@ Palette::Colour Palette::GetColour(uint8_t index) const
 	return *m_pal[index];
 }
 
+uint8_t Palette::GetNthUnlockedIndex(uint8_t n) const
+{
+	assert(n < GetSize());
+	for (int i = 0; i < m_pal.size(); ++i)
+	{
+		if (m_locked[i] == true)
+		{
+			continue;
+		}
+		if (n == 0)
+		{
+			return i;
+		}
+		n--;
+	}
+	return m_pal.size();
+}
+
+Palette::Colour Palette::GetNthUnlockedColour(uint8_t n) const
+{
+	return GetColour(GetNthUnlockedIndex(n));
+}
+
+void Palette::SetNthUnlockedGenesisColour(uint8_t n, uint16_t colour)
+{
+	int index = GetNthUnlockedIndex(n);
+	setGenesisColour(index, colour);
+}
+
 void Palette::setGenesisColour(uint8_t index, uint16_t colour)
 {
 	*m_pal[index] = Palette::Colour(colour);

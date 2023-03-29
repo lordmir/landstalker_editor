@@ -105,6 +105,8 @@ MainFrame::~MainFrame()
     m_canvas->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrame::OnScrollWindowKeyUp), NULL, this);
     m_canvas->Disconnect(wxEVT_MOTION, wxMouseEventHandler(MainFrame::OnScrollWindowMouseMove), NULL, this);
     m_canvas->Disconnect(wxEVT_SIZE, wxSizeEventHandler(MainFrame::OnScrollWindowResize), NULL, this);
+
+    delete m_imgs;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)

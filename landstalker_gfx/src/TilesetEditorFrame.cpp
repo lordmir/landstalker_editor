@@ -480,8 +480,9 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status) const
 	if (m_tileEditor->IsHoverValid())
 	{
 		const auto selection = m_tileEditor->GetHoveredPixel();
-		colour = m_tileEditor->GetColourAtPixel(selection);
-		ss << ": (" << selection.x << ", " << selection.y << ") - Colour " << colour;
+		int idx = m_tileEditor->GetColourAtPixel(selection);
+		colour = m_tileEditor->GetColour(idx);
+		ss << ": (" << selection.x << ", " << selection.y << "): " << idx;
 	}
 	status.SetStatusText(ss.str(), 0);
 	ss.str(std::string());

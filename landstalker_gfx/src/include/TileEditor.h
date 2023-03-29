@@ -71,6 +71,7 @@ public:
 
 	int GetColourAtPixel(const Point& point) const;
 	bool SetColourAtPixel(const Point& point, int colour);
+	int GetColour(int index) const;
 	void Clear();
 
 	int  ConvertXYToPixel(const Point& point);
@@ -95,7 +96,7 @@ private:
 
 	bool SetColour(const Point& point, int colour);
 	void SetPixelSize(int n);
-	int ValidateColour(int colour);
+	int ValidateColour(int colour) const;
 	void InitialiseBrushesAndPens();
 	wxBrush GetBrush(int index);
 
