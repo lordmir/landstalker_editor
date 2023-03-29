@@ -54,6 +54,7 @@ private:
     void* m_sel_id;
     int m_cursor;
     int m_cursor_limit;
+    bool m_been_activated;
 };
 
 #endif // _DATA_VIEW_CTRL_PALETTE_RENDERER_H_

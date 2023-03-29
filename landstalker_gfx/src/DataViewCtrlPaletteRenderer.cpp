@@ -1,6 +1,7 @@
 #include "DataViewCtrlPaletteRenderer.h"
 
 #include <wx/dc.h>
+#include <wx/wx.h>
 
 DataViewCtrlPaletteRenderer::DataViewCtrlPaletteRenderer(wxWindow* owner, wxDataViewCellMode mode)
     : wxDataViewCustomRenderer("void*", mode, wxALIGN_LEFT),
@@ -8,18 +9,21 @@ DataViewCtrlPaletteRenderer::DataViewCtrlPaletteRenderer(wxWindow* owner, wxData
     m_sel_id(nullptr),
     m_cursor(0),
     m_cursor_limit(0),
-    m_owner(owner)
+    m_owner(owner),
+    m_been_activated(false)
 {
 }
 
 bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
 {
+    bool active = (state & 1) != 0;
     int sel = m_cursor;
     if (m_pal && m_pal->GetData()->GetSize() > 0)
     {
+        wxLogDebug("%s %d %d", m_pal->GetName().c_str(), state, m_cursor);
         const auto& palette = m_pal->GetData();
         std::size_t palette_size = palette->GetSize();
-        if (state != 0)
+        if (active == true)
         {
             m_cursor_limit = palette_size - 1;
             if (m_cursor > m_cursor_limit)
@@ -35,7 +39,7 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
 
         for (int i = 0; i < palette_size; ++i)
         {
-            bool selected = state == 1 && i == sel;
+            bool selected = active && i == sel;
             dc->SetPen(selected ? *wxRED_PEN : *wxBLACK_PEN);
             dc->SetBrush(wxColor(palette->GetNthUnlockedColour(i).GetBGR(false)));
             dc->DrawRectangle(r);
@@ -67,7 +71,7 @@ bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& cell, wxDataViewMod
         else
         {
             int col_idx = HitColour({ evt->GetX(), evt->GetY() });
-            if (col_idx != -1 && evt->LeftDClick())
+            if (col_idx != -1 && evt->LeftDown())
             {
                 return SetColour();
             }
@@ -159,9 +163,13 @@ int DataViewCtrlPaletteRenderer::GetCursorPosition() const
 {
     if (m_pal)
     {
-        if (m_cursor < m_pal->GetData()->GetSize())
+        if (m_cursor <= m_cursor_limit)
         {
             return m_cursor;
+        }
+        else
+        {
+            return m_cursor_limit;
         }
     }
     return -1;

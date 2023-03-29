@@ -42,10 +42,8 @@ private:
 	wxDataViewCtrl* m_list;
 	DataViewCtrlPaletteModel* m_model;
 	DataViewCtrlPaletteRenderer* m_renderer;
-	wxDataViewItem m_prev_itm;
-	int m_prev_colour = -1;
-	bool m_showing_tip = false;
-	std::string m_status_text;
+	mutable wxDataViewItem m_prev_itm;
+	mutable int m_prev_colour = -1;
 	std::string m_title;
 };
 
