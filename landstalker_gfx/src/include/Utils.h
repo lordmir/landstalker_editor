@@ -89,6 +89,8 @@ std::string RemoveQuotes(const std::string& str);
 
 std::string ReformatPath(const std::string& str);
 
+bool StrToHex(const std::string& s, uint32_t& val);
+
 bool CreateDirectoryTree(const filesystem::path& path);
 
 template<class T, class U>

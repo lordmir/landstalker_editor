@@ -31,7 +31,12 @@ public:
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
+
+	bool ExportStrings(const filesystem::path& filename, Mode mode);
+	bool ImportStrings(const filesystem::path& filename, Mode mode);
 private:
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+
 	void InitColumns();
 	void ShowMainStrings();
 	void ShowCharacterStrings();
@@ -54,6 +59,9 @@ private:
 	void RefreshSystemString(int idx);
 
 	void OnGridValueChanged(wxGridEvent& evt);
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	void OnMenuImport();
+	void OnMenuExport();
 
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;

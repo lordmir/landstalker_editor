@@ -305,18 +305,24 @@ std::vector<uint8_t> Palette::GetBytes() const
 		retval.reserve((size + 1) * 2);
 		retval.push_back((size & 0xFF00) >> 8);
 		retval.push_back(size & 0xFF);
-	}
-	else
-	{
-		retval.reserve(size * 2);
-	}
-	for (std::size_t i = 0; i < m_pal.size(); ++i)
-	{
-		if (!LOCKED_ENTRIES.at(m_type).at(i))
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			uint16_t c = m_pal[i]->GetGenesis();
 			retval.push_back((c & 0xFF00) >> 8);
 			retval.push_back(c & 0xFF);
+		}
+	}
+	else
+	{
+		retval.reserve(size * 2);
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
+		{
+			if (!LOCKED_ENTRIES.at(m_type).at(i))
+			{
+				uint16_t c = m_pal[i]->GetGenesis();
+				retval.push_back((c & 0xFF00) >> 8);
+				retval.push_back(c & 0xFF);
+			}
 		}
 	}
 	return retval;

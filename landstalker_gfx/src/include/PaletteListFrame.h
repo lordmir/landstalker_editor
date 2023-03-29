@@ -30,12 +30,19 @@ public:
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
+
+	bool ExportAllPalettes(const filesystem::path& filename);
+	bool ImportPalettes(const filesystem::path& filename);
 private:
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
 
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnKeyPress(wxKeyEvent& evt);
+	void OnMenuImport();
+	void OnMenuExport();
 
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;

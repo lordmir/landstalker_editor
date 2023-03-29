@@ -73,7 +73,15 @@ bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& cell, wxDataViewMod
             int col_idx = HitColour({ evt->GetX(), evt->GetY() });
             if (col_idx != -1 && evt->LeftDown())
             {
-                return SetColour();
+                if (col_idx >= m_pal->GetData()->GetSize())
+                {
+                    m_cursor = m_cursor_limit;
+                }
+                else
+                {
+                    m_cursor = col_idx;
+                }
+                return SetColour() && model->ValueChanged(item, col);
             }
         }
     }

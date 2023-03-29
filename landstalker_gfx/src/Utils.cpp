@@ -104,6 +104,34 @@ std::string ReformatPath(const std::string& str)
 	return s;
 }
 
+bool StrToHex(const std::string& s, uint32_t& val)
+{
+	bool valid = false;
+	val = 0;
+	for (char c : s)
+	{
+		if (c >= '0' && c <= '9')
+		{
+			val <<= 4;
+			val |= (c - '0');
+			valid = true;
+		}
+		else if (c >= 'a' && c <= 'f')
+		{
+			val <<= 4;
+			val |= (c - 'a' + 10);
+			valid = true;
+		}
+		else if (c >= 'A' && c <= 'F')
+		{
+			val <<= 4;
+			val |= (c - 'A' + 10);
+			valid = true;
+		}
+	}
+	return valid;
+}
+
 bool CreateDirectoryTree(const filesystem::path& path)
 {
 	if (!path.parent_path().is_directory() &&

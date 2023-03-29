@@ -1,6 +1,12 @@
 #include "PaletteListFrame.h"
 #include <cstdint>
 
+enum MENU_IDS
+{
+    ID_FILE_EXPORT = 21000,
+    ID_FILE_IMPORT
+};
+
 PaletteListFrame::PaletteListFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
 	  m_title(""),
@@ -125,6 +131,103 @@ void PaletteListFrame::ClearGameData()
     m_gd = nullptr;
 }
 
+bool PaletteListFrame::ExportAllPalettes(const filesystem::path& filename)
+{
+    bool retval = false;
+    std::ofstream fs(filename.str());
+
+    if (fs.good())
+    {
+        for (const auto& pal : m_gd->GetAllPalettes())
+        {
+            fs << pal.first;
+            for (int i = 0; i < pal.second->GetData()->GetSize(); ++i)
+            {
+                fs << ", " << StrPrintf("#%06X", pal.second->GetData()->GetNthUnlockedColour(i).GetRGB(false));
+            }
+            fs << std::endl;
+        }
+        retval = true;
+    }
+
+    return retval;
+}
+
+bool PaletteListFrame::ImportPalettes(const filesystem::path& filename)
+{
+    bool retval = true;
+    std::ifstream fs(filename.str(), std::ios::in);
+    std::ostringstream errorss;
+
+    if (fs.good())
+    {
+        std::string line;
+        std::string value;
+        std::string name;
+        std::vector<std::string> colours;
+        while (std::getline(fs, line))
+        {
+            std::istringstream iss(line);
+            while (std::getline(iss, value, ','))
+            {
+                if (name.empty())
+                {
+                    name = RemoveQuotes(value);
+                }
+                else
+                {
+                    auto c = RemoveQuotes(value);
+                    if (!c.empty())
+                    {
+                        colours.push_back(c);
+                    }
+                }
+            }
+            auto pal = m_gd->GetPalette(name);
+            if (pal == nullptr)
+            {
+                retval = false;
+                errorss << "Palette with name \"" << name << "\" does not exist!" << std::endl;
+            }
+            else if(pal->GetData()->GetSize() != colours.size())
+            {
+                retval = false;
+                errorss <<  name << ": Bad palette size! Expected " << pal->GetData()->GetSize()
+                        << " entries, got " << colours.size() << " entries." << std::endl;
+            }
+            else
+            {
+                Palette::Colour colour;
+                uint32_t buf;
+                int i = 0;
+                for (const auto& col : colours)
+                {
+                    if (!StrToHex(col, buf) || buf > 0xFFFFFF)
+                    {
+                        errorss << name << ": Bad Hex colour value \"" << col << "\"" << std::endl;
+                        retval = false;
+                        break;
+                    }
+                    else
+                    {
+                        colour.FromRGB(buf);
+                        pal->GetData()->SetNthUnlockedGenesisColour(i++, colour.GetGenesis());
+                    }
+                }
+            }
+            name = "";
+            colours.clear();
+        }
+    }
+    
+    if (!retval)
+    {
+        wxMessageBox("Errors during import!\n" + errorss.str(), "Errors during import", wxICON_ERROR);
+    }
+
+    return retval;
+}
+
 void PaletteListFrame::UpdateStatusBar(wxStatusBar& status) const
 {
     int sel_colour = m_renderer->GetCursorPosition();
@@ -150,6 +253,38 @@ void PaletteListFrame::UpdateStatusBar(wxStatusBar& status) const
         }
         m_prev_itm = sel_item;
         m_prev_colour = sel_colour;
+    }
+}
+
+void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+{
+    auto* parent = m_mgr.GetManagedWindow();
+
+    ClearMenu(menu);
+    auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+    AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export All Palettes...");
+    AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Palettes...");
+    UpdateUI();
+    m_mgr.Update();
+}
+
+void PaletteListFrame::OnMenuClick(wxMenuEvent& evt)
+{
+    const auto id = evt.GetId();
+    if ((id >= 21000) && (id < 31000))
+    {
+        switch (id)
+        {
+        case ID_FILE_EXPORT:
+            OnMenuExport();
+            break;
+        case ID_FILE_IMPORT:
+            OnMenuImport();
+            break;
+        default:
+            wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
+        }
+        UpdateUI();
     }
 }
 
@@ -217,3 +352,27 @@ void PaletteListFrame::OnKeyPress(wxKeyEvent& evt)
     }
 }
 
+void PaletteListFrame::OnMenuImport()
+{
+    wxFileDialog fd(this, _("Import CSV Palette Data"), "", "", "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (fd.ShowModal() != wxID_CANCEL)
+    {
+        std::string path = fd.GetPath().ToStdString();
+        ImportPalettes(path);
+
+        Refresh();
+    }
+}
+
+void PaletteListFrame::OnMenuExport()
+{
+    wxFileDialog fd(this, _("Export CSV Palette Data"), "", "palettes.csv", "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (fd.ShowModal() != wxID_CANCEL)
+    {
+        std::string path = fd.GetPath().ToStdString();
+        ExportAllPalettes(path);
+        Update();
+    }
+}

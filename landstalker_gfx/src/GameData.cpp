@@ -113,6 +113,10 @@ const std::map<std::string, std::shared_ptr<Tilemap2DEntry>>& GameData::GetAllTi
 
 std::shared_ptr<PaletteEntry> GameData::GetPalette(const std::string& name) const
 {
+	if (m_palettes.find(name) == m_palettes.cend())
+	{
+		return nullptr;
+	}
 	return m_palettes.at(name);
 }
 
