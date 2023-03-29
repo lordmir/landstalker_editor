@@ -201,7 +201,7 @@ bool DataViewCtrlPaletteRenderer::SetColour()
     std::size_t palette_size = palette->GetSize();
     wxColourData data;
     data.SetChooseFull(true);
-    for (int i = 0; i < std::min(16U, palette_size); i++)
+    for (int i = 0; i < std::min<int>(16, palette_size); i++)
     {
         data.SetCustomColour(i, wxColor(palette->GetNthUnlockedColour(i).GetBGR(false)));
     }
