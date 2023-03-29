@@ -1,4 +1,5 @@
 #include "PaletteListFrame.h"
+#include <cstdint>
 #include <wx/window.h>
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent)
@@ -12,9 +13,9 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent)
     wxDataViewTextRenderer* tr = new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_INERT);
     m_renderer = new DataViewCtrlPaletteRenderer(this, wxDATAVIEW_CELL_ACTIVATABLE);
 
-    wxDataViewColumn* column0 = new wxDataViewColumn("Name", tr, 0, FromDIP(200), wxALIGN_LEFT,
+    wxDataViewColumn* column0 = new wxDataViewColumn("Name", tr, 0, 200, wxALIGN_LEFT,
             wxDATAVIEW_COL_SORTABLE | wxDATAVIEW_COL_RESIZABLE);
-    wxDataViewColumn* column1 = new wxDataViewColumn("Palette", m_renderer, 1, 47 * 35, wxALIGN_LEFT,
+    wxDataViewColumn* column1 = new wxDataViewColumn("Palette", m_renderer, 1, 30, wxALIGN_LEFT,
             wxDATAVIEW_COL_RESIZABLE);
 
     m_list->AppendColumn(column0);
@@ -148,7 +149,7 @@ void PaletteListFrame::OnMouseMove(wxMouseEvent& evt)
             m_prev_itm = itm;
             m_prev_colour = colour;
             wxVariant data;
-            m_model->GetValueByRow(data, reinterpret_cast<int>(itm.GetID()) - 1, 1);
+            m_model->GetValueByRow(data, reinterpret_cast<std::intptr_t>(itm.GetID()) - 1, 1);
             PaletteEntry* p = static_cast<PaletteEntry*>(data.GetVoidPtr());
             wxLogDebug("%s - %d", p->GetName(), colour);
             if (colour >= 0 && colour < p->GetData()->GetSize())
