@@ -1,4 +1,4 @@
-#include "include\RoomViewerCtrl.h"
+#include "RoomViewerCtrl.h"
 
 #include <wx\dcbuffer.h>
 

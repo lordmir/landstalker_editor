@@ -1,4 +1,4 @@
-#include "include\RoomViewerFrame.h"
+#include "RoomViewerFrame.h"
 
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
