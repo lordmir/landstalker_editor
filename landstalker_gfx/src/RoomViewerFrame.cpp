@@ -8,7 +8,10 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 	m_mgr.SetManagedWindow(this);
 
 	m_roomview = new RoomViewerCtrl(this);
+	m_layerctrl = new LayerControlFrame(this);
 	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
+	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220,200)
+		.BestSize(220,200).FloatingSize(220,200).Caption("Layers"));
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();

@@ -48,6 +48,7 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
     DrawRoom(m_roomnum);
     m_bmp = new wxBitmap(map->GetPixelWidth(), map->GetPixelHeight());
     SetScrollbars(8, 8, map->GetPixelWidth()/8, map->GetPixelHeight()/8, 0, 0);
+    Scroll(0, 0);
     ForceRepaint();
 }
 

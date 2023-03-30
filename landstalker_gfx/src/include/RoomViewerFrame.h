@@ -3,6 +3,7 @@
 
 #include "EditorFrame.h"
 #include "RoomViewerCtrl.h"
+#include "LayerControlFrame.h"
 #include "GameData.h"
 #include <memory>
 
@@ -28,6 +29,7 @@ private:
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
+	LayerControlFrame* m_layerctrl;
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 };

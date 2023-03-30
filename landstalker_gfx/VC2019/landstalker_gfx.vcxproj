@@ -33,6 +33,7 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
+    <ClCompile Include="..\src\include\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
     <ClCompile Include="..\src\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\PaletteListFrame.cpp" />
@@ -99,6 +100,7 @@
     <ClInclude Include="..\src\include\ImageList.h" />
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
+    <ClInclude Include="..\src\include\LayerControlFrame.h" />
     <ClInclude Include="..\src\include\LSString.h" />
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
