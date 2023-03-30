@@ -3,7 +3,7 @@
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 	: EditorFrame(parent, wxID_ANY),
 	  m_title(""),
-	  m_mode(Mode::NORMAL)
+	  m_mode(RoomViewerCtrl::Mode::NORMAL)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -19,7 +19,7 @@ RoomViewerFrame::~RoomViewerFrame()
 {
 }
 
-void RoomViewerFrame::SetMode(Mode mode)
+void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 {
 	m_mode = mode;
 	Update();
@@ -27,7 +27,6 @@ void RoomViewerFrame::SetMode(Mode mode)
 
 void RoomViewerFrame::Update()
 {
-	m_roomview->Refresh(true);
 }
 
 void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -37,7 +36,7 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_roomview->SetGameData(gd);
 	}
-	m_mode = Mode::NORMAL;
+	m_mode = RoomViewerCtrl::Mode::NORMAL;
 	Update();
 }
 
@@ -48,13 +47,14 @@ void RoomViewerFrame::ClearGameData()
 	{
 		m_roomview->ClearGameData();
 	}
-	m_mode = Mode::NORMAL;
+	m_mode = RoomViewerCtrl::Mode::NORMAL;
 	Update();
 }
 
-void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
+void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
 {
 	m_roomnum = roomnum;
-	m_roomview->SetRoomNum(roomnum);
+	m_mode = mode;
+	m_roomview->SetRoomNum(roomnum, mode);
 	Update();
 }

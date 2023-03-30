@@ -1359,8 +1359,7 @@ void MainFrame::Refresh()
         // Display room map
         ShowBitmap();
         ShowEditor(EditorType::MAP_VIEW);
-        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetMode(RoomViewerFrame::Mode::NORMAL);
-        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetRoomNum(m_seldata);
+        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetRoomNum(m_seldata, RoomViewerCtrl::Mode::NORMAL);
         break;
     case MODE_SPRITE:
     {

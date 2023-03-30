@@ -9,28 +9,22 @@
 class RoomViewerFrame : public EditorFrame
 {
 public:
-	enum class Mode : uint8_t
-	{
-		NORMAL,
-		HEIGHTMAP,
-		WARPS,
-		ENTITY_PLACEMENT
-	};
 
 	RoomViewerFrame(wxWindow* parent);
 	virtual ~RoomViewerFrame();
 
-	Mode GetMode() const { return m_mode; }
-	void SetMode(Mode mode);
+	RoomViewerCtrl::Mode GetMode() const { return m_mode; }
+	void SetMode(RoomViewerCtrl::Mode mode);
 	void Update();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void SetRoomNum(uint16_t roomnum);
+	void SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode = RoomViewerCtrl::Mode::NORMAL);
 	uint16_t GetRoomNum() const { return m_roomnum; }
 private:
-	Mode m_mode;
+
+	RoomViewerCtrl::Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
