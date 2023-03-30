@@ -1,6 +1,6 @@
 #include "RoomViewerCtrl.h"
 
-#include <wx\dcbuffer.h>
+#include <wx/dcbuffer.h>
 
 wxBEGIN_EVENT_TABLE(RoomViewerCtrl, wxScrolledCanvas)
 EVT_PAINT(RoomViewerCtrl::OnPaint)
