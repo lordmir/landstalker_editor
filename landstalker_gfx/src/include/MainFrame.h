@@ -12,6 +12,7 @@
 #include "TilesetEditorFrame.h"
 #include "StringEditorFrame.h"
 #include "PaletteListFrame.h"
+#include "RoomViewerFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -166,6 +167,7 @@ private:
     TilesetEditorFrame* m_tilesetEditor;
     StringEditorFrame* m_stringEditor;
     PaletteListFrame* m_paletteEditor;
+    RoomViewerFrame* m_roomEditor;
     EditorFrame* m_activeEditor;
     std::map<EditorType, EditorFrame*> m_editors;
     wxScrolledCanvas* m_canvas;

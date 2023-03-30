@@ -36,10 +36,12 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_tilesetEditor = new TilesetEditorFrame(this->m_scrollwindow);
     m_stringEditor = new StringEditorFrame(this->m_scrollwindow);
     m_paletteEditor = new PaletteListFrame(this->m_scrollwindow);
+    m_roomEditor = new RoomViewerFrame(this->m_scrollwindow);
     m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
     m_editors.insert({ EditorType::TILESET, m_tilesetEditor });
     m_editors.insert({ EditorType::STRING, m_stringEditor});
     m_editors.insert({ EditorType::PALETTE, m_paletteEditor });
+    m_editors.insert({ EditorType::MAP_VIEW, m_roomEditor });
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -1356,10 +1358,9 @@ void MainFrame::Refresh()
     case MODE_ROOMMAP:
         // Display room map
         ShowBitmap();
-        EnableLayerControls(true);
-        InitRoom(m_seldata);
-        PopulateRoomProperties(m_seldata);
-        DrawTilemap(m_seldata);
+        ShowEditor(EditorType::MAP_VIEW);
+        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetMode(RoomViewerFrame::Mode::NORMAL);
+        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetRoomNum(m_seldata);
         break;
     case MODE_SPRITE:
     {

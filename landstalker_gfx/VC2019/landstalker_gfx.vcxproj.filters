@@ -168,6 +168,12 @@
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\RoomViewerFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomViewerCtrl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -344,6 +350,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomViewerFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomViewerCtrl.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
