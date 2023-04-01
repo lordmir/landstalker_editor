@@ -177,6 +177,13 @@
     <ClCompile Include="..\src\LayerControlFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Map2DEditor.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Map2DEditorFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\include\MapEditor2DFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -362,6 +369,15 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\LayerControlFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Map2DEditorFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Map2DEditor.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TilesetEditorFrame.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -571,6 +571,50 @@ std::map<std::string, std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetAllMaps(
 	return result;
 }
 
+std::shared_ptr<Tilemap2DEntry> GraphicsData::GetMap(const std::string& name) const
+{
+	for (auto& t : m_ui_tilemaps)
+	{
+		if (t.first == name)
+		{
+			return t.second;
+		}
+	}
+	for (auto& t : m_island_map_tilemaps)
+	{
+		if (t.first == name)
+		{
+			return t.second;
+		}
+	}
+	for (auto& t : m_title_tilemaps)
+	{
+		if (t.first == name)
+		{
+			return t.second;
+		}
+	}
+	if (name == m_end_credits_map->GetName())
+	{
+		return m_end_credits_map;
+	}
+	if (name == m_lithograph_map->GetName())
+	{
+		return m_lithograph_map;
+	}
+
+	if (name == m_climax_logo_map->GetName())
+	{
+		return m_climax_logo_map;
+	}
+
+	if (name == m_load_game_map->GetName())
+	{
+		return m_load_game_map;
+	}
+	return nullptr;
+}
+
 std::vector<std::shared_ptr<Tilemap2DEntry>> GraphicsData::GetUIMaps() const
 {
 	std::vector<std::shared_ptr<Tilemap2DEntry>> result;

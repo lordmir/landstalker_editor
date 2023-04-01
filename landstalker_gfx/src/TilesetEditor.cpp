@@ -254,6 +254,10 @@ void TilesetEditor::OnTilesetFocus(wxFocusEvent& evt)
 
 int TilesetEditor::ConvertXYToTile(const wxPoint& point)
 {
+	if (m_tileset == nullptr)
+	{
+		return -1;
+	}
 	int s = GetVisibleRowsBegin();
 	int x = point.x / (m_pixelsize * m_tileset->GetTileWidth());
 	int y = s + point.y / (m_pixelsize * m_tileset->GetTileHeight());

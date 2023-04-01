@@ -13,6 +13,7 @@
 #include "StringEditorFrame.h"
 #include "PaletteListFrame.h"
 #include "RoomViewerFrame.h"
+#include "Map2DEditorFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -88,6 +89,10 @@ private:
         STRING,
         PALETTE,
         MAP_VIEW,
+        MAP_2D,
+        MAP_3D,
+        BLOCKSET,
+        SPRITE,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -129,6 +134,7 @@ private:
     StringEditorFrame* GetStringEditor();
     PaletteListFrame* GetPaletteEditor();
     RoomViewerFrame* GetRoomEditor();
+    Map2DEditorFrame* GetMap2DEditor();
     
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;

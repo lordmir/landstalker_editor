@@ -35,6 +35,7 @@ public:
     std::vector<std::shared_ptr<TilesetEntry>> GetGameLoadScreenTiles() const;
 
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> GetAllMaps() const;
+    std::shared_ptr<Tilemap2DEntry> GetMap(const std::string&) const;
     std::vector<std::shared_ptr<Tilemap2DEntry>> GetUIMaps() const;
     std::shared_ptr<Tilemap2DEntry> GetEndCreditLogosMaps() const;
     std::vector<std::shared_ptr<Tilemap2DEntry>> GetIslandMapMaps() const;

@@ -36,6 +36,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_scrollwindow) });
     m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_scrollwindow) });
     m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_scrollwindow) });
+    m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_scrollwindow) });
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -887,7 +888,6 @@ void MainFrame::Refresh()
     case MODE_TILESET:
     {
         // Display tileset
-        auto ts = m_g->GetTileset(m_selname);
         GetTilesetEditor()->Open(m_selname);
         ShowEditor(EditorType::TILESET);
         break;
@@ -924,8 +924,9 @@ void MainFrame::Refresh()
     }
     case MODE_IMAGE:
         // Display image
-        ShowBitmap();
-        DrawImage(m_selname, 2);
+        GetMap2DEditor()->Open(m_selname);
+        ShowEditor(EditorType::MAP_2D);
+        //DrawImage(m_selname, 2);
         break;
     case MODE_NONE:
     default:
@@ -1003,6 +1004,11 @@ PaletteListFrame* MainFrame::GetPaletteEditor()
 RoomViewerFrame* MainFrame::GetRoomEditor()
 {
     return static_cast<RoomViewerFrame*>(m_editors.at(EditorType::MAP_VIEW));
+}
+
+Map2DEditorFrame* MainFrame::GetMap2DEditor()
+{
+    return static_cast<Map2DEditorFrame*>(m_editors.at(EditorType::MAP_2D));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)
