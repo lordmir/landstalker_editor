@@ -23,6 +23,12 @@ public:
 
 	void SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode = RoomViewerCtrl::Mode::NORMAL);
 	uint16_t GetRoomNum() const { return m_roomnum; }
+
+	bool ExportBin(const std::string& path);
+	bool ExportCsv(const std::array<std::string, 3>& paths);
+	bool ExportPng(const std::string& path);
+	bool ImportBin(const std::string& path);
+	bool ImportCsv(const std::array<std::string, 3>& paths);
 private:
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
@@ -31,6 +37,11 @@ private:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	void OnExportBin();
+	void OnExportCsv();
+	void OnExportPng();
+	void OnImportBin();
+	void OnImportCsv();
 	void UpdateUI() const;
 
 	void OnZoomChange(wxCommandEvent& evt);

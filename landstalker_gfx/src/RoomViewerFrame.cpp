@@ -1,11 +1,15 @@
 #include "RoomViewerFrame.h"
 
+#include <fstream>
+#include <sstream>
+
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_BIN = 20000,
 	ID_FILE_EXPORT_CSV,
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_BIN,
+	ID_FILE_IMPORT_CSV,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS
 };
@@ -86,6 +90,174 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
 	Update();
 }
 
+bool RoomViewerFrame::ExportBin(const std::string& path)
+{
+	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+	WriteBytes(*data->GetBytes(), path);
+	return true;
+}
+
+bool RoomViewerFrame::ExportCsv(const std::array<std::string, 3>& paths)
+{
+	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+	std::ofstream bg(paths[0], std::ios::out | std::ios::trunc);
+	std::ofstream fg(paths[1], std::ios::out | std::ios::trunc);
+	std::ofstream hm(paths[2], std::ios::out | std::ios::trunc);
+
+
+	for (int i = 0; i < data->GetWidth() * data->GetHeight(); ++i)
+	{
+		fg << StrPrintf("%04X", data->GetBlock(i, Tilemap3D::Layer::FG).value);
+		bg << StrPrintf("%04X", data->GetBlock(i, Tilemap3D::Layer::BG).value);
+		if ((i + 1) % data->GetWidth() == 0)
+		{
+			fg << std::endl;
+			bg << std::endl;
+		}
+		else
+		{
+			fg << ",";
+			bg << ",";
+		}
+	}
+	hm << StrPrintf("%02X", data->GetLeft()) << "," << StrPrintf("%02X",data->GetTop()) << std::endl;
+	for (int i = 0; i < data->GetHeightmapHeight(); ++i)
+		for (int j = 0; j < data->GetHeightmapWidth(); ++j)
+		{
+			hm << StrPrintf("%X%X%02X", data->GetCellProps({ j, i }), data->GetHeight({ j, i }), data->GetCellType({j, i}));
+			if ((j + 1) % data->GetHeightmapWidth() == 0)
+			{
+				hm << std::endl;
+			}
+			else
+			{
+				hm << ",";
+			}
+		}
+
+	return true;
+}
+
+bool RoomViewerFrame::ExportPng(const std::string& path)
+{
+	auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+	auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(m_roomnum);
+	auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData() };
+	auto tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
+	auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+
+	int width = map->GetPixelWidth();
+	int height = map->GetPixelHeight();
+	ImageBuffer buf(width, height);
+
+	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
+	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
+	return buf.WritePNG(path, palette, false);
+}
+
+bool RoomViewerFrame::ImportBin(const std::string& path)
+{
+	auto bytes = ReadBytes(path);
+	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+	data->GetData()->Decode(bytes.data());
+	return true;
+}
+
+bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
+{
+	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+	std::ifstream bg(paths[0], std::ios::in);
+	std::ifstream fg(paths[1], std::ios::in);
+	std::ifstream hm(paths[2], std::ios::in);
+	
+	int w, h, t, l, hw, hh;
+	std::vector<std::vector<uint16_t>> foreground, background, heightmap;
+
+	auto read_csv = [](auto& iss, auto& data)
+	{
+		std::string row;
+		std::string cell;
+		while (std::getline(iss, row))
+		{
+			data.push_back(std::vector<uint16_t>());
+			std::istringstream rss(row);
+			while (std::getline(rss, cell, ','))
+			{
+				data.back().push_back(std::stoi(cell, nullptr, 16));
+			}
+		}
+	};
+	
+	read_csv(fg, foreground);
+	read_csv(bg, background);
+	read_csv(hm, heightmap);
+
+	if (heightmap.size() < 2 || heightmap.front().size() != 2)
+	{
+		return false;
+	}
+	if (foreground.size() == 0 || foreground.front().size() == 0)
+	{
+		return false;
+	}
+	if (background.size() == 0 || background.front().size() == 0)
+	{
+		return false;
+	}
+	w = foreground.front().size();
+	h = foreground.size();
+	hw = heightmap[1].size();
+	hh = heightmap.size() - 1;
+	l = heightmap[0][0];
+	t = heightmap[0][1];
+
+	if (background.size() != h)
+	{
+		return false;
+	}
+
+	for (int i = 0; i < h; ++i)
+	{
+		if (background[i].size() != w || foreground[i].size() != w)
+		{
+			return false;
+		}
+	}
+	for (int i = 1; i <= hh; ++i)
+	{
+		if (heightmap[i].size() != hw)
+		{
+			return false;
+		}
+	}
+
+	data->Resize(w, h);
+	data->ResizeHeightmap(hw, hh);
+	data->SetLeft(l);
+	data->SetTop(t);
+	
+	int i = 0;
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			data->SetBlock(background[y][x], i, Tilemap3D::Layer::BG);
+			data->SetBlock(foreground[y][x], i++, Tilemap3D::Layer::FG);
+		}
+	}
+	for (int y = 0; y < hh; ++y)
+	{
+		for (int x = 0; x < hw; ++x)
+		{
+			data->SetCellProps({ x, y }, (heightmap[y + 1][x] >> 12) & 0xF);
+			data->SetHeight({ x, y }, (heightmap[y + 1][x] >> 8) & 0xF);
+			data->SetCellType({ x, y }, heightmap[y + 1][x] & 0xFF);
+		}
+	}
+
+	return true;
+}
+
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 {
 	status.SetStatusText(m_roomview->GetStatusText());
@@ -154,8 +326,9 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_BIN, "Export Map as Binary...");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_CSV, "Export Map as CSV Set...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
-	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Map...");
-	AddMenuItem(fileMenu, 5, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 6, wxID_ANY, "", wxITEM_SEPARATOR);
 	auto& toolsMenu = AddMenu(menu, 1, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
 
@@ -172,12 +345,19 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		switch (id)
 		{
 		case ID_FILE_EXPORT_BIN:
+			OnExportBin();
 			break;
 		case ID_FILE_EXPORT_CSV:
+			OnExportCsv();
 			break;
 		case ID_FILE_EXPORT_PNG:
+			OnExportPng();
 			break;
 		case ID_FILE_IMPORT_BIN:
+			OnImportBin();
+			break;
+		case ID_FILE_IMPORT_CSV:
+			OnImportCsv();
 			break;
 		case ID_TOOLS_LAYERS:
 			SetPaneVisibility(m_layerctrl, !IsPaneVisible(m_layerctrl));
@@ -187,6 +367,86 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		}
 		UpdateUI();
 	}
+}
+
+void RoomViewerFrame::OnExportBin()
+{
+	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	const wxString default_file = rd->name + ".bin";
+	wxFileDialog fd(this, _("Export Map As Binary"), "", default_file, "Room Map (*.cmp)|*.cmp|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportBin(fd.GetPath().ToStdString());
+	}
+}
+
+void RoomViewerFrame::OnExportCsv()
+{
+	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	std::array<std::string, 3> fnames;
+	wxString default_file = rd->name + "_background.csv";
+	wxFileDialog fd(this, _("Export Background Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		fnames[0] = fd.GetPath().ToStdString();
+	}
+	default_file = rd->name + "_foreground.csv";
+	fd.Create(this, _("Export Foreground Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		fnames[1] = fd.GetPath().ToStdString();
+	}
+	default_file = rd->name + "_heightmap.csv";
+	fd.Create(this, _("Export Heightmap Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		fnames[2] = fd.GetPath().ToStdString();
+	}
+	ExportCsv(fnames);
+}
+
+void RoomViewerFrame::OnExportPng()
+{
+	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	const wxString default_file = rd->name + ".png";
+	wxFileDialog fd(this, _("Export Map As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPng(fd.GetPath().ToStdString());
+	}
+}
+
+void RoomViewerFrame::OnImportBin()
+{
+	wxFileDialog fd(this, _("Import Map From Binary"), "", "", "Room Map (*.cmp)|*.cmp|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportBin(path);
+	}
+	Update();
+}
+
+void RoomViewerFrame::OnImportCsv()
+{
+	std::array<std::string, 3> filenames;
+	wxFileDialog fd(this, _("Import Background Layer"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		filenames[0] = fd.GetPath().ToStdString();
+	}
+	fd.Create(this, _("Import Foreground Layer"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		filenames[1] = fd.GetPath().ToStdString();
+	}
+	fd.Create(this, _("Import Heightmap Data"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		filenames[2] = fd.GetPath().ToStdString();
+	}
+	ImportCsv(filenames);
+	Update();
 }
 
 

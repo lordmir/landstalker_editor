@@ -133,7 +133,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
         }
 }
 
-bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::shared_ptr<Palette>>& palettes)
+bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::shared_ptr<Palette>>& palettes, bool use_alpha)
 {
     bool retval = false;
 
@@ -168,7 +168,10 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::s
         entry += 16;
     }
     png_set_PLTE(png, info, png_palette, 256);
-    png_set_tRNS(png, info, png_alpha, 256, NULL);
+    if (use_alpha)
+    {
+        png_set_tRNS(png, info, png_alpha, 256, NULL);
+    };
 
     FILE* fp = fopen(filename.c_str(), "wb");
 

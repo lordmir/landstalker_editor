@@ -607,7 +607,7 @@ void RoomViewerCtrl::OnPaint(wxPaintEvent& evt)
 
 void RoomViewerCtrl::OnEraseBackground(wxEraseEvent& evt)
 {
-    evt.Skip();
+    //evt.Skip();
 }
 
 void RoomViewerCtrl::OnSize(wxSizeEvent& evt)
