@@ -4,7 +4,7 @@
 #include "Utils.h"
 
 static const std::vector<std::string> LABELS = { "Background 1", "Background 2", "Foreground", "Sprites", "Heightmap" };
-static const std::array<double, 9> ZOOM_LEVELS = { 0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0 };
+static const std::array<double, 7> ZOOM_LEVELS = { 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0 };
 
 wxDEFINE_EVENT(EVT_ZOOM_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_OPACITY_CHANGE, wxCommandEvent);
@@ -110,20 +110,31 @@ void LayerControlFrame::EnableZoom(bool enabled)
 
 void LayerControlFrame::EnableLayers(bool enabled)
 {
-    for (const auto& slider : m_opacity_ctrls)
+    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
     {
-        slider->Enable(enabled);
-    }
-    for (const auto& visible : m_visible_ctrls)
-    {
-        visible->Enable(enabled);
+        m_visible_ctrls[i]->Enable(enabled);
+        if (m_visible_ctrls[i]->IsChecked())
+        {
+            m_opacity_ctrls[i]->Enable(enabled);
+        }
+        else
+        {
+            m_opacity_ctrls[i]->Enable(false);
+        }
     }
 }
 
 void LayerControlFrame::EnableLayer(Layer layer, bool enabled)
 {
-    m_opacity_ctrls[static_cast<int>(layer)]->Enable(enabled);
     m_visible_ctrls[static_cast<int>(layer)]->Enable(enabled);
+    if (m_visible_ctrls[static_cast<int>(layer)]->IsChecked())
+    {
+        m_opacity_ctrls[static_cast<int>(layer)]->Enable(enabled);
+    }
+    else
+    {
+        m_opacity_ctrls[static_cast<int>(layer)]->Enable(false);
+    }
 }
 
 void LayerControlFrame::UpdateUI()
@@ -162,6 +173,7 @@ void LayerControlFrame::SetUI()
         m_opacity_ctrls[i]->Enable(m_visibilities[i]);
         m_visible_ctrls[i]->SetValue(m_visibilities[i]);
     }
+    Refresh();
 }
 
 void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& evt)
