@@ -11,7 +11,8 @@ static const std::size_t MAXIMUM_CAPACITY = 0x400;
 template<class T>
 void HFlip(std::vector<T>& elems, int width)
 {
-    for (std::size_t i = 0; i < width; ++i)
+    int height = elems.size() / width;
+    for (std::size_t i = 0; i < height; ++i)
     {
         auto source_it = elems.begin() + width * i;
         std::reverse(source_it, source_it + width);

@@ -83,6 +83,7 @@ public:
 	bool IsSelectionValid() const;
 	bool IsHoverValid() const;
 	TilePosition GetSelection() const;
+	void SetSelection(const TilePosition& tp);
 	TilePosition GetHover() const;
 	Tile GetSelectedTile() const;
 	void SetSelectedTile(const Tile& tile);

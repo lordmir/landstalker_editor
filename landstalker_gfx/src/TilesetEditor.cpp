@@ -208,6 +208,7 @@ void TilesetEditor::OnMouseDown(wxMouseEvent& evt)
 	if (!m_enableselection) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
 	SelectTile(sel);
+	FireEvent(EVT_TILESET_SELECT, std::to_string(m_selectedtile));
 	evt.Skip();
 }
 
@@ -685,7 +686,6 @@ void TilesetEditor::SelectTile(int tile)
 		m_selectedtile = tile;
 		Refresh();
 	}
-	FireEvent(EVT_TILESET_SELECT, std::to_string(m_selectedtile));
 }
 
 void TilesetEditor::InsertTileBefore(const Tile& tile)

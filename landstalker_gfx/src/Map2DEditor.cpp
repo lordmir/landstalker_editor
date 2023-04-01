@@ -94,6 +94,10 @@ bool Map2DEditor::Open(std::shared_ptr<Tilemap2DEntry> map)
 	m_tileset = m_tileset_entry->GetData();
 	m_active_palette = m_g->GetPalette(m_g->GetTileset(map->GetTileset())->GetDefaultPalette());
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetDrawTile(0);
+	m_selectedtile = 0;
+	m_mode = Mode::SELECT;
+	ScrollToRowColumn(0, 0);
 	ForceRedraw();
 	return true;
 }
@@ -328,6 +332,11 @@ bool Map2DEditor::IsSelectionValid() const
 Map2DEditor::TilePosition Map2DEditor::GetSelection() const
 {
 	return ToPosition(m_selectedtile);
+}
+
+void Map2DEditor::SetSelection(const Map2DEditor::TilePosition& tp)
+{
+	SelectTile(tp);
 }
 
 bool Map2DEditor::IsHoverValid() const
@@ -791,21 +800,57 @@ void Map2DEditor::FireTilesetEvent(const wxEventType& e, const std::string& data
 
 bool Map2DEditor::InsertRow(int row)
 {
-	return false;
+	if (row > m_map->GetHeight())
+	{
+		return false;
+	}
+	auto pos = GetSelection();
+	m_map->InsertRow(row, GetSelectedTile());
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetSelection(pos);
+	RedrawTiles();
+	return true;
 }
 
 bool Map2DEditor::DeleteRow(int row)
 {
-	return false;
+	if (row >= m_map->GetHeight())
+	{
+		return false;
+	}
+	auto pos = GetSelection();
+	m_map->DeleteRow(row);
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetSelection(pos);
+	RedrawTiles();
+	return true;
 }
 
 bool Map2DEditor::InsertColumn(int column)
 {
-	return false;
+	if (column > m_map->GetWidth())
+	{
+		return false;
+	}
+	auto pos = GetSelection();
+	m_map->InsertColumn(column, GetSelectedTile());
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetSelection(pos);
+	RedrawTiles();
+	return true;
 }
 
 bool Map2DEditor::DeleteColumn(int column)
 {
-	return false;
+	if (column >= m_map->GetWidth())
+	{
+		return false;
+	}
+	auto pos = GetSelection();
+	m_map->DeleteColumn(column);
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetSelection(pos);
+	RedrawTiles();
+	return true;
 }
 

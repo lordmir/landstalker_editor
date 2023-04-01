@@ -34,6 +34,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["fonts"] = wxBITMAP_PNG_FROM_DATA(fonts_16x16);
 		m_images["find"] = wxBITMAP_PNG_FROM_DATA(FIND_16x16);
 		m_images["gridlines"] = wxBITMAP_PNG_FROM_DATA(gridlines_16x16);
+		m_images["hflip"] = wxBITMAP_PNG_FROM_DATA(hflip_16x16);
 		m_images["image"] = wxBITMAP_PNG_FROM_DATA(img_16x16);
 		m_images["insert_after"] = wxBITMAP_PNG_FROM_DATA(insert_after_16x16);
 		m_images["insert_before"] = wxBITMAP_PNG_FROM_DATA(insert_before_16x16);
@@ -42,10 +43,12 @@ ImageList::ImageList(bool img32x32)
 		m_images["insert_row_after"] = wxBITMAP_PNG_FROM_DATA(insert_row_after_16x16);
 		m_images["insert_row_before"] = wxBITMAP_PNG_FROM_DATA(insert_row_before_16x16);
 		m_images["mcr"] = wxBITMAP_PNG_FROM_DATA(MCR_16x16);
+		m_images["mouse"] = wxBITMAP_PNG_FROM_DATA(mouse_16x16);
 		m_images["new"] = wxBITMAP_PNG_FROM_DATA(NEW_16x16);
 		m_images["palette"] = wxBITMAP_PNG_FROM_DATA(pal_16x16);
 		m_images["paste"] = wxBITMAP_PNG_FROM_DATA(PASTE_16x16);
 		m_images["pencil"] = wxBITMAP_PNG_FROM_DATA(pencil_16x16);
+		m_images["priority"] = wxBITMAP_PNG_FROM_DATA(priority_16x16);
 		m_images["properties"] = wxBITMAP_PNG_FROM_DATA(PROP_16x16);
 		m_images["redo"] = wxBITMAP_PNG_FROM_DATA(REDO_16x16);
 		m_images["room"] = wxBITMAP_PNG_FROM_DATA(room_16x16);
@@ -56,6 +59,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["tile_nums"] = wxBITMAP_PNG_FROM_DATA(tilenums_16x16);
 		m_images["tileset"] = wxBITMAP_PNG_FROM_DATA(ts_16x16);
 		m_images["undo"] = wxBITMAP_PNG_FROM_DATA(UNDO_16x16);
+		m_images["vflip"] = wxBITMAP_PNG_FROM_DATA(vflip_16x16);
 	}
 
 	for (const auto& img : m_images)

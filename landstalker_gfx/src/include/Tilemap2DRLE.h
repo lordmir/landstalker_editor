@@ -51,8 +51,8 @@ public:
 	void SetTile(const Tile& tile, size_t x, size_t y);
 	bool IsTileValid(int x, int y) const;
 
-	void InsertRow(int position);
-	void InsertColumn(int position);
+	void InsertRow(int position, const Tile& fill = 0);
+	void InsertColumn(int position, const Tile& fill = 0);
 	void DeleteRow(int position);
 	void DeleteColumn(int position);
 	void Resize(int width, int height);

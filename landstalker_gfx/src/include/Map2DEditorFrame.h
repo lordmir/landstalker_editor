@@ -28,11 +28,14 @@ private:
 		PENCIL
 	};
 	void OnZoomChange(wxCommandEvent& evt);
-	void OnButtonClicked(wxCommandEvent& evt);
+	void OnTilesetZoomChange(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelect(wxCommandEvent& evt);
 	void OnTileEditRequested(wxCommandEvent& evt);
+	void OnTilesetSelect(wxCommandEvent& evt);
+	void OnPaletteSelect(wxCommandEvent& evt);
+	void InitCombos() const;
 	std::string PrettyPrintTile(const Map2DEditor::TilePosition& tp) const;
 	std::string PrettyPrintMode() const;
 	virtual void InitStatusBar(wxStatusBar& status) const;
@@ -50,6 +53,11 @@ private:
 	TilesetEditor* m_tileset;
 	Map2DEditor* m_mapedit;
 	mutable wxSlider* m_zoomslider;
+	mutable wxSlider* m_tileset_zoomslider;
+	mutable wxComboBox* m_tileset_select;
+	mutable wxComboBox* m_palette_select;
+	mutable wxPGChoices m_tileset_list;
+	mutable wxPGChoices m_palette_list;
 
 	std::shared_ptr<Tilemap2DEntry> m_map;
 	std::shared_ptr<TilesetEntry> m_tiles;

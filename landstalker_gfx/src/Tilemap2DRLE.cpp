@@ -16,13 +16,13 @@ Tilemap2D::Tilemap2D()
 }
 
 Tilemap2D::Tilemap2D(size_t width, size_t height, size_t base)
-	: m_width(width), m_height(height), m_base(base), m_compression(NONE)
+	: m_width(width), m_height(height), m_top(0), m_left(0), m_base(base), m_compression(NONE)
 {
 	m_tiles.resize(width * height);
 }
 
 Tilemap2D::Tilemap2D(const std::string& filename, Compression compression, size_t base)
-	: m_width(0), m_height(0), m_base(base), m_compression(compression)
+	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(base), m_compression(compression)
 {
 	Open(filename, compression, base);
 }
@@ -629,20 +629,104 @@ bool Tilemap2D::IsTileValid(int x, int y) const
 	return retval;
 }
 
-void Tilemap2D::InsertRow(int position)
+void Tilemap2D::InsertRow(int position, const Tile& fill)
 {
+	m_height += 1;
+	auto old = m_tiles;
+	m_tiles.resize(m_width * m_height);
+	auto oit = old.cbegin();
+	auto nit = m_tiles.begin();
+	for (int y = 0; y < m_height; ++y)
+	{
+		for (int x = 0; x < m_width; ++x)
+		{
+			if (y == position)
+			{
+				*nit++ = fill;
+			}
+			else
+			{
+				*nit++ = *oit++;
+			}
+		}
+	}
 }
 
-void Tilemap2D::InsertColumn(int position)
+void Tilemap2D::InsertColumn(int position, const Tile& fill)
 {
+	m_width += 1;
+	auto old = m_tiles;
+	m_tiles.resize(m_width * m_height);
+	auto oit = old.cbegin();
+	auto nit = m_tiles.begin();
+	for (int y = 0; y < m_height; ++y)
+	{
+		for (int x = 0; x < m_width; ++x)
+		{
+			if (x == position)
+			{
+				*nit++ = fill;
+			}
+			else
+			{
+				*nit++ = *oit++;
+			}
+		}
+	}
 }
 
 void Tilemap2D::DeleteRow(int position)
 {
+	if (m_height < 2)
+	{
+		return;
+	}
+	m_height -= 1;
+	auto old = m_tiles;
+	m_tiles.resize(m_width * m_height);
+	auto oit = old.cbegin();
+	auto nit = m_tiles.begin();
+	for (int y = 0; y < m_height + 1; ++y)
+	{
+		for (int x = 0; x < m_width; ++x)
+		{
+			if (y == position)
+			{
+				oit++;
+			}
+			else
+			{
+				*nit++ = *oit++;
+			}
+		}
+	}
 }
 
 void Tilemap2D::DeleteColumn(int position)
 {
+	if (m_width < 2)
+	{
+		return;
+	}
+	m_width -= 1;
+	auto old = m_tiles;
+	m_tiles.resize(m_width * m_height);
+	auto oit = old.cbegin();
+	auto nit = m_tiles.begin();
+	for (int y = 0; y < m_height; ++y)
+	{
+		for (int x = 0; x < m_width + 1; ++x)
+		{
+			if (x == position)
+			{
+				oit++;
+			}
+			else
+			{
+				*nit++ = *oit++;
+			}
+		}
+	}
 }
 
 void Tilemap2D::Resize(int width, int height)
