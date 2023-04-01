@@ -31,6 +31,8 @@
 #include <wx/bitmap.h>
 #include <map>
 #include <wx/icon.h>
+#include <wx/filehistory.h>
+#include <wx/config.h>
 #if wxVERSION_NUMBER >= 2900
 #include <wx/persist.h>
 #include <wx/persist/toplevel.h>
@@ -57,8 +59,9 @@ protected:
     wxMenuItem* m_mnu_open;
     wxMenuItem* m_mnu_save_as_asm;
     wxMenuItem* m_mnu_save_to_rom;
-    wxMenuItem* m_mnu_export;
     wxMenuItem* m_mnu_sep1;
+    wxMenu* m_mnu_recent_files;
+    wxMenuItem* m_mnu_sep2;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
     wxMenuItem* m_mnu_about;
@@ -68,39 +71,12 @@ protected:
     wxTreeCtrl* m_browser;
     wxPanel* m_panel_properties;
     wxPropertyGridManager* m_properties;
-    wxPanel* m_panel_layers;
-    wxRadioButton* m_optBgSelect;
-    wxCheckBox* m_checkBgVisible;
-    wxSlider* m_sliderBgOpacity;
-    wxRadioButton* m_optFg1Select;
-    wxCheckBox* m_checkFg1Visible;
-    wxSlider* m_sliderFg1Opacity;
-    wxRadioButton* m_optFg2Select;
-    wxCheckBox* m_checkFg2Visible;
-    wxSlider* m_sliderFg2Opacity;
-    wxRadioButton* m_optHeightmapSelect;
-    wxCheckBox* m_checkHeightmapVisible;
-    wxSlider* m_sliderHeightmapOpacity;
-    wxRadioButton* m_optSpritesSelect;
-    wxCheckBox* m_checkSpritesVisible;
-    wxSlider* m_sliderSpritesOpacity;
     wxScrolledWindow* m_scrollwindow;
-    wxPanel* m_panel_tiles;
-    wxToolBar* m_toolbar;
+
+    wxFileHistory* m_filehistory;
+    wxConfig* m_config;
 
 protected:
-    virtual void OnMousewheel(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnKeyDown(wxKeyEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnKeyUp(wxKeyEvent& event)
-    {
-        event.Skip();
-    }
     virtual void OnClose(wxCloseEvent& event)
     {
         event.Skip();
@@ -117,10 +93,6 @@ protected:
     {
         event.Skip();
     }
-    virtual void OnExport(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
     virtual void OnExit(wxCommandEvent& event)
     {
         event.Skip();
@@ -133,55 +105,11 @@ protected:
     {
         event.Skip();
     }
-    virtual void OnLayerSelect(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnLayerVisibilityChange(wxCommandEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnLayerOpacityChange(wxScrollEvent& event)
-    {
-        event.Skip();
-    }
     virtual void OnScrollWindowPaint(wxPaintEvent& event)
     {
         event.Skip();
     }
-    virtual void OnScrollWindowMousewheel(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowMouseMove(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowLeftDown(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowLeftUp(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowRightDown(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowRightUp(wxMouseEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowKeyDown(wxKeyEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowKeyUp(wxKeyEvent& event)
-    {
-        event.Skip();
-    }
-    virtual void OnScrollWindowResize(wxSizeEvent& event)
+    virtual void OnMRUFile(wxCommandEvent& event)
     {
         event.Skip();
     }
@@ -211,121 +139,21 @@ public:
     {
         return m_panel_properties;
     }
-    wxRadioButton* GetOptBgSelect()
-    {
-        return m_optBgSelect;
-    }
-    wxCheckBox* GetCheckBgVisible()
-    {
-        return m_checkBgVisible;
-    }
-    wxSlider* GetSliderBgOpacity()
-    {
-        return m_sliderBgOpacity;
-    }
-    wxRadioButton* GetOptFg1Select()
-    {
-        return m_optFg1Select;
-    }
-    wxCheckBox* GetCheckFg1Visible()
-    {
-        return m_checkFg1Visible;
-    }
-    wxSlider* GetSliderFg1Opacity()
-    {
-        return m_sliderFg1Opacity;
-    }
-    wxRadioButton* GetOptFg2Select()
-    {
-        return m_optFg2Select;
-    }
-    wxCheckBox* GetCheckFg2Visible()
-    {
-        return m_checkFg2Visible;
-    }
-    wxSlider* GetSliderFg2Opacity()
-    {
-        return m_sliderFg2Opacity;
-    }
-    wxRadioButton* GetOptHeightmapSelect()
-    {
-        return m_optHeightmapSelect;
-    }
-    wxCheckBox* GetCheckHeightmapVisible()
-    {
-        return m_checkHeightmapVisible;
-    }
-    wxSlider* GetSliderHeightmapOpacity()
-    {
-        return m_sliderHeightmapOpacity;
-    }
-    wxRadioButton* GetOptSpritesSelect()
-    {
-        return m_optSpritesSelect;
-    }
-    wxCheckBox* GetCheckSpritesVisible()
-    {
-        return m_checkSpritesVisible;
-    }
-    wxSlider* GetSliderSpritesOpacity()
-    {
-        return m_sliderSpritesOpacity;
-    }
-    wxPanel* GetPanel_layers()
-    {
-        return m_panel_layers;
-    }
     wxScrolledWindow* GetScrollwindow()
     {
         return m_scrollwindow;
-    }
-    wxPanel* GetPanel_tiles()
-    {
-        return m_panel_tiles;
     }
     wxAuiManager* GetWindow()
     {
         return m_window;
     }
-    wxToolBar* GetToolbar()
-    {
-        return m_toolbar;
-    }
     MainFrameBaseClass(wxWindow* parent,
         wxWindowID id = wxID_ANY,
-        const wxString& title = _("Landstalker Graphics Viewer"),
+        const wxString& title = _("Landstalker Editor"),
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxSize(1024, 768),
         long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxCLOSE_BOX);
     virtual ~MainFrameBaseClass();
-};
-
-class ImgLst : public wxImageList
-{
-protected:
-    // Maintain a map of all bitmaps representd by their name
-    std::map<wxString, wxBitmap> m_bitmaps;
-    // The requested image resolution (can be one of @2x, @1.5x, @1.25x or an empty string (the default)
-    wxString m_resolution;
-    int m_imagesWidth;
-    int m_imagesHeight;
-
-protected:
-public:
-    ImgLst();
-    const wxBitmap& Bitmap(const wxString& name) const
-    {
-        if(!m_bitmaps.count(name + m_resolution))
-            return wxNullBitmap;
-        return m_bitmaps.find(name + m_resolution)->second;
-    }
-
-    void SetBitmapResolution(const wxString& res = wxEmptyString)
-    {
-        m_resolution = res;
-    }
-
-    virtual ~ImgLst();
 };
 
 #endif

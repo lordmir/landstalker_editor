@@ -64,6 +64,10 @@ public:
     uint8_t GetWidth() const;
     uint8_t GetHeight() const;
     uint16_t GetSize() const;
+    void Resize(uint8_t w, uint8_t h);
+    void ResizeHeightmap(uint8_t w, uint8_t h);
+    void SetLeft(uint8_t left);
+    void SetTop(uint8_t top);
     uint8_t GetHeightmapWidth() const;
     uint8_t GetHeightmapHeight() const;
     uint16_t GetHeightmapSize() const;

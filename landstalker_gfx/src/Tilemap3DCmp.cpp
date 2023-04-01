@@ -733,6 +733,85 @@ uint16_t Tilemap3D::GetSize() const
     return width * height;
 }
 
+void Tilemap3D::Resize(uint8_t w, uint8_t h)
+{
+    auto old_bg = background;
+    auto old_fg = foreground;
+
+    background.resize(w * h);
+    foreground.resize(w * h);
+    
+    auto obit = old_bg.cbegin();
+    auto ofit = old_fg.cbegin();
+    auto nbit = background.begin();
+    auto nfit = foreground.begin();
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; j++)
+        {
+            if ((i < height) && (j < width))
+            {
+                *nbit++ = *obit++;
+                *nfit++ = *ofit++;
+            }
+            else
+            {
+                *nbit++ = 0;
+                *nfit++ = 0;
+            }
+        }
+        if (w < width)
+        {
+            obit += width - w;
+            ofit += width - w;
+        }
+    }
+
+    width = w;
+    height = h;
+}
+
+void Tilemap3D::ResizeHeightmap(uint8_t w, uint8_t h)
+{
+    auto old_hm = heightmap;
+
+    heightmap.resize(w * h);
+
+    auto ohit = old_hm.cbegin();
+    auto nhit = heightmap.begin();
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; j++)
+        {
+            if ((i < height) && (j < width))
+            {
+                *nhit++ = *ohit++;
+            }
+            else
+            {
+                *nhit++ = 0x4000;
+            }
+        }
+        if (w < width)
+        {
+            ohit += width - w;
+        }
+    }
+
+    hmwidth = w;
+    hmheight = h;
+}
+
+void Tilemap3D::SetLeft(uint8_t left)
+{
+    this->left = left;
+}
+
+void Tilemap3D::SetTop(uint8_t top)
+{
+    this->top = top;
+}
+
 uint8_t Tilemap3D::GetHeightmapWidth() const
 {
     return hmwidth;
