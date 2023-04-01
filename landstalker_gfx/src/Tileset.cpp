@@ -338,6 +338,26 @@ std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const Palette& pale
     return ret;
 }
 
+std::vector<uint32_t> Tileset::GetTileBGRA(const Tile& tile, const Palette& palette) const
+{
+    auto t = GetTile(tile);
+    std::vector<uint32_t> ret;
+    ret.reserve(m_width * m_height);
+    for (auto p : t)
+    {
+        if (m_colour_indicies.empty())
+        {
+            ret.push_back(palette.getBGRA(p));
+        }
+        else
+        {
+            ret.push_back(palette.getBGRA(m_colour_indicies[p]));
+        }
+    }
+
+    return ret;
+}
+
 void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 {
 	if (colour_indicies.size() == 0)

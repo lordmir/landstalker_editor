@@ -27,7 +27,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
     m_zoom_slider->Bind(wxEVT_SLIDER, &LayerControlFrame::OnZoomValueChanged, this, 3000);
 
     hboxsizer->Add(zoom_label, 0, wxALL, 5);
-    hboxsizer->Add(m_zoom_slider, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+    hboxsizer->Add(m_zoom_slider, 0, wxALIGN_CENTER_VERTICAL);
     hboxsizer->Add(m_zoom_label, 0, wxALL, 5);
     vboxsizer->Add(line, 0, wxALL | wxEXPAND, 5);
 
@@ -35,7 +35,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
     sizer->SetFlexibleDirection(wxHORIZONTAL);
     sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
     sizer->AddGrowableCol(0, 1);
-    sizer->AddGrowableCol(3, 1);
+    sizer->AddGrowableCol(2, 1);
     vboxsizer->Add(sizer, 0, wxALL | wxEXPAND);
 
 
@@ -51,7 +51,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
 
         sizer->Add(label, 1, wxALL | wxEXPAND | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
         sizer->Add(m_visible_ctrls.back(), 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
-        sizer->Add(m_opacity_ctrls.back(), 1, wxALL | wxEXPAND | wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_opacity_ctrls.back(), 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL);
     }
     SetUI();
 }

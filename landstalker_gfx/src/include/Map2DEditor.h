@@ -52,6 +52,8 @@ public:
 	int GetPixelSize() const;
 	void SetActivePalette(const std::string& name);
 	std::string GetActivePalette() const;
+	void SetTileset(const std::string& name);
+	std::string GetTileset() const;
 	int GetTilemapWidth() const;
 	int GetTilemapHeight() const;
 	std::shared_ptr<Tileset> GetTileset();
@@ -119,8 +121,9 @@ private:
 	void FireTilesetEvent(const wxEventType& e, const std::string& data);
 
 	std::shared_ptr<Tilemap2D> m_map;
-	std::shared_ptr<std::map<std::string, Palette>> m_palettes;
+	std::shared_ptr<Tilemap2DEntry> m_map_entry;
 	std::shared_ptr<Tileset> m_tileset;
+	std::shared_ptr<TilesetEntry> m_tileset_entry;
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<PaletteEntry> m_active_palette;
 	Palette m_default_palette;

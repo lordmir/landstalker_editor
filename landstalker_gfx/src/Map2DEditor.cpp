@@ -88,15 +88,20 @@ bool Map2DEditor::Open(std::shared_ptr<Tilemap2DEntry> map)
 	{
 		return false;
 	}
+	m_map_entry = map;
 	m_map = map->GetData();
-	m_tileset = m_g->GetTileset(map->GetTileset())->GetData();
+	m_tileset_entry = m_g->GetTileset(map->GetTileset());
+	m_tileset = m_tileset_entry->GetData();
 	m_active_palette = m_g->GetPalette(m_g->GetTileset(map->GetTileset())->GetDefaultPalette());
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	ForceRedraw();
 	return true;
 }
 
 bool Map2DEditor::New(int width, int height, int base)
 {
+	m_map_entry = nullptr;
+	m_map = std::make_shared<Tilemap2D>();
 	m_map->Clear();
 	m_map->Resize(width, height);
 	m_map->FillIncrementing(base);
@@ -162,6 +167,25 @@ void Map2DEditor::SetActivePalette(const std::string& name)
 	if (m_active_palette->GetName() != name)
 	{
 		m_active_palette = m_g->GetPalette(name);
+		ForceRedraw();
+	}
+}
+
+std::string Map2DEditor::GetTileset() const
+{
+	return m_tileset_entry->GetName();
+}
+
+void Map2DEditor::SetTileset(const std::string& name)
+{
+	if (m_g == nullptr)
+	{
+		return;
+	}
+	if (m_tileset_entry->GetName() != name)
+	{
+		m_tileset_entry = m_g->GetTileset(name);
+		m_tileset = m_tileset_entry->GetData();
 		ForceRedraw();
 	}
 }
@@ -400,7 +424,7 @@ void Map2DEditor::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 	brush.SetStyle(wxBRUSHSTYLE_SOLID);
 	dc.SetPen(pen);
 
-	auto tile_pixels = m_tileset->GetTileRGBA(tile, GetSelectedPalette());
+	auto tile_pixels = m_tileset->GetTileBGRA(tile, GetSelectedPalette());
 
 	for (int i = 0; i < tile_pixels.size(); ++i)
 	{
