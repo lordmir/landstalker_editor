@@ -4,13 +4,16 @@
 #include "Utils.h"
 
 static const std::vector<std::string> LABELS = { "Background 1", "Background 2", "Foreground", "Sprites", "Heightmap" };
-static const std::array<double, 10> ZOOM_LEVELS = { 0.1, 0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0 };
+static const std::array<double, 9> ZOOM_LEVELS = { 0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0 };
 
 wxDEFINE_EVENT(EVT_ZOOM_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_OPACITY_CHANGE, wxCommandEvent);
 
 LayerControlFrame::LayerControlFrame(wxWindow* parent)
-    : wxWindow(parent, wxID_ANY, wxDefaultPosition, { 220, 200 })
+    : wxWindow(parent, wxID_ANY, wxDefaultPosition, { 220, 200 }),
+    m_visibilities{ true, true, true, true, false },
+    m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
+    m_zoom(1.0)
 {
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);
@@ -18,7 +21,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
     vboxsizer->Add(hboxsizer, 0, wxALL | wxEXPAND);
 
     auto zoom_label = new wxStaticText(this, wxID_ANY, _("Zoom"));
-    m_zoom_slider = new wxSlider(this, 3000, 4, 0, ZOOM_LEVELS.size() - 1, wxDefaultPosition);
+    m_zoom_slider = new wxSlider(this, 3000, 3, 0, ZOOM_LEVELS.size() - 1, wxDefaultPosition);
     m_zoom_label = new wxStaticText(this, wxID_ANY, _("100%"));
     auto line = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
     m_zoom_slider->Bind(wxEVT_SLIDER, &LayerControlFrame::OnZoomValueChanged, this, 3000);
@@ -50,6 +53,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
         sizer->Add(m_visible_ctrls.back(), 1, wxALL | wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL, 5);
         sizer->Add(m_opacity_ctrls.back(), 1, wxALL | wxEXPAND | wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL);
     }
+    SetUI();
 }
 
 LayerControlFrame::~LayerControlFrame()
@@ -181,7 +185,7 @@ void LayerControlFrame::OnVisibilityChecked(wxCommandEvent& evt)
         {
             m_visibilities[id] = new_visibility;
             m_opacity_ctrls[id]->Enable(m_visibilities[id]);
-            FireEvent(EVT_OPACITY_CHANGE);
+            FireEvent(EVT_OPACITY_CHANGE, id);
         }
     }
 }
@@ -197,15 +201,15 @@ void LayerControlFrame::OnOpacityChanged(wxCommandEvent& evt)
             if (m_opacities[id] != new_opacity)
             {
                 m_opacities[id] = new_opacity;
-                FireEvent(EVT_OPACITY_CHANGE);
+                FireEvent(EVT_OPACITY_CHANGE, id);
             }
         }
     }
 }
 
-void LayerControlFrame::FireEvent(const wxEventType& e)
+void LayerControlFrame::FireEvent(const wxEventType& e, intptr_t userdata)
 {
     wxCommandEvent evt(e);
-    evt.SetClientData(this);
+    evt.SetClientData(reinterpret_cast<void*>(userdata));
     wxPostEvent(this->GetParent(), evt);
 }

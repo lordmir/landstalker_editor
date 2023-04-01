@@ -9,6 +9,7 @@ wxDEFINE_EVENT(EVT_PROPERTIES_UPDATE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_PROPERTIES_CLEAR, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
+wxDEFINE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),

@@ -56,6 +56,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     }
     SetIcons( app_icons );
 
+    m_config = new wxConfig(title);
     
     m_menubar = new wxMenuBar(0);
     this->SetMenuBar(m_menubar);
@@ -69,16 +70,22 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As Assembly..."), _("Save As Assembly"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_as_asm);
 
+    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To Rom..."), _("Save To Rom"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save_to_rom);
+
     m_mnu_export = new wxMenuItem(m_mnu_file, wxID_ANY, _("Export..."), _("Export"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_export);
-
-    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To ROM..."), _("Save To ROM"), wxITEM_NORMAL);
-    m_mnu_file->Append(m_mnu_save_to_rom);
     
+    m_mnu_file->AppendSeparator();
+
+    m_mnu_recent_files = new wxMenu();
+    m_mnu_file->AppendSubMenu(m_mnu_recent_files, "Open Recent");
+
     m_mnu_file->AppendSeparator();
     
     m_mnu_exit = new wxMenuItem(m_mnu_file, wxID_EXIT, _("Exit\tAlt-X"), _("Quit"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_exit);
+
     
     m_mnu_help = new wxMenu();
     m_menubar->Append(m_mnu_help, _("Help"));
@@ -348,6 +355,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Connect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Connect(m_mnu_export->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExport), NULL, this);
+    this->Connect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Connect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -366,6 +374,11 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_optSpritesSelect->Connect(wxEVT_COMMAND_RADIOBUTTON_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnLayerSelect), NULL, this);
     m_checkSpritesVisible->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(MainFrameBaseClass::OnLayerVisibilityChange), NULL, this);
     m_sliderSpritesOpacity->Connect(wxEVT_SCROLL_CHANGED, wxScrollEventHandler(MainFrameBaseClass::OnLayerOpacityChange), NULL, this);
+
+    m_filehistory = new wxFileHistory(10);
+    m_filehistory->UseMenu(m_mnu_recent_files);
+    m_filehistory->AddFilesToMenu(m_mnu_recent_files);
+    m_filehistory->Load(*m_config);
 }
 
 MainFrameBaseClass::~MainFrameBaseClass()
@@ -377,6 +390,7 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
     this->Disconnect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Disconnect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Disconnect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
@@ -405,7 +419,10 @@ MainFrameBaseClass::~MainFrameBaseClass()
     m_scrollwindow->Disconnect(wxEVT_KEY_UP, wxKeyEventHandler(MainFrameBaseClass::OnScrollWindowKeyUp), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_MOTION, wxMouseEventHandler(MainFrameBaseClass::OnScrollWindowMouseMove), NULL, this);
     m_scrollwindow->Disconnect(wxEVT_SIZE, wxSizeEventHandler(MainFrameBaseClass::OnScrollWindowResize), NULL, this);
-    
+
+    m_filehistory->Save(*m_config);
+    delete m_config;
+    delete m_filehistory;
     m_window->UnInit();
     delete m_window;
 

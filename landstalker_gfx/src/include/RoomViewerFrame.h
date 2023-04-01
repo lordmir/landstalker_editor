@@ -24,6 +24,19 @@ public:
 	void SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode = RoomViewerCtrl::Mode::NORMAL);
 	uint16_t GetRoomNum() const { return m_roomnum; }
 private:
+	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void InitProperties(wxPropertyGridManager& props) const;
+	virtual void UpdateProperties(wxPropertyGridManager& props) const;
+	void RefreshProperties(wxPropertyGridManager& props) const;
+	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	void UpdateUI() const;
+
+	void OnZoomChange(wxCommandEvent& evt);
+	void OnOpacityChange(wxCommandEvent& evt);
+	void FireEvent(const wxEventType& e);
+	void FireEvent(const wxEventType& e, const std::string& userdata);
 
 	RoomViewerCtrl::Mode m_mode;
 	mutable wxAuiManager m_mgr;
@@ -32,6 +45,9 @@ private:
 	LayerControlFrame* m_layerctrl;
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
+	double m_zoom;
+
+	wxDECLARE_EVENT_TABLE();
 };
 
 #endif // _ROOM_VIEWER_FRAME_H_

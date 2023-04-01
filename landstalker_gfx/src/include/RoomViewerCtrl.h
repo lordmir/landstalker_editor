@@ -39,22 +39,56 @@ public:
 	void SetRoomNum(uint16_t roomnum, Mode mode);
 	uint16_t GetRoomNum() const { return m_roomnum; }
 	Mode GetMode() const { return m_mode; }
+
+	void SetZoom(double zoom);
+	double GetZoom() const { return m_zoom; }
+	void SetLayerOpacity(Layer layer, uint8_t opacity);
+	uint8_t GetLayerOpacity(Layer layer) const;
+	void RefreshGraphics();
+
+	const std::string& GetStatusText() const;
 private:
 	void DrawRoom(uint16_t roomnum);
+	void UpdateRoomDescText(uint16_t roomnum);
+	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
+	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height);
+	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
+	void DrawRoomHeightmap(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
-	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions, int classification);
+	std::shared_ptr<wxBitmap> DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map);
+	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
+		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);
 	void ForceRepaint();
+	void ForceRedraw();
 	void SetOpacity(wxImage& image, uint8_t opacity);
+	void UpdateScroll();
+	void UpdateBuffer();
+	void RedrawRoom();
+	bool Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y);
+	void GoToRoom(uint16_t room);
+
+	void FireEvent(const wxEventType& e, long userdata);
+	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e);
 
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);
 	void OnEraseBackground(wxEraseEvent& evt);
 	void OnSize(wxSizeEvent& evt);
+	void OnMouseMove(wxMouseEvent& evt);
+	void OnMouseLeave(wxMouseEvent& evt);
+	void OnLeftClick(wxMouseEvent& evt);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	Mode m_mode;
+	int m_width;
+	int m_height;
+	int m_buffer_width;
+	int m_buffer_height;
 	bool m_redraw;
+	bool m_repaint;
+	double m_zoom;
 
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;
@@ -66,7 +100,12 @@ private:
 
 	static const std::size_t TILE_WIDTH = 32;
 	static const std::size_t TILE_HEIGHT = 16;
+	static const std::size_t HM_CELL_WIDTH = 32;
+	static const std::size_t HM_CELL_HEIGHT = 32;
 	static const int SCROLL_RATE = 8;
+	int m_scroll_rate;
+
+	std::string m_status_text;
 
 	wxDECLARE_EVENT_TABLE();
 };

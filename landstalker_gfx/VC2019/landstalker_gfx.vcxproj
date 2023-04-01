@@ -33,7 +33,7 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
-    <ClCompile Include="..\src\include\LayerControlFrame.cpp" />
+    <ClCompile Include="..\src\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
     <ClCompile Include="..\src\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\PaletteListFrame.cpp" />

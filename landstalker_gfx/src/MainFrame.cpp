@@ -71,7 +71,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(EVT_MENU_INIT, wxCommandEventHandler(MainFrame::OnMenuInit), nullptr, this);
 	this->Connect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
-	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
+    this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
+    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
     m_canvas->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
     m_canvas->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrame::OnScrollWindowMousewheel), NULL, this);
     m_canvas->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowLeftDown), NULL, this);
@@ -97,6 +98,7 @@ MainFrame::~MainFrame()
     this->Disconnect(EVT_MENU_CLEAR, wxCommandEventHandler(MainFrame::OnMenuClear), nullptr, this);
     this->Disconnect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Disconnect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
+    this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
     m_canvas->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
     m_canvas->Disconnect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(MainFrame::OnScrollWindowMousewheel), NULL, this);
     m_canvas->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnScrollWindowLeftDown), NULL, this);
@@ -352,9 +354,14 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM, room->index));
-        m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_HEIGHTMAP, room->index));
-        m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM_WARPS, room->index));
+        wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
+            (static_cast<int>(RoomViewerCtrl::Mode::NORMAL) << 16) | room->index));
+        m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
+            (static_cast<int>(RoomViewerCtrl::Mode::HEIGHTMAP) << 16) | room->index));
+        m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
+            (static_cast<int>(RoomViewerCtrl::Mode::WARPS) << 16) | room->index));
+        m_browser->AppendItem(cRm, "Entities", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
+            (static_cast<int>(RoomViewerCtrl::Mode::ENTITY_PLACEMENT) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
@@ -916,6 +923,37 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 	event.Skip();
 }
 
+void MainFrame::OnGoToNavItem(wxCommandEvent& event)
+{
+    GoToNavItem(std::string(event.GetString()));
+}
+
+void MainFrame::GoToNavItem(const std::string& path)
+{
+    std::istringstream ss(path);
+    wxTreeItemIdValue cookie;
+    std::string name;
+    auto c = m_browser->GetRootItem();
+    while (std::getline(ss, name, '/'))
+    {
+        c = m_browser->GetFirstChild(c, cookie);
+        while (c.IsOk() == true)
+        {
+            auto label = m_browser->GetItemText(c);
+            if (label == name)
+            {
+                break;
+            }
+            c = m_browser->GetNextSibling(c);
+        }
+    }
+    if (ss.eof() && c.IsOk())
+    {
+        m_browser->SelectItem(c);
+        ProcessSelectedBrowserItem(c);
+    }
+}
+
 void MainFrame::DrawSprite(const std::string& name, int data, std::size_t scale)
 {
     uint8_t entity = data & 0xFF;
@@ -1126,6 +1164,7 @@ void MainFrame::OpenFile(const wxString& path)
     auto extension = std::filesystem::path(path.ToStdString()).extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(),
         [](const unsigned char i) { return std::tolower(i); });
+    m_filehistory->AddFileToHistory(path);
     if (extension == ".asm")
     {
         OpenAsmFile(path);
@@ -1226,6 +1265,13 @@ void MainFrame::OnExport(wxCommandEvent& event)
         }
     }
     event.Skip();
+}
+
+void MainFrame::OnMRUFile(wxCommandEvent& event)
+{
+    wxString f(m_filehistory->GetHistoryFile(event.GetId() - wxID_FILE1));
+    if (!f.empty())
+        OpenFile(f);
 }
 
 void MainFrame::InitRoom(uint16_t room)
@@ -1359,7 +1405,8 @@ void MainFrame::Refresh()
         // Display room map
         ShowBitmap();
         ShowEditor(EditorType::MAP_VIEW);
-        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetRoomNum(m_seldata, RoomViewerCtrl::Mode::NORMAL);
+        static_cast<RoomViewerFrame*>(m_editors[EditorType::MAP_VIEW])->SetRoomNum(m_seldata & 0xFFFF,
+            static_cast<RoomViewerCtrl::Mode>(m_seldata >> 16));
         break;
     case MODE_SPRITE:
     {
@@ -1547,43 +1594,6 @@ bool pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y)
 
 void MainFrame::GoToRoom(uint16_t room)
 {
-    auto r = m_browser->GetRootItem();
-    wxTreeItemIdValue cookie;
-    auto c = m_browser->GetFirstChild(r, cookie);
-    while (c.IsOk() == true)
-    {
-        auto label = m_browser->GetItemText(c);
-        if (label == "Rooms")
-        {
-            break;
-        }
-        c = m_browser->GetNextSibling(c);
-    }
-    c = m_browser->GetFirstChild(c, cookie);
-    while (c.IsOk() == true)
-    {
-        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
-        if (itemData->GetValue() == room)
-        {
-            break;
-        }
-        c = m_browser->GetNextSibling(c);
-    }
-    c = m_browser->GetFirstChild(c, cookie);
-    while (c.IsOk() == true)
-    {
-        TreeNodeData* itemData = static_cast<TreeNodeData*>(m_browser->GetItemData(c));
-        if (itemData->GetNodeType() == TreeNodeData::NodeType::NODE_ROOM_WARPS)
-        {
-            break;
-        }
-        c = m_browser->GetNextSibling(c);
-    }
-    if (c.IsOk())
-    {
-        m_browser->SelectItem(c);
-        ProcessSelectedBrowserItem(c);
-    }
 }
 
 void MainFrame::OnScrollWindowLeftUp(wxMouseEvent& event)

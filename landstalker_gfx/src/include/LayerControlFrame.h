@@ -36,7 +36,7 @@ private:
 	void OnZoomValueChanged(wxCommandEvent& evt);
 	void OnVisibilityChecked(wxCommandEvent& evt);
 	void OnOpacityChanged(wxCommandEvent& evt);
-	void FireEvent(const wxEventType& e);
+	void FireEvent(const wxEventType& e, intptr_t userdata = 0);
 
 	std::vector<wxCheckBox*> m_visible_ctrls;
 	std::vector<wxSlider*> m_opacity_ctrls;

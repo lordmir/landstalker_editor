@@ -31,6 +31,8 @@
 #include <wx/bitmap.h>
 #include <map>
 #include <wx/icon.h>
+#include <wx/filehistory.h>
+#include <wx/config.h>
 #if wxVERSION_NUMBER >= 2900
 #include <wx/persist.h>
 #include <wx/persist/toplevel.h>
@@ -59,6 +61,8 @@ protected:
     wxMenuItem* m_mnu_save_to_rom;
     wxMenuItem* m_mnu_export;
     wxMenuItem* m_mnu_sep1;
+    wxMenu* m_mnu_recent_files;
+    wxMenuItem* m_mnu_sep2;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
     wxMenuItem* m_mnu_about;
@@ -87,6 +91,9 @@ protected:
     wxScrolledWindow* m_scrollwindow;
     wxPanel* m_panel_tiles;
     wxToolBar* m_toolbar;
+
+    wxFileHistory* m_filehistory;
+    wxConfig* m_config;
 
 protected:
     virtual void OnMousewheel(wxMouseEvent& event)
@@ -182,6 +189,10 @@ protected:
         event.Skip();
     }
     virtual void OnScrollWindowResize(wxSizeEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnMRUFile(wxCommandEvent& event)
     {
         event.Skip();
     }

@@ -48,6 +48,7 @@ protected:
     virtual void OnSaveAsAsm(wxCommandEvent& event);
     virtual void OnSaveToRom(wxCommandEvent& event);
     virtual void OnExport(wxCommandEvent& event);
+    virtual void OnMRUFile(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
@@ -113,11 +114,13 @@ private:
 	void OnPropertiesInit(wxCommandEvent& event);
 	void OnPropertiesUpdate(wxCommandEvent& event);
 	void OnPropertiesClear(wxCommandEvent& event);
-	void OnPropertyChange(wxPropertyGridEvent& event);
+    void OnPropertyChange(wxPropertyGridEvent& event);
 	void OnMenuInit(wxCommandEvent& event);
 	void OnMenuClear(wxCommandEvent& event);
 	void OnMenuClick(wxMenuEvent& event);
 	void OnPaneClose(wxAuiManagerEvent& event);
+    void OnGoToNavItem(wxCommandEvent& event);
+    void GoToNavItem(const std::string& path);
     void DrawBlocks(const std::string& name, std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawTilemap(uint16_t room, std::size_t scale=1);
     void DrawHeightmap(uint16_t room, std::size_t scale=1);
