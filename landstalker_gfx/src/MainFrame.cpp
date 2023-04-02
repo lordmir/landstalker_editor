@@ -638,23 +638,6 @@ void MainFrame::DrawSprite(const std::string& name, int data, std::size_t scale)
     ForceRepaint();
 }
 
-void MainFrame::DrawImage(const std::string& image, std::size_t scale)
-{
-    m_scale = scale;
-    auto img = m_g->GetTilemap(image);
-    if (img)
-    {
-        const auto map = img->GetData();
-        const auto ts_entry = m_g->GetTileset(img->GetTileset());
-        const auto ts = ts_entry->GetData();
-        const auto pal = m_g->GetPalette(ts_entry->GetDefaultPalette())->GetData();
-        m_imgbuf.Resize(map->GetWidth() * ts->GetTileWidth(), map->GetHeight() * ts->GetTileHeight());
-        m_imgbuf.InsertMap(0, 0, 0, *map, *ts);
-        bmp = m_imgbuf.MakeBitmap({pal});
-        ForceRepaint();
-    }
-}
-
 void MainFrame::ShowEditor(EditorType editor)
 {
     if (!m_editors.at(editor)->IsShown())

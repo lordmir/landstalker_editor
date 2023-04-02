@@ -110,7 +110,6 @@ private:
     void GoToNavItem(const std::string& path);
     void DrawBlocks(const std::string& name, std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
     void DrawSprite(const std::string& name, int data, std::size_t scale = 4);
-    void DrawImage(const std::string& image, std::size_t scale);
     void ShowBitmap();
     void ShowEditor(EditorType editor);
     void HideAllEditors();
