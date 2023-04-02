@@ -183,7 +183,18 @@
     <ClCompile Include="..\src\Map2DEditorFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\include\MapEditor2DFrame.cpp" />
+    <ClCompile Include="..\src\BlocksetEditorCtrl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\BlocksetEditorFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteEditorCtrl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteEditorFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -378,6 +389,18 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\TilesetEditorFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\BlocksetEditorFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\BlocksetEditorCtrl.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteEditorFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteEditorCtrl.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

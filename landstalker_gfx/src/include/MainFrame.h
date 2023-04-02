@@ -14,6 +14,7 @@
 #include "PaletteListFrame.h"
 #include "RoomViewerFrame.h"
 #include "Map2DEditorFrame.h"
+#include "BlocksetEditorFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -134,6 +135,7 @@ private:
     PaletteListFrame* GetPaletteEditor();
     RoomViewerFrame* GetRoomEditor();
     Map2DEditorFrame* GetMap2DEditor();
+    BlocksetEditorFrame* GetBlocksetEditor();
     
     wxMemoryDC memDc;
     std::shared_ptr<wxBitmap> bmp;

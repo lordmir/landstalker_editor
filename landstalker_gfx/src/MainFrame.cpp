@@ -37,6 +37,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_scrollwindow) });
     m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_scrollwindow) });
     m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_scrollwindow) });
+    m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_scrollwindow) });
     m_scrollwindow->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -878,23 +879,22 @@ void MainFrame::Refresh()
     case MODE_ANIMATED_TILESET:
     {
         // Display animated tileset
-        auto ts = m_g->GetAnimatedTileset(m_selname);
         GetTilesetEditor()->OpenAnimated(m_selname);
         ShowEditor(EditorType::TILESET);
         break;
     }
     case MODE_BLOCKSET:
-        ShowBitmap();
-        DrawBlocks(m_selname, 16, 1, 0);
+        //ShowBitmap();
+        //DrawBlocks(m_selname, 16, 1, 0);
+        GetBlocksetEditor()->Open(m_selname);
+        ShowEditor(EditorType::BLOCKSET);
         break;
     case MODE_PALETTE:
         // Display palettes
-        ClearScreen();
         ShowEditor(EditorType::PALETTE);
         break;
     case MODE_ROOMMAP:
         // Display room map
-        ShowBitmap();
         GetRoomEditor()->SetRoomNum(m_seldata & 0xFFFF, static_cast<RoomViewerCtrl::Mode>(m_seldata >> 16));
         ShowEditor(EditorType::MAP_VIEW);
         break;
@@ -992,6 +992,11 @@ RoomViewerFrame* MainFrame::GetRoomEditor()
 Map2DEditorFrame* MainFrame::GetMap2DEditor()
 {
     return static_cast<Map2DEditorFrame*>(m_editors.at(EditorType::MAP_2D));
+}
+
+BlocksetEditorFrame* MainFrame::GetBlocksetEditor()
+{
+    return static_cast<BlocksetEditorFrame*>(m_editors.at(EditorType::BLOCKSET));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)
