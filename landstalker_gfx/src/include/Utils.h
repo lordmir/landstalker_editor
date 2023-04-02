@@ -93,6 +93,8 @@ bool StrToHex(const std::string& s, uint32_t& val);
 
 bool CreateDirectoryTree(const filesystem::path& path);
 
+bool StrToInt(const std::string& s, uint32_t& val);
+
 template<class T, class U>
 std::vector<T> Split(U data)
 {

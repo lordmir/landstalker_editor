@@ -158,7 +158,7 @@ public:
 	Tilemap2D::Compression GetCompression() const { return compression; }
 	void SetCompression(Tilemap2D::Compression value) { compression = value; }
 	uint16_t GetBase() const { return base; }
-	void SetBase(uint16_t value) { base = value; }
+	void SetBase(uint16_t value) { base = value; GetData()->SetBase(value); }
 private:
 	std::string tileset;
 	Tilemap2D::Compression compression;

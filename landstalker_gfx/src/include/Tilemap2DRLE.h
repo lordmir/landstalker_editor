@@ -34,6 +34,10 @@ public:
 	bool GetBits(std::vector<uint8_t>& data, Compression compression = NONE);
 	bool Save(const std::string& filename, Compression compression = NONE);
 	Compression GetCompression() const;
+	void SetCompression(Compression c);
+	static std::string GetFileExtension(Compression c);
+	std::string GetFileExtension() const;
+	static Compression FromFileExtension(const std::string& filename);
 
 	void Clear();
 	void Fill(const Tile& tile);
@@ -46,13 +50,14 @@ public:
 	size_t GetTop() const;
 	void SetLeft(uint8_t left);
 	void SetTop(uint8_t top);
+	void SetBase(uint16_t base);
 
 	Tile GetTile(size_t x, size_t y) const;
 	void SetTile(const Tile& tile, size_t x, size_t y);
 	bool IsTileValid(int x, int y) const;
 
-	void InsertRow(int position);
-	void InsertColumn(int position);
+	void InsertRow(int position, const Tile& fill = 0);
+	void InsertColumn(int position, const Tile& fill = 0);
 	void DeleteRow(int position);
 	void DeleteColumn(int position);
 	void Resize(int width, int height);

@@ -11,7 +11,8 @@ static const std::size_t MAXIMUM_CAPACITY = 0x400;
 template<class T>
 void HFlip(std::vector<T>& elems, int width)
 {
-    for (std::size_t i = 0; i < width; ++i)
+    int height = elems.size() / width;
+    for (std::size_t i = 0; i < height; ++i)
     {
         auto source_it = elems.begin() + width * i;
         std::reverse(source_it, source_it + width);
@@ -332,6 +333,26 @@ std::vector<uint32_t> Tileset::GetTileRGBA(const Tile& tile, const Palette& pale
         else
         {
             ret.push_back(palette.getRGBA(m_colour_indicies[p]));
+        }
+    }
+
+    return ret;
+}
+
+std::vector<uint32_t> Tileset::GetTileBGRA(const Tile& tile, const Palette& palette) const
+{
+    auto t = GetTile(tile);
+    std::vector<uint32_t> ret;
+    ret.reserve(m_width * m_height);
+    for (auto p : t)
+    {
+        if (m_colour_indicies.empty())
+        {
+            ret.push_back(palette.getBGRA(p));
+        }
+        else
+        {
+            ret.push_back(palette.getBGRA(m_colour_indicies[p]));
         }
     }
 

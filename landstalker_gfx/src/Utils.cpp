@@ -141,3 +141,25 @@ bool CreateDirectoryTree(const filesystem::path& path)
 	}
 	return true;
 }
+
+bool StrToInt(const std::string& s, uint32_t& val)
+{
+	try
+	{
+		auto pos1 = s.find_first_of('x');
+		auto pos2 = s.find_first_of('X');
+		if (pos1 != std::string::npos || pos2 != std::string::npos)
+		{
+			val = std::stoi(s, nullptr, 16);
+		}
+		else
+		{
+			val = std::stoi(s);
+		}
+		return true;
+	}
+	catch (...)
+	{
+	}
+	return false;
+}
