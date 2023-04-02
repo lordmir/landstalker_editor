@@ -93,12 +93,7 @@ bool Map2DEditor::Open(std::shared_ptr<Tilemap2DEntry> map)
 	m_tileset_entry = m_g->GetTileset(map->GetTileset());
 	m_tileset = m_tileset_entry->GetData();
 	m_active_palette = m_g->GetPalette(m_g->GetTileset(map->GetTileset())->GetDefaultPalette());
-	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
-	SetDrawTile(0);
-	m_selectedtile = 0;
-	m_mode = Mode::SELECT;
-	ScrollToRowColumn(0, 0);
-	ForceRedraw();
+	RedrawAll();
 	return true;
 }
 
@@ -111,6 +106,16 @@ bool Map2DEditor::New(int width, int height, int base)
 	m_map->FillIncrementing(base);
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
 	return false;
+}
+
+void Map2DEditor::RedrawAll()
+{
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	SetDrawTile(0);
+	m_selectedtile = 0;
+	m_mode = Mode::SELECT;
+	ScrollToRowColumn(0, 0);
+	ForceRedraw();
 }
 
 void Map2DEditor::RedrawTiles(int index)

@@ -178,6 +178,113 @@ void Map2DEditorFrame::RedrawTiles(int index) const
 	m_tileset->RedrawTiles(index);
 }
 
+bool Map2DEditorFrame::ExportBin(const std::string& filename) const
+{
+	auto compression = Tilemap2D::FromFileExtension(filename);
+	ByteVector bytes;
+	m_map->GetData()->GetBits(bytes, compression);
+	WriteBytes(bytes, filename);
+	return true;
+}
+
+bool Map2DEditorFrame::ExportPng(const std::string& filename) const
+{
+	int width = m_map->GetData()->GetWidth() * m_tiles->GetData()->GetTileWidth();
+	int height = m_map->GetData()->GetHeight() * m_tiles->GetData()->GetTileHeight();
+	ImageBuffer buf(width, height);
+	buf.InsertMap(0, 0, 0, *m_map->GetData(), *m_tiles->GetData());
+	return buf.WritePNG(filename, {m_palette->GetData()}, false);
+}
+
+bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
+{
+	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
+
+	fs << m_map->GetData()->GetCompression() << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
+	   << "," << m_map->GetData()->GetTop() << std::endl;
+
+	for (int y = 0; y < m_map->GetData()->GetHeight(); ++y)
+	{
+		for (int x = 0; x < m_map->GetData()->GetWidth(); ++x)
+		{
+			fs << StrPrintf("%04X", m_map->GetData()->GetTile(x, y).GetTileValue());
+			if ((x + 1) == m_map->GetData()->GetWidth())
+			{
+				fs << std::endl;
+			}
+			else
+			{
+				fs << ",";
+			}
+		}
+	}
+
+	return true;
+}
+
+bool Map2DEditorFrame::ImportBin(const std::string& filename, uint16_t base, int width, int height) const
+{
+	auto compression = Tilemap2D::FromFileExtension(filename);
+	ByteVector bytes = ReadBytes(filename);
+	m_map->SetCompression(compression);
+	m_map->SetBase(base);
+	m_map->GetData()->Open(bytes, width, height, compression, base);
+	return true;
+}
+
+bool Map2DEditorFrame::ImportCsv(const std::string& filename) const
+{
+	std::ifstream fs(filename, std::ios::in);
+
+	uint32_t c, b, l, t;
+	std::vector<std::vector<uint16_t>> tiles;
+	std::string row;
+	std::string cell;
+	std::getline(fs, row);
+	std::istringstream ss(row);
+	std::getline(ss, cell, ',');
+	StrToInt(cell, c);
+	std::getline(ss, cell, ',');
+	StrToInt(cell, b);
+	std::getline(ss, cell, ',');
+	StrToInt(cell, l);
+	std::getline(ss, cell, ',');
+	StrToInt(cell, t);
+
+	while (std::getline(fs, row))
+	{
+		tiles.push_back(std::vector<uint16_t>());
+		std::istringstream rss(row);
+		while (std::getline(rss, cell, ','))
+		{
+			tiles.back().push_back(std::stoi(cell, nullptr, 16));
+		}
+	}
+
+	if (tiles.size() == 0 || tiles.front().size() == 0)
+	{
+		return false;
+	}
+	int w = tiles.front().size();
+	int h = tiles.size();
+	Tilemap2D::Compression compression = static_cast<Tilemap2D::Compression>(c);
+	m_map->GetData()->Resize(w, h);
+	m_map->SetCompression(compression);
+	m_map->GetData()->SetCompression(compression);
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			m_map->GetData()->SetTile(Tile(tiles[y][x]), x, y);
+		}
+	}
+	m_map->GetData()->SetLeft(l);
+	m_map->GetData()->SetTop(t);
+	m_map->SetBase(b);
+	m_map->GetData()->SetBase(b);
+	return true;
+}
+
 void Map2DEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	m_zoom = m_zoomslider->GetValue();
@@ -242,7 +349,7 @@ void Map2DEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
 		return;
 	}
 	SetActivePalette(m_palette_select->GetValue().ToStdString());
-	m_palette_select->SetStringSelection(m_tiles->GetDefaultPalette());
+	m_palette_select->SetStringSelection(m_palette->GetName());
 }
 
 void Map2DEditorFrame::InitCombos() const
@@ -360,9 +467,9 @@ void Map2DEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxIntProperty("Tile Height", "TH", 0))->Enable(false);
 		props.Append(new wxIntProperty("Map Width", "W", 0))->Enable(false);
 		props.Append(new wxIntProperty("Map Height", "H", 0))->Enable(false);
-		props.Append(new wxIntProperty("Map Left", "L", 0))->Enable(false);
-		props.Append(new wxIntProperty("Map Top", "To", 0))->Enable(false);
-		props.Append(new wxStringProperty("Base Tile", "B", "0x0000"))->Enable(false);
+		props.Append(new wxIntProperty("Map Left", "L", 0));
+		props.Append(new wxIntProperty("Map Top", "To", 0));
+		props.Append(new wxStringProperty("Base Tile", "B", "0x0000"));
 		RefreshProperties(props);
 	}
 	EditorFrame::InitProperties(props);
@@ -396,6 +503,32 @@ void Map2DEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		// Tileset change
 		SetTileset(property->GetValueAsString().ToStdString());
 	}
+	else if (name == "B")
+	{
+		uint32_t base;
+		if (StrToInt(property->GetValueAsString().ToStdString(), base))
+		{
+			m_map->SetBase(base);
+			RedrawTiles();
+		}
+	}
+	else if (name == "To")
+	{
+		uint32_t top;
+		if (StrToInt(property->GetValueAsString().ToStdString(), top))
+		{
+			m_map->GetData()->SetTop(top);
+		}
+	}
+	else if (name == "L")
+	{
+		uint32_t left;
+		if (StrToInt(property->GetValueAsString().ToStdString(), left))
+		{
+			m_map->GetData()->SetLeft(left);
+		}
+	}
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void Map2DEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
@@ -470,6 +603,21 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
 	switch (evt.GetId())
 	{
+	case ID_FILE_EXPORT_BIN:
+		OnExportBin();
+		break;
+	case ID_FILE_EXPORT_CSV:
+		OnExportCsv();
+		break;
+	case ID_FILE_EXPORT_PNG:
+		OnExportPng();
+		break;
+	case ID_FILE_IMPORT_BIN:
+		OnImportBin();
+		break;
+	case ID_FILE_IMPORT_CSV:
+		OnImportCsv();
+		break;
 	case ID_VIEW_TOGGLE_GRIDLINES:
 	case ID_TOGGLE_GRIDLINES:
 		m_mapedit->SetBordersEnabled(!m_mapedit->GetBordersEnabled());
@@ -666,4 +814,75 @@ void Map2DEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("TW", wxString::Format("%lu", m_tiles->GetData()->GetTileWidth()));
 		props.GetGrid()->SetPropertyValue("TH", wxString::Format("%lu", m_tiles->GetData()->GetTileHeight()));
 	}
+}
+
+void Map2DEditorFrame::OnExportBin()
+{
+	const wxString default_file = m_map->GetName() + m_map->GetData()->GetFileExtension();
+	wxFileDialog fd(this, _("Export Map As Binary"), "", default_file, "RLE Compressed Tilemap (*.rle)|*.rle|LZ77 Compressed Tilemap (*.lz77)|*.lz77|Uncompressed Tilemap (*.bin)|*.bin|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportBin(fd.GetPath().ToStdString());
+	}
+}
+
+void Map2DEditorFrame::OnExportPng()
+{
+	const wxString default_file = m_map->GetName() + ".png";
+	wxFileDialog fd(this, _("Export Map As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPng(fd.GetPath().ToStdString());
+	}
+}
+
+void Map2DEditorFrame::OnExportCsv()
+{
+	const wxString default_file = m_map->GetName() + ".csv";
+	wxFileDialog fd(this, _("Export Map As CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportCsv(fd.GetPath().ToStdString());
+	}
+}
+
+void Map2DEditorFrame::OnImportBin()
+{
+	wxFileDialog fd(this, _("Import Map From Binary"), "", "", "Map Files (*.bin, *.rle, *.lz77)|*.bin;*.rle;*.lz77"
+		"|RLE Compressed Tilemap (*.rle)|*.rle|LZ77 Compressed Tilemap (*.lz77)|*.lz77|Uncompressed Tilemap (*.bin)"
+		"|*.bin|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		uint32_t base, width, height;
+		std::string input = wxGetTextFromUser("Enter Tilemap Base", "Import Tilemap", "0x0100", this).ToStdString();
+		StrToInt(input, base);
+		if (Tilemap2D::FromFileExtension(path) == Tilemap2D::Compression::NONE)
+		{
+			input = wxGetTextFromUser("Enter Tilemap Width", "Import Tilemap", "40", this).ToStdString();
+			StrToInt(input, width);
+			input = wxGetTextFromUser("Enter Tilemap Height", "Import Tilemap", "3", this).ToStdString();
+			StrToInt(input, height);
+			ImportBin(path, base & 0xFFFF, width, height);
+		}
+		else
+		{
+			ImportBin(path, base & 0xFFFF);
+		}
+	}
+	m_mapedit->RedrawAll();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void Map2DEditorFrame::OnImportCsv()
+{
+	wxFileDialog fd(this, _("Import Map From CSV"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportCsv(path);
+	}
+	m_mapedit->RedrawAll();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }

@@ -44,6 +44,7 @@ public:
 	void RedrawTiles(int index = -1);
 	void RedrawMapTile(const TilePosition& tp);
 	void RedrawMapTile(int index = -1);
+	void RedrawAll();
 
 	void SetGameData(std::shared_ptr<GameData> gd) { m_g = gd; }
 	void ClearGameData() { m_g = nullptr; }

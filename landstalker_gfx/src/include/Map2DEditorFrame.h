@@ -21,6 +21,12 @@ public:
 	void SetDrawTile(const Tile& tile);
 	void Redraw();
 	void RedrawTiles(int index = -1) const;
+
+	bool ExportBin(const std::string& filename) const;
+	bool ExportPng(const std::string& filename) const;
+	bool ExportCsv(const std::string& filename) const;
+	bool ImportBin(const std::string& filename, uint16_t base, int width = 0, int height = 0) const;
+	bool ImportCsv(const std::string& filename) const;
 private:
 	enum class State
 	{
@@ -47,6 +53,12 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void UpdateUI() const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
+
+	void OnExportBin();
+	void OnExportPng();
+	void OnExportCsv();
+	void OnImportBin();
+	void OnImportCsv();
 
 	mutable wxAuiManager m_mgr;
 	std::string m_title;

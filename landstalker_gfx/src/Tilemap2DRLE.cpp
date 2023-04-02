@@ -200,6 +200,45 @@ Tilemap2D::Compression Tilemap2D::GetCompression() const
 	return m_compression;
 }
 
+void Tilemap2D::SetCompression(Tilemap2D::Compression c)
+{
+	m_compression = c;
+}
+
+std::string Tilemap2D::GetFileExtension(Tilemap2D::Compression c)
+{
+	switch (c)
+	{
+	case Compression::RLE:
+		return ".rle";
+	case Compression::LZ77:
+		return ".lz77";
+	default:
+	case Compression::NONE:
+		return ".bin";
+	}
+}
+
+std::string Tilemap2D::GetFileExtension() const
+{
+	return GetFileExtension(m_compression);
+}
+
+Tilemap2D::Compression Tilemap2D::FromFileExtension(const std::string& filename)
+{
+	std::string ext = filesystem::path(filename).extension();
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return std::tolower(c); });
+	if (ext == "lz77")
+	{
+		return Compression::LZ77;
+	}
+	else if (ext == "rle")
+	{
+		return Compression::RLE;
+	}
+	return Compression::NONE;
+}
+
 void Tilemap2D::Clear()
 {
 	m_tiles.clear();
@@ -365,6 +404,7 @@ uint32_t Tilemap2D::Uncompress(const std::vector<uint8_t>& data)
 	}
 	m_width = *d++;
 	m_height = *d++;
+	m_tiles.clear();
 	m_tiles.reserve(m_width * m_height);
 
 	// First, the tile attributes (priority, palette, HFLIP, VFLIP)
@@ -596,6 +636,11 @@ void Tilemap2D::SetLeft(uint8_t left)
 void Tilemap2D::SetTop(uint8_t top)
 {
 	m_top = top;
+}
+
+void Tilemap2D::SetBase(uint16_t base)
+{
+	m_base = base;
 }
 
 Tile Tilemap2D::GetTile(size_t x, size_t y) const
