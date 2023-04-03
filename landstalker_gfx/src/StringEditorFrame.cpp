@@ -150,8 +150,8 @@ void StringEditorFrame::InitColumns()
             m_stringView->SetCellEditor(i, 2, new wxGridCellNumberEditor(0, 65535));
             m_stringView->SetCellEditor(i, 3, new wxGridCellNumberEditor(0, 65535));
             m_stringView->SetCellEditor(i, 4, new wxGridCellNumberEditor(0, 65535));
-            m_stringView->SetCellEditor(i, 5, new CellTextEditor(16));
-            m_stringView->SetCellEditor(i, 6, new CellTextEditor(16));
+            m_stringView->SetCellEditor(i, 5, new wxGridCellTextEditor(16));
+            m_stringView->SetCellEditor(i, 6, new wxGridCellTextEditor(16));
         }
     }
     else if (m_mode == Mode::MODE_END_CREDITS)
@@ -163,7 +163,7 @@ void StringEditorFrame::InitColumns()
         {
             m_stringView->SetCellEditor(i, 0, new wxGridCellNumberEditor(-128, 127));
             m_stringView->SetCellEditor(i, 1, new wxGridCellNumberEditor(-128, 127));
-            m_stringView->SetCellEditor(i, 2, new CellTextEditor(256));
+            m_stringView->SetCellEditor(i, 2, new wxGridCellTextEditor(256));
         }
     }
     else
@@ -171,7 +171,7 @@ void StringEditorFrame::InitColumns()
         m_stringView->SetColLabelValue(0, "Strings");
         for (std::size_t i = 0; i < m_stringView->GetNumberRows(); ++i)
         {
-            m_stringView->SetCellEditor(i, 0, new CellTextEditor(256));
+            m_stringView->SetCellEditor(i, 0, new wxGridCellTextEditor(256));
         }
     }
     m_stringView->SetColLabelAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
