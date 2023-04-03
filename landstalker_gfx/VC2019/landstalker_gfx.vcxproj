@@ -58,6 +58,7 @@
     <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\StringData.cpp" />
+    <ClCompile Include="..\src\StringDataViewModel.cpp" />
     <ClCompile Include="..\src\StringEditorFrame.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
@@ -131,6 +132,7 @@
     <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\StringData.h" />
+    <ClInclude Include="..\src\include\StringDataViewModel.h" />
     <ClInclude Include="..\src\include\StringEditorFrame.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />

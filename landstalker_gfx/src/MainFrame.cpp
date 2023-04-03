@@ -184,23 +184,23 @@ void MainFrame::InitUI()
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+        static_cast<int>(StringData::Type::MAIN)));
     m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+        static_cast<int>(StringData::Type::NAMES)));
     m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+        static_cast<int>(StringData::Type::SPECIAL_NAMES)));
     m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+        static_cast<int>(StringData::Type::DEFAULT_NAME)));
     m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+        static_cast<int>(StringData::Type::ITEM_NAMES)));
     m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+        static_cast<int>(StringData::Type::MENU)));
     m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+        static_cast<int>(StringData::Type::INTRO)));
     m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
+        static_cast<int>(StringData::Type::END_CREDITS)));
     m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+        static_cast<int>(StringData::Type::SYSTEM)));
 
     m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
         static_cast<int>(PaletteListFrame::Mode::ROOM)));
@@ -742,7 +742,7 @@ void MainFrame::Refresh()
     {
     case MODE_STRING:
         // Display Strings
-        GetStringEditor()->SetMode(static_cast<StringEditorFrame::Mode>(m_seldata));
+        GetStringEditor()->SetMode(static_cast<StringData::Type>(m_seldata));
         ShowEditor(EditorType::STRING);
         break;
     case MODE_TILESET:

@@ -1,5 +1,6 @@
 #include "StringData.h"
 #include "AsmUtils.h"
+#include <codecvt>
 
 StringData::StringData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
@@ -329,24 +330,160 @@ bool StringData::HasMainStringChanged(std::size_t index) const
 	return m_decompressed_strings_orig[index] != m_decompressed_strings[index];
 }
 
+std::size_t StringData::GetStringCount(Type type) const
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		return GetMainStringCount();
+	case Type::INTRO:
+		return GetIntroStringCount();
+	case Type::NAMES:
+		return GetCharNameCount();
+	case Type::SPECIAL_NAMES:
+		return GetSpecialCharNameCount();
+	case Type::DEFAULT_NAME:
+		return 1;
+	case Type::ITEM_NAMES:
+		return GetItemNameCount();
+	case Type::MENU:
+		return GetMenuStrCount();
+	case Type::END_CREDITS:
+		return GetEndCreditStringCount();
+	case Type::SYSTEM:
+		return GetSystemStringCount();
+	default:
+		return 0;
+	}
+}
+
+const LSString::StringType& StringData::GetString(Type type, std::size_t index) const
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		return GetMainString(index);
+	case Type::NAMES:
+		return GetCharName(index);
+	case Type::SPECIAL_NAMES:
+		return GetSpecialCharName(index);
+	case Type::DEFAULT_NAME:
+		return GetDefaultCharName();
+	case Type::ITEM_NAMES:
+		return GetItemName(index);
+	case Type::MENU:
+		return GetMenuStr(index);
+	case Type::SYSTEM:
+		return GetSystemString(index);
+	case Type::INTRO:
+	case Type::END_CREDITS:
+	default:
+		return LSString::StringType();
+	}
+}
+
+const LSString::StringType& StringData::GetOrigString(Type type, std::size_t index) const
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		return GetOrigMainString(index);
+	case Type::NAMES:
+		return GetOrigCharName(index);
+	case Type::SPECIAL_NAMES:
+		return GetOrigSpecialCharName(index);
+	case Type::DEFAULT_NAME:
+		return GetOrigDefaultCharName();
+	case Type::ITEM_NAMES:
+		return GetOrigItemName(index);
+	case Type::MENU:
+		return GetOrigMenuStr(index);
+	case Type::SYSTEM:
+		return GetOrigSystemString(index);
+	case Type::INTRO:
+	case Type::END_CREDITS:
+	default:
+		return LSString::StringType();
+	}
+}
+
+void StringData::SetString(Type type, std::size_t index, const LSString::StringType& value)
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		SetMainString(index, value);
+		break;
+	case Type::NAMES:
+		SetCharName(index, value);
+		break;
+	case Type::SPECIAL_NAMES:
+		SetSpecialCharName(index, value);
+		break;
+	case Type::DEFAULT_NAME:
+		SetDefaultCharName(value);
+		break;
+	case Type::ITEM_NAMES:
+		SetItemName(index, value);
+		break;
+	case Type::MENU:
+		SetMenuStr(index, value);
+		break;
+	case Type::SYSTEM:
+		SetSystemString(index, value);
+		break;
+	}
+}
+
+void StringData::InsertString(Type type, std::size_t index, const LSString::StringType& value)
+{
+}
+
+bool StringData::HasStringChanged(Type type, std::size_t index) const
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		return HasMainStringChanged(index);
+	case Type::INTRO:
+		return HasIntroStringChanged(index);
+	case Type::NAMES:
+		return HasCharNameChanged(index);
+	case Type::SPECIAL_NAMES:
+		return HasSpecialCharNameChanged(index);
+	case Type::DEFAULT_NAME:
+		return HasDefaultCharNameChanged();
+	case Type::ITEM_NAMES:
+		return HasItemNameChanged(index);
+	case Type::MENU:
+		return HasMenuStrChanged(index);
+	case Type::END_CREDITS:
+		return HasEndCreditStringChanged(index);
+	case Type::SYSTEM:
+		return HasSystemStringChanged(index);
+	default:
+		return false;
+	}
+}
+
 std::size_t StringData::GetSystemStringCount() const
 {
 	return m_system_strings.size();
 }
 
-const std::string& StringData::GetSystemString(std::size_t index) const
+const LSString::StringType& StringData::GetSystemString(std::size_t index) const
 {
 	assert(index < m_system_strings.size());
 	return m_system_strings[index];
 }
 
-const std::string& StringData::GetOrigSystemString(std::size_t index) const
+const LSString::StringType& StringData::GetOrigSystemString(std::size_t index) const
 {
 	assert(index < m_system_strings_orig.size());
 	return m_system_strings_orig[index];
 }
 
-void StringData::SetSystemString(std::size_t index, const std::string& value)
+void StringData::SetSystemString(std::size_t index, const LSString::StringType& value)
 {
 	assert(index < m_system_strings.size());
 	m_system_strings[index] = value;
@@ -944,14 +1081,21 @@ bool StringData::AsmLoadSystemStrings()
 				}
 			} while (c != 0);
 		};
+
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		std::string line;
 		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE1);
-		read_str(m_system_strings[0]);
+		read_str(line);
+		m_system_strings[0] = converter.from_bytes(line);
 		file.Goto(RomOffsets::Strings::REGION_ERROR_NTSC);
-		read_str(m_system_strings[1]);
+		read_str(line);
+		m_system_strings[1] = converter.from_bytes(line);
 		file.Goto(RomOffsets::Strings::REGION_ERROR_PAL);
-		read_str(m_system_strings[2]);
+		read_str(line);
+		m_system_strings[2] = converter.from_bytes(line);
 		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE3);
-		read_str(m_system_strings[3]);
+		read_str(line);
+		m_system_strings[3] = converter.from_bytes(line);
 		return true;
 	}
 	catch (const std::exception&)
@@ -1087,18 +1231,19 @@ bool StringData::RomLoadSystemFont(const Rom& rom)
 
 bool StringData::RomLoadSystemStrings(const Rom& rom)
 {
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	uint32_t line1_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE1);
 	uint32_t line1_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE1);
-	m_system_strings[0] = rom.read_string(line1_begin);
+	m_system_strings[0] = converter.from_bytes(rom.read_string(line1_begin));
 	uint32_t line2_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_NTSC);
 	uint32_t line2_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_NTSC);
-	m_system_strings[1] = rom.read_string(line2_begin);
+	m_system_strings[1] = converter.from_bytes(rom.read_string(line2_begin));
 	uint32_t line3_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_PAL);
 	uint32_t line3_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_PAL);
-	m_system_strings[2] = rom.read_string(line3_begin);
+	m_system_strings[2] = converter.from_bytes(rom.read_string(line3_begin));
 	uint32_t line4_lea = rom.read<uint32_t>(RomOffsets::Strings::REGION_ERROR_LINE3);
 	uint32_t line4_begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::REGION_ERROR_LINE3);
-	m_system_strings[3] = rom.read_string(line4_begin);
+	m_system_strings[3] = converter.from_bytes(rom.read_string(line4_begin));
 	return true;
 }
 
@@ -1471,7 +1616,8 @@ bool StringData::RomPrepareInjectSystemText(const Rom& rom)
 	for (int i = 0; i < 4; ++i)
 	{
 		addrs[i] = begin + bytes->size();
-		write_string(bytes, m_system_strings[i]);
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		write_string(bytes, converter.to_bytes(m_system_strings[i]));
 	}
 	if ((bytes->size() & 1) == 1)
 	{
