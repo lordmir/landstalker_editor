@@ -5,6 +5,7 @@
 #include "GameData.h"
 #include <wx/dataview.h>
 #include "StringDataViewModel.h"
+#include <vector>
 
 
 class StringEditorFrame : public EditorFrame
@@ -16,7 +17,6 @@ public:
 
 	StringData::Type GetMode() const { return m_type; }
 	void SetMode(StringData::Type mode);
-	void Update();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
@@ -25,28 +25,6 @@ public:
 	bool ImportStrings(const filesystem::path& filename, StringData::Type mode);
 private:
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
-
-	void InitColumns();
-	void ShowMainStrings();
-	void ShowCharacterStrings();
-	void ShowSpecialCharacterStrings();
-	void ShowDefaultCharacterString();
-	void ShowItemStrings();
-	void ShowMenuStrings();
-	void ShowIntroStrings();
-	void ShowEndingStrings();
-	void ShowSystemStrings();
-
-	void RefreshMainString(int idx);
-	void RefreshCharacterString(int idx);
-	void RefreshSpecialCharacterString(int idx);
-	void RefreshDefaultCharacterString(int idx);
-	void RefreshItemString(int idx);
-	void RefreshMenuString(int idx);
-	void RefreshIntroString(int idx);
-	void RefreshEndingString(int idx);
-	void RefreshSystemString(int idx);
-
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void OnMenuImport();
 	void OnMenuExport();

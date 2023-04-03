@@ -2,6 +2,8 @@
 #include <codecvt>
 #include <locale>
 
+#include <wx/msw/msvcrt.h>  
+
 enum MENU_IDS
 {
     ID_FILE_EXPORT = 22000,
@@ -43,12 +45,11 @@ StringEditorFrame::~StringEditorFrame()
 void StringEditorFrame::SetMode(StringData::Type type)
 {
     m_type = type;
+    
     m_stringView->ClearColumns();
-    if (m_model == nullptr)
-    {
-        delete m_model;
-    }
     m_model = new StringDataViewModel(type, m_gd->GetStringData());
+    m_stringView->AssociateModel(m_model);
+    m_model->DecRef();
     auto font = m_stringView->GetFont();
     if (type != StringData::Type::MAIN)
     {
@@ -59,8 +60,6 @@ void StringEditorFrame::SetMode(StringData::Type type)
         font.SetFamily(wxFONTFAMILY_DEFAULT);
     }
     m_stringView->SetFont(font);
-    m_stringView->AssociateModel(m_model);
-    m_model->DecRef();
     m_stringView->InsertColumn(0, new wxDataViewColumn(m_model->GetColumnHeader(0),
         new wxDataViewTextRenderer("long"), 0, 50, wxALIGN_RIGHT));
     if (type == StringData::Type::INTRO)
@@ -95,86 +94,6 @@ void StringEditorFrame::SetMode(StringData::Type type)
             new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_EDITABLE), 1, -1, wxALIGN_LEFT));
     }
 	Update();
-}
-
-void StringEditorFrame::Update()
-{
-}
-
-void StringEditorFrame::InitColumns()
-{
-}
-
-void StringEditorFrame::ShowMainStrings()
-{
-}
-
-void StringEditorFrame::ShowCharacterStrings()
-{
-}
-
-void StringEditorFrame::ShowSpecialCharacterStrings()
-{
-}
-
-void StringEditorFrame::ShowDefaultCharacterString()
-{
-}
-
-void StringEditorFrame::ShowItemStrings()
-{
-}
-
-void StringEditorFrame::ShowMenuStrings()
-{
-}
-
-void StringEditorFrame::ShowIntroStrings()
-{
-} 
-
-void StringEditorFrame::ShowEndingStrings()
-{
-}
-
-void StringEditorFrame::ShowSystemStrings()
-{
-}
-
-void StringEditorFrame::RefreshMainString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshCharacterString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshSpecialCharacterString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshDefaultCharacterString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshItemString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshMenuString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshIntroString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshEndingString(int idx)
-{
-}
-
-void StringEditorFrame::RefreshSystemString(int idx)
-{
 }
 
 void StringEditorFrame::OnMenuClick(wxMenuEvent& evt)

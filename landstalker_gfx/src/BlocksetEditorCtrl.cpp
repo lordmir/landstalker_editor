@@ -55,6 +55,11 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(wxWindow* parent)
 
 BlocksetEditorCtrl::~BlocksetEditorCtrl()
 {
+	delete m_border_pen;
+	delete m_tile_border_pen;
+	delete m_selected_border_pen;
+	delete m_highlighted_border_pen;
+	delete m_highlighted_brush;
 }
 
 void BlocksetEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
