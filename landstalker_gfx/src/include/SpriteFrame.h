@@ -46,8 +46,8 @@ public:
 	std::vector<uint8_t>  GetTile(const Tile& tile) const;
 	std::pair<int, int>   GetTilePosition(const Tile& tile) const;
 	std::vector<uint8_t>& GetTilePixels(int tile_index);
-	const Tileset& GetTileset() const;
-	Tileset& GetTileset();
+	std::shared_ptr<const Tileset> GetTileset() const;
+	std::shared_ptr<Tileset> GetTileset();
 
 	std::size_t GetTileCount() const;
 	std::size_t GetExpectedTileCount() const;
@@ -66,7 +66,7 @@ public:
 
 private:
 	std::vector<SubSprite> m_subsprites;
-	Tileset m_sprite_gfx;
+	std::shared_ptr<Tileset> m_sprite_gfx;
 	bool m_compressed;
 };
 

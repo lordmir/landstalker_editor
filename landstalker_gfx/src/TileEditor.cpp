@@ -113,6 +113,14 @@ void TileEditor::SetActivePalette(const std::string& name)
 	}
 }
 
+void TileEditor::SetActivePalette(std::shared_ptr<Palette> pal)
+{
+	m_selected_palette_name = "";
+	m_selected_palette_entry = nullptr;
+	m_selected_palette = pal;
+	ForceRedraw();
+}
+
 std::string TileEditor::GetActivePalette() const
 {
 	return m_selected_palette_name;

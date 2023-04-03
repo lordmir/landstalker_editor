@@ -88,7 +88,7 @@ void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const Sprite
             {
                 int xx = subs.x + xi * 8 + x;
                 int yy = subs.y + yi * 8 + y;
-                InsertTile(xx, yy, palette_index, Tile(index++), frame.GetTileset());
+                InsertTile(xx, yy, palette_index, Tile(index++), *frame.GetTileset());
             }
     }
 }

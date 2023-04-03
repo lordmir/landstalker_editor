@@ -27,7 +27,7 @@ SpriteFrame::SpriteFrame()
 bool SpriteFrame::operator==(const SpriteFrame& rhs) const
 {
 	return ((this->m_subsprites == rhs.m_subsprites) &&
-		    (this->m_sprite_gfx == rhs.m_sprite_gfx) &&
+		    (*this->m_sprite_gfx == *rhs.m_sprite_gfx) &&
 		    (this->m_compressed == rhs.m_compressed));
 }
 
@@ -67,7 +67,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 {
 	std::vector<uint8_t> bits;
 	std::size_t expected_tiles = 0;
-	std::size_t actual_tiles = m_sprite_gfx.GetTileCount();
+	std::size_t actual_tiles = m_sprite_gfx->GetTileCount();
 
 	if (m_subsprites.size() > 0)
 	{
@@ -92,7 +92,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 		uint16_t byte_count = std::min(actual_tiles, expected_tiles) * 64;
 		bits.push_back(0x20 | byte_count >> 8);
 		bits.push_back(byte_count & 0xFF);
-		auto tiles = m_sprite_gfx.GetBits();
+		auto tiles = m_sprite_gfx->GetBits();
 		std::vector<uint8_t> buffer(65536);
 		buffer.resize(LZ77::Encode(tiles.data(), byte_count, buffer.data()));
 		bits.insert(bits.end(), buffer.begin(), buffer.end());
@@ -103,7 +103,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 		uint16_t current_word = 0;
 		uint16_t operation_length = 0;
 		int blanks = 0;
-		auto tiles = m_sprite_gfx.GetBits();
+		auto tiles = m_sprite_gfx->GetBits();
 		const auto write_blanks = [&]()
 		{
 			last_cmd = bits.end();
@@ -250,7 +250,7 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 		}
 	} while ((ctrl & 0x04) == 0);
 
-	m_sprite_gfx.SetBits(sprite_gfx);
+	m_sprite_gfx = std::make_shared<Tileset>(sprite_gfx);
 
 	Debug("Done!");
 	return std::distance(src.begin(), it);
@@ -273,12 +273,12 @@ bool SpriteFrame::Save(const std::string& filename, bool use_compression)
 void SpriteFrame::Clear()
 {
 	m_subsprites.clear();
-	m_sprite_gfx.Clear();
+	m_sprite_gfx->Clear();
 }
 
 std::vector<uint8_t> SpriteFrame::GetTile(const Tile& tile) const
 {
-	return m_sprite_gfx.GetTile(tile);
+	return m_sprite_gfx->GetTile(tile);
 }
 
 std::pair<int, int> SpriteFrame::GetTilePosition(const Tile& tile) const
@@ -303,22 +303,22 @@ std::pair<int, int> SpriteFrame::GetTilePosition(const Tile& tile) const
 
 std::vector<uint8_t>& SpriteFrame::GetTilePixels(int tile_index)
 {
-	return m_sprite_gfx.GetTilePixels(tile_index);
+	return m_sprite_gfx->GetTilePixels(tile_index);
 }
 
-const Tileset& SpriteFrame::GetTileset() const
+std::shared_ptr<const Tileset> SpriteFrame::GetTileset() const
 {
 	return m_sprite_gfx;
 }
 
-Tileset& SpriteFrame::GetTileset()
+std::shared_ptr<Tileset> SpriteFrame::GetTileset()
 {
 	return m_sprite_gfx;
 }
 
 std::size_t SpriteFrame::GetTileCount() const
 {
-	return m_sprite_gfx.GetTileCount();
+	return m_sprite_gfx->GetTileCount();
 }
 
 std::size_t SpriteFrame::GetExpectedTileCount() const
@@ -338,17 +338,17 @@ std::size_t SpriteFrame::GetSubSpriteCount() const
 
 std::size_t SpriteFrame::GetTileWidth() const
 {
-	return m_sprite_gfx.GetTileWidth();
+	return m_sprite_gfx->GetTileWidth();
 }
 
 std::size_t SpriteFrame::GetTileHeight() const
 {
-	return m_sprite_gfx.GetTileHeight();
+	return m_sprite_gfx->GetTileHeight();
 }
 
 std::size_t SpriteFrame::GetTileBitDepth() const
 {
-	return m_sprite_gfx.GetTileBitDepth();
+	return m_sprite_gfx->GetTileBitDepth();
 }
 
 bool SpriteFrame::GetCompressed() const

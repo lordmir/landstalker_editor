@@ -71,7 +71,7 @@ protected:
     wxTreeCtrl* m_browser;
     wxPanel* m_panel_properties;
     wxPropertyGridManager* m_properties;
-    wxScrolledWindow* m_scrollwindow;
+    wxWindow* m_mainwin;
 
     wxFileHistory* m_filehistory;
     wxConfig* m_config;
@@ -139,9 +139,9 @@ public:
     {
         return m_panel_properties;
     }
-    wxScrolledWindow* GetScrollwindow()
+    wxWindow* GetMainWindow()
     {
-        return m_scrollwindow;
+        return m_mainwin;
     }
     wxAuiManager* GetWindow()
     {
