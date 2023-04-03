@@ -51,6 +51,7 @@ private:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	virtual void ClearMenu(wxMenuBar& menu) const;
 	void UpdateUI() const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 
