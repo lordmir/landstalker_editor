@@ -199,8 +199,11 @@ void MainFrame::InitUI()
         static_cast<int>(StringData::Type::INTRO)));
     m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
         static_cast<int>(StringData::Type::END_CREDITS)));
-    m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringData::Type::SYSTEM)));
+    if (m_g->GetStringData()->GetSystemStringCount() > 0)
+    {
+        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringData::Type::SYSTEM)));
+    }
 
     m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
         static_cast<int>(PaletteListFrame::Mode::ROOM)));

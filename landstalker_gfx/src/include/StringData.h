@@ -228,6 +228,7 @@ private:
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx_orig;
 
     RomOffsets::Region m_region;
+    bool m_has_region_check;
 };
 
 #endif // _STRING_DATA_H_

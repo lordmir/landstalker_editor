@@ -182,7 +182,10 @@ void GameData::SetDefaults()
 	m_tilesets[RomOffsets::Graphics::INV_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
 	m_tilesets[RomOffsets::Graphics::INV_FONT]->SetPalIndicies("10,1");
 	m_tilesets[RomOffsets::Tilesets::INTRO_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::SYS_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+	if (m_tilesets.find(RomOffsets::Graphics::END_CREDITS_FONT) != m_tilesets.end())
+	{
+		m_tilesets[RomOffsets::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+	}
 	m_tilesets[RomOffsets::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomOffsets::Graphics::END_CREDITS_PAL);
 	m_tilesets[RomOffsets::Graphics::DOWN_ARROW]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
 	m_tilesets[RomOffsets::Graphics::RIGHT_ARROW]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);

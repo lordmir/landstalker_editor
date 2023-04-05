@@ -3,19 +3,11 @@
 #include <codecvt>
 
 StringData::StringData(const filesystem::path& asm_file)
-	: DataManager(asm_file)
+	: DataManager(asm_file), m_has_region_check(false)
 {
 	if (!LoadAsmFilenames())
 	{
 		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
-	}
-	if (!AsmLoadSystemFont())
-	{
-		throw std::runtime_error(std::string("Unable to load system font data from \'") + asm_file.str() + '\'');
-	}
-	if (!AsmLoadSystemStrings())
-	{
-		throw std::runtime_error(std::string("Unable to load system string data from \'") + asm_file.str() + '\'');
 	}
 	if (!AsmLoadCompressedStringData())
 	{
@@ -26,6 +18,18 @@ StringData::StringData(const filesystem::path& asm_file)
 		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
 	}
 	m_region = Charset::DeduceRegion(GetCharsetSize());
+	if (m_region != RomOffsets::Region::JP)
+	{
+		m_has_region_check = true;
+		if (!AsmLoadSystemFont())
+		{
+			throw std::runtime_error(std::string("Unable to load system font data from \'") + asm_file.str() + '\'');
+		}
+		if (!AsmLoadSystemStrings())
+		{
+			throw std::runtime_error(std::string("Unable to load system string data from \'") + asm_file.str() + '\'');
+		}
+	}
 	if (!AsmLoadStringTables())
 	{
 		throw std::runtime_error(std::string("Unable to load string tables from \'") + m_string_table_path.str() + '\'');
@@ -48,16 +52,20 @@ StringData::StringData(const filesystem::path& asm_file)
 
 StringData::StringData(const Rom& rom)
 	: DataManager(rom),
-	  m_region(rom.get_region())
+	  m_region(rom.get_region()),
+	  m_has_region_check(m_region != RomOffsets::Region::JP)
 {
 	SetDefaultFilenames();
-	if (!RomLoadSystemFont(rom))
+	if (m_has_region_check)
 	{
-		throw std::runtime_error(std::string("Unable to load system font from ROM"));
-	}
-	if (!RomLoadSystemStrings(rom))
-	{
-		throw std::runtime_error(std::string("Unable to load system strings from ROM"));
+		if (!RomLoadSystemFont(rom))
+		{
+			throw std::runtime_error(std::string("Unable to load system font from ROM"));
+		}
+		if (!RomLoadSystemStrings(rom))
+		{
+			throw std::runtime_error(std::string("Unable to load system strings from ROM"));
+		}
 	}
 	if (!RomLoadCompressedStringData(rom))
 	{
@@ -103,9 +111,12 @@ bool StringData::Save(const filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save font data to \'") + directory.str() + '\'');
 	}
-	if (!AsmSaveSystemText(dir))
+	if (m_has_region_check)
 	{
-		throw std::runtime_error(std::string("Unable to save system text data to \'") + m_region_check_strings_filename.str() + '\'');
+		if (!AsmSaveSystemText(dir))
+		{
+			throw std::runtime_error(std::string("Unable to save system text data to \'") + m_region_check_strings_filename.str() + '\'');
+		}
 	}
 	if (!AsmSaveCompressedStringData(dir))
 	{
@@ -235,9 +246,12 @@ void StringData::RefreshPendingWrites(const Rom& rom)
 {
 	DataManager::RefreshPendingWrites(rom);
 	CompressStrings();
-	if (!RomPrepareInjectSystemText(rom))
+	if (m_has_region_check)
 	{
-		throw std::runtime_error(std::string("Unable to prepare system text data for ROM injection"));
+		if (!RomPrepareInjectSystemText(rom))
+		{
+			throw std::runtime_error(std::string("Unable to prepare system text data for ROM injection"));
+		}
 	}
 	if (!RomPrepareInjectCompressedStringData(rom))
 	{
@@ -468,7 +482,7 @@ bool StringData::HasStringChanged(Type type, std::size_t index) const
 
 std::size_t StringData::GetSystemStringCount() const
 {
-	return m_system_strings.size();
+	return m_has_region_check ? m_system_strings.size() : 0;
 }
 
 const LSString::StringType& StringData::GetSystemString(std::size_t index) const
@@ -1255,7 +1269,7 @@ bool StringData::RomLoadCompressedStringData(const Rom& rom)
 	auto font_bytes = rom.read_array<uint8_t>(font_ptr, banks_begin - font_ptr);
 	auto string_bytes = rom.read_array<uint8_t>(banks_begin, bank_ptr - banks_begin);
 	auto it = string_bytes.cbegin();
-	while (it != string_bytes.cend() && *it != 0x00)
+	while (it != string_bytes.cend() && *it != 0x00 && *it != 0xFF)
 	{
 		m_compressed_strings.push_back(ByteVector(it, it + *it));
 		it += *it;
