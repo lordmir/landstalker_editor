@@ -24,6 +24,21 @@ SpriteFrame::SpriteFrame()
 {
 }
 
+SpriteFrame::SpriteFrame(const SpriteFrame& rhs)
+	: m_subsprites(rhs.m_subsprites),
+	  m_sprite_gfx(std::make_shared<Tileset>(*rhs.m_sprite_gfx)),
+	  m_compressed(rhs.m_compressed)
+{
+}
+
+SpriteFrame& SpriteFrame::operator=(const SpriteFrame& rhs)
+{
+	this->m_compressed = rhs.m_compressed;
+	this->m_sprite_gfx = std::make_shared<Tileset>(*rhs.m_sprite_gfx);
+	this->m_subsprites = rhs.m_subsprites;
+	return *this;
+}
+
 bool SpriteFrame::operator==(const SpriteFrame& rhs) const
 {
 	return ((this->m_subsprites == rhs.m_subsprites) &&
@@ -76,8 +91,8 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 			uint8_t b1, b2;
 			b1 = (((s.y < 0) ? (s.y + 0x100) : s.y) >> 1) & 0x7C;
 			b1 |= (s.w - 1) & 0x03;
-			b1 = (((s.x < 0) ? (s.x + 0x100) : s.x) >> 1) & 0x7C;
-			b1 |= (s.h - 1) & 0x03;
+			b2 = (((s.x < 0) ? (s.x + 0x100) : s.x) >> 1) & 0x7C;
+			b2 |= (s.h - 1) & 0x03;
 
 			bits.push_back(b1);
 			bits.push_back(b2);
@@ -86,93 +101,99 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 		bits.back() |= 0x80;
 	}
 
-	auto last_cmd = bits.end();
+	int last_cmd = bits.size();
 	if (m_compressed) // compression
 	{
-		uint16_t byte_count = std::min(actual_tiles, expected_tiles) * 64;
-		bits.push_back(0x20 | byte_count >> 8);
-		bits.push_back(byte_count & 0xFF);
+		uint16_t word_count = std::min(actual_tiles, expected_tiles) * 16;
+		bits.push_back(0x20 | word_count >> 8);
+		bits.push_back(word_count & 0xFF);
 		auto tiles = m_sprite_gfx->GetBits();
 		std::vector<uint8_t> buffer(65536);
-		buffer.resize(LZ77::Encode(tiles.data(), byte_count, buffer.data()));
+		buffer.resize(LZ77::Encode(tiles.data(), word_count*2, buffer.data()));
 		bits.insert(bits.end(), buffer.begin(), buffer.end());
 	}
 	else
 	{
-		uint16_t total_words = std::min(actual_tiles, expected_tiles) * 32;
-		uint16_t current_word = 0;
-		uint16_t operation_length = 0;
+		uint16_t total_words = std::min(actual_tiles, expected_tiles) * 16;
 		int blanks = 0;
 		auto tiles = m_sprite_gfx->GetBits();
-		const auto write_blanks = [&]()
+		uint16_t src_idx = 0;
+		uint16_t copy_start_idx = 0;
+		uint16_t copy_len = 0;
+		const int THRESHOLD = 4;
+		while (src_idx < total_words * 2)
 		{
-			last_cmd = bits.end();
-			bits.push_back(0x80 | (blanks >> 8));
-			bits.push_back(blanks & 0xFF);
-			current_word += blanks;
-			blanks = 0;
-		};
-		const auto write_data = [&]()
-		{
-			operation_length -= blanks;
-			last_cmd = bits.end();
-			bits.push_back(0x10 | (operation_length >> 8));
-			bits.push_back(operation_length & 0xFF);
-			bits.insert(bits.end(), tiles.begin() + current_word * 2, tiles.begin() + (current_word + operation_length) * 2);
-			current_word += operation_length;
-			operation_length = blanks;
-		};
-		while (current_word < total_words)
-		{
-			uint16_t p = (current_word + operation_length) * 2;
-			uint16_t word = (tiles[p] << 8) | tiles[p + 1];
-			bool is_last_word = (current_word == total_words - 1);
-			operation_length++;
-			if (word == 0) // blank
+			uint16_t word = (tiles[src_idx] << 8) | tiles[src_idx + 1];
+			src_idx += 2;
+			bool is_last_word = (src_idx == total_words * 2);
+
+			// If blank, increment blank run counter. If counter > threshold, write out non-blank data.
+			// If non-blank, check blank run counter. If counter > threshold, write out blanks. Reset counter.
+			// If end, check blank run counter. If counter > threshold, write out blanks. Else, write out data.
+
+			if (word == 0)
 			{
 				blanks++;
-				// Only compress zero runs if we have at least two.
-				if((blanks > 1) && (operation_length > blanks))
+				if ((blanks >= THRESHOLD) && (copy_len > 0))
 				{
-					// Encountered a run of at least two blanks.
+					// Encountered a run of at least four blanks.
 					// We also have data pending. write out what we have so far.
-					write_data();
-				}
-				if (is_last_word)
-				{
-					// Final word. Write out what we have so far.
-					write_blanks();
+					last_cmd = bits.size();
+					bits.push_back(0x00 | (copy_len >> 8));
+					bits.push_back(copy_len & 0xFF);
+					bits.insert(bits.end(), tiles.begin() + copy_start_idx, tiles.begin() + copy_start_idx + copy_len * 2);
+					copy_start_idx += copy_len * 2;
+					copy_len = 0;
 				}
 			}
 			else
 			{
-				operation_length++;
-				if (blanks > 1)
+				copy_len++;
+				if (blanks < THRESHOLD)
 				{
-					// Encountered non-blanks. We also have a run of at least two blanks.
-					// Write out the number of blanks we have encountered.
-					write_blanks();
+					copy_len += blanks;
 				}
-				if (is_last_word)
+				else
 				{
-					// Final word. Write out what we have so far.
-					write_data();
+					last_cmd = bits.size();
+					bits.push_back(0x80 | (blanks >> 8));
+					bits.push_back(blanks & 0xFF);
+					copy_start_idx += blanks * 2;
 				}
 				blanks = 0;
 			}
+
+			if (is_last_word)
+			{
+				if (blanks >= THRESHOLD)
+				{
+					last_cmd = bits.size();
+					bits.push_back(0x80 | (blanks >> 8));
+					bits.push_back(blanks & 0xFF);
+				}
+				else
+				{
+					last_cmd = bits.size();
+					bits.push_back(0x00 | (copy_len >> 8));
+					bits.push_back(copy_len & 0xFF);
+					copy_len += blanks;
+					bits.insert(bits.end(), tiles.begin() + copy_start_idx, tiles.begin() + copy_start_idx + copy_len * 2);
+				}
+			}
+
 		}
 	}
 	// Fill in padding if required
 	if (actual_tiles < expected_tiles)
 	{
-		last_cmd = bits.end();
+		last_cmd = bits.size();
 		uint16_t word_count = (expected_tiles - actual_tiles) * 32;
 		bits.push_back(0x80 | (word_count >> 8));
 		bits.push_back(word_count & 0xFF);
 	}
 
 	// Mark final command to stop decompression
-	*last_cmd |= 0x40;
+	bits.at(last_cmd) |= 0x40;
 	return bits;
 }
 
@@ -226,7 +247,6 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			ss << "Insert " << count << " zero words." << std::endl;
 			Debug(ss.str().c_str());
 			dest_it += count * 2;
-			m_compressed = true;
 		}
 		else if ((ctrl & 0x02) > 0)
 		{

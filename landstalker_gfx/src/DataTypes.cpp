@@ -141,7 +141,7 @@ std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, c
 
 bool SpriteFrameEntry::Serialise(const std::shared_ptr<SpriteFrame> in, ByteVectorPtr out)
 {
-	out = std::make_shared<ByteVector>(in->GetBits());
+	*out = in->GetBits();
 	return true;
 }
 

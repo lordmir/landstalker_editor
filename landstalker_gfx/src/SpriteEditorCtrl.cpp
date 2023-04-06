@@ -189,20 +189,24 @@ void SpriteEditorCtrl::OnDraw(wxDC& dc)
 						++it;
 					}
 				}
+				else
+				{
+					m_redraw_list.erase(it++);
+				}
 			}
 		}
 		DrawSelectionBorders(m_memdc);
 
 		m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-		m_memdc.SetPen(*wxGREEN_PEN);
-		m_memdc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
-		m_memdc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
 		m_memdc.SetPen(*wxRED_PEN);
 		for (std::size_t i = 0; i < m_sprite->GetSubSpriteCount(); ++i)
 		{
 			const auto& s = m_sprite->GetSubSprite(i);
 			m_memdc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * m_sprite->GetTileWidth() * m_pixelsize), static_cast<int>(s.h * m_sprite->GetTileHeight() * m_pixelsize) });
 		}
+		m_memdc.SetPen(*wxGREEN_PEN);
+		m_memdc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
+		m_memdc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
 	}
 
 	PaintBitmap(dc);
@@ -287,15 +291,49 @@ void SpriteEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 
 int SpriteEditorCtrl::ConvertXYToTile(const wxPoint& point)
 {
-	int s = GetVisibleRowsBegin();
-	int x = point.x / (m_pixelsize * m_sprite->GetTileWidth());
-	int y = s + point.y / (m_pixelsize * m_sprite->GetTileHeight());
-	int sel = x + y * m_columns;
-	if ((sel >= m_sprite->GetTileCount()) || (x < 0) || (y < 0) || (x >= m_columns))
+	auto c = point;
+	c.x += GetVisibleColumnsBegin() * m_sprite->GetTileWidth() * m_pixelsize;
+	c.y += GetVisibleRowsBegin() * m_sprite->GetTileHeight() * m_pixelsize;
+	auto p = ScreenToSpriteXY(c);
+	int tile = 0;
+	for (int i = 0; i < m_sprite->GetSubSpriteCount(); i++)
 	{
-		sel = -1;
+		const auto& ss = m_sprite->GetSubSprite(i);
+		if ((p.x >= ss.x && p.x < ss.x + static_cast<int>(ss.w * m_sprite->GetTileWidth())) &&
+			(p.y >= ss.y && p.y < ss.y + static_cast<int>(ss.h * m_sprite->GetTileHeight())))
+		{
+			int sx = (p.x - ss.x) / m_sprite->GetTileWidth();
+			int sy = (p.y - ss.y) / m_sprite->GetTileHeight();
+			int st = sx * ss.h + sy;
+			return tile + st;
+		}
+		tile += ss.w * ss.h;
 	}
-	return sel;
+	return -1;
+}
+
+wxPoint SpriteEditorCtrl::ConvertTileToXY(int tile) const
+{
+	if (tile >= 0 && tile < m_sprite->GetExpectedTileCount())
+	{
+
+		for (int i = 0; i < m_sprite->GetSubSpriteCount(); i++)
+		{
+			const auto& ss = m_sprite->GetSubSprite(i);
+			if (tile >= (ss.w * ss.h))
+			{
+				tile -= (ss.w * ss.h);
+				continue;
+			}
+			else
+			{
+				int x = ss.x + (tile / ss.h) * m_sprite->GetTileWidth();
+				int y = ss.y + (tile % ss.h) * m_sprite->GetTileHeight();
+				return { x, y };
+			}
+		}
+	}
+	return { -1, -1 };
 }
 
 wxPoint SpriteEditorCtrl::SpriteToScreenXY(wxPoint sprite)
@@ -305,7 +343,7 @@ wxPoint SpriteEditorCtrl::SpriteToScreenXY(wxPoint sprite)
 
 wxPoint SpriteEditorCtrl::ScreenToSpriteXY(wxPoint screen)
 {
-	return wxPoint((-screen.x - 0x80) / m_pixelsize, (-screen.y - 0x80) / m_pixelsize);
+	return wxPoint(screen.x / m_pixelsize - 0x80, screen.y / m_pixelsize - 0x80 );
 }
 
 bool SpriteEditorCtrl::UpdateRowCount()
@@ -392,26 +430,24 @@ void SpriteEditorCtrl::DrawSelectionBorders(wxDC& dc)
 {
 	if (m_hoveredtile != -1)
 	{
-		auto x = m_hoveredtile % m_columns;
-		auto y = m_hoveredtile / m_columns;
+		auto p = SpriteToScreenXY(ConvertTileToXY(m_hoveredtile));
 		dc.SetBrush(*m_highlighted_brush);
 		dc.SetPen(*m_highlighted_border_pen);
 		if (m_hoveredtile == m_selectedtile)
 		{
-			dc.DrawRectangle({ x * m_cellwidth + 1, y * m_cellheight + 1, m_cellwidth - 2, m_cellheight - 2 });
+			dc.DrawRectangle({ p.x + 1, p.y + 1, m_cellwidth - 2, m_cellheight - 2 });
 		}
 		else
 		{
-			dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
+			dc.DrawRectangle({ p.x, p.y, m_cellwidth, m_cellheight });
 		}
 	}
 	if (m_selectedtile != -1)
 	{
-		auto x = m_selectedtile % m_columns;
-		auto y = m_selectedtile / m_columns;
+		auto p = SpriteToScreenXY(ConvertTileToXY(m_selectedtile));
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.SetPen(*m_selected_border_pen);
-		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
+		dc.DrawRectangle({ p.x, p.y, m_cellwidth, m_cellheight });
 	}
 }
 
@@ -615,7 +651,7 @@ void SpriteEditorCtrl::SelectTile(int tile)
 	}
 	if (tile != m_selectedtile)
 	{
-		FireEvent(EVT_SPRITE_FRAME_SELECT, std::to_string(m_selectedtile));
+		FireEvent(EVT_SPRITE_FRAME_SELECT, std::to_string(tile));
 		m_selectedtile = tile;
 		Refresh();
 	}

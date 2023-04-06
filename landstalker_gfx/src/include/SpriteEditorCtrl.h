@@ -76,6 +76,7 @@ private:
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnTilesetFocus(wxFocusEvent& evt);
 	int  ConvertXYToTile(const wxPoint& point);
+	wxPoint ConvertTileToXY(int tile) const;
 
 	wxPoint SpriteToScreenXY(wxPoint sprite);
 	wxPoint ScreenToSpriteXY(wxPoint screen);

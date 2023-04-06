@@ -5,8 +5,12 @@
 #include "Utils.h"
 
 wxBEGIN_EVENT_TABLE(SpriteEditorFrame, wxWindow)
-EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_SELECT, SpriteEditorFrame::OnTileChanged)
-EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileChanged)
+EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_SELECT, SpriteEditorFrame::OnTileSelected)
+EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, SpriteEditorFrame::OnPaletteColourSelect)
+EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColourHover)
+EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileHovered)
+EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, SpriteEditorFrame::OnTilePixelHover)
+EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, SpriteEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEditRequested)
 wxEND_EVENT_TABLE()
 
@@ -45,7 +49,7 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent)
 	m_mgr.Update();
 	UpdateUI();
 
-	UpdateStatusBar();
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 SpriteEditorFrame::~SpriteEditorFrame()
@@ -81,6 +85,7 @@ bool SpriteEditorFrame::Open(uint8_t entity, int frame, int anim)
 	m_tileedit->SetActivePalette(m_palette);
 	m_tileedit->SetTile(Tile(0));
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	m_spriteeditor->SelectTile(0);
 	return true;
 }
 
@@ -161,13 +166,31 @@ const std::string& SpriteEditorFrame::GetFilename() const
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
-	UpdateStatusBar();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::OnTileHovered(wxCommandEvent& evt)
+{
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::OnTileSelected(wxCommandEvent& evt)
+{
+	auto tile = std::stoi(evt.GetString().ToStdString());
+	if (tile != -1)
+	{
+		m_tileedit->SetTile(tile);
+	}
+	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
 }
 
 void SpriteEditorFrame::OnTileChanged(wxCommandEvent& evt)
 {
-	UpdateStatusBar();
+	auto tile = std::stoi(evt.GetString().ToStdString());
+	m_spriteeditor->RedrawTiles(tile);
 	evt.Skip();
 }
 
@@ -246,22 +269,64 @@ void SpriteEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void SpriteEditorFrame::UpdateStatusBar() const
+void SpriteEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 {
-	return;
+	m_tileedit->SetPrimaryColour(m_paledit->GetPrimaryColour());
+	m_tileedit->SetSecondaryColour(m_paledit->GetSecondaryColour());
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
+{
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
+{
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
+{
+	status.SetFieldsCount(3);
+	status.SetStatusText("", 0);
+	status.SetStatusText("", 1);
+	status.SetStatusText("", 2);
+}
+
+void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status) const
+{
 	std::ostringstream ss;
+	int colour = m_paledit->GetHoveredColour();
 	if (m_spriteeditor->IsSelectionValid())
 	{
-		ss << ", Tile: " << m_spriteeditor->GetSelectedTile().GetIndex();
-		if (m_spriteeditor->IsHoverValid())
+		ss << "Tile: " << m_spriteeditor->GetSelectedTile().GetIndex();
+		if (m_tileedit->IsHoverValid())
 		{
-			ss << " (Cursor at tile " << m_spriteeditor->GetHoveredTile().GetIndex() << ")";
+			const auto selection = m_tileedit->GetHoveredPixel();
+			int idx = m_tileedit->GetColourAtPixel(selection);
+			colour = m_tileedit->GetColour(idx);
+			ss << ": (" << selection.x << ", " << selection.y << "): " << idx;
+		}
+	}
+	status.SetStatusText(ss.str(), 0);
+	ss.str(std::string());
+	if (colour != -1)
+	{
+		const auto& name = m_palette->getOwner(colour);
+		ss << StrPrintf("Colour at mouse: Index %d - Genesis 0x%04X, RGB #%06X %s", colour,
+			m_palette->getGenesisColour(colour), m_palette->getRGB(colour), m_palette->getA(colour) == 0 ? " [Transparent]" : "");
+		if (!name.empty())
+		{
+			ss << ", Palette: \"" << name << "\"";
 		}
 	}
 	else if (m_spriteeditor->IsHoverValid())
 	{
-		ss << ", Cursor at tile " << m_spriteeditor->GetHoveredTile().GetIndex();
+		ss << "Cursor at tile " << m_spriteeditor->GetHoveredTile().GetIndex();
 	}
-	m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
-	m_spriteeditor->SetPixelSize(m_zoomslider->GetValue());
+	status.SetStatusText(ss.str(), 1);
 }

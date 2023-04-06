@@ -34,6 +34,8 @@ public:
 	SpriteFrame(const std::vector<uint8_t>& src);
 	SpriteFrame(const std::string& filename);
 	SpriteFrame();
+	SpriteFrame(const SpriteFrame& rhs);
+	SpriteFrame& operator=(const SpriteFrame& rhs);
 
 	bool operator==(const SpriteFrame& rhs) const;
 	bool operator!=(const SpriteFrame& rhs) const;

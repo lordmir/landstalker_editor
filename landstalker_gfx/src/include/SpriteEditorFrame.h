@@ -39,10 +39,17 @@ public:
 
 private:
 	void OnZoomChange(wxCommandEvent& evt);
+	void OnTileHovered(wxCommandEvent& evt);
+	void OnTileSelected(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
 	void OnTileEditRequested(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
-	void UpdateStatusBar() const;
+	void OnPaletteColourSelect(wxCommandEvent& evt);
+	void OnPaletteColourHover(wxCommandEvent& evt);
+	void OnTilePixelHover(wxCommandEvent& evt);
+
+	void InitStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status) const;
 
 	SpriteEditorCtrl* m_spriteeditor = nullptr;
 	PaletteEditor* m_paledit = nullptr;
