@@ -2,8 +2,6 @@
 #include <codecvt>
 #include <locale>
 
-#include <wx/msw/msvcrt.h>  
-
 enum MENU_IDS
 {
     ID_FILE_EXPORT = 22000,

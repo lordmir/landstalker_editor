@@ -392,7 +392,7 @@ const LSString::StringType& StringData::GetString(Type type, std::size_t index) 
 	case Type::INTRO:
 	case Type::END_CREDITS:
 	default:
-		return LSString::StringType();
+		throw std::runtime_error("Unexpected string type");
 	}
 }
 
@@ -417,7 +417,7 @@ const LSString::StringType& StringData::GetOrigString(Type type, std::size_t ind
 	case Type::INTRO:
 	case Type::END_CREDITS:
 	default:
-		return LSString::StringType();
+		throw std::runtime_error("Unexpected string type");
 	}
 }
 
