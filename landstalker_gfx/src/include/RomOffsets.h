@@ -632,7 +632,7 @@ namespace RomOffsets
 		{ Graphics::INV_UNUSED1_SIZE,              {{Region::JP, 0x000016}, {Region::US, 0x000016}, {Region::UK, 0x000016}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_UNUSED2,                   {{Region::JP, 0x00D9EE}, {Region::US, 0x00DA72}, {Region::UK, 0x00DA72}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_UNUSED2_PLUS4,             {{Region::JP, 0x00D9F6}, {Region::US, 0x00DA7A}, {Region::UK, 0x00DA7A}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
-		{ Graphics::INV_UNUSED2_SIZE,              {{Region::JP, 0x000028}, {Region::US, 0x000028}, {Region::UK, 0x000028}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Graphics::INV_UNUSED2_SIZE,              {{Region::JP, 0x000014}, {Region::US, 0x000014}, {Region::UK, 0x000014}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_PAL1,                      {{Region::JP, 0x00D26E}, {Region::US, 0x00D2D2}, {Region::UK, 0x00D2D2}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Graphics::INV_PAL2,                      {{Region::JP, 0x00D290}, {Region::US, 0x00D2F4}, {Region::UK, 0x00D2F4}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Blocksets::POINTER,                      {{Region::JP, 0x1AF800}, {Region::US, 0x1AF800}, {Region::UK, 0x1AF800}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
