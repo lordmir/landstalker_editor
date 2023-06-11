@@ -553,12 +553,12 @@ std::vector<std::string> SpriteData::GetSpriteAnimationFrames(const std::string&
 	return GetSpriteAnimationFrames(id, anim_id);
 }
 
-std::vector<std::array<uint8_t, 8>> SpriteData::GetRoomEntities(uint16_t room) const
+std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
 {
 	auto it = m_room_entities.find(room);
 	if (it == m_room_entities.cend())
 	{
-		return std::vector<std::array<uint8_t, 8>>();
+		return std::vector<Entity>();
 	}
 	else
 	{
@@ -566,7 +566,7 @@ std::vector<std::array<uint8_t, 8>> SpriteData::GetRoomEntities(uint16_t room) c
 	}
 }
 
-void SpriteData::SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities)
+void SpriteData::SetRoomEntities(uint16_t room, const std::vector<Entity>& entities)
 {
 	m_room_entities[room] = entities;
 }
@@ -926,11 +926,12 @@ void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const Byt
 			continue;
 		}
 		offset--;
-		m_room_entities.insert({ i, std::vector<std::array<uint8_t, 8>>() });
+		m_room_entities.insert({ i, std::vector<Entity>() });
 		while (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF)
 		{
-			m_room_entities[i].emplace_back();
-			std::copy_n(bytes.cbegin() + offset, 8, m_room_entities[i].back().begin());
+			std::array<uint8_t, 8> data;
+			std::copy_n(bytes.cbegin() + offset, 8, data.begin());
+			m_room_entities[i].emplace_back(data);
 			offset += 8;
 		}
 	}
@@ -954,7 +955,8 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 		offsets.push_back(offset & 0xFF);
 		for (const auto& ent : res->second)
 		{
-			bytes.insert(bytes.end(), std::begin(ent), std::end(ent));
+			auto data = ent.GetData();
+			bytes.insert(bytes.end(), std::begin(data), std::end(data));
 		}
 		bytes.push_back(0xFF);
 		bytes.push_back(0xFF);

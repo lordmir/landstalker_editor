@@ -4,6 +4,7 @@
 #include "DataManager.h"
 #include "DataTypes.h"
 #include <set>
+#include <Entity.h>
 
 class SpriteData : public DataManager
 {
@@ -48,8 +49,8 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& anim) const;
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
 
-	std::vector<std::array<uint8_t, 8>> GetRoomEntities(uint16_t room) const;
-	void SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities);
+	std::vector<Entity> GetRoomEntities(uint16_t room) const;
+	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
 
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
@@ -174,8 +175,8 @@ private:
 	std::map<uint8_t, uint8_t> m_unknown_entity_lookup;
 	std::map<uint8_t, uint8_t> m_unknown_entity_lookup_orig;
 
-	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities;
-	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities_orig;
+	std::map<uint16_t, std::vector<Entity>> m_room_entities;
+	std::map<uint16_t, std::vector<Entity>> m_room_entities_orig;
 
 	std::vector<uint8_t> m_sprite_behaviours;
 	std::vector<uint8_t> m_sprite_behaviours_orig;
