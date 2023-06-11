@@ -14,6 +14,8 @@
 #include "PaletteListFrame.h"
 #include "RoomViewerFrame.h"
 #include "Map2DEditorFrame.h"
+#include "BlocksetEditorFrame.h"
+#include "SpriteEditorFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -41,12 +43,10 @@ protected:
     virtual void OnOpen(wxCommandEvent& event);
     virtual void OnSaveAsAsm(wxCommandEvent& event);
     virtual void OnSaveToRom(wxCommandEvent& event);
-    virtual void OnExport(wxCommandEvent& event);
     virtual void OnMRUFile(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
-    virtual void OnScrollWindowPaint(wxPaintEvent& event);
 private:
     class TreeNodeData : public wxTreeItemData
     {
@@ -108,14 +108,8 @@ private:
 	void OnPaneClose(wxAuiManagerEvent& event);
     void OnGoToNavItem(wxCommandEvent& event);
     void GoToNavItem(const std::string& path);
-    void DrawBlocks(const std::string& name, std::size_t row_width = -1, std::size_t scale = 1, uint8_t pal = 0);
-    void DrawSprite(const std::string& name, int data, std::size_t scale = 4);
-    void ShowBitmap();
     void ShowEditor(EditorType editor);
     void HideAllEditors();
-    void ForceRepaint();
-    void ClearScreen();
-    void PaintNow(wxDC& dc, std::size_t scale = 1);
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
@@ -134,17 +128,13 @@ private:
     PaletteListFrame* GetPaletteEditor();
     RoomViewerFrame* GetRoomEditor();
     Map2DEditorFrame* GetMap2DEditor();
+    BlocksetEditorFrame* GetBlocksetEditor();
+    SpriteEditorFrame* GetSpriteEditor();
     
-    wxMemoryDC memDc;
-    std::shared_ptr<wxBitmap> bmp;
-    ImageBuffer m_imgbuf;
-    wxImage m_img;
-    std::size_t m_scale;
     Mode m_mode;
 	ImageList* m_imgs;
     EditorFrame* m_activeEditor;
     std::map<EditorType, EditorFrame*> m_editors;
-    wxScrolledCanvas* m_canvas;
 
     Rom m_rom;
     bool m_asmfile;

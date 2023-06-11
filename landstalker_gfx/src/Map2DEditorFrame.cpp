@@ -729,6 +729,14 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	evt.Skip();
 }
 
+void Map2DEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+	// The toolbar destructor deletes these, but doesn't clear the pointer
+	m_palette_select = nullptr;
+	m_tileset_select = nullptr;
+}
+
 void Map2DEditorFrame::UpdateUI() const
 {
 	CheckMenuItem(ID_TOOLS_TILES, IsPaneVisible(m_tileset));
@@ -760,7 +768,7 @@ void Map2DEditorFrame::UpdateUI() const
 
 	if (m_map != nullptr && m_tileset_select != nullptr)
 	{
-		m_tileset_select->SetStringSelection(m_tileset->GetName());
+		m_tileset_select->SetStringSelection(m_tiles->GetName());
 	}
 	if (m_tiles != nullptr && m_palette_select != nullptr)
 	{

@@ -67,6 +67,17 @@ void PaletteEditor::SelectPalette(const std::string& name)
 	}
 }
 
+void PaletteEditor::SelectPalette(std::shared_ptr<Palette> pal)
+{
+	m_selected_palette_name = "";
+	m_selected_palette_entry = nullptr;
+	m_selected_palette = pal;
+	m_locked = m_selected_palette->GetLockedColours();
+	m_indicies.resize(1 << m_bpp);
+	std::iota(m_indicies.begin(), m_indicies.end(), 0);
+	ForceRedraw();
+}
+
 void PaletteEditor::SetBitsPerPixel(uint8_t bpp)
 {
 	if (bpp != m_bpp)

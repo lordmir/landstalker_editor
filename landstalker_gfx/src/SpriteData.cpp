@@ -508,7 +508,7 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t anim, uint8_t frame) const
 {
 	assert(m_animations.find(id) != m_animations.cend());
-	assert(m_animations.find(id)->second.size() > frame);
+	assert(m_animations.find(id)->second.size() > anim);
 	const auto& name = m_animations.find(id)->second[anim];
 	return GetSpriteFrame(name, frame);
 }

@@ -20,6 +20,8 @@
     <ClCompile Include="..\src\Blockmap2D.cpp" />
     <ClCompile Include="..\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\BlocksetEditorCtrl.cpp" />
+    <ClCompile Include="..\src\BlocksetEditorFrame.cpp" />
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
@@ -33,7 +35,6 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
-    <ClCompile Include="..\src\include\MapEditor2DFrame.cpp" />
     <ClCompile Include="..\src\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\Map2DEditor.cpp" />
     <ClCompile Include="..\src\Map2DEditorFrame.cpp" />
@@ -53,8 +54,11 @@
     <ClCompile Include="..\src\DataTypes.cpp" />
     <ClCompile Include="..\src\RoomData.cpp" />
     <ClCompile Include="..\src\SpriteData.cpp" />
+    <ClCompile Include="..\src\SpriteEditorCtrl.cpp" />
+    <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\StringData.cpp" />
+    <ClCompile Include="..\src\StringDataViewModel.cpp" />
     <ClCompile Include="..\src\StringEditorFrame.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
@@ -86,6 +90,8 @@
     <ClInclude Include="..\src\include\Blockmap2D.h" />
     <ClInclude Include="..\src\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\include\BlocksetCmp.h" />
+    <ClInclude Include="..\src\include\BlocksetEditorCtrl.h" />
+    <ClInclude Include="..\src\include\BlocksetEditorFrame.h" />
     <ClInclude Include="..\src\include\Charset.h" />
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
@@ -122,8 +128,11 @@
     <ClInclude Include="..\src\include\DataTypes.h" />
     <ClInclude Include="..\src\include\RoomData.h" />
     <ClInclude Include="..\src\include\SpriteData.h" />
+    <ClInclude Include="..\src\include\SpriteEditorCtrl.h" />
+    <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\StringData.h" />
+    <ClInclude Include="..\src\include\StringDataViewModel.h" />
     <ClInclude Include="..\src\include\StringEditorFrame.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />

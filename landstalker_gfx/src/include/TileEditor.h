@@ -48,6 +48,7 @@ public:
 	void Redraw();
 	int GetPixelSize() const;
 	void SetActivePalette(const std::string& name);
+	void SetActivePalette(std::shared_ptr<Palette> pal);
 	std::string GetActivePalette() const;
 	const Tile& GetTile() const;
 

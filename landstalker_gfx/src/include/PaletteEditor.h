@@ -18,6 +18,7 @@ public:
 
 	void SetGameData(std::shared_ptr<GameData> gd);
 	void SelectPalette(const std::string& name);
+	void SelectPalette(std::shared_ptr<Palette> pal);
 	void SetBitsPerPixel(uint8_t bpp);
 	void SetColourIndicies(const std::vector<uint8_t>& entries);
 	void DisableEntries(const std::vector<bool>& entries);

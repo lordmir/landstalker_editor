@@ -2546,9 +2546,12 @@ bool GraphicsData::RomPrepareInjectSwordFx(const Rom& rom)
 	m_pending_writes.push_back({ RomOffsets::Graphics::SWORD_FX_SECTION, bytes });
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_TILEMAP, inv_tilemap_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_MAGIC, magic_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_MAGIC_LEA, magic_sword_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_THUNDER, thunder_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_THUNDER_LEA, thunder_sword_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_GAIA, gaia_sword_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_ICE, ice_sword_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::SWORD_ICE_LEA, ice_sword_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::COINFALL, coinfall_begin));
 
 	return true;

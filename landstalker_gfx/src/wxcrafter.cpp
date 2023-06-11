@@ -148,20 +148,15 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     wxBoxSizer* m_boxsizer_properties = new wxBoxSizer(wxVERTICAL);
     m_panel_properties->SetSizer(m_boxsizer_properties);
     
-    wxArrayString m_propertiesArr;
-    wxUnusedVar(m_propertiesArr);
-    wxArrayInt m_propertiesIntArr;
-    wxUnusedVar(m_propertiesIntArr);
     m_properties = new wxPropertyGridManager(m_panel_properties, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_panel_properties, wxSize(300,50)), wxPG_DESCRIPTION|wxPG_LIMITED_EDITING|wxPG_BOLD_MODIFIED|wxPG_AUTO_SORT);
     
     m_boxsizer_properties->Add(m_properties, 1, wxALL|wxEXPAND, WXC_FROM_DIP(5));
     m_properties->SetMinSize(wxSize(300,50));
 
-    m_scrollwindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxFULL_REPAINT_ON_RESIZE | wxHSCROLL | wxVSCROLL);
-    m_scrollwindow->SetBackgroundColour(wxColour(wxT("rgb(0,0,0)")));
-    m_scrollwindow->SetScrollRate(5, 5);
+    m_mainwin = new wxWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE);
+    m_mainwin->SetBackgroundColour(*wxBLACK);
 
-    m_window->AddPane(m_scrollwindow, wxAuiPaneInfo().CenterPane().Layer(0).Row(0).Position(0));
+    m_window->AddPane(m_mainwin, wxAuiPaneInfo().CenterPane().Layer(0).Row(0).Position(0));
     m_window->Update();
     
     SetName(wxT("MainFrameBaseClass"));
@@ -207,7 +202,6 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
-    m_scrollwindow->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrameBaseClass::OnScrollWindowPaint), NULL, this);
 
     m_filehistory->Save(*m_config);
     delete m_config;

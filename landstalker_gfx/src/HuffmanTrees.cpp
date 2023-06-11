@@ -88,7 +88,7 @@ std::vector<uint8_t> HuffmanTrees::CompressString(const std::vector<uint8_t>& de
 		}
 		last = chr;
 	}
-	if (last != 0x55)
+	if (last != eos_marker)
 	{
 		throw std::runtime_error("String terminator " + Hex(eos_marker) + " not last character in string.");
 	}

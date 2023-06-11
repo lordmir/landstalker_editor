@@ -6,23 +6,36 @@ Landstalker Graphics Viewer
 ## Packages
 
 In addition to build-essential (compiler and make), the following libraries are required:
-- wxWidgets
+- [wxWidgets](https://www.wxwidgets.org/downloads/) (at least v3.2.2)
 - libpng
 - zlib
 - boost
 
-### Ubuntu
+## Build and Install wxWidgets (all distributions)
 
-```sh
-# apt install libwxgtk3.0-gtk3-dev libpng-dev zlib1g-dev libboost-all-dev
-```
-
-### Arch Linux
-
-```sh
-# pacman -S wxgtk3 zlib libpng boost
-# ln -s /usr/bin/wx-config-gtk3 /usr/bin/wx-config
-```
+ 1. Download the wxWidgets v3.2+ source from the [official website](https://www.wxwidgets.org/downloads/). Extract the contents of the tar file to a suitable location.
+ 2. Install the prerequisites (see the README.md file in the wxWidgets source). For Debian/Ubuntu, you will need to run this command:
+    `# apt install libgtk-3-dev libgl1-mesa-dev libglu1-mesa-dev libgstreamer-plugins-base1.0-dev libcurl4-openssl-dev libwebkit2gtk-4.0-dev libpng-dev`
+ 3. Create a build directory:
+    ```sh
+    $ cd wxWidgets-3.2.2.1
+    $ mkdir gtkbuild
+    $ cd gtkbuild
+    ```
+ 4. Run the configure script as follows:
+    ```sh
+    $ ../configure --with-gtk --disable-shared
+    ```
+    Add the `--enable-debug` option for a debug build.
+ 5. Build the source: (this can take some time)
+    ```sh
+    $ make -j8
+    ```
+ 6. Install the built libraries:
+    ```
+    sudo make install
+    sudo ldconfig
+    ```
 
 ## Build
 
@@ -70,27 +83,9 @@ Finally, we need to add an environment variable to tell Visual Studio where to f
 
 Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
 
-## Boost
-
-Boost can be obtained here: https://www.boost.org/users/download/. You should download the latest zip file release.
-
-Extract the boost libraries to a common directory (e.g. C:\libraries). Once extracted, you should have a "boost_*x*" directory, where *x* is the version number.
-
-Open a command prompt in this directory, and enter the following commands:
-- ```bootstrap```
-- ```.\b2```
-
-Finally, we need to add an environment variable to tell Visual Studio where to find the Boost libraries. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named BOOST_PATH, and set its value equal to the full path to Boost (e.g. "C:\libraries\boost_1_78_0"). Click OK and exit out of the system properties windows.
-
-Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
-
 ### Build
 
 Open the VS2019 solution file in landstalker_gfx\VC2019. Make sure that the appropriate configuration has been set (e.g. "Debug x86") and hit Ctrl+Shift+B to build.
-
-# Note
-
-* The ROM path cannot contain a folder that start with a dot.
 
 # Screenshot
 

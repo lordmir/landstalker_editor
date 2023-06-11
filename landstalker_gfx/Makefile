@@ -6,7 +6,7 @@ CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++17
 CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))
-LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base` -lpng
+LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base,xml` -lpng
 SRCDIR  	:= src
 BUILDDIR	:= build
 BINDIR		:= bin

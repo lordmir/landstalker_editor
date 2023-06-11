@@ -11,6 +11,19 @@
 class StringData : public DataManager
 {
 public:
+    enum Type
+    {
+        MAIN,
+        INTRO,
+        NAMES,
+        SPECIAL_NAMES,
+        DEFAULT_NAME,
+        ITEM_NAMES,
+        MENU,
+        END_CREDITS,
+        SYSTEM
+    };
+
     StringData(const filesystem::path& asm_file);
     StringData(const Rom& rom);
 
@@ -28,6 +41,13 @@ public:
     std::map<std::string, std::shared_ptr<Tilemap2DEntry>> GetAllMaps() const;
     std::vector<std::shared_ptr<Tilemap2DEntry>> GetTextboxMaps() const;
 
+    std::size_t GetStringCount(Type type) const;
+    const LSString::StringType& GetString(Type type, std::size_t index) const;
+    const LSString::StringType& GetOrigString(Type type, std::size_t index) const;
+    void SetString(Type type, std::size_t index, const LSString::StringType& value);
+    void InsertString(Type type, std::size_t index, const LSString::StringType& value);
+    bool HasStringChanged(Type type, std::size_t index) const;
+
     std::size_t GetMainStringCount() const;
     const LSString::StringType& GetMainString(std::size_t index) const;
     const LSString::StringType& GetOrigMainString(std::size_t index) const;
@@ -36,9 +56,9 @@ public:
     bool HasMainStringChanged(std::size_t index) const;
 
     std::size_t GetSystemStringCount() const;
-    const std::string& GetSystemString(std::size_t index) const;
-    const std::string& GetOrigSystemString(std::size_t index) const;
-    void SetSystemString(std::size_t index, const std::string& value);
+    const LSString::StringType& GetSystemString(std::size_t index) const;
+    const LSString::StringType& GetOrigSystemString(std::size_t index) const;
+    void SetSystemString(std::size_t index, const LSString::StringType& value);
     bool HasSystemStringChanged(std::size_t index) const;
 
     std::size_t GetCharNameCount() const;
@@ -175,8 +195,8 @@ private:
     std::vector<std::vector<std::uint8_t>> m_compressed_strings_orig;
     std::vector<LSString::StringType> m_decompressed_strings;
     std::vector<LSString::StringType> m_decompressed_strings_orig;
-    std::array<std::string, 4> m_system_strings;
-    std::array<std::string, 4> m_system_strings_orig;
+    std::array<LSString::StringType, 4> m_system_strings;
+    std::array<LSString::StringType, 4> m_system_strings_orig;
     std::vector<LSString::StringType> m_character_names;
     std::vector<LSString::StringType> m_character_names_orig;
     std::vector<LSString::StringType> m_special_character_names;
@@ -208,6 +228,7 @@ private:
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx_orig;
 
     RomOffsets::Region m_region;
+    bool m_has_region_check;
 };
 
 #endif // _STRING_DATA_H_

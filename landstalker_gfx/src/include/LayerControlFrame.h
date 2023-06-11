@@ -3,6 +3,7 @@
 
 #include <wx/wx.h>
 #include <array>
+#include <vector>
 
 class LayerControlFrame : public wxWindow
 {

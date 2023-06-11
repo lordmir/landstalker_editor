@@ -24,28 +24,26 @@
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
-      m_scale(1),
       m_mode(MODE_NONE),
 	  m_activeEditor(nullptr),
       m_g(nullptr)
 {
     m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
-    m_canvas = new wxScrolledCanvas(this->m_scrollwindow);
-    m_editors.insert({ EditorType::TILESET, new TilesetEditorFrame(this->m_scrollwindow) });
-    m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_scrollwindow) });
-    m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_scrollwindow) });
-    m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_scrollwindow) });
-    m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_scrollwindow) });
-    m_scrollwindow->SetBackgroundColour(*wxBLACK);
+    m_editors.insert({ EditorType::TILESET, new TilesetEditorFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin) });
+    m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
         sizer->Add(editor.second, 1, wxEXPAND | wxALL);
         sizer->Hide(editor.second);
     }
-    sizer->Add(m_canvas, 1, wxEXPAND | wxALL);
-    sizer->Hide(m_canvas);
-    this->m_scrollwindow->SetSizer(sizer);
+    this->m_mainwin->SetSizer(sizer);
     sizer->Layout();
     SetMode(MODE_NONE);
     m_mnu_save_as_asm->Enable(false);
@@ -66,7 +64,6 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
-    m_canvas->Connect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
 }
 
 MainFrame::~MainFrame()
@@ -83,7 +80,6 @@ MainFrame::~MainFrame()
     this->Disconnect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Disconnect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
-    m_canvas->Disconnect(wxEVT_PAINT, wxPaintEventHandler(MainFrame::OnScrollWindowPaint), NULL, this);
 
     delete m_imgs;
 }
@@ -188,23 +184,26 @@ void MainFrame::InitUI()
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_MAIN)));
+        static_cast<int>(StringData::Type::MAIN)));
     m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_CHARS)));
+        static_cast<int>(StringData::Type::NAMES)));
     m_browser->AppendItem(nodeS, "Special Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_SPECIAL_CHARS)));
+        static_cast<int>(StringData::Type::SPECIAL_NAMES)));
     m_browser->AppendItem(nodeS, "Default Character Name", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_DEFAULT_CHAR)));
+        static_cast<int>(StringData::Type::DEFAULT_NAME)));
     m_browser->AppendItem(nodeS, "Item Names", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_ITEMS)));
+        static_cast<int>(StringData::Type::ITEM_NAMES)));
     m_browser->AppendItem(nodeS, "Menu Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_MENU)));
+        static_cast<int>(StringData::Type::MENU)));
     m_browser->AppendItem(nodeS, "Intro Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_INTRO)));
+        static_cast<int>(StringData::Type::INTRO)));
     m_browser->AppendItem(nodeS, "End Credit Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_END_CREDITS)));
-    m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
-        static_cast<int>(StringEditorFrame::Mode::MODE_SYSTEM)));
+        static_cast<int>(StringData::Type::END_CREDITS)));
+    if (m_g->GetStringData()->GetSystemStringCount() > 0)
+    {
+        m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
+            static_cast<int>(StringData::Type::SYSTEM)));
+    }
 
     m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::NODE_PALETTE,
         static_cast<int>(PaletteListFrame::Mode::ROOM)));
@@ -236,14 +235,18 @@ void MainFrame::InitUI()
             spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entities[0]));
             for (const auto& entity : entities)
             {
+                int j = 0;
                 auto entity_node = m_browser->AppendItem(spr_node, StrPrintf("Entity %03d", entity), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entity));
                 for (const auto& anim : anims)
                 {
-                    auto anim_node = m_browser->AppendItem(entity_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (1 << 8) | entity));
+                    int k = 0;
+                    j++;
+                    auto anim_node = m_browser->AppendItem(entity_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (j << 8) | entity));
                     const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
                     for (const auto& frame : frames)
                     {
-                        m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (2 << 8) | entity));
+                        k++;
+                        m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (k << 16) | (j << 8) | entity));
                     }
                 }
             }
@@ -472,30 +475,6 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
     return ReturnCode::ERR;
 }
 
-void MainFrame::DrawBlocks(const std::string& name, std::size_t row_width, std::size_t scale, uint8_t pal)
-{
-    auto bs = m_g->GetRoomData()->GetBlockset(name);
-    auto ts = m_g->GetRoomData()->GetTileset(bs->GetTileset())->GetData();
-    auto blockset = bs->GetData();
-    auto palette = m_g->GetRoomData()->GetDefaultTilesetPalette(bs->GetTileset())->GetData();
-
-    m_imgbuf.Clear();
-    if (blockset->size() > 0)
-    {
-        const std::size_t ROW_WIDTH = std::min<std::size_t>(16U, blockset->size());
-        const std::size_t ROW_HEIGHT = std::min<std::size_t>(128U, blockset->size() / ROW_WIDTH + (blockset->size() % ROW_WIDTH != 0));
-        Blockmap2D map(ROW_WIDTH, ROW_HEIGHT, ts->GetTileWidth(), ts->GetTileHeight(), 0, 0, 0);
-        m_imgbuf.Resize(map.GetBitmapWidth(), map.GetBitmapHeight());
-        map.SetTileset(ts);
-        map.SetBlockset(blockset);
-        map.Fill(0, 1, blockset->size());
-        map.Draw(m_imgbuf);
-    }
-    m_scale = scale;
-    bmp = m_imgbuf.MakeBitmap({ palette });
-    ForceRepaint();
-}
-
 void MainFrame::OnStatusBarInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
@@ -612,32 +591,6 @@ void MainFrame::GoToNavItem(const std::string& path)
     }
 }
 
-void MainFrame::DrawSprite(const std::string& name, int data, std::size_t scale)
-{
-    uint8_t entity = data & 0xFF;
-    uint8_t mode = (data >> 8);
-    auto pal = m_g->GetSpriteData()->GetSpritePalette(entity);
-    uint8_t spr = m_g->GetSpriteData()->GetSpriteFromEntity(entity);
-    std::shared_ptr<SpriteFrameEntry> frame;
-    if (mode == 0)
-    {
-        frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity);
-    }
-    else if (mode == 1)
-    {
-        frame = m_g->GetSpriteData()->GetSpriteFrame(name, 0);
-    }
-    else
-    {
-        frame = m_g->GetSpriteData()->GetSpriteFrame(name);
-    }
-    m_scale = scale;
-	m_imgbuf.Resize(160, 160);
-    m_imgbuf.InsertSprite(80, 80, 0, *frame->GetData());
-    bmp = m_imgbuf.MakeBitmap({pal});
-    ForceRepaint();
-}
-
 void MainFrame::ShowEditor(EditorType editor)
 {
     if (!m_editors.at(editor)->IsShown())
@@ -650,11 +603,10 @@ void MainFrame::ShowEditor(EditorType editor)
                 editor.second->Hide();
             }
         }
-        m_canvas->Hide();
         m_activeEditor->Show();
-        this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
-        this->m_scrollwindow->GetSizer()->Layout();
+        this->m_mainwin->GetSizer()->Clear();
+        this->m_mainwin->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
+        this->m_mainwin->GetSizer()->Layout();
     }
 }
 
@@ -665,72 +617,6 @@ void MainFrame::HideAllEditors()
     {
         editor.second->Hide();
     }
-}
-
-void MainFrame::ShowBitmap()
-{
-    if (!m_canvas->IsShown())
-    {
-        m_activeEditor = nullptr;
-        HideAllEditors();
-        m_canvas->Show();
-        this->m_scrollwindow->GetSizer()->Clear();
-        this->m_scrollwindow->GetSizer()->Add(m_canvas, 1, wxALL | wxEXPAND);
-        this->m_scrollwindow->GetSizer()->Layout();
-        this->m_scrollwindow->Refresh(true);
-    }
-}
-
-void MainFrame::ForceRepaint()
-{
-    m_canvas->SetScrollRate(1, 1);
-    m_canvas->SetVirtualSize(m_imgbuf.GetWidth(), m_imgbuf.GetHeight());
-    wxClientDC dc(m_canvas);
-    dc.SetBackground(*wxBLACK_BRUSH);
-    dc.Clear();
-    PaintNow(dc, m_scale);
-}
-
-void MainFrame::ClearScreen()
-{
-    bmp = std::make_shared<wxBitmap>(1, 1);
-    memDc.SelectObject(*bmp);
-    memDc.SetBackground(*wxBLACK_BRUSH);
-    memDc.Clear();
-    memDc.SelectObject(wxNullBitmap);
-    ForceRepaint();
-}
-
-void MainFrame::PaintNow(wxDC& dc, std::size_t scale)
-{
-    int x, y, w, h;
-    m_canvas->GetViewStart(&x, &y);
-    m_canvas->GetClientSize(&w, &h);
-    double dscale = static_cast<double>(scale);
-    memDc.SelectObject(wxNullBitmap);
-
-    if (bmp != nullptr)
-    {
-        memDc.SelectObject(*bmp);
-    }
-    else
-    {
-        bmp = std::make_shared<wxBitmap>(1, 1);
-        memDc.SelectObject(*bmp);
-        memDc.SetBackground(*wxBLACK_BRUSH);
-        memDc.Clear();
-    }
-
-    dc.SetUserScale(dscale, dscale);
-    dc.Blit(0, 0, w/dscale+1, h/dscale+1, &memDc, x, y, wxCOPY, true);
-    memDc.SelectObject(wxNullBitmap);
-}
-
-void MainFrame::OnScrollWindowPaint(wxPaintEvent& event)
-{
-    wxPaintDC dc(m_canvas);
-    PaintNow(dc, m_scale);
-    event.Skip();
 }
 
 MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
@@ -840,11 +726,6 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
     event.Skip();
 }
 
-void MainFrame::OnExport(wxCommandEvent& event)
-{
-    event.Skip();
-}
-
 void MainFrame::OnMRUFile(wxCommandEvent& event)
 {
     wxString f(m_filehistory->GetHistoryFile(event.GetId() - wxID_FILE1));
@@ -863,58 +744,48 @@ void MainFrame::Refresh()
     switch (m_mode)
     {
     case MODE_STRING:
-    {
-        ClearScreen();
+        // Display Strings
+        GetStringEditor()->SetMode(static_cast<StringData::Type>(m_seldata));
         ShowEditor(EditorType::STRING);
         break;
-    }
     case MODE_TILESET:
-    {
         // Display tileset
         GetTilesetEditor()->Open(m_selname);
         ShowEditor(EditorType::TILESET);
         break;
-    }
     case MODE_ANIMATED_TILESET:
-    {
         // Display animated tileset
-        auto ts = m_g->GetAnimatedTileset(m_selname);
         GetTilesetEditor()->OpenAnimated(m_selname);
         ShowEditor(EditorType::TILESET);
         break;
-    }
     case MODE_BLOCKSET:
-        ShowBitmap();
-        DrawBlocks(m_selname, 16, 1, 0);
+        // Display Blockset
+        GetBlocksetEditor()->Open(m_selname);
+        ShowEditor(EditorType::BLOCKSET);
         break;
     case MODE_PALETTE:
         // Display palettes
-        ClearScreen();
+        GetPaletteEditor()->SetMode(static_cast<PaletteListFrame::Mode>(m_seldata));
         ShowEditor(EditorType::PALETTE);
         break;
     case MODE_ROOMMAP:
         // Display room map
-        ShowBitmap();
         GetRoomEditor()->SetRoomNum(m_seldata & 0xFFFF, static_cast<RoomViewerCtrl::Mode>(m_seldata >> 16));
         ShowEditor(EditorType::MAP_VIEW);
         break;
     case MODE_SPRITE:
-    {
         // Display sprite
-        ShowBitmap();
-        DrawSprite(m_selname, m_seldata, 4);
+        GetSpriteEditor()->Open(m_seldata & 0xFF, ((m_seldata >> 16) & 0xFF) - 1, ((m_seldata >> 8) & 0xFF) - 1);
+        ShowEditor(EditorType::SPRITE);
         break;
-    }
     case MODE_IMAGE:
         // Display image
         GetMap2DEditor()->Open(m_selname);
         ShowEditor(EditorType::MAP_2D);
-        //DrawImage(m_selname, 2);
         break;
     case MODE_NONE:
     default:
-        ShowBitmap();
-        ClearScreen();
+        HideAllEditors();
         break;
     }
 }
@@ -938,7 +809,6 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::NODE_STRING:
-        GetStringEditor()->SetMode(static_cast<StringEditorFrame::Mode>(m_seldata));
         SetMode(MODE_STRING);
         break;
     case TreeNodeData::NODE_TILESET:
@@ -951,7 +821,6 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         SetMode(MODE_BLOCKSET);
         break;
     case TreeNodeData::NODE_PALETTE:
-        GetPaletteEditor()->SetMode(static_cast<PaletteListFrame::Mode>(m_seldata));
         SetMode(MODE_PALETTE);
         break;
     case TreeNodeData::NODE_ROOM:
@@ -992,6 +861,16 @@ RoomViewerFrame* MainFrame::GetRoomEditor()
 Map2DEditorFrame* MainFrame::GetMap2DEditor()
 {
     return static_cast<Map2DEditorFrame*>(m_editors.at(EditorType::MAP_2D));
+}
+
+BlocksetEditorFrame* MainFrame::GetBlocksetEditor()
+{
+    return static_cast<BlocksetEditorFrame*>(m_editors.at(EditorType::BLOCKSET));
+}
+
+SpriteEditorFrame* MainFrame::GetSpriteEditor()
+{
+    return static_cast<SpriteEditorFrame*>(m_editors.at(EditorType::SPRITE));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)
