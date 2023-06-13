@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <vector>
 #include <array>
-#include "rom.h"
 #include <memory>
 
 
