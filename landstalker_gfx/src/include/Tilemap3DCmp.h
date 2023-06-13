@@ -88,6 +88,7 @@ public:
     IsoPoint2D PixelToIsometric(const PixelPoint2D& pix, Layer layer = Layer::FG) const;
     PixelPoint2D IsoToPixel(const IsoPoint2D& iso, Layer layer = Layer::FG) const;
     PixelPoint2D ToPixel(const Point2D& iso, Layer layer = Layer::FG) const;
+    PixelPoint2D EntityPositionToPixel(uint16_t x, uint16_t y, uint16_t z) const;
     PixelPoint2D Iso3DToPixel(const Point3D& iso) const;
     Point3D PixelToIso3D(const PixelPoint2D& p) const;
     PixelPoint2D HMPointToPixel(const HMPoint2D& p) const;

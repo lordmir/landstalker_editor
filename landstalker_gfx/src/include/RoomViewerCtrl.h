@@ -48,7 +48,21 @@ public:
 
 	const std::string& GetStatusText() const;
 private:
+	struct SpriteQ
+	{
+		uint8_t id;
+		uint8_t palette;
+		int x;
+		int y;
+		bool hflip;
+		std::shared_ptr<SpriteFrame> frame;
+		Entity entity;
+	};
 	void DrawRoom(uint16_t roomnum);
+	std::vector<std::shared_ptr<Palette>> PreparePalettes(uint16_t roomnum);
+	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
+	void DrawSprites(const std::vector<SpriteQ>&& fg_q, const std::vector<SpriteQ>&& bg_q);
+	
 	void UpdateRoomDescText(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
 	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height);
@@ -89,14 +103,12 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
-	int m_pal1_lo_alloc;
-	int m_pal1_hi_alloc;
-	int m_pal3_lo_alloc;
 
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;
 	std::map<Layer, uint8_t> m_layer_opacity;
 	wxBitmap* m_bmp;
+	std::vector<Entity> m_entities;
 
 	std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
 	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;

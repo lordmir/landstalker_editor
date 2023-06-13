@@ -25,10 +25,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_buffer_width(1),
       m_buffer_height(1),
       m_redraw(false),
-      m_repaint(false),
-      m_pal1_lo_alloc(0xFF),
-      m_pal1_hi_alloc(0xFF),
-      m_pal3_lo_alloc(0xFF)
+      m_repaint(false)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -60,6 +57,10 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
 {
 	m_roomnum = roomnum;
     m_mode = mode;
+    if (m_g != nullptr)
+    {
+        m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
+    }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
 }
@@ -122,10 +123,7 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     }
     auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
     auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(roomnum);
-    auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
-    palette.emplace_back();
-    palette.emplace_back(m_g->GetGraphicsData()->GetPlayerPalette()->GetData());
-    palette.emplace_back(m_g->GetGraphicsData()->GetHudPalette()->GetData());
+    auto palette = PreparePalettes(roomnum);
     auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
     auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
 
@@ -163,73 +161,114 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     }
     if (m_layer_opacity[Layer::FG_SPRITES] > 0)
     {
-        m_pal1_hi_alloc = -1;
-        m_pal1_lo_alloc = -1;
-        m_pal3_lo_alloc = -1;
         m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
-        auto entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
-        int i = 0;
-        for (const auto& entity : entities)
-        {
-            auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
-            auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
-            if (entity.GetPalette() == 1)
-            {
-                if (s_pal.second != -1)
-                {
-                    if (m_pal1_hi_alloc == -1)
-                    {
-                        m_pal1_hi_alloc = s_pal.second;
-                    }
-                    else if (m_pal1_hi_alloc != s_pal.second)
-                    {
-                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
-                            entity.GetPalette(), m_pal1_hi_alloc, s_pal.second));
-                    }
-                }
-                if (s_pal.first != -1)
-                {
-                    if (m_pal1_lo_alloc == -1)
-                    {
-                        m_pal1_lo_alloc = s_pal.first;
-                    }
-                    else if (m_pal1_lo_alloc != s_pal.first)
-                    {
-                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
-                            entity.GetPalette(), m_pal1_lo_alloc, s_pal.first));
-                    }
-                }
-            }
-            else if (entity.GetPalette() == 3)
-            {
-                if (s_pal.second != -1)
-                {
-                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
-                        entity.GetPalette(), s_pal.second));
-                }
-                if (s_pal.first != -1)
-                {
-                    if (m_pal3_lo_alloc == -1)
-                    {
-                        m_pal3_lo_alloc = s_pal.first;
-                    }
-                    else if (m_pal3_lo_alloc != s_pal.first)
-                    {
-                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
-                            entity.GetPalette(), m_pal3_lo_alloc, s_pal.first));
-                    }
-                }
-            }
-            m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(50 + i * 50, 300, entity.GetPalette(), *frame->GetData());
-            i++;
-        }
-        if (m_pal3_lo_alloc != 0xFF)
-        {
-            palette[3] = std::make_shared<Palette>(std::vector<std::shared_ptr<Palette>>{ palette[3], m_g->GetSpriteData()->GetSpritePalette(m_pal3_lo_alloc, -1) });
-        }
-        palette[1] = m_g->GetSpriteData()->GetSpritePalette(m_pal1_lo_alloc, m_pal1_hi_alloc);
+        DrawSprites(PrepareSprites(roomnum), {});
         m_layers.insert({ Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(palette,
             true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]) });
+    }
+}
+
+std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t roomnum)
+{
+    auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
+    palette.emplace_back();
+    palette.emplace_back(m_g->GetGraphicsData()->GetPlayerPalette()->GetData());
+    palette.emplace_back(m_g->GetGraphicsData()->GetHudPalette()->GetData());
+    std::array<int, 3> sprite_palette_alloc = { -1, -1, -1 };
+    m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+    int i = 0;
+    for (const auto& entity : m_entities)
+    {
+        auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
+        const uint8_t pal_slot = entity.GetPalette();
+        if (pal_slot == 1 || pal_slot == 3)
+        {
+            const int lo = s_pal.first;
+            const int hi = s_pal.second;
+            if (lo != -1)
+            {
+                if (sprite_palette_alloc[pal_slot - 1] == -1)
+                {
+                    sprite_palette_alloc[pal_slot - 1] = lo;
+                }
+                else if (sprite_palette_alloc[pal_slot - 1] != lo)
+                {
+                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
+                        pal_slot, sprite_palette_alloc[pal_slot - 1], lo));
+                }
+            }
+            if (hi != -1) // Hi Palette
+            {
+                if (pal_slot == 3)
+                {
+                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
+                        pal_slot, hi));
+                }
+                else
+                {
+                    if (sprite_palette_alloc[pal_slot] == -1)
+                    {
+                        sprite_palette_alloc[pal_slot] = hi;
+                    }
+                    else if (sprite_palette_alloc[pal_slot] != hi)
+                    {
+                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
+                            pal_slot, sprite_palette_alloc[pal_slot], hi));
+                    }
+                }
+            }
+        }
+    }
+    palette[3] = std::make_shared<Palette>(std::vector<std::shared_ptr<Palette>>{ palette[3], m_g->GetSpriteData()->GetSpritePalette(sprite_palette_alloc[2], -1) });
+    palette[1] = m_g->GetSpriteData()->GetSpritePalette(sprite_palette_alloc[0], sprite_palette_alloc[1]);
+    return palette;
+}
+
+std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roomnum)
+{
+    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+    std::vector<SpriteQ> sprites;
+    int i = 1;
+    for (const auto& entity : m_entities)
+    {
+        auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
+        SpriteQ s;
+        s.id = i;
+        s.entity = entity;
+        s.frame = frame->GetData();
+        s.palette = entity.GetPalette();
+
+        auto sprite_id = m_g->GetSpriteData()->GetSpriteFromEntity(entity.GetType());
+        auto hitbox = m_g->GetSpriteData()->GetSpriteHitbox(sprite_id);
+
+        int x = entity.GetX() + 0x080;
+        int y = entity.GetY() - 0x080;
+        int z = entity.GetZ();
+
+        if (hitbox.first >= 0x0C)
+        {
+            x += 0x80;
+            y += 0x80;
+        }
+
+        auto xy = map->EntityPositionToPixel(x, y, z);
+        s.x = xy.x;
+        s.y = xy.y;
+        sprites.push_back(s);
+        i++;
+    }
+    return sprites;
+}
+
+void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>&& fg_q, const std::vector<SpriteQ>&& bg_q)
+{
+    for (const auto& s : fg_q)
+    {
+        m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame);
+    }
+    for (const auto& s : bg_q)
+    {
+        m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame);
     }
 }
 

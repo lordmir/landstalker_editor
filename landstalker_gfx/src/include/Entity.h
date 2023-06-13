@@ -22,6 +22,7 @@ class Entity
 public:
 
     Entity(std::array<uint8_t, 8> data);
+    Entity();
 
     bool operator==(const Entity& rhs) const;
     bool operator!=(const Entity& rhs) const;

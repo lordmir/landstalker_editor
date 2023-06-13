@@ -293,6 +293,10 @@ Entity::Entity(std::array<uint8_t, 8> data)
     not_solid = (data[6] & 0x10) > 0;
 }
 
+Entity::Entity()
+{
+}
+
 bool Entity::operator==(const Entity& rhs) const
 {
     return this->GetData() == rhs.GetData();
