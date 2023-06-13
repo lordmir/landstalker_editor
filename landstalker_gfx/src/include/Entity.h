@@ -30,12 +30,19 @@ public:
 
     std::string ToString() const;
 
+    uint8_t GetType() const;
+    uint8_t GetPalette() const;
+    Orientation GetOrientation() const;
+    uint16_t GetX() const;
+    uint16_t GetY() const;
+    uint16_t GetZ() const;
+
     std::string GetTypeName() const
     {
         return EntityNames.find(type)->second;
     }
 
-    std::string GetOrientation() const
+    std::string GetOrientationName() const
     {
         std::unordered_map<Orientation, std::string> OrientationToString
         {

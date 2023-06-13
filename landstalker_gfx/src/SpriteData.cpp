@@ -615,6 +615,23 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
 	return GetSpritePalette(lo, hi);
 }
 
+std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
+{
+	int lo = -1;
+	int hi = -1;
+
+	if (m_lo_palette_lookup.find(idx) != m_lo_palette_lookup.cend())
+	{
+		lo = m_lo_palette_lookup.find(idx)->second->GetIndex();
+	}
+	if (m_hi_palette_lookup.find(idx) != m_hi_palette_lookup.cend())
+	{
+		hi = m_hi_palette_lookup.find(idx)->second->GetIndex();
+	}
+
+	return { lo, hi };
+}
+
 uint8_t SpriteData::GetLoPaletteCount() const
 {
 	return m_lo_palettes.size();

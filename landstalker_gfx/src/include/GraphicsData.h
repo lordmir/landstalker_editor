@@ -48,6 +48,8 @@ public:
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetSwordPalettes() const;
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetArmourPalettes() const;
     std::map<std::string, std::shared_ptr<PaletteEntry>> GetOtherPalettes() const;
+    std::shared_ptr<PaletteEntry> GetPlayerPalette() const;
+    std::shared_ptr<PaletteEntry> GetHudPalette() const;
 protected:
     virtual void CommitAllChanges();
 private:

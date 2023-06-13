@@ -56,6 +56,7 @@ public:
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
 	std::shared_ptr<Palette> GetSpritePalette(int lo, int hi = -1) const;
 	std::shared_ptr<Palette> GetSpritePalette(uint8_t idx) const;
+	std::pair<int, int> GetSpritePaletteIdxs(uint8_t idx) const;
 	uint8_t GetLoPaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetLoPalette(uint8_t idx) const;
 	uint8_t GetHiPaletteCount() const;

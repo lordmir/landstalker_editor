@@ -355,9 +355,39 @@ std::array<uint8_t, 8> Entity::GetData() const
 std::string Entity::ToString() const
 {
     return StrPrintf("[%02X] %-24s (%04X,%04X,%04X) %s\n   Pal:%01d Spd:%01d Dlg:%02d Bhv:%04d Cpy:%01X Flags:%c%c%c%c%c%c%c%c%c%c",
-        type, GetTypeName().c_str(), x_pos, y_pos, z_pos, GetOrientation().c_str(), palette, speed,
+        type, GetTypeName().c_str(), x_pos, y_pos, z_pos, GetOrientationName().c_str(), palette, speed,
         dialogue, behaviour, copy_source,
         hostile ? 'H' : '-', pickupable ? 'P' : '-', has_dialogue ? 'D' : '-', no_rotate ? 'r' : '-',
         no_friction ? 'f' : '-', no_gravity ? 'g' : '-', invisible ? 'I' : '-', not_solid ? 's' : '-',
         copy_tiles ? 'T' : '-', reserved ? 'X' : '-');
+}
+
+uint8_t Entity::GetType() const
+{
+    return type;
+}
+
+uint8_t Entity::GetPalette() const
+{
+    return palette;
+}
+
+Orientation Entity::GetOrientation() const
+{
+    return orientation;
+}
+
+uint16_t Entity::GetX() const
+{
+    return x_pos;
+}
+
+uint16_t Entity::GetY() const
+{
+    return y_pos;
+}
+
+uint16_t Entity::GetZ() const
+{
+    return z_pos;
 }

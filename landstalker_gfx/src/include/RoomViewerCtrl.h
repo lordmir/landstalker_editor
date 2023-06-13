@@ -89,6 +89,9 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
+	int m_pal1_lo_alloc;
+	int m_pal1_hi_alloc;
+	int m_pal3_lo_alloc;
 
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;

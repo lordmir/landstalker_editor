@@ -25,7 +25,10 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_buffer_width(1),
       m_buffer_height(1),
       m_redraw(false),
-      m_repaint(false)
+      m_repaint(false),
+      m_pal1_lo_alloc(0xFF),
+      m_pal1_hi_alloc(0xFF),
+      m_pal3_lo_alloc(0xFF)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -120,6 +123,9 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
     auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(roomnum);
     auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
+    palette.emplace_back();
+    palette.emplace_back(m_g->GetGraphicsData()->GetPlayerPalette()->GetData());
+    palette.emplace_back(m_g->GetGraphicsData()->GetHudPalette()->GetData());
     auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
     auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
 
@@ -154,6 +160,76 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
     {
         m_layers.insert({ Layer::HEIGHTMAP, DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]) });
+    }
+    if (m_layer_opacity[Layer::FG_SPRITES] > 0)
+    {
+        m_pal1_hi_alloc = -1;
+        m_pal1_lo_alloc = -1;
+        m_pal3_lo_alloc = -1;
+        m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+        auto entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
+        int i = 0;
+        for (const auto& entity : entities)
+        {
+            auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
+            auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
+            if (entity.GetPalette() == 1)
+            {
+                if (s_pal.second != -1)
+                {
+                    if (m_pal1_hi_alloc == -1)
+                    {
+                        m_pal1_hi_alloc = s_pal.second;
+                    }
+                    else if (m_pal1_hi_alloc != s_pal.second)
+                    {
+                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
+                            entity.GetPalette(), m_pal1_hi_alloc, s_pal.second));
+                    }
+                }
+                if (s_pal.first != -1)
+                {
+                    if (m_pal1_lo_alloc == -1)
+                    {
+                        m_pal1_lo_alloc = s_pal.first;
+                    }
+                    else if (m_pal1_lo_alloc != s_pal.first)
+                    {
+                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
+                            entity.GetPalette(), m_pal1_lo_alloc, s_pal.first));
+                    }
+                }
+            }
+            else if (entity.GetPalette() == 3)
+            {
+                if (s_pal.second != -1)
+                {
+                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
+                        entity.GetPalette(), s_pal.second));
+                }
+                if (s_pal.first != -1)
+                {
+                    if (m_pal3_lo_alloc == -1)
+                    {
+                        m_pal3_lo_alloc = s_pal.first;
+                    }
+                    else if (m_pal3_lo_alloc != s_pal.first)
+                    {
+                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
+                            entity.GetPalette(), m_pal3_lo_alloc, s_pal.first));
+                    }
+                }
+            }
+            m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(50 + i * 50, 300, entity.GetPalette(), *frame->GetData());
+            i++;
+        }
+        if (m_pal3_lo_alloc != 0xFF)
+        {
+            palette[3] = std::make_shared<Palette>(std::vector<std::shared_ptr<Palette>>{ palette[3], m_g->GetSpriteData()->GetSpritePalette(m_pal3_lo_alloc, -1) });
+        }
+        palette[1] = m_g->GetSpriteData()->GetSpritePalette(m_pal1_lo_alloc, m_pal1_hi_alloc);
+        m_layers.insert({ Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(palette,
+            true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]) });
     }
 }
 

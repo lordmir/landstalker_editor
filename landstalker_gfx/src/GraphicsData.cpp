@@ -727,6 +727,16 @@ std::map<std::string, std::shared_ptr<PaletteEntry>> GraphicsData::GetOtherPalet
 	return result;
 }
 
+std::shared_ptr<PaletteEntry> GraphicsData::GetPlayerPalette() const
+{
+	return m_palettes_by_name.find(RomOffsets::Graphics::PLAYER_PAL)->second;
+}
+
+std::shared_ptr<PaletteEntry> GraphicsData::GetHudPalette() const
+{
+	return m_palettes_by_name.find(RomOffsets::Graphics::HUD_PAL)->second;
+}
+
 void GraphicsData::CommitAllChanges()
 {
 	auto entry_commit = [](const auto& e) {return e->Commit(); };
