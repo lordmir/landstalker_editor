@@ -947,41 +947,90 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		AsmFile::Label name;
 		AsmFile::IncludeFile inc;
 		std::vector<std::tuple<std::string, filesystem::path, ByteVectorPtr>> gfx;
-		for(int i = 0; i < 7; ++i)
+		while(file.IsGood())
 		{
 			file >> name >> inc;
 			auto path = GetBasePath() / inc.path;
 			auto raw_data = std::make_shared<std::vector<uint8_t>>(ReadBytes(path));
 			gfx.push_back({ name, inc.path, raw_data });
 		}
-		auto menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
-			std::get<1>(gfx[0]), false, 8, 8, 1);
-		auto menucursor = TilesetEntry::Create(this, *std::get<2>(gfx[1]), std::get<0>(gfx[1]),
-			std::get<1>(gfx[1]), false, 8, 8, 2, Tileset::BLOCK4X4);
-		auto arrow = TilesetEntry::Create(this, *std::get<2>(gfx[2]), std::get<0>(gfx[2]),
+
+		assert(gfx.size() == 5 || gfx.size() == 7);
+		// French and German ROMs have a larger menu font to accomodate diacritics.
+		// We can detect the region by checking how many graphics objects exist.
+		// There are only five graphics objects in French and German ROMs.
+		bool large_menu_font = (gfx.size() == 5);
+
+		std::shared_ptr<TilesetEntry> menufont;
+		std::shared_ptr<TilesetEntry> menucursor;
+		std::shared_ptr<TilesetEntry> arrow;
+		std::shared_ptr<TilesetEntry> unused1;
+		std::shared_ptr<TilesetEntry> unused2;
+		std::shared_ptr<PaletteEntry> pal1;
+		std::shared_ptr<PaletteEntry> pal2;
+
+		menucursor = TilesetEntry::Create(this, *std::get<2>(gfx[1]), std::get<0>(gfx[1]),
+					std::get<1>(gfx[1]), false, 8, 8, 2, Tileset::BLOCK4X4);
+		arrow = TilesetEntry::Create(this, *std::get<2>(gfx[2]), std::get<0>(gfx[2]),
 			std::get<1>(gfx[2]), false, 8, 8, 2, Tileset::BLOCK2X2);
-		auto unused1 = TilesetEntry::Create(this, *std::get<2>(gfx[3]), std::get<0>(gfx[3]),
-			std::get<1>(gfx[3]), false, 8, 11, 2);
-		auto unused2 = TilesetEntry::Create(this, *std::get<2>(gfx[4]), std::get<0>(gfx[4]),
-			std::get<1>(gfx[4]), false, 8, 10, 2);
-		auto pal1 = PaletteEntry::Create(this, *std::get<2>(gfx[5]), std::get<0>(gfx[5]),
-			std::get<1>(gfx[5]), Palette::Type::LOW8);
-		auto pal2 = PaletteEntry::Create(this, *std::get<2>(gfx[6]), std::get<0>(gfx[6]),
-			std::get<1>(gfx[6]), Palette::Type::FULL);
-		m_fonts_by_name.insert({ menufont->GetName(), menufont });
-		m_ui_gfx_by_name.insert({ menucursor->GetName(), menucursor });
-		m_ui_gfx_by_name.insert({ arrow->GetName(), arrow });
-		m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
-		m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
-		m_palettes_by_name.insert({ pal1->GetName(), pal1 });
-		m_palettes_by_name.insert({ pal2->GetName(), pal2 });
-		m_fonts_internal.insert({ menufont->GetName(), menufont });
-		m_ui_gfx_internal.insert({ menucursor->GetName(), menucursor });
-		m_ui_gfx_internal.insert({ arrow->GetName(), arrow });
-		m_ui_gfx_internal.insert({ unused1->GetName(), unused1 });
-		m_ui_gfx_internal.insert({ unused2->GetName(), unused2 });
-		m_palettes_internal.insert({ pal1->GetName(), pal1 });
-		m_palettes_internal.insert({ pal2->GetName(), pal2 });
+		if (large_menu_font)
+		{
+			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
+				std::get<1>(gfx[0]), true, 8, 16, 1);
+			pal1 = PaletteEntry::Create(this, *std::get<2>(gfx[3]), std::get<0>(gfx[3]),
+				std::get<1>(gfx[3]), Palette::Type::LOW8);
+			pal2 = PaletteEntry::Create(this, *std::get<2>(gfx[4]), std::get<0>(gfx[4]),
+				std::get<1>(gfx[4]), Palette::Type::FULL);
+		}
+		else
+		{
+			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
+				std::get<1>(gfx[0]), false, 8, 8, 1);
+			unused1 = TilesetEntry::Create(this, *std::get<2>(gfx[3]), std::get<0>(gfx[3]),
+				std::get<1>(gfx[3]), false, 8, 11, 2);
+			unused2 = TilesetEntry::Create(this, *std::get<2>(gfx[4]), std::get<0>(gfx[4]),
+				std::get<1>(gfx[4]), false, 8, 10, 2);
+			pal1 = PaletteEntry::Create(this, *std::get<2>(gfx[5]), std::get<0>(gfx[5]),
+				std::get<1>(gfx[5]), Palette::Type::LOW8);
+			pal2 = PaletteEntry::Create(this, *std::get<2>(gfx[6]), std::get<0>(gfx[6]),
+				std::get<1>(gfx[6]), Palette::Type::FULL);
+		}
+
+		if (menufont != nullptr)
+		{
+			m_fonts_by_name.insert({ menufont->GetName(), menufont });
+			m_fonts_internal.insert({ menufont->GetName(), menufont });
+		}
+		if (menucursor != nullptr)
+		{
+			m_ui_gfx_by_name.insert({ menucursor->GetName(), menucursor });
+			m_ui_gfx_internal.insert({ menucursor->GetName(), menucursor });
+		}
+		if (arrow != nullptr)
+		{
+			m_ui_gfx_by_name.insert({ arrow->GetName(), arrow });
+			m_ui_gfx_internal.insert({ arrow->GetName(), arrow });
+		}
+		if (unused1 != nullptr)
+		{
+			m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
+			m_ui_gfx_internal.insert({ unused1->GetName(), unused1 });
+		}
+		if (unused2 != nullptr)
+		{
+			m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
+			m_ui_gfx_internal.insert({ unused2->GetName(), unused2 });
+		}
+		if (pal1 != nullptr)
+		{
+			m_palettes_by_name.insert({ pal1->GetName(), pal1 });
+			m_palettes_internal.insert({ pal1->GetName(), pal1 });
+		}
+		if (pal2 != nullptr)
+		{
+			m_palettes_by_name.insert({ pal2->GetName(), pal2 });
+			m_palettes_internal.insert({ pal2->GetName(), pal2 });
+		}
 		return true;
 	}
 	catch (const std::exception&)
@@ -1504,16 +1553,34 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 		uint32_t sz = Palette::GetSizeBytes(type);
 		return rom.read_array<uint8_t>(start, sz);
 	};
-	auto menu_font = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_SIZE),
-		RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_FILE, false, 8, 8, 1);
+	const auto menu_font_size = rom.get_address(RomOffsets::Graphics::INV_FONT_SIZE);
+	std::shared_ptr<TilesetEntry> menu_font;
+	if (menu_font_size > 0)
+	{
+		menu_font = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_SIZE),
+			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_FILE, false, 8, 8, 1);
+	}
+	else
+	{
+		menu_font = TilesetEntry::Create(this, rom.read_array<uint8_t>(Disasm::ReadOffset16(rom, RomOffsets::Graphics::INV_FONT), 65536),
+			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_FILE, true, 8, 16, 1);
+	}
 	auto cursor = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_SIZE),
 		RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_FILE, false, 8, 8, 2, Tileset::BLOCK4X4);
 	auto arrow = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_ARROW, RomOffsets::Graphics::INV_ARROW_SIZE),
 		RomOffsets::Graphics::INV_ARROW, RomOffsets::Graphics::INV_ARROW_FILE, false, 8, 8, 2, Tileset::BLOCK2X2);
-	auto unused1 = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_UNUSED1, RomOffsets::Graphics::INV_UNUSED1_SIZE),
-		RomOffsets::Graphics::INV_UNUSED1, RomOffsets::Graphics::INV_UNUSED1_FILE, false, 8, 11, 2);
-	auto unused2 = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_UNUSED2, RomOffsets::Graphics::INV_UNUSED2_SIZE),
-		RomOffsets::Graphics::INV_UNUSED2, RomOffsets::Graphics::INV_UNUSED2_FILE, false, 8, 10, 2);
+	std::shared_ptr<TilesetEntry> unused1;
+	if (rom.get_address(RomOffsets::Graphics::INV_UNUSED1_SIZE) > 0)
+	{
+		unused1 = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_UNUSED1, RomOffsets::Graphics::INV_UNUSED1_SIZE),
+			RomOffsets::Graphics::INV_UNUSED1, RomOffsets::Graphics::INV_UNUSED1_FILE, false, 8, 11, 2);
+	}
+	std::shared_ptr<TilesetEntry> unused2;
+	if (rom.get_address(RomOffsets::Graphics::INV_UNUSED2_SIZE) > 0)
+	{
+		unused2 = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_UNUSED2, RomOffsets::Graphics::INV_UNUSED2_SIZE),
+			RomOffsets::Graphics::INV_UNUSED2, RomOffsets::Graphics::INV_UNUSED2_FILE, false, 8, 10, 2);
+	}
 	auto pal1 = PaletteEntry::Create(this, load_pal(RomOffsets::Graphics::INV_PAL1, Palette::Type::LOW8),
 		RomOffsets::Graphics::INV_PAL1, RomOffsets::Graphics::INV_PAL1_FILE, Palette::Type::LOW8);
 	auto pal2 = PaletteEntry::Create(this, load_pal(RomOffsets::Graphics::INV_PAL2, Palette::Type::FULL),
@@ -1524,10 +1591,16 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_CURSOR, cursor });
 	m_ui_gfx_by_name.insert({ arrow->GetName(), arrow });
 	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_ARROW, arrow });
-	m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
-	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED1, unused1 });
-	m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
-	m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED2, unused2 });
+	if (unused1 != nullptr)
+	{
+		m_ui_gfx_by_name.insert({ unused1->GetName(), unused1 });
+		m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED1, unused1 });
+	}
+	if (unused2 != nullptr)
+	{
+		m_ui_gfx_by_name.insert({ unused2->GetName(), unused2 });
+		m_ui_gfx_internal.insert({ RomOffsets::Graphics::INV_UNUSED2, unused2 });
+	}
 	m_palettes_by_name.insert({ pal1->GetName(), pal1 });
 	m_palettes_internal.insert({ RomOffsets::Graphics::INV_PAL1, pal1 });
 	m_palettes_by_name.insert({ pal2->GetName(), pal2 });
@@ -2147,11 +2220,15 @@ bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 		AsmFile ifile;
 		auto write_inc = [&](const std::string& name, const auto& container)
 		{
-			auto e = container.find(name)->second;
-			ifile << AsmFile::Label(name) << AsmFile::IncludeFile(e->GetFilename(), AsmFile::FileType::BINARY);
+			auto item = container.find(name);
+			if (item != container.cend())
+			{
+				ifile << AsmFile::Label(name) << AsmFile::IncludeFile(item->second->GetFilename(), AsmFile::FileType::BINARY);
+			}
 		};
 		ifile.WriteFileHeader(m_inventory_graphics_filename, "Inventory Graphics Data");
 		write_inc(RomOffsets::Graphics::INV_FONT, m_fonts_internal);
+		ifile << AsmFile::Align(2);
 		write_inc(RomOffsets::Graphics::INV_CURSOR, m_ui_gfx_internal);
 		write_inc(RomOffsets::Graphics::INV_ARROW, m_ui_gfx_internal);
 		write_inc(RomOffsets::Graphics::INV_UNUSED1, m_ui_gfx_internal);
@@ -2415,39 +2492,74 @@ bool GraphicsData::RomPrepareInjectInvGraphics(const Rom& rom)
 {
 	ByteVectorPtr bytes = std::make_shared<ByteVector>();
 	uint32_t base = rom.get_section(RomOffsets::Graphics::INV_SECTION).begin;
-	uint32_t addrs[7];
-	addrs[0] = base + bytes->size();
-	auto inv_font = m_fonts_internal[RomOffsets::Graphics::INV_FONT]->GetBytes();
-	bytes->insert(bytes->end(), inv_font->cbegin(), inv_font->cend());
-	addrs[1] = base + bytes->size();
-	auto inv_cursor = m_ui_gfx_internal[RomOffsets::Graphics::INV_CURSOR]->GetBytes();
-	bytes->insert(bytes->end(), inv_cursor->cbegin(), inv_cursor->cend());
-	addrs[2] = base + bytes->size();
-	auto inv_arrow = m_ui_gfx_internal[RomOffsets::Graphics::INV_ARROW]->GetBytes();
-	bytes->insert(bytes->end(), inv_arrow->cbegin(), inv_arrow->cend());
-	addrs[3] = base + bytes->size();
-	auto inv_unused1 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED1]->GetBytes();
-	bytes->insert(bytes->end(), inv_unused1->cbegin(), inv_unused1->cend());
-	addrs[4] = base + bytes->size();
-	auto inv_unused2 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED2]->GetBytes();
-	bytes->insert(bytes->end(), inv_unused2->cbegin(), inv_unused2->cend());
-	addrs[5] = base + bytes->size();
-	auto inv_pal1 = m_palettes_internal[RomOffsets::Graphics::INV_PAL1]->GetBytes();
-	bytes->insert(bytes->end(), inv_pal1->cbegin(), inv_pal1->cend());
-	addrs[6] = base + bytes->size();
-	auto inv_pal2 = m_palettes_internal[RomOffsets::Graphics::INV_PAL2]->GetBytes();
-	bytes->insert(bytes->end(), inv_pal2->cbegin(), inv_pal2->cend());
+	uint32_t inv_font_addr = 0, inv_cursor_addr = 0, inv_arrow_addr = 0, inv_unused1_addr = 0,
+		inv_unused2_addr = 0, inv_pal1_addr = 0, inv_pal2_addr = 0;
+	ConstByteVectorPtr inv_font, inv_cursor, inv_arrow, inv_unused1, inv_unused2,
+		inv_pal1, inv_pal2;
+
+	if (m_fonts_internal.find(RomOffsets::Graphics::INV_FONT) != m_fonts_internal.cend())
+	{
+		inv_font_addr = base + bytes->size();
+		inv_font = m_fonts_internal[RomOffsets::Graphics::INV_FONT]->GetBytes();
+		bytes->insert(bytes->end(), inv_font->cbegin(), inv_font->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_FONT, inv_font_addr));
+		if (bytes->size() & 1)
+		{
+			bytes->push_back(0xFF);
+		}
+	}
+
+	if (m_ui_gfx_internal.find(RomOffsets::Graphics::INV_CURSOR) != m_ui_gfx_internal.cend())
+	{
+		inv_cursor_addr = base + bytes->size();
+		auto inv_cursor = m_ui_gfx_internal[RomOffsets::Graphics::INV_CURSOR]->GetBytes();
+		bytes->insert(bytes->end(), inv_cursor->cbegin(), inv_cursor->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_CURSOR, inv_cursor_addr));
+	}
+
+	if (m_ui_gfx_internal.find(RomOffsets::Graphics::INV_ARROW) != m_ui_gfx_internal.cend())
+	{
+		inv_arrow_addr = base + bytes->size();
+		auto inv_arrow = m_ui_gfx_internal[RomOffsets::Graphics::INV_ARROW]->GetBytes();
+		bytes->insert(bytes->end(), inv_arrow->cbegin(), inv_arrow->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_ARROW, inv_arrow_addr));
+	}
+
+	if (m_ui_gfx_internal.find(RomOffsets::Graphics::INV_UNUSED1) != m_ui_gfx_internal.cend())
+	{
+		inv_unused1_addr = base + bytes->size();
+		auto inv_unused1 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED1]->GetBytes();
+		bytes->insert(bytes->end(), inv_unused1->cbegin(), inv_unused1->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1, inv_unused1_addr));
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1_PLUS6, inv_unused1_addr+12));
+	}
+
+	if (m_ui_gfx_internal.find(RomOffsets::Graphics::INV_UNUSED2) != m_ui_gfx_internal.cend())
+	{
+		inv_unused2_addr = base + bytes->size();
+		auto inv_unused2 = m_ui_gfx_internal[RomOffsets::Graphics::INV_UNUSED2]->GetBytes();
+		bytes->insert(bytes->end(), inv_unused2->cbegin(), inv_unused2->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2, inv_unused2_addr));
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2_PLUS4, inv_unused2_addr+8));
+	}
+
+	if (m_palettes_internal.find(RomOffsets::Graphics::INV_PAL1) != m_palettes_internal.cend())
+	{
+		inv_pal1_addr = base + bytes->size();
+		auto inv_pal1 = m_palettes_internal[RomOffsets::Graphics::INV_PAL1]->GetBytes();
+		bytes->insert(bytes->end(), inv_pal1->cbegin(), inv_pal1->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL1, inv_pal1_addr));
+	}
+
+	if (m_palettes_internal.find(RomOffsets::Graphics::INV_PAL2) != m_palettes_internal.cend())
+	{
+		inv_pal2_addr = base + bytes->size();
+		auto inv_pal2 = m_palettes_internal[RomOffsets::Graphics::INV_PAL2]->GetBytes();
+		bytes->insert(bytes->end(), inv_pal2->cbegin(), inv_pal2->cend());
+		m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL2, inv_pal2_addr));
+	}
 
 	m_pending_writes.push_back({ RomOffsets::Graphics::INV_SECTION, bytes });
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_FONT, addrs[0]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_CURSOR, addrs[1]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_ARROW, addrs[2]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1, addrs[3]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED1_PLUS6, addrs[3]+12));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2, addrs[4]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_UNUSED2_PLUS4, addrs[4]+8));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL1, addrs[5]));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Graphics::INV_PAL2, addrs[6]));
 
 	return true;
 }
