@@ -394,6 +394,12 @@ std::pair<uint8_t, uint8_t> SpriteData::GetSpriteHitbox(uint8_t id) const
 	return { result[0], result[1] };
 }
 
+std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
+{
+	uint8_t sprite_id = GetSpriteFromEntity(id);
+	return GetSpriteHitbox(sprite_id);
+}
+
 void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base)
 {
 	assert(m_sprite_dimensions.find(id) != m_sprite_dimensions.cend());

@@ -256,8 +256,7 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
         s.palette = entity.GetPalette();
         s.hflip = (entity.GetOrientation() == Orientation::NW || entity.GetOrientation() == Orientation::SE);
 
-        auto sprite_id = m_g->GetSpriteData()->GetSpriteFromEntity(entity.GetType());
-        auto hitbox = m_g->GetSpriteData()->GetSpriteHitbox(sprite_id);
+        auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(entity.GetType());
 
         int x = entity.GetX() + 0x080;
         int y = entity.GetY() - 0x080;
@@ -275,6 +274,30 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
         sprites.push_back(s);
         i++;
     }
+    // Fix draw order
+    std::sort(sprites.begin(), sprites.end(), [this](const SpriteQ& lhs, const SpriteQ& rhs) -> bool
+        {
+            // Draw objects furthest away from camera first
+            auto hitbox_lhs = m_g->GetSpriteData()->GetEntityHitbox(lhs.entity.GetType());
+            auto hitbox_rhs = m_g->GetSpriteData()->GetEntityHitbox(rhs.entity.GetType());
+            int dist_lhs = lhs.entity.GetX() + lhs.entity.GetY() + hitbox_lhs.first;
+            int dist_rhs = rhs.entity.GetX() + rhs.entity.GetY() + hitbox_rhs.first;
+            if (dist_lhs != dist_rhs)
+            {
+                return dist_lhs < dist_rhs;
+            }
+            // Next draw left-most objects
+            int left_lhs = lhs.entity.GetY() - hitbox_lhs.first;
+            int left_rhs = rhs.entity.GetY() - hitbox_rhs.first;
+            if (left_lhs < left_rhs)
+            {
+                return left_lhs < left_rhs;
+            }
+            // Finally, sort by height
+            int height_lhs = lhs.entity.GetZ() + hitbox_lhs.second;
+            int height_rhs = rhs.entity.GetZ() + hitbox_rhs.second;
+            return height_lhs < height_rhs;
+        });
     return sprites;
 }
 

@@ -30,6 +30,7 @@ public:
 	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
 
 	std::pair<uint8_t, uint8_t> GetSpriteHitbox(uint8_t id) const;
+	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
 	void SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base);
 
 
