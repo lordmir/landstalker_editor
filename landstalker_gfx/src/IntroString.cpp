@@ -256,7 +256,7 @@ size_t IntroString::DecodeString(const uint8_t* string, size_t len)
 {
 	m_str.clear();
 	size_t i = 0;
-	while (string[i] != 0xFF && i < 32)
+	while (string[i] != 0xFF && i < len)
 	{
 		if (i < 16)
 		{
@@ -266,10 +266,6 @@ size_t IntroString::DecodeString(const uint8_t* string, size_t len)
 		{
 			m_line2 += DecodeChar(string[i++]);
 		}
-		if(i >= len)
-		{
-			throw std::runtime_error("Not enough bytes in buffer to decode string");
-		}
 	}
 	return i + 1;
 }
@@ -278,7 +274,7 @@ size_t IntroString::EncodeString(uint8_t* string, size_t len) const
 {
 	size_t i = 0;
 	size_t j = 0;
-	while (j < m_str.size() && i < len)
+	while (j < m_str.size() && i < std::min(len, 30U))
 	{
 		j += EncodeChar(m_str, j, string[i++]);
 	}
@@ -295,6 +291,9 @@ size_t IntroString::EncodeString(uint8_t* string, size_t len) const
 			j += EncodeChar(m_line2, j, string[i++]);
 		}
 	}
-	string[i] = 0xFF;
-	return i + 1;
+	if (i < 30)
+	{
+		string[i++] = 0xFF;
+	}
+	return i;
 }
