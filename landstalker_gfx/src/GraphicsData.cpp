@@ -957,7 +957,7 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		AsmFile::Label name;
 		AsmFile::IncludeFile inc;
 		std::vector<std::tuple<std::string, filesystem::path, ByteVectorPtr>> gfx;
-		while(file.IsGood())
+		while (file.IsGood())
 		{
 			file >> name >> inc;
 			auto path = GetBasePath() / inc.path;
@@ -966,10 +966,6 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		}
 
 		assert(gfx.size() == 5 || gfx.size() == 7);
-		// French and German ROMs have a larger menu font to accomodate diacritics.
-		// We can detect the region by checking how many graphics objects exist.
-		// There are only five graphics objects in French and German ROMs.
-		bool large_menu_font = (gfx.size() == 5);
 
 		std::shared_ptr<TilesetEntry> menufont;
 		std::shared_ptr<TilesetEntry> menucursor;
@@ -979,14 +975,30 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		std::shared_ptr<PaletteEntry> pal1;
 		std::shared_ptr<PaletteEntry> pal2;
 
+		auto menu_font_filename = std::get<1>(gfx[0]);
+		std::string menu_font_extension = menu_font_filename.extension();
+		std::transform(menu_font_extension.begin(), menu_font_extension.end(), menu_font_extension.begin(),
+			[](const unsigned char i) { return std::tolower(i); });
+
+		// French and German ROMs have a larger, compressed menu font to accomodate diacritics.
+		if (menu_font_extension == ".lz77")
+		{
+			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
+				std::get<1>(gfx[0]), true, 8, 16, 1);
+		}
+		else
+		{
+			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
+				std::get<1>(gfx[0]), false, 8, 8, 1);
+		}
+
 		menucursor = TilesetEntry::Create(this, *std::get<2>(gfx[1]), std::get<0>(gfx[1]),
 					std::get<1>(gfx[1]), false, 8, 8, 2, Tileset::BLOCK4X4);
 		arrow = TilesetEntry::Create(this, *std::get<2>(gfx[2]), std::get<0>(gfx[2]),
 			std::get<1>(gfx[2]), false, 8, 8, 2, Tileset::BLOCK2X2);
-		if (large_menu_font)
+
+		if (gfx.size() == 5)
 		{
-			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
-				std::get<1>(gfx[0]), true, 8, 16, 1);
 			pal1 = PaletteEntry::Create(this, *std::get<2>(gfx[3]), std::get<0>(gfx[3]),
 				std::get<1>(gfx[3]), Palette::Type::LOW8);
 			pal2 = PaletteEntry::Create(this, *std::get<2>(gfx[4]), std::get<0>(gfx[4]),
@@ -994,8 +1006,6 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		}
 		else
 		{
-			menufont = TilesetEntry::Create(this, *std::get<2>(gfx[0]), std::get<0>(gfx[0]),
-				std::get<1>(gfx[0]), false, 8, 8, 1);
 			unused1 = TilesetEntry::Create(this, *std::get<2>(gfx[3]), std::get<0>(gfx[3]),
 				std::get<1>(gfx[3]), false, 8, 11, 2);
 			unused2 = TilesetEntry::Create(this, *std::get<2>(gfx[4]), std::get<0>(gfx[4]),
@@ -1563,9 +1573,8 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 		uint32_t sz = Palette::GetSizeBytes(type);
 		return rom.read_array<uint8_t>(start, sz);
 	};
-	const auto menu_font_size = rom.get_address(RomOffsets::Graphics::INV_FONT_SIZE);
 	std::shared_ptr<TilesetEntry> menu_font;
-	if (menu_font_size > 0)
+	if (rom.get_address(RomOffsets::Graphics::INV_FONT_SIZE) > 0)
 	{
 		menu_font = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_SIZE),
 			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_FILE, false, 8, 8, 1);
@@ -1573,7 +1582,7 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 	else
 	{
 		menu_font = TilesetEntry::Create(this, rom.read_array<uint8_t>(Disasm::ReadOffset16(rom, RomOffsets::Graphics::INV_FONT), 65536),
-			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_FILE, true, 8, 16, 1);
+			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_LARGE_FILE, true, 8, 16, 1);
 	}
 	auto cursor = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_SIZE),
 		RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_FILE, false, 8, 8, 2, Tileset::BLOCK4X4);
