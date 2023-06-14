@@ -77,18 +77,28 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
     }
 }
 
-void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame)
+void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame, bool hflip)
 {
     for (std::size_t i = 0; i < frame.GetSubSpriteCount(); ++i)
     {
         const auto& subs = frame.GetSubSprite(i);
         std::size_t index = subs.tile_idx;
-        for (std::size_t xi = 0; xi < subs.w; ++xi)
-            for (std::size_t yi = 0; yi < subs.h; ++yi)
+        for (int xi = 0; xi < subs.w; ++xi)
+            for (int yi = 0; yi < subs.h; ++yi)
             {
-                int xx = subs.x + xi * 8 + x;
-                int yy = subs.y + yi * 8 + y;
-                InsertTile(xx, yy, palette_index, Tile(index++), *frame.GetTileset());
+                int xx, yy;
+                if (hflip)
+                {
+                    xx = -subs.x - xi * 8 + x - 8;
+                    yy = subs.y + yi * 8 + y;
+                    InsertTile(xx, yy, palette_index, !Tile(index++), *frame.GetTileset());
+                }
+                else
+                {
+                    xx = subs.x + xi * 8 + x;
+                    yy = subs.y + yi * 8 + y;
+                    InsertTile(xx, yy, palette_index, Tile(index++), *frame.GetTileset());
+                }
             }
     }
 }

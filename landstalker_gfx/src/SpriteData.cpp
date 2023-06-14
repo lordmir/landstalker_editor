@@ -418,6 +418,12 @@ bool SpriteData::IsItem(uint8_t sprite_id) const
 	return std::all_of(entities.cbegin(), entities.cend(), [](uint8_t v) { return v >= 0xC0; });
 }
 
+bool SpriteData::HasFrontAndBack(uint8_t entity_id) const
+{
+	auto sprite_id = GetSpriteFromEntity(entity_id);
+	return !IsItem(sprite_id) && GetSpriteAnimationCount(sprite_id) > 1;
+}
+
 std::string SpriteData::GetSpriteName(uint8_t id) const
 {
 	assert(m_names.find(id) != m_names.cend());

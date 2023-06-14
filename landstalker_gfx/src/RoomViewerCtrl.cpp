@@ -231,12 +231,30 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
     int i = 1;
     for (const auto& entity : m_entities)
     {
-        auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
+        if (i == 1) {
+            //i++;  continue;
+        }
         SpriteQ s;
+        if (m_g->GetSpriteData()->HasFrontAndBack(entity.GetType()))
+        {
+            auto sprite = m_g->GetSpriteData()->GetSpriteFromEntity(entity.GetType());
+            int anim = 0;
+            if ((entity.GetOrientation() == Orientation::SW || entity.GetOrientation() == Orientation::SE))
+            {
+                anim = 1;
+            }
+            auto frame = m_g->GetSpriteData()->GetSpriteFrame(sprite, anim, 0);
+            s.frame = frame->GetData();
+        }
+        else
+        {
+            auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
+            s.frame = frame->GetData();
+        }
         s.id = i;
         s.entity = entity;
-        s.frame = frame->GetData();
         s.palette = entity.GetPalette();
+        s.hflip = (entity.GetOrientation() == Orientation::NW || entity.GetOrientation() == Orientation::SE);
 
         auto sprite_id = m_g->GetSpriteData()->GetSpriteFromEntity(entity.GetType());
         auto hitbox = m_g->GetSpriteData()->GetSpriteHitbox(sprite_id);
@@ -264,7 +282,7 @@ void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>&& fg_q, const std::v
 {
     for (const auto& s : fg_q)
     {
-        m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame);
+        m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
     }
     for (const auto& s : bg_q)
     {

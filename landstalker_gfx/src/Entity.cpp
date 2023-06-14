@@ -395,3 +395,8 @@ uint16_t Entity::GetZ() const
 {
     return z_pos;
 }
+
+bool Entity::NoRotate() const
+{
+    return no_rotate;
+}

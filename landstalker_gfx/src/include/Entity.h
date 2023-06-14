@@ -37,6 +37,7 @@ public:
     uint16_t GetX() const;
     uint16_t GetY() const;
     uint16_t GetZ() const;
+    bool NoRotate() const;
 
     std::string GetTypeName() const
     {

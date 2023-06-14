@@ -23,6 +23,7 @@ public:
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;
 	bool IsItem(uint8_t sprite_id) const;
+	bool HasFrontAndBack(uint8_t id) const;
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
 	uint8_t GetSpriteFromEntity(uint8_t id) const;
