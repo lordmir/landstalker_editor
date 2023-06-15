@@ -18,9 +18,8 @@ StringData::StringData(const filesystem::path& asm_file)
 		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
 	}
 	m_region = Charset::DeduceRegion(GetCharsetSize());
-	if (m_region != RomOffsets::Region::JP)
+	if (m_has_region_check)
 	{
-		m_has_region_check = true;
 		if (!AsmLoadSystemFont())
 		{
 			throw std::runtime_error(std::string("Unable to load system font data from \'") + asm_file.str() + '\'');
@@ -53,7 +52,7 @@ StringData::StringData(const filesystem::path& asm_file)
 StringData::StringData(const Rom& rom)
 	: DataManager(rom),
 	  m_region(rom.get_region()),
-	  m_has_region_check(m_region != RomOffsets::Region::JP)
+	  m_has_region_check(m_region != RomOffsets::Region::JP && m_region != RomOffsets::Region::US_BETA)
 {
 	SetDefaultFilenames();
 	if (m_has_region_check)
@@ -737,7 +736,20 @@ bool StringData::LoadAsmFilenames()
 	{
 		bool retval = true;
 		AsmFile f(GetAsmFilename().str());
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::REGION_CHECK, m_region_check_filename);
+
+		if (f.IsGood() && f.LabelExists(RomOffsets::Strings::REGION_CHECK))
+		{
+			m_has_region_check = true;
+			retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::REGION_CHECK, m_region_check_filename);
+			AsmFile r(GetBasePath() / m_region_check_filename);
+			if (r.IsGood())
+			{
+				retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
+				retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
+				retval = retval && GetFilenameFromAsm(r, RomOffsets::Graphics::SYS_FONT, m_system_font_filename);
+			}
+		}
+
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_SECTION, m_strings_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::STRING_BANK_PTR_DATA, m_string_ptr_filename);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::HUFFMAN_OFFSETS, m_huffman_offset_path);
@@ -750,10 +762,7 @@ bool StringData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::END_CREDIT_STRINGS, m_end_credit_strings_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::CHARACTER_TALK_SFX, m_char_talk_sfx_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::SPRITE_TALK_SFX, m_sprite_talk_sfx_path);
-		AsmFile r(GetBasePath() / m_region_check_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_ROUTINE, m_region_check_routine_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Strings::REGION_CHECK_STRINGS, m_region_check_strings_filename);
-		retval = retval && GetFilenameFromAsm(r, RomOffsets::Graphics::SYS_FONT, m_system_font_filename);
+		
 		AsmFile s(GetBasePath() / m_string_table_path);
 		retval = retval && GetFilenameFromAsm(s, RomOffsets::Strings::CHAR_NAME_TABLE, m_char_table_path);
 		retval = retval && GetFilenameFromAsm(s, RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE, m_schar_table_path);
@@ -1101,12 +1110,15 @@ bool StringData::AsmLoadSystemStrings()
 		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE1);
 		read_str(line);
 		m_system_strings[0] = converter.from_bytes(line);
+		line.clear();
 		file.Goto(RomOffsets::Strings::REGION_ERROR_NTSC);
 		read_str(line);
 		m_system_strings[1] = converter.from_bytes(line);
+		line.clear();
 		file.Goto(RomOffsets::Strings::REGION_ERROR_PAL);
 		read_str(line);
 		m_system_strings[2] = converter.from_bytes(line);
+		line.clear();
 		file.Goto(RomOffsets::Strings::REGION_ERROR_LINE3);
 		read_str(line);
 		m_system_strings[3] = converter.from_bytes(line);

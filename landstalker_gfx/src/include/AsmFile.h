@@ -91,6 +91,7 @@ public:
 	std::string ReadLabel();
 	bool IsLabel();
 	bool IsLabel(const std::string& label);
+	bool LabelExists(const std::string& label);
 	bool Goto(const std::string& label);
 	bool Goto(const GotoLabel& label);
 	bool Goto(const Label& label);
