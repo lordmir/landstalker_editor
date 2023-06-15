@@ -193,8 +193,14 @@ void GameData::SetDefaults()
 	m_tilesets[RomOffsets::Graphics::INV_ARROW]->SetPalIndicies("0,11,14,15");
 	m_tilesets[RomOffsets::Graphics::INV_CURSOR]->SetDefaultPalette(RomOffsets::Graphics::INV_ITEM_PAL);
 	m_tilesets[RomOffsets::Graphics::INV_CURSOR]->SetPalIndicies("0,5,10,15");
-	m_tilesets[RomOffsets::Graphics::INV_UNUSED1]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::INV_UNUSED2]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+	if (m_tilesets.find(RomOffsets::Graphics::INV_UNUSED1) != m_tilesets.cend())
+	{
+		m_tilesets[RomOffsets::Graphics::INV_UNUSED1]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+	}
+	if (m_tilesets.find(RomOffsets::Graphics::INV_UNUSED2) != m_tilesets.cend())
+	{
+		m_tilesets[RomOffsets::Graphics::INV_UNUSED2]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+	}
 	m_tilesets[RomOffsets::Graphics::SWORD_MAGIC]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":1");
 	m_tilesets[RomOffsets::Graphics::SWORD_THUNDER]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":2");
 	m_tilesets[RomOffsets::Graphics::SWORD_ICE]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":3");
