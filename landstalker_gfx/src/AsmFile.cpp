@@ -91,6 +91,11 @@ bool AsmFile::IsLabel(const std::string& label)
 	return ReadLabel() == label;
 }
 
+bool AsmFile::LabelExists(const std::string& label)
+{
+	return m_labels.find(label) != m_labels.cend();
+}
+
 bool AsmFile::Goto(const std::string& label)
 {
 	return Goto(GotoLabel(label));
