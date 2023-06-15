@@ -274,7 +274,7 @@ size_t IntroString::EncodeString(uint8_t* string, size_t len) const
 {
 	size_t i = 0;
 	size_t j = 0;
-	while (j < m_str.size() && i < std::min(len, 30U))
+	while (j < m_str.size() && i < std::min<size_t>(len, 30U))
 	{
 		j += EncodeChar(m_str, j, string[i++]);
 	}
