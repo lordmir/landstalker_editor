@@ -59,6 +59,7 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
 {
 	m_roomnum = roomnum;
     m_mode = mode;
+    m_selected = -1;
     if (m_g != nullptr)
     {
         m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
