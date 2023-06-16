@@ -2,6 +2,7 @@
 
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
+#include <unordered_map>
 
 #include "EditorFrame.h"
 
@@ -25,7 +26,8 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_buffer_width(1),
       m_buffer_height(1),
       m_redraw(false),
-      m_repaint(false)
+      m_repaint(false),
+      m_selected(2)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -74,6 +76,7 @@ void RoomViewerCtrl::SetZoom(double zoom)
     }
     auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
     UpdateBuffer();
+    auto q = PrepareSprites(m_roomnum);
     switch (m_mode)
     {
     case Mode::HEIGHTMAP:
@@ -85,12 +88,14 @@ void RoomViewerCtrl::SetZoom(double zoom)
         {
             m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
         }
+        DrawSpriteHitboxes(q);
         break;
     case Mode::NORMAL:
         if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
         {
             m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
         }
+        DrawSpriteHitboxes(q);
         break;
     }
     UpdateScroll();
@@ -123,9 +128,9 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     }
     auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
     auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(roomnum);
-    auto palette = PreparePalettes(roomnum);
     auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
     auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+    m_rpalette = PreparePalettes(roomnum);
 
     m_warp_poly.clear();
     m_link_poly.clear();
@@ -138,21 +143,21 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     {
         m_layer_bufs[Layer::BACKGROUND1]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND1]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeBitmap(palette,
+        m_layers.insert({ Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeBitmap(m_rpalette,
             true, m_layer_opacity[Layer::BACKGROUND1]) });
     }
     if (m_layer_opacity[Layer::BACKGROUND2] > 0)
     {
         m_layer_bufs[Layer::BACKGROUND2]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND2]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeBitmap(palette,
+        m_layers.insert({ Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeBitmap(m_rpalette,
             true, m_layer_opacity[Layer::BACKGROUND2], 0) });
     }
     if (m_layer_opacity[Layer::FOREGROUND] > 0)
     {
         m_layer_bufs[Layer::FOREGROUND]->Resize(m_width, m_height);
         m_layer_bufs[Layer::FOREGROUND]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeBitmap(palette,
+        m_layers.insert({ Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeBitmap(m_rpalette,
             true, 0, m_layer_opacity[Layer::FOREGROUND]) });
     }
     if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
@@ -161,10 +166,32 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     }
     if (m_layer_opacity[Layer::FG_SPRITES] > 0)
     {
-        m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
-        DrawSprites(PrepareSprites(roomnum), {});
-        m_layers.insert({ Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(palette,
-            true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]) });
+        RedrawAllSprites();
+    }
+}
+
+void RoomViewerCtrl::RedrawAllSprites()
+{
+    m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+    m_layer_bufs[Layer::BG_SPRITES]->Resize(m_width, m_height);
+    auto q = PrepareSprites(m_roomnum);
+    DrawSpriteHitboxes(q);
+    DrawSprites(q);
+    UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+        true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
+    UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+        true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
+}
+
+void RoomViewerCtrl::UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp)
+{
+    if (m_layers.find(layer) == m_layers.cend())
+    {
+        m_layers.insert({ layer, bmp });
+    }
+    else
+    {
+        m_layers[layer] = bmp;
     }
 }
 
@@ -231,9 +258,6 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
     int i = 1;
     for (const auto& entity : m_entities)
     {
-        if (i == 1) {
-            //i++;  continue;
-        }
         SpriteQ s;
         if (m_g->GetSpriteData()->HasFrontAndBack(entity.GetType()))
         {
@@ -255,6 +279,8 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
         s.entity = entity;
         s.palette = entity.GetPalette();
         s.hflip = (entity.GetOrientation() == Orientation::NW || entity.GetOrientation() == Orientation::SE);
+        s.background = false;
+        s.selected = (i == m_selected);
 
         auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(entity.GetType());
 
@@ -277,6 +303,10 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
     // Fix draw order
     std::sort(sprites.begin(), sprites.end(), [this](const SpriteQ& lhs, const SpriteQ& rhs) -> bool
         {
+            if (lhs.selected || rhs.selected)
+            {
+                return rhs.selected;
+            }
             // Draw objects furthest away from camera first
             auto hitbox_lhs = m_g->GetSpriteData()->GetEntityHitbox(lhs.entity.GetType());
             auto hitbox_rhs = m_g->GetSpriteData()->GetEntityHitbox(rhs.entity.GetType());
@@ -301,15 +331,105 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
     return sprites;
 }
 
-void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>&& fg_q, const std::vector<SpriteQ>&& bg_q)
+void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
 {
-    for (const auto& s : fg_q)
+    std::unordered_map<Layer, wxImage> layers;
+    std::unordered_map<Layer, wxGraphicsContext*> ctxs;
+    layers.insert({ Layer::BG_SPRITES_WIREFRAME_BG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::BG_SPRITES_WIREFRAME_FG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::FG_SPRITES_WIREFRAME_BG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::FG_SPRITES_WIREFRAME_FG, wxImage(m_buffer_width, m_buffer_height) });
+    
+    m_entity_poly.clear();
+    
+    for (auto& img : layers)
     {
-        m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+        img.second.InitAlpha();
+        SetOpacity(img.second, 0x00);
+        auto ctx = wxGraphicsContext::Create(img.second);
+        ctx->Scale(m_zoom, m_zoom);
+        ctx->SetPen(*wxTRANSPARENT_PEN);
+        ctx->SetBrush(*wxBLACK_BRUSH);
+        ctxs.insert({ img.first, ctx });
     }
-    for (const auto& s : bg_q)
+    for (const auto& s : q)
     {
-        m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame);
+        auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(s.entity.GetType());
+
+        wxPoint2DDouble shadow_points[] = {
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y - hitbox.first),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y)
+        };
+        wxPoint2DDouble hitbox_fg_points[] = {
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x, s.y - hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second)
+        };
+
+        m_entity_poly.push_back({ s.id, {
+            {(double)(s.x + hitbox.first * 2), (double)(s.y)},
+            {(double)(s.x + hitbox.first * 2), (double)(s.y - hitbox.second)},
+            {(double)(s.x), (double)(s.y - hitbox.first - hitbox.second)},
+            {(double)(s.x - hitbox.first * 2), (double)(s.y - hitbox.second)},
+            {(double)(s.x - hitbox.first * 2), (double)(s.y)},
+            {(double)(s.x), (double)(s.y + hitbox.first)},
+            {(double)(s.x + hitbox.first * 2), (double)(s.y)}
+        } });
+
+        //hm_gc->DrawLines(sizeof(shadow_points) / sizeof(shadow_points[0]), shadow_points);
+        auto fg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_FG] : ctxs[Layer::FG_SPRITES_WIREFRAME_FG];
+        auto bg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_BG] : ctxs[Layer::FG_SPRITES_WIREFRAME_BG];
+        auto dotted_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_DOT));
+        bg_ctx->SetPen(dotted_pen);
+        bg_ctx->StrokeLine(s.x + hitbox.first * 2, s.y, s.x, s.y - hitbox.first);
+        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x - hitbox.first * 2, s.y);
+        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x, s.y - hitbox.first - hitbox.second);
+        auto solid_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_SOLID));
+        fg_ctx->SetPen(solid_pen);
+        fg_ctx->StrokeLines(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), hitbox_fg_points);
+    }
+    for (auto& ctx : ctxs)
+    {
+        delete ctx.second;
+    }
+    ctxs.clear();
+    for (auto& layer : layers)
+    {
+        if (m_layers.find(layer.first) == m_layers.cend())
+        {
+            m_layers.insert({ layer.first, std::make_shared<wxBitmap>(layer.second) });
+        }
+        else
+        {
+            m_layers[layer.first] = std::make_shared<wxBitmap>(layer.second);
+        }
+    }
+}
+
+void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>& q)
+{
+    for (const auto& s : q)
+    {
+        if (s.background)
+        {
+            m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+        }
+        else
+        {
+            m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+        }
     }
 }
 
@@ -368,20 +488,6 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
         uint16_t dest = (t.first.first == roomnum) ? t.first.second : t.first.first;
         AddRoomLink(gc, label, dest, 5, 5 + line * 16);
         line++;
-    }
-    line++;
-    auto entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
-
-    wxFont font(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-    gc->SetFont(font, *wxWHITE);
-    int count = 1;
-    for (const auto& e : entities)
-    {
-        auto d = e.GetData();
-        std::string label = StrPrintf("%01X: %s", count, e.ToString().c_str());
-        gc->DrawText(label, 5, 5 + line * 20);
-        line+=2;
-        count++;
     }
     delete gc;
     return std::make_shared<wxBitmap>(img);
@@ -749,13 +855,17 @@ void RoomViewerCtrl::OnDraw(wxDC& dc)
         mdc.Clear();
         for (const auto& layer : m_layers)
         {
-            if (layer.first == Layer::HEIGHTMAP || layer.first == Layer::WARPS)
+            if (layer.first == Layer::BACKGROUND1 ||
+                layer.first == Layer::BACKGROUND2 ||
+                layer.first == Layer::FOREGROUND ||
+                layer.first == Layer::BG_SPRITES ||
+                layer.first == Layer::FG_SPRITES)
             {
-                mdc.SetUserScale(1.0, 1.0);
+                mdc.SetUserScale(m_zoom, m_zoom);
             }
             else
             {
-                mdc.SetUserScale(m_zoom, m_zoom);
+                mdc.SetUserScale(1.0, 1.0);
             }
             mdc.DrawBitmap(*layer.second, 0, 0, true);
         }
@@ -788,21 +898,22 @@ void RoomViewerCtrl::OnSize(wxSizeEvent& evt)
 
 void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
 {
-    if (m_g != nullptr && m_mode == Mode::WARPS)
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+    std::string status_text = m_status_text;
+    if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            int x, y;
-            GetViewStart(&x, &y);
-            x *= m_scroll_rate;
-            y *= m_scroll_rate;
-            x += evt.GetX();
-            y += evt.GetY();
-            x = std::ceil(x / m_zoom);
-            y = std::ceil(y / m_zoom);
             auto r = map->PixelToHMPoint({ x,y });
-            auto status_text = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
+            status_text = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
             SetCursor(wxCURSOR_ARROW);
             for (const auto& wp : m_warp_poly)
             {
@@ -813,15 +924,13 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                     uint8_t wy = (wp.first.room1 == m_roomnum) ? wp.first.y2 : wp.first.y1;
                     status_text += StrPrintf(" - Warp to room %03d (%d,%d)", room, wx, wy);
                     SetCursor(wxCURSOR_HAND);
-                    break;
-                }
-            }
-            for (const auto& lp : m_link_poly)
-            {
-                if (Pnpoly(lp.second, x, y))
-                {
-                    SetCursor(wxCURSOR_HAND);
-                    break;
+                    if (status_text != m_status_text)
+                    {
+                        m_status_text = status_text;
+                        FireEvent(EVT_STATUSBAR_UPDATE);
+                    }
+                    evt.Skip();
+                    return;
                 }
             }
             if (status_text != m_status_text)
@@ -829,8 +938,33 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                 m_status_text = status_text;
                 FireEvent(EVT_STATUSBAR_UPDATE);
             }
+            for (const auto& lp : m_link_poly)
+            {
+                if (Pnpoly(lp.second, x, y))
+                {
+                    SetCursor(wxCURSOR_HAND);
+                    evt.Skip();
+                    return;
+                }
+            }
+            for (const auto& lp : m_entity_poly)
+            {
+                if (Pnpoly(lp.second, x, y))
+                {
+                    SetCursor(wxCURSOR_HAND);
+                    status_text += StrPrintf(" - Entity(%d)", lp.first);
+                    if (status_text != m_status_text)
+                    {
+                        m_status_text = status_text;
+                        FireEvent(EVT_STATUSBAR_UPDATE);
+                    }
+                    evt.Skip();
+                    return;
+                }
+            }
         }
     }
+    SetCursor(wxCURSOR_ARROW);
     evt.Skip();
 }
 
@@ -842,24 +976,25 @@ void RoomViewerCtrl::OnMouseLeave(wxMouseEvent& evt)
 
 void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
 {
-    SetCursor(wxCURSOR_ARROW);
-    if (m_g != nullptr && m_mode == Mode::WARPS)
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+    int selected = -1;
+    if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            int x, y;
-            GetViewStart(&x, &y);
-            x *= m_scroll_rate;
-            y *= m_scroll_rate;
-            x += evt.GetX();
-            y += evt.GetY();
-            x = std::ceil(x / m_zoom);
-            y = std::ceil(y / m_zoom);
             for (const auto& wp : m_warp_poly)
             {
                 if (Pnpoly(wp.second, x, y))
                 {
+                    SetCursor(wxCURSOR_ARROW);
                     uint16_t room = (wp.first.room1 == m_roomnum) ? wp.first.room2 : wp.first.room1;
                     GoToRoom(room);
                     break;
@@ -869,11 +1004,26 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
             {
                 if (Pnpoly(lp.second, x, y))
                 {
+                    SetCursor(wxCURSOR_ARROW);
                     GoToRoom(lp.first);
                     break;
                 }
             }
+            for (const auto& lp : m_entity_poly)
+            {
+                if (Pnpoly(lp.second, x, y))
+                {
+                    selected = lp.first;
+                    break;
+                }
+            }
         }
+    }
+    if (m_selected != selected)
+    {
+        m_selected = selected;
+        RedrawAllSprites();
+        ForceRedraw();
     }
     evt.Skip();
 }

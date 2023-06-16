@@ -59,6 +59,8 @@ void RoomViewerFrame::Update()
 {
 	m_layerctrl->EnableLayers(m_mode != RoomViewerCtrl::Mode::HEIGHTMAP);
 	m_roomview->SetRoomNum(m_roomnum, m_mode);
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -304,6 +306,28 @@ void RoomViewerFrame::UpdateProperties(wxPropertyGridManager& props) const
 
 void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
+	if (m_g != nullptr)
+	{
+		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		props.GetGrid()->SetPropertyValue("RN", _(std::to_string(rd->index)));
+		props.GetGrid()->SetPropertyValue("TS", _(Hex(rd->tileset)));
+		props.GetGrid()->SetPropertyValue("RP", _(Hex(rd->room_palette)));
+		props.GetGrid()->SetPropertyValue("PBT", _(std::to_string(rd->pri_blockset)));
+		props.GetGrid()->SetPropertyValue("SBT", _(Hex(rd->sec_blockset)));
+		props.GetGrid()->SetPropertyValue("BGM", _(Hex(rd->bgm)));
+		props.GetGrid()->SetPropertyValue("M", _(rd->map));
+		props.GetGrid()->SetPropertyValue("UP1", _(std::to_string(rd->unknown_param1)));
+		props.GetGrid()->SetPropertyValue("UP2", _(std::to_string(rd->unknown_param2)));
+		props.GetGrid()->SetPropertyValue("ZB", _(std::to_string(rd->room_z_begin)));
+		props.GetGrid()->SetPropertyValue("ZE", _(std::to_string(rd->room_z_end)));
+		props.GetGrid()->SetPropertyValue("TLO", _(std::to_string(tm->GetData()->GetLeft())));
+		props.GetGrid()->SetPropertyValue("TTO", _(std::to_string(tm->GetData()->GetTop())));
+		props.GetGrid()->SetPropertyValue("TW", _(std::to_string(tm->GetData()->GetWidth())));
+		props.GetGrid()->SetPropertyValue("TH", _(std::to_string(tm->GetData()->GetHeight())));
+		props.GetGrid()->SetPropertyValue("HW", _(std::to_string(tm->GetData()->GetHeightmapWidth())));
+		props.GetGrid()->SetPropertyValue("HH", _(std::to_string(tm->GetData()->GetHeightmapHeight())));
+	}
 }
 
 void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
@@ -488,6 +512,7 @@ void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 void RoomViewerFrame::FireEvent(const wxEventType& e)
 {
 	wxCommandEvent evt(e);
+	evt.SetClientData(this);
 	wxPostEvent(this, evt);
 }
 
@@ -495,5 +520,6 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, const std::string& userdat
 {
 	wxCommandEvent evt(e);
 	evt.SetString(userdata);
+	evt.SetClientData(this);
 	wxPostEvent(this, evt);
 }

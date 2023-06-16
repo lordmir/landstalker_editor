@@ -23,10 +23,14 @@ public:
 	{
 		BACKGROUND1,
 		BACKGROUND2,
+		BG_SPRITES_WIREFRAME_BG,
 		BG_SPRITES,
+		BG_SPRITES_WIREFRAME_FG,
 		FOREGROUND,
-		FG_SPRITES,
 		HEIGHTMAP,
+		FG_SPRITES_WIREFRAME_BG,
+		FG_SPRITES,
+		FG_SPRITES_WIREFRAME_FG,
 		WARPS
 	};
 
@@ -55,14 +59,19 @@ private:
 		int x;
 		int y;
 		bool hflip;
+		bool selected;
+		bool background;
 		std::shared_ptr<SpriteFrame> frame;
 		Entity entity;
 	};
 	void DrawRoom(uint16_t roomnum);
 	std::vector<std::shared_ptr<Palette>> PreparePalettes(uint16_t roomnum);
 	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
-	void DrawSprites(const std::vector<SpriteQ>&& fg_q, const std::vector<SpriteQ>&& bg_q);
-	
+	void DrawSprites(const std::vector<SpriteQ>& q);
+	void DrawSpriteHitboxes(const std::vector<SpriteQ>& q);
+	void RedrawAllSprites();
+	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
+
 	void UpdateRoomDescText(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
 	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height);
@@ -96,6 +105,7 @@ private:
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	Mode m_mode;
+	std::vector<std::shared_ptr<Palette>> m_rpalette;
 	int m_width;
 	int m_height;
 	int m_buffer_width;
@@ -112,6 +122,7 @@ private:
 
 	std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
 	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
+	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_entity_poly;
 
 	static const std::size_t TILE_WIDTH = 32;
 	static const std::size_t TILE_HEIGHT = 16;
@@ -119,6 +130,7 @@ private:
 	static const std::size_t HM_CELL_HEIGHT = 32;
 	static const int SCROLL_RATE = 8;
 	int m_scroll_rate;
+	int m_selected;
 
 	std::string m_status_text;
 
