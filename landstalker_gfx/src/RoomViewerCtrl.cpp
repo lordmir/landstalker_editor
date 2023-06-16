@@ -27,7 +27,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_buffer_height(1),
       m_redraw(false),
       m_repaint(false),
-      m_selected(2)
+      m_selected(-1)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
