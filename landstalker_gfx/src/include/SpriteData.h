@@ -4,6 +4,7 @@
 #include "DataManager.h"
 #include "DataTypes.h"
 #include <set>
+#include <Entity.h>
 
 class SpriteData : public DataManager
 {
@@ -22,12 +23,15 @@ public:
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;
 	bool IsItem(uint8_t sprite_id) const;
+	bool HasFrontAndBack(uint8_t id) const;
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
 	uint8_t GetSpriteFromEntity(uint8_t id) const;
+	bool EntityHasSprite(uint8_t id) const;
 	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
 
 	std::pair<uint8_t, uint8_t> GetSpriteHitbox(uint8_t id) const;
+	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
 	void SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base);
 
 
@@ -48,13 +52,14 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& anim) const;
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
 
-	std::vector<std::array<uint8_t, 8>> GetRoomEntities(uint16_t room) const;
-	void SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities);
+	std::vector<Entity> GetRoomEntities(uint16_t room) const;
+	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
 
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
 	std::shared_ptr<Palette> GetSpritePalette(int lo, int hi = -1) const;
 	std::shared_ptr<Palette> GetSpritePalette(uint8_t idx) const;
+	std::pair<int, int> GetSpritePaletteIdxs(uint8_t idx) const;
 	uint8_t GetLoPaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetLoPalette(uint8_t idx) const;
 	uint8_t GetHiPaletteCount() const;
@@ -174,8 +179,8 @@ private:
 	std::map<uint8_t, uint8_t> m_unknown_entity_lookup;
 	std::map<uint8_t, uint8_t> m_unknown_entity_lookup_orig;
 
-	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities;
-	std::map<uint16_t, std::vector<std::array<uint8_t, 8>>> m_room_entities_orig;
+	std::map<uint16_t, std::vector<Entity>> m_room_entities;
+	std::map<uint16_t, std::vector<Entity>> m_room_entities_orig;
 
 	std::vector<uint8_t> m_sprite_behaviours;
 	std::vector<uint8_t> m_sprite_behaviours_orig;

@@ -21,8 +21,8 @@ static const std::string MODE_DESCRIPTORS[] =
     "System"
 };
 
-StringEditorFrame::StringEditorFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
       m_type(StringData::Type::MAIN)
 {

@@ -933,6 +933,19 @@ PixelPoint2D Tilemap3D::ToPixel(const Point2D& iso, Layer layer) const
     return PixelPoint2D{ -1, -1 };
 }
 
+PixelPoint2D Tilemap3D::EntityPositionToPixel(uint16_t x, uint16_t y, uint16_t z) const
+{
+    const int SCALE_FACTOR = 0x100;
+    const int LEFT = GetLeft() * SCALE_FACTOR;
+    const int TOP = GetTop() * SCALE_FACTOR;
+    const int HEIGHT = GetHeight() * SCALE_FACTOR;
+    int xx = x - LEFT;
+    int yy = y - TOP;
+    int ix = (xx - yy + (HEIGHT - SCALE_FACTOR)) * 2 + LEFT;
+    int iy = (xx + yy - z * 2) + TOP;
+    return Point2D{ ix * tile_width / SCALE_FACTOR, iy * tile_height / SCALE_FACTOR };
+}
+
 PixelPoint2D Tilemap3D::Iso3DToPixel(const Point3D& iso) const
 {
     //if (IsHMPointValid({ iso.x, iso.y }) == false) return { -1, -1 };

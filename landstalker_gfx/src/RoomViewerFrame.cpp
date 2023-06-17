@@ -11,16 +11,31 @@ enum MENU_IDS
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
 	ID_TOOLS,
-	ID_TOOLS_LAYERS
+	ID_TOOLS_LAYERS,
+	ID_TOOLS_ENTITIES,
+	ID_TOOLS_WARPS,
+	ID_VIEW_ENTITIES,
+	ID_VIEW_ENTITY_HITBOX,
+	ID_VIEW_WARPS,
+	ID_VIEW_HEIGHTMAP,
+	ID_VIEW_ENTITY_PROPERTIES
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
+EVT_KEY_DOWN(RoomViewerFrame::OnKeyDown)
 EVT_COMMAND(wxID_ANY, EVT_ZOOM_CHANGE, RoomViewerFrame::OnZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_OPACITY_CHANGE, RoomViewerFrame::OnOpacityChange)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_UPDATE, RoomViewerFrame::OnEntityUpdate)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_SELECT, RoomViewerFrame::OnEntitySelect)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_OPEN_PROPERTIES, RoomViewerFrame::OnEntityOpenProperties)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_ADD, RoomViewerFrame::OnEntityAdd)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_DELETE, RoomViewerFrame::OnEntityDelete)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_UP, RoomViewerFrame::OnEntityMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_DOWN, RoomViewerFrame::OnEntityMoveDown)
 wxEND_EVENT_TABLE()
 
-RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_mode(RoomViewerCtrl::Mode::NORMAL)
 {
@@ -28,8 +43,11 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 
 	m_roomview = new RoomViewerCtrl(this);
 	m_layerctrl = new LayerControlFrame(this);
-	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220,200)
-		.BestSize(220,200).FloatingSize(220,200).Caption("Layers"));
+	m_entityctrl = new EntityControlFrame(this, GetImageList());
+	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Layers"));
+	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
 	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
@@ -43,10 +61,14 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
+	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
 {
+	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
@@ -59,6 +81,8 @@ void RoomViewerFrame::Update()
 {
 	m_layerctrl->EnableLayers(m_mode != RoomViewerCtrl::Mode::HEIGHTMAP);
 	m_roomview->SetRoomNum(m_roomnum, m_mode);
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -258,9 +282,50 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 	return true;
 }
 
+bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
+{
+	if (m_roomview != nullptr)
+	{
+		return m_roomview->HandleKeyDown(key, modifiers);
+	}
+	return true;
+}
+
+void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
+{
+	status.SetFieldsCount(3);
+	status.SetStatusText("", 0);
+	status.SetStatusText("", 1);
+	status.SetStatusText("", 1);
+}
+
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 {
-	status.SetStatusText(m_roomview->GetStatusText());
+	if (status.GetFieldsCount() != 3)
+	{
+		return;
+	}
+	status.SetStatusText(m_roomview->GetStatusText(), 0);
+	if (m_roomview->IsEntitySelected())
+	{
+		auto& entity = m_roomview->GetSelectedEntity();
+		int idx = m_roomview->GetSelectedEntityIndex();
+		status.SetStatusText(StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+			idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str()), 1);
+	}
+	else
+	{
+		status.SetStatusText("", 1);
+	}
+	if (m_roomview->GetErrorCount() > 0)
+	{
+		status.SetStatusText(StrPrintf("Total Errors: %d, Error #1 : %s",
+			m_roomview->GetErrorCount(), m_roomview->GetErrorText(0).c_str()), 2);
+	}
+	else
+	{
+		status.SetStatusText("", 2);
+	}
 }
 
 void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
@@ -288,9 +353,9 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->GetData()->GetHeight())));
 		props.Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->GetData()->GetHeightmapWidth())));
 		props.Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->GetData()->GetHeightmapHeight())));
+		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
-	EditorFrame::InitProperties(props);
 }
 
 void RoomViewerFrame::UpdateProperties(wxPropertyGridManager& props) const
@@ -304,6 +369,28 @@ void RoomViewerFrame::UpdateProperties(wxPropertyGridManager& props) const
 
 void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
+	if (m_g != nullptr)
+	{
+		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		props.GetGrid()->SetPropertyValue("RN", _(std::to_string(rd->index)));
+		props.GetGrid()->SetPropertyValue("TS", _(Hex(rd->tileset)));
+		props.GetGrid()->SetPropertyValue("RP", _(Hex(rd->room_palette)));
+		props.GetGrid()->SetPropertyValue("PBT", _(std::to_string(rd->pri_blockset)));
+		props.GetGrid()->SetPropertyValue("SBT", _(Hex(rd->sec_blockset)));
+		props.GetGrid()->SetPropertyValue("BGM", _(Hex(rd->bgm)));
+		props.GetGrid()->SetPropertyValue("M", _(rd->map));
+		props.GetGrid()->SetPropertyValue("UP1", _(std::to_string(rd->unknown_param1)));
+		props.GetGrid()->SetPropertyValue("UP2", _(std::to_string(rd->unknown_param2)));
+		props.GetGrid()->SetPropertyValue("ZB", _(std::to_string(rd->room_z_begin)));
+		props.GetGrid()->SetPropertyValue("ZE", _(std::to_string(rd->room_z_end)));
+		props.GetGrid()->SetPropertyValue("TLO", _(std::to_string(tm->GetData()->GetLeft())));
+		props.GetGrid()->SetPropertyValue("TTO", _(std::to_string(tm->GetData()->GetTop())));
+		props.GetGrid()->SetPropertyValue("TW", _(std::to_string(tm->GetData()->GetWidth())));
+		props.GetGrid()->SetPropertyValue("TH", _(std::to_string(tm->GetData()->GetHeight())));
+		props.GetGrid()->SetPropertyValue("HW", _(std::to_string(tm->GetData()->GetHeightmapWidth())));
+		props.GetGrid()->SetPropertyValue("HH", _(std::to_string(tm->GetData()->GetHeightmapHeight())));
+	}
 }
 
 void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
@@ -455,6 +542,16 @@ void RoomViewerFrame::UpdateUI() const
 	CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
 }
 
+void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
+{
+	if (m_roomview != nullptr)
+	{
+		evt.Skip(m_roomview->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
+	evt.Skip();
+}
+
 void RoomViewerFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	m_roomview->SetZoom(m_layerctrl->GetZoom());
@@ -485,9 +582,50 @@ void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 	m_roomview->RefreshGraphics();
 }
 
+void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
+{
+	m_entityctrl->SetEntities(m_roomview->GetEntities());
+	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+}
+
+void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+}
+
+void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->UpdateEntityProperties(m_entityctrl->GetSelected());
+}
+
+void RoomViewerFrame::OnEntityAdd(wxCommandEvent& evt)
+{
+	m_roomview->AddEntity();
+}
+
+void RoomViewerFrame::OnEntityDelete(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->DeleteSelectedEntity();
+}
+
+void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->MoveSelectedEntityUp();
+}
+
+void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->MoveSelectedEntityDown();
+}
+
 void RoomViewerFrame::FireEvent(const wxEventType& e)
 {
 	wxCommandEvent evt(e);
+	evt.SetClientData(this);
 	wxPostEvent(this, evt);
 }
 
@@ -495,5 +633,6 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, const std::string& userdat
 {
 	wxCommandEvent evt(e);
 	evt.SetString(userdata);
+	evt.SetClientData(this);
 	wxPostEvent(this, evt);
 }

@@ -4,6 +4,7 @@
 #include "EditorFrame.h"
 #include "RoomViewerCtrl.h"
 #include "LayerControlFrame.h"
+#include "EntityControlFrame.h"
 #include "GameData.h"
 #include <memory>
 
@@ -11,7 +12,7 @@ class RoomViewerFrame : public EditorFrame
 {
 public:
 
-	RoomViewerFrame(wxWindow* parent);
+	RoomViewerFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~RoomViewerFrame();
 
 	RoomViewerCtrl::Mode GetMode() const { return m_mode; }
@@ -29,7 +30,10 @@ public:
 	bool ExportPng(const std::string& path);
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
+
+	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
+	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
@@ -44,8 +48,16 @@ private:
 	void OnImportCsv();
 	void UpdateUI() const;
 
+	void OnKeyDown(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
+	void OnEntityUpdate(wxCommandEvent& evt);
+	void OnEntitySelect(wxCommandEvent& evt);
+	void OnEntityOpenProperties(wxCommandEvent& evt);
+	void OnEntityAdd(wxCommandEvent& evt);
+	void OnEntityDelete(wxCommandEvent& evt);
+	void OnEntityMoveUp(wxCommandEvent& evt);
+	void OnEntityMoveDown(wxCommandEvent& evt);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 
@@ -54,6 +66,7 @@ private:
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
 	LayerControlFrame* m_layerctrl;
+	EntityControlFrame* m_entityctrl;
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;

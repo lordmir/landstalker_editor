@@ -80,7 +80,7 @@ public:
     uint16_t GetFallDestination(uint16_t room) const;
     bool HasClimbDestination(uint16_t room) const;
     uint16_t GetClimbDestination(uint16_t room) const;
-    std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
+    std::vector<WarpList::Transition> GetTransitions(uint16_t room) const;
 
 protected:
     virtual void CommitAllChanges();

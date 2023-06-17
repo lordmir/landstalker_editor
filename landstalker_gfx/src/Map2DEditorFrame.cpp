@@ -53,8 +53,8 @@ EVT_COMBOBOX(ID_TILESET_SELECT, Map2DEditorFrame::OnTilesetSelect)
 EVT_COMBOBOX(ID_PALETTE_SELECT, Map2DEditorFrame::OnPaletteSelect)
 wxEND_EVENT_TABLE()
 
-Map2DEditorFrame::Map2DEditorFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+Map2DEditorFrame::Map2DEditorFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_zoom(6),
 	  m_zoomslider(nullptr),

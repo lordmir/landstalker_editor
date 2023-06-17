@@ -99,14 +99,14 @@ uint16_t WarpList::GetClimbDestination(uint16_t room) const
 	return m_climb_dests.find(room)->second;
 }
 
-std::map<std::pair<uint16_t, uint16_t>, uint16_t> WarpList::GetTransitions(uint16_t room) const
+std::vector<WarpList::Transition> WarpList::GetTransitions(uint16_t room) const
 {
-	std::map<std::pair<uint16_t, uint16_t>, uint16_t> retval;
+	std::vector<Transition> retval;
 	for (const auto& t : m_transitions)
 	{
-		if ((t.first.first == room) || (t.first.second == room))
+		if ((t.src_rm == room) || (t.dst_rm == room))
 		{
-			retval.emplace(t);
+			retval.push_back(t);
 		}
 	}
 	return retval;
@@ -165,15 +165,17 @@ std::vector<uint8_t> WarpList::GetClimbBytes() const
 std::vector<uint8_t> WarpList::GetTransitionBytes() const
 {
 	std::vector<uint8_t> retval;
-	retval.reserve(m_transitions.size() * 6 + 4);
-	for (const auto& dest : m_transitions)
+	std::vector<Transition> out(m_transitions);
+	std::sort(out.begin(), out.end());
+	retval.reserve(out.size() * 6 + 4);
+	for (const auto& txn : out)
 	{
-		retval.push_back(dest.first.first >> 8);
-		retval.push_back(dest.first.first & 0xFF);
-		retval.push_back(dest.first.second >> 8);
-		retval.push_back(dest.first.second & 0xFF);
-		retval.push_back((dest.second >> 3) & 0xFF);
-		retval.push_back(dest.second & 0x07);
+		retval.push_back(txn.src_rm >> 8);
+		retval.push_back(txn.src_rm & 0xFF);
+		retval.push_back(txn.dst_rm >> 8);
+		retval.push_back(txn.dst_rm & 0xFF);
+		retval.push_back((txn.flag >> 3) & 0xFF);
+		retval.push_back(txn.flag & 0x07);
 	}
 	retval.push_back(0xFF);
 	retval.push_back(0xFF);
@@ -219,7 +221,7 @@ void WarpList::ProcessTransitionList(const std::vector<uint8_t>& bytes)
 	{
 		uint16_t destination = (*(it + 2) << 8) | *(it + 3);
 		uint16_t flag = (*(it + 4) << 3) | *(it + 5);
-		m_transitions.insert({{target, destination}, flag});
+		m_transitions.push_back(Transition(target, destination, flag));
 		it += 6;
 		target = (*it << 8) | *(it + 1);
 	}
@@ -303,4 +305,43 @@ bool WarpList::Warp::operator==(const Warp& rhs) const
 bool WarpList::Warp::operator!=(const Warp& rhs) const
 {
 	return !(*this == rhs);
+}
+
+bool WarpList::Transition::operator==(const Transition& rhs) const
+{
+	return (this->src_rm == rhs.src_rm && this->dst_rm == rhs.dst_rm
+		&& this->flag == rhs.flag);
+}
+
+bool WarpList::Transition::operator!=(const Transition& rhs) const
+{
+	return !(*this == rhs);
+}
+
+bool WarpList::Transition::operator<(const Transition& rhs) const
+{
+	if (this->dst_rm < rhs.dst_rm)
+	{
+		return true;
+	}
+	if (this->dst_rm == rhs.dst_rm && this->src_rm > rhs.src_rm)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool WarpList::Transition::operator<=(const Transition& rhs) const
+{
+	return (*this < rhs) || (*this == rhs);
+}
+
+bool WarpList::Transition::operator>(const Transition& rhs) const
+{
+	return !(*this <= rhs);
+}
+
+bool WarpList::Transition::operator>=(const Transition& rhs) const
+{
+	return !(*this < rhs);
 }

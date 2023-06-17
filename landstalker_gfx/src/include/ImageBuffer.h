@@ -22,7 +22,7 @@ public:
 	void Clear();
 	void Resize(std::size_t width, std::size_t height);
 	void InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha = true);
-	void InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame);
+	void InsertSprite(int x, int y, uint8_t palette_index, const SpriteFrame& frame, bool hflip = false);
 	void InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset);
 	void Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer,
 		const std::shared_ptr<const Tilemap3D> map, const std::shared_ptr<const Tileset> tileset,

@@ -30,13 +30,13 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 {
     m_imgs = new ImageList();
     wxGridSizer* sizer = new wxGridSizer(1);
-    m_editors.insert({ EditorType::TILESET, new TilesetEditorFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_mainwin) });
-    m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin) });
+    m_editors.insert({ EditorType::TILESET, new TilesetEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::PALETTE, new PaletteListFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::MAP_VIEW, new RoomViewerFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {

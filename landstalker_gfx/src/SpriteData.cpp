@@ -374,6 +374,11 @@ uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
 	return m_sprite_to_entity_lookup.find(id)->second;
 }
 
+bool SpriteData::EntityHasSprite(uint8_t id) const
+{
+	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+}
+
 std::vector<uint8_t> SpriteData::GetEntitiesFromSprite(uint8_t id) const
 {
 	std::vector<uint8_t> results;
@@ -392,6 +397,16 @@ std::pair<uint8_t, uint8_t> SpriteData::GetSpriteHitbox(uint8_t id) const
 	assert(m_sprite_dimensions.find(id) != m_sprite_dimensions.cend());
 	const auto& result = m_sprite_dimensions.find(id)->second;
 	return { result[0], result[1] };
+}
+
+std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
+{
+	if (!EntityHasSprite(id))
+	{
+		return { 8, 10 };
+	}
+	uint8_t sprite_id = GetSpriteFromEntity(id);
+	return GetSpriteHitbox(sprite_id);
 }
 
 void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base)
@@ -416,6 +431,12 @@ bool SpriteData::IsItem(uint8_t sprite_id) const
 {
 	auto entities = GetEntitiesFromSprite(sprite_id);
 	return std::all_of(entities.cbegin(), entities.cend(), [](uint8_t v) { return v >= 0xC0; });
+}
+
+bool SpriteData::HasFrontAndBack(uint8_t entity_id) const
+{
+	auto sprite_id = GetSpriteFromEntity(entity_id);
+	return !IsItem(sprite_id) && GetSpriteAnimationCount(sprite_id) > 1;
 }
 
 std::string SpriteData::GetSpriteName(uint8_t id) const
@@ -507,7 +528,10 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t
 
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t anim, uint8_t frame) const
 {
-	assert(m_animations.find(id) != m_animations.cend());
+	if (m_animations.find(id) == m_animations.cend())
+	{
+		return nullptr;
+	}
 	assert(m_animations.find(id)->second.size() > anim);
 	const auto& name = m_animations.find(id)->second[anim];
 	return GetSpriteFrame(name, frame);
@@ -553,12 +577,12 @@ std::vector<std::string> SpriteData::GetSpriteAnimationFrames(const std::string&
 	return GetSpriteAnimationFrames(id, anim_id);
 }
 
-std::vector<std::array<uint8_t, 8>> SpriteData::GetRoomEntities(uint16_t room) const
+std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
 {
 	auto it = m_room_entities.find(room);
 	if (it == m_room_entities.cend())
 	{
-		return std::vector<std::array<uint8_t, 8>>();
+		return std::vector<Entity>();
 	}
 	else
 	{
@@ -566,7 +590,7 @@ std::vector<std::array<uint8_t, 8>> SpriteData::GetRoomEntities(uint16_t room) c
 	}
 }
 
-void SpriteData::SetRoomEntities(uint16_t room, const std::vector<std::array<uint8_t, 8>>& entities)
+void SpriteData::SetRoomEntities(uint16_t room, const std::vector<Entity>& entities)
 {
 	m_room_entities[room] = entities;
 }
@@ -613,6 +637,23 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
 	}
 
 	return GetSpritePalette(lo, hi);
+}
+
+std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
+{
+	int lo = -1;
+	int hi = -1;
+
+	if (m_lo_palette_lookup.find(idx) != m_lo_palette_lookup.cend())
+	{
+		lo = m_lo_palette_lookup.find(idx)->second->GetIndex();
+	}
+	if (m_hi_palette_lookup.find(idx) != m_hi_palette_lookup.cend())
+	{
+		hi = m_hi_palette_lookup.find(idx)->second->GetIndex();
+	}
+
+	return { lo, hi };
 }
 
 uint8_t SpriteData::GetLoPaletteCount() const
@@ -926,11 +967,12 @@ void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const Byt
 			continue;
 		}
 		offset--;
-		m_room_entities.insert({ i, std::vector<std::array<uint8_t, 8>>() });
+		m_room_entities.insert({ i, std::vector<Entity>() });
 		while (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF)
 		{
-			m_room_entities[i].emplace_back();
-			std::copy_n(bytes.cbegin() + offset, 8, m_room_entities[i].back().begin());
+			std::array<uint8_t, 8> data;
+			std::copy_n(bytes.cbegin() + offset, 8, data.begin());
+			m_room_entities[i].emplace_back(data);
 			offset += 8;
 		}
 	}
@@ -954,7 +996,8 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 		offsets.push_back(offset & 0xFF);
 		for (const auto& ent : res->second)
 		{
-			bytes.insert(bytes.end(), std::begin(ent), std::end(ent));
+			auto data = ent.GetData();
+			bytes.insert(bytes.end(), std::begin(data), std::end(data));
 		}
 		bytes.push_back(0xFF);
 		bytes.push_back(0xFF);

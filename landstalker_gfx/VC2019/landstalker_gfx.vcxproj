@@ -27,6 +27,9 @@
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
+    <ClCompile Include="..\src\Entity.cpp" />
+    <ClCompile Include="..\src\EntityControlFrame.cpp" />
+    <ClCompile Include="..\src\EntityPropertiesWindow.cpp" />
     <ClCompile Include="..\src\EntryPreferences.cpp" />
     <ClCompile Include="..\src\GameData.cpp" />
     <ClCompile Include="..\src\GraphicsData.cpp" />
@@ -98,6 +101,9 @@
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
+    <ClInclude Include="..\src\include\Entity.h" />
+    <ClInclude Include="..\src\include\EntityControlFrame.h" />
+    <ClInclude Include="..\src\include\EntityPropertiesWindow.h" />
     <ClInclude Include="..\src\include\EntryPreferences.h" />
     <ClInclude Include="..\src\include\GameData.h" />
     <ClInclude Include="..\src\include\GraphicsData.h" />

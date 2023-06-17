@@ -2,8 +2,12 @@
 
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
+#include <unordered_map>
 
 #include "EditorFrame.h"
+#include "EntityPropertiesWindow.h"
+
+wxDEFINE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(RoomViewerCtrl, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(RoomViewerCtrl::OnEraseBackground)
@@ -12,10 +16,11 @@ EVT_SIZE(RoomViewerCtrl::OnSize)
 EVT_MOTION(RoomViewerCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(RoomViewerCtrl::OnMouseLeave)
 EVT_LEFT_UP(RoomViewerCtrl::OnLeftClick)
+EVT_LEFT_DCLICK(RoomViewerCtrl::OnLeftDblClick)
 wxEND_EVENT_TABLE()
 
 RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
-	: wxScrolledCanvas(parent, wxID_ANY),
+	: wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
 	  m_roomnum(0),
       m_bmp(new wxBitmap),
       m_zoom(1.0),
@@ -25,7 +30,8 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_buffer_width(1),
       m_buffer_height(1),
       m_redraw(false),
-      m_repaint(false)
+      m_repaint(false),
+      m_selected(-1)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -57,8 +63,64 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
 {
 	m_roomnum = roomnum;
     m_mode = mode;
+    m_selected = -1;
+    if (m_g != nullptr)
+    {
+        m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
+        FireEvent(EVT_ENTITY_UPDATE);
+    }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
+}
+
+void RoomViewerCtrl::SelectEntity(int selection)
+{
+    if (selection != m_selected && (selection == -1
+        || (selection > 0 && selection <= m_entities.size())))
+    {
+        m_selected = selection;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+void RoomViewerCtrl::ClearSelection()
+{
+    if (m_selected != -1)
+    {
+        m_selected = -1;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+int RoomViewerCtrl::GetTotalEntities() const
+{
+    return m_entities.size();
+}
+
+bool RoomViewerCtrl::IsEntitySelected() const
+{
+    return (m_selected > 0 && m_selected <= m_entities.size());
+}
+
+int RoomViewerCtrl::GetSelectedEntityIndex() const
+{
+    return m_selected;
+}
+
+const Entity& RoomViewerCtrl::GetSelectedEntity() const
+{
+    assert(m_selected > 0 && m_selected <= m_entities.size());
+    return m_entities[m_selected - 1];
+}
+
+const std::vector<Entity>& RoomViewerCtrl::GetEntities() const
+{
+    return m_entities;
 }
 
 void RoomViewerCtrl::SetZoom(double zoom)
@@ -70,6 +132,7 @@ void RoomViewerCtrl::SetZoom(double zoom)
     }
     auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
     UpdateBuffer();
+    auto q = PrepareSprites(m_roomnum);
     switch (m_mode)
     {
     case Mode::HEIGHTMAP:
@@ -81,12 +144,14 @@ void RoomViewerCtrl::SetZoom(double zoom)
         {
             m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
         }
+        DrawSpriteHitboxes(q);
         break;
     case Mode::NORMAL:
         if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
         {
             m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
         }
+        DrawSpriteHitboxes(q);
         break;
     }
     UpdateScroll();
@@ -119,9 +184,9 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     }
     auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
     auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(roomnum);
-    auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
     auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
     auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+    m_rpalette = PreparePalettes(roomnum);
 
     m_warp_poly.clear();
     m_link_poly.clear();
@@ -134,26 +199,298 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     {
         m_layer_bufs[Layer::BACKGROUND1]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND1]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeBitmap(palette,
+        m_layers.insert({ Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeBitmap(m_rpalette,
             true, m_layer_opacity[Layer::BACKGROUND1]) });
     }
     if (m_layer_opacity[Layer::BACKGROUND2] > 0)
     {
         m_layer_bufs[Layer::BACKGROUND2]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND2]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeBitmap(palette,
+        m_layers.insert({ Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeBitmap(m_rpalette,
             true, m_layer_opacity[Layer::BACKGROUND2], 0) });
     }
     if (m_layer_opacity[Layer::FOREGROUND] > 0)
     {
         m_layer_bufs[Layer::FOREGROUND]->Resize(m_width, m_height);
         m_layer_bufs[Layer::FOREGROUND]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeBitmap(palette,
+        m_layers.insert({ Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeBitmap(m_rpalette,
             true, 0, m_layer_opacity[Layer::FOREGROUND]) });
     }
     if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
     {
         m_layers.insert({ Layer::HEIGHTMAP, DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]) });
+    }
+    if (m_layer_opacity[Layer::FG_SPRITES] > 0)
+    {
+        RedrawAllSprites();
+    }
+}
+
+void RoomViewerCtrl::RedrawAllSprites()
+{
+    m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+    m_layer_bufs[Layer::BG_SPRITES]->Resize(m_width, m_height);
+    m_rpalette = PreparePalettes(m_roomnum);
+    auto q = PrepareSprites(m_roomnum);
+    DrawSpriteHitboxes(q);
+    DrawSprites(q);
+    UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+        true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
+    UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+        true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
+}
+
+void RoomViewerCtrl::UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp)
+{
+    if (m_layers.find(layer) == m_layers.cend())
+    {
+        m_layers.insert({ layer, bmp });
+    }
+    else
+    {
+        m_layers[layer] = bmp;
+    }
+}
+
+std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t roomnum)
+{
+    auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
+    palette.emplace_back();
+    palette.emplace_back(m_g->GetGraphicsData()->GetPlayerPalette()->GetData());
+    palette.emplace_back(m_g->GetGraphicsData()->GetHudPalette()->GetData());
+    m_errors.clear();
+    std::array<int, 3> sprite_palette_alloc = { -1, -1, -1 };
+    m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+    int i = 0;
+    for (const auto& entity : m_entities)
+    {
+        auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
+        const uint8_t pal_slot = entity.GetPalette();
+        if (pal_slot == 1 || pal_slot == 3)
+        {
+            const int lo = s_pal.first;
+            const int hi = s_pal.second;
+            if (lo != -1)
+            {
+                if (sprite_palette_alloc[pal_slot - 1] == -1)
+                {
+                    sprite_palette_alloc[pal_slot - 1] = lo;
+                }
+                else if (sprite_palette_alloc[pal_slot - 1] != lo)
+                {
+                    m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
+                        pal_slot, sprite_palette_alloc[pal_slot - 1], lo));
+                }
+            }
+            if (hi != -1) // Hi Palette
+            {
+                if (pal_slot == 3)
+                {
+                    m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
+                            pal_slot, hi));
+                }
+                else
+                {
+                    if (sprite_palette_alloc[pal_slot] == -1)
+                    {
+                        sprite_palette_alloc[pal_slot] = hi;
+                    }
+                    else if (sprite_palette_alloc[pal_slot] != hi)
+                    {
+                        m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
+                            pal_slot, sprite_palette_alloc[pal_slot], hi));
+                    }
+                }
+            }
+        }
+    }
+    palette[3] = std::make_shared<Palette>(std::vector<std::shared_ptr<Palette>>{ palette[3], m_g->GetSpriteData()->GetSpritePalette(sprite_palette_alloc[2], -1) });
+    palette[1] = m_g->GetSpriteData()->GetSpritePalette(sprite_palette_alloc[0], sprite_palette_alloc[1]);
+    return palette;
+}
+
+std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roomnum)
+{
+    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+    std::vector<SpriteQ> sprites;
+    int i = 1;
+    for (const auto& entity : m_entities)
+    {
+        SpriteQ s;
+        if (m_g->GetSpriteData()->HasFrontAndBack(entity.GetType()))
+        {
+            auto sprite = m_g->GetSpriteData()->GetSpriteFromEntity(entity.GetType());
+            int anim = 0;
+            if ((entity.GetOrientation() == Orientation::SW || entity.GetOrientation() == Orientation::SE))
+            {
+                anim = 1;
+            }
+            auto frame = m_g->GetSpriteData()->GetSpriteFrame(sprite, anim, 0);
+            s.frame = frame->GetData();
+        }
+        else
+        {
+            auto frame = m_g->GetSpriteData()->GetDefaultEntityFrame(entity.GetType());
+            s.frame = frame->GetData();
+        }
+        s.id = i;
+        s.entity = entity;
+        s.palette = entity.GetPalette();
+        s.hflip = (entity.GetOrientation() == Orientation::NW || entity.GetOrientation() == Orientation::SE);
+        s.background = false;
+        s.selected = (i == m_selected);
+
+        auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(entity.GetType());
+
+        int x = entity.GetX() + 0x080;
+        int y = entity.GetY() - 0x080;
+        int z = entity.GetZ();
+
+        if (hitbox.first >= 0x0C)
+        {
+            x += 0x80;
+            y += 0x80;
+        }
+
+        auto xy = map->EntityPositionToPixel(x, y, z);
+        s.x = xy.x;
+        s.y = xy.y;
+        sprites.push_back(s);
+        i++;
+    }
+    // Fix draw order
+    std::sort(sprites.begin(), sprites.end(), [this](const SpriteQ& lhs, const SpriteQ& rhs) -> bool
+        {
+            if (lhs.selected || rhs.selected)
+            {
+                return rhs.selected;
+            }
+            // Draw objects furthest away from camera first
+            auto hitbox_lhs = m_g->GetSpriteData()->GetEntityHitbox(lhs.entity.GetType());
+            auto hitbox_rhs = m_g->GetSpriteData()->GetEntityHitbox(rhs.entity.GetType());
+            int dist_lhs = lhs.entity.GetX() + lhs.entity.GetY() + hitbox_lhs.first;
+            int dist_rhs = rhs.entity.GetX() + rhs.entity.GetY() + hitbox_rhs.first;
+            if (dist_lhs != dist_rhs)
+            {
+                return dist_lhs < dist_rhs;
+            }
+            // Next draw left-most objects
+            int left_lhs = lhs.entity.GetY() - hitbox_lhs.first;
+            int left_rhs = rhs.entity.GetY() - hitbox_rhs.first;
+            if (left_lhs < left_rhs)
+            {
+                return left_lhs < left_rhs;
+            }
+            // Finally, sort by height
+            int height_lhs = lhs.entity.GetZ() + hitbox_lhs.second;
+            int height_rhs = rhs.entity.GetZ() + hitbox_rhs.second;
+            return height_lhs < height_rhs;
+        });
+    return sprites;
+}
+
+void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
+{
+    std::unordered_map<Layer, wxImage> layers;
+    std::unordered_map<Layer, wxGraphicsContext*> ctxs;
+    layers.insert({ Layer::BG_SPRITES_WIREFRAME_BG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::BG_SPRITES_WIREFRAME_FG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::FG_SPRITES_WIREFRAME_BG, wxImage(m_buffer_width, m_buffer_height) });
+    layers.insert({ Layer::FG_SPRITES_WIREFRAME_FG, wxImage(m_buffer_width, m_buffer_height) });
+    
+    m_entity_poly.clear();
+    
+    for (auto& img : layers)
+    {
+        img.second.InitAlpha();
+        SetOpacity(img.second, 0x00);
+        auto ctx = wxGraphicsContext::Create(img.second);
+        ctx->Scale(m_zoom, m_zoom);
+        ctx->SetPen(*wxTRANSPARENT_PEN);
+        ctx->SetBrush(*wxBLACK_BRUSH);
+        ctxs.insert({ img.first, ctx });
+    }
+    for (const auto& s : q)
+    {
+        auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(s.entity.GetType());
+
+        wxPoint2DDouble shadow_points[] = {
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y - hitbox.first),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y)
+        };
+        wxPoint2DDouble hitbox_fg_points[] = {
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x, s.y + hitbox.first),
+            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
+            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
+            wxPoint2DDouble(s.x, s.y - hitbox.first - hitbox.second),
+            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second)
+        };
+
+        m_entity_poly.push_back({ s.id, {
+            {(double)(s.x + hitbox.first * 2), (double)(s.y)},
+            {(double)(s.x + hitbox.first * 2), (double)(s.y - hitbox.second)},
+            {(double)(s.x), (double)(s.y - hitbox.first - hitbox.second)},
+            {(double)(s.x - hitbox.first * 2), (double)(s.y - hitbox.second)},
+            {(double)(s.x - hitbox.first * 2), (double)(s.y)},
+            {(double)(s.x), (double)(s.y + hitbox.first)},
+            {(double)(s.x + hitbox.first * 2), (double)(s.y)}
+        } });
+
+        //hm_gc->DrawLines(sizeof(shadow_points) / sizeof(shadow_points[0]), shadow_points);
+        auto fg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_FG] : ctxs[Layer::FG_SPRITES_WIREFRAME_FG];
+        auto bg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_BG] : ctxs[Layer::FG_SPRITES_WIREFRAME_BG];
+        auto dotted_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_DOT));
+        bg_ctx->SetPen(dotted_pen);
+        bg_ctx->StrokeLine(s.x + hitbox.first * 2, s.y, s.x, s.y - hitbox.first);
+        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x - hitbox.first * 2, s.y);
+        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x, s.y - hitbox.first - hitbox.second);
+        auto solid_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_SOLID));
+        fg_ctx->SetPen(solid_pen);
+        fg_ctx->StrokeLines(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), hitbox_fg_points);
+    }
+    for (auto& ctx : ctxs)
+    {
+        delete ctx.second;
+    }
+    ctxs.clear();
+    for (auto& layer : layers)
+    {
+        if (m_layers.find(layer.first) == m_layers.cend())
+        {
+            m_layers.insert({ layer.first, std::make_shared<wxBitmap>(layer.second) });
+        }
+        else
+        {
+            m_layers[layer.first] = std::make_shared<wxBitmap>(layer.second);
+        }
+    }
+}
+
+void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>& q)
+{
+    for (const auto& s : q)
+    {
+        if (s.frame != nullptr)
+        {
+            if (s.background)
+            {
+                m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+            }
+            else
+            {
+                m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+            }
+        }
     }
 }
 
@@ -206,10 +543,10 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
         line++;
     }
     auto txns = m_g->GetRoomData()->GetTransitions(roomnum);
-    for (const auto t : txns)
+    for (const auto& t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == roomnum) ? "SET" : "CLEAR");
-        uint16_t dest = (t.first.first == roomnum) ? t.first.second : t.first.first;
+        std::string label = StrPrintf("Transition when flag %04d is %s:", t.flag, (t.src_rm == roomnum) ? "SET" : "CLEAR");
+        uint16_t dest = (t.src_rm == roomnum) ? t.dst_rm : t.src_rm;
         AddRoomLink(gc, label, dest, 5, 5 + line * 16);
         line++;
     }
@@ -517,6 +854,16 @@ void RoomViewerCtrl::RefreshGraphics()
     ForceRedraw();
 }
 
+int RoomViewerCtrl::GetErrorCount() const
+{
+    return m_errors.size();
+}
+
+std::string RoomViewerCtrl::GetErrorText(int errnum) const
+{
+    return m_errors.at(errnum);
+}
+
 const std::string& RoomViewerCtrl::GetStatusText() const
 {
     return m_status_text;
@@ -579,13 +926,17 @@ void RoomViewerCtrl::OnDraw(wxDC& dc)
         mdc.Clear();
         for (const auto& layer : m_layers)
         {
-            if (layer.first == Layer::HEIGHTMAP || layer.first == Layer::WARPS)
+            if (layer.first == Layer::BACKGROUND1 ||
+                layer.first == Layer::BACKGROUND2 ||
+                layer.first == Layer::FOREGROUND ||
+                layer.first == Layer::BG_SPRITES ||
+                layer.first == Layer::FG_SPRITES)
             {
-                mdc.SetUserScale(1.0, 1.0);
+                mdc.SetUserScale(m_zoom, m_zoom);
             }
             else
             {
-                mdc.SetUserScale(m_zoom, m_zoom);
+                mdc.SetUserScale(1.0, 1.0);
             }
             mdc.DrawBitmap(*layer.second, 0, 0, true);
         }
@@ -618,21 +969,22 @@ void RoomViewerCtrl::OnSize(wxSizeEvent& evt)
 
 void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
 {
-    if (m_g != nullptr && m_mode == Mode::WARPS)
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+    std::string status_text = m_status_text;
+    if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            int x, y;
-            GetViewStart(&x, &y);
-            x *= m_scroll_rate;
-            y *= m_scroll_rate;
-            x += evt.GetX();
-            y += evt.GetY();
-            x = std::ceil(x / m_zoom);
-            y = std::ceil(y / m_zoom);
             auto r = map->PixelToHMPoint({ x,y });
-            auto status_text = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
+            status_text = StrPrintf("(%d,%d) [%d,%d]", x, y, r.x, r.y);
             SetCursor(wxCURSOR_ARROW);
             for (const auto& wp : m_warp_poly)
             {
@@ -643,15 +995,13 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                     uint8_t wy = (wp.first.room1 == m_roomnum) ? wp.first.y2 : wp.first.y1;
                     status_text += StrPrintf(" - Warp to room %03d (%d,%d)", room, wx, wy);
                     SetCursor(wxCURSOR_HAND);
-                    break;
-                }
-            }
-            for (const auto& lp : m_link_poly)
-            {
-                if (Pnpoly(lp.second, x, y))
-                {
-                    SetCursor(wxCURSOR_HAND);
-                    break;
+                    if (status_text != m_status_text)
+                    {
+                        m_status_text = status_text;
+                        FireEvent(EVT_STATUSBAR_UPDATE);
+                    }
+                    evt.Skip();
+                    return;
                 }
             }
             if (status_text != m_status_text)
@@ -659,9 +1009,94 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                 m_status_text = status_text;
                 FireEvent(EVT_STATUSBAR_UPDATE);
             }
+            for (const auto& lp : m_link_poly)
+            {
+                if (Pnpoly(lp.second, x, y))
+                {
+                    SetCursor(wxCURSOR_HAND);
+                    evt.Skip();
+                    return;
+                }
+            }
+            for (const auto& ep : m_entity_poly)
+            {
+                if (Pnpoly(ep.second, x, y))
+                {
+                    SetCursor(wxCURSOR_HAND);
+                    status_text += StrPrintf(" - Entity(%d)", ep.first);
+                    if (status_text != m_status_text)
+                    {
+                        m_status_text = status_text;
+                        FireEvent(EVT_STATUSBAR_UPDATE);
+                    }
+                    evt.Skip();
+                    return;
+                }
+            }
         }
     }
+    SetCursor(wxCURSOR_ARROW);
     evt.Skip();
+}
+
+void RoomViewerCtrl::UpdateEntityProperties(int entity)
+{
+    if (entity > 0 && entity <= m_entities.size())
+    {
+        EntityPropertiesWindow dlg(m_parent, entity, &m_entities[entity - 1]);
+        if (dlg.ShowModal() == wxID_OK)
+        {
+            m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+            FireEvent(EVT_STATUSBAR_UPDATE);
+            FireEvent(EVT_ENTITY_UPDATE);
+            RedrawAllSprites();
+            ForceRedraw();
+        }
+    }
+}
+
+void RoomViewerCtrl::AddEntity()
+{
+    DoAddEntity();
+    FireEvent(EVT_STATUSBAR_UPDATE);
+    FireEvent(EVT_ENTITY_UPDATE);
+    RedrawAllSprites();
+    ForceRedraw();
+}
+
+void RoomViewerCtrl::DeleteSelectedEntity()
+{
+    DoDeleteEntity(m_selected);
+    FireEvent(EVT_STATUSBAR_UPDATE);
+    FireEvent(EVT_ENTITY_UPDATE);
+    RedrawAllSprites();
+    ForceRedraw();
+}
+
+void RoomViewerCtrl::MoveSelectedEntityUp()
+{
+    if (m_selected > 1)
+    {
+        DoMoveEntityUp(m_selected);
+        m_selected--;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+void RoomViewerCtrl::MoveSelectedEntityDown()
+{
+    if (m_selected < m_entities.size())
+    {
+        DoMoveEntityDown(m_selected);
+        m_selected++;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
 }
 
 void RoomViewerCtrl::OnMouseLeave(wxMouseEvent& evt)
@@ -672,24 +1107,25 @@ void RoomViewerCtrl::OnMouseLeave(wxMouseEvent& evt)
 
 void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
 {
-    SetCursor(wxCURSOR_ARROW);
-    if (m_g != nullptr && m_mode == Mode::WARPS)
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+    int selected = -1;
+    if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            int x, y;
-            GetViewStart(&x, &y);
-            x *= m_scroll_rate;
-            y *= m_scroll_rate;
-            x += evt.GetX();
-            y += evt.GetY();
-            x = std::ceil(x / m_zoom);
-            y = std::ceil(y / m_zoom);
             for (const auto& wp : m_warp_poly)
             {
                 if (Pnpoly(wp.second, x, y))
                 {
+                    SetCursor(wxCURSOR_ARROW);
                     uint16_t room = (wp.first.room1 == m_roomnum) ? wp.first.room2 : wp.first.room1;
                     GoToRoom(room);
                     break;
@@ -699,10 +1135,251 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
             {
                 if (Pnpoly(lp.second, x, y))
                 {
+                    SetCursor(wxCURSOR_ARROW);
                     GoToRoom(lp.first);
                     break;
                 }
             }
+            for (const auto& ep : m_entity_poly)
+            {
+                if (Pnpoly(ep.second, x, y))
+                {
+                    selected = ep.first;
+                    break;
+                }
+            }
+        }
+    }
+    if (m_selected != selected)
+    {
+        m_selected = selected;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+    evt.Skip();
+}
+
+bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
+{
+    if (m_redraw)
+    {
+        return true;
+    }
+    bool refresh_sprites = false;
+    switch (key)
+    {
+    case WXK_TAB:
+        if (modifiers == wxMOD_SHIFT)
+        {
+            m_selected--;
+            if (m_selected < 1)
+            {
+                m_selected = m_entities.size();
+            }
+            refresh_sprites = true;
+        }
+        else if (modifiers == 0)
+        {
+            m_selected++;
+            if (m_selected > m_entities.size() || m_selected < 1)
+            {
+                m_selected = 1;
+            }
+            refresh_sprites = true;
+        }
+        break;
+    case WXK_ESCAPE:
+        m_selected = -1;
+        refresh_sprites = true;
+        break;
+    case WXK_INSERT:
+        DoAddEntity();
+        refresh_sprites = true;
+        break;
+    }
+    if (!refresh_sprites && m_selected > 0 && m_selected <= m_entities.size())
+    {
+        auto& ent = m_entities[m_selected - 1];
+        switch (key)
+        {
+        case WXK_UP:
+        case 'W':
+        case 'w':
+            ent.SetX(ent.GetX() - 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_DOWN:
+        case 'S':
+        case 's':
+            ent.SetX(ent.GetX() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_LEFT:
+        case 'A':
+        case 'a':
+            ent.SetY(ent.GetY() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_RIGHT:
+        case 'D':
+        case 'd':
+            ent.SetY(ent.GetY() - 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_PAGEUP:
+            ent.SetZ(ent.GetZ() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_PAGEDOWN:
+            ent.SetZ(ent.GetZ() - 0x80);
+            refresh_sprites = true;
+            break;
+        case '+':
+            ent.SetType((ent.GetType() + 1) & 0xFF);
+            refresh_sprites = true;
+            break;
+        case '-':
+            ent.SetType((ent.GetType() - 1) & 0xFF);
+            refresh_sprites = true;
+            break;
+        case WXK_DELETE:
+            if (modifiers == wxMOD_SHIFT)
+            {
+                DoDeleteEntity(m_selected);
+                refresh_sprites = true;
+            }
+            break;
+        case 'R':
+        case 'r':
+            if (modifiers == wxMOD_SHIFT)
+            {
+                ent.SetOrientation(static_cast<Orientation>(
+                    (static_cast<int>(ent.GetOrientation()) + 1) & 0x03));
+                refresh_sprites = true;
+            }
+            else if (modifiers == 0)
+            {
+                ent.SetOrientation(static_cast<Orientation>(
+                    (static_cast<int>(ent.GetOrientation()) - 1) & 0x03));
+                refresh_sprites = true;
+            }
+            break;
+        case 'P':
+        case 'p':
+            if (modifiers == wxMOD_SHIFT)
+            {
+                ent.SetPalette((ent.GetPalette() + 1) & 0x03);
+                refresh_sprites = true;
+            }
+            else if (modifiers == 0)
+            {
+                ent.SetPalette((ent.GetPalette() - 1) & 0x03);
+                refresh_sprites = true;
+            }
+            break;
+        case 'U':
+        case 'u':
+            if (m_entities.size() < 15)
+            {
+                m_entities.push_back(ent);
+                m_entities.back().SetX(m_entities.back().GetX() + 0x100);
+                m_selected = m_entities.size();
+                refresh_sprites = true;
+            }
+            break;
+        case '[':
+            if (m_selected > 1)
+            {
+                DoMoveEntityUp(m_selected);
+                m_selected--;
+                refresh_sprites = true;
+            }
+            break;
+        case ']':
+            if (m_selected < m_entities.size())
+            {
+                DoMoveEntityDown(m_selected);
+                m_selected++;
+                refresh_sprites = true;
+            }
+            break;
+        case WXK_RETURN:
+            UpdateEntityProperties(m_selected);
+            break;
+        }
+    }
+    if (refresh_sprites)
+    {
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+        return false;
+    }
+    return true;
+}
+
+void RoomViewerCtrl::DoAddEntity()
+{
+    if (m_entities.size() < 15)
+    {
+        m_entities.push_back(Entity());
+        m_selected = m_entities.size();
+    }
+}
+
+void RoomViewerCtrl::DoDeleteEntity(int entity)
+{
+    if (entity > 0 && entity <= m_entities.size())
+    {
+        m_entities.erase(m_entities.begin() + (m_selected - 1));
+        if (m_entities.size() == 0)
+        {
+            m_selected = -1;
+        }
+        else if (m_selected > m_entities.size())
+        {
+            m_selected = m_entities.size();
+        }
+    }
+}
+
+void RoomViewerCtrl::DoMoveEntityUp(int entity)
+{
+    if (entity > 1 && entity <= m_entities.size())
+    {
+        std::swap(m_entities[entity - 1], m_entities[entity - 2]);
+    }
+}
+
+void RoomViewerCtrl::DoMoveEntityDown(int entity)
+{
+    if (entity > 0 && entity < m_entities.size())
+    {
+        std::swap(m_entities[entity - 1], m_entities[entity]);
+    }
+}
+
+void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
+{
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+
+    for (const auto& ep : m_entity_poly)
+    {
+        if (Pnpoly(ep.second, x, y) && ep.first == m_selected)
+        {
+            UpdateEntityProperties(m_selected);
+            break;
         }
     }
     evt.Skip();

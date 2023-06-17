@@ -21,8 +21,8 @@ enum MENU_IDS
 	ID_PENCIL
 };
 
-BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY)
+BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst)
 {
 	m_mgr.SetManagedWindow(this);
 

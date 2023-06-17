@@ -610,7 +610,7 @@ uint16_t RoomData::GetClimbDestination(uint16_t room) const
     return m_warps.GetClimbDestination(room);
 }
 
-std::map<std::pair<uint16_t, uint16_t>, uint16_t> RoomData::GetTransitions(uint16_t room) const
+std::vector<WarpList::Transition> RoomData::GetTransitions(uint16_t room) const
 {
     return m_warps.GetTransitions(room);
 }

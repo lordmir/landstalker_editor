@@ -12,7 +12,7 @@ class StringEditorFrame : public EditorFrame
 {
 public:
 
-	StringEditorFrame(wxWindow* parent);
+	StringEditorFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~StringEditorFrame();
 
 	StringData::Type GetMode() const { return m_type; }

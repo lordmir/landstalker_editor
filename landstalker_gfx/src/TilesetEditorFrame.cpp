@@ -86,8 +86,8 @@ static std::vector<T> CommaListToVec(const std::string& input)
 	return ret;
 }
 
-TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_animated(false)
 {
