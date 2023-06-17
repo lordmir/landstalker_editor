@@ -1283,15 +1283,12 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
             break;
         case 'U':
         case 'u':
-            if (modifiers == wxMOD_CONTROL)
+            if (m_entities.size() < 15)
             {
-                if (m_entities.size() < 15)
-                {
-                    m_entities.push_back(ent);
-                    m_entities.back().SetX(m_entities.back().GetX() + 0x100);
-                    m_selected = m_entities.size();
-                    refresh_sprites = true;
-                }
+                m_entities.push_back(ent);
+                m_entities.back().SetX(m_entities.back().GetX() + 0x100);
+                m_selected = m_entities.size();
+                refresh_sprites = true;
             }
             break;
         case '[':
