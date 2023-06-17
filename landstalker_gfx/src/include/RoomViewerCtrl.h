@@ -44,11 +44,22 @@ public:
 	uint16_t GetRoomNum() const { return m_roomnum; }
 	Mode GetMode() const { return m_mode; }
 
+	void SelectEntity(int selection);
+	void ClearSelection();
+	int GetTotalEntities() const;
+	bool IsEntitySelected() const;
+	const Entity& GetSelectedEntity() const;
+	int GetSelectedEntityIndex() const;
+	const std::vector<Entity>& GetEntities() const;
+
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
 	void SetLayerOpacity(Layer layer, uint8_t opacity);
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
+
+	int GetErrorCount() const;
+	std::string GetErrorText(int errnum) const;
 
 	const std::string& GetStatusText() const;
 private:
@@ -89,6 +100,7 @@ private:
 	void RedrawRoom();
 	bool Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y);
 	void GoToRoom(uint16_t room);
+	void UpdateEntityProperties(int entity);
 
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
@@ -101,6 +113,8 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnLeftClick(wxMouseEvent& evt);
+	void OnLeftDblClick(wxMouseEvent& evt);
+	void OnKeyDown(wxKeyEvent& evt);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
@@ -133,6 +147,7 @@ private:
 	int m_selected;
 
 	std::string m_status_text;
+	std::vector<std::string> m_errors;
 
 	wxDECLARE_EVENT_TABLE();
 };

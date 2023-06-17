@@ -374,6 +374,11 @@ uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
 	return m_sprite_to_entity_lookup.find(id)->second;
 }
 
+bool SpriteData::EntityHasSprite(uint8_t id) const
+{
+	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+}
+
 std::vector<uint8_t> SpriteData::GetEntitiesFromSprite(uint8_t id) const
 {
 	std::vector<uint8_t> results;
@@ -396,6 +401,10 @@ std::pair<uint8_t, uint8_t> SpriteData::GetSpriteHitbox(uint8_t id) const
 
 std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
 {
+	if (!EntityHasSprite(id))
+	{
+		return { 8, 10 };
+	}
 	uint8_t sprite_id = GetSpriteFromEntity(id);
 	return GetSpriteHitbox(sprite_id);
 }
@@ -519,7 +528,10 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t
 
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t anim, uint8_t frame) const
 {
-	assert(m_animations.find(id) != m_animations.cend());
+	if (m_animations.find(id) == m_animations.cend())
+	{
+		return nullptr;
+	}
 	assert(m_animations.find(id)->second.size() > anim);
 	const auto& name = m_animations.find(id)->second[anim];
 	return GetSpriteFrame(name, frame);

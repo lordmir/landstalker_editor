@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "EditorFrame.h"
+#include "EntityPropertiesWindow.h"
 
 wxBEGIN_EVENT_TABLE(RoomViewerCtrl, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(RoomViewerCtrl::OnEraseBackground)
@@ -13,6 +14,8 @@ EVT_SIZE(RoomViewerCtrl::OnSize)
 EVT_MOTION(RoomViewerCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(RoomViewerCtrl::OnMouseLeave)
 EVT_LEFT_UP(RoomViewerCtrl::OnLeftClick)
+EVT_LEFT_DCLICK(RoomViewerCtrl::OnLeftDblClick)
+EVT_KEY_DOWN(RoomViewerCtrl::OnKeyDown)\
 wxEND_EVENT_TABLE()
 
 RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
@@ -66,6 +69,54 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
     }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
+}
+
+void RoomViewerCtrl::SelectEntity(int selection)
+{
+    if (selection > 0 && selection != m_selected && selection < m_entities.size())
+    {
+        m_selected = selection;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+void RoomViewerCtrl::ClearSelection()
+{
+    if (m_selected != -1)
+    {
+        m_selected = -1;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+int RoomViewerCtrl::GetTotalEntities() const
+{
+    return m_entities.size();
+}
+
+bool RoomViewerCtrl::IsEntitySelected() const
+{
+    return (m_selected > 0 && m_selected <= m_entities.size());
+}
+
+int RoomViewerCtrl::GetSelectedEntityIndex() const
+{
+    return m_selected;
+}
+
+const Entity& RoomViewerCtrl::GetSelectedEntity() const
+{
+    assert(m_selected > 0 && m_selected <= m_entities.size());
+    return m_entities[m_selected - 1];
+}
+
+const std::vector<Entity>& RoomViewerCtrl::GetEntities() const
+{
+    return m_entities;
 }
 
 void RoomViewerCtrl::SetZoom(double zoom)
@@ -175,6 +226,7 @@ void RoomViewerCtrl::RedrawAllSprites()
 {
     m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
     m_layer_bufs[Layer::BG_SPRITES]->Resize(m_width, m_height);
+    m_rpalette = PreparePalettes(m_roomnum);
     auto q = PrepareSprites(m_roomnum);
     DrawSpriteHitboxes(q);
     DrawSprites(q);
@@ -202,6 +254,7 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
     palette.emplace_back();
     palette.emplace_back(m_g->GetGraphicsData()->GetPlayerPalette()->GetData());
     palette.emplace_back(m_g->GetGraphicsData()->GetHudPalette()->GetData());
+    m_errors.clear();
     std::array<int, 3> sprite_palette_alloc = { -1, -1, -1 };
     m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
     int i = 0;
@@ -221,7 +274,7 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
                 }
                 else if (sprite_palette_alloc[pal_slot - 1] != lo)
                 {
-                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
+                    m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Lo orig %02X, req %02X.",
                         pal_slot, sprite_palette_alloc[pal_slot - 1], lo));
                 }
             }
@@ -229,8 +282,8 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
             {
                 if (pal_slot == 3)
                 {
-                    wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
-                        pal_slot, hi));
+                    m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Hi specified, req %02X.",
+                            pal_slot, hi));
                 }
                 else
                 {
@@ -240,7 +293,7 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
                     }
                     else if (sprite_palette_alloc[pal_slot] != hi)
                     {
-                        wxMessageBox(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
+                        m_errors.push_back(StrPrintf("Possible Palette Clash - Slot%d Hi orig %02X, req %02X.",
                             pal_slot, sprite_palette_alloc[pal_slot], hi));
                     }
                 }
@@ -423,13 +476,16 @@ void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>& q)
 {
     for (const auto& s : q)
     {
-        if (s.background)
+        if (s.frame != nullptr)
         {
-            m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
-        }
-        else
-        {
-            m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+            if (s.background)
+            {
+                m_layer_bufs[Layer::BG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+            }
+            else
+            {
+                m_layer_bufs[Layer::FG_SPRITES]->InsertSprite(s.x, s.y, s.palette, *s.frame, s.hflip);
+            }
         }
     }
 }
@@ -794,6 +850,16 @@ void RoomViewerCtrl::RefreshGraphics()
     ForceRedraw();
 }
 
+int RoomViewerCtrl::GetErrorCount() const
+{
+    return m_errors.size();
+}
+
+std::string RoomViewerCtrl::GetErrorText(int errnum) const
+{
+    return m_errors.at(errnum);
+}
+
 const std::string& RoomViewerCtrl::GetStatusText() const
 {
     return m_status_text;
@@ -948,12 +1014,12 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                     return;
                 }
             }
-            for (const auto& lp : m_entity_poly)
+            for (const auto& ep : m_entity_poly)
             {
-                if (Pnpoly(lp.second, x, y))
+                if (Pnpoly(ep.second, x, y))
                 {
                     SetCursor(wxCURSOR_HAND);
-                    status_text += StrPrintf(" - Entity(%d)", lp.first);
+                    status_text += StrPrintf(" - Entity(%d)", ep.first);
                     if (status_text != m_status_text)
                     {
                         m_status_text = status_text;
@@ -967,6 +1033,18 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
     }
     SetCursor(wxCURSOR_ARROW);
     evt.Skip();
+}
+
+void RoomViewerCtrl::UpdateEntityProperties(int entity)
+{
+    EntityPropertiesWindow dlg(m_parent, entity, &m_entities[entity - 1]);
+    if (dlg.ShowModal() == wxID_OK)
+    {
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
 }
 
 void RoomViewerCtrl::OnMouseLeave(wxMouseEvent& evt)
@@ -1010,11 +1088,11 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
                     break;
                 }
             }
-            for (const auto& lp : m_entity_poly)
+            for (const auto& ep : m_entity_poly)
             {
-                if (Pnpoly(lp.second, x, y))
+                if (Pnpoly(ep.second, x, y))
                 {
-                    selected = lp.first;
+                    selected = ep.first;
                     break;
                 }
             }
@@ -1023,8 +1101,200 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
     if (m_selected != selected)
     {
         m_selected = selected;
+        FireEvent(EVT_STATUSBAR_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
+    }
+    evt.Skip();
+}
+
+void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
+{
+    if (m_redraw)
+    {
+        evt.Skip();
+        return;
+    }
+    bool refresh_sprites = false;
+    switch (evt.GetKeyCode())
+    {
+    case WXK_TAB:
+        if (evt.GetModifiers() == wxMOD_SHIFT)
+        {
+            m_selected--;
+            if (m_selected < 1)
+            {
+                m_selected = m_entities.size();
+            }
+            refresh_sprites = true;
+        }
+        else if (evt.GetModifiers() == 0)
+        {
+            m_selected++;
+            if (m_selected > m_entities.size() || m_selected < 1)
+            {
+                m_selected = 1;
+            }
+            refresh_sprites = true;
+        }
+        break;
+    case WXK_ESCAPE:
+        m_selected = -1;
+        refresh_sprites = true;
+        break;
+    case WXK_INSERT:
+        if (m_entities.size() < 15)
+        {
+            m_entities.push_back(Entity());
+            m_selected = m_entities.size();
+            refresh_sprites = true;
+        }
+    }
+    if (!refresh_sprites && m_selected > 0 && m_selected <= m_entities.size())
+    {
+        auto& ent = m_entities[m_selected - 1];
+        switch (evt.GetKeyCode())
+        {
+        case WXK_UP:
+            ent.SetX(ent.GetX() - 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_DOWN:
+            ent.SetX(ent.GetX() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_LEFT:
+            ent.SetY(ent.GetY() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_RIGHT:
+            ent.SetY(ent.GetY() - 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_PAGEUP:
+            ent.SetZ(ent.GetZ() + 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_PAGEDOWN:
+            ent.SetZ(ent.GetZ() - 0x80);
+            refresh_sprites = true;
+            break;
+        case WXK_NUMPAD_ADD:
+        case WXK_ADD:
+            ent.SetType((ent.GetType() + 1) & 0xFF);
+            refresh_sprites = true;
+            break;
+        case WXK_NUMPAD_SUBTRACT:
+        case WXK_SUBTRACT:
+            ent.SetType((ent.GetType() - 1) & 0xFF);
+            refresh_sprites = true;
+            break;
+        case WXK_DELETE:
+            if (evt.GetModifiers() == wxMOD_SHIFT)
+            {
+                m_entities.erase(m_entities.begin() + (m_selected - 1));
+                if (m_entities.size() == 0)
+                {
+                    m_selected = -1;
+                }
+                else if (m_selected > m_entities.size())
+                {
+                    m_selected = m_entities.size();
+                }
+                refresh_sprites = true;
+            }
+            break;
+        case 'R':
+            if (evt.GetModifiers() == wxMOD_SHIFT)
+            {
+                ent.SetOrientation(static_cast<Orientation>(
+                    (static_cast<int>(ent.GetOrientation()) + 1) & 0x03));
+                refresh_sprites = true;
+            }
+            else if (evt.GetModifiers() == 0)
+            {
+                ent.SetOrientation(static_cast<Orientation>(
+                    (static_cast<int>(ent.GetOrientation()) - 1) & 0x03));
+                refresh_sprites = true;
+            }
+            break;
+        case 'P':
+            if (evt.GetModifiers() == wxMOD_SHIFT)
+            {
+                ent.SetPalette((ent.GetPalette() + 1) & 0x03);
+                refresh_sprites = true;
+            }
+            else if (evt.GetModifiers() == 0)
+            {
+                ent.SetPalette((ent.GetPalette() - 1) & 0x03);
+                refresh_sprites = true;
+            }
+            break;
+        case 'D':
+            if (evt.GetModifiers() == wxMOD_CONTROL)
+            {
+                if (m_entities.size() < 15)
+                {
+                    m_entities.push_back(ent);
+                    m_entities.back().SetX(m_entities.back().GetX() + 0x100);
+                    m_selected = m_entities.size();
+                    refresh_sprites = true;
+                }
+            }
+            break;
+        case '[':
+            if (m_selected > 1)
+            {
+                std::swap(ent, m_entities[m_selected - 2]);
+                m_selected--;
+                refresh_sprites = true;
+            }
+            break;
+        case ']':
+            if (m_selected < m_entities.size())
+            {
+                std::swap(ent, m_entities[m_selected]);
+                m_selected++;
+                refresh_sprites = true;
+            }
+            break;
+        case WXK_RETURN:
+            UpdateEntityProperties(m_selected);
+            break;
+        }
+    }
+    if (refresh_sprites)
+    {
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+        evt.Skip(false);
+    }
+    else
+    {
+        evt.Skip();
+    }
+}
+
+void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
+{
+    int x, y;
+    GetViewStart(&x, &y);
+    x *= m_scroll_rate;
+    y *= m_scroll_rate;
+    x += evt.GetX();
+    y += evt.GetY();
+    x = std::ceil(x / m_zoom);
+    y = std::ceil(y / m_zoom);
+
+    for (const auto& ep : m_entity_poly)
+    {
+        if (Pnpoly(ep.second, x, y) && ep.first == m_selected)
+        {
+            UpdateEntityProperties(m_selected);
+            break;
+        }
     }
     evt.Skip();
 }

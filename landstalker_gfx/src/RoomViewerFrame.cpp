@@ -260,9 +260,37 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 	return true;
 }
 
+void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
+{
+	status.SetFieldsCount(3);
+	status.SetStatusText("", 0);
+	status.SetStatusText("", 1);
+	status.SetStatusText("", 1);
+}
+
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 {
-	status.SetStatusText(m_roomview->GetStatusText());
+	status.SetStatusText(m_roomview->GetStatusText(), 0);
+	if (m_roomview->IsEntitySelected())
+	{
+		auto& entity = m_roomview->GetSelectedEntity();
+		int idx = m_roomview->GetSelectedEntityIndex();
+		status.SetStatusText(StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+			idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str()), 1);
+	}
+	else
+	{
+		status.SetStatusText("", 1);
+	}
+	if (m_roomview->GetErrorCount() > 0)
+	{
+		status.SetStatusText(StrPrintf("Total Errors: %d, Error #1 : %s",
+			m_roomview->GetErrorCount(), m_roomview->GetErrorText(0).c_str()), 2);
+	}
+	else
+	{
+		status.SetStatusText("", 2);
+	}
 }
 
 void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
@@ -290,9 +318,9 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->GetData()->GetHeight())));
 		props.Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->GetData()->GetHeightmapWidth())));
 		props.Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->GetData()->GetHeightmapHeight())));
+		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
-	EditorFrame::InitProperties(props);
 }
 
 void RoomViewerFrame::UpdateProperties(wxPropertyGridManager& props) const

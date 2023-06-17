@@ -539,7 +539,7 @@ namespace RomOffsets
 		{ Sprites::PALETTE_PROJECTILE_2_MOVEW2,    {{Region::JP, 0x1AF5A8}, {Region::US, 0x1AF5A8}, {Region::UK, 0x1AF5A8}, {Region::FR, 0x1AF5A8}, {Region::DE, 0x1AF5A8}, {Region::US_BETA, 0x1AF5A8}}},
 		{ Sprites::PALETTE_PROJECTILE_2_MOVEW3,    {{Region::JP, 0x1AF5C0}, {Region::US, 0x1AF5C0}, {Region::UK, 0x1AF5C0}, {Region::FR, 0x1AF5C0}, {Region::DE, 0x1AF5C0}, {Region::US_BETA, 0x1AF5C0}}},
 		{ Sprites::PALETTE_PROJECTILE_2_MOVEW4,    {{Region::JP, 0x1AF5D8}, {Region::US, 0x1AF5D8}, {Region::UK, 0x1AF5D8}, {Region::FR, 0x1AF5D8}, {Region::DE, 0x1AF5D8}, {Region::US_BETA, 0x1AF5D8}}},
-		{ Strings::SPRITE_TALK_SFX,                {{Region::JP, 0x029E40}, {Region::US, 0x0290A8}, {Region::UK, 0x0290A8}, {Region::FR, 0x028C7E}, {Region::DE, 0x028964}, {Region::US_BETA, 0x02AF98}}},
+		{ Strings::SPRITE_TALK_SFX,                {{Region::JP, 0x029E40}, {Region::US, 0x0290A8}, {Region::UK, 0x0290A8}, {Region::FR, 0x028C7E}, {Region::DE, 0x028964}, {Region::US_BETA, 0x028F9A}}},
 		{ Strings::CHARACTER_TALK_SFX,             {{Region::JP, 0x029ECA}, {Region::US, 0x029132}, {Region::UK, 0x029132}, {Region::FR, 0x028D08}, {Region::DE, 0x0289EE}, {Region::US_BETA, 0x029024}}},
 		{ Strings::SAVE_GAME_LOCATIONS_LEA,        {{Region::JP, 0x02A264}, {Region::US, 0x0294CC}, {Region::UK, 0x0294CC}, {Region::FR, 0x02912C}, {Region::DE, 0x028E12}, {Region::US_BETA, 0x0293BE}}},
 		{ Strings::ISLAND_MAP_LOCATIONS,           {{Region::JP, 0x02A2B2}, {Region::US, 0x02951A}, {Region::UK, 0x02951A}, {Region::FR, 0x02917A}, {Region::DE, 0x028E60}, {Region::US_BETA, 0x02940C}}},

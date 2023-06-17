@@ -27,6 +27,7 @@ public:
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
 	uint8_t GetSpriteFromEntity(uint8_t id) const;
+	bool EntityHasSprite(uint8_t id) const;
 	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
 
 	std::pair<uint8_t, uint8_t> GetSpriteHitbox(uint8_t id) const;

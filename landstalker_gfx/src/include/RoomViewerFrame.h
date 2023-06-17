@@ -30,6 +30,7 @@ public:
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
 private:
+	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;

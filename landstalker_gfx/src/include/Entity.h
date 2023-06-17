@@ -32,16 +32,55 @@ public:
     std::string ToString() const;
 
     uint8_t GetType() const;
+    bool SetType(uint8_t type);
     uint8_t GetPalette() const;
+    bool SetPalette(uint8_t palette);
     Orientation GetOrientation() const;
+    bool SetOrientation(Orientation orientation);
     uint16_t GetX() const;
+    bool SetX(uint16_t x);
+    double GetXDbl() const;
+    bool SetXDbl(double x);
     uint16_t GetY() const;
+    bool SetY(uint16_t y);
+    double GetYDbl() const;
+    bool SetYDbl(double y);
     uint16_t GetZ() const;
+    bool SetZ(uint16_t z);
+    double GetZDbl() const;
+    bool SetZDbl(double z);
+    uint8_t GetSpeed() const;
+    bool SetSpeed(uint8_t speed);
+    uint16_t GetBehaviour() const;
+    bool SetBehaviour(uint16_t behaviour);
+    uint8_t GetDialogue() const;
+    bool SetDialogue(uint8_t dialogue);
+    uint8_t GetCopySource() const;
+    bool SetCopySource(uint8_t src);
+    bool IsHostile() const;
+    void SetHostile(bool hostile);
     bool NoRotate() const;
+    void SetNoRotate(bool no_rotate);
+    bool NoPickup() const;
+    void SetNoPickup(bool no_pickup);
+    bool HasDialogue() const;
+    void SetHasDialogue(bool has_dialogue);
+    bool IsVisible() const;
+    void SetVisible(bool visible);
+    bool IsSolid() const;
+    void SetSolid(bool solid);
+    bool HasGravity() const;
+    void SetGravity(bool gravity);
+    bool HasFriction() const;
+    void SetFriction(bool friction);
+    bool IsReservedSet() const;
+    void SetReserved(bool reserved);
+    bool IsTileCopySet() const;
+    void SetTileCopy(bool tile_copy);
 
     std::string GetTypeName() const
     {
-        return EntityNames.find(type)->second;
+        return EntityNames.find(m_type)->second;
     }
 
     std::string GetOrientationName() const
@@ -53,34 +92,37 @@ public:
             {Orientation::SW, "SW"},
             {Orientation::NW, "NW"}
         };
-        return OrientationToString.find(orientation)->second;
+        return OrientationToString.find(m_orientation)->second;
     }
 
     static const std::unordered_map<uint8_t, std::string> EntityNames;
 private:
-    uint16_t x_pos;
-    uint16_t y_pos;
-    uint16_t z_pos;
-    uint8_t type;
+    double CoordinateToDouble(uint16_t coord) const;
+    uint16_t DoubleToCoordinate(double coord, bool z) const;
 
-    Orientation orientation;
-    uint8_t palette;
-    uint8_t speed;
-    uint16_t behaviour;
-    uint8_t dialogue;
+    uint16_t m_x_pos;
+    uint16_t m_y_pos;
+    uint16_t m_z_pos;
+    uint8_t m_type;
 
-    bool copy_tiles;
-    uint8_t copy_source;
+    Orientation m_orientation;
+    uint8_t m_palette;
+    uint8_t m_speed;
+    uint16_t m_behaviour;
+    uint8_t m_dialogue;
 
-    bool hostile;
-    bool pickupable;
-    bool has_dialogue;
-    bool no_rotate;
-    bool no_friction;
-    bool no_gravity;
-    bool invisible;
-    bool not_solid;
-    bool reserved;
+    bool m_copy_tiles;
+    uint8_t m_copy_source;
+
+    bool m_hostile;
+    bool m_pickupable;
+    bool m_has_dialogue;
+    bool m_no_rotate;
+    bool m_no_friction;
+    bool m_no_gravity;
+    bool m_invisible;
+    bool m_not_solid;
+    bool m_reserved;
 };
 
 
