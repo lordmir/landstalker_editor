@@ -21,7 +21,7 @@ public:
 		MISC
 	};
 
-	PaletteListFrame(wxWindow* parent);
+	PaletteListFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~PaletteListFrame();
 
 	Mode GetMode() const { return m_mode; }

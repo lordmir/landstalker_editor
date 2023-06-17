@@ -7,8 +7,8 @@ enum MENU_IDS
     ID_FILE_IMPORT
 };
 
-PaletteListFrame::PaletteListFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_mode(Mode::ROOM)
 {

@@ -7,6 +7,8 @@
 #include "EditorFrame.h"
 #include "EntityPropertiesWindow.h"
 
+wxDEFINE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
+
 wxBEGIN_EVENT_TABLE(RoomViewerCtrl, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(RoomViewerCtrl::OnEraseBackground)
 EVT_PAINT(RoomViewerCtrl::OnPaint)
@@ -15,11 +17,10 @@ EVT_MOTION(RoomViewerCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(RoomViewerCtrl::OnMouseLeave)
 EVT_LEFT_UP(RoomViewerCtrl::OnLeftClick)
 EVT_LEFT_DCLICK(RoomViewerCtrl::OnLeftDblClick)
-EVT_KEY_DOWN(RoomViewerCtrl::OnKeyDown)\
 wxEND_EVENT_TABLE()
 
 RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
-	: wxScrolledCanvas(parent, wxID_ANY),
+	: wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
 	  m_roomnum(0),
       m_bmp(new wxBitmap),
       m_zoom(1.0),
@@ -66,6 +67,7 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
     if (m_g != nullptr)
     {
         m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
+        FireEvent(EVT_ENTITY_UPDATE);
     }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
@@ -73,10 +75,12 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
 
 void RoomViewerCtrl::SelectEntity(int selection)
 {
-    if (selection > 0 && selection != m_selected && selection < m_entities.size())
+    if (selection != m_selected && (selection == -1
+        || (selection > 0 && selection <= m_entities.size())))
     {
         m_selected = selection;
         FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
     }
@@ -1037,11 +1041,59 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
 
 void RoomViewerCtrl::UpdateEntityProperties(int entity)
 {
-    EntityPropertiesWindow dlg(m_parent, entity, &m_entities[entity - 1]);
-    if (dlg.ShowModal() == wxID_OK)
+    if (entity > 0 && entity <= m_entities.size())
     {
-        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+        EntityPropertiesWindow dlg(m_parent, entity, &m_entities[entity - 1]);
+        if (dlg.ShowModal() == wxID_OK)
+        {
+            m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+            FireEvent(EVT_STATUSBAR_UPDATE);
+            FireEvent(EVT_ENTITY_UPDATE);
+            RedrawAllSprites();
+            ForceRedraw();
+        }
+    }
+}
+
+void RoomViewerCtrl::AddEntity()
+{
+    DoAddEntity();
+    FireEvent(EVT_STATUSBAR_UPDATE);
+    FireEvent(EVT_ENTITY_UPDATE);
+    RedrawAllSprites();
+    ForceRedraw();
+}
+
+void RoomViewerCtrl::DeleteSelectedEntity()
+{
+    DoDeleteEntity(m_selected);
+    FireEvent(EVT_STATUSBAR_UPDATE);
+    FireEvent(EVT_ENTITY_UPDATE);
+    RedrawAllSprites();
+    ForceRedraw();
+}
+
+void RoomViewerCtrl::MoveSelectedEntityUp()
+{
+    if (m_selected > 1)
+    {
+        DoMoveEntityUp(m_selected);
+        m_selected--;
         FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
+        RedrawAllSprites();
+        ForceRedraw();
+    }
+}
+
+void RoomViewerCtrl::MoveSelectedEntityDown()
+{
+    if (m_selected < m_entities.size())
+    {
+        DoMoveEntityDown(m_selected);
+        m_selected++;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
     }
@@ -1102,24 +1154,24 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
     {
         m_selected = selected;
         FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
     }
     evt.Skip();
 }
 
-void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
+bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
-    if (m_redraw)
+   /* if (m_redraw)
     {
-        evt.Skip();
-        return;
-    }
+        return true;
+    }*/
     bool refresh_sprites = false;
-    switch (evt.GetKeyCode())
+    switch (key)
     {
     case WXK_TAB:
-        if (evt.GetModifiers() == wxMOD_SHIFT)
+        if (modifiers == wxMOD_SHIFT)
         {
             m_selected--;
             if (m_selected < 1)
@@ -1128,7 +1180,7 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
             }
             refresh_sprites = true;
         }
-        else if (evt.GetModifiers() == 0)
+        else if (modifiers == 0)
         {
             m_selected++;
             if (m_selected > m_entities.size() || m_selected < 1)
@@ -1143,31 +1195,36 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
         refresh_sprites = true;
         break;
     case WXK_INSERT:
-        if (m_entities.size() < 15)
-        {
-            m_entities.push_back(Entity());
-            m_selected = m_entities.size();
-            refresh_sprites = true;
-        }
+        DoAddEntity();
+        refresh_sprites = true;
+        break;
     }
     if (!refresh_sprites && m_selected > 0 && m_selected <= m_entities.size())
     {
         auto& ent = m_entities[m_selected - 1];
-        switch (evt.GetKeyCode())
+        switch (key)
         {
         case WXK_UP:
+        case 'W':
+        case 'w':
             ent.SetX(ent.GetX() - 0x80);
             refresh_sprites = true;
             break;
         case WXK_DOWN:
+        case 'S':
+        case 's':
             ent.SetX(ent.GetX() + 0x80);
             refresh_sprites = true;
             break;
         case WXK_LEFT:
+        case 'A':
+        case 'a':
             ent.SetY(ent.GetY() + 0x80);
             refresh_sprites = true;
             break;
         case WXK_RIGHT:
+        case 'D':
+        case 'd':
             ent.SetY(ent.GetY() - 0x80);
             refresh_sprites = true;
             break;
@@ -1190,28 +1247,21 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
             refresh_sprites = true;
             break;
         case WXK_DELETE:
-            if (evt.GetModifiers() == wxMOD_SHIFT)
+            if (modifiers == wxMOD_SHIFT)
             {
-                m_entities.erase(m_entities.begin() + (m_selected - 1));
-                if (m_entities.size() == 0)
-                {
-                    m_selected = -1;
-                }
-                else if (m_selected > m_entities.size())
-                {
-                    m_selected = m_entities.size();
-                }
+                DoDeleteEntity(m_selected);
                 refresh_sprites = true;
             }
             break;
         case 'R':
-            if (evt.GetModifiers() == wxMOD_SHIFT)
+        case 'r':
+            if (modifiers == wxMOD_SHIFT)
             {
                 ent.SetOrientation(static_cast<Orientation>(
                     (static_cast<int>(ent.GetOrientation()) + 1) & 0x03));
                 refresh_sprites = true;
             }
-            else if (evt.GetModifiers() == 0)
+            else if (modifiers == 0)
             {
                 ent.SetOrientation(static_cast<Orientation>(
                     (static_cast<int>(ent.GetOrientation()) - 1) & 0x03));
@@ -1219,19 +1269,21 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
             }
             break;
         case 'P':
-            if (evt.GetModifiers() == wxMOD_SHIFT)
+        case 'p':
+            if (modifiers == wxMOD_SHIFT)
             {
                 ent.SetPalette((ent.GetPalette() + 1) & 0x03);
                 refresh_sprites = true;
             }
-            else if (evt.GetModifiers() == 0)
+            else if (modifiers == 0)
             {
                 ent.SetPalette((ent.GetPalette() - 1) & 0x03);
                 refresh_sprites = true;
             }
             break;
-        case 'D':
-            if (evt.GetModifiers() == wxMOD_CONTROL)
+        case 'U':
+        case 'u':
+            if (modifiers == wxMOD_CONTROL)
             {
                 if (m_entities.size() < 15)
                 {
@@ -1245,7 +1297,7 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
         case '[':
             if (m_selected > 1)
             {
-                std::swap(ent, m_entities[m_selected - 2]);
+                DoMoveEntityUp(m_selected);
                 m_selected--;
                 refresh_sprites = true;
             }
@@ -1253,7 +1305,7 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
         case ']':
             if (m_selected < m_entities.size())
             {
-                std::swap(ent, m_entities[m_selected]);
+                DoMoveEntityDown(m_selected);
                 m_selected++;
                 refresh_sprites = true;
             }
@@ -1267,13 +1319,52 @@ void RoomViewerCtrl::OnKeyDown(wxKeyEvent& evt)
     {
         m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
         FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
-        evt.Skip(false);
+        return false;
     }
-    else
+    return true;
+}
+
+void RoomViewerCtrl::DoAddEntity()
+{
+    if (m_entities.size() < 15)
     {
-        evt.Skip();
+        m_entities.push_back(Entity());
+        m_selected = m_entities.size();
+    }
+}
+
+void RoomViewerCtrl::DoDeleteEntity(int entity)
+{
+    if (entity > 0 && entity <= m_entities.size())
+    {
+        m_entities.erase(m_entities.begin() + (m_selected - 1));
+        if (m_entities.size() == 0)
+        {
+            m_selected = -1;
+        }
+        else if (m_selected > m_entities.size())
+        {
+            m_selected = m_entities.size();
+        }
+    }
+}
+
+void RoomViewerCtrl::DoMoveEntityUp(int entity)
+{
+    if (entity > 1 && entity <= m_entities.size())
+    {
+        std::swap(m_entities[entity - 1], m_entities[entity - 2]);
+    }
+}
+
+void RoomViewerCtrl::DoMoveEntityDown(int entity)
+{
+    if (entity > 0 && entity < m_entities.size())
+    {
+        std::swap(m_entities[entity - 1], m_entities[entity]);
     }
 }
 

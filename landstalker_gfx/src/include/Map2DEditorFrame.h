@@ -8,7 +8,7 @@
 class Map2DEditorFrame : public EditorFrame
 {
 public:
-	Map2DEditorFrame(wxWindow* parent);
+	Map2DEditorFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~Map2DEditorFrame();
 
 	void Open(const std::string& map_name);

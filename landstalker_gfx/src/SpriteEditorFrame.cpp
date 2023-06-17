@@ -30,8 +30,8 @@ enum MENU_IDS
 	ID_EDIT_TILE
 };
 
-SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY)
+SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst)
 {
 	m_mgr.SetManagedWindow(this);
 

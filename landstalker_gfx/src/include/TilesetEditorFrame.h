@@ -20,7 +20,7 @@
 class TilesetEditorFrame : public EditorFrame
 {
 public:
-	TilesetEditorFrame(wxWindow *parent);
+	TilesetEditorFrame(wxWindow *parent, ImageList* imglst);
 	virtual ~TilesetEditorFrame();
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;

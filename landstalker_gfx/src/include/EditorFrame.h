@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ImageList.h>
 
 #include <ImageList.h>
 #include "GameData.h"
@@ -14,7 +15,7 @@
 class EditorFrame : public wxWindow
 {
 public:
-	EditorFrame(wxWindow* parent, wxWindowID id);
+	EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst);
 	virtual ~EditorFrame();
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
@@ -30,6 +31,7 @@ public:
 	virtual void UpdateUI() const;
 	virtual void SetGameData(std::shared_ptr<GameData> gd) {}
 	virtual void ClearGameData() { m_gd = nullptr; }
+	virtual void SetImageList(ImageList* imglst);
 protected:
 	void CheckMenuItem(int id, bool checked) const;
 	void CheckToolbarItem(const std::string& name, int id, bool checked) const;
@@ -46,6 +48,7 @@ protected:
 	wxMenu* GetMenu(int id) const;
 	wxMenuItem* GetMenuItem(int id) const;
 	wxAuiToolBar* GetToolbar(const std::string name) const;
+	ImageList* GetImageList();
 
 	void OnPaneClose(wxAuiManagerEvent& event);
 
@@ -57,6 +60,8 @@ private:
 	mutable std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
 	mutable std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
 	mutable std::unordered_map<std::string, wxAuiToolBar*> m_toolbars;
+
+	ImageList* m_imglst;
 };
 
 wxDECLARE_EVENT(EVT_STATUSBAR_INIT, wxCommandEvent);

@@ -57,11 +57,18 @@ public:
 	void SetLayerOpacity(Layer layer, uint8_t opacity);
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
+	void UpdateEntityProperties(int entity);
+	void AddEntity();
+	void DeleteSelectedEntity();
+	void MoveSelectedEntityUp();
+	void MoveSelectedEntityDown();
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;
 
 	const std::string& GetStatusText() const;
+
+	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
 	struct SpriteQ
 	{
@@ -100,7 +107,10 @@ private:
 	void RedrawRoom();
 	bool Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y);
 	void GoToRoom(uint16_t room);
-	void UpdateEntityProperties(int entity);
+	void DoAddEntity();
+	void DoDeleteEntity(int entity);
+	void DoMoveEntityUp(int entity);
+	void DoMoveEntityDown(int entity);
 
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
@@ -114,7 +124,6 @@ private:
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnLeftDblClick(wxMouseEvent& evt);
-	void OnKeyDown(wxKeyEvent& evt);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
@@ -151,5 +160,7 @@ private:
 
 	wxDECLARE_EVENT_TABLE();
 };
+
+wxDECLARE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
 
 #endif // _ROOM_VIEWER_CTRL_H_

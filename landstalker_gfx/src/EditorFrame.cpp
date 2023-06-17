@@ -11,9 +11,10 @@ wxDEFINE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
 wxDEFINE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
 
-EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id)
+EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
-	  m_props_init(false)
+	  m_props_init(false),
+	  m_imglst(imglst)
 {
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
@@ -124,6 +125,11 @@ bool EditorFrame::Show(bool show)
 
 void EditorFrame::UpdateUI() const
 {
+}
+
+void EditorFrame::SetImageList(ImageList* imglst)
+{
+	m_imglst = imglst;
 }
 
 void EditorFrame::CheckMenuItem(int id, bool checked) const
@@ -277,6 +283,11 @@ wxAuiToolBar* EditorFrame::GetToolbar(const std::string name) const
 		return nullptr;
 	}
 	return result->second;
+}
+
+ImageList* EditorFrame::GetImageList()
+{
+	return m_imglst;
 }
 
 void EditorFrame::OnPaneClose(wxAuiManagerEvent& event)

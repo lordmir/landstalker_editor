@@ -18,7 +18,7 @@
 class SpriteEditorFrame : public EditorFrame
 {
 public:
-	SpriteEditorFrame(wxWindow* parent);
+	SpriteEditorFrame(wxWindow* parent, ImageList* imglst);
 	~SpriteEditorFrame();
 
 	bool Open(uint8_t entity, int frame = -1, int anim = -1);

@@ -11,16 +11,31 @@ enum MENU_IDS
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
 	ID_TOOLS,
-	ID_TOOLS_LAYERS
+	ID_TOOLS_LAYERS,
+	ID_TOOLS_ENTITIES,
+	ID_TOOLS_WARPS,
+	ID_VIEW_ENTITIES,
+	ID_VIEW_ENTITY_HITBOX,
+	ID_VIEW_WARPS,
+	ID_VIEW_HEIGHTMAP,
+	ID_VIEW_ENTITY_PROPERTIES
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
+EVT_KEY_DOWN(RoomViewerFrame::OnKeyDown)
 EVT_COMMAND(wxID_ANY, EVT_ZOOM_CHANGE, RoomViewerFrame::OnZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_OPACITY_CHANGE, RoomViewerFrame::OnOpacityChange)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_UPDATE, RoomViewerFrame::OnEntityUpdate)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_SELECT, RoomViewerFrame::OnEntitySelect)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_OPEN_PROPERTIES, RoomViewerFrame::OnEntityOpenProperties)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_ADD, RoomViewerFrame::OnEntityAdd)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_DELETE, RoomViewerFrame::OnEntityDelete)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_UP, RoomViewerFrame::OnEntityMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_DOWN, RoomViewerFrame::OnEntityMoveDown)
 wxEND_EVENT_TABLE()
 
-RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
-	: EditorFrame(parent, wxID_ANY),
+RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
+	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_mode(RoomViewerCtrl::Mode::NORMAL)
 {
@@ -28,8 +43,11 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 
 	m_roomview = new RoomViewerCtrl(this);
 	m_layerctrl = new LayerControlFrame(this);
-	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220,200)
-		.BestSize(220,200).FloatingSize(220,200).Caption("Layers"));
+	m_entityctrl = new EntityControlFrame(this, GetImageList());
+	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Layers"));
+	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
 	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
@@ -43,10 +61,14 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent)
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
+	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
 {
+	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
@@ -260,6 +282,15 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 	return true;
 }
 
+bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
+{
+	if (m_roomview != nullptr)
+	{
+		return m_roomview->HandleKeyDown(key, modifiers);
+	}
+	return true;
+}
+
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 {
 	status.SetFieldsCount(3);
@@ -270,6 +301,10 @@ void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 {
+	if (status.GetFieldsCount() != 3)
+	{
+		return;
+	}
 	status.SetStatusText(m_roomview->GetStatusText(), 0);
 	if (m_roomview->IsEntitySelected())
 	{
@@ -507,6 +542,16 @@ void RoomViewerFrame::UpdateUI() const
 	CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
 }
 
+void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
+{
+	if (m_roomview != nullptr)
+	{
+		evt.Skip(m_roomview->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
+	evt.Skip();
+}
+
 void RoomViewerFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	m_roomview->SetZoom(m_layerctrl->GetZoom());
@@ -535,6 +580,46 @@ void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 		break;
 	}
 	m_roomview->RefreshGraphics();
+}
+
+void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
+{
+	m_entityctrl->SetEntities(m_roomview->GetEntities());
+	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+}
+
+void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+}
+
+void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->UpdateEntityProperties(m_entityctrl->GetSelected());
+}
+
+void RoomViewerFrame::OnEntityAdd(wxCommandEvent& evt)
+{
+	m_roomview->AddEntity();
+}
+
+void RoomViewerFrame::OnEntityDelete(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->DeleteSelectedEntity();
+}
+
+void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->MoveSelectedEntityUp();
+}
+
+void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& evt)
+{
+	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	m_roomview->MoveSelectedEntityDown();
 }
 
 void RoomViewerFrame::FireEvent(const wxEventType& e)

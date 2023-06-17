@@ -16,7 +16,7 @@
 class BlocksetEditorFrame : public EditorFrame
 {
 public:
-	BlocksetEditorFrame(wxWindow* parent);
+	BlocksetEditorFrame(wxWindow* parent, ImageList* imglst);
 	~BlocksetEditorFrame();
 
 	void Open(const std::string& blockset_name);
