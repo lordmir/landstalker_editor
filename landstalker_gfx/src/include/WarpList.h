@@ -37,6 +37,24 @@ public:
 		bool operator==(const Warp& rhs) const;
 		bool operator!=(const Warp& rhs) const;
 	};
+
+	struct Transition
+	{
+		Transition(uint16_t src, uint16_t dst, uint16_t flagp)
+			: src_rm(src), dst_rm(dst), flag(flagp)
+		{}
+
+		uint16_t src_rm;
+		uint16_t dst_rm;
+		uint16_t flag;
+
+		bool operator==(const Transition& rhs) const;
+		bool operator!=(const Transition& rhs) const;
+		bool operator<(const Transition& rhs) const;
+		bool operator<=(const Transition& rhs) const;
+		bool operator>(const Transition& rhs) const;
+		bool operator>=(const Transition& rhs) const;
+	};
 	WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path);
 	WarpList(const Rom& rom);
 	WarpList() = default;
@@ -49,7 +67,7 @@ public:
 	uint16_t GetFallDestination(uint16_t room) const;
 	bool HasClimbDestination(uint16_t room) const;
 	uint16_t GetClimbDestination(uint16_t room) const;
-	std::map<std::pair<uint16_t, uint16_t>, uint16_t> GetTransitions(uint16_t room) const;
+	std::vector<Transition> GetTransitions(uint16_t room) const;
 
 	std::vector<uint8_t> GetWarpBytes() const;
 	std::vector<uint8_t> GetFallBytes() const;
@@ -64,7 +82,7 @@ private:
 	std::vector<Warp> m_warps;
 	std::map<uint16_t, uint16_t> m_fall_dests;
 	std::map<uint16_t, uint16_t> m_climb_dests;
-	std::map<std::pair<uint16_t, uint16_t>, uint16_t> m_transitions;
+	std::vector<Transition> m_transitions;
 };
 
 #endif // _WARP_LIST_H_

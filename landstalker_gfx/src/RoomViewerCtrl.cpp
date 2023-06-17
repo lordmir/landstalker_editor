@@ -545,8 +545,8 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
     auto txns = m_g->GetRoomData()->GetTransitions(roomnum);
     for (const auto& t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.second, (t.first.first == roomnum) ? "SET" : "CLEAR");
-        uint16_t dest = (t.first.first == roomnum) ? t.first.second : t.first.first;
+        std::string label = StrPrintf("Transition when flag %04d is %s:", t.flag, (t.src_rm == roomnum) ? "SET" : "CLEAR");
+        uint16_t dest = (t.src_rm == roomnum) ? t.dst_rm : t.src_rm;
         AddRoomLink(gc, label, dest, 5, 5 + line * 16);
         line++;
     }
