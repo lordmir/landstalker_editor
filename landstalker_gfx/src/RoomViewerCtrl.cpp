@@ -1163,10 +1163,10 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
 
 bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
-   /* if (m_redraw)
+    if (m_redraw)
     {
         return true;
-    }*/
+    }
     bool refresh_sprites = false;
     switch (key)
     {
@@ -1236,13 +1236,11 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
             ent.SetZ(ent.GetZ() - 0x80);
             refresh_sprites = true;
             break;
-        case WXK_NUMPAD_ADD:
-        case WXK_ADD:
+        case '+':
             ent.SetType((ent.GetType() + 1) & 0xFF);
             refresh_sprites = true;
             break;
-        case WXK_NUMPAD_SUBTRACT:
-        case WXK_SUBTRACT:
+        case '-':
             ent.SetType((ent.GetType() - 1) & 0xFF);
             refresh_sprites = true;
             break;

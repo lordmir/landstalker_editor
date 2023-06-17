@@ -1,7 +1,7 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -80,12 +80,12 @@ public:
 
     std::string GetTypeName() const
     {
-        return EntityNames.find(m_type)->second;
+        return EntityNames.at(m_type);
     }
 
     std::string GetOrientationName() const
     {
-        std::unordered_map<Orientation, std::string> OrientationToString
+        std::map<Orientation, std::string> OrientationToString
         {
             {Orientation::NE, "NE"},
             {Orientation::SE, "SE"},
@@ -95,7 +95,7 @@ public:
         return OrientationToString.find(m_orientation)->second;
     }
 
-    static const std::unordered_map<uint8_t, std::string> EntityNames;
+    static const std::vector<std::string> EntityNames;
 private:
     double CoordinateToDouble(uint16_t coord) const;
     uint16_t DoubleToCoordinate(double coord, bool z) const;

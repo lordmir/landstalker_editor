@@ -1,7 +1,10 @@
 #include <EntityPropertiesWindow.h>
+
+#include <wx/settings.h>
 #include <Utils.h>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 enum ID
 {
@@ -48,9 +51,9 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString entity_types;
-    for (const auto& entity : Entity::EntityNames)
+    for (int i = 0; i < Entity::EntityNames.size(); ++i)
     {
-        entity_types.Add(StrPrintf("[%02X] %s", entity.first, entity.second.c_str()));
+        entity_types.Add(StrPrintf("[%02X] %s", i, Entity::EntityNames.at(i).c_str()));
     }
     m_ctrl_entity_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, 0);
     m_ctrl_entity_type->SetSelection(entity->GetType());
