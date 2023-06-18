@@ -40,6 +40,11 @@ void EditorFrame::ClearStatusBar(wxStatusBar& status) const
 void EditorFrame::InitProperties(wxPropertyGridManager& props) const
 {
 	m_props_init = true;
+
+	if (props.GetGrid())
+	{
+		props.GetGrid()->SetSplitterPosition(props.GetClientSize().GetWidth() * 2 / 3);
+	}
 }
 
 void EditorFrame::UpdateProperties(wxPropertyGridManager& props) const

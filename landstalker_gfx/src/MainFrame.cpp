@@ -637,14 +637,15 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
             }
         }
     }
+    for (const auto& editor : m_editors)
+    {
+        editor.second->Hide();
+        editor.second->ClearGameData();
+    }
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
     m_g.reset();
-    for (const auto& editor : m_editors)
-    {
-        editor.second->ClearGameData();
-    }
     SetMode(MODE_NONE);
     this->SetLabel("Landstalker Editor");
     m_mnu_save_as_asm->Enable(false);

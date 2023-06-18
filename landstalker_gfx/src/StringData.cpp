@@ -702,6 +702,95 @@ bool StringData::HasEndCreditStringChanged(std::size_t index) const
 	return m_ending_strings_orig[index] != m_ending_strings[index];
 }
 
+uint16_t StringData::GetRoomVisitFlag(uint16_t room) const
+{
+	if (room < m_room_visit_flags.size())
+	{
+		return m_room_visit_flags.at(room);
+	}
+	return 0xFFFF;
+}
+
+void StringData::SetRoomVisitFlag(uint16_t room, uint16_t flag)
+{
+	if (room < m_room_visit_flags.size())
+	{
+		m_room_visit_flags.resize(room + 1);
+	}
+	m_room_visit_flags[room] = flag;
+}
+
+uint8_t StringData::GetSaveLocation(uint16_t room)
+{
+	auto loc = m_save_game_locations.find(room);
+	if (loc != m_save_game_locations.cend())
+	{
+		return loc->second.second;
+	}
+	return 0xFF;
+}
+
+void StringData::SetSaveLocation(uint16_t room, uint8_t name)
+{
+	auto loc = m_save_game_locations.find(room);
+	if (loc != m_save_game_locations.cend())
+	{
+		if (name == 0xFF)
+		{
+			m_save_game_locations.erase(room);
+		}
+		else
+		{
+			m_save_game_locations[room].second = name;
+		}
+	}
+	else
+	{
+		m_save_game_locations.insert({ room, {0, name} });
+	}
+}
+
+uint8_t StringData::GetMapLocation(uint16_t room)
+{
+	auto loc = m_island_map_locations.find(room);
+	if (loc != m_island_map_locations.cend())
+	{
+		return loc->second.first;
+	}
+	return 0xFF;
+}
+
+uint8_t StringData::GetMapPosition(uint16_t room)
+{
+	auto loc = m_island_map_locations.find(room);
+	if (loc != m_island_map_locations.cend())
+	{
+		return loc->second.second;
+	}
+	return 0xFF;
+}
+
+void StringData::SetMapLocation(uint16_t room, uint8_t name, uint8_t position)
+{
+	auto loc = m_island_map_locations.find(room);
+	if (loc != m_island_map_locations.cend())
+	{
+		if (name == 0xFF)
+		{
+			m_island_map_locations.erase(room);
+		}
+		else
+		{
+			m_island_map_locations[room].first = name;
+			m_island_map_locations[room].second = position;
+		}
+	}
+	else
+	{
+		m_save_game_locations.insert({ room, {name, position} });
+	}
+}
+
 void StringData::CommitAllChanges()
 {
 	auto entry_commit = [](const auto& e) {return e->Commit(); };

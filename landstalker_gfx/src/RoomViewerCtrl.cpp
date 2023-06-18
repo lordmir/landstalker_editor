@@ -377,7 +377,7 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
             // Next draw left-most objects
             int left_lhs = lhs.entity.GetY() - hitbox_lhs.first;
             int left_rhs = rhs.entity.GetY() - hitbox_rhs.first;
-            if (left_lhs < left_rhs)
+            if (left_lhs != left_rhs)
             {
                 return left_lhs < left_rhs;
             }

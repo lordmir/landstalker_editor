@@ -191,12 +191,15 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     m_sizer_btn = new wxStdDialogButtonSizer();
     szr1->Add(m_sizer_btn, 0, wxALL | wxEXPAND, 5);
     m_btn_ok = new wxButton(this, wxID_OK, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_btn_ok->SetDefault();
     m_sizer_btn->AddButton(m_btn_ok);
     m_btn_cancel = new wxButton(this, wxID_CANCEL, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_sizer_btn->AddButton(m_btn_cancel);
     m_sizer_btn->Realize();
 
     CentreOnParent(wxBOTH);
+    SetAffirmativeId(wxID_OK);
+    SetEscapeId(wxID_CANCEL);
 
     m_btn_ok->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickOK), NULL, this);
     m_btn_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);

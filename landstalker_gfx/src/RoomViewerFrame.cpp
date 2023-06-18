@@ -37,7 +37,8 @@ wxEND_EVENT_TABLE()
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
-	  m_mode(RoomViewerCtrl::Mode::NORMAL)
+	  m_mode(RoomViewerCtrl::Mode::NORMAL),
+	  m_reset_props(false)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -109,6 +110,10 @@ void RoomViewerFrame::ClearGameData()
 
 void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
 {
+	if (m_roomnum != roomnum)
+	{
+		m_reset_props = true;
+	}
 	m_roomnum = roomnum;
 	m_mode = mode;
 	Update();
@@ -332,29 +337,117 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 {
 	if (m_g && ArePropsInitialised() == false)
 	{
+		RefreshLists();
 		props.GetGrid()->Clear();
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
-		props.Append(new wxStringProperty("Room Number", "RN", std::to_string(rd->index)));
-		props.Append(new wxStringProperty("Tileset", "TS", Hex(rd->tileset)));
-		props.Append(new wxStringProperty("Room Palette", "RP", Hex(rd->room_palette)));
-		props.Append(new wxStringProperty("Primary Blockset", "PBT", std::to_string(rd->pri_blockset)));
-		props.Append(new wxStringProperty("Secondary Blockset", "SBT", Hex(rd->sec_blockset)));
-		props.Append(new wxStringProperty("BGM", "BGM", Hex(rd->bgm)));
-		props.Append(new wxStringProperty("Map", "M", rd->map));
-		props.Append(new wxStringProperty("Unknown Parameter 1", "UP1", std::to_string(rd->unknown_param1)));
-		props.Append(new wxStringProperty("Unknown Parameter 2", "UP2", std::to_string(rd->unknown_param2)));
-		props.Append(new wxStringProperty("Z Begin", "ZB", std::to_string(rd->room_z_begin)));
-		props.Append(new wxStringProperty("Z End", "ZE", std::to_string(rd->room_z_end)));
-		props.Append(new wxStringProperty("Tilemap Left Offset", "TLO", std::to_string(tm->GetData()->GetLeft())));
-		props.Append(new wxStringProperty("Tilemap Top Offset", "TTO", std::to_string(tm->GetData()->GetTop())));
-		props.Append(new wxStringProperty("Tilemap Width", "TW", std::to_string(tm->GetData()->GetWidth())));
-		props.Append(new wxStringProperty("Tilemap Height", "TH", std::to_string(tm->GetData()->GetHeight())));
-		props.Append(new wxStringProperty("Heightmap Width", "HW", std::to_string(tm->GetData()->GetHeightmapWidth())));
-		props.Append(new wxStringProperty("Heightmap Height", "HH", std::to_string(tm->GetData()->GetHeightmapHeight())));
+		props.Append(new wxPropertyCategory("Main", "Main"));
+		props.Append(new wxStringProperty("Name", "Name", rd->name));
+		props.Append(new wxIntProperty("Room Number", "RN", rd->index))->Enable(false);
+		props.Append(new wxEnumProperty("Tileset", "TS", m_tilesets));
+		props.Append(new wxEnumProperty("Room Palette", "RP", m_palettes))->SetChoiceSelection(rd->room_palette);
+		props.Append(new wxEnumProperty("Primary Blockset", "PBT", m_pri_blocksets));
+		props.Append(new wxEnumProperty("Secondary Blockset", "SBT", m_sec_blocksets));
+		props.Append(new wxEnumProperty("BGM", "BGM", m_bgms))->SetChoiceSelection(rd->bgm);
+		props.Append(new wxEnumProperty("Map", "M", m_maps));
+		props.Append(new wxIntProperty("Unknown Parameter 1", "UP1", rd->unknown_param1));
+		props.Append(new wxIntProperty("Unknown Parameter 2", "UP2", rd->unknown_param2));
+		props.Append(new wxIntProperty("Z Begin", "ZB", rd->room_z_begin));
+		props.Append(new wxIntProperty("Z End", "ZE", rd->room_z_end));
+		props.Append(new wxPropertyCategory("Map", "Map"));
+		props.Append(new wxIntProperty("Tilemap Left Offset", "TLO", tm->GetData()->GetLeft()));
+		props.Append(new wxIntProperty("Tilemap Top Offset", "TTO", tm->GetData()->GetTop()));
+		props.Append(new wxIntProperty("Tilemap Width", "TW", tm->GetData()->GetWidth()))->Enable(false);
+		props.Append(new wxIntProperty("Tilemap Height", "TH", tm->GetData()->GetHeight()))->Enable(false);
+		props.Append(new wxIntProperty("Heightmap Width", "HW", tm->GetData()->GetHeightmapWidth()))->Enable(false);
+		props.Append(new wxIntProperty("Heightmap Height", "HH", tm->GetData()->GetHeightmapHeight()))->Enable(false);
+		props.Append(new wxPropertyCategory("Warps", "Warps"));
+		props.Append(new wxEnumProperty("Fall Destination", "FD", m_rooms));
+		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
+		props.Append(new wxPropertyCategory("Flags", "Flags"));
+		props.Append(new wxIntProperty("Visit Flag", "VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum)));
+		props.Append(new wxPropertyCategory("Misc", "Misc"));
+		props.Append(new wxEnumProperty("Save Location String", "SLS", m_menustrings));
+		props.Append(new wxEnumProperty("Island Location String", "ILS", m_menustrings));
+		props.Append(new wxIntProperty("Island Position", "ILP", -1));
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
+	}
+}
+
+void RoomViewerFrame::RefreshLists() const
+{
+	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+
+	m_bgms.Clear();
+	m_bgms.Add("[00] The Marquis' Invitation");
+	m_bgms.Add("[01] Premonition of Trouble");
+	m_bgms.Add("[02] Overworld");
+	m_bgms.Add("[03] Bustling Street");
+	m_bgms.Add("[04] Torchlight");
+	m_bgms.Add("[05] Prayers to God");
+	m_bgms.Add("[06] Gumi");
+	m_bgms.Add("[07] Beneath the Mysterious Tree");
+	m_bgms.Add("[08] Overworld");
+	m_bgms.Add("[09] The King's Chamber");
+	m_bgms.Add("[0A] Mysterious Island");
+	m_bgms.Add("[0B] The Death God's Invitation");
+	m_bgms.Add("[0C] Deserted Street Corner");
+	m_bgms.Add("[0D] Labrynth");
+	m_bgms.Add("[0E] The Silence, the Darkness, and...");
+	m_bgms.Add("[0F] Light of the Setting Sun");
+	m_bgms.Add("[10] Friday and a Soft Breeze");
+	m_bgms.Add("[11] Divine Guardian of the Maze");
+	m_bgms.Add("[12] Fade Out");
+
+	m_palettes.Clear();
+	for (const auto& p : m_g->GetRoomData()->GetRoomPalettes())
+	{
+		m_palettes.Add(_(p->GetName()));
+	}
+
+	m_tilesets.Clear();
+	for (const auto& p : m_g->GetRoomData()->GetTilesets())
+	{
+		m_tilesets.Add(_(p->GetName()));
+	}
+	m_pri_blocksets.Clear();
+	m_sec_blocksets.Clear();
+	for (const auto& p : m_g->GetRoomData()->GetAllBlocksets())
+	{
+		if (p.second->GetTileset() == rd->tileset)
+		{
+			if (p.second->GetSecondary() == 0)
+			{
+				m_pri_blocksets.Add(_(p.first));
+			}
+			else if (p.second->GetPrimary() == rd->pri_blockset)
+			{
+				m_sec_blocksets.Add(_(p.first));
+			}
+		}
+	}
+	m_maps.Clear();
+	for (const auto& map : m_g->GetRoomData()->GetMaps())
+	{
+		m_maps.Add(map.first);
+	}
+	m_rooms.Clear();
+	m_rooms.Add("<NONE>");
+	for (const auto& room : m_g->GetRoomData()->GetRoomlist())
+	{
+		m_rooms.Add(room->name);
+	}
+	m_menustrings.Clear();
+	m_menustrings.Add("<NONE>");
+	for (int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
+	{
+		m_menustrings.Add(m_g->GetStringData()->GetItemName(i));
+	}
+	for (int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
+	{
+		m_menustrings.Add(m_g->GetStringData()->GetMenuStr(i));
 	}
 }
 
@@ -363,6 +456,11 @@ void RoomViewerFrame::UpdateProperties(wxPropertyGridManager& props) const
 	EditorFrame::UpdateProperties(props);
 	if (ArePropsInitialised() == true)
 	{
+		if (m_reset_props)
+		{
+			props.GetGrid()->ClearModifiedStatus();
+			m_reset_props = false;
+		}
 		RefreshProperties(props);
 	}
 }
@@ -371,25 +469,43 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
 	if (m_g != nullptr)
 	{
+		RefreshLists();
+		props.GetGrid()->GetProperty("PBT")->SetChoices(m_pri_blocksets);
+		props.GetGrid()->GetProperty("SBT")->SetChoices(m_sec_blocksets);
+
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		props.GetGrid()->SetPropertyValue("RN", _(std::to_string(rd->index)));
-		props.GetGrid()->SetPropertyValue("TS", _(Hex(rd->tileset)));
-		props.GetGrid()->SetPropertyValue("RP", _(Hex(rd->room_palette)));
-		props.GetGrid()->SetPropertyValue("PBT", _(std::to_string(rd->pri_blockset)));
-		props.GetGrid()->SetPropertyValue("SBT", _(Hex(rd->sec_blockset)));
-		props.GetGrid()->SetPropertyValue("BGM", _(Hex(rd->bgm)));
-		props.GetGrid()->SetPropertyValue("M", _(rd->map));
-		props.GetGrid()->SetPropertyValue("UP1", _(std::to_string(rd->unknown_param1)));
-		props.GetGrid()->SetPropertyValue("UP2", _(std::to_string(rd->unknown_param2)));
-		props.GetGrid()->SetPropertyValue("ZB", _(std::to_string(rd->room_z_begin)));
-		props.GetGrid()->SetPropertyValue("ZE", _(std::to_string(rd->room_z_end)));
-		props.GetGrid()->SetPropertyValue("TLO", _(std::to_string(tm->GetData()->GetLeft())));
-		props.GetGrid()->SetPropertyValue("TTO", _(std::to_string(tm->GetData()->GetTop())));
-		props.GetGrid()->SetPropertyValue("TW", _(std::to_string(tm->GetData()->GetWidth())));
-		props.GetGrid()->SetPropertyValue("TH", _(std::to_string(tm->GetData()->GetHeight())));
-		props.GetGrid()->SetPropertyValue("HW", _(std::to_string(tm->GetData()->GetHeightmapWidth())));
-		props.GetGrid()->SetPropertyValue("HH", _(std::to_string(tm->GetData()->GetHeightmapHeight())));
+
+		props.GetGrid()->SetPropertyValue("Name", _(rd->name));
+		props.GetGrid()->SetPropertyValue("RN", rd->index);
+		props.GetGrid()->GetProperty("TS")->SetChoiceSelection(rd->tileset);
+		props.GetGrid()->GetProperty("RP")->SetChoiceSelection(rd->room_palette);
+		props.GetGrid()->GetProperty("BGM")->SetChoiceSelection(rd->bgm);
+		props.GetGrid()->GetProperty("PBT")->SetChoiceSelection(rd->pri_blockset);
+		props.GetGrid()->GetProperty("SBT")->SetChoiceSelection(rd->sec_blockset);
+		props.GetGrid()->GetProperty("M")->SetChoiceSelection(m_maps.Index(rd->map));
+		props.GetGrid()->SetPropertyValue("UP1", rd->unknown_param1);
+		props.GetGrid()->SetPropertyValue("UP2", rd->unknown_param2);
+		props.GetGrid()->SetPropertyValue("ZB", rd->room_z_begin);
+		props.GetGrid()->SetPropertyValue("ZE", rd->room_z_end);
+		props.GetGrid()->SetPropertyValue("TLO", tm->GetData()->GetLeft());
+		props.GetGrid()->SetPropertyValue("TTO", tm->GetData()->GetTop());
+		props.GetGrid()->SetPropertyValue("TW", tm->GetData()->GetWidth());
+		props.GetGrid()->SetPropertyValue("TH", tm->GetData()->GetHeight());
+		props.GetGrid()->SetPropertyValue("HW", tm->GetData()->GetHeightmapWidth());
+		props.GetGrid()->SetPropertyValue("HH", tm->GetData()->GetHeightmapHeight());
+		int fall = m_g->GetRoomData()->HasFallDestination(m_roomnum) ? (m_g->GetRoomData()->GetFallDestination(m_roomnum) + 1) : 0;
+		int climb = m_g->GetRoomData()->HasClimbDestination(m_roomnum) ? (m_g->GetRoomData()->GetClimbDestination(m_roomnum) + 1) : 0;
+		props.GetGrid()->GetProperty("FD")->SetChoiceSelection(fall);
+		props.GetGrid()->GetProperty("CD")->SetChoiceSelection(climb);
+		props.GetGrid()->SetPropertyValue("VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum));
+		int save_loc = m_g->GetStringData()->GetSaveLocation(m_roomnum);
+		save_loc = save_loc == 0xFF ? 0 : save_loc + 1;
+		int map_loc = m_g->GetStringData()->GetMapLocation(m_roomnum);
+		map_loc = map_loc == 0xFF ? 0 : map_loc + 1;
+		props.GetGrid()->GetProperty("SLS")->SetChoiceSelection(save_loc);
+		props.GetGrid()->GetProperty("ILS")->SetChoiceSelection(map_loc);
+		props.GetGrid()->SetPropertyValue("ILP", m_g->GetStringData()->GetMapPosition(m_roomnum));
 	}
 }
 
@@ -400,8 +516,188 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		return;
 	}
+	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
 	const wxString& name = property->GetName();
+	if (name == "TS")
+	{
+		if (property->GetChoiceSelection() != rd->tileset)
+		{
+			rd->tileset = property->GetChoiceSelection();
+			if (m_g->GetRoomData()->GetBlockset(rd->tileset, rd->pri_blockset, 0) == nullptr)
+			{
+				rd->pri_blockset = 0;
+			}
+			if (m_g->GetRoomData()->GetBlockset(rd->tileset, rd->pri_blockset, rd->sec_blockset + 1) == nullptr)
+			{
+				rd->sec_blockset = 0;
+			}
+			
+
+			Update();
+		}
+	}
+	else if (name == "RP")
+	{
+		if (property->GetChoiceSelection() != rd->room_palette)
+		{
+			rd->room_palette = property->GetChoiceSelection();
+			Update();
+		}
+	}
+	else if (name == "PBT")
+	{
+		if (property->GetChoiceSelection() != rd->pri_blockset)
+		{
+			rd->pri_blockset = property->GetChoiceSelection();
+			if (m_g->GetRoomData()->GetBlockset(rd->tileset, rd->pri_blockset, rd->sec_blockset + 1) == nullptr)
+			{
+				rd->sec_blockset = 0;
+			}
+			Update();
+		}
+	}
+	else if (name == "SBT")
+	{
+		if (property->GetChoiceSelection() != rd->sec_blockset)
+		{
+			rd->sec_blockset = property->GetChoiceSelection();
+			Update();
+		}
+	}
+	else if (name == "BGM")
+	{
+		if (property->GetChoiceSelection() != rd->bgm)
+		{
+			rd->bgm = property->GetChoiceSelection();
+			FireEvent(EVT_STATUSBAR_UPDATE);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "M")
+	{
+		const auto map_name = m_maps.GetLabel(property->GetChoiceSelection());
+		if (map_name != rd->map)
+		{
+			rd->map = map_name;
+			Update();
+		}
+	}
+	else if (name == "ZB")
+	{
+		if (property->GetValuePlain().GetLong() != rd->room_z_begin)
+		{
+			rd->room_z_begin = std::clamp<uint8_t>(property->GetValuePlain().GetLong(), 0, 15);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "ZE")
+	{
+		if (property->GetValuePlain().GetLong() != rd->room_z_end)
+		{
+			rd->room_z_end = std::clamp<uint8_t>(property->GetValuePlain().GetLong(), 0, 15);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "UP1")
+	{
+		if (property->GetValuePlain().GetLong() != rd->unknown_param1)
+		{
+			rd->unknown_param1 = std::clamp<uint8_t>(property->GetValuePlain().GetLong(), 0, 3);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "UP2")
+	{
+		if (property->GetValuePlain().GetLong() != rd->unknown_param2)
+		{
+			rd->unknown_param2 = std::clamp<uint8_t>(property->GetValuePlain().GetLong(), 0, 3);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "TLO")
+	{
+		if (property->GetValuePlain().GetLong() != tm->GetData()->GetLeft())
+		{
+			tm->GetData()->SetLeft(static_cast<uint8_t>(property->GetValuePlain().GetLong()));
+			Update();
+		}
+	}
+	else if (name == "TTO")
+	{
+		if (property->GetValuePlain().GetLong() != tm->GetData()->GetTop())
+		{
+			tm->GetData()->SetTop(static_cast<uint8_t>(property->GetValuePlain().GetLong()));
+			Update();
+		}
+	}
+	else if (name == "VF")
+	{
+		if (property->GetValuePlain().GetLong() != m_g->GetStringData()->GetRoomVisitFlag(m_roomnum))
+		{
+			m_g->GetStringData()->SetRoomVisitFlag(m_roomnum, static_cast<uint16_t>(property->GetValuePlain().GetLong()));
+			Update();
+		}
+	}
+	else if (name == "FD")
+	{
+		bool enabled = property->GetChoiceSelection() != 0;
+		int room = property->GetChoiceSelection() - 1;
+		if (m_g->GetRoomData()->HasFallDestination(m_roomnum) != enabled ||
+			(enabled && m_g->GetRoomData()->HasFallDestination(m_roomnum) != room))
+		{
+			m_g->GetRoomData()->SetHasFallDestination(m_roomnum, enabled);
+			if (enabled)
+			{
+				m_g->GetRoomData()->SetFallDestination(m_roomnum, room);
+			}
+			Update();
+		}
+	}
+	else if (name == "CD")
+	{
+		bool enabled = property->GetChoiceSelection() != 0;
+		int room = property->GetChoiceSelection() - 1;
+		if (m_g->GetRoomData()->HasClimbDestination(m_roomnum) != enabled ||
+			(enabled && m_g->GetRoomData()->HasClimbDestination(m_roomnum) != room))
+		{
+			m_g->GetRoomData()->SetHasClimbDestination(m_roomnum, enabled);
+			if (enabled)
+			{
+				m_g->GetRoomData()->SetClimbDestination(m_roomnum, room);
+			}
+			Update();
+		}
+	}
+	else if (name == "SLS")
+	{
+		bool enabled = property->GetChoiceSelection() != 0;
+		uint8_t string = enabled ? property->GetChoiceSelection() - 1 : 0xFF;
+		if (m_g->GetStringData()->GetSaveLocation(m_roomnum) != string)
+		{
+			m_g->GetStringData()->SetSaveLocation(m_roomnum, string);
+		}
+	}
+	else if (name == "ILS")
+	{
+		bool enabled = property->GetChoiceSelection() != 0;
+		uint8_t string = enabled ? property->GetChoiceSelection() - 1 : 0xFF;
+		auto position = enabled ? m_g->GetStringData()->GetMapPosition(m_roomnum) : 0xFF;
+		if (m_g->GetStringData()->GetMapLocation(m_roomnum) != string)
+		{
+			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
+		}
+	}
+	else if (name == "ILP")
+	{
+		uint8_t position = property->GetValuePlain().GetLong();
+		auto string = m_g->GetStringData()->GetMapLocation(m_roomnum);
+		if (string != 0xFF && m_g->GetStringData()->GetMapPosition(m_roomnum) != position)
+		{
+			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
+		}
+	}
 }
 
 void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const

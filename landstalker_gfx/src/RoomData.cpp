@@ -472,7 +472,10 @@ std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& name) co
 
 std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(uint8_t pri, uint8_t sec) const
 {
-    assert(m_blocksets.find({ pri, sec }) != m_blocksets.cend());
+    if (m_blocksets.find({ pri, sec }) == m_blocksets.cend())
+    {
+        return nullptr;
+    }
     return m_blocksets.find({ pri, sec })->second;
 }
 
@@ -506,6 +509,11 @@ std::shared_ptr<Room> RoomData::GetRoom(const std::string& name) const
 {
     assert(m_roomlist_by_name.find(name) != m_roomlist_by_name.cend());
     return m_roomlist_by_name.find(name)->second;
+}
+
+const std::map<std::string, std::shared_ptr<Tilemap3DEntry>>& RoomData::GetMaps() const
+{
+    return m_maps;
 }
 
 std::shared_ptr<Tilemap3DEntry> RoomData::GetMap(const std::string& name) const
@@ -600,6 +608,16 @@ uint16_t RoomData::GetFallDestination(uint16_t room) const
     return m_warps.GetFallDestination(room);
 }
 
+void RoomData::SetHasFallDestination(uint16_t room, bool enabled)
+{
+    m_warps.SetHasFallDestination(room, enabled);
+}
+
+void RoomData::SetFallDestination(uint16_t room, uint16_t dest)
+{
+    m_warps.SetFallDestination(room, dest);
+}
+
 bool RoomData::HasClimbDestination(uint16_t room) const
 {
     return m_warps.HasClimbDestination(room);
@@ -608,6 +626,16 @@ bool RoomData::HasClimbDestination(uint16_t room) const
 uint16_t RoomData::GetClimbDestination(uint16_t room) const
 {
     return m_warps.GetClimbDestination(room);
+}
+
+void RoomData::SetHasClimbDestination(uint16_t room, bool enabled)
+{
+    m_warps.SetHasClimbDestination(room, enabled);
+}
+
+void RoomData::SetClimbDestination(uint16_t room, uint16_t dest)
+{
+    return m_warps.SetClimbDestination(room, dest);
 }
 
 std::vector<WarpList::Transition> RoomData::GetTransitions(uint16_t room) const
