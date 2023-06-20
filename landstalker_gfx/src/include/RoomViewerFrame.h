@@ -72,6 +72,9 @@ private:
 	uint16_t m_roomnum;
 	double m_zoom;
 
+	bool m_layers_visible;
+	bool m_entities_visible;
+
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;
 	mutable wxPGChoices m_bgms;

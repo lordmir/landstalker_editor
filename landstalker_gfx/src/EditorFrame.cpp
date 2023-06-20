@@ -43,7 +43,7 @@ void EditorFrame::InitProperties(wxPropertyGridManager& props) const
 
 	if (props.GetGrid())
 	{
-		props.GetGrid()->SetSplitterPosition(props.GetClientSize().GetWidth() * 2 / 3);
+		props.GetGrid()->SetSplitterPosition(props.GetClientSize().GetWidth() * 3 / 5);
 	}
 }
 
@@ -152,6 +152,25 @@ void EditorFrame::CheckToolbarItem(const std::string& name, int id, bool checked
 	if (tb != nullptr)
 	{
 		tb->ToggleTool(id, checked);
+		tb->Refresh();
+	}
+}
+
+void EditorFrame::EnableMenuItem(int id, bool enabled) const
+{
+	auto* menu = GetMenuItem(id);
+	if (menu != nullptr)
+	{
+		menu->Enable(enabled);
+	}
+}
+
+void EditorFrame::EnableToolbarItem(const std::string& name, int id, bool enabled) const
+{
+	auto* tb = GetToolbar(name);
+	if (tb != nullptr)
+	{
+		tb->EnableTool(id, enabled);
 		tb->Refresh();
 	}
 }

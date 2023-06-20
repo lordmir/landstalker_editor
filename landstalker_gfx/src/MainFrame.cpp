@@ -334,12 +334,6 @@ void MainFrame::InitUI()
     {
         wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
             (static_cast<int>(RoomViewerCtrl::Mode::NORMAL) << 16) | room->index));
-        m_browser->AppendItem(cRm, "Heightmap", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
-            (static_cast<int>(RoomViewerCtrl::Mode::HEIGHTMAP) << 16) | room->index));
-        m_browser->AppendItem(cRm, "Warps", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
-            (static_cast<int>(RoomViewerCtrl::Mode::WARPS) << 16) | room->index));
-        m_browser->AppendItem(cRm, "Entities", rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
-            (static_cast<int>(RoomViewerCtrl::Mode::ENTITY_PLACEMENT) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
@@ -771,7 +765,7 @@ void MainFrame::Refresh()
         break;
     case MODE_ROOMMAP:
         // Display room map
-        GetRoomEditor()->SetRoomNum(m_seldata & 0xFFFF, static_cast<RoomViewerCtrl::Mode>(m_seldata >> 16));
+        GetRoomEditor()->SetRoomNum(m_seldata & 0xFFFF);
         ShowEditor(EditorType::MAP_VIEW);
         break;
     case MODE_SPRITE:

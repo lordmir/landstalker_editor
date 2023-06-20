@@ -10,15 +10,35 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
+	ID_EDIT,
+	ID_EDIT_ENTITY_PROPERTIES,
+	ID_EDIT_FLAGS,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS,
 	ID_TOOLS_ENTITIES,
 	ID_TOOLS_WARPS,
+	ID_VIEW,
+	ID_VIEW_NORMAL,
+	ID_VIEW_HEIGHTMAP,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
-	ID_VIEW_HEIGHTMAP,
-	ID_VIEW_ENTITY_PROPERTIES
+};
+
+enum TOOL_IDS
+{
+	TOOL_TOGGLE_ENTITIES = 30000,
+	TOOL_TOGGLE_ENTITY_HITBOX,
+	TOOL_TOGGLE_WARPS,
+	TOOL_NORMAL_MODE,
+	TOOL_HEIGHTMAP_MODE,
+	TOOL_MAP_MODE,
+	TOOL_SHOW_LAYERS_PANE,
+	TOOL_SHOW_ENTITIES_PANE,
+	TOOL_SHOW_WARPS_PANE,
+	TOOL_SHOW_FLAGS,
+	TOOL_SHOW_CHESTS,
+	TOOL_SHOW_SELECTION_PROPERTIES
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
@@ -38,7 +58,9 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
 	  m_mode(RoomViewerCtrl::Mode::NORMAL),
-	  m_reset_props(false)
+	  m_reset_props(false),
+	  m_layers_visible(true),
+	  m_entities_visible(true)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -75,7 +97,20 @@ RoomViewerFrame::~RoomViewerFrame()
 void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 {
 	m_mode = mode;
+	if (mode == RoomViewerCtrl::Mode::NORMAL)
+	{
+		SetPaneVisibility(m_layerctrl, m_layers_visible);
+		SetPaneVisibility(m_entityctrl, m_entities_visible);
+	}
+	else
+	{
+		m_layers_visible = IsPaneVisible(m_layerctrl);
+		m_entities_visible = IsPaneVisible(m_entityctrl);
+		SetPaneVisibility(m_layerctrl, false);
+		SetPaneVisibility(m_entityctrl, false);
+	}
 	Update();
+	UpdateUI();
 }
 
 void RoomViewerFrame::Update()
@@ -511,6 +546,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 
 void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 {
+	auto* ctrl = static_cast<wxPropertyGridManager*>(evt.GetEventObject());
+	ctrl->Freeze();
 	wxPGProperty* property = evt.GetProperty();
 	if (property == nullptr)
 	{
@@ -645,7 +682,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		bool enabled = property->GetChoiceSelection() != 0;
 		int room = property->GetChoiceSelection() - 1;
 		if (m_g->GetRoomData()->HasFallDestination(m_roomnum) != enabled ||
-			(enabled && m_g->GetRoomData()->HasFallDestination(m_roomnum) != room))
+			(enabled && m_g->GetRoomData()->GetFallDestination(m_roomnum) != room))
 		{
 			m_g->GetRoomData()->SetHasFallDestination(m_roomnum, enabled);
 			if (enabled)
@@ -660,7 +697,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		bool enabled = property->GetChoiceSelection() != 0;
 		int room = property->GetChoiceSelection() - 1;
 		if (m_g->GetRoomData()->HasClimbDestination(m_roomnum) != enabled ||
-			(enabled && m_g->GetRoomData()->HasClimbDestination(m_roomnum) != room))
+			(enabled && m_g->GetRoomData()->GetClimbDestination(m_roomnum) != room))
 		{
 			m_g->GetRoomData()->SetHasClimbDestination(m_roomnum, enabled);
 			if (enabled)
@@ -698,6 +735,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
 		}
 	}
+	ctrl->Thaw();
 }
 
 void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
@@ -706,14 +744,48 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, wxID_ANY, "", wxITEM_SEPARATOR);
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_BIN, "Export Map as Binary...");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_CSV, "Export Map as CSV Set...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
 	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
-	AddMenuItem(fileMenu, 6, wxID_ANY, "", wxITEM_SEPARATOR);
-	auto& toolsMenu = AddMenu(menu, 1, ID_TOOLS, "Tools");
+
+	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
+	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
+	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
+
+	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
+	AddMenuItem(viewMenu, 0, ID_VIEW_NORMAL, "Normal", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 3, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 4, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 5, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
+
+	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 1, ID_TOOLS_ENTITIES, "Entity List", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 2, ID_TOOLS_WARPS, "Warp List", wxITEM_CHECK);
+
+	wxAuiToolBar* main_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	main_tb->SetToolBitmapSize(wxSize(16, 16));
+	main_tb->AddTool(TOOL_NORMAL_MODE, "Normal Mode", ilist.GetImage("room"), "Normal Mode", wxITEM_RADIO);
+	main_tb->AddTool(TOOL_HEIGHTMAP_MODE, "Heightmap Edit Mode", ilist.GetImage("heightmap"), "Heightmap Edit Mode", wxITEM_RADIO);
+	main_tb->AddTool(TOOL_MAP_MODE, "Map Edit Mode", ilist.GetImage("map"), "Map Edit Mode", wxITEM_RADIO);
+	main_tb->AddSeparator();
+	main_tb->AddTool(TOOL_TOGGLE_ENTITIES, "Entities Visible", ilist.GetImage("entity"), "Entities Visible", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
+	main_tb->AddSeparator();
+	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flags");
+	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chests");
+	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
+	main_tb->AddSeparator();
+	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane");
+	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane");
+	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 
 	UpdateUI();
 
@@ -742,8 +814,37 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_FILE_IMPORT_CSV:
 			OnImportCsv();
 			break;
+		case ID_VIEW_NORMAL:
+		case TOOL_NORMAL_MODE:
+			SetMode(RoomViewerCtrl::Mode::NORMAL);
+			break;
+		case ID_VIEW_HEIGHTMAP:
+		case TOOL_HEIGHTMAP_MODE:
+			SetMode(RoomViewerCtrl::Mode::HEIGHTMAP);
+			break;
+		case ID_VIEW_ENTITIES:
+		case TOOL_TOGGLE_ENTITIES:
+			m_roomview->SetEntitiesVisible(!m_roomview->GetEntitiesVisible());
+			break;
+		case ID_VIEW_ENTITY_HITBOX:
+		case TOOL_TOGGLE_ENTITY_HITBOX:
+			m_roomview->SetEntitiesHitboxVisible(!m_roomview->GetEntitiesHitboxVisible());
+			break;
+		case ID_VIEW_WARPS:
+		case TOOL_TOGGLE_WARPS:
+			m_roomview->SetWarpsVisible(!m_roomview->GetWarpsVisible());
+			break;
 		case ID_TOOLS_LAYERS:
+		case TOOL_SHOW_LAYERS_PANE:
 			SetPaneVisibility(m_layerctrl, !IsPaneVisible(m_layerctrl));
+			break;
+		case ID_TOOLS_ENTITIES:
+		case TOOL_SHOW_ENTITIES_PANE:
+			SetPaneVisibility(m_entityctrl, !IsPaneVisible(m_entityctrl));
+			break;
+		case ID_EDIT_ENTITY_PROPERTIES:
+		case TOOL_SHOW_SELECTION_PROPERTIES:
+			m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -835,7 +936,64 @@ void RoomViewerFrame::OnImportCsv()
 
 void RoomViewerFrame::UpdateUI() const
 {
-	CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
+	EnableMenuItem(ID_EDIT_FLAGS, false);
+	EnableToolbarItem("Main", TOOL_SHOW_FLAGS, false);
+	CheckMenuItem(ID_VIEW_NORMAL, m_mode == RoomViewerCtrl::Mode::NORMAL);
+	CheckToolbarItem("Main", TOOL_NORMAL_MODE, m_mode == RoomViewerCtrl::Mode::NORMAL);
+	CheckMenuItem(ID_VIEW_HEIGHTMAP, m_mode == RoomViewerCtrl::Mode::HEIGHTMAP);
+	CheckToolbarItem("Main", TOOL_HEIGHTMAP_MODE, m_mode == RoomViewerCtrl::Mode::HEIGHTMAP);
+	if (m_mode == RoomViewerCtrl::Mode::NORMAL)
+	{
+		EnableMenuItem(ID_VIEW_ENTITIES, true);
+		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, m_roomview->GetEntitiesVisible());
+
+		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, true);
+		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, true);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
+
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected());
+		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected());
+
+		EnableMenuItem(ID_TOOLS_LAYERS, true);
+		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, true);
+		CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
+		CheckToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, IsPaneVisible(m_layerctrl));
+
+		EnableMenuItem(ID_TOOLS_ENTITIES, true);
+		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, true);
+		CheckMenuItem(ID_TOOLS_ENTITIES, IsPaneVisible(m_entityctrl));
+		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, IsPaneVisible(m_entityctrl));
+	}
+	else
+	{
+		CheckMenuItem(ID_VIEW_ENTITIES, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
+		EnableMenuItem(ID_VIEW_ENTITIES, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
+
+		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
+		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
+
+		CheckMenuItem(ID_TOOLS_LAYERS, false);
+		CheckToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, false);
+		EnableMenuItem(ID_TOOLS_LAYERS, false);
+		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, false);
+
+		CheckMenuItem(ID_TOOLS_ENTITIES, false);
+		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
+		EnableMenuItem(ID_TOOLS_ENTITIES, false);
+		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
+	}
+	CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
+	CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
 }
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
@@ -882,11 +1040,13 @@ void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
 {
 	m_entityctrl->SetEntities(m_roomview->GetEntities());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
 {
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
