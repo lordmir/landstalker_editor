@@ -100,6 +100,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["undo"] = wxBITMAP_PNG_FROM_DATA(UNDO_16x16);
 		m_images["up"] = wxBITMAP_PNG_FROM_DATA(up_16x16);
 		m_images["vflip"] = wxBITMAP_PNG_FROM_DATA(vflip_16x16);
+		m_images["warning"] = wxBITMAP_PNG_FROM_DATA(warning_16x16);
 		m_images["warp"] = wxBITMAP_PNG_FROM_DATA(warp_16x16);
 		m_images["wpanel"] = wxBITMAP_PNG_FROM_DATA(wpanel_16x16);
 	}

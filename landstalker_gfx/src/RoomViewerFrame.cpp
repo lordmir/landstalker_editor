@@ -13,6 +13,7 @@ enum MENU_IDS
 	ID_EDIT,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
+	ID_EDIT_CHESTS,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS,
 	ID_TOOLS_ENTITIES,
@@ -20,9 +21,11 @@ enum MENU_IDS
 	ID_VIEW,
 	ID_VIEW_NORMAL,
 	ID_VIEW_HEIGHTMAP,
+	ID_VIEW_MAP,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
+	ID_VIEW_ERRORS
 };
 
 enum TOOL_IDS
@@ -38,7 +41,8 @@ enum TOOL_IDS
 	TOOL_SHOW_WARPS_PANE,
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
-	TOOL_SHOW_SELECTION_PROPERTIES
+	TOOL_SHOW_SELECTION_PROPERTIES,
+	TOOL_SHOW_ERRORS
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
@@ -754,10 +758,12 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
 	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 1, ID_EDIT_CHESTS, "Chests...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_NORMAL, "Normal", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap Editor", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 1, ID_VIEW_MAP, "Map Editor", wxITEM_RADIO);
 	AddMenuItem(viewMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 3, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 4, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
@@ -783,8 +789,10 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
-	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane");
-	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane");
+	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane", wxITEM_CHECK);
+	main_tb->AddSeparator();
+	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
 	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 
 	UpdateUI();
@@ -938,12 +946,18 @@ void RoomViewerFrame::UpdateUI() const
 {
 	EnableMenuItem(ID_EDIT_FLAGS, false);
 	EnableToolbarItem("Main", TOOL_SHOW_FLAGS, false);
-	CheckMenuItem(ID_VIEW_NORMAL, m_mode == RoomViewerCtrl::Mode::NORMAL);
-	CheckToolbarItem("Main", TOOL_NORMAL_MODE, m_mode == RoomViewerCtrl::Mode::NORMAL);
-	CheckMenuItem(ID_VIEW_HEIGHTMAP, m_mode == RoomViewerCtrl::Mode::HEIGHTMAP);
-	CheckToolbarItem("Main", TOOL_HEIGHTMAP_MODE, m_mode == RoomViewerCtrl::Mode::HEIGHTMAP);
+	EnableMenuItem(ID_EDIT_CHESTS, false);
+	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
+	EnableMenuItem(ID_VIEW_MAP, false);
+	EnableToolbarItem("Main", TOOL_MAP_MODE, false);
+	EnableMenuItem(ID_TOOLS_WARPS, false);
+	EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
+
 	if (m_mode == RoomViewerCtrl::Mode::NORMAL)
 	{
+		CheckMenuItem(ID_VIEW_NORMAL, true);
+		CheckToolbarItem("Main", TOOL_NORMAL_MODE, true);
+
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
 		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
@@ -969,6 +983,9 @@ void RoomViewerFrame::UpdateUI() const
 	}
 	else
 	{
+		CheckMenuItem(ID_VIEW_HEIGHTMAP, true);
+		CheckToolbarItem("Main", TOOL_HEIGHTMAP_MODE, true);
+
 		CheckMenuItem(ID_VIEW_ENTITIES, false);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
 		EnableMenuItem(ID_VIEW_ENTITIES, false);
