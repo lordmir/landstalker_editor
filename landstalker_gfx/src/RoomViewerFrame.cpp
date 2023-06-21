@@ -509,6 +509,7 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 	if (m_g != nullptr)
 	{
 		RefreshLists();
+		props.GetGrid()->Freeze();
 		props.GetGrid()->GetProperty("PBT")->SetChoices(m_pri_blocksets);
 		props.GetGrid()->GetProperty("SBT")->SetChoices(m_sec_blocksets);
 
@@ -545,13 +546,14 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("SLS")->SetChoiceSelection(save_loc);
 		props.GetGrid()->GetProperty("ILS")->SetChoiceSelection(map_loc);
 		props.GetGrid()->SetPropertyValue("ILP", m_g->GetStringData()->GetMapPosition(m_roomnum));
+		props.GetGrid()->Thaw();
 	}
 }
 
 void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 {
 	auto* ctrl = static_cast<wxPropertyGridManager*>(evt.GetEventObject());
-	ctrl->Freeze();
+	ctrl->GetGrid()->Freeze();
 	wxPGProperty* property = evt.GetProperty();
 	if (property == nullptr)
 	{
@@ -739,7 +741,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
 		}
 	}
-	ctrl->Thaw();
+	ctrl->GetGrid()->Thaw();
 }
 
 void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
