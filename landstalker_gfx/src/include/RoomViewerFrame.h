@@ -17,7 +17,7 @@ public:
 
 	RoomViewerCtrl::Mode GetMode() const { return m_mode; }
 	void SetMode(RoomViewerCtrl::Mode mode);
-	void Update();
+	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();

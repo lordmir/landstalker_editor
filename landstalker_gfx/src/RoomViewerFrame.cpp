@@ -113,11 +113,11 @@ void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 		SetPaneVisibility(m_layerctrl, false);
 		SetPaneVisibility(m_entityctrl, false);
 	}
-	Update();
+	UpdateFrame();
 	UpdateUI();
 }
 
-void RoomViewerFrame::Update()
+void RoomViewerFrame::UpdateFrame()
 {
 	m_layerctrl->EnableLayers(m_mode != RoomViewerCtrl::Mode::HEIGHTMAP);
 	m_roomview->SetRoomNum(m_roomnum, m_mode);
@@ -133,7 +133,7 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 		m_roomview->SetGameData(gd);
 	}
 	m_mode = RoomViewerCtrl::Mode::NORMAL;
-	Update();
+	UpdateFrame();
 }
 
 void RoomViewerFrame::ClearGameData()
@@ -144,7 +144,7 @@ void RoomViewerFrame::ClearGameData()
 		m_roomview->ClearGameData();
 	}
 	m_mode = RoomViewerCtrl::Mode::NORMAL;
-	Update();
+	UpdateFrame();
 }
 
 void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
@@ -155,7 +155,7 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
 	}
 	m_roomnum = roomnum;
 	m_mode = mode;
-	Update();
+	UpdateFrame();
 }
 
 bool RoomViewerFrame::ExportBin(const std::string& path)
@@ -578,7 +578,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			}
 			
 
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "RP")
@@ -586,7 +586,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetChoiceSelection() != rd->room_palette)
 		{
 			rd->room_palette = property->GetChoiceSelection();
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "PBT")
@@ -598,7 +598,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			{
 				rd->sec_blockset = 0;
 			}
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "SBT")
@@ -606,7 +606,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetChoiceSelection() != rd->sec_blockset)
 		{
 			rd->sec_blockset = property->GetChoiceSelection();
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "BGM")
@@ -624,7 +624,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (map_name != rd->map)
 		{
 			rd->map = map_name;
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "ZB")
@@ -664,7 +664,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetValuePlain().GetLong() != tm->GetData()->GetLeft())
 		{
 			tm->GetData()->SetLeft(static_cast<uint8_t>(property->GetValuePlain().GetLong()));
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "TTO")
@@ -672,7 +672,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetValuePlain().GetLong() != tm->GetData()->GetTop())
 		{
 			tm->GetData()->SetTop(static_cast<uint8_t>(property->GetValuePlain().GetLong()));
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "VF")
@@ -680,7 +680,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetValuePlain().GetLong() != m_g->GetStringData()->GetRoomVisitFlag(m_roomnum))
 		{
 			m_g->GetStringData()->SetRoomVisitFlag(m_roomnum, static_cast<uint16_t>(property->GetValuePlain().GetLong()));
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "FD")
@@ -695,7 +695,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			{
 				m_g->GetRoomData()->SetFallDestination(m_roomnum, room);
 			}
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "CD")
@@ -710,7 +710,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			{
 				m_g->GetRoomData()->SetClimbDestination(m_roomnum, room);
 			}
-			Update();
+			UpdateFrame();
 		}
 	}
 	else if (name == "SLS")
@@ -918,7 +918,7 @@ void RoomViewerFrame::OnImportBin()
 		std::string path = fd.GetPath().ToStdString();
 		ImportBin(path);
 	}
-	Update();
+	UpdateFrame();
 }
 
 void RoomViewerFrame::OnImportCsv()
@@ -940,7 +940,7 @@ void RoomViewerFrame::OnImportCsv()
 		filenames[2] = fd.GetPath().ToStdString();
 	}
 	ImportCsv(filenames);
-	Update();
+	UpdateFrame();
 }
 
 
