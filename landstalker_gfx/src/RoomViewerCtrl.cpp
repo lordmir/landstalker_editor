@@ -187,10 +187,7 @@ void RoomViewerCtrl::SetZoom(double zoom)
         {
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         }
-        if (m_show_entity_hitboxes)
-        {
-            DrawSpriteHitboxes(q);
-        }
+        DrawSpriteHitboxes(q);
         break;
     }
     UpdateScroll();
@@ -277,10 +274,6 @@ void RoomViewerCtrl::RedrawAllSprites()
     m_entity_poly.clear();
     if (m_mode == Mode::NORMAL)
     {
-        if (m_show_entity_hitboxes)
-        {
-            DrawSpriteHitboxes(q);
-        }
         if (m_show_entities)
         {
             m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
@@ -299,6 +292,7 @@ void RoomViewerCtrl::RedrawAllSprites()
         }
         if (m_show_entities || m_show_entity_hitboxes)
         {
+            DrawSpriteHitboxes(q);
             AddEntityClickRegions(q);
         }
     }
@@ -455,12 +449,6 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
 
 void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
 {
-
-    if (!m_show_entity_hitboxes)
-    {
-        return;
-    }
-
     std::unordered_map<Layer, wxImage> layers;
     std::unordered_map<Layer, wxGraphicsContext*> ctxs;
     layers.insert({ Layer::BG_SPRITES_WIREFRAME_BG, wxImage(m_buffer_width, m_buffer_height) });
@@ -505,17 +493,19 @@ void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
             wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second)
         };
 
-        //hm_gc->DrawLines(sizeof(shadow_points) / sizeof(shadow_points[0]), shadow_points);
         auto fg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_FG] : ctxs[Layer::FG_SPRITES_WIREFRAME_FG];
         auto bg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_BG] : ctxs[Layer::FG_SPRITES_WIREFRAME_BG];
-        auto dotted_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_DOT));
-        bg_ctx->SetPen(dotted_pen);
-        bg_ctx->StrokeLine(s.x + hitbox.first * 2, s.y, s.x, s.y - hitbox.first);
-        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x - hitbox.first * 2, s.y);
-        bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x, s.y - hitbox.first - hitbox.second);
-        auto solid_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_SOLID));
-        fg_ctx->SetPen(solid_pen);
-        fg_ctx->StrokeLines(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), hitbox_fg_points);
+        if (s.selected || m_show_entity_hitboxes)
+        {
+            auto dotted_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_DOT));
+            bg_ctx->SetPen(dotted_pen);
+            bg_ctx->StrokeLine(s.x + hitbox.first * 2, s.y, s.x, s.y - hitbox.first);
+            bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x - hitbox.first * 2, s.y);
+            bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x, s.y - hitbox.first - hitbox.second);
+            auto solid_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_SOLID));
+            fg_ctx->SetPen(solid_pen);
+            fg_ctx->StrokeLines(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), hitbox_fg_points);
+        }
     }
     for (auto& ctx : ctxs)
     {
