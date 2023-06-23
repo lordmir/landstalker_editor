@@ -35,6 +35,8 @@ public:
 protected:
 	void CheckMenuItem(int id, bool checked) const;
 	void CheckToolbarItem(const std::string& name, int id, bool checked) const;
+	void EnableMenuItem(int id, bool enabled) const;
+	void EnableToolbarItem(const std::string& name, int id, bool enabled) const;
 	void SetPaneVisibility(wxWindow* pane, bool visible);
 	bool IsPaneVisible(wxWindow* pane) const;
 	void SetToolbarVisibility(const std::string& name, bool visible);

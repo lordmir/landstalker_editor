@@ -69,6 +69,11 @@ public:
 	uint16_t GetClimbDestination(uint16_t room) const;
 	std::vector<Transition> GetTransitions(uint16_t room) const;
 
+	void SetHasFallDestination(uint16_t room, bool enabled);
+	void SetFallDestination(uint16_t room, uint16_t dest);
+	void SetHasClimbDestination(uint16_t room, bool enabled);
+	void SetClimbDestination(uint16_t room, uint16_t dest);
+
 	std::vector<uint8_t> GetWarpBytes() const;
 	std::vector<uint8_t> GetFallBytes() const;
 	std::vector<uint8_t> GetClimbBytes() const;

@@ -147,7 +147,7 @@ void EntityControlFrame::OnListDoubleClick(wxCommandEvent& evt)
 
 void EntityControlFrame::OnKeyDown(wxKeyEvent& evt)
 {
-    if (m_rvf != nullptr)
+    if (m_rvf != nullptr && evt.GetKeyCode() != WXK_RETURN)
     {
         evt.Skip(m_rvf->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
     }

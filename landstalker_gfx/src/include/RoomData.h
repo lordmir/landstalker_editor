@@ -63,6 +63,7 @@ public:
     std::size_t GetRoomCount() const;
     std::shared_ptr<Room> GetRoom(uint16_t index) const;
     std::shared_ptr<Room> GetRoom(const std::string& name) const;
+    const std::map<std::string, std::shared_ptr<Tilemap3DEntry>>& GetMaps() const;
     std::shared_ptr<Tilemap3DEntry> GetMap(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetPaletteForRoom(const std::string& name) const;
     std::shared_ptr<PaletteEntry> GetPaletteForRoom(uint16_t roomnum) const;
@@ -78,8 +79,12 @@ public:
     std::list<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
     bool HasFallDestination(uint16_t room) const;
     uint16_t GetFallDestination(uint16_t room) const;
+    void SetHasFallDestination(uint16_t room, bool enabled);
+    void SetFallDestination(uint16_t room, uint16_t dest);
     bool HasClimbDestination(uint16_t room) const;
     uint16_t GetClimbDestination(uint16_t room) const;
+    void SetHasClimbDestination(uint16_t room, bool enabled);
+    void SetClimbDestination(uint16_t room, uint16_t dest);
     std::vector<WarpList::Transition> GetTransitions(uint16_t room) const;
 
 protected:

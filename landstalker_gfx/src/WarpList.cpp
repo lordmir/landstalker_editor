@@ -112,6 +112,42 @@ std::vector<WarpList::Transition> WarpList::GetTransitions(uint16_t room) const
 	return retval;
 }
 
+void WarpList::SetHasFallDestination(uint16_t room, bool enabled)
+{
+	auto existing = m_fall_dests.find(room);
+	if (existing != m_fall_dests.cend() && enabled == false)
+	{
+		m_fall_dests.erase(room);
+	}
+	else if (existing == m_fall_dests.cend() && enabled == true)
+	{
+		m_fall_dests[room] = 0;
+	}
+}
+
+void WarpList::SetFallDestination(uint16_t room, uint16_t dest)
+{
+	m_fall_dests[room] = dest;
+}
+
+void WarpList::SetHasClimbDestination(uint16_t room, bool enabled)
+{
+	auto existing = m_climb_dests.find(room);
+	if (existing != m_climb_dests.cend() && enabled == false)
+	{
+		m_climb_dests.erase(room);
+	}
+	else if (existing == m_climb_dests.cend() && enabled == true)
+	{
+		m_climb_dests[room] = 0;
+	}
+}
+
+void WarpList::SetClimbDestination(uint16_t room, uint16_t dest)
+{
+	m_climb_dests[room] = dest;
+}
+
 std::vector<uint8_t> WarpList::GetWarpBytes() const
 {
 	std::vector<uint8_t> retval;

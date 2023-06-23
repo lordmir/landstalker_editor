@@ -15,8 +15,8 @@ public:
 	{
 		NORMAL,
 		HEIGHTMAP,
-		WARPS,
-		ENTITY_PLACEMENT
+		BACKGROUND,
+		FOREGROUND
 	};
 
 	enum class Layer : uint8_t
@@ -44,6 +44,15 @@ public:
 	uint16_t GetRoomNum() const { return m_roomnum; }
 	Mode GetMode() const { return m_mode; }
 
+	bool GetEntitiesVisible();
+	bool GetEntitiesHitboxVisible();
+	bool GetWarpsVisible();
+
+	void SetEntitiesVisible(bool visible);
+	void SetEntitiesHitboxVisible(bool visible);
+	void SetWarpsVisible(bool visible);
+
+	bool EntitiesEnabled() const;
 	void SelectEntity(int selection);
 	void ClearSelection();
 	int GetTotalEntities() const;
@@ -87,12 +96,13 @@ private:
 	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
 	void DrawSprites(const std::vector<SpriteQ>& q);
 	void DrawSpriteHitboxes(const std::vector<SpriteQ>& q);
+	void AddEntityClickRegions(const std::vector<SpriteQ>& q);
 	void RedrawAllSprites();
 	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
 
 	void UpdateRoomDescText(uint16_t roomnum);
-	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
-	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height);
+	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum, Mode mode = Mode::NORMAL);
+	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
 	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
 	void DrawRoomHeightmap(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
@@ -125,6 +135,8 @@ private:
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnLeftDblClick(wxMouseEvent& evt);
 
+	bool HandleEntityKeyDown(unsigned int key, unsigned int modifiers);
+
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	Mode m_mode;
@@ -136,6 +148,10 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
+
+	bool m_show_entities;
+	bool m_show_warps;
+	bool m_show_entity_hitboxes;
 
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;

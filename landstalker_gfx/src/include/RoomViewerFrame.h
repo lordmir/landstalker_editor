@@ -17,7 +17,7 @@ public:
 
 	RoomViewerCtrl::Mode GetMode() const { return m_mode; }
 	void SetMode(RoomViewerCtrl::Mode mode);
-	void Update();
+	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
@@ -36,6 +36,7 @@ private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
@@ -70,6 +71,19 @@ private:
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;
+
+	bool m_layers_visible;
+	bool m_entities_visible;
+
+	mutable bool m_reset_props;
+	mutable wxPGChoices m_palettes;
+	mutable wxPGChoices m_bgms;
+	mutable wxPGChoices m_tilesets;
+	mutable wxPGChoices m_pri_blocksets;
+	mutable wxPGChoices m_sec_blocksets;
+	mutable wxPGChoices m_maps;
+	mutable wxPGChoices m_rooms;
+	mutable wxPGChoices m_menustrings;
 
 	wxDECLARE_EVENT_TABLE();
 };

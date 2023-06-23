@@ -102,6 +102,15 @@ public:
     void SetEndCreditString(std::size_t index, const EndCreditString& value);
     bool HasEndCreditStringChanged(std::size_t index) const;
 
+    uint16_t GetRoomVisitFlag(uint16_t room) const;
+    void SetRoomVisitFlag(uint16_t room, uint16_t flag);
+
+    uint8_t GetSaveLocation(uint16_t room);
+    void SetSaveLocation(uint16_t room, uint8_t name);
+    uint8_t GetMapLocation(uint16_t room);
+    uint8_t GetMapPosition(uint16_t room);
+    void SetMapLocation(uint16_t room, uint8_t name, uint8_t position);
+
 protected:
     virtual void CommitAllChanges();
 private:

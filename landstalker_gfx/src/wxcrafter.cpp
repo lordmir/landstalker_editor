@@ -108,8 +108,8 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
                                   .Row(0)
                                   .Position(0)
                                   .MinSize(100,100)
-                                  .BestSize(200,100)
-                                  .FloatingSize(200,300)
+                                  .BestSize(300,100)
+                                  .FloatingSize(300,300)
                                   .CaptionVisible(true)
                                   .MaximizeButton(false)
                                   .CloseButton(false)
@@ -135,8 +135,8 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
                                 .Row(0)
                                 .Position(1)
                                 .MinSize(100,100)
-                                .BestSize(200,100)
-                                .FloatingSize(200,600)
+                                .BestSize(300,100)
+                                .FloatingSize(300,600)
                                 .CaptionVisible(true)
                                 .MaximizeButton(false)
                                 .CloseButton(false)
@@ -148,8 +148,8 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     wxBoxSizer* m_boxsizer_properties = new wxBoxSizer(wxVERTICAL);
     m_panel_properties->SetSizer(m_boxsizer_properties);
     
-    m_properties = new wxPropertyGridManager(m_panel_properties, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_panel_properties, wxSize(300,50)), wxPG_DESCRIPTION|wxPG_LIMITED_EDITING|wxPG_BOLD_MODIFIED|wxPG_AUTO_SORT);
-    
+    m_properties = new wxPropertyGridManager(m_panel_properties, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_panel_properties, wxSize(300,50)), wxPG_LIMITED_EDITING|wxPG_BOLD_MODIFIED);
+
     m_boxsizer_properties->Add(m_properties, 1, wxALL|wxEXPAND, WXC_FROM_DIP(5));
     m_properties->SetMinSize(wxSize(300,50));
 
