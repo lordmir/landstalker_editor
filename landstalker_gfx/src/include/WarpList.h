@@ -32,7 +32,9 @@ public:
 		Type type;
 
 		Warp(const std::vector<uint8_t>& raw);
+		Warp() : room1(0xFFFF), x1(0), y1(0), room2(0xFFFF), x2(0), y2(0), x_size(1), y_size(1), type(Type::NORMAL) {}
 		std::vector<uint8_t> GetRaw() const;
+		bool IsValid() const;
 
 		bool operator==(const Warp& rhs) const;
 		bool operator!=(const Warp& rhs) const;
@@ -62,7 +64,8 @@ public:
 	bool operator==(const WarpList& rhs) const;
 	bool operator!=(const WarpList& rhs) const;
 
-	std::list<Warp> GetWarpsForRoom(uint16_t room) const;
+	std::vector<Warp> GetWarpsForRoom(uint16_t room) const;
+	void UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps);
 	bool HasFallDestination(uint16_t room) const;
 	uint16_t GetFallDestination(uint16_t room) const;
 	bool HasClimbDestination(uint16_t room) const;

@@ -1,6 +1,7 @@
 #include "WarpList.h"
 
 #include <cassert>
+#include <stack>
 #include "AsmUtils.h"
 
 WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
@@ -58,17 +59,59 @@ bool WarpList::operator!=(const WarpList& rhs) const
 	return !(*this == rhs);
 }
 
-std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
+std::vector<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 {
-	std::list<Warp> warps;
-	for (const auto& warp : m_warps)
+	std::vector<Warp> warps;
+	for (auto it = m_warps.begin(); it != m_warps.end(); ++it)
 	{
-		if (warp.room1 == room || warp.room2 == room)
+		if (it->room1 == room || it->room2 == room)
 		{
-			warps.push_back(warp);
+			warps.push_back(*it);
 		}
 	}
 	return warps;
+}
+
+void WarpList::UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps)
+{
+	std::stack<std::vector<Warp>::iterator> iterators;
+	for (auto it = m_warps.begin(); it != m_warps.end(); ++it)
+	{
+		if (it->room1 == room || it->room2 == room)
+		{
+			iterators.push(it);
+		}
+	}
+	for (const auto& warp : warps)
+	{
+		if (warp.IsValid())
+		{
+			if (iterators.empty())
+			{
+				m_warps.push_back(warp);
+			}
+			else
+			{
+				auto& it = iterators.top();
+				*it = warp;
+				iterators.pop();
+			}
+		}
+	}
+	if (!iterators.empty())
+	{
+		for (auto it = m_warps.begin(); it != m_warps.end(); )
+		{
+			if (it->room1 == room || it->room2 == room)
+			{
+				it = m_warps.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+	}
 }
 
 bool WarpList::HasFallDestination(uint16_t room) const
@@ -324,6 +367,11 @@ std::vector<uint8_t> WarpList::Warp::GetRaw() const
 	retval[0] |= (type == Type::STAIR_SW) ? 0x40 : 0;
 
 	return retval;
+}
+
+bool WarpList::Warp::IsValid() const
+{
+	return room1 != 0xFFFF && room2 != 0xFFFF;
 }
 
 bool WarpList::Warp::operator==(const Warp& rhs) const

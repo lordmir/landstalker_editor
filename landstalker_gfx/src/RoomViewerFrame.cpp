@@ -56,6 +56,11 @@ EVT_COMMAND(wxID_ANY, EVT_ENTITY_ADD, RoomViewerFrame::OnEntityAdd)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_DELETE, RoomViewerFrame::OnEntityDelete)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_UP, RoomViewerFrame::OnEntityMoveUp)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_MOVE_DOWN, RoomViewerFrame::OnEntityMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_WARP_UPDATE, RoomViewerFrame::OnWarpUpdate)
+EVT_COMMAND(wxID_ANY, EVT_WARP_SELECT, RoomViewerFrame::OnWarpSelect)
+EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenProperties)
+EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
+EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
 wxEND_EVENT_TABLE()
 
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
@@ -63,18 +68,22 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_title(""),
 	  m_mode(RoomViewerCtrl::Mode::NORMAL),
 	  m_reset_props(false),
-	  m_layers_visible(true),
-	  m_entities_visible(true)
+	  m_layerctrl_visible(true),
+	  m_entityctrl_visible(true),
+	  m_warpctrl_visible(true)
 {
 	m_mgr.SetManagedWindow(this);
 
 	m_roomview = new RoomViewerCtrl(this);
 	m_layerctrl = new LayerControlFrame(this);
 	m_entityctrl = new EntityControlFrame(this, GetImageList());
+	m_warpctrl = new WarpControlFrame(this, GetImageList());
 	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Layers"));
 	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
+	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Warps"));
 	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
@@ -90,12 +99,14 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
 	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
 {
 	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_warpctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
@@ -103,15 +114,18 @@ void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 	m_mode = mode;
 	if (mode == RoomViewerCtrl::Mode::NORMAL)
 	{
-		SetPaneVisibility(m_layerctrl, m_layers_visible);
-		SetPaneVisibility(m_entityctrl, m_entities_visible);
+		SetPaneVisibility(m_layerctrl, m_layerctrl_visible);
+		SetPaneVisibility(m_entityctrl, m_entityctrl_visible);
+		SetPaneVisibility(m_entityctrl, m_warpctrl_visible);
 	}
 	else
 	{
-		m_layers_visible = IsPaneVisible(m_layerctrl);
-		m_entities_visible = IsPaneVisible(m_entityctrl);
+		m_layerctrl_visible = IsPaneVisible(m_layerctrl);
+		m_entityctrl_visible = IsPaneVisible(m_entityctrl);
+		m_warpctrl_visible = IsPaneVisible(m_warpctrl);
 		SetPaneVisibility(m_layerctrl, false);
 		SetPaneVisibility(m_entityctrl, false);
+		SetPaneVisibility(m_warpctrl, false);
 	}
 	UpdateFrame();
 	UpdateUI();
@@ -852,9 +866,20 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case TOOL_SHOW_ENTITIES_PANE:
 			SetPaneVisibility(m_entityctrl, !IsPaneVisible(m_entityctrl));
 			break;
+		case ID_TOOLS_WARPS:
+		case TOOL_SHOW_WARPS_PANE:
+			SetPaneVisibility(m_warpctrl, !IsPaneVisible(m_warpctrl));
+			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
-			m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
+			if (m_roomview->IsEntitySelected())
+			{
+				m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
+			}
+			else if (m_roomview->IsWarpSelected())
+			{
+				m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+			}
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -952,8 +977,6 @@ void RoomViewerFrame::UpdateUI() const
 	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
 	EnableMenuItem(ID_VIEW_MAP, false);
 	EnableToolbarItem("Main", TOOL_MAP_MODE, false);
-	EnableMenuItem(ID_TOOLS_WARPS, false);
-	EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
 
 	if (m_mode == RoomViewerCtrl::Mode::NORMAL)
 	{
@@ -970,8 +993,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, true);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
 
-		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected());
-		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected());
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
+		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
 
 		EnableMenuItem(ID_TOOLS_LAYERS, true);
 		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, true);
@@ -982,6 +1005,11 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, true);
 		CheckMenuItem(ID_TOOLS_ENTITIES, IsPaneVisible(m_entityctrl));
 		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, IsPaneVisible(m_entityctrl));
+
+		EnableMenuItem(ID_TOOLS_WARPS, true);
+		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, true);
+		CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
+		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
 	}
 	else
 	{
@@ -1010,6 +1038,11 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
 		EnableMenuItem(ID_TOOLS_ENTITIES, false);
 		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
+
+		CheckMenuItem(ID_TOOLS_WARPS, false);
+		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
+		EnableMenuItem(ID_TOOLS_WARPS, false);
+		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
 	}
 	CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
 	CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
@@ -1059,42 +1092,79 @@ void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
 {
 	m_entityctrl->SetEntities(m_roomview->GetEntities());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	UpdateUI();
 }
 
 void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	UpdateUI();
 }
 
 void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->UpdateEntityProperties(m_entityctrl->GetSelected());
 }
 
 void RoomViewerFrame::OnEntityAdd(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->AddEntity();
 }
 
 void RoomViewerFrame::OnEntityDelete(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->DeleteSelectedEntity();
 }
 
 void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->MoveSelectedEntityUp();
 }
 
 void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& evt)
 {
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->MoveSelectedEntityDown();
+}
+
+void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& evt)
+{
+	m_warpctrl->SetWarps(m_roomview->GetWarps());
+	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
+	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+}
+
+void RoomViewerFrame::OnWarpSelect(wxCommandEvent& evt)
+{
+	m_roomview->SelectWarp(m_warpctrl->GetSelected());
+	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+}
+
+void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& evt)
+{
+	m_roomview->SelectWarp(m_warpctrl->GetSelected());
+	m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+}
+
+void RoomViewerFrame::OnWarpAdd(wxCommandEvent& evt)
+{
+	m_roomview->AddWarp();
+}
+
+void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
+{
+	m_roomview->SelectWarp(m_warpctrl->GetSelected());
+	m_roomview->DeleteSelectedWarp();
 }
 
 void RoomViewerFrame::FireEvent(const wxEventType& e)

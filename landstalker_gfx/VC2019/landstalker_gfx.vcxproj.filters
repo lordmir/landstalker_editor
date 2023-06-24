@@ -10,202 +10,337 @@
     <Filter Include="wxcrafter">
       <UniqueIdentifier>{fb71374d-92c8-4ff3-ac1c-213934f78321}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\UI">
+      <UniqueIdentifier>{068928b7-0c7e-411c-aebe-3515782fcdfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data">
+      <UniqueIdentifier>{7388e24a-bb64-48df-ac93-9f017e285330}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Tileset">
+      <UniqueIdentifier>{f42609e8-5327-4951-85d6-26b33755b325}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Main">
+      <UniqueIdentifier>{b90da4bd-3c33-4fda-a661-1bdf0baf23df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Tileset">
+      <UniqueIdentifier>{71e0b0c9-8b72-45fb-bb7e-42fbd70adfb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Main">
+      <UniqueIdentifier>{ba71b140-b0cd-4e11-baac-7f1cbe0a9da2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Miscellaneous">
+      <UniqueIdentifier>{a0d21aad-8745-4e43-bad5-a3235eef6a60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Blockset">
+      <UniqueIdentifier>{c0a376cf-67bf-4ba6-a6b1-5f5ef210c3d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\2D Maps">
+      <UniqueIdentifier>{abcdf6c3-2c2a-480f-9614-09dea9e6c271}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\3D Maps">
+      <UniqueIdentifier>{8137e8ca-84eb-4401-93ea-5b66b2de1f64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Blockset">
+      <UniqueIdentifier>{6546ed74-838e-43b3-b363-f242f63567f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Text">
+      <UniqueIdentifier>{55a9aba9-c5ad-4b7e-afa2-fc3af33f08d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Palette">
+      <UniqueIdentifier>{3872058b-662a-4ad7-9b55-65999aff43fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Rooms">
+      <UniqueIdentifier>{82474f24-c964-45d5-9f5d-12a2ac72110e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms">
+      <UniqueIdentifier>{71963b05-e982-471e-8bdf-442569d95fc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\2D Maps">
+      <UniqueIdentifier>{0a4f6924-8195-44eb-963a-0204441bbb5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Palettes">
+      <UniqueIdentifier>{df5bff53-8501-4fd2-a5af-2160ddd9924c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Miscellaneous">
+      <UniqueIdentifier>{f2d2c2a5-2915-4c69-a1e8-f3702af32ebf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\Data\Sprites">
+      <UniqueIdentifier>{eadfb3c8-215d-4cae-9b27-a664a03ce4f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Sprites">
+      <UniqueIdentifier>{5cce17b8-2e40-4569-ae14-5979f28947c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Text">
+      <UniqueIdentifier>{798fc907-3a71-4dc0-9898-411de987af9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data">
+      <UniqueIdentifier>{49289520-a6bd-4176-bdff-c725ccda0cb5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI">
+      <UniqueIdentifier>{f95bb788-3fbe-4e40-8c19-6902fefbebea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Main">
+      <UniqueIdentifier>{e1f708be-8d15-48ce-8ca4-ee07e9f10e66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Miscellaneous">
+      <UniqueIdentifier>{ae17d1c5-2108-4661-8c1f-04e18f65106c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Blockset">
+      <UniqueIdentifier>{652f323d-6340-48f4-9475-259f08105d9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\2D Maps">
+      <UniqueIdentifier>{8ea91b93-cf5e-4e82-810f-fbb32f4bae51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\3D Maps">
+      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Sprites">
+      <UniqueIdentifier>{e29568f1-0473-48b0-b633-6af122b43bf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Palettes">
+      <UniqueIdentifier>{c4ab4308-e018-49cb-9ad7-b8ce470d1c15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Rooms">
+      <UniqueIdentifier>{0eaeb842-6764-4479-bafb-858e36266754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Text">
+      <UniqueIdentifier>{141ba220-6c16-4a11-9dc3-0bf4ac9d0ab0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Tileset">
+      <UniqueIdentifier>{c13fd3de-23ad-49ce-9600-02024f125914}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Main">
+      <UniqueIdentifier>{8459cf41-cd9c-4142-86c8-1fa205354e3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Blockset">
+      <UniqueIdentifier>{cb10c7dd-013d-4578-bcaa-d82eb674797b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\2D Maps">
+      <UniqueIdentifier>{b61b7668-62fe-4f54-b171-c8955a78678e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Miscellaneous">
+      <UniqueIdentifier>{9594b60d-fca3-4cb0-9cdd-aa638f2a4243}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Text">
+      <UniqueIdentifier>{57fac5c6-9fdc-4f74-a2bd-e326e4d07f7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Sprites">
+      <UniqueIdentifier>{98794792-b6b7-420f-883b-a251a4cee7cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms">
+      <UniqueIdentifier>{09d4eb59-0a16-4291-9888-7bc1bca18366}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Palette">
+      <UniqueIdentifier>{41d52e0a-4c0e-497a-b946-32dae02bc7a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Tileset">
+      <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\BitBarrel.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\BitBarrelWriter.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Blockmap2D.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\BlockmapIsometric.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\EndCreditString.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\HuffmanString.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\HuffmanTree.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\HuffmanTrees.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\ImageBuffer.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\IntroString.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\LSString.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\LZ77.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\main.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\MainFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\SpriteFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Tile.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TileAttributes.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Tilemap.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Tileset.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Utils.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\wxcrafter.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\wxcrafter_bitmaps.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Block.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\BlocksetCmp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Tilemap2DRLE.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TilesetEditor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TilesetEditorFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\PaletteEditor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TileEditor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\EditorFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\ImageList.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\AnimatedTileset.cpp">
-      <Filter>src</Filter>
+      <Filter>src\Data\Tileset</Filter>
     </ClCompile>
     <ClCompile Include="..\src\AsmFile.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Rom.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Room.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Tilemap3DCmp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\WarpList.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Palette.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DataManager.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DataTypes.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\RoomData.cpp">
-      <Filter>src</Filter>
+      <Filter>src\Data\Main</Filter>
     </ClCompile>
     <ClCompile Include="..\src\AsmUtils.cpp">
-      <Filter>src</Filter>
+      <Filter>src\Data\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\GraphicsData.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\BitBarrel.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\GameData.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\BitBarrelWriter.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\EntryPreferences.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\Block.cpp">
+      <Filter>src\Data\Blockset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\StringData.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\BlocksetCmp.cpp">
+      <Filter>src\Data\Blockset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\StringEditorFrame.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\Blockmap2D.cpp">
+      <Filter>src\Data\2D Maps</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\ResizeableGrid.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\SpriteData.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\PaletteListFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\RoomViewerFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\RoomViewerCtrl.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\LayerControlFrame.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Map2DEditor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\Map2DEditorFrame.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\BlockmapIsometric.cpp">
+      <Filter>src\Data\3D Maps</Filter>
     </ClCompile>
     <ClCompile Include="..\src\BlocksetEditorCtrl.cpp">
-      <Filter>src</Filter>
+      <Filter>src\UI\Blockset</Filter>
     </ClCompile>
     <ClCompile Include="..\src\BlocksetEditorFrame.cpp">
-      <Filter>src</Filter>
+      <Filter>src\UI\Blockset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\SpriteEditorCtrl.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\DataTypes.cpp">
+      <Filter>src\Data\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\SpriteEditorFrame.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\DataManager.cpp">
+      <Filter>src\Data\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\StringDataViewModel.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp">
+      <Filter>src\UI\Palette</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp">
+      <Filter>src\UI\Palette</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\EditorFrame.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\EndCreditString.cpp">
+      <Filter>src\Data\Text</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Entity.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\EntityPropertiesWindow.cpp">
-      <Filter>src</Filter>
+      <Filter>src\Data\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\EntityControlFrame.cpp">
-      <Filter>src</Filter>
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\EntityPropertiesWindow.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\EntryPreferences.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GameData.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\GraphicsData.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\HuffmanString.cpp">
+      <Filter>src\Data\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\HuffmanTrees.cpp">
+      <Filter>src\Data\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\HuffmanTree.cpp">
+      <Filter>src\Data\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\IntroString.cpp">
+      <Filter>src\Data\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\LSString.cpp">
+      <Filter>src\Data\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ImageBuffer.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ImageList.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\main.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\MainFrame.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wxcrafter.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wxcrafter_bitmaps.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\LayerControlFrame.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Map2DEditor.cpp">
+      <Filter>src\UI\2D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Map2DEditorFrame.cpp">
+      <Filter>src\UI\2D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\PaletteListFrame.cpp">
+      <Filter>src\UI\Palette</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\PaletteEditor.cpp">
+      <Filter>src\UI\Palette</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\LZ77.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Palette.cpp">
+      <Filter>src\Data\Palettes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Rom.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Room.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomData.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomViewerFrame.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomViewerCtrl.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteEditorCtrl.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteEditorFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteData.cpp">
+      <Filter>src\Data\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteFrame.cpp">
+      <Filter>src\Data\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\StringData.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\StringDataViewModel.cpp">
+      <Filter>src\UI\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\StringEditorFrame.cpp">
+      <Filter>src\UI\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tile.cpp">
+      <Filter>src\Data\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileAttributes.cpp">
+      <Filter>src\Data\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileEditor.cpp">
+      <Filter>src\UI\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TilesetEditor.cpp">
+      <Filter>src\UI\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TilesetEditorFrame.cpp">
+      <Filter>src\UI\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tilemap.cpp">
+      <Filter>src\Data\2D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tilemap2DRLE.cpp">
+      <Filter>src\Data\2D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tilemap3DCmp.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Tileset.cpp">
+      <Filter>src\Data\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Utils.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\WarpControlFrame.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\WarpList.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ResizeableGrid.cpp">
+      <Filter>src\UI\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SelectionControlFrame.cpp">
+      <Filter>src\UI\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\WarpPropertyWindow.cpp">
+      <Filter>src\UI\Rooms</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -220,212 +355,221 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\include\BitBarrel.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\BitBarrelWriter.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Blockmap2D.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\BlockmapIsometric.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Charset.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\EndCreditString.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\HuffmanString.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\HuffmanTree.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\HuffmanTrees.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\ImageBuffer.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\IntroString.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\LSString.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\LZ77.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\MainFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\resource.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Rom.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\RomOffsets.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\SpriteFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Tile.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TileAttributes.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Tilemap.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Tileset.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Utils.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\wxcrafter.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Block.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\BlocksetCmp.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Tilemap2DRLE.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TilesetEditor.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\PaletteEditor.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TileEditor.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\EditorFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Icons.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\ImageList.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\AnimatedTileset.h">
+      <Filter>include\Data\Tileset</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AsmFile.h">
-      <Filter>include</Filter>
+      <Filter>include\Data\Main</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AsmFile_inl.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\AnimatedTileset.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Room.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Tilemap3DCmp.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\WarpList.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Palette.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\DataManager.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\DataTypes.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\RoomData.h">
-      <Filter>include</Filter>
+      <Filter>include\Data\Main</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AsmUtils.h">
-      <Filter>include</Filter>
+      <Filter>include\Data\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\GraphicsData.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\BitBarrel.h">
+      <Filter>include\Data\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\GameData.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\BitBarrelWriter.h">
+      <Filter>include\Data\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\EntryPreferences.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\Block.h">
+      <Filter>include\Data\Blockset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\StringData.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\BlockmapIsometric.h">
+      <Filter>include\Data\3D Maps</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\StringEditorFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\ResizeableGrid.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\SpriteData.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Images.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\PaletteListFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\RoomViewerFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\RoomViewerCtrl.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\LayerControlFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Map2DEditorFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\Map2DEditor.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TilesetEditorFrame.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\BlocksetEditorFrame.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\BlocksetCmp.h">
+      <Filter>include\Data\Blockset</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\BlocksetEditorCtrl.h">
-      <Filter>include</Filter>
+      <Filter>include\UI\Blockset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\SpriteEditorFrame.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\BlocksetEditorFrame.h">
+      <Filter>include\UI\Blockset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\SpriteEditorCtrl.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\Charset.h">
+      <Filter>include\Data\Text</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\StringDataViewModel.h">
-      <Filter>include</Filter>
+    <ClInclude Include="..\src\include\DataManager.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataTypes.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h">
+      <Filter>include\UI\Palette</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h">
+      <Filter>include\UI\Palette</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EditorFrame.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EndCreditString.h">
+      <Filter>include\Data\Text</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\Entity.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\EntityPropertiesWindow.h">
-      <Filter>include</Filter>
+      <Filter>include\Data\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntityControlFrame.h">
-      <Filter>include</Filter>
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EntityPropertiesWindow.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EntryPreferences.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\GameData.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\GraphicsData.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\HuffmanString.h">
+      <Filter>include\Data\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\HuffmanTree.h">
+      <Filter>include\Data\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\HuffmanTrees.h">
+      <Filter>include\Data\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Icons.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ImageBuffer.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ImageList.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Images.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\IntroString.h">
+      <Filter>include\Data\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\LayerControlFrame.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\LSString.h">
+      <Filter>include\Data\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\LZ77.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\MainFrame.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Map2DEditor.h">
+      <Filter>include\UI\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Map2DEditorFrame.h">
+      <Filter>include\UI\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Palette.h">
+      <Filter>include\Data\Palettes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\PaletteEditor.h">
+      <Filter>include\UI\Palette</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\PaletteListFrame.h">
+      <Filter>include\UI\Palette</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ResizeableGrid.h">
+      <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\resource.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Rom.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RomOffsets.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Room.h">
+      <Filter>include\Data\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomData.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomViewerCtrl.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomViewerFrame.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SelectionControlFrame.h">
+      <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteData.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteEditorCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteEditorFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteFrame.h">
+      <Filter>include\Data\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\StringData.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\StringDataViewModel.h">
+      <Filter>include\UI\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\StringEditorFrame.h">
+      <Filter>include\UI\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tile.h">
+      <Filter>include\Data\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileAttributes.h">
+      <Filter>include\Data\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tileset.h">
+      <Filter>include\Data\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileEditor.h">
+      <Filter>include\UI\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tilemap.h">
+      <Filter>include\Data\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tilemap2DRLE.h">
+      <Filter>include\Data\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Tilemap3DCmp.h">
+      <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Blockmap2D.h">
+      <Filter>include\Data\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TilesetEditor.h">
+      <Filter>include\UI\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TilesetEditorFrame.h">
+      <Filter>include\UI\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Utils.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\WarpControlFrame.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\WarpList.h">
+      <Filter>include\Data\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\wxcrafter.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\WarpPropertyWindow.h">
+      <Filter>include\UI\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

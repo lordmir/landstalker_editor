@@ -593,9 +593,14 @@ std::shared_ptr<Tilemap3DEntry> RoomData::GetMapForRoom(uint16_t roomnum) const
     return GetMap(rm->map);
 }
 
-std::list<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
+std::vector<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
 {
     return m_warps.GetWarpsForRoom(roomnum);
+}
+
+void RoomData::SetWarpsForRoom(uint16_t roomnum, const std::vector<WarpList::Warp>& warps)
+{
+    m_warps.UpdateWarpsForRoom(roomnum, warps);
 }
 
 bool RoomData::HasFallDestination(uint16_t room) const
