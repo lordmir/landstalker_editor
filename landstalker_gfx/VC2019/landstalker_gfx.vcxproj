@@ -76,6 +76,7 @@
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\WarpList.cpp" />
+    <ClCompile Include="..\src\WarpPropertyWindow.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
@@ -155,6 +156,7 @@
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\include\WarpList.h" />
+    <ClInclude Include="..\src\include\WarpPropertyWindow.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
   </ItemGroup>
   <ItemGroup>

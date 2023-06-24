@@ -6,6 +6,7 @@
 
 #include "EditorFrame.h"
 #include "EntityPropertiesWindow.h"
+#include "WarpPropertyWindow.h"
 
 wxDEFINE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_WARP_UPDATE, wxCommandEvent);
@@ -705,7 +706,18 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, Mode m
 
 void RoomViewerCtrl::UpdateWarpProperties(int warp)
 {
-    wxMessageBox(StrPrintf("%02d", warp));
+    if (IsWarpSelected())
+    {
+        WarpPropertyWindow dlg(m_parent, m_roomnum, GetSelectedWarpIndex(), &m_warps[GetSelectedWarpIndex() - 1], *m_g);
+        if (dlg.ShowModal() == wxID_OK)
+        {
+            //m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+            FireEvent(EVT_STATUSBAR_UPDATE);
+            FireEvent(EVT_WARP_UPDATE);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            ForceRedraw();
+        }
+    }
 }
 
 void RoomViewerCtrl::DrawRoomHeightmap(uint16_t roomnum)
