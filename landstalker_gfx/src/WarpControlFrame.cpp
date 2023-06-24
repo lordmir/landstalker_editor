@@ -73,14 +73,43 @@ std::string WarpControlFrame::MakeLabel(int index) const
 {
     uint16_t room = m_rvf->GetRoomNum();
     const auto& warp = m_warps.at(index);
-    if (room == warp.room1)
+    if (warp.IsValid())
     {
-        return StrPrintf("%02d: %03d (%02d,%02d) <-> %03d (%02d, %02d)", index + 1, warp.room1,
-            warp.x1, warp.y1, warp.room2, warp.x2, warp.y2);
+        if (room == warp.room1)
+        {
+            return StrPrintf("%02d: %03d (%02d,%02d) <-> %03d (%02d, %02d)", index + 1, warp.room1,
+                warp.x1, warp.y1, warp.room2, warp.x2, warp.y2);
+        }
+        else
+        {
+            return StrPrintf("%02d: %03d (%02d,%02d) <-> %03d (%02d, %02d)", index + 1, warp.room2,
+                warp.x2, warp.y2, warp.room1, warp.x1, warp.y1);
+        }
     }
     else
     {
-        return StrPrintf("%02d: %03d (%02d,%02d) <-> %03d (%02d, %02d)", index + 1, warp.room2,
-            warp.x2, warp.y2, warp.room1, warp.x1, warp.y1);
+        if (room == warp.room1)
+        {
+            return StrPrintf("%02d: %03d (%02d,%02d) <-> PENDING", index + 1, warp.room1,
+                warp.x1, warp.y1);
+        }
+        else if (room == warp.room2)
+        {
+            return StrPrintf("%02d: %03d (%02d,%02d) <-> PENDING", index + 1, warp.room2,
+                warp.x2, warp.y2);
+        }
+        else
+        {
+            if (warp.room1 == 0xFFFF)
+            {
+                return StrPrintf("%02d: PENDING <-> %03d (%02d,%02d)", index + 1, warp.room2,
+                    warp.x2, warp.y2);
+            }
+            else
+            {
+                return StrPrintf("%02d: PENDING <-> %03d (%02d,%02d)", index + 1, warp.room1,
+                    warp.x1, warp.y1);
+            }
+        }
     }
 }

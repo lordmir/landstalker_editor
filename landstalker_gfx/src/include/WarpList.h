@@ -65,6 +65,7 @@ public:
 	bool operator!=(const WarpList& rhs) const;
 
 	std::vector<Warp> GetWarpsForRoom(uint16_t room) const;
+	void UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps);
 	bool HasFallDestination(uint16_t room) const;
 	uint16_t GetFallDestination(uint16_t room) const;
 	bool HasClimbDestination(uint16_t room) const;

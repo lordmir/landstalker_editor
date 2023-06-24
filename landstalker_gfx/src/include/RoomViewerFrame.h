@@ -86,9 +86,6 @@ private:
 	bool m_entityctrl_visible;
 	bool m_warpctrl_visible;
 
-	bool m_is_warp_pending;
-	WarpList::Warp m_pending_warp;
-
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;
 	mutable wxPGChoices m_bgms;

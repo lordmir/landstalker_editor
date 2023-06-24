@@ -598,6 +598,11 @@ std::vector<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
     return m_warps.GetWarpsForRoom(roomnum);
 }
 
+void RoomData::SetWarpsForRoom(uint16_t roomnum, const std::vector<WarpList::Warp>& warps)
+{
+    m_warps.UpdateWarpsForRoom(roomnum, warps);
+}
+
 bool RoomData::HasFallDestination(uint16_t room) const
 {
     return m_warps.HasFallDestination(room);

@@ -70,8 +70,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_reset_props(false),
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
-	  m_warpctrl_visible(true),
-	  m_is_warp_pending(false)
+	  m_warpctrl_visible(true)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -873,7 +872,14 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
-			m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
+			if (m_roomview->IsEntitySelected())
+			{
+				m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
+			}
+			else if (m_roomview->IsWarpSelected())
+			{
+				m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+			}
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -987,8 +993,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, true);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
 
-		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected());
-		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected());
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
+		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
 
 		EnableMenuItem(ID_TOOLS_LAYERS, true);
 		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, true);
@@ -1146,14 +1152,19 @@ void RoomViewerFrame::OnWarpSelect(wxCommandEvent& evt)
 
 void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& evt)
 {
+	m_roomview->SelectWarp(m_warpctrl->GetSelected());
+	m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
 }
 
 void RoomViewerFrame::OnWarpAdd(wxCommandEvent& evt)
 {
+	m_roomview->AddWarp();
 }
 
 void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
 {
+	m_roomview->SelectWarp(m_warpctrl->GetSelected());
+	m_roomview->DeleteSelectedWarp();
 }
 
 void RoomViewerFrame::FireEvent(const wxEventType& e)

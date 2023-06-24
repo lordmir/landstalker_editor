@@ -149,7 +149,9 @@ private:
 	void OnRightClick(wxMouseEvent& evt);
 	void OnRightDblClick(wxMouseEvent& evt);
 
-	bool HandleEntityKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleNormalModeKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleNEntityKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleNWarpKeyDown(unsigned int key, unsigned int modifiers);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
@@ -166,6 +168,9 @@ private:
 	bool m_show_entities;
 	bool m_show_warps;
 	bool m_show_entity_hitboxes;
+
+	bool m_is_warp_pending;
+	WarpList::Warp m_pending_warp;
 
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;

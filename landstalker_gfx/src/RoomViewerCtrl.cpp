@@ -38,7 +38,8 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
       m_selected(-1),
       m_show_entities(true),
       m_show_entity_hitboxes(true),
-      m_show_warps(true)
+      m_show_warps(true),
+      m_is_warp_pending(false)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -73,10 +74,24 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
 	m_roomnum = roomnum;
     m_mode = mode;
     m_selected = -1;
+    if (m_is_warp_pending)
+    {
+        for (const auto& warp : m_warps)
+        {
+            if (!warp.IsValid())
+            {
+                m_pending_warp = warp;
+            }
+        }
+    }
     if (m_g != nullptr)
     {
         m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
         m_warps = m_g->GetRoomData()->GetWarpsForRoom(roomnum);
+        if (m_is_warp_pending)
+        {
+            m_warps.push_back(m_pending_warp);
+        }
         FireEvent(EVT_ENTITY_UPDATE);
         FireEvent(EVT_WARP_UPDATE);
     }
@@ -658,6 +673,8 @@ void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
 
 std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, Mode mode)
 {
+    m_warp_poly.clear();
+    m_link_poly.clear();
     auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
     auto warps = m_g->GetRoomData()->GetWarpsForRoom(roomnum);
 
@@ -708,10 +725,15 @@ void RoomViewerCtrl::UpdateWarpProperties(int warp)
 {
     if (IsWarpSelected())
     {
+        bool pend = m_is_warp_pending && !GetSelectedWarp().IsValid();
         WarpPropertyWindow dlg(m_parent, m_roomnum, GetSelectedWarpIndex(), &m_warps[GetSelectedWarpIndex() - 1], *m_g);
         if (dlg.ShowModal() == wxID_OK)
         {
-            //m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+            m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
+            if (pend && GetSelectedWarp().IsValid())
+            {
+                m_is_warp_pending = false;
+            }
             FireEvent(EVT_STATUSBAR_UPDATE);
             FireEvent(EVT_WARP_UPDATE);
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
@@ -958,6 +980,74 @@ void RoomViewerCtrl::DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<
 
 void RoomViewerCtrl::AddWarp()
 {
+    if (m_is_warp_pending)
+    {
+        if (m_pending_warp.room1 != m_roomnum && m_pending_warp.room2 != m_roomnum)
+        {
+            if (m_pending_warp.room1 == 0xFFFF)
+            {
+                m_pending_warp.room1 = m_roomnum;
+                m_pending_warp.x1 = 31;
+                m_pending_warp.y1 = 31;
+            }
+            else
+            {
+                m_pending_warp.room2 = m_roomnum;
+                m_pending_warp.x2 = 31;
+                m_pending_warp.y2 = 31;
+            }
+            m_is_warp_pending = false;
+            int idx = 1;
+            for (auto it = m_warps.begin(); it != m_warps.end(); )
+            {
+                if (it->IsValid())
+                {
+                    idx++;
+                    it++;
+                }
+                else
+                {
+                    *it = m_pending_warp;
+                    m_is_warp_pending = false;
+                    break;
+                }
+            }
+            if (m_is_warp_pending)
+            {
+                m_warps.push_back(m_pending_warp);
+                idx = m_warps.size();
+                m_is_warp_pending = false;
+            }
+            m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
+            SelectWarp(idx);
+        }
+        else
+        {
+            wxMessageBox("There is already a pending warp in this room. Please select another room to place the destination.");
+        }
+    }
+    else
+    {
+        m_pending_warp.room1 = m_roomnum;
+        m_pending_warp.room2 = 0xFFFF;
+        m_pending_warp.x1 = 31;
+        m_pending_warp.y1 = 31;
+        m_pending_warp.x2 = 31;
+        m_pending_warp.y2 = 31;
+        m_pending_warp.x_size = 1;
+        m_pending_warp.y_size = 1;
+        m_pending_warp.type = WarpList::Warp::Type::NORMAL;
+        m_is_warp_pending = true;
+        m_warps.push_back(m_pending_warp);
+        m_selected = 0x100 + m_warps.size();
+    }
+    if (m_show_warps)
+    {
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+        ForceRedraw();
+    }
+    FireEvent(EVT_WARP_UPDATE);
+    FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y)
@@ -984,6 +1074,31 @@ void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label
 
 void RoomViewerCtrl::DeleteSelectedWarp()
 {
+    if (IsWarpSelected())
+    {
+        int idx = GetSelectedWarpIndex();
+        const auto& warp = GetSelectedWarp();
+        if (m_is_warp_pending && !warp.IsValid())
+        {
+            m_is_warp_pending = false;
+        }
+        m_warps.erase(m_warps.begin() + idx - 1);
+        if (m_warps.size() == 0)
+        {
+            m_selected = -1;
+        }
+        else if (idx > m_warps.size())
+        {
+            m_selected = 0x100 + m_warps.size();
+        }
+        if (m_show_warps)
+        {
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            ForceRedraw();
+        }
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_WARP_UPDATE);
+    }
 }
 
 void RoomViewerCtrl::SetOpacity(wxImage& image, uint8_t opacity)
@@ -1029,6 +1144,14 @@ void RoomViewerCtrl::RefreshGraphics()
     if (m_g == nullptr)
     {
         return;
+    }
+    if (!m_show_warps)
+    {
+        m_warp_poly.clear();
+    }
+    if (!m_show_entities && !m_show_entity_hitboxes)
+    {
+        m_entity_poly.clear();
     }
     switch (m_mode)
     {
@@ -1326,9 +1449,16 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
                 if (Pnpoly(wp.second, xy.first, xy.second))
                 {
                     SetCursor(wxCURSOR_ARROW);
-                    const auto& warp = m_warps.at(wp.first);
-                    uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
-                    GoToRoom(room);
+                    if (evt.ControlDown())
+                    {
+                        const auto& warp = m_warps.at(wp.first);
+                        uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
+                        GoToRoom(room);
+                    }
+                    else
+                    {
+                        SelectWarp(wp.first + 1);
+                    }
                     selection_made = true;
                     break;
                 }
@@ -1343,13 +1473,16 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
                     break;
                 }
             }
-            for (const auto& ep : m_entity_poly)
+            if (!selection_made)
             {
-                if (Pnpoly(ep.second, xy.first, xy.second))
+                for (const auto& ep : m_entity_poly)
                 {
-                    SelectEntity(ep.first);
-                    selection_made = true;
-                    break;
+                    if (Pnpoly(ep.second, xy.first, xy.second))
+                    {
+                        SelectEntity(ep.first);
+                        selection_made = true;
+                        break;
+                    }
                 }
             }
         }
@@ -1378,104 +1511,170 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
     if (key == WXK_ESCAPE)
     {
-        m_selected = -1;
-        FireEvent(EVT_STATUSBAR_UPDATE);
-        FireEvent(EVT_ENTITY_UPDATE);
-        RedrawAllSprites();
-        ForceRedraw();
+        ClearSelection();
         return false;
     }
     if (m_mode == Mode::NORMAL)
     {
-        return !HandleEntityKeyDown(key, modifiers);
+        if (HandleNormalModeKeyDown(key, modifiers) == false)
+        {
+            if (IsEntitySelected())
+            {
+                return !HandleNEntityKeyDown(key, modifiers);
+            }
+            if (IsWarpSelected())
+            {
+                return !HandleNWarpKeyDown(key, modifiers);
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
     return true;
 }
 
-bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifiers)
+bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modifiers)
 {
     if (m_redraw)
     {
         return true;
     }
-    bool refresh_sprites = false;
+    bool key_handled = false;
     switch (key)
     {
     case WXK_TAB:
-        if (modifiers == wxMOD_SHIFT)
+        if (modifiers == 0)
         {
-            m_selected--;
-            if (m_selected < 1)
+            if (IsEntitySelected())
             {
-                m_selected = m_entities.size();
+                SelectEntity((GetSelectedEntityIndex() + 1) % m_entities.size() + 1);
             }
-            refresh_sprites = true;
+            else
+            {
+                SelectEntity(1);
+            }
+            key_handled = true;
         }
-        else if (modifiers == 0)
+        else if (modifiers == wxMOD_SHIFT)
         {
-            m_selected++;
-            if (m_selected > m_entities.size() || m_selected < 1)
+            if (IsEntitySelected())
             {
-                m_selected = 1;
+                SelectEntity((GetSelectedEntityIndex() - 1) % m_entities.size() + 1);
             }
-            refresh_sprites = true;
+            else
+            {
+                SelectEntity(m_entities.size());
+            }
+            key_handled = true;
+        }
+        else if (modifiers == wxMOD_CONTROL)
+        {
+            if (IsWarpSelected())
+            {
+                SelectWarp((GetSelectedWarpIndex() + 1) % m_warps.size() + 1);
+            }
+            else
+            {
+                SelectEntity(1);
+            }
+            key_handled = true;
+        }
+        else if (modifiers == (wxMOD_SHIFT | wxMOD_CONTROL))
+        {
+            if (IsWarpSelected())
+            {
+                SelectWarp((GetSelectedWarpIndex() - 1) % m_warps.size() + 1);
+            }
+            else
+            {
+                SelectEntity(m_warps.size());
+            }
+            key_handled = true;
         }
         break;
     case WXK_INSERT:
-        DoAddEntity();
-        refresh_sprites = true;
+        if (modifiers == wxMOD_CONTROL)
+        {
+            AddWarp();
+        }
+        else
+        {
+            AddEntity();
+        }
+        key_handled = true;
         break;
     }
-    if (!refresh_sprites && m_selected > 0 && m_selected <= m_entities.size())
+    return key_handled;
+}
+
+bool RoomViewerCtrl::HandleNEntityKeyDown(unsigned int key, unsigned int modifiers)
+{
+    if (m_redraw)
     {
-        auto& ent = m_entities[m_selected - 1];
+        return true;
+    }
+    bool refresh_entities = false;
+    bool key_handled = false;
+    if (IsEntitySelected())
+    {
+        auto& ent = m_entities[GetSelectedEntityIndex() - 1];
         switch (key)
         {
         case WXK_UP:
         case 'W':
         case 'w':
             ent.SetX(ent.GetX() - 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_DOWN:
         case 'S':
         case 's':
             ent.SetX(ent.GetX() + 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_LEFT:
         case 'A':
         case 'a':
             ent.SetY(ent.GetY() + 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_RIGHT:
         case 'D':
         case 'd':
             ent.SetY(ent.GetY() - 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_PAGEUP:
             ent.SetZ(ent.GetZ() + 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_PAGEDOWN:
             ent.SetZ(ent.GetZ() - 0x80);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case '+':
             ent.SetType((ent.GetType() + 1) & 0xFF);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case '-':
             ent.SetType((ent.GetType() - 1) & 0xFF);
-            refresh_sprites = true;
+            refresh_entities = true;
+            key_handled = true;
             break;
         case WXK_DELETE:
             if (modifiers == wxMOD_SHIFT)
             {
-                DoDeleteEntity(m_selected);
-                refresh_sprites = true;
+                DeleteSelectedEntity();
+                key_handled = true;
             }
             break;
         case 'R':
@@ -1484,13 +1683,15 @@ bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifier
             {
                 ent.SetOrientation(static_cast<Orientation>(
                     (static_cast<int>(ent.GetOrientation()) + 1) & 0x03));
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             else if (modifiers == 0)
             {
                 ent.SetOrientation(static_cast<Orientation>(
                     (static_cast<int>(ent.GetOrientation()) - 1) & 0x03));
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             break;
         case 'P':
@@ -1498,12 +1699,14 @@ bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifier
             if (modifiers == wxMOD_SHIFT)
             {
                 ent.SetPalette((ent.GetPalette() + 1) & 0x03);
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             else if (modifiers == 0)
             {
                 ent.SetPalette((ent.GetPalette() - 1) & 0x03);
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             break;
         case 'U':
@@ -1513,7 +1716,8 @@ bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifier
                 m_entities.push_back(ent);
                 m_entities.back().SetX(m_entities.back().GetX() + 0x100);
                 m_selected = m_entities.size();
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             break;
         case '[':
@@ -1521,7 +1725,8 @@ bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifier
             {
                 DoMoveEntityUp(m_selected);
                 m_selected--;
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             break;
         case ']':
@@ -1529,24 +1734,157 @@ bool RoomViewerCtrl::HandleEntityKeyDown(unsigned int key, unsigned int modifier
             {
                 DoMoveEntityDown(m_selected);
                 m_selected++;
-                refresh_sprites = true;
+                refresh_entities = true;
+                key_handled = true;
             }
             break;
         case WXK_RETURN:
             UpdateEntityProperties(m_selected);
+            key_handled = true;
             break;
         }
     }
-    if (refresh_sprites)
+    if (refresh_entities)
     {
         m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
         FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
+    }
+    return key_handled;
+}
+
+bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers)
+{
+    if (m_redraw)
+    {
         return true;
     }
-    return false;
+    bool refresh_warps = false;
+    bool key_handled = false;
+    if (IsWarpSelected())
+    {
+        auto& warp = m_warps[GetSelectedWarpIndex() - 1];
+        switch (key)
+        {
+        case WXK_UP:
+        case 'W':
+        case 'w':
+            if (warp.room1 == m_roomnum)
+            {
+                warp.x1 = std::clamp(warp.x1 - 1, 0, 63);
+            }
+            else
+            {
+                warp.x2 = std::clamp(warp.x2 - 1, 0, 63);
+            }
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_DOWN:
+        case 'S':
+        case 's':
+            if (warp.room1 == m_roomnum)
+            {
+                warp.x1 = std::clamp(warp.x1 + 1, 0, 63);
+            }
+            else
+            {
+                warp.x2 = std::clamp(warp.x2 + 1, 0, 63);
+            }
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_LEFT:
+        case 'A':
+        case 'a':
+            if (warp.room1 == m_roomnum)
+            {
+                warp.y1 = std::clamp(warp.y1 + 1, 0, 63);
+            }
+            else
+            {
+                warp.y2 = std::clamp(warp.y2 + 1, 0, 63);
+            }
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_RIGHT:
+        case 'D':
+        case 'd':
+            if (warp.room1 == m_roomnum)
+            {
+                warp.y1 = std::clamp(warp.y1 - 1, 0, 63);
+            }
+            else
+            {
+                warp.y2 = std::clamp(warp.y2 - 1, 0, 63);
+            }
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_PAGEUP:
+            warp.y_size = 1;
+            warp.x_size = 1 + warp.x_size % 3;
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_PAGEDOWN:
+            warp.y_size = 1 + warp.y_size % 3;
+            warp.x_size = 1;
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case '+':
+            warp.type = static_cast<WarpList::Warp::Type>((static_cast<int>(warp.type) + 1) % 4);
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case '-':
+            warp.type = static_cast<WarpList::Warp::Type>((static_cast<int>(warp.type) - 1) % 4);
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case '/':
+            if (!m_is_warp_pending)
+            {
+                if (warp.room1 == m_roomnum)
+                {
+                    warp.room2 = 0xFFFF;
+                }
+                else
+                {
+                    warp.room1 = 0xFFFF;
+                }
+                m_pending_warp = warp;
+                m_is_warp_pending = true;
+            }
+            refresh_warps = true;
+            key_handled = true;
+            break;
+        case WXK_DELETE:
+            if (modifiers == wxMOD_SHIFT)
+            {
+                DeleteSelectedWarp();
+                key_handled = true;
+            }
+            break;
+        case WXK_RETURN:
+            UpdateWarpProperties(GetSelectedWarpIndex());
+            key_handled = true;
+            break;
+        }
+    }
+    if (refresh_warps)
+    {
+        m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        FireEvent(EVT_WARP_UPDATE);
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+        ForceRedraw();
+    }
+    return key_handled;
 }
 
 void RoomViewerCtrl::DoAddEntity()
@@ -1593,13 +1931,25 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
 void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-
-    for (const auto& ep : m_entity_poly)
+    bool selection_made = false;
+    for (const auto& ep : m_warp_poly)
     {
-        if (Pnpoly(ep.second, xy.first, xy.second) && ep.first == m_selected)
+        if (Pnpoly(ep.second, xy.first, xy.second) && ep.first == GetSelectedWarpIndex() - 1)
         {
-            UpdateEntityProperties(m_selected);
+            UpdateWarpProperties(GetSelectedWarpIndex());
+            selection_made = true;
             break;
+        }
+    }
+    if (!selection_made)
+    {
+        for (const auto& ep : m_entity_poly)
+        {
+            if (Pnpoly(ep.second, xy.first, xy.second) && ep.first == m_selected)
+            {
+                UpdateEntityProperties(m_selected);
+                break;
+            }
         }
     }
     evt.Skip();
@@ -1669,3 +2019,5 @@ void RoomViewerCtrl::OnRightDblClick(wxMouseEvent& evt)
     }
     evt.Skip();
 }
+
+wxDECLARE_EVENT(EVT_ENTITY_SELECT, wxCommandEvent);

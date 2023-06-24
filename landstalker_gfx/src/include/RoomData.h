@@ -77,6 +77,7 @@ public:
     std::shared_ptr<Tilemap3DEntry> GetMapForRoom(uint16_t roomnum) const;
 
     std::vector<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
+    void SetWarpsForRoom(uint16_t roomnum, const std::vector<WarpList::Warp>& warps);
     bool HasFallDestination(uint16_t room) const;
     uint16_t GetFallDestination(uint16_t room) const;
     void SetHasFallDestination(uint16_t room, bool enabled);
