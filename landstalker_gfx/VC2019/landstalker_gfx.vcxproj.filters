@@ -342,6 +342,15 @@
     <ClCompile Include="..\src\WarpPropertyWindow.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\FlagDialog.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FlagDataViewModel.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Flags.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -570,6 +579,15 @@
     </ClInclude>
     <ClInclude Include="..\src\include\WarpPropertyWindow.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\FlagDialog.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\FlagDataViewModel.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Flags.h">
+      <Filter>include\Data\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

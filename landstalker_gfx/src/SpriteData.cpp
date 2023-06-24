@@ -2,6 +2,7 @@
 
 #include <set>
 #include <numeric>
+#include <stack>
 #include "AsmUtils.h"
 
 
@@ -595,6 +596,55 @@ void SpriteData::SetRoomEntities(uint16_t room, const std::vector<Entity>& entit
 	m_room_entities[room] = entities;
 }
 
+std::vector<EntityVisibilityFlags> SpriteData::GetEntityVisibilityFlagsForRoom(uint16_t room)
+{
+	std::vector<EntityVisibilityFlags> data;
+	for (const auto& f : m_sprite_visibility_flags)
+	{
+		if (f.room == room)
+		{
+			data.push_back(f);
+		}
+	}
+	return data;
+}
+
+void SpriteData::SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityVisibilityFlags>& data)
+{
+	std::stack<std::vector<EntityVisibilityFlags>::iterator> iterators;
+	for (auto it = m_sprite_visibility_flags.begin(); it != m_sprite_visibility_flags.end(); )
+	{
+		if (it->room == room)
+		{
+			if (iterators.size() < data.size())
+			{
+				iterators.push(it++);
+			}
+			else
+			{
+				it = m_sprite_visibility_flags.erase(it);
+			}
+		}
+		else
+		{
+			++it;
+		}
+	}
+	for (const auto& f : data)
+	{
+		if (iterators.empty())
+		{
+			m_sprite_visibility_flags.push_back(f);
+		}
+		else
+		{
+			auto& it = iterators.top();
+			*it = f;
+			iterators.pop();
+		}
+	}
+}
+
 const std::map<std::string, std::shared_ptr<PaletteEntry>>& SpriteData::GetAllPalettes() const
 {
 	return m_palettes_by_name;
@@ -1149,7 +1199,15 @@ bool SpriteData::AsmLoadSpritePalettes()
 
 bool SpriteData::AsmLoadSpriteData()
 {
-	m_sprite_visibility_flags  = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file));
+	auto Decode = [](const auto& data_in, auto& data_out)
+	{
+		for (auto& d : data_in)
+		{
+			data_out.emplace_back(d);
+		}
+	};
+
+	Decode(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file)), m_sprite_visibility_flags);
 	m_one_time_event_flags     = DeserialiseFixedWidth<6>(ReadBytes(GetBasePath() / m_one_time_event_flags_file));
 	m_room_clear_flags         = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file));
 	m_locked_door_flags        = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file));
@@ -1376,9 +1434,15 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 	const uint32_t enemy_data_size = entity_table_begin - enemy_data_begin;
 	const uint32_t entity_table_size = entity_table_end - entity_table_begin;
 
+	auto Decode = [](const auto& data_in, auto& data_out)
+	{
+		for (auto& d : data_in)
+		{
+			data_out.emplace_back(d);
+		}
+	};
 
-
-	m_sprite_visibility_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size));
+	Decode(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size)), m_sprite_visibility_flags);
 	m_one_time_event_flags = DeserialiseFixedWidth<6>(rom.read_array<uint8_t>(onetime_begin, onetime_size));
 	m_room_clear_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size));
 	m_locked_door_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size));
@@ -1494,7 +1558,17 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 
 bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
 {
-	WriteBytes(SerialiseFixedWidth<4>(m_sprite_visibility_flags), dir / m_sprite_visibility_flags_file);
+	auto Encode4 = [](const auto& data_in)
+	{
+		std::vector<std::array<uint8_t, 4>> data_out;
+		for (auto& d : data_in)
+		{
+			data_out.push_back(d.GetData());
+		}
+		return data_out;
+	};
+
+	WriteBytes(SerialiseFixedWidth<4>(Encode4(m_sprite_visibility_flags)), dir / m_sprite_visibility_flags_file);
 	WriteBytes(SerialiseFixedWidth<6>(m_one_time_event_flags), dir / m_one_time_event_flags_file);
 	WriteBytes(SerialiseFixedWidth<4>(m_room_clear_flags), dir / m_room_clear_flags_file);
 	WriteBytes(SerialiseFixedWidth<4>(m_locked_door_flags), dir / m_locked_door_sprite_flags_file);
@@ -1611,6 +1685,16 @@ bool SpriteData::RomPrepareInjectSpritePalettes(const Rom& rom)
 
 bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 {
+	auto Encode4 = [](const auto& data_in)
+	{
+		std::vector<std::array<uint8_t, 4>> data_out;
+		for (auto& d : data_in)
+		{
+			data_out.push_back(d.GetData());
+		}
+		return data_out;
+	};
+
 	auto room_entities = SerialiseRoomEntityTable();
 
 	uint32_t item_begin = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).begin;
@@ -1625,7 +1709,7 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 	behav_bytes->insert(behav_bytes->end(), m_sprite_behaviours.cbegin(), m_sprite_behaviours.cend());
 
 	uint32_t visib_begin = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).begin;
-	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(m_sprite_visibility_flags));
+	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(Encode4(m_sprite_visibility_flags)));
 
 	uint32_t onetime_begin = data_bytes->size() + visib_begin;
 	auto onetime_bytes = SerialiseFixedWidth<6>(m_one_time_event_flags);

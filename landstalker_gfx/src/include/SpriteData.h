@@ -5,10 +5,16 @@
 #include "DataTypes.h"
 #include <set>
 #include <Entity.h>
+#include <Flags.h>
 
 class SpriteData : public DataManager
 {
 public:
+	enum class FlagType
+	{
+		SPRITE_VISIBILITY
+	};
+
 	SpriteData(const filesystem::path& asm_file);
 	SpriteData(const Rom& rom);
 
@@ -34,7 +40,6 @@ public:
 	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
 	void SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base);
 
-
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
@@ -54,6 +59,8 @@ public:
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
+	std::vector<EntityVisibilityFlags> GetEntityVisibilityFlagsForRoom(uint16_t room);
+	void SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityVisibilityFlags>& data);
 
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
@@ -155,8 +162,8 @@ private:
 	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup;
 	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup_orig;
 
-	std::vector<std::array<uint8_t, 4>> m_sprite_visibility_flags;
-	std::vector<std::array<uint8_t, 4>> m_sprite_visibility_flags_orig;
+	std::vector<EntityVisibilityFlags> m_sprite_visibility_flags;
+	std::vector<EntityVisibilityFlags> m_sprite_visibility_flags_orig;
 	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags;
 	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags_orig;
 	std::vector<std::array<uint8_t, 4>> m_room_clear_flags;
