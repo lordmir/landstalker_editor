@@ -1096,6 +1096,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
             ForceRedraw();
         }
+        m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
         FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_WARP_UPDATE);
     }
