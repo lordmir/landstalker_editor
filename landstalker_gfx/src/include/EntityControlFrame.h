@@ -5,40 +5,32 @@
 #include <vector>
 #include <Entity.h>
 #include <ImageList.h>
+#include <SelectionControlFrame.h>
 
 class RoomViewerFrame;
 
-class EntityControlFrame : public wxWindow
+class EntityControlFrame : public SelectionControlFrame
 {
 public:
 	EntityControlFrame(RoomViewerFrame* parent, ImageList* imglst);
 	virtual ~EntityControlFrame();
 
 	void SetEntities(const std::vector<Entity>& entities);
-	void SetSelected(int selected);
-	int GetSelected();
 	void ResetEntities();
+	virtual int GetMaxSelection() const;
+protected:
+	virtual void Select();
+	virtual void Add();
+	virtual void Delete();
+	virtual void MoveUp();
+	virtual void MoveDown();
+	virtual void OpenElement();
+	virtual std::string MakeLabel(int index) const;
+	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 private:
-	void FireEvent(const wxEventType& e, intptr_t userdata = 0);
-	void UpdateUI();
-
-	void OnSelect(wxCommandEvent& evt);
-	void OnListDoubleClick(wxCommandEvent& evt);
-	void OnKeyDown(wxKeyEvent& evt);
-	void OnEntityAdd(wxCommandEvent& evt);
-	void OnEntityDelete(wxCommandEvent& evt);
-	void OnEntityMoveUp(wxCommandEvent& evt);
-	void OnEntityMoveDown(wxCommandEvent& evt);
-
-	wxListBox* m_ctrl_entity_list;
-	wxBitmapButton* m_ctrl_add_entity;
-	wxBitmapButton* m_ctrl_delete_entity;
-	wxBitmapButton* m_ctrl_move_entity_up;
-	wxBitmapButton* m_ctrl_move_entity_down;
 	std::vector<Entity> m_entities;
 
 	RoomViewerFrame* m_rvf;
-	ImageList* m_imglst;
 };
 
 wxDECLARE_EVENT(EVT_ENTITY_SELECT, wxCommandEvent);

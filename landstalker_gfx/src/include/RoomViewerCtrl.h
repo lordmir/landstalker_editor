@@ -60,17 +60,28 @@ public:
 	const Entity& GetSelectedEntity() const;
 	int GetSelectedEntityIndex() const;
 	const std::vector<Entity>& GetEntities() const;
+	void UpdateEntityProperties(int entity);
+	void AddEntity();
+	void DeleteSelectedEntity();
+	void MoveSelectedEntityUp();
+	void MoveSelectedEntityDown();
+
+	const std::vector<WarpList::Warp>& GetWarps() const;
+	void SelectWarp(int selection);
+	int GetTotalWarps() const;
+	bool IsWarpSelected() const;
+	const WarpList::Warp& GetSelectedWarp() const;
+	int GetSelectedWarpIndex() const;
+	void UpdateWarpProperties(int warp);
+	void AddWarp();
+	void DeleteSelectedWarp();
+
 
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
 	void SetLayerOpacity(Layer layer, uint8_t opacity);
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
-	void UpdateEntityProperties(int entity);
-	void AddEntity();
-	void DeleteSelectedEntity();
-	void MoveSelectedEntityUp();
-	void MoveSelectedEntityDown();
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;
@@ -102,7 +113,7 @@ private:
 
 	void UpdateRoomDescText(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum, Mode mode = Mode::NORMAL);
-	void DrawWarp(wxGraphicsContext& gc, const WarpList::Warp& warp, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
+	void DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
 	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
 	void DrawRoomHeightmap(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
@@ -132,8 +143,11 @@ private:
 	void OnSize(wxSizeEvent& evt);
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
+	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnLeftDblClick(wxMouseEvent& evt);
+	void OnRightClick(wxMouseEvent& evt);
+	void OnRightDblClick(wxMouseEvent& evt);
 
 	bool HandleEntityKeyDown(unsigned int key, unsigned int modifiers);
 
@@ -158,8 +172,10 @@ private:
 	std::map<Layer, uint8_t> m_layer_opacity;
 	wxBitmap* m_bmp;
 	std::vector<Entity> m_entities;
+	std::vector<WarpList::Warp> m_warps;
 
-	std::list<std::pair<WarpList::Warp, std::vector<wxPoint2DDouble>>> m_warp_poly;
+	wxBrush* m_warp_brush;
+	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
 	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_entity_poly;
 
@@ -178,5 +194,6 @@ private:
 };
 
 wxDECLARE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_WARP_UPDATE, wxCommandEvent);
 
 #endif // _ROOM_VIEWER_CTRL_H_

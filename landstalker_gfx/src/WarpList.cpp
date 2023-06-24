@@ -58,9 +58,9 @@ bool WarpList::operator!=(const WarpList& rhs) const
 	return !(*this == rhs);
 }
 
-std::list<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
+std::vector<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 {
-	std::list<Warp> warps;
+	std::vector<Warp> warps;
 	for (const auto& warp : m_warps)
 	{
 		if (warp.room1 == room || warp.room2 == room)
@@ -324,6 +324,11 @@ std::vector<uint8_t> WarpList::Warp::GetRaw() const
 	retval[0] |= (type == Type::STAIR_SW) ? 0x40 : 0;
 
 	return retval;
+}
+
+bool WarpList::Warp::IsValid() const
+{
+	return room1 != 0xFFFF && room2 != 0xFFFF;
 }
 
 bool WarpList::Warp::operator==(const Warp& rhs) const

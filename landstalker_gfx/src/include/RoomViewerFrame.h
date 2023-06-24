@@ -5,6 +5,7 @@
 #include "RoomViewerCtrl.h"
 #include "LayerControlFrame.h"
 #include "EntityControlFrame.h"
+#include "WarpControlFrame.h"
 #include "GameData.h"
 #include <memory>
 
@@ -52,6 +53,7 @@ private:
 	void OnKeyDown(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
+
 	void OnEntityUpdate(wxCommandEvent& evt);
 	void OnEntitySelect(wxCommandEvent& evt);
 	void OnEntityOpenProperties(wxCommandEvent& evt);
@@ -59,6 +61,13 @@ private:
 	void OnEntityDelete(wxCommandEvent& evt);
 	void OnEntityMoveUp(wxCommandEvent& evt);
 	void OnEntityMoveDown(wxCommandEvent& evt);
+
+	void OnWarpUpdate(wxCommandEvent& evt);
+	void OnWarpSelect(wxCommandEvent& evt);
+	void OnWarpOpenProperties(wxCommandEvent& evt);
+	void OnWarpAdd(wxCommandEvent& evt);
+	void OnWarpDelete(wxCommandEvent& evt);
+
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 
@@ -68,12 +77,17 @@ private:
 	RoomViewerCtrl* m_roomview;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
+	WarpControlFrame* m_warpctrl;
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;
 
-	bool m_layers_visible;
-	bool m_entities_visible;
+	bool m_layerctrl_visible;
+	bool m_entityctrl_visible;
+	bool m_warpctrl_visible;
+
+	bool m_is_warp_pending;
+	WarpList::Warp m_pending_warp;
 
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;

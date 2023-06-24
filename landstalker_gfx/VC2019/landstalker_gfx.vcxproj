@@ -56,6 +56,7 @@
     <ClCompile Include="..\src\Room.cpp" />
     <ClCompile Include="..\src\DataTypes.cpp" />
     <ClCompile Include="..\src\RoomData.cpp" />
+    <ClCompile Include="..\src\SelectionControlFrame.cpp" />
     <ClCompile Include="..\src\SpriteData.cpp" />
     <ClCompile Include="..\src\SpriteEditorCtrl.cpp" />
     <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
@@ -73,6 +74,7 @@
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
+    <ClCompile Include="..\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\WarpList.cpp" />
     <ClCompile Include="..\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
@@ -133,6 +135,7 @@
     <ClInclude Include="..\src\include\Room.h" />
     <ClInclude Include="..\src\include\DataTypes.h" />
     <ClInclude Include="..\src\include\RoomData.h" />
+    <ClInclude Include="..\src\include\SelectionControlFrame.h" />
     <ClInclude Include="..\src\include\SpriteData.h" />
     <ClInclude Include="..\src\include\SpriteEditorCtrl.h" />
     <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
@@ -150,6 +153,7 @@
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\TilesetEditorFrame.h" />
     <ClInclude Include="..\src\include\Utils.h" />
+    <ClInclude Include="..\src\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\include\WarpList.h" />
     <ClInclude Include="..\src\include\wxcrafter.h" />
   </ItemGroup>

@@ -207,6 +207,12 @@
     <ClCompile Include="..\src\EntityControlFrame.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\SelectionControlFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\WarpControlFrame.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -425,6 +431,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntityControlFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SelectionControlFrame.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\WarpControlFrame.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
