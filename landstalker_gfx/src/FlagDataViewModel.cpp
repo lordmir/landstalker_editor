@@ -1,4 +1,4 @@
-#include "include\FlagDataViewModel.h"
+#include <FlagDataViewModel.h>
 
 EntityVisiblityFlagDataViewModel::EntityVisiblityFlagDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
 	: wxDataViewVirtualListModel(),

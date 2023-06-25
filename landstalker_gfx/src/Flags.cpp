@@ -1,4 +1,4 @@
-#include "include\Flags.h"
+#include <Flags.h>
 
 EntityVisibilityFlags::EntityVisibilityFlags(const std::array<uint8_t, 4>& data)
 {
