@@ -352,7 +352,7 @@ bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 
 void RoomViewerFrame::ShowFlagDialog()
 {
-	FlagDialog dlg(this, m_roomnum, m_g);
+	FlagDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
 }
 

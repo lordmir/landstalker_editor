@@ -1,25 +1,25 @@
 #include <FlagDataViewModel.h>
 
-EntityVisiblityFlagDataViewModel::EntityVisiblityFlagDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-	: wxDataViewVirtualListModel(),
-	  m_roomnum(roomnum),
-	  m_gd(gd)
+template <>
+void FlagDataViewModel<EntityVisibilityFlags>::InitData()
 {
-	m_data = gd->GetSpriteData()->GetEntityVisibilityFlagsForRoom(roomnum);
-	Reset(m_data.size());
+	m_data = m_gd->GetSpriteData()->GetEntityVisibilityFlagsForRoom(m_roomnum);
 }
 
-unsigned int EntityVisiblityFlagDataViewModel::GetColumnCount() const
+template <>
+void FlagDataViewModel<EntityVisibilityFlags>::CommitData()
+{
+	m_gd->GetSpriteData()->SetEntityVisibilityFlagsForRoom(m_roomnum, m_data);
+}
+
+template <>
+unsigned int FlagDataViewModel<EntityVisibilityFlags>::GetColumnCount() const
 {
 	return 3;
 }
 
-unsigned int EntityVisiblityFlagDataViewModel::GetRowCount() const
-{
-	return m_data.size();
-}
-
-std::string EntityVisiblityFlagDataViewModel::GetColumnHeader(unsigned int col) const
+template <>
+wxString FlagDataViewModel<EntityVisibilityFlags>::GetColumnHeader(unsigned int col) const
 {
 	switch (col)
 	{
@@ -28,13 +28,14 @@ std::string EntityVisiblityFlagDataViewModel::GetColumnHeader(unsigned int col) 
 	case 1:
 		return "Flag";
 	case 2:
-		return "Set";
+		return "Hide Entity When";
 	default:
 		return "?";
 	}
 }
 
-wxArrayString EntityVisiblityFlagDataViewModel::GetColumnChoices(unsigned int col) const
+template <>
+wxArrayString FlagDataViewModel<EntityVisibilityFlags>::GetColumnChoices(unsigned int col) const
 {
 	wxArrayString choices;
 	switch (col)
@@ -66,7 +67,8 @@ wxArrayString EntityVisiblityFlagDataViewModel::GetColumnChoices(unsigned int co
 	return choices;
 }
 
-wxString EntityVisiblityFlagDataViewModel::GetColumnType(unsigned int col) const
+template <>
+wxString FlagDataViewModel<EntityVisibilityFlags>::GetColumnType(unsigned int col) const
 {
 	switch(col)
 	{
@@ -81,7 +83,8 @@ wxString EntityVisiblityFlagDataViewModel::GetColumnType(unsigned int col) const
 	}
 }
 
-void EntityVisiblityFlagDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+template <>
+void FlagDataViewModel<EntityVisibilityFlags>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
 	if (row < m_data.size())
 	{
@@ -102,12 +105,14 @@ void EntityVisiblityFlagDataViewModel::GetValueByRow(wxVariant& variant, unsigne
 	}
 }
 
-bool EntityVisiblityFlagDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+template <>
+bool FlagDataViewModel<EntityVisibilityFlags>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
 {
 	return false;
 }
 
-bool EntityVisiblityFlagDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+template <>
+bool FlagDataViewModel<EntityVisibilityFlags>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
 {
 	bool updated = false;
 	if (row < m_data.size())
@@ -129,10 +134,6 @@ bool EntityVisiblityFlagDataViewModel::SetValueByRow(const wxVariant& variant, u
 		default:
 			break;
 		}
-	}
-	if (updated)
-	{
-		m_gd->GetSpriteData()->SetEntityVisibilityFlagsForRoom(m_roomnum, m_data);
 	}
 	return updated;
 }
