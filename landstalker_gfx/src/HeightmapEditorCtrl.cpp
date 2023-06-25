@@ -3,6 +3,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 #include <EditorFrame.h>
+#include <RoomViewerFrame.h>
 
 wxBEGIN_EVENT_TABLE(HeightmapEditorCtrl, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(HeightmapEditorCtrl::OnEraseBackground)
@@ -27,7 +28,8 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
     m_height(1),
     m_redraw(false),
     m_repaint(false),
-    m_selected(-1)
+    m_hovered(-1, -1),
+    m_selected(-1, -1)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -60,6 +62,11 @@ void HeightmapEditorCtrl::SetRoomNum(uint16_t roomnum)
         m_height = (m_map->GetHeightmapWidth() + m_map->GetHeightmapHeight()) * TILE_HEIGHT / 2 + 1;
         RefreshGraphics();
     }
+}
+
+wxString HeightmapEditorCtrl::GetStatusText() const
+{
+    return m_status_text;
 }
 
 void HeightmapEditorCtrl::SetZoom(double zoom)
@@ -228,156 +235,6 @@ wxColor HeightmapEditorCtrl::GetCellBorder(uint8_t restrictions, uint8_t type, u
     return IsCellHidden(restrictions, type, z) ? *wxLIGHT_GREY : *wxWHITE;
 }
 
-std::shared_ptr<wxBitmap> HeightmapEditorCtrl::DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity)
-{
-    wxImage hm_img(m_width, m_height);
-    hm_img.InitAlpha();
-    SetOpacity(hm_img, 0x00);
-    wxGraphicsContext* hm_gc = wxGraphicsContext::Create(hm_img);
-    hm_gc->Scale(m_zoom, m_zoom);
-    hm_gc->SetPen(*wxWHITE_PEN);
-    hm_gc->SetBrush(*wxBLACK_BRUSH);
-    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
-    {
-        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
-        {
-            // Only display cells that are not completely restricted
-            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
-            {
-                int z = map->GetHeight({ x, y });
-                auto xy(map->Iso3DToPixel({ x + 12, y + 12, z }));
-                DrawHeightmapCell(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT,
-                    map->GetCellProps({ x,y }), map->GetCellType({ x,y }));
-            }
-        }
-    }
-    delete hm_gc;
-    SetOpacity(hm_img, opacity);
-    return std::make_shared<wxBitmap>(hm_img);
-}
-
-std::shared_ptr<wxBitmap> HeightmapEditorCtrl::DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map)
-{
-    wxImage img(m_width, m_height);
-    wxGraphicsContext* gc = wxGraphicsContext::Create(img);
-    gc->SetBrush(*wxBLACK);
-    gc->SetPen(*wxTRANSPARENT_PEN);
-    gc->DrawRectangle(0, 0, m_width, m_height);
-    gc->SetPen(*wxWHITE_PEN);
-    gc->Scale(m_zoom, m_zoom);
-    auto font = wxFont(TILE_HEIGHT / 2, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
-        wxFONTWEIGHT_NORMAL, false);
-    // Draw grid
-    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
-        {
-            int xx = (x - y + map->GetHeightmapHeight() - 1) * TILE_WIDTH;
-            int xy = (x + y) * TILE_HEIGHT;
-            DrawHeightmapCell(*gc, xx, xy, 0, TILE_WIDTH * 2, TILE_HEIGHT * 2, -1, -1, false, wxColor(0x444444));
-            std::string lbl1 = StrPrintf("%02X", map->GetCellType({ x,y }));
-            std::string lbl2 = StrPrintf("%X %X", map->GetCellType({ x,y }), map->GetCellProps({ x,y }));
-        }
-
-    // Draw cells
-    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
-        {
-            // Only display cells that are not completely restricted
-            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
-            {
-                int xx = (x - y + map->GetHeightmapHeight() - 1) * TILE_WIDTH;
-                int xy = (x + y) * TILE_HEIGHT;
-                DrawHeightmapCell(*gc, xx, xy, map->GetHeight({ x,y }), TILE_WIDTH * 2, TILE_HEIGHT * 2, map->GetCellProps({ x,y }), -1, false);
-                std::string lbl1 = StrPrintf("%02X", map->GetCellType({ x,y }));
-                std::string lbl2 = StrPrintf("%X", map->GetHeight({ x,y }));
-                std::string lbl3 = StrPrintf("%X", map->GetCellProps({ x,y }));
-                double tw, th;
-                gc->SetFont(font, map->GetCellType({ x,y }) == 0 ? *wxLIGHT_GREY : wxColor(0xFF00FF));
-                gc->GetTextExtent(lbl1, &tw, &th);
-                gc->DrawText(lbl1, xx + TILE_WIDTH - tw / 2, xy + TILE_HEIGHT / 2 - th / 2 + 2);
-                gc->SetFont(font, *wxCYAN);
-                gc->GetTextExtent(lbl2, &tw, &th);
-                gc->DrawText(lbl2, xx + TILE_WIDTH - 5 * tw / 4, xy + 5 * TILE_HEIGHT / 4 - th / 2 + 2);
-                gc->SetFont(font, map->GetCellProps({ x,y }) == 0 ? *wxLIGHT_GREY : *wxYELLOW);
-                gc->GetTextExtent(lbl3, &tw, &th);
-                gc->DrawText(lbl3, xx + TILE_WIDTH + 1 * tw / 4, xy + 5 * TILE_HEIGHT / 4 - th / 2 + 2);
-            }
-        }
-    delete gc;
-
-    return std::make_shared<wxBitmap>(img);
-}
-
-void HeightmapEditorCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int zz, int width, int height, int restrictions, int classification, bool draw_walls, wxColor border_colour)
-{
-    int z = draw_walls ? zz : 0;
-    wxPoint2DDouble tile_points[] = {
-        wxPoint2DDouble(x + width / 2, y),
-        wxPoint2DDouble(x + width    , y + height / 2),
-        wxPoint2DDouble(x + width / 2, y + height),
-        wxPoint2DDouble(x            , y + height / 2),
-        wxPoint2DDouble(x + width / 2, y)
-    };
-    wxPoint2DDouble left_wall[] = {
-        wxPoint2DDouble(x            , y + height / 2),
-        wxPoint2DDouble(x + width / 2, y + height),
-        wxPoint2DDouble(x + width / 2, y + height + z * height),
-        wxPoint2DDouble(x            , y + height / 2 + z * height),
-        wxPoint2DDouble(x            , y + height / 2)
-    };
-    wxPoint2DDouble right_wall[] = {
-        wxPoint2DDouble(x + width / 2, y + height),
-        wxPoint2DDouble(x + width    , y + height / 2),
-        wxPoint2DDouble(x + width    , y + height / 2 + z * height),
-        wxPoint2DDouble(x + width / 2, y + height + z * height),
-        wxPoint2DDouble(x + width / 2, y + height)
-    };
-    wxColor bg;
-    switch (restrictions)
-    {
-    case -1:
-        bg = *wxBLACK;
-        break;
-    case 0x0:
-        bg.Set(zz * 3, 48 + zz * 8, zz * 3);
-        break;
-    case 0x4:
-        bg.Set(48 + zz * 8, zz * 3, zz * 3);
-        break;
-    case 0x2:
-        bg.Set(32 + zz * 3, 32 + zz * 3, 48 + zz * 12);
-        break;
-    case 0x6:
-        bg.Set(48 + zz * 8, 32 + zz * 3, 48 + zz * 8);
-        break;
-    default:
-        bg.Set(48 + zz * 8, 48 + zz * 8, zz * 3);
-        break;
-    }
-    gc.SetBrush(wxBrush(bg));
-    gc.SetPen(border_colour);
-    //gc.SetTextForeground(*wxWHITE);
-    gc.DrawLines(sizeof(tile_points) / sizeof(tile_points[0]), tile_points);
-    bg = bg.ChangeLightness(70);
-    gc.SetBrush(wxBrush(bg));
-    gc.DrawLines(sizeof(left_wall) / sizeof(left_wall[0]), left_wall);
-    bg = bg.ChangeLightness(70);
-    gc.SetBrush(wxBrush(bg));
-    gc.DrawLines(sizeof(right_wall) / sizeof(right_wall[0]), right_wall);
-    if (classification > 0)
-    {
-        // Set font and transparent colour
-        gc.SetFont(wxFont(height / 2, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL,
-            wxFONTWEIGHT_NORMAL, false),
-            wxColour(255, 255, 255, 255));
-        std::ostringstream ss;
-        ss << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << classification;
-        double textwidth, textheight;
-        gc.GetTextExtent(ss.str(), &textwidth, &textheight);
-        gc.DrawText(ss.str(), x + (width - textwidth) / 2, y + (height - textheight) / 2);
-    }
-}
-
 void HeightmapEditorCtrl::ForceRepaint()
 {
     m_repaint = true;
@@ -426,23 +283,23 @@ void HeightmapEditorCtrl::FireEvent(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
     evt.SetExtraLong(userdata);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void HeightmapEditorCtrl::FireEvent(const wxEventType& e, const std::string& userdata)
 {
     wxCommandEvent evt(e);
     evt.SetString(userdata);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void HeightmapEditorCtrl::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void HeightmapEditorCtrl::OnDraw(wxDC& dc)
@@ -463,6 +320,15 @@ void HeightmapEditorCtrl::OnDraw(wxDC& dc)
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
+    if (m_hovered.first != -1)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
+        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        auto lines = GetTilePoly(0, 0);
+        dc.SetPen(*wxYELLOW_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
     mdc.SelectObject(wxNullBitmap);
 }
 
@@ -485,6 +351,44 @@ void HeightmapEditorCtrl::OnSize(wxSizeEvent& evt)
 
 void HeightmapEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
+    auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
+    const int W = static_cast<int>(TILE_WIDTH) / 2;
+    const int H = static_cast<int>(TILE_HEIGHT) / 2;
+
+    int ix = xy.first * H + xy.second * W - (m_map->GetHeightmapHeight() - 2) * W * H;
+    ix /= 2 * W * H;
+    --ix;
+    int iy = -xy.first * H + xy.second * W + (m_map->GetHeightmapHeight() + 2) * W * H;
+    iy /= 2 * W * H;
+    --iy;
+
+    if (ix < 0 || ix >= m_map->GetHeightmapWidth() || iy < 0 || iy >= m_map->GetHeightmapHeight())
+    {
+        ix = -1;
+        iy = -1;
+    }
+    if(m_hovered.first != ix || m_hovered.second != iy)
+    {
+        if (ix == -1)
+        {
+            m_status_text = "";
+        }
+        else
+        {
+            uint8_t z = 0, r = 0, t = 0;
+            if (m_map != nullptr)
+            {
+                z = m_map->GetHeight({ ix, iy });
+                r = m_map->GetCellProps({ ix, iy });
+                t = m_map->GetCellType({ ix, iy });
+            }
+            m_status_text = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", ix, iy, z, r, t);
+        }
+        m_hovered.first = ix;
+        m_hovered.second = iy;
+        FireEvent(EVT_STATUSBAR_UPDATE);
+        ForceRedraw();
+    }
     evt.Skip();
 }
 

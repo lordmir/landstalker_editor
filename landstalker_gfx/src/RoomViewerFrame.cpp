@@ -391,7 +391,14 @@ void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 	{
 		return;
 	}
-	status.SetStatusText(m_roomview->GetStatusText(), 0);
+	if (m_mode == Mode::HEIGHTMAP)
+	{
+		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+	}
+	else
+	{
+		status.SetStatusText(m_roomview->GetStatusText(), 0);
+	}
 	if (m_roomview->IsEntitySelected())
 	{
 		auto& entity = m_roomview->GetSelectedEntity();

@@ -23,6 +23,7 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
+	wxString GetStatusText() const;
 
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
@@ -31,10 +32,6 @@ public:
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
 	void DrawRoomHeightmap();
-	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
-	std::shared_ptr<wxBitmap> DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map);
-	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
-		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);
 	void ForceRepaint();
 	void ForceRedraw();
 	void UpdateScroll();
@@ -67,11 +64,14 @@ private:
 	std::shared_ptr<Tilemap3D> m_map;
 	RoomViewerFrame* m_frame;
 	uint16_t m_roomnum;
+	mutable wxString m_status_text;
 	int m_width;
 	int m_height;
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
+	std::pair<int, int> m_selected;
+	std::pair<int, int> m_hovered;
 
 	wxBitmap* m_bmp;
 
@@ -79,9 +79,7 @@ private:
 	static const std::size_t TILE_HEIGHT = 32;
 	static const int SCROLL_RATE = 8;
 	int m_scroll_rate;
-	int m_selected;
 
-	std::string m_status_text;
 	std::vector<std::string> m_errors;
 
 	wxDECLARE_EVENT_TABLE();
