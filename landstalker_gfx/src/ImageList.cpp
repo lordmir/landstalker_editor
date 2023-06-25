@@ -126,7 +126,12 @@ wxBitmap& ImageList::GetImage(const std::string& name)
 
 const wxBitmap& ImageList::GetImage(const std::string& name) const
 {
-	return GetImage(name);
+	auto result = m_images.find(name);
+	if (result == m_images.end())
+	{
+		return wxNullBitmap;
+	}
+	return result->second;
 }
 
 int ImageList::GetIdx(const std::string& name) const

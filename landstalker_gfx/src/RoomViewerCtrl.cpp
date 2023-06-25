@@ -23,9 +23,10 @@ EVT_RIGHT_UP(RoomViewerCtrl::OnRightClick)
 EVT_RIGHT_DCLICK(RoomViewerCtrl::OnRightDblClick)
 wxEND_EVENT_TABLE()
 
-RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent)
+RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 	: wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
 	  m_roomnum(0),
+      m_frame(frame),
       m_bmp(new wxBitmap),
       m_zoom(1.0),
       m_scroll_rate(SCROLL_RATE),
@@ -69,7 +70,7 @@ void RoomViewerCtrl::ClearGameData()
 	Refresh(true);
 }
 
-void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
+void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
 {
 	m_roomnum = roomnum;
     m_mode = mode;
@@ -97,6 +98,11 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, Mode mode)
     }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
+}
+
+RoomViewerFrame::Mode RoomViewerCtrl::GetMode() const
+{
+    return m_mode;
 }
 
 bool RoomViewerCtrl::GetEntitiesVisible()
@@ -280,14 +286,14 @@ void RoomViewerCtrl::SetZoom(double zoom)
     auto q = PrepareSprites(m_roomnum);
     switch (m_mode)
     {
-    case Mode::HEIGHTMAP:
+    case RoomViewerFrame::Mode::HEIGHTMAP:
         m_layers[Layer::HEIGHTMAP] = DrawHeightmapGrid(map);
         if (m_show_warps)
         {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, Mode::HEIGHTMAP);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, RoomViewerFrame::Mode::HEIGHTMAP);
         }
         break;
-    case Mode::NORMAL:
+    case RoomViewerFrame::Mode::NORMAL:
         if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
         {
             m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
@@ -381,7 +387,7 @@ void RoomViewerCtrl::RedrawAllSprites()
     m_rpalette = PreparePalettes(m_roomnum);
     auto q = PrepareSprites(m_roomnum);
     m_entity_poly.clear();
-    if (m_mode == Mode::NORMAL)
+    if (m_mode == RoomViewerFrame::Mode::NORMAL)
     {
         if (m_show_entities)
         {
@@ -671,7 +677,7 @@ void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
     FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
-std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, Mode mode)
+std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, RoomViewerFrame::Mode mode)
 {
     m_warp_poly.clear();
     m_link_poly.clear();
@@ -687,7 +693,7 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, Mode m
     gc->SetBrush(*wxBLACK_BRUSH);
     for (int i = 0; i < m_warps.size(); ++i)
     {
-        if (mode == Mode::HEIGHTMAP)
+        if (mode == RoomViewerFrame::Mode::HEIGHTMAP)
         {
             DrawWarp(*gc, i, map, TILE_WIDTH * 2, TILE_HEIGHT * 2, true);
         }
@@ -726,7 +732,7 @@ void RoomViewerCtrl::UpdateWarpProperties(int warp)
     if (IsWarpSelected())
     {
         bool pend = m_is_warp_pending && !GetSelectedWarp().IsValid();
-        WarpPropertyWindow dlg(m_parent, m_roomnum, GetSelectedWarpIndex(), &m_warps[GetSelectedWarpIndex() - 1], *m_g);
+        WarpPropertyWindow dlg(m_frame, m_roomnum, GetSelectedWarpIndex(), &m_warps[GetSelectedWarpIndex() - 1], *m_g);
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
@@ -1156,14 +1162,14 @@ void RoomViewerCtrl::RefreshGraphics()
     }
     switch (m_mode)
     {
-    case Mode::HEIGHTMAP:
+    case RoomViewerFrame::Mode::HEIGHTMAP:
         DrawRoomHeightmap(m_roomnum);
         if (m_show_warps)
         {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, Mode::HEIGHTMAP);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, RoomViewerFrame::Mode::HEIGHTMAP);
         }
         break;
-    case Mode::NORMAL:
+    case RoomViewerFrame::Mode::NORMAL:
         DrawRoom(m_roomnum);
         break;
     }
@@ -1209,23 +1215,23 @@ void RoomViewerCtrl::FireEvent(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
     evt.SetExtraLong(userdata);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void RoomViewerCtrl::FireEvent(const wxEventType& e, const std::string& userdata)
 {
     wxCommandEvent evt(e);
     evt.SetString(userdata);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void RoomViewerCtrl::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
-    evt.SetClientData(this->GetParent());
-    wxPostEvent(this->GetParent(), evt);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void RoomViewerCtrl::OnDraw(wxDC& dc)
@@ -1374,7 +1380,7 @@ void RoomViewerCtrl::UpdateEntityProperties(int entity)
 {
     if (entity > 0 && entity <= m_entities.size())
     {
-        EntityPropertiesWindow dlg(m_parent, entity, &m_entities[entity - 1]);
+        EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1]);
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
@@ -1515,7 +1521,7 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
         ClearSelection();
         return false;
     }
-    if (m_mode == Mode::NORMAL)
+    if (m_mode == RoomViewerFrame::Mode::NORMAL)
     {
         if (HandleNormalModeKeyDown(key, modifiers) == false)
         {

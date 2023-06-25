@@ -5,19 +5,13 @@
 #include <wx/window.h>
 #include <memory>
 #include <cstdint>
+#include "RoomViewerFrame.h"
 #include "GameData.h"
 #include "ImageBuffer.h"
 
 class RoomViewerCtrl : public wxScrolledCanvas
 {
 public:
-	enum class Mode : uint8_t
-	{
-		NORMAL,
-		HEIGHTMAP,
-		BACKGROUND,
-		FOREGROUND
-	};
 
 	enum class Layer : uint8_t
 	{
@@ -34,15 +28,15 @@ public:
 		WARPS
 	};
 
-	RoomViewerCtrl(wxWindow* parent);
+	RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame);
 	virtual ~RoomViewerCtrl();
 
 	void SetGameData(std::shared_ptr<GameData> gd);
 	void ClearGameData();
 
-	void SetRoomNum(uint16_t roomnum, Mode mode);
+	void SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	Mode GetMode() const { return m_mode; }
+	RoomViewerFrame::Mode GetMode() const;
 
 	bool GetEntitiesVisible();
 	bool GetEntitiesHitboxVisible();
@@ -112,7 +106,7 @@ private:
 	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
 
 	void UpdateRoomDescText(uint16_t roomnum);
-	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum, Mode mode = Mode::NORMAL);
+	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum, RoomViewerFrame::Mode mode = RoomViewerFrame::Mode::NORMAL);
 	void DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
 	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
 	void DrawRoomHeightmap(uint16_t roomnum);
@@ -155,8 +149,9 @@ private:
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
-	Mode m_mode;
+	RoomViewerFrame::Mode m_mode;
 	std::vector<std::shared_ptr<Palette>> m_rpalette;
+	RoomViewerFrame* m_frame;
 	int m_width;
 	int m_height;
 	int m_buffer_width;

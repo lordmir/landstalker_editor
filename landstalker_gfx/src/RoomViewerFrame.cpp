@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <FlagDialog.h>
+#include "RoomViewerCtrl.h"
 
 enum MENU_IDS
 {
@@ -20,9 +21,6 @@ enum MENU_IDS
 	ID_TOOLS_ENTITIES,
 	ID_TOOLS_WARPS,
 	ID_VIEW,
-	ID_VIEW_NORMAL,
-	ID_VIEW_HEIGHTMAP,
-	ID_VIEW_MAP,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
@@ -34,9 +32,6 @@ enum TOOL_IDS
 	TOOL_TOGGLE_ENTITIES = 30000,
 	TOOL_TOGGLE_ENTITY_HITBOX,
 	TOOL_TOGGLE_WARPS,
-	TOOL_NORMAL_MODE,
-	TOOL_HEIGHTMAP_MODE,
-	TOOL_MAP_MODE,
 	TOOL_SHOW_LAYERS_PANE,
 	TOOL_SHOW_ENTITIES_PANE,
 	TOOL_SHOW_WARPS_PANE,
@@ -62,20 +57,22 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_SELECT, RoomViewerFrame::OnWarpSelect)
 EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenProperties)
 EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
+EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
+EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
 
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
-	  m_mode(RoomViewerCtrl::Mode::NORMAL),
+	  m_mode(Mode::NORMAL),
 	  m_reset_props(false),
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
-	  m_warpctrl_visible(true)
+	  m_warpctrl_visible(true),
+	  m_sizes_set(false)
 {
 	m_mgr.SetManagedWindow(this);
 
-	m_roomview = new RoomViewerCtrl(this);
 	m_layerctrl = new LayerControlFrame(this);
 	m_entityctrl = new EntityControlFrame(this, GetImageList());
 	m_warpctrl = new WarpControlFrame(this, GetImageList());
@@ -85,7 +82,14 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
 	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Warps"));
-	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
+	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
+	m_nb->Freeze();
+	m_roomview = new RoomViewerCtrl(m_nb, this);
+	m_hmedit = new HeightmapEditorCtrl(m_nb);
+	m_nb->AddPage(m_roomview, "Room", true);
+	m_nb->AddPage(m_hmedit, "Heightmap");
+	m_nb->Thaw();
+	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -98,6 +102,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
+	this->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
@@ -105,19 +110,21 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 
 RoomViewerFrame::~RoomViewerFrame()
 {
+	this->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+
 	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
-void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
+void RoomViewerFrame::SetMode(RoomViewerFrame::Mode mode)
 {
 	m_mode = mode;
-	if (mode == RoomViewerCtrl::Mode::NORMAL)
+	if (mode == Mode::NORMAL)
 	{
 		SetPaneVisibility(m_layerctrl, m_layerctrl_visible);
 		SetPaneVisibility(m_entityctrl, m_entityctrl_visible);
-		SetPaneVisibility(m_entityctrl, m_warpctrl_visible);
+		SetPaneVisibility(m_warpctrl, m_warpctrl_visible);
 	}
 	else
 	{
@@ -134,7 +141,7 @@ void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 
 void RoomViewerFrame::UpdateFrame()
 {
-	m_layerctrl->EnableLayers(m_mode != RoomViewerCtrl::Mode::HEIGHTMAP);
+	m_layerctrl->EnableLayers(m_mode != Mode::HEIGHTMAP);
 	m_roomview->SetRoomNum(m_roomnum, m_mode);
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -147,7 +154,7 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_roomview->SetGameData(gd);
 	}
-	m_mode = RoomViewerCtrl::Mode::NORMAL;
+	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
 
@@ -158,12 +165,17 @@ void RoomViewerFrame::ClearGameData()
 	{
 		m_roomview->ClearGameData();
 	}
-	m_mode = RoomViewerCtrl::Mode::NORMAL;
+	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
 
-void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
+void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
 {
+	if (m_g != nullptr)
+	{
+		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->name);
+		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
+	}
 	if (m_roomnum != roomnum)
 	{
 		m_reset_props = true;
@@ -501,11 +513,11 @@ void RoomViewerFrame::RefreshLists() const
 	}
 	m_menustrings.Clear();
 	m_menustrings.Add("<NONE>");
-	for (int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
+	for (unsigned int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
 	{
 		m_menustrings.Add(m_g->GetStringData()->GetItemName(i));
 	}
-	for (int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
+	for (unsigned int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
 	{
 		m_menustrings.Add(m_g->GetStringData()->GetMenuStr(i));
 	}
@@ -784,10 +796,6 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 1, ID_EDIT_CHESTS, "Chests...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
-	AddMenuItem(viewMenu, 0, ID_VIEW_NORMAL, "Normal", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap Editor", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 1, ID_VIEW_MAP, "Map Editor", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 3, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 4, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 5, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
@@ -799,10 +807,6 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	wxAuiToolBar* main_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	main_tb->SetToolBitmapSize(wxSize(16, 16));
-	main_tb->AddTool(TOOL_NORMAL_MODE, "Normal Mode", ilist.GetImage("room"), "Normal Mode", wxITEM_RADIO);
-	main_tb->AddTool(TOOL_HEIGHTMAP_MODE, "Heightmap Edit Mode", ilist.GetImage("heightmap"), "Heightmap Edit Mode", wxITEM_RADIO);
-	main_tb->AddTool(TOOL_MAP_MODE, "Map Edit Mode", ilist.GetImage("map"), "Map Edit Mode", wxITEM_RADIO);
-	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_TOGGLE_ENTITIES, "Entities Visible", ilist.GetImage("entity"), "Entities Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
@@ -844,14 +848,6 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_IMPORT_CSV:
 			OnImportCsv();
-			break;
-		case ID_VIEW_NORMAL:
-		case TOOL_NORMAL_MODE:
-			SetMode(RoomViewerCtrl::Mode::NORMAL);
-			break;
-		case ID_VIEW_HEIGHTMAP:
-		case TOOL_HEIGHTMAP_MODE:
-			SetMode(RoomViewerCtrl::Mode::HEIGHTMAP);
 			break;
 		case ID_VIEW_ENTITIES:
 		case TOOL_TOGGLE_ENTITIES:
@@ -984,14 +980,9 @@ void RoomViewerFrame::UpdateUI() const
 {
 	EnableMenuItem(ID_EDIT_CHESTS, false);
 	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
-	EnableMenuItem(ID_VIEW_MAP, false);
-	EnableToolbarItem("Main", TOOL_MAP_MODE, false);
 
-	if (m_mode == RoomViewerCtrl::Mode::NORMAL)
+	if (m_mode == Mode::NORMAL)
 	{
-		CheckMenuItem(ID_VIEW_NORMAL, true);
-		CheckToolbarItem("Main", TOOL_NORMAL_MODE, true);
-
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
 		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
@@ -1022,9 +1013,6 @@ void RoomViewerFrame::UpdateUI() const
 	}
 	else
 	{
-		CheckMenuItem(ID_VIEW_HEIGHTMAP, true);
-		CheckToolbarItem("Main", TOOL_HEIGHTMAP_MODE, true);
-
 		CheckMenuItem(ID_VIEW_ENTITIES, false);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
 		EnableMenuItem(ID_VIEW_ENTITIES, false);
@@ -1176,6 +1164,30 @@ void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
 	m_roomview->DeleteSelectedWarp();
 }
 
+void RoomViewerFrame::OnSize(wxSizeEvent& evt)
+{
+	//if (m_mode == Mode::HEIGHTMAP)
+	//{
+	//	//wxAUI hack: set minimum height to desired value, then call wxAuiPaneInfo::Fixed() to apply it
+	//	int w = m_hmedit->GetSize().GetWidth() * evt.GetSize().GetWidth() / GetClientSize().GetWidth();
+	//	int h = evt.GetSize().GetHeight();
+	//	m_mgr.GetPane(m_hmedit).BestSize(w, h);
+	//	m_mgr.GetPane(m_hmedit).Fixed();
+	//	m_mgr.Update();
+
+	//	//now make resizable again
+	//	m_mgr.GetPane(m_hmedit).Resizable();
+	//	m_mgr.Update();
+	//}
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnTabChange(wxAuiNotebookEvent& evt)
+{
+	SetMode(static_cast<Mode>(evt.GetSelection()));
+	evt.Skip();
+}
+
 void RoomViewerFrame::FireEvent(const wxEventType& e)
 {
 	wxCommandEvent evt(e);
@@ -1189,4 +1201,26 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, const std::string& userdat
 	evt.SetString(userdata);
 	evt.SetClientData(this);
 	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::SetPaneSizes()
+{
+	int w, h;
+	if (!m_sizes_set)
+	{
+		w = GetClientSize().GetWidth() * 7 / 10;
+		h = GetClientSize().GetHeight();
+		wxMessageBox(std::to_string(w));
+
+		//wxAUI hack: set minimum height to desired value, then call wxAuiPaneInfo::Fixed() to apply it
+		m_mgr.GetPane(m_hmedit).BestSize(w, h);
+		m_mgr.GetPane(m_hmedit).Fixed();
+		m_mgr.Update();
+
+		//now make resizable again
+		m_mgr.GetPane(m_hmedit).Resizable();
+		m_mgr.Update();
+
+		m_sizes_set = true;
+	}
 }

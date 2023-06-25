@@ -202,6 +202,12 @@ bool EditorFrame::IsPaneVisible(wxWindow* pane) const
 	return paneInfo.IsShown();
 }
 
+void EditorFrame::InsertPane(wxWindow* pane, const wxAuiPaneInfo& insert_location, int insert_level)
+{
+	auto* mgr = wxAuiManager::GetManager(pane->GetParent());
+	mgr->InsertPane(pane, insert_location, insert_level);
+}
+
 void EditorFrame::SetToolbarVisibility(const std::string& name, bool visible)
 {
 	auto* tb = GetToolbar(name);

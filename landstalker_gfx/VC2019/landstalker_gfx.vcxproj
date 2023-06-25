@@ -36,6 +36,7 @@
     <ClCompile Include="..\src\Flags.cpp" />
     <ClCompile Include="..\src\GameData.cpp" />
     <ClCompile Include="..\src\GraphicsData.cpp" />
+    <ClCompile Include="..\src\HeightmapEditorCtrl.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
     <ClCompile Include="..\src\HuffmanTree.cpp" />
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="..\src\include\Flags.h" />
     <ClInclude Include="..\src\include\GameData.h" />
     <ClInclude Include="..\src\include\GraphicsData.h" />
+    <ClInclude Include="..\src\include\HeightmapEditorCtrl.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />
     <ClInclude Include="..\src\include\HuffmanTree.h" />
     <ClInclude Include="..\src\include\HuffmanTrees.h" />
