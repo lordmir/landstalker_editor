@@ -85,7 +85,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
 	m_nb->Freeze();
 	m_roomview = new RoomViewerCtrl(m_nb, this);
-	m_hmedit = new HeightmapEditorCtrl(m_nb);
+	m_hmedit = new HeightmapEditorCtrl(m_nb, this);
 	m_nb->AddPage(m_roomview, "Room", true);
 	m_nb->AddPage(m_hmedit, "Heightmap");
 	m_nb->Thaw();
@@ -141,8 +141,9 @@ void RoomViewerFrame::SetMode(RoomViewerFrame::Mode mode)
 
 void RoomViewerFrame::UpdateFrame()
 {
-	m_layerctrl->EnableLayers(m_mode != Mode::HEIGHTMAP);
-	m_roomview->SetRoomNum(m_roomnum, m_mode);
+	m_layerctrl->EnableLayers(m_mode == Mode::NORMAL);
+	m_roomview->SetRoomNum(m_roomnum);
+	m_hmedit->SetRoomNum(m_roomnum);
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
@@ -154,6 +155,10 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_roomview->SetGameData(gd);
 	}
+	if (m_hmedit)
+	{
+		m_hmedit->SetGameData(gd);
+	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
@@ -164,6 +169,10 @@ void RoomViewerFrame::ClearGameData()
 	if (m_roomview)
 	{
 		m_roomview->ClearGameData();
+	}
+	if (m_hmedit)
+	{
+		m_hmedit->ClearGameData();
 	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();

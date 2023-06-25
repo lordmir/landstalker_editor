@@ -34,9 +34,8 @@ public:
 	void SetGameData(std::shared_ptr<GameData> gd);
 	void ClearGameData();
 
-	void SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode);
+	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	RoomViewerFrame::Mode GetMode() const;
 
 	bool GetEntitiesVisible();
 	bool GetEntitiesHitboxVisible();
@@ -106,12 +105,10 @@ private:
 	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
 
 	void UpdateRoomDescText(uint16_t roomnum);
-	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum, RoomViewerFrame::Mode mode = RoomViewerFrame::Mode::NORMAL);
+	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
 	void DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
 	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
-	void DrawRoomHeightmap(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
-	std::shared_ptr<wxBitmap> DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map);
 	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
 		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);
 	void ForceRepaint();
@@ -149,7 +146,6 @@ private:
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
-	RoomViewerFrame::Mode m_mode;
 	std::vector<std::shared_ptr<Palette>> m_rpalette;
 	RoomViewerFrame* m_frame;
 	int m_width;

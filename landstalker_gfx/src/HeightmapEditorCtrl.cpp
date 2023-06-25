@@ -16,9 +16,10 @@ EVT_RIGHT_UP(HeightmapEditorCtrl::OnRightClick)
 EVT_RIGHT_DCLICK(HeightmapEditorCtrl::OnRightDblClick)
 wxEND_EVENT_TABLE()
 
-HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent)
+HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* frame)
     : wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
     m_roomnum(0),
+    m_frame(frame),
     m_bmp(new wxBitmap),
     m_zoom(1.0),
     m_scroll_rate(SCROLL_RATE),
@@ -51,25 +52,26 @@ void HeightmapEditorCtrl::ClearGameData()
 
 void HeightmapEditorCtrl::SetRoomNum(uint16_t roomnum)
 {
-    m_roomnum = roomnum;
-    RefreshGraphics();
+    if (m_g)
+    {
+        m_roomnum = roomnum;
+        m_map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+        m_width = (m_map->GetHeightmapWidth() + m_map->GetHeightmapHeight()) * TILE_WIDTH / 2 + 1;
+        m_height = (m_map->GetHeightmapWidth() + m_map->GetHeightmapHeight()) * TILE_HEIGHT / 2 + 1;
+        RefreshGraphics();
+    }
 }
 
 void HeightmapEditorCtrl::SetZoom(double zoom)
 {
     m_zoom = zoom;
-    if (m_g == nullptr)
-    {
-        return;
-    }
-    auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
-    *m_bmp = *DrawHeightmapGrid(map);
-    UpdateScroll();
-    ForceRedraw();
+    RefreshGraphics();
 }
 
 void HeightmapEditorCtrl::RefreshGraphics()
 {
+    UpdateScroll();
+    ForceRedraw();
 }
 
 bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
@@ -77,18 +79,100 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
 	return false;
 }
 
-void HeightmapEditorCtrl::DrawRoomHeightmap(uint16_t roomnum)
+void HeightmapEditorCtrl::DrawRoomHeightmap()
 {
-    if (m_g == nullptr)
+    m_bmp->Create(m_width, m_height);
+    wxMemoryDC dc(*m_bmp);
+
+    dc.SetUserScale(m_zoom, m_zoom);
+    dc.SetBackground(*wxBLACK_BRUSH);
+    dc.Clear();
+    if (m_map)
     {
-        return;
+        dc.SetPen(*wxTRANSPARENT_PEN);
+
+        auto lines = GetTilePoly(0, 0);
+        for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
+        {
+            for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
+            {
+                int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
+                int y = (ix + iy) * TILE_HEIGHT / 2;
+                auto restrictions = m_map->GetCellProps({ ix, iy });
+                auto z = m_map->GetHeight({ ix, iy });
+                auto type = m_map->GetCellType({ ix, iy });
+                dc.SetBrush(wxBrush(GetCellBackground(restrictions, type, z)));
+                dc.DrawPolygon(lines.size(), lines.data(), x, y);
+            }
+        }
+        // Do stuff
+        auto font = wxFont(wxSize(0, TILE_HEIGHT / 2), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
+            wxFONTWEIGHT_NORMAL, false);
+        dc.SetFont(font);
+        for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
+        {
+            for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
+            {
+                int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
+                int y = (ix + iy) * TILE_HEIGHT / 2;
+                auto restrictions = m_map->GetCellProps({ ix, iy });
+                auto z = m_map->GetHeight({ ix, iy });
+                auto type = m_map->GetCellType({ ix, iy });
+                if (!IsCellHidden(restrictions, type, z))
+                {
+                    std::string lbl1 = StrPrintf("%02X", type);
+                    std::string lbl2 = StrPrintf("%X", z);
+                    std::string lbl3 = StrPrintf("%X", restrictions);
+                    wxCoord tw, th;
+                    dc.SetTextForeground(type == 0 ? *wxLIGHT_GREY : wxColor(0xFF00FF));
+                    dc.GetTextExtent(lbl1, &tw, &th);
+                    dc.DrawText(lbl1, x + TILE_WIDTH / 2 - tw / 2, y + TILE_HEIGHT / 4 - th / 2 + 2);
+                    dc.SetTextForeground(*wxCYAN);
+                    dc.GetTextExtent(lbl2, &tw, &th);
+                    dc.DrawText(lbl2, x + TILE_WIDTH / 2 - 5 * tw / 4, y + 5 * TILE_HEIGHT / 8 - th / 2 + 2);
+                    dc.SetTextForeground(restrictions == 0 ? *wxLIGHT_GREY : *wxYELLOW);
+                    dc.GetTextExtent(lbl3, &tw, &th);
+                    dc.DrawText(lbl3, x + TILE_WIDTH / 2 + 1 * tw / 4, y + 5 * TILE_HEIGHT / 8 - th / 2 + 2);
+                }
+            }
+        }
+        ///
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.SetPen(wxPen(wxColor(128,128,128)));
+        for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
+        {
+            for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
+            {
+                int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
+                int y = (ix + iy) * TILE_HEIGHT / 2;
+                auto restrictions = m_map->GetCellProps({ ix, iy });
+                auto z = m_map->GetHeight({ ix, iy });
+                auto type = m_map->GetCellType({ ix, iy });
+                if (IsCellHidden(restrictions, type, z))
+                {
+                    dc.DrawPolygon(lines.size(), lines.data(), x, y);
+                }
+            }
+        }
+        dc.SetPen(wxPen(*wxWHITE));
+        for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
+        {
+            for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
+            {
+                int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
+                int y = (ix + iy) * TILE_HEIGHT / 2;
+                auto restrictions = m_map->GetCellProps({ ix, iy });
+                auto z = m_map->GetHeight({ ix, iy });
+                auto type = m_map->GetCellType({ ix, iy });
+                if (!IsCellHidden(restrictions, type, z))
+                {
+                    dc.DrawPolygon(lines.size(), lines.data(), x, y);
+                }
+            }
+        }
     }
 
-    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
-
-    m_width = (map->GetHeightmapWidth() + map->GetHeightmapHeight()) * TILE_WIDTH + 1;
-    m_height = (map->GetHeightmapWidth() + map->GetHeightmapHeight()) * TILE_HEIGHT + 1;
-    *m_bmp = *DrawHeightmapGrid(map);
+    dc.SelectObject(wxNullBitmap);
 }
 
 void HeightmapEditorCtrl::SetOpacity(wxImage& image, uint8_t opacity)
@@ -99,6 +183,49 @@ void HeightmapEditorCtrl::SetOpacity(wxImage& image, uint8_t opacity)
         *alpha = (*alpha < opacity) ? *alpha : opacity;
         alpha++;
     }
+}
+
+std::vector<wxPoint> HeightmapEditorCtrl::GetTilePoly(int x, int y, int width, int height) const
+{
+    return {
+        wxPoint(x + width / 2, y),
+        wxPoint(x + width    , y + height / 2),
+        wxPoint(x + width / 2, y + height),
+        wxPoint(x            , y + height / 2),
+        wxPoint(x + width / 2, y)
+    };
+}
+
+wxColor HeightmapEditorCtrl::GetCellBackground(uint8_t restrictions, uint8_t type, uint8_t zz)
+{
+    wxColor bg = *wxBLACK;
+    if (!IsCellHidden(restrictions, type, zz))
+    {
+        switch (restrictions)
+        {
+        case 0x0:
+            bg.Set(zz * 3, 48 + zz * 12, zz * 3);
+            break;
+        case 0x4:
+            bg.Set(48 + zz * 12, zz * 3, zz * 3);
+            break;
+        case 0x2:
+            bg.Set(32 + zz * 3, 32 + zz * 3, 48 + zz * 12);
+            break;
+        case 0x6:
+            bg.Set(48 + zz * 12, 32 + zz * 3, 48 + zz * 12);
+            break;
+        default:
+            bg.Set(48 + zz * 12, 48 + zz * 12, zz * 3);
+            break;
+        }
+    }
+    return bg;
+}
+
+wxColor HeightmapEditorCtrl::GetCellBorder(uint8_t restrictions, uint8_t type, uint8_t z)
+{
+    return IsCellHidden(restrictions, type, z) ? *wxLIGHT_GREY : *wxWHITE;
 }
 
 std::shared_ptr<wxBitmap> HeightmapEditorCtrl::DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity)
@@ -290,6 +417,11 @@ void HeightmapEditorCtrl::GoToRoom(uint16_t room)
     FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
 }
 
+bool HeightmapEditorCtrl::IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z)
+{
+    return (restrictions == 0x4 && type == 0 && z == 0);
+}
+
 void HeightmapEditorCtrl::FireEvent(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
@@ -315,6 +447,11 @@ void HeightmapEditorCtrl::FireEvent(const wxEventType& e)
 
 void HeightmapEditorCtrl::OnDraw(wxDC& dc)
 {
+    if (m_redraw)
+    {
+        DrawRoomHeightmap();
+        m_redraw = false;
+    }
     int sx, sy;
     GetViewStart(&sx, &sy);
     sx *= m_scroll_rate;
@@ -322,14 +459,8 @@ void HeightmapEditorCtrl::OnDraw(wxDC& dc)
     int sw, sh;
     GetClientSize(&sw, &sh);
     wxMemoryDC mdc(*m_bmp);
-    if (m_redraw)
-    {
-        mdc.SetBackground(*wxGREEN_BRUSH);
-        mdc.Clear();
-        mdc.SetUserScale(1.0, 1.0);
-    }
     mdc.SetUserScale(1.0, 1.0);
-    dc.SetBackground(*wxBLUE_BRUSH);
+    dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
     mdc.SelectObject(wxNullBitmap);

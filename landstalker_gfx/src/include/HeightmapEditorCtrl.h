@@ -7,12 +7,15 @@
 #include <cstdint>
 #include "GameData.h"
 #include "ImageBuffer.h"
+#include "Tilemap3DCmp.h"
+
+class RoomViewerFrame;
 
 class HeightmapEditorCtrl : public wxScrolledCanvas
 {
 public:
 
-	HeightmapEditorCtrl(wxWindow* parent);
+	HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* frame);
 	virtual ~HeightmapEditorCtrl();
 
 	void SetGameData(std::shared_ptr<GameData> gd);
@@ -27,7 +30,7 @@ public:
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
-	void DrawRoomHeightmap(uint16_t roomnum);
+	void DrawRoomHeightmap();
 	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
 	std::shared_ptr<wxBitmap> DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map);
 	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
@@ -38,6 +41,11 @@ private:
 	bool Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y);
 	void GoToRoom(uint16_t room);
 	void SetOpacity(wxImage& image, uint8_t opacity);
+
+	std::vector<wxPoint> GetTilePoly(int x, int y, int width = TILE_WIDTH, int height = TILE_HEIGHT) const;
+	wxColor GetCellBackground(uint8_t restrictions, uint8_t type, uint8_t z);
+	wxColor GetCellBorder(uint8_t restrictions, uint8_t type, uint8_t z);
+	bool IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z);
 
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
@@ -56,6 +64,8 @@ private:
 	void OnRightDblClick(wxMouseEvent& evt);
 
 	std::shared_ptr<GameData> m_g;
+	std::shared_ptr<Tilemap3D> m_map;
+	RoomViewerFrame* m_frame;
 	uint16_t m_roomnum;
 	int m_width;
 	int m_height;
@@ -65,10 +75,8 @@ private:
 
 	wxBitmap* m_bmp;
 
-	static const std::size_t TILE_WIDTH = 32;
-	static const std::size_t TILE_HEIGHT = 16;
-	static const std::size_t HM_CELL_WIDTH = 32;
-	static const std::size_t HM_CELL_HEIGHT = 32;
+	static const std::size_t TILE_WIDTH = 64;
+	static const std::size_t TILE_HEIGHT = 32;
 	static const int SCROLL_RATE = 8;
 	int m_scroll_rate;
 	int m_selected;

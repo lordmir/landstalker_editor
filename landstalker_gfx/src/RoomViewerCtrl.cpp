@@ -70,10 +70,9 @@ void RoomViewerCtrl::ClearGameData()
 	Refresh(true);
 }
 
-void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
+void RoomViewerCtrl::SetRoomNum(uint16_t roomnum)
 {
 	m_roomnum = roomnum;
-    m_mode = mode;
     m_selected = -1;
     if (m_is_warp_pending)
     {
@@ -98,11 +97,6 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
     }
     UpdateRoomDescText(m_roomnum);
     RefreshGraphics();
-}
-
-RoomViewerFrame::Mode RoomViewerCtrl::GetMode() const
-{
-    return m_mode;
 }
 
 bool RoomViewerCtrl::GetEntitiesVisible()
@@ -146,7 +140,7 @@ void RoomViewerCtrl::SelectEntity(int selection)
         if (IsWarpSelected() && m_show_warps)
         {
             m_selected = selection;
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
             FireEvent(EVT_WARP_UPDATE);
         }
         else
@@ -171,7 +165,7 @@ void RoomViewerCtrl::ClearSelection()
         RedrawAllSprites();
         if (m_show_warps)
         {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         }
         ForceRedraw();
     }
@@ -237,7 +231,7 @@ void RoomViewerCtrl::SelectWarp(int selection)
         FireEvent(EVT_WARP_UPDATE);
         if (m_show_warps)
         {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
             ForceRedraw();
         }
     }
@@ -284,27 +278,15 @@ void RoomViewerCtrl::SetZoom(double zoom)
     auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
     UpdateBuffer();
     auto q = PrepareSprites(m_roomnum);
-    switch (m_mode)
+    if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
     {
-    case RoomViewerFrame::Mode::HEIGHTMAP:
-        m_layers[Layer::HEIGHTMAP] = DrawHeightmapGrid(map);
-        if (m_show_warps)
-        {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, RoomViewerFrame::Mode::HEIGHTMAP);
-        }
-        break;
-    case RoomViewerFrame::Mode::NORMAL:
-        if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
-        {
-            m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
-        }
-        if (m_show_warps)
-        {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
-        }
-        DrawSpriteHitboxes(q);
-        break;
+        m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
     }
+    if (m_show_warps)
+    {
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+    }
+    DrawSpriteHitboxes(q);
     UpdateScroll();
     ForceRedraw();
 }
@@ -387,29 +369,26 @@ void RoomViewerCtrl::RedrawAllSprites()
     m_rpalette = PreparePalettes(m_roomnum);
     auto q = PrepareSprites(m_roomnum);
     m_entity_poly.clear();
-    if (m_mode == RoomViewerFrame::Mode::NORMAL)
+    if (m_show_entities)
     {
-        if (m_show_entities)
+        m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
+        m_layer_bufs[Layer::BG_SPRITES]->Resize(m_width, m_height);
+        DrawSprites(q);
+        if (m_layer_opacity[Layer::BG_SPRITES] > 0)
         {
-            m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
-            m_layer_bufs[Layer::BG_SPRITES]->Resize(m_width, m_height);
-            DrawSprites(q);
-            if (m_layer_opacity[Layer::BG_SPRITES] > 0)
-            {
-                UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::BG_SPRITES]->MakeBitmap(m_rpalette,
-                    true, m_layer_opacity[Layer::BG_SPRITES], m_layer_opacity[Layer::BG_SPRITES]));
-            }
-            if (m_layer_opacity[Layer::FG_SPRITES] > 0)
-            {
-                UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
-                    true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
-            }
+            UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::BG_SPRITES]->MakeBitmap(m_rpalette,
+                true, m_layer_opacity[Layer::BG_SPRITES], m_layer_opacity[Layer::BG_SPRITES]));
         }
-        if (m_show_entities || m_show_entity_hitboxes)
+        if (m_layer_opacity[Layer::FG_SPRITES] > 0)
         {
-            DrawSpriteHitboxes(q);
-            AddEntityClickRegions(q);
+            UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+                true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
         }
+    }
+    if (m_show_entities || m_show_entity_hitboxes)
+    {
+        DrawSpriteHitboxes(q);
+        AddEntityClickRegions(q);
     }
 }
 
@@ -677,7 +656,7 @@ void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
     FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
-std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, RoomViewerFrame::Mode mode)
+std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
 {
     m_warp_poly.clear();
     m_link_poly.clear();
@@ -693,14 +672,7 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum, RoomVi
     gc->SetBrush(*wxBLACK_BRUSH);
     for (int i = 0; i < m_warps.size(); ++i)
     {
-        if (mode == RoomViewerFrame::Mode::HEIGHTMAP)
-        {
-            DrawWarp(*gc, i, map, TILE_WIDTH * 2, TILE_HEIGHT * 2, true);
-        }
-        else
-        {
-            DrawWarp(*gc, i, map, TILE_WIDTH, TILE_HEIGHT, false);
-        }
+        DrawWarp(*gc, i, map, TILE_WIDTH, TILE_HEIGHT, false);
     }
     wxColour bkColor(*wxBLACK);
     wxColour textColor(*wxWHITE);
@@ -742,29 +714,10 @@ void RoomViewerCtrl::UpdateWarpProperties(int warp)
             }
             FireEvent(EVT_STATUSBAR_UPDATE);
             FireEvent(EVT_WARP_UPDATE);
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
             ForceRedraw();
         }
     }
-}
-
-void RoomViewerCtrl::DrawRoomHeightmap(uint16_t roomnum)
-{
-    if (m_g == nullptr)
-    {
-        return;
-    }
-
-    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
-
-    m_warp_poly.clear();
-    m_link_poly.clear();
-
-    m_layers.clear();
-    m_width = (map->GetHeightmapWidth() + map->GetHeightmapHeight()) * TILE_WIDTH + 1;
-    m_height = (map->GetHeightmapWidth() + map->GetHeightmapHeight()) * TILE_HEIGHT + 1;
-    UpdateBuffer();
-    m_layers.insert({ Layer::HEIGHTMAP, DrawHeightmapGrid(map) });
 }
 
 std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity)
@@ -793,59 +746,6 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
     delete hm_gc;
     SetOpacity(hm_img, opacity);
     return std::make_shared<wxBitmap>(hm_img);
-}
-
-std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapGrid(std::shared_ptr<Tilemap3D> map)
-{
-
-    wxImage img(m_buffer_width, m_buffer_height);
-    wxGraphicsContext* gc = wxGraphicsContext::Create(img);
-    gc->SetBrush(*wxBLACK);
-    gc->SetPen(*wxTRANSPARENT_PEN);
-    gc->DrawRectangle(0, 0, m_buffer_width, m_buffer_height);
-    gc->SetPen(*wxWHITE_PEN);
-    gc->Scale(m_zoom, m_zoom);
-    auto font = wxFont(TILE_HEIGHT / 2, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
-        wxFONTWEIGHT_NORMAL, false);
-    // Draw grid
-    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
-        {
-            int xx = (x - y + map->GetHeightmapHeight() - 1) * TILE_WIDTH;
-            int xy = (x + y) * TILE_HEIGHT;
-            DrawHeightmapCell(*gc, xx, xy, 0, TILE_WIDTH * 2, TILE_HEIGHT * 2, -1, -1, false, wxColor(0x444444));
-            std::string lbl1 = StrPrintf("%02X", map->GetCellType({ x,y }));
-            std::string lbl2 = StrPrintf("%X %X", map->GetCellType({ x,y }), map->GetCellProps({ x,y }));
-        }
-
-    // Draw cells
-    for (int y = 0; y < map->GetHeightmapHeight(); ++y)
-        for (int x = 0; x < map->GetHeightmapWidth(); ++x)
-        {
-            // Only display cells that are not completely restricted
-            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
-            {
-                int xx = (x - y + map->GetHeightmapHeight() - 1) * TILE_WIDTH;
-                int xy = (x + y) * TILE_HEIGHT;
-                DrawHeightmapCell(*gc, xx, xy, map->GetHeight({x,y}), TILE_WIDTH * 2, TILE_HEIGHT * 2, map->GetCellProps({x,y}), -1, false);
-                std::string lbl1 = StrPrintf("%02X", map->GetCellType({ x,y }));
-                std::string lbl2 = StrPrintf("%X", map->GetHeight({ x,y }));
-                std::string lbl3 = StrPrintf("%X", map->GetCellProps({x,y}));
-                double tw, th;
-                gc->SetFont(font, map->GetCellType({ x,y }) == 0 ? *wxLIGHT_GREY : wxColor(0xFF00FF));
-                gc->GetTextExtent(lbl1, &tw, &th);
-                gc->DrawText(lbl1, xx + TILE_WIDTH - tw / 2, xy + TILE_HEIGHT / 2 - th / 2 + 2);
-                gc->SetFont(font, *wxCYAN);
-                gc->GetTextExtent(lbl2, &tw, &th);
-                gc->DrawText(lbl2, xx + TILE_WIDTH - 5 * tw / 4, xy + 5 * TILE_HEIGHT / 4 - th / 2 + 2);
-                gc->SetFont(font, map->GetCellProps({ x,y }) == 0 ? *wxLIGHT_GREY : *wxYELLOW);
-                gc->GetTextExtent(lbl3, &tw, &th);
-                gc->DrawText(lbl3, xx + TILE_WIDTH + 1 * tw / 4, xy + 5 * TILE_HEIGHT / 4 - th / 2 + 2);
-            }
-        }
-    delete gc;
-
-    return std::make_shared<wxBitmap>(img);
 }
 
 void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int zz, int width, int height, int restrictions, int classification, bool draw_walls, wxColor border_colour)
@@ -1049,7 +949,7 @@ void RoomViewerCtrl::AddWarp()
     }
     if (m_show_warps)
     {
-        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         ForceRedraw();
     }
     FireEvent(EVT_WARP_UPDATE);
@@ -1099,7 +999,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
         }
         if (m_show_warps)
         {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
             ForceRedraw();
         }
         m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
@@ -1160,19 +1060,7 @@ void RoomViewerCtrl::RefreshGraphics()
     {
         m_entity_poly.clear();
     }
-    switch (m_mode)
-    {
-    case RoomViewerFrame::Mode::HEIGHTMAP:
-        DrawRoomHeightmap(m_roomnum);
-        if (m_show_warps)
-        {
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, RoomViewerFrame::Mode::HEIGHTMAP);
-        }
-        break;
-    case RoomViewerFrame::Mode::NORMAL:
-        DrawRoom(m_roomnum);
-        break;
-    }
+    DrawRoom(m_roomnum);
     UpdateScroll();
     ForceRedraw();
 }
@@ -1521,23 +1409,20 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
         ClearSelection();
         return false;
     }
-    if (m_mode == RoomViewerFrame::Mode::NORMAL)
+    if (HandleNormalModeKeyDown(key, modifiers) == false)
     {
-        if (HandleNormalModeKeyDown(key, modifiers) == false)
+        if (IsEntitySelected())
         {
-            if (IsEntitySelected())
-            {
-                return !HandleNEntityKeyDown(key, modifiers);
-            }
-            if (IsWarpSelected())
-            {
-                return !HandleNWarpKeyDown(key, modifiers);
-            }
+            return !HandleNEntityKeyDown(key, modifiers);
         }
-        else
+        if (IsWarpSelected())
         {
-            return false;
+            return !HandleNWarpKeyDown(key, modifiers);
         }
+    }
+    else
+    {
+        return false;
     }
     return true;
 }
@@ -1928,7 +1813,7 @@ bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers
         m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
         FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_WARP_UPDATE);
-        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         ForceRedraw();
     }
     return key_handled;
