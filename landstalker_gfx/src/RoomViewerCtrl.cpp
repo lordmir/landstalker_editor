@@ -1096,6 +1096,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum, m_mode);
             ForceRedraw();
         }
+        m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
         FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_WARP_UPDATE);
     }
@@ -1549,7 +1550,7 @@ bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modi
         {
             if (IsEntitySelected())
             {
-                SelectEntity((GetSelectedEntityIndex() + 1) % m_entities.size() + 1);
+                SelectEntity((GetSelectedEntityIndex()) % m_entities.size() + 1);
             }
             else
             {
@@ -1561,7 +1562,7 @@ bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modi
         {
             if (IsEntitySelected())
             {
-                SelectEntity((GetSelectedEntityIndex() - 1) % m_entities.size() + 1);
+                SelectEntity(GetSelectedEntityIndex() == 1 ? m_entities.size() : GetSelectedEntityIndex() - 1);
             }
             else
             {
@@ -1569,33 +1570,53 @@ bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modi
             }
             key_handled = true;
         }
-        else if (modifiers == wxMOD_CONTROL)
+        break;
+    case '.':
+        if (IsEntitySelected())
         {
-            if (IsWarpSelected())
-            {
-                SelectWarp((GetSelectedWarpIndex() + 1) % m_warps.size() + 1);
-            }
-            else
-            {
-                SelectEntity(1);
-            }
-            key_handled = true;
+            SelectEntity((GetSelectedEntityIndex()) % m_entities.size() + 1);
         }
-        else if (modifiers == (wxMOD_SHIFT | wxMOD_CONTROL))
+        else
         {
-            if (IsWarpSelected())
-            {
-                SelectWarp((GetSelectedWarpIndex() - 1) % m_warps.size() + 1);
-            }
-            else
-            {
-                SelectEntity(m_warps.size());
-            }
-            key_handled = true;
+            SelectEntity(1);
         }
+        key_handled = true;
+        break;
+    case ',':
+        if (IsEntitySelected())
+        {
+            SelectEntity(GetSelectedEntityIndex() == 1 ? m_entities.size() : GetSelectedEntityIndex() - 1);
+        }
+        else
+        {
+            SelectEntity(m_entities.size());
+        }
+        key_handled = true;
+        break;
+    case '>':
+        if (IsWarpSelected())
+        {
+            SelectWarp((GetSelectedWarpIndex()) % m_warps.size() + 1);
+        }
+        else
+        {
+            SelectWarp(1);
+        }
+        key_handled = true;
+        break;
+    case '<':
+        if (IsWarpSelected())
+        {
+            SelectWarp(GetSelectedWarpIndex() == 1 ? m_warps.size() : GetSelectedWarpIndex() - 1);
+        }
+        else
+        {
+            SelectWarp(m_warps.size());
+        }
+        key_handled = true;
         break;
     case WXK_INSERT:
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == wxMOD_SHIFT)
         {
             AddWarp();
         }
@@ -1862,6 +1883,26 @@ bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers
             }
             refresh_warps = true;
             key_handled = true;
+            break;
+        case 'U':
+        case 'u':
+            if(warp.IsValid())
+            {
+                m_warps.push_back(warp);
+                if (m_warps.back().room1 == m_roomnum)
+                {
+                    m_warps.back().x1 -= m_warps.back().x_size;
+                    m_warps.back().x1 = std::clamp<uint8_t>(m_warps.back().x1, 0, 63);
+                }
+                else
+                {
+                    m_warps.back().x2 -= m_warps.back().x_size;
+                    m_warps.back().x2 = std::clamp<uint8_t>(m_warps.back().x2, 0, 63);
+                }
+                m_selected = m_warps.size() + 0x100;
+                refresh_warps = true;
+                key_handled = true;
+            }
             break;
         case WXK_DELETE:
             if (modifiers == wxMOD_SHIFT)

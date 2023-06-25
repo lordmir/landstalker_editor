@@ -33,6 +33,8 @@ public:
 	bool ImportCsv(const std::array<std::string, 3>& paths);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+
+	void ShowFlagDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;

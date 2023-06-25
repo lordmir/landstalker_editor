@@ -31,6 +31,9 @@
     <ClCompile Include="..\src\EntityControlFrame.cpp" />
     <ClCompile Include="..\src\EntityPropertiesWindow.cpp" />
     <ClCompile Include="..\src\EntryPreferences.cpp" />
+    <ClCompile Include="..\src\FlagDataViewModel.cpp" />
+    <ClCompile Include="..\src\FlagDialog.cpp" />
+    <ClCompile Include="..\src\Flags.cpp" />
     <ClCompile Include="..\src\GameData.cpp" />
     <ClCompile Include="..\src\GraphicsData.cpp" />
     <ClCompile Include="..\src\HuffmanString.cpp" />
@@ -108,6 +111,9 @@
     <ClInclude Include="..\src\include\EntityControlFrame.h" />
     <ClInclude Include="..\src\include\EntityPropertiesWindow.h" />
     <ClInclude Include="..\src\include\EntryPreferences.h" />
+    <ClInclude Include="..\src\include\FlagDataViewModel.h" />
+    <ClInclude Include="..\src\include\FlagDialog.h" />
+    <ClInclude Include="..\src\include\Flags.h" />
     <ClInclude Include="..\src\include\GameData.h" />
     <ClInclude Include="..\src\include\GraphicsData.h" />
     <ClInclude Include="..\src\include\HuffmanString.h" />

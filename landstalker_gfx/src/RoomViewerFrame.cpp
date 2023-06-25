@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <FlagDialog.h>
 
 enum MENU_IDS
 {
@@ -347,6 +348,12 @@ bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 		return m_roomview->HandleKeyDown(key, modifiers);
 	}
 	return true;
+}
+
+void RoomViewerFrame::ShowFlagDialog()
+{
+	FlagDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	dlg.ShowModal();
 }
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
@@ -881,6 +888,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 				m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
 			}
 			break;
+		case ID_EDIT_FLAGS:
+		case TOOL_SHOW_FLAGS:
+			ShowFlagDialog();
+			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
 		}
@@ -971,8 +982,6 @@ void RoomViewerFrame::OnImportCsv()
 
 void RoomViewerFrame::UpdateUI() const
 {
-	EnableMenuItem(ID_EDIT_FLAGS, false);
-	EnableToolbarItem("Main", TOOL_SHOW_FLAGS, false);
 	EnableMenuItem(ID_EDIT_CHESTS, false);
 	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
 	EnableMenuItem(ID_VIEW_MAP, false);

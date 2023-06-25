@@ -75,11 +75,22 @@ std::vector<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 void WarpList::UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps)
 {
 	std::stack<std::vector<Warp>::iterator> iterators;
-	for (auto it = m_warps.begin(); it != m_warps.end(); ++it)
+	for (auto it = m_warps.begin(); it != m_warps.end(); )
 	{
 		if (it->room1 == room || it->room2 == room)
 		{
-			iterators.push(it);
+			if (iterators.size() < warps.size())
+			{
+				iterators.push(it++);
+			}
+			else
+			{
+				it = m_warps.erase(it);
+			}
+		}
+		else
+		{
+			++it;
 		}
 	}
 	for (const auto& warp : warps)
@@ -95,20 +106,6 @@ void WarpList::UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps)
 				auto& it = iterators.top();
 				*it = warp;
 				iterators.pop();
-			}
-		}
-	}
-	if (!iterators.empty())
-	{
-		for (auto it = m_warps.begin(); it != m_warps.end(); )
-		{
-			if (it->room1 == room || it->room2 == room)
-			{
-				it = m_warps.erase(it);
-			}
-			else
-			{
-				++it;
 			}
 		}
 	}
