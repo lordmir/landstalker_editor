@@ -5,6 +5,8 @@
 #include <EditorFrame.h>
 #include <RoomViewerFrame.h>
 
+wxDEFINE_EVENT(EVT_HEIGHTMAP_UPDATE, wxCommandEvent);
+
 wxBEGIN_EVENT_TABLE(HeightmapEditorCtrl, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(HeightmapEditorCtrl::OnEraseBackground)
 EVT_PAINT(HeightmapEditorCtrl::OnPaint)
@@ -83,7 +85,269 @@ void HeightmapEditorCtrl::RefreshGraphics()
 
 bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
+    switch(key)
+    {
+    case WXK_ESCAPE:
+        ClearSelection();
+        return true;
+    case WXK_UP:
+    case 'w':
+    case 'W':
+        NudgeSelectionUp();
+        return true;
+    case WXK_DOWN:
+    case 's':
+    case 'S':
+        NudgeSelectionDown();
+        return true;
+    case WXK_LEFT:
+    case 'a':
+    case 'A':
+        NudgeSelectionLeft();
+        return true;
+    case WXK_RIGHT:
+    case 'd':
+    case 'D':
+        NudgeSelectionRight();
+        return true;
+    case WXK_PAGEUP:
+        IncreaseSelectedHeight();
+        return true;
+    case WXK_PAGEDOWN:
+        DecreaseSelectedHeight();
+        return true;
+    case WXK_SPACE:
+        ToggleSelectedPlayerPassable();
+        return true;
+    case 'n':
+    case 'N':
+        ToggleSelectedNPCPassable();
+        return true;
+    case 'r':
+    case 'R':
+        ToggleSelectedRaftTrack();
+        return true;
+    case WXK_ADD:
+    case '+':
+        if (modifiers == wxMOD_CONTROL)
+        {
+            IncrementSelectedRestrictions();
+        }
+        else
+        {
+            IncrementSelectedType();
+        }
+        return true;
+    case WXK_SUBTRACT:
+    case '-':
+        if (modifiers == wxMOD_CONTROL)
+        {
+            DecrementSelectedRestrictions();
+        }
+        else
+        {
+            DecrementSelectedType();
+        }
+        return true;
+    case WXK_DELETE:
+        ClearSelectedCell();
+        return true;
+    }
 	return false;
+}
+
+void HeightmapEditorCtrl::ClearSelection()
+{
+    if (m_selected.first != -1)
+    {
+        m_selected = { -1, -1 };
+        Refresh(false);
+    }
+}
+
+void HeightmapEditorCtrl::SetSelection(int ix, int iy)
+{
+    if (m_selected.first != ix || m_selected.second != iy)
+    {
+        m_selected = { ix, iy };
+        Refresh(false);
+    }
+}
+
+std::pair<int, int> HeightmapEditorCtrl::GetSelection() const
+{
+    return m_selected;
+}
+
+void HeightmapEditorCtrl::NudgeSelectionUp()
+{
+    if (m_selected.first == -1)
+    {
+        m_selected = { 0, 0 };
+        Refresh(false);
+    }
+    else if (m_selected.first > 0)
+    {
+        m_selected.first--;
+        Refresh(false);
+    }
+}
+
+void HeightmapEditorCtrl::NudgeSelectionDown()
+{
+    if (m_selected.first == -1)
+    {
+        m_selected = { 0, 0 };
+        Refresh(false);
+    }
+    else if (m_selected.first < m_map->GetHeightmapWidth() - 1)
+    {
+        m_selected.first++;
+        Refresh(false);
+    }
+}
+
+void HeightmapEditorCtrl::NudgeSelectionLeft()
+{
+    if (m_selected.first == -1)
+    {
+        m_selected = { 0, 0 };
+        Refresh(false);
+    }
+    else if (m_selected.second < m_map->GetHeightmapHeight() - 1)
+    {
+        m_selected.second++;
+        Refresh(false);
+    }
+}
+
+void HeightmapEditorCtrl::NudgeSelectionRight()
+{
+    if (m_selected.first == -1)
+    {
+        m_selected = { 0, 0 };
+        Refresh(false);
+    }
+    else if (m_selected.second > 0)
+    {
+        m_selected.second--;
+        Refresh(false);
+    }
+}
+
+uint8_t HeightmapEditorCtrl::GetSelectedHeight() const
+{
+    return m_map->GetHeight({ m_selected.first, m_selected.second });
+}
+
+void HeightmapEditorCtrl::SetSelectedHeight(uint8_t height)
+{
+    m_map->SetHeight({ m_selected.first, m_selected.second }, height);
+    ForceRedraw();
+    FireEvent(EVT_HEIGHTMAP_UPDATE);
+}
+
+void HeightmapEditorCtrl::IncreaseSelectedHeight()
+{
+    uint8_t height = GetSelectedHeight();
+    if (height < 15)
+    {
+        ++height;
+    }
+    SetSelectedHeight(height);
+}
+
+void HeightmapEditorCtrl::DecreaseSelectedHeight()
+{
+    uint8_t height = GetSelectedHeight();
+    if (height > 0)
+    {
+        --height;
+    }
+    SetSelectedHeight(height);
+}
+
+void HeightmapEditorCtrl::ClearSelectedCell()
+{
+    m_map->SetHeight({ m_selected.first, m_selected.second }, 0);
+    m_map->SetCellProps({ m_selected.first, m_selected.second }, 4);
+    m_map->SetCellType({ m_selected.first, m_selected.second }, 0);
+    ForceRedraw();
+    FireEvent(EVT_HEIGHTMAP_UPDATE);
+}
+
+uint8_t HeightmapEditorCtrl::GetSelectedRestrictions() const
+{
+    return m_map->GetCellProps({ m_selected.first, m_selected.second });
+}
+
+void HeightmapEditorCtrl::SetSelectedRestrictions(uint8_t restrictions)
+{
+    m_map->SetCellProps({ m_selected.first, m_selected.second }, restrictions);
+    ForceRedraw();
+    FireEvent(EVT_HEIGHTMAP_UPDATE);
+}
+
+bool HeightmapEditorCtrl::IsSelectedPlayerPassable() const
+{
+    return (GetSelectedRestrictions() & 0x04) > 0;
+}
+
+void HeightmapEditorCtrl::ToggleSelectedPlayerPassable()
+{
+    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x04);
+}
+
+bool HeightmapEditorCtrl::IsSelectedNPCPassable() const
+{
+    return (GetSelectedRestrictions() & 0x02) == 0;
+}
+
+void HeightmapEditorCtrl::ToggleSelectedNPCPassable()
+{
+    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x02);
+}
+
+bool HeightmapEditorCtrl::IsSelectedRaftTrack() const
+{
+    return (GetSelectedRestrictions() & 0x01) > 0;
+}
+
+void HeightmapEditorCtrl::ToggleSelectedRaftTrack()
+{
+    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x01);
+}
+
+void HeightmapEditorCtrl::IncrementSelectedRestrictions()
+{
+    SetSelectedRestrictions((GetSelectedRestrictions() + 1) & 0x0F);
+}
+
+void HeightmapEditorCtrl::DecrementSelectedRestrictions()
+{
+    SetSelectedRestrictions((GetSelectedRestrictions() - 1) & 0x0F);
+}
+
+uint8_t HeightmapEditorCtrl::GetSelectedType() const
+{
+    return m_map->GetCellType({m_selected.first, m_selected.second});
+}
+
+void HeightmapEditorCtrl::SetSelectedType(uint8_t type)
+{
+    m_map->SetCellType({ m_selected.first, m_selected.second }, type);
+    ForceRedraw();
+    FireEvent(EVT_HEIGHTMAP_UPDATE);
+}
+
+void HeightmapEditorCtrl::IncrementSelectedType()
+{
+    SetSelectedType((GetSelectedType() + 1) & 0xFF);
+}
+
+void HeightmapEditorCtrl::DecrementSelectedType()
+{
+    SetSelectedType((GetSelectedType() - 1) & 0xFF);
 }
 
 void HeightmapEditorCtrl::DrawRoomHeightmap()
@@ -190,6 +454,28 @@ void HeightmapEditorCtrl::SetOpacity(wxImage& image, uint8_t opacity)
         *alpha = (*alpha < opacity) ? *alpha : opacity;
         alpha++;
     }
+}
+
+bool HeightmapEditorCtrl::UpdateHoveredPosition(int screenx, int screeny)
+{
+    auto i = GetHMPosition(screenx, screeny);
+    if (m_hovered.first != i.first || m_hovered.second != i.second)
+    {
+        m_hovered = i;
+        return true;
+    }
+    return false;
+}
+
+bool HeightmapEditorCtrl::UpdateSelectedPosition(int screenx, int screeny)
+{
+    auto i = GetHMPosition(screenx, screeny);
+    if (m_selected.first != i.first || m_selected.second != i.second)
+    {
+        m_selected = i;
+        return true;
+    }
+    return false;
 }
 
 std::vector<wxPoint> HeightmapEditorCtrl::GetTilePoly(int x, int y, int width, int height) const
@@ -320,7 +606,25 @@ void HeightmapEditorCtrl::OnDraw(wxDC& dc)
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
-    if (m_hovered.first != -1)
+    if (m_hovered.first != -1 && m_hovered != m_selected)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
+        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        auto lines = GetTilePoly(0, 0);
+        dc.SetPen(*wxRED_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
+    if (m_selected.first != -1 && m_hovered != m_selected)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_selected.first - m_selected.second - 1) * TILE_WIDTH / 2;
+        int y = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
+        auto lines = GetTilePoly(0, 0);
+        dc.SetPen(*wxGREEN_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
+    if (m_selected.first != -1 && m_hovered == m_selected)
     {
         int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
         int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
@@ -351,25 +655,9 @@ void HeightmapEditorCtrl::OnSize(wxSizeEvent& evt)
 
 void HeightmapEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
-    auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-    const int W = static_cast<int>(TILE_WIDTH) / 2;
-    const int H = static_cast<int>(TILE_HEIGHT) / 2;
-
-    int ix = xy.first * H + xy.second * W - (m_map->GetHeightmapHeight() - 2) * W * H;
-    ix /= 2 * W * H;
-    --ix;
-    int iy = -xy.first * H + xy.second * W + (m_map->GetHeightmapHeight() + 2) * W * H;
-    iy /= 2 * W * H;
-    --iy;
-
-    if (ix < 0 || ix >= m_map->GetHeightmapWidth() || iy < 0 || iy >= m_map->GetHeightmapHeight())
+    if(UpdateHoveredPosition(evt.GetX(), evt.GetY()))
     {
-        ix = -1;
-        iy = -1;
-    }
-    if(m_hovered.first != ix || m_hovered.second != iy)
-    {
-        if (ix == -1)
+        if (m_hovered.first == -1)
         {
             m_status_text = "";
         }
@@ -378,22 +666,21 @@ void HeightmapEditorCtrl::OnMouseMove(wxMouseEvent& evt)
             uint8_t z = 0, r = 0, t = 0;
             if (m_map != nullptr)
             {
-                z = m_map->GetHeight({ ix, iy });
-                r = m_map->GetCellProps({ ix, iy });
-                t = m_map->GetCellType({ ix, iy });
+                z = m_map->GetHeight({ m_hovered.first, m_hovered.second });
+                r = m_map->GetCellProps({ m_hovered.first, m_hovered.second });
+                t = m_map->GetCellType({ m_hovered.first, m_hovered.second });
             }
-            m_status_text = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", ix, iy, z, r, t);
+            m_status_text = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", m_hovered.first, m_hovered.second, z, r, t);
         }
-        m_hovered.first = ix;
-        m_hovered.second = iy;
         FireEvent(EVT_STATUSBAR_UPDATE);
-        ForceRedraw();
+        Refresh(false);
     }
     evt.Skip();
 }
 
 void HeightmapEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
+    ClearSelection();
     evt.Skip();
 }
 
@@ -410,9 +697,37 @@ std::pair<int, int> HeightmapEditorCtrl::GetAbsoluteCoordinates(int screenx, int
     return { x, y };
 }
 
+std::pair<int, int> HeightmapEditorCtrl::GetHMPosition(int screenx, int screeny)
+{
+    auto xy = GetAbsoluteCoordinates(screenx, screeny);
+    const int W = static_cast<int>(TILE_WIDTH) / 2;
+    const int H = static_cast<int>(TILE_HEIGHT) / 2;
+
+    int ix = xy.first * H + xy.second * W - (m_map->GetHeightmapHeight() - 2) * W * H;
+    ix /= 2 * W * H;
+    --ix;
+    int iy = -xy.first * H + xy.second * W + (m_map->GetHeightmapHeight() + 2) * W * H;
+    iy /= 2 * W * H;
+    --iy;
+
+    if (ix < 0 || ix >= m_map->GetHeightmapWidth() || iy < 0 || iy >= m_map->GetHeightmapHeight())
+    {
+        ix = -1;
+        iy = -1;
+    }
+    return { ix, iy };
+}
+
 void HeightmapEditorCtrl::OnLeftClick(wxMouseEvent& evt)
 {
-    evt.Skip();
+    if (UpdateSelectedPosition(evt.GetX(), evt.GetY()))
+    {
+        Refresh(false);
+    }
+    else
+    {
+        IncreaseSelectedHeight();
+    }
 }
 
 void HeightmapEditorCtrl::OnLeftDblClick(wxMouseEvent& evt)
@@ -422,6 +737,15 @@ void HeightmapEditorCtrl::OnLeftDblClick(wxMouseEvent& evt)
 
 void HeightmapEditorCtrl::OnRightClick(wxMouseEvent& evt)
 {
+    if (UpdateSelectedPosition(evt.GetX(), evt.GetY()))
+    {
+        Refresh(false);
+    }
+    else
+    {
+        DecreaseSelectedHeight();
+    }
+    
     evt.Skip();
 }
 

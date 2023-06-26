@@ -30,6 +30,36 @@ public:
 	void RefreshGraphics();
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+
+	void ClearSelection();
+	void SetSelection(int ix, int iy);
+	std::pair<int, int> GetSelection() const;
+	void NudgeSelectionUp();
+	void NudgeSelectionDown();
+	void NudgeSelectionLeft();
+	void NudgeSelectionRight();
+
+	uint8_t GetSelectedHeight() const;
+	void SetSelectedHeight(uint8_t height);
+	void IncreaseSelectedHeight();
+	void DecreaseSelectedHeight();
+	void ClearSelectedCell();
+
+	uint8_t GetSelectedRestrictions() const;
+	void SetSelectedRestrictions(uint8_t restrictions);
+	bool IsSelectedPlayerPassable() const;
+	void ToggleSelectedPlayerPassable();
+	bool IsSelectedNPCPassable() const;
+	void ToggleSelectedNPCPassable();
+	bool IsSelectedRaftTrack() const;
+	void ToggleSelectedRaftTrack();
+	void IncrementSelectedRestrictions();
+	void DecrementSelectedRestrictions();
+
+	uint8_t GetSelectedType() const;
+	void SetSelectedType(uint8_t type);
+	void IncrementSelectedType();
+	void DecrementSelectedType();
 private:
 	void DrawRoomHeightmap();
 	void ForceRepaint();
@@ -55,6 +85,9 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
+	std::pair<int, int> GetHMPosition(int screenx, int screeny);
+	bool UpdateHoveredPosition(int screenx, int screeny);
+	bool UpdateSelectedPosition(int screenx, int screeny);
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnLeftDblClick(wxMouseEvent& evt);
 	void OnRightClick(wxMouseEvent& evt);
@@ -84,5 +117,7 @@ private:
 
 	wxDECLARE_EVENT_TABLE();
 };
+
+wxDECLARE_EVENT(EVT_HEIGHTMAP_UPDATE, wxCommandEvent);
 
 #endif // _HEIGHTMAP_EDITOR_CTRL_H_

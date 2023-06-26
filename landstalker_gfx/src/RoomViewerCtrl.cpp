@@ -978,6 +978,23 @@ void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label
     } });
 }
 
+void RoomViewerCtrl::RefreshHeightmap()
+{
+    if (IsShownOnScreen())
+    {
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
+        {
+            m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
+        }
+        if (m_show_warps)
+        {
+            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+        }
+        ForceRedraw();
+    }
+}
+
 void RoomViewerCtrl::DeleteSelectedWarp()
 {
     if (IsWarpSelected())

@@ -57,6 +57,7 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_SELECT, RoomViewerFrame::OnWarpSelect)
 EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenProperties)
 EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
 EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
@@ -106,6 +107,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_hmedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
@@ -1063,9 +1065,14 @@ void RoomViewerFrame::UpdateUI() const
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 {
-	if (m_roomview != nullptr)
+	if (m_mode == Mode::NORMAL && m_roomview != nullptr)
 	{
 		evt.Skip(m_roomview->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
+	else if (m_mode == Mode::HEIGHTMAP && m_hmedit != nullptr)
+	{
+		evt.Skip(m_hmedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 		return;
 	}
 	evt.Skip();
@@ -1178,6 +1185,11 @@ void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->DeleteSelectedWarp();
+}
+
+void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)
+{
+	m_roomview->RefreshHeightmap();
 }
 
 void RoomViewerFrame::OnSize(wxSizeEvent& evt)

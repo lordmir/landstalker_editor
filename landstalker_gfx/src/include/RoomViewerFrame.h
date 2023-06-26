@@ -79,6 +79,8 @@ private:
 	void OnWarpAdd(wxCommandEvent& evt);
 	void OnWarpDelete(wxCommandEvent& evt);
 
+	void OnHeightmapUpdate(wxCommandEvent& evt);
+
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);
 

@@ -36,7 +36,6 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-
 	bool GetEntitiesVisible();
 	bool GetEntitiesHitboxVisible();
 	bool GetWarpsVisible();
@@ -75,6 +74,7 @@ public:
 	void SetLayerOpacity(Layer layer, uint8_t opacity);
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
+	void RefreshHeightmap();
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;
