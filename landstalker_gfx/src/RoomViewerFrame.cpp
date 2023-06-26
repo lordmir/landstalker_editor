@@ -58,6 +58,7 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenPrope
 EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
 EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
@@ -446,12 +447,12 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxIntProperty("Z Begin", "ZB", rd->room_z_begin));
 		props.Append(new wxIntProperty("Z End", "ZE", rd->room_z_end));
 		props.Append(new wxPropertyCategory("Map", "Map"));
-		props.Append(new wxIntProperty("Tilemap Left Offset", "TLO", tm->GetData()->GetLeft()));
-		props.Append(new wxIntProperty("Tilemap Top Offset", "TTO", tm->GetData()->GetTop()));
-		props.Append(new wxIntProperty("Tilemap Width", "TW", tm->GetData()->GetWidth()))->Enable(false);
-		props.Append(new wxIntProperty("Tilemap Height", "TH", tm->GetData()->GetHeight()))->Enable(false);
+		props.Append(new wxIntProperty("Heightmap Left Offset", "TLO", tm->GetData()->GetLeft()));
+		props.Append(new wxIntProperty("Heightmap Top Offset", "TTO", tm->GetData()->GetTop()));
 		props.Append(new wxIntProperty("Heightmap Width", "HW", tm->GetData()->GetHeightmapWidth()))->Enable(false);
 		props.Append(new wxIntProperty("Heightmap Height", "HH", tm->GetData()->GetHeightmapHeight()))->Enable(false);
+		props.Append(new wxIntProperty("Tilemap Width", "TW", tm->GetData()->GetWidth()))->Enable(false);
+		props.Append(new wxIntProperty("Tilemap Height", "TH", tm->GetData()->GetHeight()))->Enable(false);
 		props.Append(new wxPropertyCategory("Warps", "Warps"));
 		props.Append(new wxEnumProperty("Fall Destination", "FD", m_rooms));
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
@@ -1192,21 +1193,14 @@ void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)
 	m_roomview->RefreshHeightmap();
 }
 
+void RoomViewerFrame::OnHeightmapMove(wxCommandEvent& evt)
+{
+	m_roomview->RefreshGraphics();
+	evt.Skip();
+}
+
 void RoomViewerFrame::OnSize(wxSizeEvent& evt)
 {
-	//if (m_mode == Mode::HEIGHTMAP)
-	//{
-	//	//wxAUI hack: set minimum height to desired value, then call wxAuiPaneInfo::Fixed() to apply it
-	//	int w = m_hmedit->GetSize().GetWidth() * evt.GetSize().GetWidth() / GetClientSize().GetWidth();
-	//	int h = evt.GetSize().GetHeight();
-	//	m_mgr.GetPane(m_hmedit).BestSize(w, h);
-	//	m_mgr.GetPane(m_hmedit).Fixed();
-	//	m_mgr.Update();
-
-	//	//now make resizable again
-	//	m_mgr.GetPane(m_hmedit).Resizable();
-	//	m_mgr.Update();
-	//}
 	evt.Skip();
 }
 

@@ -34,10 +34,21 @@ public:
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
 	std::pair<int, int> GetSelection() const;
+	bool IsSelectionValid() const;
 	void NudgeSelectionUp();
 	void NudgeSelectionDown();
 	void NudgeSelectionLeft();
 	void NudgeSelectionRight();
+	void NudgeHeightmapUp();
+	void NudgeHeightmapDown();
+	void NudgeHeightmapLeft();
+	void NudgeHeightmapRight();
+	void InsertRowAbove();
+	void InsertRowBelow();
+	void DeleteRow();
+	void InsertColumnLeft();
+	void InsertColumnRight();
+	void DeleteColumn();
 
 	uint8_t GetSelectedHeight() const;
 	void SetSelectedHeight(uint8_t height);
@@ -64,10 +75,12 @@ private:
 	void DrawRoomHeightmap();
 	void ForceRepaint();
 	void ForceRedraw();
+	void RecreateBuffer();
 	void UpdateScroll();
 	bool Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y);
 	void GoToRoom(uint16_t room);
 	void SetOpacity(wxImage& image, uint8_t opacity);
+	bool IsCoordValid(std::pair<int, int> c);
 
 	std::vector<wxPoint> GetTilePoly(int x, int y, int width = TILE_WIDTH, int height = TILE_HEIGHT) const;
 	wxColor GetCellBackground(uint8_t restrictions, uint8_t type, uint8_t z);
@@ -119,5 +132,6 @@ private:
 };
 
 wxDECLARE_EVENT(EVT_HEIGHTMAP_UPDATE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_HEIGHTMAP_MOVE, wxCommandEvent);
 
 #endif // _HEIGHTMAP_EDITOR_CTRL_H_

@@ -80,6 +80,7 @@ private:
 	void OnWarpDelete(wxCommandEvent& evt);
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
+	void OnHeightmapMove(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);
