@@ -193,6 +193,38 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
             DecrementSelectedType();
         }
         return true;
+    case 'C':
+    case 'c':
+        SetSelectedType(0);
+        return true;
+    case 'X':
+    case 'x':
+        SetSelectedRestrictions(0);
+        return true;
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+        SetSelectedHeight(key - '0');
+        return true;
+    case WXK_NUMPAD0:
+    case WXK_NUMPAD1:
+    case WXK_NUMPAD2:
+    case WXK_NUMPAD3:
+    case WXK_NUMPAD4:
+    case WXK_NUMPAD5:
+    case WXK_NUMPAD6:
+    case WXK_NUMPAD7:
+    case WXK_NUMPAD8:
+    case WXK_NUMPAD9:
+        SetSelectedHeight(key - WXK_NUMPAD0);
+        return true;
     case WXK_DELETE:
         if (modifiers == wxMOD_CONTROL)
         {
@@ -854,7 +886,7 @@ void HeightmapEditorCtrl::OnDraw(wxDC& dc)
         int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
         int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
         auto lines = GetTilePoly(0, 0);
-        dc.SetPen(wxColor(255, 255, 64));
+        dc.SetPen(wxColor(255, 255, 128));
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawPolygon(lines.size(), lines.data(), x, y);
     }
