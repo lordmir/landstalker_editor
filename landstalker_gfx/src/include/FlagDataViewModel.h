@@ -12,7 +12,7 @@ class BaseFlagDataViewModel : public wxDataViewVirtualListModel
 public:
     BaseFlagDataViewModel() : wxDataViewVirtualListModel() {}
 
-    virtual void InitData() = 0;
+    virtual void Initialise() = 0;
 
     virtual void CommitData() = 0;
 
@@ -51,6 +51,10 @@ public:
     virtual bool AddRow(unsigned int row) = 0;
 
     virtual bool SwapRows(unsigned int r1, unsigned int r2) = 0;
+
+protected:
+
+    virtual void InitData() = 0;
 };
 
 template <class T>
@@ -62,19 +66,15 @@ public:
           m_roomnum(roomnum),
           m_gd(gd)
     {
+    }
+
+    virtual void Initialise() override
+    {
         InitData();
         Reset(m_data.size());
     }
 
     std::vector<T> GetData() { return m_data; }
-
-    virtual void InitData() override
-    {
-    }
-
-    virtual void CommitData() override
-    {
-    }
 
     virtual unsigned int GetColumnCount() const override
     {
@@ -148,37 +148,191 @@ public:
         }
         return false;
     }
-private:
+protected:
     uint16_t m_roomnum;
     std::shared_ptr<GameData> m_gd;
     std::vector<T> m_data;
 };
 
-template <>
-void FlagDataViewModel<EntityVisibilityFlags>::InitData();
+class EntityVisibilityFlagViewModel : public FlagDataViewModel<EntityFlag>
+{
+public:
+    EntityVisibilityFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetEntityVisibilityFlagsForRoom(m_roomnum, m_data);
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetEntityVisibilityFlagsForRoom(m_roomnum);
+    }
+};
+
+class OneTimeEventFlagViewModel : public FlagDataViewModel<OneTimeEventFlag>
+{
+public:
+    OneTimeEventFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<OneTimeEventFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetOneTimeEventFlagsForRoom(m_roomnum, m_data);
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetOneTimeEventFlagsForRoom(m_roomnum);
+    }
+};
+
+class RoomClearFlagViewModel : public FlagDataViewModel<EntityFlag>
+{
+public:
+    RoomClearFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetMultipleEntityHideFlagsForRoom(m_roomnum, m_data);
+    }
+
+    virtual wxString GetColumnHeader(unsigned int col) const override;
+    virtual unsigned int GetColumnCount() const override;
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetMultipleEntityHideFlagsForRoom(m_roomnum);
+    }
+};
+
+class LockedDoorFlagViewModel : public FlagDataViewModel<EntityFlag>
+{
+public:
+    LockedDoorFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetLockedDoorFlagsForRoom(m_roomnum, m_data);
+    }
+
+    virtual wxString GetColumnHeader(unsigned int col) const override;
+    virtual unsigned int GetColumnCount() const override;
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetLockedDoorFlagsForRoom(m_roomnum);
+    }
+};
+
+class PermanentSwitchFlagViewModel : public FlagDataViewModel<EntityFlag>
+{
+public:
+    PermanentSwitchFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetPermanentSwitchFlagsForRoom(m_roomnum, m_data);
+    }
+
+    virtual wxString GetColumnHeader(unsigned int col) const override;
+    virtual unsigned int GetColumnCount() const override;
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetPermanentSwitchFlagsForRoom(m_roomnum);
+    }
+};
+
+class SacredTreeFlagViewModel : public FlagDataViewModel<SacredTreeFlag>
+{
+public:
+    SacredTreeFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<SacredTreeFlag>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetSpriteData()->SetSacredTreeFlagsForRoom(m_roomnum, m_data);
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetSpriteData()->GetSacredTreeFlagsForRoom(m_roomnum);
+    }
+};
+
 
 template <>
-void FlagDataViewModel<EntityVisibilityFlags>::CommitData();
+unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
 
 template <>
-unsigned int FlagDataViewModel<EntityVisibilityFlags>::GetColumnCount() const;
+wxString FlagDataViewModel<EntityFlag>::GetColumnHeader(unsigned int col) const;
 
 template <>
-wxString FlagDataViewModel<EntityVisibilityFlags>::GetColumnHeader(unsigned int col) const;
+wxArrayString FlagDataViewModel<EntityFlag>::GetColumnChoices(unsigned int col) const;
 
 template <>
-wxArrayString FlagDataViewModel<EntityVisibilityFlags>::GetColumnChoices(unsigned int col) const;
+wxString FlagDataViewModel<EntityFlag>::GetColumnType(unsigned int col) const;
 
 template <>
-wxString FlagDataViewModel<EntityVisibilityFlags>::GetColumnType(unsigned int col) const;
+void FlagDataViewModel<EntityFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
 
 template <>
-void FlagDataViewModel<EntityVisibilityFlags>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+bool FlagDataViewModel<EntityFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
 
 template <>
-bool FlagDataViewModel<EntityVisibilityFlags>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+bool FlagDataViewModel<EntityFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 template <>
-bool FlagDataViewModel<EntityVisibilityFlags>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+unsigned int FlagDataViewModel<OneTimeEventFlag>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<OneTimeEventFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<OneTimeEventFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<OneTimeEventFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<OneTimeEventFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<OneTimeEventFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<OneTimeEventFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<SacredTreeFlag>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<SacredTreeFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<SacredTreeFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<SacredTreeFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<SacredTreeFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<SacredTreeFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

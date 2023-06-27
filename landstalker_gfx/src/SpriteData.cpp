@@ -155,6 +155,28 @@ std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, uint8_t>& data, bool r
 	return result;
 }
 
+template <class T>
+std::vector<std::array<uint8_t, T::SIZE>> EncodeFlags(const std::vector<T>& data_in)
+{
+	std::vector<std::array<uint8_t, T::SIZE>> data_out;
+	for (auto& d : data_in)
+	{
+		data_out.push_back(d.GetData());
+	}
+	return data_out;
+}
+
+template <class T>
+std::vector<T> DecodeFlags(const std::vector<std::array<uint8_t, T::SIZE>>& data_in)
+{
+	std::vector<T> data_out;
+	for (auto& d : data_in)
+	{
+		data_out.emplace_back(d);
+	}
+	return data_out;
+};
+
 SpriteData::SpriteData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
 {
@@ -596,10 +618,11 @@ void SpriteData::SetRoomEntities(uint16_t room, const std::vector<Entity>& entit
 	m_room_entities[room] = entities;
 }
 
-std::vector<EntityVisibilityFlags> SpriteData::GetEntityVisibilityFlagsForRoom(uint16_t room)
+template <class T>
+std::vector<T> GetFlagsForRoom(uint16_t room, const std::vector<T>& flags)
 {
-	std::vector<EntityVisibilityFlags> data;
-	for (const auto& f : m_sprite_visibility_flags)
+	std::vector<T> data;
+	for (const auto& f : flags)
 	{
 		if (f.room == room)
 		{
@@ -609,20 +632,23 @@ std::vector<EntityVisibilityFlags> SpriteData::GetEntityVisibilityFlagsForRoom(u
 	return data;
 }
 
-void SpriteData::SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityVisibilityFlags>& data)
+template <class T>
+void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& dst)
 {
-	std::stack<std::vector<EntityVisibilityFlags>::iterator> iterators;
-	for (auto it = m_sprite_visibility_flags.begin(); it != m_sprite_visibility_flags.end(); )
+	std::stack<std::vector<T>::iterator> iterators;
+	int count = 0;
+	// Delete excess
+	for (auto it = dst.begin(); it != dst.end(); )
 	{
 		if (it->room == room)
 		{
-			if (iterators.size() < data.size())
+			if (count < src.size())
 			{
-				iterators.push(it++);
+				count++;
 			}
 			else
 			{
-				it = m_sprite_visibility_flags.erase(it);
+				it = dst.erase(it);
 			}
 		}
 		else
@@ -630,11 +656,20 @@ void SpriteData::SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vecto
 			++it;
 		}
 	}
-	for (const auto& f : data)
+	// Save list of iterators to existing entries
+	for (auto it = dst.begin(); it != dst.end(); ++it)
+	{
+		if (it->room == room)
+		{
+			iterators.push(it);
+		}
+	}
+	// For each new entry, either change next iterator or, if none left, push on a new entry.
+	for (const auto& f : src)
 	{
 		if (iterators.empty())
 		{
-			m_sprite_visibility_flags.push_back(f);
+			dst.push_back(f);
 		}
 		else
 		{
@@ -643,6 +678,66 @@ void SpriteData::SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vecto
 			iterators.pop();
 		}
 	}
+}
+
+std::vector<EntityFlag> SpriteData::GetEntityVisibilityFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_sprite_visibility_flags);
+}
+
+void SpriteData::SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_sprite_visibility_flags);
+}
+
+std::vector<OneTimeEventFlag> SpriteData::GetOneTimeEventFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_one_time_event_flags);
+}
+
+void SpriteData::SetOneTimeEventFlagsForRoom(uint16_t room, const std::vector<OneTimeEventFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_one_time_event_flags);
+}
+
+std::vector<EntityFlag> SpriteData::GetMultipleEntityHideFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_room_clear_flags);
+}
+
+void SpriteData::SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_room_clear_flags);
+}
+
+std::vector<EntityFlag> SpriteData::GetLockedDoorFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_locked_door_flags);
+}
+
+void SpriteData::SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_locked_door_flags);
+}
+
+std::vector<EntityFlag> SpriteData::GetPermanentSwitchFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_permanent_switch_flags);
+}
+
+void SpriteData::SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_permanent_switch_flags);
+}
+
+std::vector<SacredTreeFlag> SpriteData::GetSacredTreeFlagsForRoom(uint16_t room)
+{
+	return GetFlagsForRoom(room, m_sacred_tree_flags);
+}
+
+void SpriteData::SetSacredTreeFlagsForRoom(uint16_t room, const std::vector<SacredTreeFlag>& data)
+{
+	SetFlagsForRoom(room, data, m_sacred_tree_flags);
 }
 
 const std::map<std::string, std::shared_ptr<PaletteEntry>>& SpriteData::GetAllPalettes() const
@@ -1199,20 +1294,13 @@ bool SpriteData::AsmLoadSpritePalettes()
 
 bool SpriteData::AsmLoadSpriteData()
 {
-	auto Decode = [](const auto& data_in, auto& data_out)
-	{
-		for (auto& d : data_in)
-		{
-			data_out.emplace_back(d);
-		}
-	};
 
-	Decode(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file)), m_sprite_visibility_flags);
-	m_one_time_event_flags     = DeserialiseFixedWidth<6>(ReadBytes(GetBasePath() / m_one_time_event_flags_file));
-	m_room_clear_flags         = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file));
-	m_locked_door_flags        = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file));
-	m_permanent_switch_flags   = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_permanent_switch_flags_file));
-	m_sacred_tree_flags        = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sacred_tree_flags_file));
+	m_sprite_visibility_flags  = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file)));
+	m_one_time_event_flags     = DecodeFlags<OneTimeEventFlag>(DeserialiseFixedWidth<6>(ReadBytes(GetBasePath() / m_one_time_event_flags_file)));
+	m_room_clear_flags         = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file)));
+	m_locked_door_flags        = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file)));
+	m_permanent_switch_flags   = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_permanent_switch_flags_file)));
+	m_sacred_tree_flags        = DecodeFlags<SacredTreeFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sacred_tree_flags_file)));
 	m_item_properties          = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_item_properties_file));
 	m_enemy_stats              = DeserialiseMap<5>(ReadBytes(GetBasePath() / m_enemy_stats_file));
 	m_sprite_dimensions        = DeserialiseMap<2>(ReadBytes(GetBasePath() / m_sprite_dimensions_lookup_file));
@@ -1434,20 +1522,12 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 	const uint32_t enemy_data_size = entity_table_begin - enemy_data_begin;
 	const uint32_t entity_table_size = entity_table_end - entity_table_begin;
 
-	auto Decode = [](const auto& data_in, auto& data_out)
-	{
-		for (auto& d : data_in)
-		{
-			data_out.emplace_back(d);
-		}
-	};
-
-	Decode(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size)), m_sprite_visibility_flags);
-	m_one_time_event_flags = DeserialiseFixedWidth<6>(rom.read_array<uint8_t>(onetime_begin, onetime_size));
-	m_room_clear_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size));
-	m_locked_door_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size));
-	m_permanent_switch_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(permanent_switch_begin, permanent_switch_size));
-	m_sacred_tree_flags = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(trees_begin, trees_size));
+	m_sprite_visibility_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size)));
+	m_one_time_event_flags = DecodeFlags<OneTimeEventFlag>(DeserialiseFixedWidth<6>(rom.read_array<uint8_t>(onetime_begin, onetime_size)));
+	m_room_clear_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size)));
+	m_locked_door_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size)));
+	m_permanent_switch_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(permanent_switch_begin, permanent_switch_size)));
+	m_sacred_tree_flags = DecodeFlags<SacredTreeFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(trees_begin, trees_size)));
 	m_item_properties = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(items_begin, items_size));
 	m_enemy_stats = DeserialiseMap<5>(rom.read_array<uint8_t>(enemy_data_begin, enemy_data_size));
 	m_sprite_dimensions = DeserialiseMap<2>(rom.read_array<uint8_t>(sprite_dims_begin, sprite_dims_size));
@@ -1558,22 +1638,12 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 
 bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
 {
-	auto Encode4 = [](const auto& data_in)
-	{
-		std::vector<std::array<uint8_t, 4>> data_out;
-		for (auto& d : data_in)
-		{
-			data_out.push_back(d.GetData());
-		}
-		return data_out;
-	};
-
-	WriteBytes(SerialiseFixedWidth<4>(Encode4(m_sprite_visibility_flags)), dir / m_sprite_visibility_flags_file);
-	WriteBytes(SerialiseFixedWidth<6>(m_one_time_event_flags), dir / m_one_time_event_flags_file);
-	WriteBytes(SerialiseFixedWidth<4>(m_room_clear_flags), dir / m_room_clear_flags_file);
-	WriteBytes(SerialiseFixedWidth<4>(m_locked_door_flags), dir / m_locked_door_sprite_flags_file);
-	WriteBytes(SerialiseFixedWidth<4>(m_permanent_switch_flags), dir / m_permanent_switch_flags_file);
-	WriteBytes(SerialiseFixedWidth<4>(m_sacred_tree_flags), dir / m_sacred_tree_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_sprite_visibility_flags)), dir / m_sprite_visibility_flags_file);
+	WriteBytes(SerialiseFixedWidth<6>(EncodeFlags(m_one_time_event_flags)), dir / m_one_time_event_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_room_clear_flags)), dir / m_room_clear_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_locked_door_flags)), dir / m_locked_door_sprite_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_permanent_switch_flags)), dir / m_permanent_switch_flags_file);
+	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_sacred_tree_flags)), dir / m_sacred_tree_flags_file);
 	WriteBytes(SerialiseFixedWidth<4>(m_item_properties, false), dir / m_item_properties_file);
 	WriteBytes(SerialiseMap<5>(m_enemy_stats), dir / m_enemy_stats_file);
 	WriteBytes(SerialiseMap<2>(m_sprite_dimensions), dir / m_sprite_dimensions_lookup_file);
@@ -1685,16 +1755,6 @@ bool SpriteData::RomPrepareInjectSpritePalettes(const Rom& rom)
 
 bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 {
-	auto Encode4 = [](const auto& data_in)
-	{
-		std::vector<std::array<uint8_t, 4>> data_out;
-		for (auto& d : data_in)
-		{
-			data_out.push_back(d.GetData());
-		}
-		return data_out;
-	};
-
 	auto room_entities = SerialiseRoomEntityTable();
 
 	uint32_t item_begin = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).begin;
@@ -1709,26 +1769,26 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 	behav_bytes->insert(behav_bytes->end(), m_sprite_behaviours.cbegin(), m_sprite_behaviours.cend());
 
 	uint32_t visib_begin = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).begin;
-	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(Encode4(m_sprite_visibility_flags)));
+	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(EncodeFlags(m_sprite_visibility_flags)));
 
 	uint32_t onetime_begin = data_bytes->size() + visib_begin;
-	auto onetime_bytes = SerialiseFixedWidth<6>(m_one_time_event_flags);
+	auto onetime_bytes = SerialiseFixedWidth<6>(EncodeFlags(m_one_time_event_flags));
 	data_bytes->insert(data_bytes->end(), onetime_bytes.cbegin(), onetime_bytes.cend());
 
 	uint32_t clear_begin = data_bytes->size() + visib_begin;
-	auto clear_bytes = SerialiseFixedWidth<4>(m_room_clear_flags);
+	auto clear_bytes = SerialiseFixedWidth<4>(EncodeFlags(m_room_clear_flags));
 	data_bytes->insert(data_bytes->end(), clear_bytes.cbegin(), clear_bytes.cend());
 
 	uint32_t door_begin = data_bytes->size() + visib_begin;
-	auto door_bytes = SerialiseFixedWidth<4>(m_locked_door_flags);
+	auto door_bytes = SerialiseFixedWidth<4>(EncodeFlags(m_locked_door_flags));
 	data_bytes->insert(data_bytes->end(), door_bytes.cbegin(), door_bytes.cend());
 
 	uint32_t switch_begin = data_bytes->size() + visib_begin;
-	auto switch_bytes = SerialiseFixedWidth<4>(m_permanent_switch_flags);
+	auto switch_bytes = SerialiseFixedWidth<4>(EncodeFlags(m_permanent_switch_flags));
 	data_bytes->insert(data_bytes->end(), switch_bytes.cbegin(), switch_bytes.cend());
 
 	uint32_t tree_begin = data_bytes->size() + visib_begin;
-	auto tree_bytes = SerialiseFixedWidth<4>(m_sacred_tree_flags);
+	auto tree_bytes = SerialiseFixedWidth<4>(EncodeFlags(m_sacred_tree_flags));
 	data_bytes->insert(data_bytes->end(), tree_bytes.cbegin(), tree_bytes.cend());
 
 	uint32_t sprent_begin = data_bytes->size() + visib_begin;

@@ -59,8 +59,18 @@ public:
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
-	std::vector<EntityVisibilityFlags> GetEntityVisibilityFlagsForRoom(uint16_t room);
-	void SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityVisibilityFlags>& data);
+	std::vector<EntityFlag> GetEntityVisibilityFlagsForRoom(uint16_t room);
+	void SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
+	std::vector<OneTimeEventFlag> GetOneTimeEventFlagsForRoom(uint16_t room);
+	void SetOneTimeEventFlagsForRoom(uint16_t room, const std::vector<OneTimeEventFlag>& data);
+	std::vector<EntityFlag> GetMultipleEntityHideFlagsForRoom(uint16_t room);
+	void SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
+	std::vector<EntityFlag> GetLockedDoorFlagsForRoom(uint16_t room);
+	void SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
+	std::vector<EntityFlag> GetPermanentSwitchFlagsForRoom(uint16_t room);
+	void SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
+	std::vector<SacredTreeFlag> GetSacredTreeFlagsForRoom(uint16_t room);
+	void SetSacredTreeFlagsForRoom(uint16_t room, const std::vector<SacredTreeFlag>& data);
 
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
@@ -162,18 +172,18 @@ private:
 	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup;
 	std::map<uint8_t, std::shared_ptr<PaletteEntry>> m_hi_palette_lookup_orig;
 
-	std::vector<EntityVisibilityFlags> m_sprite_visibility_flags;
-	std::vector<EntityVisibilityFlags> m_sprite_visibility_flags_orig;
-	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags;
-	std::vector<std::array<uint8_t, 6>> m_one_time_event_flags_orig;
-	std::vector<std::array<uint8_t, 4>> m_room_clear_flags;
-	std::vector<std::array<uint8_t, 4>> m_room_clear_flags_orig;
-	std::vector<std::array<uint8_t, 4>> m_locked_door_flags;
-	std::vector<std::array<uint8_t, 4>> m_locked_door_flags_orig;
-	std::vector<std::array<uint8_t, 4>> m_permanent_switch_flags;
-	std::vector<std::array<uint8_t, 4>> m_permanent_switch_flags_orig;
-	std::vector<std::array<uint8_t, 4>> m_sacred_tree_flags;
-	std::vector<std::array<uint8_t, 4>> m_sacred_tree_flags_orig;
+	std::vector<EntityFlag> m_sprite_visibility_flags;
+	std::vector<EntityFlag> m_sprite_visibility_flags_orig;
+	std::vector<OneTimeEventFlag> m_one_time_event_flags;
+	std::vector<OneTimeEventFlag> m_one_time_event_flags_orig;
+	std::vector<EntityFlag> m_room_clear_flags;
+	std::vector<EntityFlag> m_room_clear_flags_orig;
+	std::vector<EntityFlag> m_locked_door_flags;
+	std::vector<EntityFlag> m_locked_door_flags_orig;
+	std::vector<EntityFlag> m_permanent_switch_flags;
+	std::vector<EntityFlag> m_permanent_switch_flags_orig;
+	std::vector<SacredTreeFlag> m_sacred_tree_flags;
+	std::vector<SacredTreeFlag> m_sacred_tree_flags_orig;
 
 	std::map<uint8_t, uint8_t> m_sprite_to_entity_lookup;
 	std::map<uint8_t, uint8_t> m_sprite_to_entity_lookup_orig;

@@ -24,7 +24,13 @@ public:
 	void MoveSelectedUpCurrentList();
 	void MoveSelectedDownCurrentList();
 private:
-	void InitSpriteVisibleFlags();
+	void AddPage(FlagType type, const std::string& name);
+	void InitEntityVisibleFlags();
+	void InitOneTimeFlags();
+	void InitRoomClearFlags();
+	void InitLockedDoorFlags();
+	void InitPermanentSwitchFlags();
+	void InitSacredTreeFlags();
 
 	FlagType GetSelectedTab();
 
