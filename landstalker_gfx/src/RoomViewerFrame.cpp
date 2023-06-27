@@ -38,7 +38,24 @@ enum TOOL_IDS
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
-	TOOL_SHOW_ERRORS
+	TOOL_SHOW_ERRORS,
+	HM_INSERT_ROW_BEFORE,
+	HM_INSERT_ROW_AFTER,
+	HM_DELETE_ROW,
+	HM_INSERT_COLUMN_BEFORE,
+	HM_INSERT_COLUMN_AFTER,
+	HM_DELETE_COLUMN,
+	HM_TYPE_DROPDOWN,
+	HM_TOGGLE_PLAYER,
+	HM_TOGGLE_NPC,
+	HM_TOGGLE_RAFT,
+	HM_INCREASE_HEIGHT,
+	HM_DECREASE_HEIGHT,
+	HM_NUDGE_HM_NE,
+	HM_NUDGE_HM_NW,
+	HM_NUDGE_HM_SE,
+	HM_NUDGE_HM_SW,
+	HM_ZOOM
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
@@ -59,6 +76,9 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
+EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
+EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
 EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
@@ -841,6 +861,83 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
 	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 
+	wxArrayString celltypes;
+	celltypes.Add("[00] Normal");
+	celltypes.Add("[01] Door Nudger NE");
+	celltypes.Add("[02] Door Nudger SE");
+	celltypes.Add("[03] Door Nudger SW");
+	celltypes.Add("[04] Door Nudger NW");
+	celltypes.Add("[05] Stairs Warp");
+	celltypes.Add("[06] Door Warp");
+	celltypes.Add("[07] Pit");
+	celltypes.Add("[08] Warp Pad");
+	celltypes.Add("[09] ???");
+	celltypes.Add("[0A] ???");
+	celltypes.Add("[0B] Ladder NW");
+	celltypes.Add("[0C] Ladder NE");
+	celltypes.Add("[0D] ???");
+	celltypes.Add("[0E] Counter");
+	celltypes.Add("[0F] Elevator");
+	celltypes.Add("[10] Spikes");
+	celltypes.Add("[11] NW Sign, Dialogue 0");
+	celltypes.Add("[12] NW Sign, Dialogue 1");
+	celltypes.Add("[13] NW Sign, Dialogue 2");
+	celltypes.Add("[14] NW Sign, Dialogue 3");
+	celltypes.Add("[15] NE Sign, Dialogue 0");
+	celltypes.Add("[16] NE Sign, Dialogue 1");
+	celltypes.Add("[17] NE Sign, Dialogue 2");
+	celltypes.Add("[18] NE Sign, Dialogue 3");
+	celltypes.Add("[19] Swamp");
+	celltypes.Add("[1A] Locked Door");
+	celltypes.Add("[1B] ???");
+	celltypes.Add("[1C] ???");
+	celltypes.Add("[1D] ???");
+	celltypes.Add("[1E] NW Sign, Dialogue 4");
+	celltypes.Add("[1F] NW Sign, Dialogue 5");
+	celltypes.Add("[20] NW Sign, Dialogue 6");
+	celltypes.Add("[21] NW Sign, Dialogue 7");
+	celltypes.Add("[22] NE Sign, Dialogue 4");
+	celltypes.Add("[23] NE Sign, Dialogue 5");
+	celltypes.Add("[24] NE Sign, Dialogue 6");
+	celltypes.Add("[25] NE Sign, Dialogue 7");
+	celltypes.Add("[26] SE Locked Door");
+	celltypes.Add("[27] SW Locked Door");
+	celltypes.Add("[28] Nole Staircase Transition");
+	celltypes.Add("[29] Lava");
+	celltypes.Add("[2A] NE Ice");
+	celltypes.Add("[2B] SE Ice");
+	celltypes.Add("[2C] SW Ice");
+	celltypes.Add("[2D] NW Ice");
+	celltypes.Add("[2E] Health Restore");
+	celltypes.Add("[2F] ???");
+	celltypes.Add("???");
+	wxAuiToolBar* hm_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	m_tb_hmcell = new wxChoice(hm_tb, HM_TYPE_DROPDOWN, wxDefaultPosition, wxDefaultSize, celltypes);
+	m_tb_hmcell->SetSelection(0);
+	m_tb_hmzoom = new wxSlider(hm_tb, HM_ZOOM, 2, 1, 5);
+	hm_tb->SetToolBitmapSize(wxSize(16, 16));
+	hm_tb->AddTool(HM_INSERT_ROW_BEFORE, "Insert Row Before", ilist.GetImage("hm_insert_se"), "Insert Row Before", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_ROW_AFTER, "Insert Row After", ilist.GetImage("hm_insert_nw"), "Insert Row After", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_DELETE_ROW, "Delete Row", ilist.GetImage("hm_delete_nesw"), "Delete Row", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_COLUMN_BEFORE, "Insert Column Before", ilist.GetImage("hm_insert_sw"), "Insert Column Before", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_COLUMN_AFTER, "Insert Column After", ilist.GetImage("hm_insert_ne"), "Insert Column After", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_DELETE_COLUMN, "Delete Column", ilist.GetImage("hm_delete_nwse"), "Delete Column", wxITEM_NORMAL);
+	hm_tb->AddSeparator();
+	hm_tb->AddControl(m_tb_hmcell, "Cell Type");
+	hm_tb->AddTool(HM_TOGGLE_PLAYER, "Toggle Player Passable", ilist.GetImage("hm_player_walkable"), "Toggle Player Passable", wxITEM_CHECK);
+	hm_tb->AddTool(HM_TOGGLE_NPC, "Toggle NPC Passable", ilist.GetImage("hm_npc_walkable"), "Toggle NPC Passable", wxITEM_CHECK);
+	hm_tb->AddTool(HM_TOGGLE_RAFT, "Toggle Raft Track", ilist.GetImage("hm_raft_track"), "Toggle Raft Track", wxITEM_CHECK);
+	hm_tb->AddTool(HM_INCREASE_HEIGHT, "Increase Selected Cell Height", ilist.GetImage("hm_cell_up"), "Increase Selected Cell Height");
+	hm_tb->AddTool(HM_DECREASE_HEIGHT, "Decrease Selected Cell Height", ilist.GetImage("hm_cell_down"), "Decrease Selected Cell Height");
+	hm_tb->AddSeparator();
+	hm_tb->AddTool(HM_NUDGE_HM_NE, "Nudge Heightmap North East", ilist.GetImage("hm_nudge_ne"), "Nudge Heightmap North East");
+	hm_tb->AddTool(HM_NUDGE_HM_NW, "Nudge Heightmap North West", ilist.GetImage("hm_nudge_nw"), "Nudge Heightmap North West");
+	hm_tb->AddTool(HM_NUDGE_HM_SE, "Nudge Heightmap South East", ilist.GetImage("hm_nudge_se"), "Nudge Heightmap South East");
+	hm_tb->AddTool(HM_NUDGE_HM_SW, "Nudge Heightmap South West", ilist.GetImage("hm_nudge_sw"), "Nudge Heightmap South West");
+	hm_tb->AddSeparator();
+	hm_tb->AddControl(m_tb_hmzoom, "Zoom");
+	AddToolbar(m_mgr, *hm_tb, "Heightmap", "Heightmap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(2));
+
 	UpdateUI();
 
 	m_mgr.Update();
@@ -906,6 +1003,54 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_EDIT_FLAGS:
 		case TOOL_SHOW_FLAGS:
 			ShowFlagDialog();
+			break;
+		case HM_INSERT_ROW_BEFORE:
+			m_hmedit->InsertRowBelow();
+			break;
+		case HM_INSERT_ROW_AFTER:
+			m_hmedit->InsertRowAbove();
+			break;
+		case HM_DELETE_ROW:
+			m_hmedit->DeleteRow();
+			break;
+		case HM_INSERT_COLUMN_BEFORE:
+			m_hmedit->InsertColumnLeft();
+			break;
+		case HM_INSERT_COLUMN_AFTER:
+			m_hmedit->InsertColumnRight();
+			break;
+		case HM_DELETE_COLUMN:
+			m_hmedit->DeleteColumn();
+			break;
+		case HM_TOGGLE_PLAYER:
+			m_hmedit->ToggleSelectedPlayerPassable();
+			break;
+		case HM_TOGGLE_NPC:
+			m_hmedit->ToggleSelectedNPCPassable();
+			break;
+		case HM_TOGGLE_RAFT:
+			m_hmedit->ToggleSelectedRaftTrack();
+			break;
+		case HM_INCREASE_HEIGHT:
+			m_hmedit->IncreaseSelectedHeight();
+			break;
+		case HM_DECREASE_HEIGHT:
+			m_hmedit->DecreaseSelectedHeight();
+			break;
+		case HM_NUDGE_HM_NE:
+			m_hmedit->NudgeHeightmapDown();
+			break;
+		case HM_NUDGE_HM_NW:
+			m_hmedit->NudgeHeightmapRight();
+			break;
+		case HM_NUDGE_HM_SE:
+			m_hmedit->NudgeHeightmapLeft();
+			break;
+		case HM_NUDGE_HM_SW:
+			m_hmedit->NudgeHeightmapUp();
+			break;
+		case HM_TYPE_DROPDOWN:
+		case HM_ZOOM:
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -1029,6 +1174,28 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, true);
 		CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
 		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
+
+		CheckToolbarItem("hm", HM_TOGGLE_PLAYER, false);
+		CheckToolbarItem("hm", HM_TOGGLE_NPC, false);
+		CheckToolbarItem("hm", HM_TOGGLE_RAFT, false);
+
+		EnableToolbarItem("hm", HM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("hm", HM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("hm", HM_DELETE_ROW, false);
+		EnableToolbarItem("hm", HM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("hm", HM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("hm", HM_DELETE_COLUMN, false);
+		EnableToolbarItem("hm", HM_TOGGLE_PLAYER, false);
+		EnableToolbarItem("hm", HM_TOGGLE_NPC, false);
+		EnableToolbarItem("hm", HM_TOGGLE_RAFT, false);
+		EnableToolbarItem("hm", HM_INCREASE_HEIGHT, false);
+		EnableToolbarItem("hm", HM_DECREASE_HEIGHT, false);
+		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		{
+			m_tb_hmcell->SetSelection(0);
+			m_tb_hmcell->Enable(false);
+			m_tb_hmzoom->Enable(false);
+		}
 	}
 	else
 	{
@@ -1041,6 +1208,11 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
 		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, false);
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+
+		CheckMenuItem(ID_VIEW_WARPS, false);
+		CheckToolbarItem("Main", ID_VIEW_WARPS, false);
+		EnableMenuItem(ID_VIEW_WARPS, false);
+		EnableToolbarItem("Main", ID_VIEW_WARPS, false);
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
@@ -1059,6 +1231,37 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
 		EnableMenuItem(ID_TOOLS_WARPS, false);
 		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
+
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0);
+		m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
+		m_tb_hmzoom->Enable(true);
+
+		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedPlayerPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid() && !m_hmedit->IsSelectedNPCPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedRaftTrack());
+		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		{
+			m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
+			m_tb_hmzoom->Enable(true);
+			if (m_hmedit->IsSelectionValid())
+			{
+				m_tb_hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
+			}
+			else
+			{
+				m_tb_hmcell->SetSelection(0);
+			}
+		}
 	}
 	CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
 	CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
@@ -1196,6 +1399,23 @@ void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)
 void RoomViewerFrame::OnHeightmapMove(wxCommandEvent& evt)
 {
 	m_roomview->RefreshGraphics();
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& evt)
+{
+	UpdateUI();
+}
+
+void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
+{
+	m_hmedit->SetSelectedType(m_tb_hmcell->GetSelection());
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnHMZoom(wxCommandEvent& evt)
+{
+	m_hmedit->SetZoom(static_cast<double>(m_tb_hmzoom->GetValue()) * 0.5);
 	evt.Skip();
 }
 

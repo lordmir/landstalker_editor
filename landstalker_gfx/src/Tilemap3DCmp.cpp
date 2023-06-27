@@ -802,7 +802,7 @@ void Tilemap3D::ResizeHeightmap(uint8_t w, uint8_t h)
     hmheight = h;
 }
 
-void Tilemap3D::InsertHeightmapRow(uint8_t before)
+void Tilemap3D::InsertHeightmapColumn(uint8_t before)
 {
     if (before < hmheight && hmheight < 64)
     {
@@ -829,7 +829,7 @@ void Tilemap3D::InsertHeightmapRow(uint8_t before)
     }
 }
 
-void Tilemap3D::InsertHeightmapColumn(uint8_t before)
+void Tilemap3D::InsertHeightmapRow(uint8_t before)
 {
     if (before < hmwidth && hmwidth < 64)
     {
@@ -855,7 +855,7 @@ void Tilemap3D::InsertHeightmapColumn(uint8_t before)
     }
 }
 
-void Tilemap3D::DeleteHeightmapRow(uint8_t row)
+void Tilemap3D::DeleteHeightmapColumn(uint8_t row)
 {
     if (row < hmheight && hmheight > 1)
     {
@@ -881,7 +881,7 @@ void Tilemap3D::DeleteHeightmapRow(uint8_t row)
     }
 }
 
-void Tilemap3D::DeleteHeightmapColumn(uint8_t col)
+void Tilemap3D::DeleteHeightmapRow(uint8_t col)
 {
     if (col < hmwidth && hmwidth > 1)
     {

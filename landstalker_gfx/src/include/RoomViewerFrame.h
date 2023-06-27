@@ -81,6 +81,9 @@ private:
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
 	void OnHeightmapMove(wxCommandEvent& evt);
+	void OnHeightmapSelect(wxCommandEvent& evt);
+	void OnHMTypeSelect(wxCommandEvent& evt);
+	void OnHMZoom(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);
@@ -99,6 +102,10 @@ private:
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+
+	mutable wxChoice* m_tb_hmcell;
+	mutable wxSlider* m_tb_hmzoom;
+
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;
