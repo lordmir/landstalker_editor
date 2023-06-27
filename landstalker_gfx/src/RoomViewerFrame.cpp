@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <FlagDialog.h>
+#include "RoomViewerCtrl.h"
 
 enum MENU_IDS
 {
@@ -20,9 +21,6 @@ enum MENU_IDS
 	ID_TOOLS_ENTITIES,
 	ID_TOOLS_WARPS,
 	ID_VIEW,
-	ID_VIEW_NORMAL,
-	ID_VIEW_HEIGHTMAP,
-	ID_VIEW_MAP,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
@@ -34,16 +32,30 @@ enum TOOL_IDS
 	TOOL_TOGGLE_ENTITIES = 30000,
 	TOOL_TOGGLE_ENTITY_HITBOX,
 	TOOL_TOGGLE_WARPS,
-	TOOL_NORMAL_MODE,
-	TOOL_HEIGHTMAP_MODE,
-	TOOL_MAP_MODE,
 	TOOL_SHOW_LAYERS_PANE,
 	TOOL_SHOW_ENTITIES_PANE,
 	TOOL_SHOW_WARPS_PANE,
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
-	TOOL_SHOW_ERRORS
+	TOOL_SHOW_ERRORS,
+	HM_INSERT_ROW_BEFORE,
+	HM_INSERT_ROW_AFTER,
+	HM_DELETE_ROW,
+	HM_INSERT_COLUMN_BEFORE,
+	HM_INSERT_COLUMN_AFTER,
+	HM_DELETE_COLUMN,
+	HM_TYPE_DROPDOWN,
+	HM_TOGGLE_PLAYER,
+	HM_TOGGLE_NPC,
+	HM_TOGGLE_RAFT,
+	HM_INCREASE_HEIGHT,
+	HM_DECREASE_HEIGHT,
+	HM_NUDGE_HM_NE,
+	HM_NUDGE_HM_NW,
+	HM_NUDGE_HM_SE,
+	HM_NUDGE_HM_SW,
+	HM_ZOOM
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
@@ -62,20 +74,27 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_SELECT, RoomViewerFrame::OnWarpSelect)
 EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenProperties)
 EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
+EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
+EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
+EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
+EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
+EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
 
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
-	  m_mode(RoomViewerCtrl::Mode::NORMAL),
+	  m_mode(Mode::NORMAL),
 	  m_reset_props(false),
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
-	  m_warpctrl_visible(true)
+	  m_warpctrl_visible(true),
+	  m_sizes_set(false)
 {
 	m_mgr.SetManagedWindow(this);
 
-	m_roomview = new RoomViewerCtrl(this);
 	m_layerctrl = new LayerControlFrame(this);
 	m_entityctrl = new EntityControlFrame(this, GetImageList());
 	m_warpctrl = new WarpControlFrame(this, GetImageList());
@@ -85,7 +104,14 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
 	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Warps"));
-	m_mgr.AddPane(m_roomview, wxAuiPaneInfo().CenterPane());
+	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
+	m_nb->Freeze();
+	m_roomview = new RoomViewerCtrl(m_nb, this);
+	m_hmedit = new HeightmapEditorCtrl(m_nb, this);
+	m_nb->AddPage(m_roomview, "Room", true);
+	m_nb->AddPage(m_hmedit, "Heightmap");
+	m_nb->Thaw();
+	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -98,26 +124,30 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
 	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
+	this->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_hmedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
 {
+	this->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+
 	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
-void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
+void RoomViewerFrame::SetMode(RoomViewerFrame::Mode mode)
 {
 	m_mode = mode;
-	if (mode == RoomViewerCtrl::Mode::NORMAL)
+	if (mode == Mode::NORMAL)
 	{
 		SetPaneVisibility(m_layerctrl, m_layerctrl_visible);
 		SetPaneVisibility(m_entityctrl, m_entityctrl_visible);
-		SetPaneVisibility(m_entityctrl, m_warpctrl_visible);
+		SetPaneVisibility(m_warpctrl, m_warpctrl_visible);
 	}
 	else
 	{
@@ -134,8 +164,9 @@ void RoomViewerFrame::SetMode(RoomViewerCtrl::Mode mode)
 
 void RoomViewerFrame::UpdateFrame()
 {
-	m_layerctrl->EnableLayers(m_mode != RoomViewerCtrl::Mode::HEIGHTMAP);
-	m_roomview->SetRoomNum(m_roomnum, m_mode);
+	m_layerctrl->EnableLayers(m_mode == Mode::NORMAL);
+	m_roomview->SetRoomNum(m_roomnum);
+	m_hmedit->SetRoomNum(m_roomnum);
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
@@ -147,7 +178,11 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_roomview->SetGameData(gd);
 	}
-	m_mode = RoomViewerCtrl::Mode::NORMAL;
+	if (m_hmedit)
+	{
+		m_hmedit->SetGameData(gd);
+	}
+	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
 
@@ -158,12 +193,21 @@ void RoomViewerFrame::ClearGameData()
 	{
 		m_roomview->ClearGameData();
 	}
-	m_mode = RoomViewerCtrl::Mode::NORMAL;
+	if (m_hmedit)
+	{
+		m_hmedit->ClearGameData();
+	}
+	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
 
-void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode)
+void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
 {
+	if (m_g != nullptr)
+	{
+		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->name);
+		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
+	}
 	if (m_roomnum != roomnum)
 	{
 		m_reset_props = true;
@@ -370,7 +414,14 @@ void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 	{
 		return;
 	}
-	status.SetStatusText(m_roomview->GetStatusText(), 0);
+	if (m_mode == Mode::HEIGHTMAP)
+	{
+		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+	}
+	else
+	{
+		status.SetStatusText(m_roomview->GetStatusText(), 0);
+	}
 	if (m_roomview->IsEntitySelected())
 	{
 		auto& entity = m_roomview->GetSelectedEntity();
@@ -416,12 +467,12 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxIntProperty("Z Begin", "ZB", rd->room_z_begin));
 		props.Append(new wxIntProperty("Z End", "ZE", rd->room_z_end));
 		props.Append(new wxPropertyCategory("Map", "Map"));
-		props.Append(new wxIntProperty("Tilemap Left Offset", "TLO", tm->GetData()->GetLeft()));
-		props.Append(new wxIntProperty("Tilemap Top Offset", "TTO", tm->GetData()->GetTop()));
-		props.Append(new wxIntProperty("Tilemap Width", "TW", tm->GetData()->GetWidth()))->Enable(false);
-		props.Append(new wxIntProperty("Tilemap Height", "TH", tm->GetData()->GetHeight()))->Enable(false);
+		props.Append(new wxIntProperty("Heightmap Left Offset", "TLO", tm->GetData()->GetLeft()));
+		props.Append(new wxIntProperty("Heightmap Top Offset", "TTO", tm->GetData()->GetTop()));
 		props.Append(new wxIntProperty("Heightmap Width", "HW", tm->GetData()->GetHeightmapWidth()))->Enable(false);
 		props.Append(new wxIntProperty("Heightmap Height", "HH", tm->GetData()->GetHeightmapHeight()))->Enable(false);
+		props.Append(new wxIntProperty("Tilemap Width", "TW", tm->GetData()->GetWidth()))->Enable(false);
+		props.Append(new wxIntProperty("Tilemap Height", "TH", tm->GetData()->GetHeight()))->Enable(false);
 		props.Append(new wxPropertyCategory("Warps", "Warps"));
 		props.Append(new wxEnumProperty("Fall Destination", "FD", m_rooms));
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
@@ -501,11 +552,11 @@ void RoomViewerFrame::RefreshLists() const
 	}
 	m_menustrings.Clear();
 	m_menustrings.Add("<NONE>");
-	for (int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
+	for (unsigned int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
 	{
 		m_menustrings.Add(m_g->GetStringData()->GetItemName(i));
 	}
-	for (int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
+	for (unsigned int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
 	{
 		m_menustrings.Add(m_g->GetStringData()->GetMenuStr(i));
 	}
@@ -784,10 +835,6 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 1, ID_EDIT_CHESTS, "Chests...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
-	AddMenuItem(viewMenu, 0, ID_VIEW_NORMAL, "Normal", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap Editor", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 1, ID_VIEW_MAP, "Map Editor", wxITEM_RADIO);
-	AddMenuItem(viewMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 3, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 4, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 5, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
@@ -799,10 +846,6 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	wxAuiToolBar* main_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	main_tb->SetToolBitmapSize(wxSize(16, 16));
-	main_tb->AddTool(TOOL_NORMAL_MODE, "Normal Mode", ilist.GetImage("room"), "Normal Mode", wxITEM_RADIO);
-	main_tb->AddTool(TOOL_HEIGHTMAP_MODE, "Heightmap Edit Mode", ilist.GetImage("heightmap"), "Heightmap Edit Mode", wxITEM_RADIO);
-	main_tb->AddTool(TOOL_MAP_MODE, "Map Edit Mode", ilist.GetImage("map"), "Map Edit Mode", wxITEM_RADIO);
-	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_TOGGLE_ENTITIES, "Entities Visible", ilist.GetImage("entity"), "Entities Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
@@ -817,6 +860,83 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
 	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+
+	wxArrayString celltypes;
+	celltypes.Add("[00] Normal");
+	celltypes.Add("[01] Door Nudger NE");
+	celltypes.Add("[02] Door Nudger SE");
+	celltypes.Add("[03] Door Nudger SW");
+	celltypes.Add("[04] Door Nudger NW");
+	celltypes.Add("[05] Stairs Warp");
+	celltypes.Add("[06] Door Warp");
+	celltypes.Add("[07] Pit");
+	celltypes.Add("[08] Warp Pad");
+	celltypes.Add("[09] ???");
+	celltypes.Add("[0A] ???");
+	celltypes.Add("[0B] Ladder NW");
+	celltypes.Add("[0C] Ladder NE");
+	celltypes.Add("[0D] ???");
+	celltypes.Add("[0E] Counter");
+	celltypes.Add("[0F] Elevator");
+	celltypes.Add("[10] Spikes");
+	celltypes.Add("[11] NW Sign, Dialogue 0");
+	celltypes.Add("[12] NW Sign, Dialogue 1");
+	celltypes.Add("[13] NW Sign, Dialogue 2");
+	celltypes.Add("[14] NW Sign, Dialogue 3");
+	celltypes.Add("[15] NE Sign, Dialogue 0");
+	celltypes.Add("[16] NE Sign, Dialogue 1");
+	celltypes.Add("[17] NE Sign, Dialogue 2");
+	celltypes.Add("[18] NE Sign, Dialogue 3");
+	celltypes.Add("[19] Swamp");
+	celltypes.Add("[1A] Locked Door");
+	celltypes.Add("[1B] ???");
+	celltypes.Add("[1C] ???");
+	celltypes.Add("[1D] ???");
+	celltypes.Add("[1E] NW Sign, Dialogue 4");
+	celltypes.Add("[1F] NW Sign, Dialogue 5");
+	celltypes.Add("[20] NW Sign, Dialogue 6");
+	celltypes.Add("[21] NW Sign, Dialogue 7");
+	celltypes.Add("[22] NE Sign, Dialogue 4");
+	celltypes.Add("[23] NE Sign, Dialogue 5");
+	celltypes.Add("[24] NE Sign, Dialogue 6");
+	celltypes.Add("[25] NE Sign, Dialogue 7");
+	celltypes.Add("[26] SE Locked Door");
+	celltypes.Add("[27] SW Locked Door");
+	celltypes.Add("[28] Nole Staircase Transition");
+	celltypes.Add("[29] Lava");
+	celltypes.Add("[2A] NE Ice");
+	celltypes.Add("[2B] SE Ice");
+	celltypes.Add("[2C] SW Ice");
+	celltypes.Add("[2D] NW Ice");
+	celltypes.Add("[2E] Health Restore");
+	celltypes.Add("[2F] ???");
+	celltypes.Add("???");
+	wxAuiToolBar* hm_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	m_tb_hmcell = new wxChoice(hm_tb, HM_TYPE_DROPDOWN, wxDefaultPosition, wxDefaultSize, celltypes);
+	m_tb_hmcell->SetSelection(0);
+	m_tb_hmzoom = new wxSlider(hm_tb, HM_ZOOM, 2, 1, 5);
+	hm_tb->SetToolBitmapSize(wxSize(16, 16));
+	hm_tb->AddTool(HM_INSERT_ROW_BEFORE, "Insert Row Before", ilist.GetImage("hm_insert_se"), "Insert Row Before", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_ROW_AFTER, "Insert Row After", ilist.GetImage("hm_insert_nw"), "Insert Row After", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_DELETE_ROW, "Delete Row", ilist.GetImage("hm_delete_nesw"), "Delete Row", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_COLUMN_BEFORE, "Insert Column Before", ilist.GetImage("hm_insert_sw"), "Insert Column Before", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_INSERT_COLUMN_AFTER, "Insert Column After", ilist.GetImage("hm_insert_ne"), "Insert Column After", wxITEM_NORMAL);
+	hm_tb->AddTool(HM_DELETE_COLUMN, "Delete Column", ilist.GetImage("hm_delete_nwse"), "Delete Column", wxITEM_NORMAL);
+	hm_tb->AddSeparator();
+	hm_tb->AddControl(m_tb_hmcell, "Cell Type");
+	hm_tb->AddTool(HM_TOGGLE_PLAYER, "Toggle Player Passable", ilist.GetImage("hm_player_walkable"), "Toggle Player Passable", wxITEM_CHECK);
+	hm_tb->AddTool(HM_TOGGLE_NPC, "Toggle NPC Passable", ilist.GetImage("hm_npc_walkable"), "Toggle NPC Passable", wxITEM_CHECK);
+	hm_tb->AddTool(HM_TOGGLE_RAFT, "Toggle Raft Track", ilist.GetImage("hm_raft_track"), "Toggle Raft Track", wxITEM_CHECK);
+	hm_tb->AddTool(HM_INCREASE_HEIGHT, "Increase Selected Cell Height", ilist.GetImage("hm_cell_up"), "Increase Selected Cell Height");
+	hm_tb->AddTool(HM_DECREASE_HEIGHT, "Decrease Selected Cell Height", ilist.GetImage("hm_cell_down"), "Decrease Selected Cell Height");
+	hm_tb->AddSeparator();
+	hm_tb->AddTool(HM_NUDGE_HM_NE, "Nudge Heightmap North East", ilist.GetImage("hm_nudge_ne"), "Nudge Heightmap North East");
+	hm_tb->AddTool(HM_NUDGE_HM_NW, "Nudge Heightmap North West", ilist.GetImage("hm_nudge_nw"), "Nudge Heightmap North West");
+	hm_tb->AddTool(HM_NUDGE_HM_SE, "Nudge Heightmap South East", ilist.GetImage("hm_nudge_se"), "Nudge Heightmap South East");
+	hm_tb->AddTool(HM_NUDGE_HM_SW, "Nudge Heightmap South West", ilist.GetImage("hm_nudge_sw"), "Nudge Heightmap South West");
+	hm_tb->AddSeparator();
+	hm_tb->AddControl(m_tb_hmzoom, "Zoom");
+	AddToolbar(m_mgr, *hm_tb, "Heightmap", "Heightmap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(2));
 
 	UpdateUI();
 
@@ -844,14 +964,6 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_IMPORT_CSV:
 			OnImportCsv();
-			break;
-		case ID_VIEW_NORMAL:
-		case TOOL_NORMAL_MODE:
-			SetMode(RoomViewerCtrl::Mode::NORMAL);
-			break;
-		case ID_VIEW_HEIGHTMAP:
-		case TOOL_HEIGHTMAP_MODE:
-			SetMode(RoomViewerCtrl::Mode::HEIGHTMAP);
 			break;
 		case ID_VIEW_ENTITIES:
 		case TOOL_TOGGLE_ENTITIES:
@@ -891,6 +1003,54 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_EDIT_FLAGS:
 		case TOOL_SHOW_FLAGS:
 			ShowFlagDialog();
+			break;
+		case HM_INSERT_ROW_BEFORE:
+			m_hmedit->InsertRowBelow();
+			break;
+		case HM_INSERT_ROW_AFTER:
+			m_hmedit->InsertRowAbove();
+			break;
+		case HM_DELETE_ROW:
+			m_hmedit->DeleteRow();
+			break;
+		case HM_INSERT_COLUMN_BEFORE:
+			m_hmedit->InsertColumnLeft();
+			break;
+		case HM_INSERT_COLUMN_AFTER:
+			m_hmedit->InsertColumnRight();
+			break;
+		case HM_DELETE_COLUMN:
+			m_hmedit->DeleteColumn();
+			break;
+		case HM_TOGGLE_PLAYER:
+			m_hmedit->ToggleSelectedPlayerPassable();
+			break;
+		case HM_TOGGLE_NPC:
+			m_hmedit->ToggleSelectedNPCPassable();
+			break;
+		case HM_TOGGLE_RAFT:
+			m_hmedit->ToggleSelectedRaftTrack();
+			break;
+		case HM_INCREASE_HEIGHT:
+			m_hmedit->IncreaseSelectedHeight();
+			break;
+		case HM_DECREASE_HEIGHT:
+			m_hmedit->DecreaseSelectedHeight();
+			break;
+		case HM_NUDGE_HM_NE:
+			m_hmedit->NudgeHeightmapDown();
+			break;
+		case HM_NUDGE_HM_NW:
+			m_hmedit->NudgeHeightmapRight();
+			break;
+		case HM_NUDGE_HM_SE:
+			m_hmedit->NudgeHeightmapLeft();
+			break;
+		case HM_NUDGE_HM_SW:
+			m_hmedit->NudgeHeightmapUp();
+			break;
+		case HM_TYPE_DROPDOWN:
+		case HM_ZOOM:
 			break;
 		default:
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -984,14 +1144,9 @@ void RoomViewerFrame::UpdateUI() const
 {
 	EnableMenuItem(ID_EDIT_CHESTS, false);
 	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
-	EnableMenuItem(ID_VIEW_MAP, false);
-	EnableToolbarItem("Main", TOOL_MAP_MODE, false);
 
-	if (m_mode == RoomViewerCtrl::Mode::NORMAL)
+	if (m_mode == Mode::NORMAL)
 	{
-		CheckMenuItem(ID_VIEW_NORMAL, true);
-		CheckToolbarItem("Main", TOOL_NORMAL_MODE, true);
-
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
 		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
@@ -1019,12 +1174,31 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, true);
 		CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
 		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
+
+		CheckToolbarItem("hm", HM_TOGGLE_PLAYER, false);
+		CheckToolbarItem("hm", HM_TOGGLE_NPC, false);
+		CheckToolbarItem("hm", HM_TOGGLE_RAFT, false);
+
+		EnableToolbarItem("hm", HM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("hm", HM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("hm", HM_DELETE_ROW, false);
+		EnableToolbarItem("hm", HM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("hm", HM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("hm", HM_DELETE_COLUMN, false);
+		EnableToolbarItem("hm", HM_TOGGLE_PLAYER, false);
+		EnableToolbarItem("hm", HM_TOGGLE_NPC, false);
+		EnableToolbarItem("hm", HM_TOGGLE_RAFT, false);
+		EnableToolbarItem("hm", HM_INCREASE_HEIGHT, false);
+		EnableToolbarItem("hm", HM_DECREASE_HEIGHT, false);
+		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		{
+			m_tb_hmcell->SetSelection(0);
+			m_tb_hmcell->Enable(false);
+			m_tb_hmzoom->Enable(false);
+		}
 	}
 	else
 	{
-		CheckMenuItem(ID_VIEW_HEIGHTMAP, true);
-		CheckToolbarItem("Main", TOOL_HEIGHTMAP_MODE, true);
-
 		CheckMenuItem(ID_VIEW_ENTITIES, false);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
 		EnableMenuItem(ID_VIEW_ENTITIES, false);
@@ -1034,6 +1208,11 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
 		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, false);
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+
+		CheckMenuItem(ID_VIEW_WARPS, false);
+		CheckToolbarItem("Main", ID_VIEW_WARPS, false);
+		EnableMenuItem(ID_VIEW_WARPS, false);
+		EnableToolbarItem("Main", ID_VIEW_WARPS, false);
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
@@ -1052,6 +1231,37 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
 		EnableMenuItem(ID_TOOLS_WARPS, false);
 		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
+
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0);
+		m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
+		m_tb_hmzoom->Enable(true);
+
+		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedPlayerPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid() && !m_hmedit->IsSelectedNPCPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedRaftTrack());
+		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		{
+			m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
+			m_tb_hmzoom->Enable(true);
+			if (m_hmedit->IsSelectionValid())
+			{
+				m_tb_hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
+			}
+			else
+			{
+				m_tb_hmcell->SetSelection(0);
+			}
+		}
 	}
 	CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
 	CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
@@ -1059,9 +1269,14 @@ void RoomViewerFrame::UpdateUI() const
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 {
-	if (m_roomview != nullptr)
+	if (m_mode == Mode::NORMAL && m_roomview != nullptr)
 	{
 		evt.Skip(m_roomview->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
+	else if (m_mode == Mode::HEIGHTMAP && m_hmedit != nullptr)
+	{
+		evt.Skip(m_hmedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 		return;
 	}
 	evt.Skip();
@@ -1176,6 +1391,45 @@ void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
 	m_roomview->DeleteSelectedWarp();
 }
 
+void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)
+{
+	m_roomview->RefreshHeightmap();
+}
+
+void RoomViewerFrame::OnHeightmapMove(wxCommandEvent& evt)
+{
+	m_roomview->RefreshGraphics();
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& evt)
+{
+	UpdateUI();
+}
+
+void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
+{
+	m_hmedit->SetSelectedType(m_tb_hmcell->GetSelection());
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnHMZoom(wxCommandEvent& evt)
+{
+	m_hmedit->SetZoom(static_cast<double>(m_tb_hmzoom->GetValue()) * 0.5);
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnSize(wxSizeEvent& evt)
+{
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnTabChange(wxAuiNotebookEvent& evt)
+{
+	SetMode(static_cast<Mode>(evt.GetSelection()));
+	evt.Skip();
+}
+
 void RoomViewerFrame::FireEvent(const wxEventType& e)
 {
 	wxCommandEvent evt(e);
@@ -1189,4 +1443,26 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, const std::string& userdat
 	evt.SetString(userdata);
 	evt.SetClientData(this);
 	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::SetPaneSizes()
+{
+	int w, h;
+	if (!m_sizes_set)
+	{
+		w = GetClientSize().GetWidth() * 7 / 10;
+		h = GetClientSize().GetHeight();
+		wxMessageBox(std::to_string(w));
+
+		//wxAUI hack: set minimum height to desired value, then call wxAuiPaneInfo::Fixed() to apply it
+		m_mgr.GetPane(m_hmedit).BestSize(w, h);
+		m_mgr.GetPane(m_hmedit).Fixed();
+		m_mgr.Update();
+
+		//now make resizable again
+		m_mgr.GetPane(m_hmedit).Resizable();
+		m_mgr.Update();
+
+		m_sizes_set = true;
+	}
 }

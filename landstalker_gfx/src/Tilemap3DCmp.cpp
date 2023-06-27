@@ -802,6 +802,111 @@ void Tilemap3D::ResizeHeightmap(uint8_t w, uint8_t h)
     hmheight = h;
 }
 
+void Tilemap3D::InsertHeightmapColumn(uint8_t before)
+{
+    if (before < hmheight && hmheight < 64)
+    {
+        auto orig = heightmap;
+        hmheight += 1;
+        heightmap.resize(hmwidth * hmheight);
+        auto src = orig.data();
+        auto dst = heightmap.data();
+        int idx = 0;
+        for (int y = 0; y < hmheight; ++y)
+        {
+            for (int x = 0; x < hmwidth; ++x)
+            {
+                if (y <= before)
+                {
+                    dst[idx++] = src[idx];
+                }
+                else
+                {
+                    dst[idx++] = src[idx - hmwidth];
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::InsertHeightmapRow(uint8_t before)
+{
+    if (before < hmwidth && hmwidth < 64)
+    {
+        auto orig = heightmap;
+        hmwidth += 1;
+        heightmap.resize(hmwidth * hmheight);
+        auto src = orig.data();
+        auto dst = heightmap.data();
+        for (int y = 0; y < hmheight; ++y)
+        {
+            for (int x = 0; x < hmwidth; ++x)
+            {
+                if (x <= before)
+                {
+                    dst[y * hmwidth + x] = src[y * (hmwidth - 1) + x];
+                }
+                else
+                {
+                    dst[y * hmwidth + x] = src[y * (hmwidth - 1) + x - 1];
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::DeleteHeightmapColumn(uint8_t row)
+{
+    if (row < hmheight && hmheight > 1)
+    {
+        auto orig = heightmap;
+        hmheight -= 1;
+        heightmap.resize(hmwidth * hmheight);
+        auto src = orig.data();
+        auto dst = heightmap.data();
+        for (int y = 0; y < hmheight; ++y)
+        {
+            for (int x = 0; x < hmwidth; ++x)
+            {
+                if (y < row)
+                {
+                    dst[y * hmwidth + x] = src[y * hmwidth + x];
+                }
+                else
+                {
+                    dst[y * hmwidth + x] = src[(y + 1) * hmwidth + x];
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::DeleteHeightmapRow(uint8_t col)
+{
+    if (col < hmwidth && hmwidth > 1)
+    {
+        auto orig = heightmap;
+        hmwidth -= 1;
+        heightmap.resize(hmwidth * hmheight);
+        auto src = orig.data();
+        auto dst = heightmap.data();
+        for (int y = 0; y < hmheight; ++y)
+        {
+            for (int x = 0; x < hmwidth; ++x)
+            {
+                if (x < col)
+                {
+                    dst[y * hmwidth + x] = src[y * (hmwidth + 1) + x];
+                }
+                else
+                {
+                    dst[y * hmwidth + x] = src[y * (hmwidth + 1) + x + 1];
+                }
+            }
+        }
+    }
+}
+
 void Tilemap3D::SetLeft(uint8_t left)
 {
     this->left = left;

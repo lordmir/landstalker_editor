@@ -66,6 +66,10 @@ public:
     uint16_t GetSize() const;
     void Resize(uint8_t w, uint8_t h);
     void ResizeHeightmap(uint8_t w, uint8_t h);
+    void InsertHeightmapRow(uint8_t before);
+    void InsertHeightmapColumn(uint8_t before);
+    void DeleteHeightmapRow(uint8_t row);
+    void DeleteHeightmapColumn(uint8_t col);
     void SetLeft(uint8_t left);
     void SetTop(uint8_t top);
     uint8_t GetHeightmapWidth() const;

@@ -2,28 +2,37 @@
 #define _ROOM_VIEWER_FRAME_H_
 
 #include "EditorFrame.h"
-#include "RoomViewerCtrl.h"
 #include "LayerControlFrame.h"
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
+#include "HeightmapEditorCtrl.h"
 #include "GameData.h"
 #include <memory>
+
+class RoomViewerCtrl;
 
 class RoomViewerFrame : public EditorFrame
 {
 public:
+	enum class Mode : uint8_t
+	{
+		NORMAL,
+		HEIGHTMAP,
+		BACKGROUND,
+		FOREGROUND
+	};
 
 	RoomViewerFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~RoomViewerFrame();
 
-	RoomViewerCtrl::Mode GetMode() const { return m_mode; }
-	void SetMode(RoomViewerCtrl::Mode mode);
+	Mode GetMode() const { return m_mode; }
+	void SetMode(Mode mode);
 	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void SetRoomNum(uint16_t roomnum, RoomViewerCtrl::Mode mode = RoomViewerCtrl::Mode::NORMAL);
+	void SetRoomNum(uint16_t roomnum, Mode mode = Mode::NORMAL);
 	uint16_t GetRoomNum() const { return m_roomnum; }
 
 	bool ExportBin(const std::string& path);
@@ -70,16 +79,33 @@ private:
 	void OnWarpAdd(wxCommandEvent& evt);
 	void OnWarpDelete(wxCommandEvent& evt);
 
+	void OnHeightmapUpdate(wxCommandEvent& evt);
+	void OnHeightmapMove(wxCommandEvent& evt);
+	void OnHeightmapSelect(wxCommandEvent& evt);
+	void OnHMTypeSelect(wxCommandEvent& evt);
+	void OnHMZoom(wxCommandEvent& evt);
+
+	void OnSize(wxSizeEvent& evt);
+	void OnTabChange(wxAuiNotebookEvent& evt);
+
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 
-	RoomViewerCtrl::Mode m_mode;
+	void SetPaneSizes();
+
+	Mode m_mode;
 	mutable wxAuiManager m_mgr;
+	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
+	HeightmapEditorCtrl* m_hmedit;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+
+	mutable wxChoice* m_tb_hmcell;
+	mutable wxSlider* m_tb_hmzoom;
+
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;
@@ -88,6 +114,7 @@ private:
 	bool m_entityctrl_visible;
 	bool m_warpctrl_visible;
 
+	mutable bool m_sizes_set;
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;
 	mutable wxPGChoices m_bgms;
