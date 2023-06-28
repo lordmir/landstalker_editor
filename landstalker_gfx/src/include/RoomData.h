@@ -87,6 +87,8 @@ public:
     void SetHasClimbDestination(uint16_t room, bool enabled);
     void SetClimbDestination(uint16_t room, uint16_t dest);
     std::vector<WarpList::Transition> GetTransitions(uint16_t room) const;
+    std::vector<WarpList::Transition> GetSrcTransitions(uint16_t room) const;
+    void SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data);
 
 protected:
     virtual void CommitAllChanges();

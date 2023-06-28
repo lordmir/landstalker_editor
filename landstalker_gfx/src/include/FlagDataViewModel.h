@@ -6,6 +6,7 @@
 #include <wx/dataview.h>
 #include <GameData.h>
 #include <Flags.h>
+#include <WarpList.h>
 
 class BaseFlagDataViewModel : public wxDataViewVirtualListModel
 {
@@ -271,6 +272,24 @@ protected:
     }
 };
 
+class RoomTransitionFlagViewModel : public FlagDataViewModel<WarpList::Transition>
+{
+public:
+    RoomTransitionFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<WarpList::Transition>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetRoomData()->SetSrcTransitions(m_roomnum, m_data);
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetRoomData()->GetSrcTransitions(m_roomnum);
+    }
+};
+
 
 template <>
 unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
@@ -334,5 +353,26 @@ bool FlagDataViewModel<SacredTreeFlag>::GetAttrByRow(unsigned int row, unsigned 
 
 template <>
 bool FlagDataViewModel<SacredTreeFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<WarpList::Transition>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<WarpList::Transition>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<WarpList::Transition>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<WarpList::Transition>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<WarpList::Transition>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

@@ -16,6 +16,7 @@ enum MENU_IDS
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
+	ID_EDIT_DIALOGUE,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS,
 	ID_TOOLS_ENTITIES,
@@ -37,6 +38,7 @@ enum TOOL_IDS
 	TOOL_SHOW_WARPS_PANE,
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
+	TOOL_SHOW_DIALOGUE,
 	TOOL_SHOW_SELECTION_PROPERTIES,
 	TOOL_SHOW_ERRORS,
 	HM_INSERT_ROW_BEFORE,
@@ -167,6 +169,7 @@ void RoomViewerFrame::UpdateFrame()
 	m_layerctrl->EnableLayers(m_mode == Mode::NORMAL);
 	m_roomview->SetRoomNum(m_roomnum);
 	m_hmedit->SetRoomNum(m_roomnum);
+	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
@@ -398,6 +401,7 @@ void RoomViewerFrame::ShowFlagDialog()
 {
 	FlagDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
+	UpdateFrame();
 }
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
@@ -832,12 +836,13 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
 	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 1, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
-	AddMenuItem(viewMenu, 3, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 4, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 5, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 2, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
@@ -852,6 +857,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flags");
 	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chests");
+	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialoue");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
@@ -1004,6 +1010,12 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case TOOL_SHOW_FLAGS:
 			ShowFlagDialog();
 			break;
+		case ID_EDIT_CHESTS:
+		case TOOL_SHOW_CHESTS:
+			break;
+		case ID_EDIT_DIALOGUE:
+		case TOOL_SHOW_DIALOGUE:
+			break;
 		case HM_INSERT_ROW_BEFORE:
 			m_hmedit->InsertRowBelow();
 			break;
@@ -1142,9 +1154,6 @@ void RoomViewerFrame::OnImportCsv()
 
 void RoomViewerFrame::UpdateUI() const
 {
-	EnableMenuItem(ID_EDIT_CHESTS, false);
-	EnableToolbarItem("Main", TOOL_SHOW_CHESTS, false);
-
 	if (m_mode == Mode::NORMAL)
 	{
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
@@ -1263,8 +1272,6 @@ void RoomViewerFrame::UpdateUI() const
 			}
 		}
 	}
-	CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
-	CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
 }
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)

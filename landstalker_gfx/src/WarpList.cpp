@@ -1,7 +1,7 @@
 #include "WarpList.h"
 
 #include <cassert>
-#include <stack>
+#include <queue>
 #include "AsmUtils.h"
 
 WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
@@ -74,7 +74,7 @@ std::vector<WarpList::Warp> WarpList::GetWarpsForRoom(uint16_t room) const
 
 void WarpList::UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps)
 {
-	std::stack<std::vector<Warp>::iterator> iterators;
+	std::queue<std::vector<Warp>::iterator> iterators;
 	for (auto it = m_warps.begin(); it != m_warps.end(); )
 	{
 		if (it->room1 == room || it->room2 == room)
@@ -103,7 +103,7 @@ void WarpList::UpdateWarpsForRoom(uint16_t room, const std::vector<Warp>& warps)
 			}
 			else
 			{
-				auto& it = iterators.top();
+				auto& it = iterators.front();
 				*it = warp;
 				iterators.pop();
 			}
@@ -139,7 +139,7 @@ uint16_t WarpList::GetClimbDestination(uint16_t room) const
 	return m_climb_dests.find(room)->second;
 }
 
-std::vector<WarpList::Transition> WarpList::GetTransitions(uint16_t room) const
+std::vector<WarpList::Transition> WarpList::GetAllTransitionsForRoom(uint16_t room) const
 {
 	std::vector<Transition> retval;
 	for (const auto& t : m_transitions)
@@ -150,6 +150,67 @@ std::vector<WarpList::Transition> WarpList::GetTransitions(uint16_t room) const
 		}
 	}
 	return retval;
+}
+
+std::vector<WarpList::Transition> WarpList::GetSrcTransitionsForRoom(uint16_t room) const
+{
+	std::vector<Transition> retval;
+	for (const auto& t : m_transitions)
+	{
+		if (t.src_rm == room)
+		{
+			retval.push_back(t);
+		}
+	}
+	return retval;
+}
+
+void WarpList::SetSrcTransitionsForRoom(uint16_t room, const std::vector<WarpList::Transition>& data)
+{
+	std::queue<std::vector<Transition>::iterator> iterators;
+	int count = 0;
+	// Delete excess
+	for (auto it = m_transitions.begin(); it != m_transitions.end(); )
+	{
+		if (it->src_rm == room)
+		{
+			if (count < data.size())
+			{
+				count++;
+				it++;
+			}
+			else
+			{
+				it = m_transitions.erase(it);
+			}
+		}
+		else
+		{
+			++it;
+		}
+	}
+	// Save list of iterators to existing entries
+	for (auto it = m_transitions.begin(); it != m_transitions.end(); ++it)
+	{
+		if (it->src_rm == room)
+		{
+			iterators.push(it);
+		}
+	}
+	// For each new entry, either change next iterator or, if none left, push on a new entry.
+	for (const auto& f : data)
+	{
+		if (iterators.empty())
+		{
+			m_transitions.push_back(f);
+		}
+		else
+		{
+			auto& it = iterators.front();
+			*it = f;
+			iterators.pop();
+		}
+	}
 }
 
 void WarpList::SetHasFallDestination(uint16_t room, bool enabled)

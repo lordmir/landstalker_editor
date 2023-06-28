@@ -447,3 +447,103 @@ bool FlagDataViewModel<SacredTreeFlag>::SetValueByRow(const wxVariant& variant, 
 	}
 	return updated;
 }
+
+template <>
+unsigned int FlagDataViewModel<WarpList::Transition>::GetColumnCount() const
+{
+	return 2;
+}
+
+template <>
+wxString FlagDataViewModel<WarpList::Transition>::GetColumnHeader(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "Destination";
+	case 1:
+		return "On Flag Set";
+	default:
+		return "?";
+	}
+}
+
+template <>
+wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned int col) const
+{
+	wxArrayString choices;
+	switch (col)
+	{
+	case 0:
+		for (int i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
+		{
+			choices.Add(m_gd->GetRoomData()->GetRoom(i)->name);
+		}
+		break;
+	default:
+		break;
+	}
+	return choices;
+}
+
+template <>
+wxString FlagDataViewModel<WarpList::Transition>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "long";
+	case 1:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<WarpList::Transition>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 0:
+			variant = static_cast<long>(m_data[row].dst_rm);
+			break;
+		case 1:
+			variant = static_cast<long>(m_data[row].flag);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+template <>
+bool FlagDataViewModel<WarpList::Transition>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+{
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	bool updated = false;
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 0:
+			m_data[row].dst_rm = variant.GetLong();
+			updated = true;
+			break;
+		case 1:
+			m_data[row].flag = variant.GetLong();
+			updated = true;
+			break;
+		default:
+			break;
+		}
+	}
+	return updated;
+}

@@ -46,6 +46,10 @@ public:
 			: src_rm(src), dst_rm(dst), flag(flagp)
 		{}
 
+		Transition(uint16_t src)
+			: src_rm(src), dst_rm(0), flag(0)
+		{}
+
 		uint16_t src_rm;
 		uint16_t dst_rm;
 		uint16_t flag;
@@ -70,7 +74,9 @@ public:
 	uint16_t GetFallDestination(uint16_t room) const;
 	bool HasClimbDestination(uint16_t room) const;
 	uint16_t GetClimbDestination(uint16_t room) const;
-	std::vector<Transition> GetTransitions(uint16_t room) const;
+	std::vector<Transition> GetAllTransitionsForRoom(uint16_t room) const;
+	std::vector<Transition> GetSrcTransitionsForRoom(uint16_t room) const;
+	void SetSrcTransitionsForRoom(uint16_t room, const std::vector<Transition>& data);
 
 	void SetHasFallDestination(uint16_t room, bool enabled);
 	void SetFallDestination(uint16_t room, uint16_t dest);

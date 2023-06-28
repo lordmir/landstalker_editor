@@ -645,7 +645,17 @@ void RoomData::SetClimbDestination(uint16_t room, uint16_t dest)
 
 std::vector<WarpList::Transition> RoomData::GetTransitions(uint16_t room) const
 {
-    return m_warps.GetTransitions(room);
+    return m_warps.GetAllTransitionsForRoom(room);
+}
+
+std::vector<WarpList::Transition> RoomData::GetSrcTransitions(uint16_t room) const
+{
+    return m_warps.GetSrcTransitionsForRoom(room);
+}
+
+void RoomData::SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data)
+{
+    m_warps.SetSrcTransitionsForRoom(room, data);
 }
 
 void RoomData::CommitAllChanges()

@@ -2,7 +2,7 @@
 
 #include <set>
 #include <numeric>
-#include <stack>
+#include <queue>
 #include "AsmUtils.h"
 
 
@@ -176,6 +176,69 @@ std::vector<T> DecodeFlags(const std::vector<std::array<uint8_t, T::SIZE>>& data
 	}
 	return data_out;
 };
+
+template <class T>
+std::vector<T> GetFlagsForRoom(uint16_t room, const std::vector<T>& flags)
+{
+	std::vector<T> data;
+	for (const auto& f : flags)
+	{
+		if (f.room == room)
+		{
+			data.push_back(f);
+		}
+	}
+	return data;
+}
+
+template <class T>
+void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& dst)
+{
+	std::queue<std::vector<T>::iterator> iterators;
+	int count = 0;
+	// Delete excess
+	for (auto it = dst.begin(); it != dst.end(); )
+	{
+		if (it->room == room)
+		{
+			if (count < src.size())
+			{
+				count++;
+				it++;
+			}
+			else
+			{
+				it = dst.erase(it);
+			}
+		}
+		else
+		{
+			++it;
+		}
+	}
+	// Save list of iterators to existing entries
+	for (auto it = dst.begin(); it != dst.end(); ++it)
+	{
+		if (it->room == room)
+		{
+			iterators.push(it);
+		}
+	}
+	// For each new entry, either change next iterator or, if none left, push on a new entry.
+	for (const auto& f : src)
+	{
+		if (iterators.empty())
+		{
+			dst.push_back(f);
+		}
+		else
+		{
+			auto& it = iterators.front();
+			*it = f;
+			iterators.pop();
+		}
+	}
+}
 
 SpriteData::SpriteData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
@@ -616,68 +679,6 @@ std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
 void SpriteData::SetRoomEntities(uint16_t room, const std::vector<Entity>& entities)
 {
 	m_room_entities[room] = entities;
-}
-
-template <class T>
-std::vector<T> GetFlagsForRoom(uint16_t room, const std::vector<T>& flags)
-{
-	std::vector<T> data;
-	for (const auto& f : flags)
-	{
-		if (f.room == room)
-		{
-			data.push_back(f);
-		}
-	}
-	return data;
-}
-
-template <class T>
-void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& dst)
-{
-	std::stack<std::vector<T>::iterator> iterators;
-	int count = 0;
-	// Delete excess
-	for (auto it = dst.begin(); it != dst.end(); )
-	{
-		if (it->room == room)
-		{
-			if (count < src.size())
-			{
-				count++;
-			}
-			else
-			{
-				it = dst.erase(it);
-			}
-		}
-		else
-		{
-			++it;
-		}
-	}
-	// Save list of iterators to existing entries
-	for (auto it = dst.begin(); it != dst.end(); ++it)
-	{
-		if (it->room == room)
-		{
-			iterators.push(it);
-		}
-	}
-	// For each new entry, either change next iterator or, if none left, push on a new entry.
-	for (const auto& f : src)
-	{
-		if (iterators.empty())
-		{
-			dst.push_back(f);
-		}
-		else
-		{
-			auto& it = iterators.top();
-			*it = f;
-			iterators.pop();
-		}
-	}
 }
 
 std::vector<EntityFlag> SpriteData::GetEntityVisibilityFlagsForRoom(uint16_t room)
