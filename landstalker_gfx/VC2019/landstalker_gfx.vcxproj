@@ -46,6 +46,7 @@
     <ClCompile Include="..\src\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\Map2DEditor.cpp" />
     <ClCompile Include="..\src\Map2DEditorFrame.cpp" />
+    <ClCompile Include="..\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
     <ClCompile Include="..\src\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\PaletteListFrame.cpp" />
@@ -134,6 +135,7 @@
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Map2DEditor.h" />
     <ClInclude Include="..\src\include\Map2DEditorFrame.h" />
+    <ClInclude Include="..\src\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\include\RoomViewerCtrl.h" />
     <ClInclude Include="..\src\include\RoomViewerFrame.h" />
     <ClInclude Include="..\src\include\Palette.h" />

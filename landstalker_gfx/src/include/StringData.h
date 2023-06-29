@@ -7,6 +7,7 @@
 #include "IntroString.h"
 #include "EndCreditString.h"
 #include "Charset.h"
+#include "RoomDialogueTable.h"
 
 class StringData : public DataManager
 {
@@ -240,8 +241,8 @@ private:
     std::vector<uint8_t> m_char_talk_sfx_orig;
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx;
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx_orig;
-    std::vector<uint16_t> m_room_dialogue_table;
-    std::vector<uint16_t> m_room_dialogue_table_orig;
+    RoomDialogueTable m_room_dialogue_table;
+    RoomDialogueTable m_room_dialogue_table_orig;
 
     RomOffsets::Region m_region;
     bool m_has_region_check;

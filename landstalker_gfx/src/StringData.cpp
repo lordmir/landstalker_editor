@@ -1360,12 +1360,13 @@ bool StringData::AsmLoadScriptData()
 {
 	auto bytes = ReadBytes(GetBasePath() / m_room_dialogue_table_path);
 	assert(bytes.size() % 2 == 0);
-	m_room_dialogue_table.clear();
-	m_room_dialogue_table.reserve(bytes.size() / 2);
+	std::vector<uint16_t> words;
+	words.reserve(bytes.size() / 2);
 	for (int i = 0; i < bytes.size(); i += 2)
 	{
-		m_room_dialogue_table.push_back((bytes[i] << 8) | bytes[i + 1]);
+		words.push_back((bytes[i] << 8) | bytes[i + 1]);
 	}
+	m_room_dialogue_table = RoomDialogueTable(words);
 	return true;
 }
 
@@ -1569,7 +1570,7 @@ bool StringData::RomLoadScriptData(const Rom& rom)
 {
 	uint32_t begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::ROOM_CHARACTER_TABLE);
 	uint32_t end = rom.get_section(RomOffsets::Strings::ROOM_CHARACTER_TABLE_SECTION).end;
-	m_room_dialogue_table = rom.read_array<uint16_t>(begin, (end - begin)/sizeof(uint16_t));
+	m_room_dialogue_table = RoomDialogueTable(rom.read_array<uint16_t>(begin, (end - begin)/sizeof(uint16_t)));
 
 	return true;
 }
@@ -1764,8 +1765,9 @@ bool StringData::AsmSaveTalkSfx(const filesystem::path& dir)
 bool StringData::AsmSaveScriptData(const filesystem::path& dir)
 {
 	ByteVector bytes;
-	bytes.reserve(m_room_dialogue_table.size() * 2);
-	for (const auto& word : m_room_dialogue_table)
+	auto words = m_room_dialogue_table.GetData();
+	bytes.reserve(words.size() * 2);
+	for (const auto& word : words)
 	{
 		bytes.push_back(word >> 8);
 		bytes.push_back(word & 0xFF);
@@ -1988,8 +1990,9 @@ bool StringData::RomPrepareInjectScriptData(const Rom& rom)
 {
 	uint32_t begin = rom.get_section(RomOffsets::Strings::ROOM_CHARACTER_TABLE_SECTION).begin;
 	ByteVectorPtr bytes = std::make_shared<ByteVector>();
-	bytes->reserve(m_room_dialogue_table.size() * 2);
-	for (const auto& word : m_room_dialogue_table)
+	auto words = m_room_dialogue_table.GetData();
+	bytes->reserve(words.size() * 2);
+	for (const auto& word : words)
 	{
 		bytes->push_back(word >> 8);
 		bytes->push_back(word & 0xFF);
