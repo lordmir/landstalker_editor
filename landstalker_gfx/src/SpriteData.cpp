@@ -155,7 +155,7 @@ std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, uint8_t>& data, bool r
 	return result;
 }
 
-template <class T>
+template <typename T>
 std::vector<std::array<uint8_t, T::SIZE>> EncodeFlags(const std::vector<T>& data_in)
 {
 	std::vector<std::array<uint8_t, T::SIZE>> data_out;
@@ -166,7 +166,7 @@ std::vector<std::array<uint8_t, T::SIZE>> EncodeFlags(const std::vector<T>& data
 	return data_out;
 }
 
-template <class T>
+template <typename T>
 std::vector<T> DecodeFlags(const std::vector<std::array<uint8_t, T::SIZE>>& data_in)
 {
 	std::vector<T> data_out;
@@ -177,7 +177,7 @@ std::vector<T> DecodeFlags(const std::vector<std::array<uint8_t, T::SIZE>>& data
 	return data_out;
 };
 
-template <class T>
+template <typename T>
 std::vector<T> GetFlagsForRoom(uint16_t room, const std::vector<T>& flags)
 {
 	std::vector<T> data;
@@ -191,10 +191,10 @@ std::vector<T> GetFlagsForRoom(uint16_t room, const std::vector<T>& flags)
 	return data;
 }
 
-template <class T>
+template <typename T>
 void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& dst)
 {
-	std::queue<std::vector<T>::iterator> iterators;
+	std::queue<typename std::vector<T>::iterator> iterators;
 	int count = 0;
 	// Delete excess
 	for (auto it = dst.begin(); it != dst.end(); )
