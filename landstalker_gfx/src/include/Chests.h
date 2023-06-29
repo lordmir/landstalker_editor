@@ -5,14 +5,17 @@
 #include <vector>
 #include <set>
 #include <map>
-#include <GameData.h>
 
 class Chests
 {
 public:
 	Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& contents);
+	Chests();
 
-	std::pair<std::vector<uint8_t>, std::vector<uint8_t>> GetData(const GameData& gd) const;
+	bool operator==(const Chests& rhs) const;
+	bool operator!=(const Chests& rhs) const;
+
+	std::pair<std::vector<uint8_t>, std::vector<uint8_t>> GetData(int roomcount) const;
 
 	std::vector<uint8_t> GetChestsForRoom(uint16_t room) const;
 	bool RoomHasChests(uint16_t room) const;

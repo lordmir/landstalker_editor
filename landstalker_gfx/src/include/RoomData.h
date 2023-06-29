@@ -9,6 +9,7 @@
 #include <DataTypes.h>
 #include <Room.h>
 #include <WarpList.h>
+#include <Chests.h>
 
 class RoomData : public DataManager
 {
@@ -200,10 +201,8 @@ private:
     std::vector<std::shared_ptr<PaletteEntry>> m_warp_palette_orig;
     std::shared_ptr<PaletteEntry> m_labrynth_lit_palette;
 
-    std::vector<uint8_t> m_chests;
-    std::vector<uint8_t> m_chests_orig;
-    std::vector<uint8_t> m_chest_offsets;
-    std::vector<uint8_t> m_chest_offsets_orig;
+    Chests m_chests;
+    Chests m_chests_orig;
 };
 
 #endif // _ROOM_DATA_H_

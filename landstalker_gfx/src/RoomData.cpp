@@ -242,10 +242,6 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
-    if (m_chest_offsets != m_chest_offsets_orig)
-    {
-        return true;
-    }
     
     return false;
 }
@@ -710,7 +706,6 @@ void RoomData::CommitAllChanges()
     m_tilesets_orig = m_tilesets;
     m_warp_palette_orig = m_warp_palette;
     m_chests_orig = m_chests;
-    m_chest_offsets_orig = m_chest_offsets;
     m_pending_writes.clear();
 }
 
@@ -1138,13 +1133,13 @@ bool RoomData::AsmLoadTilesetData()
 
 bool RoomData::AsmLoadChestData()
 {
-    m_chests = ReadBytes(GetBasePath() / m_chest_data_filename);
-    m_chest_offsets = ReadBytes(GetBasePath() / m_chest_offset_data_filename);
-    if (m_chests.size() % 2 != 0)
+    auto contents = ReadBytes(GetBasePath() / m_chest_data_filename);
+    auto offsets = ReadBytes(GetBasePath() / m_chest_offset_data_filename);
+    while (contents.back() == 0xFF)
     {
-        m_chests.resize(m_chests.size() - 1);
+        contents.resize(contents.size() - 1);
     }
-    m_chest_offsets_orig = m_chest_offsets;
+    m_chests = Chests(offsets, contents);
     m_chests_orig = m_chests;
     return true;
 }
@@ -1452,13 +1447,13 @@ bool RoomData::RomLoadChestData(const Rom& rom)
     uint32_t chests_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS);
     uint32_t offsets_end = chests_begin;
     uint32_t chests_end = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).end;
-    m_chest_offsets = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
-    m_chests = rom.read_array<uint8_t>(chests_begin, chests_end - chests_begin);
-    if (m_chests.size() % 2 != 0)
+    auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
+    auto chest_bytes = rom.read_array<uint8_t>(chests_begin, chests_end - chests_begin);
+    while (chest_bytes.back() == 0xFF)
     {
-        m_chests.resize(m_chests.size() - 1);
+        chest_bytes.resize(chest_bytes.size() - 1);
     }
-    m_chest_offsets_orig = m_chest_offsets;
+    m_chests = Chests(offset_bytes, chest_bytes);
     m_chests_orig = m_chests;
     return true;
 }
@@ -1740,8 +1735,9 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
 
 bool RoomData::AsmSaveChestData(const filesystem::path& dir)
 {
-    WriteBytes(m_chests, dir / m_chest_data_filename);
-    WriteBytes(m_chest_offsets, dir / m_chest_offset_data_filename);
+    auto result = m_chests.GetData(GetRoomCount());
+    WriteBytes(result.first, dir / m_chest_data_filename);
+    WriteBytes(result.second, dir / m_chest_offset_data_filename);
     return true;
 }
 
@@ -1981,10 +1977,11 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
 
 bool RoomData::RomPrepareInjectChestData(const Rom& rom)
 {
-    auto data = std::make_shared<ByteVector>(m_chest_offsets);
-    data->insert(data->end(), m_chests.cbegin(), m_chests.cend());
+    auto results = m_chests.GetData(GetRoomCount());
     uint32_t offsets_begin = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).begin;
-    uint32_t chests_begin = offsets_begin + m_chest_offsets.size();
+    uint32_t chests_begin = offsets_begin + results.first.size();
+    auto data = std::make_shared<ByteVector>(results.first);
+    data->insert(data->end(), results.second.begin(), results.second.end());
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS, offsets_begin));
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS, chests_begin));
     m_pending_writes.push_back({ RomOffsets::Rooms::CHEST_SECTION, data });

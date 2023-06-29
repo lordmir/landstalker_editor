@@ -15,8 +15,12 @@ Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& 
 		{
 			chests.insert({ last_room, offsets[i] - max_offset });
 			max_offset = offsets[i];
+			last_room = i;
 		}
-		last_room = i;
+		else
+		{
+			last_room = i;
+		}
 	}
 	if (max_offset < contents.size())
 	{
@@ -27,17 +31,32 @@ Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& 
 	{
 		std::vector<uint8_t> rcontent(contents.begin() + cur_offset, contents.begin() + cur_offset + c.second);
 		m_chests.insert({ c.first, rcontent });
+		cur_offset += c.second;
 	}
 }
 
-std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(const GameData& gd) const
+Chests::Chests()
 {
-	const int MAX_ROOMS = gd.GetRoomData()->GetRoomCount();
+}
+
+bool Chests::operator==(const Chests& rhs) const
+{
+	return (this->m_chests == rhs.m_chests && this->m_enabled == rhs.m_enabled);
+}
+
+bool Chests::operator!=(const Chests& rhs) const
+{
+	return !(*this == rhs);
+}
+
+std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomcount) const
+{
 	std::vector<uint8_t> offsets;
-	offsets.reserve(MAX_ROOMS);
+	offsets.reserve(roomcount);
 	std::vector<uint8_t> contents;
 	contents.reserve(256);
-	for (int i = 0; i < MAX_ROOMS; ++i)
+	int offset = 0;
+	for (int i = 0; i < roomcount; ++i)
 	{
 		if (m_enabled.count(i) > 0)
 		{
@@ -45,10 +64,11 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(const Game
 		}
 		else
 		{
-			contents.push_back(contents.size());
+			offsets.push_back(offset);
 			if (m_chests.count(i) > 0)
 			{
 				contents.insert(contents.end(), m_chests.at(i).begin(), m_chests.at(i).end());
+				offset += m_chests.at(i).size();
 			}
 		}
 	}
