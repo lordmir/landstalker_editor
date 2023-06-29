@@ -190,8 +190,8 @@ namespace RomOffsets
 		static const std::string SPRITE_TALK_SFX_FILE("assets_packed/script/spritetalksfx.bin");
 		static const std::string CHARACTER_TALK_SFX_FILE("assets_packed/script/charactertalksfx.bin");
 		static const std::string CUTSCENE_SCRIPT_FILE("code/script/cutscenes/script_cutscenetable.asm");
-		static const std::string CHARACTER_SCRIPT_FILE("assets_packed/roomdata/roomcharatertable.bin");
-		static const std::string CHARACTER_TALK_SFX_FILE("code/script/characters/script_charactertable.asm");
+		static const std::string ROOM_DIALOGUE_TABLE_FILE("assets_packed/roomdata/roomcharatertable.bin");
+		static const std::string CHARACTER_SCRIPT_FILE("code/script/characters/script_charactertable.asm");
 		static const std::string MAIN_SCRIPT_FILE("assets_packed/script/script.bin");
 	}
 

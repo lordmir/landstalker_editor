@@ -106,6 +106,7 @@ private:
     bool AsmLoadBlocksetPtrData();
     bool AsmLoadAnimatedTilesetData();
     bool AsmLoadTilesetData();
+    bool AsmLoadChestData();
 
     bool RomLoadRoomData(const Rom& rom);
     bool RomLoadRoomPalettes(const Rom& rom);
@@ -114,6 +115,7 @@ private:
     bool RomLoadBlocksetData(const Rom& rom);
     bool RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end);
     bool RomLoadAllTilesetData(const Rom& rom);
+    bool RomLoadChestData(const Rom& rom);
 
     bool AsmSaveMaps(const filesystem::path& dir);
     bool AsmSaveRoomData(const filesystem::path& dir);
@@ -125,6 +127,7 @@ private:
     bool AsmSaveTilesetData(const filesystem::path& dir);
     bool AsmSaveTilesetPointerData(const filesystem::path& dir);
     bool AsmSaveAnimatedTilesetData(const filesystem::path& dir);
+    bool AsmSaveChestData(const filesystem::path& dir);
 
     bool RomPrepareInjectMiscWarp(const Rom& rom);
     bool RomPrepareInjectRoomData(const Rom& rom);
@@ -132,6 +135,7 @@ private:
     bool RomPrepareInjectBlocksetData(const Rom& rom);
     bool RomPrepareInjectTilesetData(const Rom& rom);
     bool RomPrepareInjectAnimatedTilesetData(const Rom& rom);
+    bool RomPrepareInjectChestData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -152,6 +156,8 @@ private:
     filesystem::path m_blockset_pri_ptr_filename;
     filesystem::path m_blockset_sec_ptr_filename;
     filesystem::path m_blockset_data_filename;
+    filesystem::path m_chest_offset_data_filename;
+    filesystem::path m_chest_data_filename;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name_orig;
@@ -193,6 +199,11 @@ private:
     std::vector<std::shared_ptr<PaletteEntry>> m_warp_palette;
     std::vector<std::shared_ptr<PaletteEntry>> m_warp_palette_orig;
     std::shared_ptr<PaletteEntry> m_labrynth_lit_palette;
+
+    std::vector<uint8_t> m_chests;
+    std::vector<uint8_t> m_chests_orig;
+    std::vector<uint8_t> m_chest_offsets;
+    std::vector<uint8_t> m_chest_offsets_orig;
 };
 
 #endif // _ROOM_DATA_H_

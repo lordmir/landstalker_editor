@@ -22,6 +22,7 @@
     <ClCompile Include="..\src\BlocksetCmp.cpp" />
     <ClCompile Include="..\src\BlocksetEditorCtrl.cpp" />
     <ClCompile Include="..\src\BlocksetEditorFrame.cpp" />
+    <ClCompile Include="..\src\Chests.cpp" />
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
@@ -103,6 +104,7 @@
     <ClInclude Include="..\src\include\BlocksetEditorCtrl.h" />
     <ClInclude Include="..\src\include\BlocksetEditorFrame.h" />
     <ClInclude Include="..\src\include\Charset.h" />
+    <ClInclude Include="..\src\include\Chests.h" />
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />

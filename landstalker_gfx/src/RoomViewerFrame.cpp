@@ -93,7 +93,9 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
 	  m_warpctrl_visible(true),
-	  m_sizes_set(false)
+	  m_sizes_set(false),
+	  m_tb_hmcell(nullptr),
+	  m_tb_hmzoom(nullptr)
 {
 	m_mgr.SetManagedWindow(this);
 

@@ -354,6 +354,9 @@
     <ClCompile Include="..\src\HeightmapEditorCtrl.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Chests.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -594,6 +597,9 @@
     </ClInclude>
     <ClInclude Include="..\src\include\HeightmapEditorCtrl.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Chests.h">
+      <Filter>include\Data\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
