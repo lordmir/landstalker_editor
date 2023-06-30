@@ -6,6 +6,8 @@
 #include <wx/dataview.h>
 #include <GameData.h>
 #include <Flags.h>
+#include <Chests.h>
+#include <RoomDialogueTable.h>
 #include <WarpList.h>
 
 class BaseFlagDataViewModel : public wxDataViewVirtualListModel
@@ -72,7 +74,7 @@ public:
     virtual void Initialise() override
     {
         InitData();
-        Reset(m_data.size());
+        Reset(GetRowCount());
     }
 
     std::vector<T> GetData() { return m_data; }
@@ -153,6 +155,7 @@ protected:
     uint16_t m_roomnum;
     std::shared_ptr<GameData> m_gd;
     std::vector<T> m_data;
+    mutable std::vector<wxArrayString> m_list;
 };
 
 class EntityVisibilityFlagViewModel : public FlagDataViewModel<EntityFlag>
@@ -290,6 +293,102 @@ protected:
     }
 };
 
+class ChestFlagViewModel : public FlagDataViewModel<ChestItem>
+{
+public:
+    ChestFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<ChestItem>(roomnum, gd), m_row_count(0), m_no_chest_flag(false) {}
+
+    virtual unsigned int GetRowCount() const override
+    {
+        auto ents = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+        m_row_count = std::count_if(ents.begin(), ents.end(), [](const auto& ent) { return ent.GetType() == 0x12; });
+        return m_no_chest_flag ? m_row_count : 0;
+    }
+
+    virtual void CommitData() override
+    {
+        m_gd->GetRoomData()->SetChestsForRoom(m_roomnum, m_data);
+        m_gd->GetRoomData()->SetNoChestFlagForRoom(m_roomnum, !m_no_chest_flag);
+        m_gd->GetRoomData()->CleanupChests(*m_gd);
+    }
+
+    bool GetChestSetFlag() const
+    {
+        return m_no_chest_flag;
+    }
+
+    void SetChestSetFlag(bool flag)
+    {
+        m_no_chest_flag = flag;
+        Reset(flag ? m_row_count : 0);
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_gd->GetRoomData()->CleanupChests(*m_gd);
+        m_no_chest_flag = !m_gd->GetRoomData()->GetNoChestFlagForRoom(m_roomnum);
+        m_data = m_gd->GetRoomData()->GetChestsForRoom(m_roomnum);
+        m_data.resize(GetRowCount());
+    }
+private:
+    mutable unsigned int m_row_count;
+    bool m_no_chest_flag;
+};
+
+class RoomDialogueFlagViewModel : public FlagDataViewModel<Character>
+{
+public:
+    RoomDialogueFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<Character>(roomnum, gd) {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetStringData()->SetRoomCharacters(m_roomnum, m_data);
+    }
+
+    virtual bool DeleteRow(unsigned int row) override
+    {
+        if (row < m_data.size())
+        {
+            m_data.erase(m_data.begin() + row);
+            RowDeleted(row);
+            return true;
+        }
+        return false;
+    }
+
+    virtual bool AddRow(unsigned int row) override
+    {
+        if (m_data.size() < 64)
+        {
+            m_data.insert(m_data.end(), Character());
+            RowInserted(m_data.size() - 1);
+            return true;
+        }
+        return false;
+    }
+
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetStringData()->GetRoomCharacters(m_roomnum);
+        m_list.push_back(wxArrayString());
+        m_list[0].clear();
+        for (int i = 0; i < 0x400; ++i)
+        {
+            if (i < m_gd->GetStringData()->GetCharNameCount())
+            {
+                m_list[0].Add(StrPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetCharName(i)));
+            }
+            else
+            {
+                m_list[0].Add(StrPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetDefaultCharName()));
+            }
+        }
+    }
+};
 
 template <>
 unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
@@ -374,5 +473,47 @@ bool FlagDataViewModel<WarpList::Transition>::GetAttrByRow(unsigned int row, uns
 
 template <>
 bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<ChestItem>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<ChestItem>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<ChestItem>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<ChestItem>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<ChestItem>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<ChestItem>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<Character>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<Character>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<Character>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<Character>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<Character>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

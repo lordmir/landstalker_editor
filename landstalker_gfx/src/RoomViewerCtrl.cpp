@@ -1591,11 +1591,13 @@ bool RoomViewerCtrl::HandleNEntityKeyDown(unsigned int key, unsigned int modifie
             break;
         case '+':
             ent.SetType((ent.GetType() + 1) & 0xFF);
+            m_g->GetRoomData()->CleanupChests(*m_g);
             refresh_entities = true;
             key_handled = true;
             break;
         case '-':
             ent.SetType((ent.GetType() - 1) & 0xFF);
+            m_g->GetRoomData()->CleanupChests(*m_g);
             refresh_entities = true;
             key_handled = true;
             break;
@@ -1842,6 +1844,7 @@ void RoomViewerCtrl::DoAddEntity()
     {
         m_entities.push_back(Entity());
         m_selected = m_entities.size();
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
     }
 }
 
@@ -1858,6 +1861,8 @@ void RoomViewerCtrl::DoDeleteEntity(int entity)
         {
             m_selected = m_entities.size();
         }
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
+        m_g->GetRoomData()->CleanupChests(*m_g);
     }
 }
 
@@ -1866,6 +1871,7 @@ void RoomViewerCtrl::DoMoveEntityUp(int entity)
     if (entity > 1 && entity <= m_entities.size())
     {
         std::swap(m_entities[entity - 1], m_entities[entity - 2]);
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
     }
 }
 
@@ -1874,6 +1880,7 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
     if (entity > 0 && entity < m_entities.size())
     {
         std::swap(m_entities[entity - 1], m_entities[entity]);
+        m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
     }
 }
 
@@ -1914,7 +1921,7 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
         {
             if (ep.first != GetSelectedWarpIndex() - 1)
             {
-                SelectWarp(ep.first + 1);
+                GoToRoom(ep.first);
             }
             selection_made = true;
             break;
@@ -1929,6 +1936,7 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
                 if (ep.first != GetSelectedEntityIndex())
                 {
                     SelectEntity(ep.first);
+                    UpdateEntityProperties(ep.first);
                 }
                 selection_made = true;
                 break;

@@ -11,7 +11,7 @@ RoomDialogueTable::RoomDialogueTable(const std::vector<uint16_t>& data)
 		}
 		uint16_t room = data[i] & 0x07FF;
 		int count = data[i++] >> 11;
-		std::vector<uint16_t> chars;
+		std::vector<Character> chars;
 		for (int j = 0; j < count; ++j, ++i)
 		{
 			uint16_t chr = data[i] & 0x7FF;
@@ -64,4 +64,28 @@ std::vector<uint16_t> RoomDialogueTable::GetData() const
 	}
 	data.push_back(0xFFFF);
 	return data;
+}
+
+std::vector<Character> RoomDialogueTable::GetRoomCharacters(uint16_t room) const
+{
+	if (m_dialogue_table.count(room) == 0)
+	{
+		return {};
+	}
+	else
+	{
+		return m_dialogue_table.at(room);
+	}
+}
+
+void RoomDialogueTable::SetRoomCharacters(uint16_t room, const std::vector<Character>& chars)
+{
+	if (chars.size() > 0)
+	{
+		m_dialogue_table[room] = chars;
+	}
+	else
+	{
+		m_dialogue_table.erase(room);
+	}
 }

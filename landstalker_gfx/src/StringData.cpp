@@ -740,6 +740,16 @@ void StringData::SetRoomVisitFlag(uint16_t room, uint16_t flag)
 	m_room_visit_flags[room] = flag;
 }
 
+std::vector<uint16_t> StringData::GetRoomCharacters(uint16_t room) const
+{
+	return m_room_dialogue_table.GetRoomCharacters(room);
+}
+
+void StringData::SetRoomCharacters(uint16_t room, const std::vector<uint16_t>& characters)
+{
+	m_room_dialogue_table.SetRoomCharacters(room, characters);
+}
+
 uint8_t StringData::GetSaveLocation(uint16_t room)
 {
 	auto loc = m_save_game_locations.find(room);

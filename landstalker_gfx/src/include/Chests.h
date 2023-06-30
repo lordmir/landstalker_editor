@@ -6,6 +6,10 @@
 #include <set>
 #include <map>
 
+typedef uint8_t ChestItem;
+
+class GameData;
+
 class Chests
 {
 public:
@@ -17,17 +21,18 @@ public:
 
 	std::pair<std::vector<uint8_t>, std::vector<uint8_t>> GetData(int roomcount) const;
 
-	std::vector<uint8_t> GetChestsForRoom(uint16_t room) const;
+	std::vector<ChestItem> GetChestsForRoom(uint16_t room) const;
 	bool RoomHasChests(uint16_t room) const;
 	bool RoomHasNoChestsSet(uint16_t room) const;
-	void SetRoomChests(uint16_t room, const std::vector<uint8_t>& chests);
+	void SetRoomChests(uint16_t room, const std::vector<ChestItem>& chests);
 	void ClearRoomChests(uint16_t room);
-	void SetRoomNoChests(uint16_t room);
-	void ClearRoomNoChests(uint16_t room);
+	void SetRoomNoChestsFlag(uint16_t room);
+	void ClearRoomNoChestsFlag(uint16_t room);
+	bool CleanupRoomChests(const GameData& gd);
 
 private:
 	std::set<uint16_t> m_enabled;
-	std::map<uint16_t, std::vector<uint8_t>> m_chests;
+	std::map<uint16_t, std::vector<ChestItem>> m_chests;
 
 };
 

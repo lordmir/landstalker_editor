@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 #include <FlagDialog.h>
+#include <ChestDialog.h>
+#include <CharacterDialog.h>
 #include "RoomViewerCtrl.h"
 
 enum MENU_IDS
@@ -212,6 +214,7 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
 	{
 		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->name);
 		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
+		m_g->GetRoomData()->CleanupChests(*m_g);
 	}
 	if (m_roomnum != roomnum)
 	{
@@ -404,6 +407,18 @@ void RoomViewerFrame::ShowFlagDialog()
 	FlagDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
 	UpdateFrame();
+}
+
+void RoomViewerFrame::ShowChestsDialog()
+{
+	ChestDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	dlg.ShowModal();
+}
+
+void RoomViewerFrame::ShowCharDialog()
+{
+	CharacterDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	dlg.ShowModal();
 }
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
@@ -857,9 +872,9 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
 	main_tb->AddSeparator();
-	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flags");
-	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chests");
-	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialoue");
+	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flag Editor");
+	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chest Editor");
+	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialogue Editor");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
@@ -1014,9 +1029,11 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_EDIT_CHESTS:
 		case TOOL_SHOW_CHESTS:
+			ShowChestsDialog();
 			break;
 		case ID_EDIT_DIALOGUE:
 		case TOOL_SHOW_DIALOGUE:
+			ShowCharDialog();
 			break;
 		case HM_INSERT_ROW_BEFORE:
 			m_hmedit->InsertRowBelow();

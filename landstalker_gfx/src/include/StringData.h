@@ -105,6 +105,8 @@ public:
 
     uint16_t GetRoomVisitFlag(uint16_t room) const;
     void SetRoomVisitFlag(uint16_t room, uint16_t flag);
+    std::vector<uint16_t> GetRoomCharacters(uint16_t room) const;
+    void SetRoomCharacters(uint16_t room, const std::vector<uint16_t>& characters);
 
     uint8_t GetSaveLocation(uint16_t room);
     void SetSaveLocation(uint16_t room, uint8_t name);

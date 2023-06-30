@@ -547,3 +547,259 @@ bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& var
 	}
 	return updated;
 }
+
+template <>
+unsigned int FlagDataViewModel<ChestItem>::GetColumnCount() const
+{
+	return 2;
+}
+
+template <>
+wxString FlagDataViewModel<ChestItem>::GetColumnHeader(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "Chest";
+	case 1:
+		return "Contents";
+	default:
+		return "?";
+	}
+}
+
+template <>
+wxArrayString FlagDataViewModel<ChestItem>::GetColumnChoices(unsigned int col) const
+{
+	wxArrayString choices;
+	switch (col)
+	{
+	case 1:
+	{
+		for (int i = 0; i < 0x41; ++i)
+		{
+			if (i < m_gd->GetStringData()->GetItemNameCount())
+			{
+				choices.Add(StrPrintf("[%02X] ", i) + _(m_gd->GetStringData()->GetItemName(i)));
+			}
+			else
+			{
+				choices.Add(StrPrintf("[%02X] ???", i));
+			}
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return choices;
+}
+
+template <>
+wxString FlagDataViewModel<ChestItem>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "string";
+	case 1:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+	int count = 0;
+	int idx = 0;
+	switch (col)
+	{
+	case 0:
+		for (const auto& e : ent)
+		{
+			if (e.GetType() == 0x12)
+			{
+				count++;
+				if (count > row)
+				{
+					break;
+				}
+			}
+			idx++;
+		}
+		if (count > row)
+		{
+			variant = StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
+				ent[idx].GetXDbl(), ent[idx].GetYDbl(), ent[idx].GetZDbl());
+		}
+		else
+		{
+			variant = "???";
+		}
+		break;
+	case 1:
+		if (row < m_data.size())
+		{
+			variant = static_cast<long>(m_data[row]);
+		}
+		else
+		{
+			variant = 0x40L;
+		}
+
+		break;
+	default:
+		break;
+	}
+}
+
+template <>
+bool FlagDataViewModel<ChestItem>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+{
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<ChestItem>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	bool updated = false;
+	switch (col)
+	{
+	case 1:
+		if (row >= m_data.size())
+		{
+			m_data.resize(row + 1);
+		}
+		m_data[row] = variant.GetLong() & 0x3F;
+		updated = true;
+		break;
+	default:
+		break;
+	}
+	return updated;
+}
+
+template <>
+unsigned int FlagDataViewModel<Character>::GetColumnCount() const
+{
+	return 3;
+}
+
+template <>
+wxString FlagDataViewModel<Character>::GetColumnHeader(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "Index";
+	case 1:
+		return "Entity";
+	case 2:
+		return "Character";
+	default:
+		return "?";
+	}
+}
+
+template <>
+wxArrayString FlagDataViewModel<Character>::GetColumnChoices(unsigned int col) const
+{
+	wxArrayString choices;
+	switch (col)
+	{
+	case 2:
+	{
+		return m_list[0];
+	}
+	default:
+		break;
+	}
+	return choices;
+}
+
+template <>
+wxString FlagDataViewModel<Character>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "long";
+	case 1:
+		return "string";
+	case 2:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	if (row < m_data.size())
+	{
+		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+		wxString label;
+		int idx = 0;
+		switch (col)
+		{
+		case 0:
+			variant = static_cast<long>(row);
+			break;
+		case 1:
+
+			for (const auto& e : ent)
+			{
+				if (e.GetDialogue() == row)
+				{
+					if (label.empty())
+					{
+						label = StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, e.GetTypeName().c_str(),
+							e.GetXDbl(), e.GetYDbl(), e.GetZDbl());
+					}
+					else
+					{
+						label += ", ...";
+						break;
+					}
+				}
+				idx++;
+			}
+			variant = label.empty() ? wxString("???") : label;
+			break;
+		case 2:
+			variant = static_cast<long>(m_data[row]);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+template <>
+bool FlagDataViewModel<Character>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+{
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	bool updated = false;
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 2:
+			m_data[row] = variant.GetLong() & 0x3FF;
+			updated = true;
+			break;
+		default:
+			break;
+		}
+	}
+	return updated;
+}

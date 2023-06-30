@@ -1,4 +1,5 @@
 #include <Chests.h>
+#include <GameData.h>
 
 Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& contents)
 {
@@ -75,7 +76,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomco
 	return { offsets, contents };
 }
 
-std::vector<uint8_t> Chests::GetChestsForRoom(uint16_t room) const
+std::vector<ChestItem> Chests::GetChestsForRoom(uint16_t room) const
 {
 	auto it = m_chests.find(room);
 	if (it == m_chests.end())
@@ -99,7 +100,7 @@ bool Chests::RoomHasNoChestsSet(uint16_t room) const
 	return m_enabled.count(room) != 0;
 }
 
-void Chests::SetRoomChests(uint16_t room, const std::vector<uint8_t>& chests)
+void Chests::SetRoomChests(uint16_t room, const std::vector<ChestItem>& chests)
 {
 	if (chests.empty())
 	{
@@ -117,13 +118,47 @@ void Chests::ClearRoomChests(uint16_t room)
 	m_chests.erase(room);
 }
 
-void Chests::SetRoomNoChests(uint16_t room)
+void Chests::SetRoomNoChestsFlag(uint16_t room)
 {
 	m_chests.erase(room);
 	m_enabled.insert(room);
 }
 
-void Chests::ClearRoomNoChests(uint16_t room)
+void Chests::ClearRoomNoChestsFlag(uint16_t room)
 {
 	m_enabled.erase(room);
+}
+
+bool Chests::CleanupRoomChests(const GameData& gd)
+{
+	int chest_count = 0;
+	for (int r = 0; r < gd.GetRoomData()->GetRoomCount(); ++r)
+	{
+		auto ents = gd.GetSpriteData()->GetRoomEntities(r);
+		int chests = 0;
+		for (const auto& e : ents)
+		{
+			if (e.GetType() == 0x12)
+			{
+				chests++;
+			}
+		}
+		if (m_enabled.count(r) != 0 && m_chests.count(r) != 0)
+		{
+			m_chests.erase(r);
+		}
+		else
+		{
+			if (m_chests.count(r) > 0 && m_chests[r].size() != chests)
+			{
+				m_chests[r].resize(chests);
+			}
+			else if(m_chests.count(r) == 0 && chests > 0)
+			{
+				m_chests[r] = std::vector<uint8_t>(chests);
+			}
+			chest_count += chests;
+		}
+	}
+	return chest_count < 0x100;
 }

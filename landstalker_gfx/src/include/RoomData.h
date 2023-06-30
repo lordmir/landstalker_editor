@@ -11,6 +11,8 @@
 #include <WarpList.h>
 #include <Chests.h>
 
+class GameData;
+
 class RoomData : public DataManager
 {
 public:
@@ -76,6 +78,11 @@ public:
     std::shared_ptr<Blockset> GetCombinedBlocksetForRoom(uint16_t roomnum) const;
     std::shared_ptr<Tilemap3DEntry> GetMapForRoom(const std::string& name) const;
     std::shared_ptr<Tilemap3DEntry> GetMapForRoom(uint16_t roomnum) const;
+    std::vector<uint8_t> GetChestsForRoom(uint16_t roomnum) const;
+    void SetChestsForRoom(uint16_t roomnum, const std::vector<uint8_t>& chests);
+    bool GetNoChestFlagForRoom(uint16_t roomnum) const;
+    void SetNoChestFlagForRoom(uint16_t roomnum, bool flag);
+    bool CleanupChests(const GameData& g);
 
     std::vector<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
     void SetWarpsForRoom(uint16_t roomnum, const std::vector<WarpList::Warp>& warps);

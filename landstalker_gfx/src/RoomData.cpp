@@ -1,6 +1,7 @@
 #include <RoomData.h>
 #include <Utils.h>
 #include <AsmUtils.h>
+#include <GameData.h>
 #include <set>
 #include <cassert>
 
@@ -611,6 +612,38 @@ std::shared_ptr<Tilemap3DEntry> RoomData::GetMapForRoom(uint16_t roomnum) const
 {
     auto rm = GetRoom(roomnum);
     return GetMap(rm->map);
+}
+
+std::vector<uint8_t> RoomData::GetChestsForRoom(uint16_t roomnum) const
+{
+    return m_chests.GetChestsForRoom(roomnum);
+}
+
+void RoomData::SetChestsForRoom(uint16_t roomnum, const std::vector<uint8_t>& chests)
+{
+    m_chests.SetRoomChests(roomnum, chests);
+}
+
+bool RoomData::GetNoChestFlagForRoom(uint16_t roomnum) const
+{
+    return m_chests.RoomHasNoChestsSet(roomnum);
+}
+
+void RoomData::SetNoChestFlagForRoom(uint16_t roomnum, bool flag)
+{
+    if (flag)
+    {
+        m_chests.SetRoomNoChestsFlag(roomnum);
+    }
+    else
+    {
+        m_chests.ClearRoomNoChestsFlag(roomnum);
+    }
+}
+
+bool RoomData::CleanupChests(const GameData& g)
+{
+    return m_chests.CleanupRoomChests(g);
 }
 
 std::vector<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
