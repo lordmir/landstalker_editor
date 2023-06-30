@@ -32,7 +32,7 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void SetRoomNum(uint16_t roomnum, Mode mode = Mode::NORMAL);
+	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
 
 	bool ExportBin(const std::string& path);
@@ -46,6 +46,7 @@ public:
 	void ShowFlagDialog();
 	void ShowChestsDialog();
 	void ShowCharDialog();
+	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;

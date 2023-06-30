@@ -78,6 +78,7 @@ public:
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;
+	const std::vector<std::string>& GetErrors() const;
 
 	const std::string& GetStatusText() const;
 

@@ -5,6 +5,7 @@
 #include <FlagDialog.h>
 #include <ChestDialog.h>
 #include <CharacterDialog.h>
+#include <RoomErrorDialog.h>
 #include "RoomViewerCtrl.h"
 
 enum MENU_IDS
@@ -149,23 +150,8 @@ RoomViewerFrame::~RoomViewerFrame()
 void RoomViewerFrame::SetMode(RoomViewerFrame::Mode mode)
 {
 	m_mode = mode;
-	if (mode == Mode::NORMAL)
-	{
-		SetPaneVisibility(m_layerctrl, m_layerctrl_visible);
-		SetPaneVisibility(m_entityctrl, m_entityctrl_visible);
-		SetPaneVisibility(m_warpctrl, m_warpctrl_visible);
-	}
-	else
-	{
-		m_layerctrl_visible = IsPaneVisible(m_layerctrl);
-		m_entityctrl_visible = IsPaneVisible(m_entityctrl);
-		m_warpctrl_visible = IsPaneVisible(m_warpctrl);
-		SetPaneVisibility(m_layerctrl, false);
-		SetPaneVisibility(m_entityctrl, false);
-		SetPaneVisibility(m_warpctrl, false);
-	}
-	UpdateFrame();
 	UpdateUI();
+	UpdateFrame();
 }
 
 void RoomViewerFrame::UpdateFrame()
@@ -208,7 +194,7 @@ void RoomViewerFrame::ClearGameData()
 	UpdateFrame();
 }
 
-void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
+void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 {
 	if (m_g != nullptr)
 	{
@@ -221,7 +207,7 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum, RoomViewerFrame::Mode mode)
 		m_reset_props = true;
 	}
 	m_roomnum = roomnum;
-	m_mode = mode;
+	UpdateUI();
 	UpdateFrame();
 }
 
@@ -418,6 +404,12 @@ void RoomViewerFrame::ShowChestsDialog()
 void RoomViewerFrame::ShowCharDialog()
 {
 	CharacterDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	dlg.ShowModal();
+}
+
+void RoomViewerFrame::ShowErrorDialog()
+{
+	RoomErrorDialog dlg(this, m_roomview->GetErrors());
 	dlg.ShowModal();
 }
 
@@ -860,6 +852,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 3, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 4, ID_VIEW_ERRORS, "Errors...");
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
@@ -1035,6 +1029,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case TOOL_SHOW_DIALOGUE:
 			ShowCharDialog();
 			break;
+		case ID_VIEW_ERRORS:
+		case TOOL_SHOW_ERRORS:
+			ShowErrorDialog();
+			break;
 		case HM_INSERT_ROW_BEFORE:
 			m_hmedit->InsertRowBelow();
 			break;
@@ -1203,21 +1201,21 @@ void RoomViewerFrame::UpdateUI() const
 		CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
 		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
 
-		CheckToolbarItem("hm", HM_TOGGLE_PLAYER, false);
-		CheckToolbarItem("hm", HM_TOGGLE_NPC, false);
-		CheckToolbarItem("hm", HM_TOGGLE_RAFT, false);
+		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
+		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
+		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, false);
 
-		EnableToolbarItem("hm", HM_INSERT_ROW_BEFORE, false);
-		EnableToolbarItem("hm", HM_INSERT_ROW_AFTER, false);
-		EnableToolbarItem("hm", HM_DELETE_ROW, false);
-		EnableToolbarItem("hm", HM_INSERT_COLUMN_BEFORE, false);
-		EnableToolbarItem("hm", HM_INSERT_COLUMN_AFTER, false);
-		EnableToolbarItem("hm", HM_DELETE_COLUMN, false);
-		EnableToolbarItem("hm", HM_TOGGLE_PLAYER, false);
-		EnableToolbarItem("hm", HM_TOGGLE_NPC, false);
-		EnableToolbarItem("hm", HM_TOGGLE_RAFT, false);
-		EnableToolbarItem("hm", HM_INCREASE_HEIGHT, false);
-		EnableToolbarItem("hm", HM_DECREASE_HEIGHT, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, false);
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, false);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, false);
 		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
 		{
 			m_tb_hmcell->SetSelection(0);

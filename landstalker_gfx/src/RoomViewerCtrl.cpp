@@ -818,6 +818,11 @@ void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int 
     }
 }
 
+const std::vector<std::string>& RoomViewerCtrl::GetErrors() const
+{
+    return m_errors;
+}
+
 void RoomViewerCtrl::DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z)
 {
     int x = 0;
