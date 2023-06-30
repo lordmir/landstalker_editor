@@ -1920,13 +1920,15 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
     bool selection_made = false;
-    for (const auto& ep : m_warp_poly)
+    for (const auto& wp : m_warp_poly)
     {
-        if (Pnpoly(ep.second, xy.first, xy.second))
+        if (Pnpoly(wp.second, xy.first, xy.second))
         {
-            if (ep.first != GetSelectedWarpIndex() - 1)
+            if (wp.first != GetSelectedWarpIndex() - 1)
             {
-                GoToRoom(ep.first);
+                const auto& warp = m_warps.at(wp.first);
+                uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
+                GoToRoom(room);
             }
             selection_made = true;
             break;
