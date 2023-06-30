@@ -301,7 +301,7 @@ Entity::Entity()
     m_y_pos(0x1F80),
     m_z_pos(0x000),
     m_speed(0),
-    m_orientation(Orientation::SE),
+    m_orientation(Orientation::NE),
     m_palette(2),
     m_behaviour(0),
     m_dialogue(0),

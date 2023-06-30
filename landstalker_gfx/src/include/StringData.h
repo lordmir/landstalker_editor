@@ -7,6 +7,7 @@
 #include "IntroString.h"
 #include "EndCreditString.h"
 #include "Charset.h"
+#include "RoomDialogueTable.h"
 
 class StringData : public DataManager
 {
@@ -104,6 +105,8 @@ public:
 
     uint16_t GetRoomVisitFlag(uint16_t room) const;
     void SetRoomVisitFlag(uint16_t room, uint16_t flag);
+    std::vector<uint16_t> GetRoomCharacters(uint16_t room) const;
+    void SetRoomCharacters(uint16_t room, const std::vector<uint16_t>& characters);
 
     uint8_t GetSaveLocation(uint16_t room);
     void SetSaveLocation(uint16_t room, uint8_t name);
@@ -141,6 +144,7 @@ private:
     bool AsmLoadIntroStrings();
     bool AsmLoadEndCreditStrings();
     bool AsmLoadTalkSfx();
+    bool AsmLoadScriptData();
 
     bool RomLoadSystemFont(const Rom& rom);
     bool RomLoadSystemStrings(const Rom& rom);
@@ -150,6 +154,7 @@ private:
     bool RomLoadIntroStrings(const Rom& rom);
     bool RomLoadEndCreditStrings(const Rom& rom);
     bool RomLoadTalkSfx(const Rom& rom);
+    bool RomLoadScriptData(const Rom& rom);
 
     bool AsmSaveFonts(const filesystem::path& dir);
     bool AsmSaveSystemText(const filesystem::path& dir);
@@ -159,6 +164,7 @@ private:
     bool AsmSaveIntroStrings(const filesystem::path& dir);
     bool AsmSaveEndCreditStrings(const filesystem::path& dir);
     bool AsmSaveTalkSfx(const filesystem::path& dir);
+    bool AsmSaveScriptData(const filesystem::path& dir);
 
     bool RomPrepareInjectSystemText(const Rom& rom);
     bool RomPrepareInjectCompressedStringData(const Rom& rom);
@@ -167,6 +173,7 @@ private:
     bool RomPrepareInjectIntroStrings(const Rom& rom);
     bool RomPrepareInjectEndCreditStrings(const Rom& rom);
     bool RomPrepareInjectTalkSfx(const Rom& rom);
+    bool RomPrepareInjectScriptData(const Rom& rom);
 
     filesystem::path m_region_check_filename;
     filesystem::path m_region_check_routine_filename;
@@ -192,6 +199,7 @@ private:
     filesystem::path m_end_credit_strings_path;
     filesystem::path m_char_talk_sfx_path;
     filesystem::path m_sprite_talk_sfx_path;
+    filesystem::path m_room_dialogue_table_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;
@@ -235,6 +243,8 @@ private:
     std::vector<uint8_t> m_char_talk_sfx_orig;
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx;
     std::map<uint8_t, uint8_t> m_sprite_talk_sfx_orig;
+    RoomDialogueTable m_room_dialogue_table;
+    RoomDialogueTable m_room_dialogue_table_orig;
 
     RomOffsets::Region m_region;
     bool m_has_region_check;

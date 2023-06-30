@@ -1,6 +1,7 @@
 #include <RoomData.h>
 #include <Utils.h>
 #include <AsmUtils.h>
+#include <GameData.h>
 #include <set>
 #include <cassert>
 
@@ -47,6 +48,10 @@ RoomData::RoomData(const filesystem::path& asm_file)
     {
         throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.str() + '\'');
     }
+    if (!AsmLoadChestData())
+    {
+        throw std::runtime_error(std::string("Unable to load chest data from \'") + m_chest_data_filename.str() + '\'');
+    }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
 }
@@ -78,6 +83,10 @@ RoomData::RoomData(const Rom& rom)
     if (!RomLoadAllTilesetData(rom))
     {
         throw std::runtime_error(std::string("Unable to load tileset data from ROM"));
+    }
+    if (!RomLoadChestData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load chest data from ROM"));
     }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
@@ -133,6 +142,10 @@ bool RoomData::Save(const filesystem::path& dir)
     if (!AsmSaveAnimatedTilesetData(dir))
     {
         throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.str() + '\'');
+    }
+    if (!AsmSaveChestData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save chest data to \'") + m_chest_data_filename.str() + '\'');
     }
     CommitAllChanges();
     return true;
@@ -226,6 +239,10 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
+    if (m_chests != m_chests_orig)
+    {
+        return true;
+    }
     
     return false;
 }
@@ -256,6 +273,10 @@ void RoomData::RefreshPendingWrites(const Rom& rom)
     if (!RomPrepareInjectTilesetData(rom))
     {
         throw std::runtime_error(std::string("Unable to prepare tileset data for ROM injection"));
+    }
+    if (!RomPrepareInjectChestData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare chest data for ROM injection"));
     }
 }
 
@@ -593,6 +614,38 @@ std::shared_ptr<Tilemap3DEntry> RoomData::GetMapForRoom(uint16_t roomnum) const
     return GetMap(rm->map);
 }
 
+std::vector<uint8_t> RoomData::GetChestsForRoom(uint16_t roomnum) const
+{
+    return m_chests.GetChestsForRoom(roomnum);
+}
+
+void RoomData::SetChestsForRoom(uint16_t roomnum, const std::vector<uint8_t>& chests)
+{
+    m_chests.SetRoomChests(roomnum, chests);
+}
+
+bool RoomData::GetNoChestFlagForRoom(uint16_t roomnum) const
+{
+    return m_chests.RoomHasNoChestsSet(roomnum);
+}
+
+void RoomData::SetNoChestFlagForRoom(uint16_t roomnum, bool flag)
+{
+    if (flag)
+    {
+        m_chests.SetRoomNoChestsFlag(roomnum);
+    }
+    else
+    {
+        m_chests.ClearRoomNoChestsFlag(roomnum);
+    }
+}
+
+bool RoomData::CleanupChests(const GameData& g)
+{
+    return m_chests.CleanupRoomChests(g);
+}
+
 std::vector<WarpList::Warp> RoomData::GetWarpsForRoom(uint16_t roomnum)
 {
     return m_warps.GetWarpsForRoom(roomnum);
@@ -645,7 +698,17 @@ void RoomData::SetClimbDestination(uint16_t room, uint16_t dest)
 
 std::vector<WarpList::Transition> RoomData::GetTransitions(uint16_t room) const
 {
-    return m_warps.GetTransitions(room);
+    return m_warps.GetAllTransitionsForRoom(room);
+}
+
+std::vector<WarpList::Transition> RoomData::GetSrcTransitions(uint16_t room) const
+{
+    return m_warps.GetSrcTransitionsForRoom(room);
+}
+
+void RoomData::SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data)
+{
+    m_warps.SetSrcTransitionsForRoom(room, data);
 }
 
 void RoomData::CommitAllChanges()
@@ -675,6 +738,7 @@ void RoomData::CommitAllChanges()
     m_room_pals_orig = m_room_pals;
     m_tilesets_orig = m_tilesets;
     m_warp_palette_orig = m_warp_palette;
+    m_chests_orig = m_chests;
     m_pending_writes.clear();
 }
 
@@ -700,6 +764,8 @@ bool RoomData::LoadAsmFilenames()
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::PRI_PTRS, m_blockset_pri_ptr_filename);
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::SEC_PTRS, m_blockset_sec_ptr_filename);
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::DATA, m_blockset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_OFFSETS, m_chest_offset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_CONTENTS, m_chest_data_filename);
         return retval;
     }
     catch (...)
@@ -710,22 +776,24 @@ bool RoomData::LoadAsmFilenames()
 
 void RoomData::SetDefaultFilenames()
 {
-    if (m_room_data_filename.empty())        m_room_data_filename        = RomOffsets::Rooms::ROOM_DATA_FILE;
-    if (m_map_data_filename.empty())         m_map_data_filename         = RomOffsets::Rooms::MAP_DATA_FILE;
-    if (m_warp_data_filename.empty())        m_warp_data_filename        = RomOffsets::Rooms::WARP_FILENAME;
-    if (m_fall_data_filename.empty())        m_fall_data_filename        = RomOffsets::Rooms::FALL_DEST_FILENAME;
-    if (m_climb_data_filename.empty())       m_climb_data_filename       = RomOffsets::Rooms::CLIMB_DEST_FILENAME;
-    if (m_transition_data_filename.empty())  m_transition_data_filename  = RomOffsets::Rooms::TRANSITION_FILENAME;
-    if (m_palette_data_filename.empty())     m_palette_data_filename     = RomOffsets::Rooms::PALETTE_DATA_FILE;
-    if (m_lava_pal_data_filename.empty())    m_lava_pal_data_filename    = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
-    if (m_warp_pal_data_filename.empty())    m_warp_pal_data_filename    = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
-    if (m_lantern_pal_data_filename.empty()) m_lantern_pal_data_filename = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
-    if (m_tileset_data_filename.empty())     m_tileset_data_filename     = RomOffsets::Tilesets::INCLUDE_FILE;
-    if (m_tileset_ptrtab_filename.empty())   m_tileset_ptrtab_filename   = RomOffsets::Tilesets::PTRTAB_FILE;
-    if (m_tileset_anim_filename.empty())     m_tileset_anim_filename     = RomOffsets::Tilesets::ANIM_FILE;
-    if (m_blockset_pri_ptr_filename.empty()) m_blockset_pri_ptr_filename = RomOffsets::Blocksets::PRI_PTR_FILE;
-    if (m_blockset_sec_ptr_filename.empty()) m_blockset_sec_ptr_filename = RomOffsets::Blocksets::SEC_PTR_FILE;
-    if (m_blockset_data_filename.empty())    m_blockset_data_filename    = RomOffsets::Blocksets::DATA_FILE;
+    if (m_room_data_filename.empty())          m_room_data_filename         = RomOffsets::Rooms::ROOM_DATA_FILE;
+    if (m_map_data_filename.empty())           m_map_data_filename          = RomOffsets::Rooms::MAP_DATA_FILE;
+    if (m_warp_data_filename.empty())          m_warp_data_filename         = RomOffsets::Rooms::WARP_FILENAME;
+    if (m_fall_data_filename.empty())          m_fall_data_filename         = RomOffsets::Rooms::FALL_DEST_FILENAME;
+    if (m_climb_data_filename.empty())         m_climb_data_filename        = RomOffsets::Rooms::CLIMB_DEST_FILENAME;
+    if (m_transition_data_filename.empty())    m_transition_data_filename   = RomOffsets::Rooms::TRANSITION_FILENAME;
+    if (m_palette_data_filename.empty())       m_palette_data_filename      = RomOffsets::Rooms::PALETTE_DATA_FILE;
+    if (m_lava_pal_data_filename.empty())      m_lava_pal_data_filename     = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
+    if (m_warp_pal_data_filename.empty())      m_warp_pal_data_filename     = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
+    if (m_lantern_pal_data_filename.empty())   m_lantern_pal_data_filename  = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
+    if (m_tileset_data_filename.empty())       m_tileset_data_filename      = RomOffsets::Tilesets::INCLUDE_FILE;
+    if (m_tileset_ptrtab_filename.empty())     m_tileset_ptrtab_filename    = RomOffsets::Tilesets::PTRTAB_FILE;
+    if (m_tileset_anim_filename.empty())       m_tileset_anim_filename      = RomOffsets::Tilesets::ANIM_FILE;
+    if (m_blockset_pri_ptr_filename.empty())   m_blockset_pri_ptr_filename  = RomOffsets::Blocksets::PRI_PTR_FILE;
+    if (m_blockset_sec_ptr_filename.empty())   m_blockset_sec_ptr_filename  = RomOffsets::Blocksets::SEC_PTR_FILE;
+    if (m_blockset_data_filename.empty())      m_blockset_data_filename     = RomOffsets::Blocksets::DATA_FILE;
+    if (m_chest_data_filename.empty())         m_chest_data_filename        = RomOffsets::Rooms::CHEST_CONTENTS_FILENAME;
+    if (m_chest_offset_data_filename.empty())  m_chest_offset_data_filename = RomOffsets::Rooms::CHEST_OFFSETS_FILENAME;
 }
 
 bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -748,6 +816,8 @@ bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
     retval = retval && CreateDirectoryTree(dir / m_blockset_pri_ptr_filename);
     retval = retval && CreateDirectoryTree(dir / m_blockset_sec_ptr_filename);
     retval = retval && CreateDirectoryTree(dir / m_blockset_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_chest_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_chest_offset_data_filename);
 
     for (const auto& m : m_maps)
     {
@@ -1094,6 +1164,19 @@ bool RoomData::AsmLoadTilesetData()
     return false;
 }
 
+bool RoomData::AsmLoadChestData()
+{
+    auto contents = ReadBytes(GetBasePath() / m_chest_data_filename);
+    auto offsets = ReadBytes(GetBasePath() / m_chest_offset_data_filename);
+    while (contents.back() == 0xFF)
+    {
+        contents.resize(contents.size() - 1);
+    }
+    m_chests = Chests(offsets, contents);
+    m_chests_orig = m_chests;
+    return true;
+}
+
 bool RoomData::RomLoadRoomData(const Rom& rom)
 {
     try
@@ -1391,6 +1474,23 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
     return true;
 }
 
+bool RoomData::RomLoadChestData(const Rom& rom)
+{
+    uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS);
+    uint32_t chests_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS);
+    uint32_t offsets_end = chests_begin;
+    uint32_t chests_end = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).end;
+    auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
+    auto chest_bytes = rom.read_array<uint8_t>(chests_begin, chests_end - chests_begin);
+    while (chest_bytes.back() == 0xFF)
+    {
+        chest_bytes.resize(chest_bytes.size() - 1);
+    }
+    m_chests = Chests(offset_bytes, chest_bytes);
+    m_chests_orig = m_chests;
+    return true;
+}
+
 bool RoomData::AsmSaveMaps(const filesystem::path& dir)
 {
     try
@@ -1666,6 +1766,14 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
     return false;
 }
 
+bool RoomData::AsmSaveChestData(const filesystem::path& dir)
+{
+    auto result = m_chests.GetData(GetRoomCount());
+    WriteBytes(result.first, dir / m_chest_data_filename);
+    WriteBytes(result.second, dir / m_chest_offset_data_filename);
+    return true;
+}
+
 bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
 {
     auto fall_bytes = m_warps.GetFallBytes();
@@ -1897,6 +2005,19 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
 
     m_pending_writes.push_back({ RomOffsets::Tilesets::ANIM_DATA_LOC, bytes });
 
+    return true;
+}
+
+bool RoomData::RomPrepareInjectChestData(const Rom& rom)
+{
+    auto results = m_chests.GetData(GetRoomCount());
+    uint32_t offsets_begin = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).begin;
+    uint32_t chests_begin = offsets_begin + results.first.size();
+    auto data = std::make_shared<ByteVector>(results.first);
+    data->insert(data->end(), results.second.begin(), results.second.end());
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS, offsets_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS, chests_begin));
+    m_pending_writes.push_back({ RomOffsets::Rooms::CHEST_SECTION, data });
     return true;
 }
 

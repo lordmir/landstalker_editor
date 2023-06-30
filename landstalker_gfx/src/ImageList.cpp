@@ -31,6 +31,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["delete_column"] = wxBITMAP_PNG_FROM_DATA(delete_col_16x16);
 		m_images["delete_row"] = wxBITMAP_PNG_FROM_DATA(delete_row_16x16);
 		m_images["delete_tile"] = wxBITMAP_PNG_FROM_DATA(delete_tile_16x16);
+		m_images["dialogue"] = wxBITMAP_PNG_FROM_DATA(dialogue_16x16);
 		m_images["down"] = wxBITMAP_PNG_FROM_DATA(down_16x16);
 		m_images["drawing"] = wxBITMAP_PNG_FROM_DATA(DRAWING_16x16);
 		m_images["ehitbox"] = wxBITMAP_PNG_FROM_DATA(ehitbox_16x16);

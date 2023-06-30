@@ -158,6 +158,14 @@ namespace RomOffsets
 		static const std::string CHARACTER_TALK_SFX("SpecialCharacterSfxList");
 		static const std::string CHARACTER_TALK_SFX_SECTION("SpecialCharacterSfxListSection");
 
+		static const std::string CUTSCENE_SCRIPT_TABLE("CutsceneScriptTable");
+		static const std::string ROOM_CHARACTER_TABLE("RoomDialogueTable");
+		static const std::string CHARACTER_SCRIPT_TABLE("CharacterScriptTable");
+		static const std::string MAIN_SCRIPT_TABLE("Script");
+		static const std::string MISC_SCRIPT_SECTION("MiscScriptSection");
+		static const std::string MAIN_SCRIPT_SECTION("MainScriptSection");
+		static const std::string ROOM_CHARACTER_TABLE_SECTION("RoomCharacterTableSection");
+
 		static const std::string STRINGS_FILE("code/text/strings.asm");
 		static const std::string STRING_PTR_FILE("code/pointertables/stringbankptr.asm");
 		static const std::string STRING_BANK_PTR_FILE("code/pointertables/strings/stringptrs.asm");
@@ -181,6 +189,10 @@ namespace RomOffsets
 		static const std::string END_CREDIT_STRINGS_FILE("assets_packed/strings/ending/credits.bin");
 		static const std::string SPRITE_TALK_SFX_FILE("assets_packed/script/spritetalksfx.bin");
 		static const std::string CHARACTER_TALK_SFX_FILE("assets_packed/script/charactertalksfx.bin");
+		static const std::string CUTSCENE_SCRIPT_FILE("code/script/cutscenes/script_cutscenetable.asm");
+		static const std::string ROOM_DIALOGUE_TABLE_FILE("assets_packed/roomdata/roomcharatertable.bin");
+		static const std::string CHARACTER_SCRIPT_FILE("code/script/characters/script_charactertable.asm");
+		static const std::string MAIN_SCRIPT_FILE("assets_packed/script/script.bin");
 	}
 
 	namespace Graphics
@@ -461,6 +473,8 @@ namespace RomOffsets
 		static const std::string PALETTE_LAVA("LavaPaletteRotation");
 		static const std::string PALETTE_WARP("KazaltWarpPalette");
 		static const std::string PALETTE_LANTERN("LabrynthLitPal");
+		static const std::string CHEST_CONTENTS("ChestContents");
+		static const std::string CHEST_OFFSETS("RoomChestOffsets");
 
 		static const std::string MISC_WARP_SECTION("MiscWarpSection");
 		static const std::string FALL_TABLE_LEA_LOC("FallTableLeaLoc");
@@ -468,6 +482,7 @@ namespace RomOffsets
 		static const std::string TRANSITION_TABLE_LEA_LOC1("TransitionTableLeaLoc1");
 		static const std::string TRANSITION_TABLE_LEA_LOC2("TransitionTableLeaLoc2");
 		static const std::string ROOM_DATA_SECTION("RoomDataSection");
+		static const std::string CHEST_SECTION("ChestSection");
 
 		static const std::string ROOM_VISIT_FLAGS("RoomVisitedFlagLookup");
 
@@ -484,6 +499,8 @@ namespace RomOffsets
 		static const std::string PALETTE_WARP_FILENAME("assets_packed/graphics/miscpalettes/kazaltwarp.pal");
 		static const std::string PALETTE_LANTERN_FILENAME("assets_packed/graphics/miscpalettes/labrynthlit.pal");
 		static const std::string ROOM_VISIT_FLAGS_FILE("assets_packed/roomdata/flagactions/roomvisitflags.bin");
+		static const std::string CHEST_CONTENTS_FILENAME("assets_packed/roomdata/chests/chestcontents.bin");
+		static const std::string CHEST_OFFSETS_FILENAME("assets_packed/roomdata/chests/chestoffsets.bin");
 	}
 
 	inline const std::unordered_map<Region, std::string> REGION_NAMES
@@ -557,6 +574,10 @@ namespace RomOffsets
 		{ Strings::REGION_ERROR_NTSC,              {{Region::JP, 0x000000}, {Region::US, 0x11EA9A}, {Region::UK, 0x11EA9A}, {Region::FR, 0x11EA9A}, {Region::DE, 0x11EA9A}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_PAL,               {{Region::JP, 0x000000}, {Region::US, 0x11EAAA}, {Region::UK, 0x11EAAA}, {Region::FR, 0x11EAAA}, {Region::DE, 0x11EAAA}, {Region::US_BETA, 0x000000}}},
 		{ Strings::REGION_ERROR_LINE3,             {{Region::JP, 0x000000}, {Region::US, 0x11EAB8}, {Region::UK, 0x11EAB8}, {Region::FR, 0x11EAB8}, {Region::DE, 0x11EAB8}, {Region::US_BETA, 0x000000}}},
+		{ Strings::CUTSCENE_SCRIPT_TABLE,          {{Region::JP, 0x0262E2}, {Region::US, 0x02541C}, {Region::UK, 0x02541C}, {Region::FR, 0x0254E4}, {Region::DE, 0x0251C4}, {Region::US_BETA, 0x025344}}},
+		{ Strings::ROOM_CHARACTER_TABLE,           {{Region::JP, 0x026142}, {Region::US, 0x02527C}, {Region::UK, 0x02527C}, {Region::FR, 0x025344}, {Region::DE, 0x025024}, {Region::US_BETA, 0x0251A4}}},
+		{ Strings::CHARACTER_SCRIPT_TABLE,         {{Region::JP, 0x026082}, {Region::US, 0x0251BC}, {Region::UK, 0x0251BC}, {Region::FR, 0x025284}, {Region::DE, 0x024F64}, {Region::US_BETA, 0x0250E4}}},
+		{ Strings::MAIN_SCRIPT_TABLE,              {{Region::JP, 0x0286BC}, {Region::US, 0x0277F6}, {Region::UK, 0x0277F6}, {Region::FR, 0x02791A}, {Region::DE, 0x0275FA}, {Region::US_BETA, 0x02771E}}},
 		{ Graphics::GAME_LOAD_PALETTE_LEA,         {{Region::JP, 0x00F800}, {Region::US, 0x00F694}, {Region::UK, 0x00F694}, {Region::FR, 0x00F5FE}, {Region::DE, 0x00F5F2}, {Region::US_BETA, 0x00F630}}},
 		{ Graphics::GAME_LOAD_PLAYER_PALETTE,      {{Region::JP, 0x00FC8A}, {Region::US, 0x00FB1E}, {Region::UK, 0x00FB1E}, {Region::FR, 0x00FA88}, {Region::DE, 0x00FA7C}, {Region::US_BETA, 0x00FABA}}},
 		{ Graphics::GAME_LOAD_CHARS,               {{Region::JP, 0x00F7B2}, {Region::US, 0x00F646}, {Region::UK, 0x00F646}, {Region::FR, 0x00F5B0}, {Region::DE, 0x00F5A4}, {Region::US_BETA, 0x00F5E2}}},
@@ -645,6 +666,8 @@ namespace RomOffsets
 		{ Rooms::TRANSITION_TABLE_LEA_LOC1,        {{Region::JP, 0x00A0EA}, {Region::US, 0x00A150}, {Region::UK, 0x00A150}, {Region::FR, 0x00A150}, {Region::DE, 0x00A15A}, {Region::US_BETA, 0x00A0F8}}},
 		{ Rooms::TRANSITION_TABLE_LEA_LOC2,        {{Region::JP, 0x00A120}, {Region::US, 0x00A186}, {Region::UK, 0x00A186}, {Region::FR, 0x00A186}, {Region::DE, 0x00A190}, {Region::US_BETA, 0x00A12E}}},
 		{ Rooms::ROOM_VISIT_FLAGS,                 {{Region::JP, 0x00293C}, {Region::US, 0x002942}, {Region::UK, 0x002942}, {Region::FR, 0x002942}, {Region::DE, 0x002942}, {Region::US_BETA, 0x00293C}}},
+		{ Rooms::CHEST_CONTENTS,                   {{Region::JP, 0x09E76E}, {Region::US, 0x09E776}, {Region::UK, 0x09E776}, {Region::FR, 0x09E776}, {Region::DE, 0x09E776}, {Region::US_BETA, 0x09E776}}},
+		{ Rooms::CHEST_OFFSETS,                    {{Region::JP, 0x09E764}, {Region::US, 0x09E76C}, {Region::UK, 0x09E76C}, {Region::FR, 0x09E76C}, {Region::DE, 0x09E76C}, {Region::US_BETA, 0x09E76C}}},
 		{ Tilesets::INTRO_FONT_PTR,                {{Region::JP, 0x00C4C2}, {Region::US, 0x00C528}, {Region::UK, 0x00C528}, {Region::FR, 0x00C528}, {Region::DE, 0x00C532}, {Region::US_BETA, 0x00C4D0}}}
 	};
 
@@ -665,6 +688,9 @@ namespace RomOffsets
 		{ Strings::INTRO_STRING_DATA,              {{Region::JP, {0x00C538, 0x00CD4A}}, {Region::US, {0x00C59E, 0x00CDAE}}, {Region::UK, {0x00C59E, 0x00CDAE}}, {Region::FR, {0x00C59E, 0x00CDAE}}, {Region::DE, {0x00C5A8, 0x00CDB6}}, {Region::US_BETA, {0x00C546, 0x00CD58}}}},
 		{ Strings::END_CREDIT_STRING_SECTION,      {{Region::JP, {0x09ED12, 0x09F62E}}, {Region::US, {0x09ED1A, 0x09F644}}, {Region::UK, {0x09ED1A, 0x09F49C}}, {Region::FR, {0x09ED1A, 0x09F474}}, {Region::DE, {0x09ED1A, 0x09F472}}, {Region::US_BETA, {0x09ED1A, 0x09F636}}}},
 		{ Strings::REGION_CHECK_DATA_SECTION,      {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x11EB4C, 0x120000}}, {Region::UK, {0x11EB4C, 0x120000}}, {Region::FR, {0x11EB4C, 0x120000}}, {Region::DE, {0x11EB4C, 0x120000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Strings::MAIN_SCRIPT_SECTION,            {{Region::JP, {0x0286BC, 0x029AFC}}, {Region::US, {0x0277F6, 0x028D64}}, {Region::UK, {0x0277F6, 0x028D64}}, {Region::FR, {0x02791A, 0x028938}}, {Region::DE, {0x0275FA, 0x02861E}}, {Region::US_BETA, {0x02771E, 0x028C56}}}},
+		{ Strings::MISC_SCRIPT_SECTION,            {{Region::JP, {0x0262F4, 0x026C5C}}, {Region::US, {0x02542E, 0x025D96}}, {Region::UK, {0x02542E, 0x025D96}}, {Region::FR, {0x0254F6, 0x025E5E}}, {Region::DE, {0x0251D6, 0x025B3E}}, {Region::US_BETA, {0x025356, 0x025CBE}}}},
+		{ Strings::ROOM_CHARACTER_TABLE_SECTION,   {{Region::JP, {0x02659A, 0x0269D2}}, {Region::US, {0x0256D6, 0x025B0C}}, {Region::UK, {0x0256D6, 0x025B0C}}, {Region::FR, {0x02579E, 0x025BD4}}, {Region::DE, {0x02547E, 0x0258B4}}, {Region::US_BETA, {0x0255FC, 0x025A36}}}},
 		{ Graphics::LITHOGRAPH_DATA,               {{Region::JP, {0x038A98, 0x03974E}}, {Region::US, {0x038AAC, 0x039762}}, {Region::UK, {0x038AAC, 0x039762}}, {Region::FR, {0x038A98, 0x03974E}}, {Region::DE, {0x038A98, 0x03974E}}, {Region::US_BETA, {0x038AAC, 0x039762}}}},
 		{ Graphics::SEGA_LOGO_DATA,                {{Region::JP, {0x0386E4, 0x0389D0}}, {Region::US, {0x0386E4, 0x0389D4}}, {Region::UK, {0x0386E4, 0x0389D4}}, {Region::FR, {0x0386E4, 0x0389C0}}, {Region::DE, {0x0386E4, 0x0389C0}}, {Region::US_BETA, {0x0386E4, 0x0389D4}}}},
 		{ Graphics::CLIMAX_LOGO_DATA,              {{Region::JP, {0x03DE62, 0x03E52C}}, {Region::US, {0x03DF8A, 0x03E654}}, {Region::UK, {0x03DF8A, 0x03E654}}, {Region::FR, {0x03DF84, 0x03E64E}}, {Region::DE, {0x03E01A, 0x03E6E4}}, {Region::US_BETA, {0x03DF10, 0x03E5DA}}}},
@@ -693,6 +719,7 @@ namespace RomOffsets
 		{ Rooms::PALETTE_LAVA,                     {{Region::JP, {0x002608, 0x002628}}, {Region::US, {0x00260E, 0x00262E}}, {Region::UK, {0x00260E, 0x00262E}}, {Region::FR, {0x00260E, 0x00262E}}, {Region::DE, {0x00260E, 0x00262E}}, {Region::US_BETA, {0x002608, 0x002628}}}},
 		{ Rooms::PALETTE_LANTERN,                  {{Region::JP, {0x002DAE, 0x002DC8}}, {Region::US, {0x002DB4, 0x002DCE}}, {Region::UK, {0x002DB4, 0x002DCE}}, {Region::FR, {0x002DB4, 0x002DCE}}, {Region::DE, {0x002DB4, 0x002DCE}}, {Region::US_BETA, {0x002DAE, 0x002DC8}}}},
 		{ Rooms::PALETTE_WARP,                     {{Region::JP, {0x00E98A, 0x00E9AE}}, {Region::US, {0x00E80E, 0x00E832}}, {Region::UK, {0x00E80E, 0x00E832}}, {Region::FR, {0x00E778, 0x00E79C}}, {Region::DE, {0x00E76C, 0x00E790}}, {Region::US_BETA, {0x00E7B8, 0x00E7DC}}}},
+		{ Rooms::CHEST_SECTION,                    {{Region::JP, {0x09E786, 0x09EB94}}, {Region::US, {0x09E78E, 0x09EB9C}}, {Region::UK, {0x09E78E, 0x09EB9C}}, {Region::FR, {0x09E78E, 0x09EB9C}}, {Region::DE, {0x09E78E, 0x09EB9C}}, {Region::US_BETA, {0x09E78E, 0x09EB9C}}}},
 		{ Graphics::SEGA_LOGO_PAL,                 {{Region::JP, {0x0386C2, 0x0386D0}}, {Region::US, {0x0386C2, 0x0386D0}}, {Region::UK, {0x0386C2, 0x0386D0}}, {Region::FR, {0x0386C2, 0x0386D0}}, {Region::DE, {0x0386C2, 0x0386D0}}, {Region::US_BETA, {0x0386C2, 0x0386D0}}}},
 		{ Graphics::GAME_LOAD_PALETTE,             {{Region::JP, {0x00F828, 0x00F848}}, {Region::US, {0x00F6BC, 0x00F6DC}}, {Region::UK, {0x00F6BC, 0x00F6DC}}, {Region::FR, {0x00F626, 0x00F646}}, {Region::DE, {0x00F61A, 0x00F63A}}, {Region::US_BETA, {0x00F658, 0x00F678}}}},
 		{ Graphics::TITLE_PALETTE_BLUE,            {{Region::JP, {0x039AF4, 0x039B2C}}, {Region::US, {0x039B04, 0x039B3C}}, {Region::UK, {0x039B04, 0x039B3C}}, {Region::FR, {0x039AF0, 0x039B28}}, {Region::DE, {0x039AF0, 0x039B28}}, {Region::US_BETA, {0x039B10, 0x039B48}}}},

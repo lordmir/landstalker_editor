@@ -24,10 +24,33 @@ public:
 	void MoveSelectedUpCurrentList();
 	void MoveSelectedDownCurrentList();
 private:
-	void InitSpriteVisibleFlags();
+	struct PageProperties
+	{
+		bool add_enabled;
+		bool delete_enabled;
+		bool rearrange_enabled;
+
+		PageProperties(bool add, bool del, bool rearrange)
+			: add_enabled(add), delete_enabled(del), rearrange_enabled(rearrange)
+		{}
+		PageProperties()
+			: add_enabled(false), delete_enabled(false), rearrange_enabled(false)
+		{}
+	};
+
+	void AddPage(FlagType type, const std::string& name, const FlagDialog::PageProperties& props);
+	void InitRoomTransitionFlags();
+	void InitEntityVisibleFlags();
+	void InitOneTimeFlags();
+	void InitRoomClearFlags();
+	void InitLockedDoorFlags();
+	void InitPermanentSwitchFlags();
+	void InitSacredTreeFlags();
+	void UpdateUI();
 
 	FlagType GetSelectedTab();
 
+	void OnTabChange(wxBookCtrlEvent& e);
 	void OnOK(wxCommandEvent& evt);
 	void OnCancel(wxCommandEvent& evt);
 	void OnAdd(wxCommandEvent& evt);
@@ -36,6 +59,9 @@ private:
 	void OnMoveDown(wxCommandEvent& evt);
 	void OnKeyPress(wxKeyEvent& evt);
 
+
+	std::vector<FlagType> m_pages;
+	std::map<FlagType, PageProperties> m_page_properties;
 	std::shared_ptr<GameData> m_gd;
 	ImageList* m_imglst;
 	uint16_t m_roomnum;

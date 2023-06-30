@@ -9,6 +9,9 @@
 #include <DataTypes.h>
 #include <Room.h>
 #include <WarpList.h>
+#include <Chests.h>
+
+class GameData;
 
 class RoomData : public DataManager
 {
@@ -75,6 +78,11 @@ public:
     std::shared_ptr<Blockset> GetCombinedBlocksetForRoom(uint16_t roomnum) const;
     std::shared_ptr<Tilemap3DEntry> GetMapForRoom(const std::string& name) const;
     std::shared_ptr<Tilemap3DEntry> GetMapForRoom(uint16_t roomnum) const;
+    std::vector<uint8_t> GetChestsForRoom(uint16_t roomnum) const;
+    void SetChestsForRoom(uint16_t roomnum, const std::vector<uint8_t>& chests);
+    bool GetNoChestFlagForRoom(uint16_t roomnum) const;
+    void SetNoChestFlagForRoom(uint16_t roomnum, bool flag);
+    bool CleanupChests(const GameData& g);
 
     std::vector<WarpList::Warp> GetWarpsForRoom(uint16_t roomnum);
     void SetWarpsForRoom(uint16_t roomnum, const std::vector<WarpList::Warp>& warps);
@@ -87,6 +95,8 @@ public:
     void SetHasClimbDestination(uint16_t room, bool enabled);
     void SetClimbDestination(uint16_t room, uint16_t dest);
     std::vector<WarpList::Transition> GetTransitions(uint16_t room) const;
+    std::vector<WarpList::Transition> GetSrcTransitions(uint16_t room) const;
+    void SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data);
 
 protected:
     virtual void CommitAllChanges();
@@ -104,6 +114,7 @@ private:
     bool AsmLoadBlocksetPtrData();
     bool AsmLoadAnimatedTilesetData();
     bool AsmLoadTilesetData();
+    bool AsmLoadChestData();
 
     bool RomLoadRoomData(const Rom& rom);
     bool RomLoadRoomPalettes(const Rom& rom);
@@ -112,6 +123,7 @@ private:
     bool RomLoadBlocksetData(const Rom& rom);
     bool RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end);
     bool RomLoadAllTilesetData(const Rom& rom);
+    bool RomLoadChestData(const Rom& rom);
 
     bool AsmSaveMaps(const filesystem::path& dir);
     bool AsmSaveRoomData(const filesystem::path& dir);
@@ -123,6 +135,7 @@ private:
     bool AsmSaveTilesetData(const filesystem::path& dir);
     bool AsmSaveTilesetPointerData(const filesystem::path& dir);
     bool AsmSaveAnimatedTilesetData(const filesystem::path& dir);
+    bool AsmSaveChestData(const filesystem::path& dir);
 
     bool RomPrepareInjectMiscWarp(const Rom& rom);
     bool RomPrepareInjectRoomData(const Rom& rom);
@@ -130,6 +143,7 @@ private:
     bool RomPrepareInjectBlocksetData(const Rom& rom);
     bool RomPrepareInjectTilesetData(const Rom& rom);
     bool RomPrepareInjectAnimatedTilesetData(const Rom& rom);
+    bool RomPrepareInjectChestData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -150,6 +164,8 @@ private:
     filesystem::path m_blockset_pri_ptr_filename;
     filesystem::path m_blockset_sec_ptr_filename;
     filesystem::path m_blockset_data_filename;
+    filesystem::path m_chest_offset_data_filename;
+    filesystem::path m_chest_data_filename;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name_orig;
@@ -191,6 +207,9 @@ private:
     std::vector<std::shared_ptr<PaletteEntry>> m_warp_palette;
     std::vector<std::shared_ptr<PaletteEntry>> m_warp_palette_orig;
     std::shared_ptr<PaletteEntry> m_labrynth_lit_palette;
+
+    Chests m_chests;
+    Chests m_chests_orig;
 };
 
 #endif // _ROOM_DATA_H_

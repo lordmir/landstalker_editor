@@ -267,9 +267,6 @@
     <ClCompile Include="..\src\Room.cpp">
       <Filter>src\Data\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\RoomData.cpp">
-      <Filter>src\Data\Rooms</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\RoomViewerFrame.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
@@ -281,9 +278,6 @@
     </ClCompile>
     <ClCompile Include="..\src\SpriteEditorFrame.cpp">
       <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\SpriteData.cpp">
-      <Filter>src\Data\Sprites</Filter>
     </ClCompile>
     <ClCompile Include="..\src\SpriteFrame.cpp">
       <Filter>src\Data\Sprites</Filter>
@@ -352,6 +346,27 @@
       <Filter>src\Data\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\HeightmapEditorCtrl.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Chests.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomDialogueTable.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomData.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteData.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ChestDialog.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\CharacterDialog.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RoomErrorDialog.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
   </ItemGroup>
@@ -593,6 +608,21 @@
       <Filter>include\Data\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\HeightmapEditorCtrl.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Chests.h">
+      <Filter>include\Data\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomDialogueTable.h">
+      <Filter>include\Data\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ChestDialog.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\CharacterDialog.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RoomErrorDialog.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
   </ItemGroup>

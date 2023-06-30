@@ -15,21 +15,25 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(szr1);
 
-    m_tabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBK_DEFAULT);
+    m_tabs = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBK_DEFAULT | wxNB_MULTILINE);
 
     szr1->Add(m_tabs, 1, wxALL | wxEXPAND, 5);
 
-    auto* panel = new wxPanel(m_tabs, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_tabs, wxSize(-1, -1)), wxTAB_TRAVERSAL);
-    m_tabs->AddPage(panel, _("Sprite Visibility"), false);
+    AddPage(FlagType::ROOM_TRANSITION, "Room Transitions", PageProperties(true, true, false));
+    AddPage(FlagType::ENTITY_VISIBILITY, "Entity Visibility", PageProperties(true, true, true));
+    AddPage(FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", PageProperties(true, true, true));
+    AddPage(FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", PageProperties(true, true, true));
+    AddPage(FlagType::LOCKED_DOOR, "Locked Doors", PageProperties(true, true, true));
+    AddPage(FlagType::PERMANENT_SWITCH, "Permanent Switches", PageProperties(true, true, true));
+    AddPage(FlagType::SACRED_TREE, "Sacred Trees", PageProperties(true, true, false));
 
-    wxBoxSizer* szr2a = new wxBoxSizer(wxVERTICAL);
-    panel->SetSizer(szr2a);
-
-    m_dvc_ctrls[FlagType::ENTITY_VISIBILITY] = new wxDataViewCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 400));
-
-    szr2a->Add(m_dvc_ctrls[FlagType::ENTITY_VISIBILITY], 1, wxALL | wxEXPAND, 5);
-
-    InitSpriteVisibleFlags();
+    InitRoomTransitionFlags();
+    InitEntityVisibleFlags();
+    InitOneTimeFlags();
+    InitRoomClearFlags();
+    InitLockedDoorFlags();
+    InitPermanentSwitchFlags();
+    InitSacredTreeFlags();
 
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 5);
@@ -61,10 +65,13 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     GetSizer()->Fit(this);
     CentreOnParent(wxBOTH);
 
+    UpdateUI();
+
     for (auto ctrl : m_dvc_ctrls)
     {
         ctrl.second->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(FlagDialog::OnKeyPress), nullptr, this);
     }
+    m_tabs->Connect(wxEVT_BOOKCTRL_PAGE_CHANGED, wxBookCtrlEventHandler(FlagDialog::OnTabChange), nullptr, this);
     m_ok->Connect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnOK), nullptr, this);
     m_cancel->Connect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnCancel), nullptr, this);
     m_ctrl_add->Connect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnAdd), nullptr, this);
@@ -79,6 +86,7 @@ FlagDialog::~FlagDialog()
     {
         ctrl.second->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(FlagDialog::OnKeyPress), nullptr, this);
     }
+    m_tabs->Disconnect(wxEVT_BOOKCTRL_PAGE_CHANGED, wxBookCtrlEventHandler(FlagDialog::OnTabChange), nullptr, this);
     m_ok->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnOK), nullptr, this);
     m_cancel->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnCancel), nullptr, this);
     m_ctrl_add->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnAdd), nullptr, this);
@@ -97,6 +105,10 @@ void FlagDialog::CommitAll()
 
 void FlagDialog::AddToCurrentList()
 {
+    if (m_page_properties[GetSelectedTab()].add_enabled == false)
+    {
+        return;
+    }
     auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
     auto* model = m_models[GetSelectedTab()];
     model->AddRow(model->GetRowCount());
@@ -107,6 +119,10 @@ void FlagDialog::DeleteFromCurrentList()
 {
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection())
     {
+        if (m_page_properties[GetSelectedTab()].delete_enabled == false)
+        {
+            return;
+        }
         auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
         auto* model = m_models[GetSelectedTab()];
         int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
@@ -128,6 +144,10 @@ void FlagDialog::MoveSelectedUpCurrentList()
     auto* model = m_models[GetSelectedTab()];
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
     {
+        if (m_page_properties[GetSelectedTab()].rearrange_enabled == false)
+        {
+            return;
+        }
         int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
         if (sel > 0)
         {
@@ -143,6 +163,10 @@ void FlagDialog::MoveSelectedDownCurrentList()
     auto* model = m_models[GetSelectedTab()];
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
     {
+        if (m_page_properties[GetSelectedTab()].rearrange_enabled == false)
+        {
+            return;
+        }
         int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
         if (sel < model->GetRowCount() - 1)
         {
@@ -152,12 +176,41 @@ void FlagDialog::MoveSelectedDownCurrentList()
     }
 }
 
-void FlagDialog::InitSpriteVisibleFlags()
+void FlagDialog::AddPage(FlagType type, const std::string& name, const FlagDialog::PageProperties& props)
+{
+    auto* panel = new wxPanel(m_tabs, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_tabs, wxSize(-1, -1)), wxTAB_TRAVERSAL);
+    m_tabs->AddPage(panel, _(name), false);
+    wxBoxSizer* szr = new wxBoxSizer(wxVERTICAL);
+    panel->SetSizer(szr);
+    m_dvc_ctrls[type] = new wxDataViewCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 400));
+    szr->Add(m_dvc_ctrls[type], 1, wxALL | wxEXPAND, 5);
+    m_pages.push_back(type);
+    m_page_properties.insert({ type, props });
+}
+
+void FlagDialog::InitRoomTransitionFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::ROOM_TRANSITION];
+    ctrl->ClearColumns();
+    auto* model = new RoomTransitionFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::ROOM_TRANSITION] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitEntityVisibleFlags()
 {
     auto* ctrl = m_dvc_ctrls[FlagType::ENTITY_VISIBILITY];
     ctrl->ClearColumns();
-    auto* model = new FlagDataViewModel<EntityVisibilityFlags>(m_roomnum, m_gd);
+    auto* model = new EntityVisibilityFlagViewModel(m_roomnum, m_gd);
     m_models[FlagType::ENTITY_VISIBILITY] = model;
+    model->Initialise();
     ctrl->AssociateModel(model);
     model->DecRef();
 
@@ -169,9 +222,109 @@ void FlagDialog::InitSpriteVisibleFlags()
         new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(2)), 2, 100, wxALIGN_LEFT));
 }
 
+void FlagDialog::InitOneTimeFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::ONE_TIME_ENTITY_VISIBILITY];
+    ctrl->ClearColumns();
+    auto* model = new OneTimeEventFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::ONE_TIME_ENTITY_VISIBILITY] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 200, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 100, wxALIGN_LEFT));
+    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(2)), 2, 80, wxALIGN_LEFT));
+    ctrl->InsertColumn(3, new wxDataViewColumn(model->GetColumnHeader(3),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 3, 100, wxALIGN_LEFT));
+    ctrl->InsertColumn(4, new wxDataViewColumn(model->GetColumnHeader(4),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitRoomClearFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::HIDE_MULTIPLE_ENTITIES];
+    ctrl->ClearColumns();
+    auto* model = new RoomClearFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::HIDE_MULTIPLE_ENTITIES] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitLockedDoorFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::LOCKED_DOOR];
+    ctrl->ClearColumns();
+    auto* model = new LockedDoorFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::LOCKED_DOOR] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitPermanentSwitchFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::PERMANENT_SWITCH];
+    ctrl->ClearColumns();
+    auto* model = new PermanentSwitchFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::PERMANENT_SWITCH] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitSacredTreeFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::SACRED_TREE];
+    ctrl->ClearColumns();
+    auto* model = new SacredTreeFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::SACRED_TREE] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewTextRenderer(), 0, 420, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::UpdateUI()
+{
+    const auto props = m_page_properties[GetSelectedTab()];
+    m_ctrl_add->Enable(props.add_enabled);
+    m_ctrl_delete->Enable(props.delete_enabled);
+    m_ctrl_move_up->Enable(props.rearrange_enabled);
+    m_ctrl_move_down->Enable(props.rearrange_enabled);
+}
+
 FlagType FlagDialog::GetSelectedTab()
 {
-    return static_cast<FlagType>(m_tabs->GetSelection());
+    return m_pages[m_tabs->GetSelection()];
+}
+
+void FlagDialog::OnTabChange(wxBookCtrlEvent& e)
+{
+    UpdateUI();
 }
 
 void FlagDialog::OnOK(wxCommandEvent& evt)

@@ -1,5 +1,31 @@
-# landstalker_gfx
-Landstalker Graphics Viewer
+# Landstalker Editor
+A tool for extracting, viewing, editing and re-inserting the various data found in the Landstalker ROMs and disassembly.
+
+This tool can work with any of the six publicly available ROM dumps, as well as with my other project: [Landstalker Disassembly](https://github.com/lordmir/landstalker_disasm)
+
+Current State of progress:
+
+| Asset                       | Viewable           | Editable           |
+|-----------------------------|--------------------|--------------------|
+| Strings                     | :heavy_check_mark: | :heavy_check_mark: |
+| Script                      | :x:                | :x:                |
+| Tiles                       | :heavy_check_mark: | :heavy_check_mark: |
+| 2D Maps                     | :heavy_check_mark: | :heavy_check_mark: |
+| Misc Graphics (Fonts, etc.) | :heavy_minus_sign: | :heavy_minus_sign: |
+| Palettes                    | :heavy_check_mark: | :heavy_check_mark: |
+| Blocksets                   | :heavy_check_mark: | :x:                |
+| 3D Maps                     | :heavy_check_mark: | :x:                |
+| Heightmaps                  | :heavy_check_mark: | :heavy_check_mark: |
+| Room Entity Placement       | :heavy_check_mark: | :heavy_check_mark: |
+| Room Warp Placement         | :heavy_check_mark: | :heavy_check_mark: |
+| Chest Contents              | :heavy_check_mark: | :heavy_check_mark: |
+| Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |
+| Room Flags                  | :heavy_check_mark: | :heavy_check_mark: |
+| Room Graphic Transitions    | :x:                | :x:                |
+| Entity Properties           | :x:                | :x:                |
+| Entity Behaviours           | :x:                | :x:                |
+| Sprite Frames               | :hEavy_check_mark: | :heavy_check_mark: |
+| Sprite Animations           | :heavy_check_mark: | :x:                |
 
 # Linux
 

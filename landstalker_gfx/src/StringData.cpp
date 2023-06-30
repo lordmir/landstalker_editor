@@ -45,6 +45,10 @@ StringData::StringData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load talk sound effects from \'") + asm_file.str() + '\'');
 	}
+	if (!AsmLoadScriptData())
+	{
+		throw std::runtime_error(std::string("Unable to load script data from \'") + asm_file.str() + '\'');
+	}
 	DecompressStrings();
 	InitCache();
 }
@@ -89,6 +93,10 @@ StringData::StringData(const Rom& rom)
 	if (!RomLoadTalkSfx(rom))
 	{
 		throw std::runtime_error(std::string("Unable to load talk sound effects from ROM"));
+	}
+	if (!RomLoadScriptData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to load script data from ROM"));
 	}
 	DecompressStrings();
 	InitCache();
@@ -140,6 +148,10 @@ bool StringData::Save(const filesystem::path& dir)
 	if (!AsmSaveEndCreditStrings(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.str() + '\'');
+	}
+	if (!AsmSaveScriptData(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save script data to \'") + directory.str() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -238,6 +250,10 @@ bool StringData::HasBeenModified() const
 	{
 		return true;
 	}
+	if (m_room_dialogue_table_orig != m_room_dialogue_table)
+	{
+		return true;
+	}
 	return false;
 }
 
@@ -275,6 +291,10 @@ void StringData::RefreshPendingWrites(const Rom& rom)
 	if (!RomPrepareInjectTalkSfx(rom))
 	{
 		throw std::runtime_error(std::string("Unable to prepare talk sound effects for ROM injection"));
+	}
+	if (!RomPrepareInjectScriptData(rom))
+	{
+		throw std::runtime_error(std::string("Unable to prepare script data for ROM injection"));
 	}
 }
 
@@ -720,6 +740,16 @@ void StringData::SetRoomVisitFlag(uint16_t room, uint16_t flag)
 	m_room_visit_flags[room] = flag;
 }
 
+std::vector<uint16_t> StringData::GetRoomCharacters(uint16_t room) const
+{
+	return m_room_dialogue_table.GetRoomCharacters(room);
+}
+
+void StringData::SetRoomCharacters(uint16_t room, const std::vector<uint16_t>& characters)
+{
+	m_room_dialogue_table.SetRoomCharacters(room, characters);
+}
+
 uint8_t StringData::GetSaveLocation(uint16_t room)
 {
 	auto loc = m_save_game_locations.find(room);
@@ -816,6 +846,7 @@ void StringData::CommitAllChanges()
 	m_ending_strings_orig = m_ending_strings;
 	m_char_talk_sfx_orig = m_char_talk_sfx;
 	m_sprite_talk_sfx_orig = m_sprite_talk_sfx;
+	m_room_dialogue_table_orig = m_room_dialogue_table;
 	m_pending_writes.clear();
 }
 
@@ -851,6 +882,7 @@ bool StringData::LoadAsmFilenames()
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::END_CREDIT_STRINGS, m_end_credit_strings_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::CHARACTER_TALK_SFX, m_char_talk_sfx_path);
 		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::SPRITE_TALK_SFX, m_sprite_talk_sfx_path);
+		retval = retval && GetFilenameFromAsm(f, RomOffsets::Strings::ROOM_CHARACTER_TABLE, m_room_dialogue_table_path);
 		
 		AsmFile s(GetBasePath() / m_string_table_path);
 		retval = retval && GetFilenameFromAsm(s, RomOffsets::Strings::CHAR_NAME_TABLE, m_char_table_path);
@@ -901,6 +933,7 @@ void StringData::SetDefaultFilenames()
 	if (m_end_credit_strings_path.empty()) m_end_credit_strings_path = RomOffsets::Strings::END_CREDIT_STRINGS_FILE;
 	if (m_char_talk_sfx_path.empty()) m_char_talk_sfx_path = RomOffsets::Strings::CHARACTER_TALK_SFX_FILE;
 	if (m_sprite_talk_sfx_path.empty()) m_sprite_talk_sfx_path = RomOffsets::Strings::SPRITE_TALK_SFX_FILE;
+	if (m_room_dialogue_table_path.empty()) m_room_dialogue_table_path = RomOffsets::Strings::ROOM_DIALOGUE_TABLE_FILE;
 }
 
 bool StringData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -930,6 +963,7 @@ bool StringData::CreateDirectoryStructure(const filesystem::path& dir)
 	retval = retval && CreateDirectoryTree(dir / m_end_credit_strings_path);
 	retval = retval && CreateDirectoryTree(dir / m_char_talk_sfx_path);
 	retval = retval && CreateDirectoryTree(dir / m_sprite_talk_sfx_path);
+	retval = retval && CreateDirectoryTree(dir / m_room_dialogue_table_path);
 	for (const auto& f : m_fonts_by_name)
 	{
 		retval = retval && CreateDirectoryTree(dir / f.second->GetFilename());
@@ -968,6 +1002,7 @@ void StringData::InitCache()
 	m_ending_strings_orig = m_ending_strings;
 	m_char_talk_sfx_orig = m_char_talk_sfx;
 	m_sprite_talk_sfx_orig = m_sprite_talk_sfx;
+	m_room_dialogue_table_orig = m_room_dialogue_table;
 }
 
 bool StringData::DecompressStrings()
@@ -1331,6 +1366,20 @@ bool StringData::AsmLoadTalkSfx()
 	return true;
 }
 
+bool StringData::AsmLoadScriptData()
+{
+	auto bytes = ReadBytes(GetBasePath() / m_room_dialogue_table_path);
+	assert(bytes.size() % 2 == 0);
+	std::vector<uint16_t> words;
+	words.reserve(bytes.size() / 2);
+	for (int i = 0; i < bytes.size(); i += 2)
+	{
+		words.push_back((bytes[i] << 8) | bytes[i + 1]);
+	}
+	m_room_dialogue_table = RoomDialogueTable(words);
+	return true;
+}
+
 bool StringData::RomLoadSystemFont(const Rom& rom)
 {
 	uint32_t sys_font_begin = Disasm::ReadOffset16(rom, RomOffsets::Graphics::SYS_FONT);
@@ -1527,6 +1576,15 @@ bool StringData::RomLoadTalkSfx(const Rom& rom)
 	return true;
 }
 
+bool StringData::RomLoadScriptData(const Rom& rom)
+{
+	uint32_t begin = Disasm::ReadOffset16(rom, RomOffsets::Strings::ROOM_CHARACTER_TABLE);
+	uint32_t end = rom.get_section(RomOffsets::Strings::ROOM_CHARACTER_TABLE_SECTION).end;
+	m_room_dialogue_table = RoomDialogueTable(rom.read_array<uint16_t>(begin, (end - begin)/sizeof(uint16_t)));
+
+	return true;
+}
+
 bool StringData::AsmSaveFonts(const filesystem::path& dir)
 {
 	bool retval = std::all_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), [&](auto& f)
@@ -1711,6 +1769,20 @@ bool StringData::AsmSaveTalkSfx(const filesystem::path& dir)
 	bytes.push_back(0xFF);
 	WriteBytes(bytes, dir / m_char_talk_sfx_path);
 	WriteBytes(SerialiseSfxMap(m_sprite_talk_sfx), dir / m_sprite_talk_sfx_path);
+	return true;
+}
+
+bool StringData::AsmSaveScriptData(const filesystem::path& dir)
+{
+	ByteVector bytes;
+	auto words = m_room_dialogue_table.GetData();
+	bytes.reserve(words.size() * 2);
+	for (const auto& word : words)
+	{
+		bytes.push_back(word >> 8);
+		bytes.push_back(word & 0xFF);
+	}
+	WriteBytes(bytes, dir / m_room_dialogue_table_path);
 	return true;
 }
 
@@ -1921,5 +1993,21 @@ bool StringData::RomPrepareInjectTalkSfx(const Rom& rom)
 	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Strings::CHARACTER_TALK_SFX, char_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::SPRITE_TALK_SFX, sprite_begin));
 
+	return true;
+}
+
+bool StringData::RomPrepareInjectScriptData(const Rom& rom)
+{
+	uint32_t begin = rom.get_section(RomOffsets::Strings::ROOM_CHARACTER_TABLE_SECTION).begin;
+	ByteVectorPtr bytes = std::make_shared<ByteVector>();
+	auto words = m_room_dialogue_table.GetData();
+	bytes->reserve(words.size() * 2);
+	for (const auto& word : words)
+	{
+		bytes->push_back(word >> 8);
+		bytes->push_back(word & 0xFF);
+	}
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Strings::ROOM_CHARACTER_TABLE, begin));
+	m_pending_writes.push_back({ RomOffsets::Strings::ROOM_CHARACTER_TABLE_SECTION, bytes });
 	return true;
 }
