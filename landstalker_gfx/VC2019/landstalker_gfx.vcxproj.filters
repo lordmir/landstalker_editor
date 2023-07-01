@@ -136,6 +136,12 @@
     <Filter Include="src\UI\Tileset">
       <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\Data\AsmBuild">
+      <UniqueIdentifier>{81abf76d-f49b-4ea4-b6ce-74cbd6a35c78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\AsmBuild">
+      <UniqueIdentifier>{6e6e5142-8c02-4146-bade-ec5a4005547c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\AnimatedTileset.cpp">
@@ -368,6 +374,15 @@
     </ClCompile>
     <ClCompile Include="..\src\RoomErrorDialog.cpp">
       <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AssemblyBuilderDialog.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AssemblyBuilder.cpp">
+      <Filter>src\Data\AsmBuild</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ExecutorThread.cpp">
+      <Filter>src\Data\AsmBuild</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -624,6 +639,15 @@
     </ClInclude>
     <ClInclude Include="..\src\include\RoomErrorDialog.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AssemblyBuilder.h">
+      <Filter>include\Data\AsmBuild</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AssemblyBuilderDialog.h">
+      <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ExecutorThread.h">
+      <Filter>include\Data\AsmBuild</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

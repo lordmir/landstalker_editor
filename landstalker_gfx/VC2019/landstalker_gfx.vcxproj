@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -14,6 +14,8 @@
     <ClCompile Include="..\src\AnimatedTileset.cpp" />
     <ClCompile Include="..\src\AsmFile.cpp" />
     <ClCompile Include="..\src\AsmUtils.cpp" />
+    <ClCompile Include="..\src\AssemblyBuilder.cpp" />
+    <ClCompile Include="..\src\AssemblyBuilderDialog.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
@@ -34,6 +36,7 @@
     <ClCompile Include="..\src\EntityControlFrame.cpp" />
     <ClCompile Include="..\src\EntityPropertiesWindow.cpp" />
     <ClCompile Include="..\src\EntryPreferences.cpp" />
+    <ClCompile Include="..\src\ExecutorThread.cpp" />
     <ClCompile Include="..\src\FlagDataViewModel.cpp" />
     <ClCompile Include="..\src\FlagDialog.cpp" />
     <ClCompile Include="..\src\Flags.cpp" />
@@ -99,6 +102,8 @@
     <ClInclude Include="..\src\include\AsmFile.h" />
     <ClInclude Include="..\src\include\AsmFile_inl.h" />
     <ClInclude Include="..\src\include\AsmUtils.h" />
+    <ClInclude Include="..\src\include\AssemblyBuilder.h" />
+    <ClInclude Include="..\src\include\AssemblyBuilderDialog.h" />
     <ClInclude Include="..\src\include\BitBarrel.h" />
     <ClInclude Include="..\src\include\BitBarrelWriter.h" />
     <ClInclude Include="..\src\include\Block.h" />
@@ -120,6 +125,7 @@
     <ClInclude Include="..\src\include\EntityControlFrame.h" />
     <ClInclude Include="..\src\include\EntityPropertiesWindow.h" />
     <ClInclude Include="..\src\include\EntryPreferences.h" />
+    <ClInclude Include="..\src\include\ExecutorThread.h" />
     <ClInclude Include="..\src\include\FlagDataViewModel.h" />
     <ClInclude Include="..\src\include\FlagDialog.h" />
     <ClInclude Include="..\src\include\Flags.h" />

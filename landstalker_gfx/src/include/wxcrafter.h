@@ -59,8 +59,11 @@ protected:
     wxMenuItem* m_mnu_open;
     wxMenuItem* m_mnu_save_as_asm;
     wxMenuItem* m_mnu_save_to_rom;
+    wxMenuItem* m_mnu_build_asm;
+    wxMenuItem* m_mnu_run_emu;
     wxMenuItem* m_mnu_sep1;
     wxMenu* m_mnu_recent_files;
+    wxMenuItem* m_mnu_preferences;
     wxMenuItem* m_mnu_sep2;
     wxMenuItem* m_mnu_exit;
     wxMenu* m_mnu_help;
@@ -90,6 +93,18 @@ protected:
         event.Skip();
     }
     virtual void OnSaveToRom(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnBuildAsm(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnRunEmulator(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnPreferences(wxCommandEvent& event)
     {
         event.Skip();
     }

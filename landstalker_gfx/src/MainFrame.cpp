@@ -21,6 +21,7 @@
 #include "Rom.h"
 #include "Blockmap2D.h"
 #include "ImageBuffer.h"
+#include "AssemblyBuilderDialog.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -367,7 +368,8 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
-            m_g->Save(path);
+            AssemblyBuilderDialog bdlg(this, path, m_g);
+            bdlg.ShowModal();
         }
         return ReturnCode::OK;
     }
@@ -412,54 +414,8 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         }
         if (m_g)
         {
-            std::ostringstream message, details;
-            m_g->RefreshPendingWrites(m_rom);
-            auto result = m_g->GetPendingWrites();
-            bool warning = false;
-            if (!m_g->WillFitInRom(m_rom))
-            {
-                message << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
-                message << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
-                warning = true;
-            }
-            else
-            {
-                message << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
-            }
-            for (const auto& w : result)
-            {
-                uint32_t addr = 0;
-                uint32_t size = 0;
-                if (m_rom.section_exists(w.first))
-                {
-                    auto sec = m_rom.get_section(w.first);
-                    addr = sec.begin;
-                    size = sec.size();
-                }
-                else if (m_rom.address_exists(w.first))
-                {
-                    addr = m_rom.get_address(w.first);
-                    size = sizeof(uint32_t);
-                }
-                details << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
-                    << size << " bytes: " << ((w.second->size() <= size) ? "OK" : "BAD") << std::endl;
-            }
-            message << "\nProceed?";
-            auto msgbox = wxRichMessageDialog(this, message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
-            msgbox.ShowDetailedText(details.str());
-            int answer = msgbox.ShowModal();
-            if (answer != wxID_YES)
-            {
-                m_g->AbandomRomInjection();
-                return ReturnCode::CANCELLED;
-            }
-            else
-            {
-                Rom output(m_rom);
-                m_g->InjectIntoRom(output);
-                output.writeFile(path);
-                return ReturnCode::OK;
-            }
+            auto dlg = AssemblyBuilderDialog(this, path, m_g, AssemblyBuilderDialog::Func::INJECT, std::make_shared<Rom>(m_rom));
+            dlg.ShowModal();
         }
     }
     catch (const std::exception& e)
@@ -719,6 +675,18 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
         wxMessageBox(std::string("Failed to save to ROM: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
+}
+
+void MainFrame::OnBuildAsm(wxCommandEvent& event)
+{
+}
+
+void MainFrame::OnRunEmulator(wxCommandEvent& event)
+{
+}
+
+void MainFrame::OnPreferences(wxCommandEvent& event)
+{
 }
 
 void MainFrame::OnMRUFile(wxCommandEvent& event)

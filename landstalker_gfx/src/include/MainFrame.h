@@ -43,6 +43,9 @@ protected:
     virtual void OnOpen(wxCommandEvent& event);
     virtual void OnSaveAsAsm(wxCommandEvent& event);
     virtual void OnSaveToRom(wxCommandEvent& event);
+    virtual void OnBuildAsm(wxCommandEvent& event);
+    virtual void OnRunEmulator(wxCommandEvent& event);
+    virtual void OnPreferences(wxCommandEvent& event);
     virtual void OnMRUFile(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);
     virtual void OnAbout(wxCommandEvent& event);
