@@ -24,7 +24,7 @@ Current State of progress:
 | Room Graphic Transitions    | :x:                | :x:                | ROM format reverse engineered.                             |
 | Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
 | Entity Behaviours           | :x:                | :x:                | ROM format reverse engineered.                             |
-| Sprite Frames               | :heavy_check_mark: | :heavy_minus_mark: | Editor UI could do with improvements.                      |
+| Sprite Frames               | :heavy_check_mark: | :heavy_minus_sign: | Editor UI could do with improvements.                      |
 | Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
 
 # Build
