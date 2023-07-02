@@ -1,8 +1,11 @@
 name: build-release
 
 on:
-  push
-  release
+  push:
+  release:
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build-release:
