@@ -30,7 +30,6 @@ jobs:
         with:
           repository: madler/zlib
           ref: refs/heads/v1.2.13
-          submodules: recursive
           path: zlib
 
       - name: Checkout libpng
