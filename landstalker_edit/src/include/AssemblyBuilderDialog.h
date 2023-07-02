@@ -39,9 +39,9 @@ public:
     bool DidOperationSucceed();
 
     static void InitConfig(const wxString& name);
+private:
     static void InitConfigVar(wxConfig* cfg, const wxString& path, wxString& var, const wxString& defval);
     static void InitConfigVar(wxConfig* cfg, const wxString& path, bool& var, bool defval);
-private:
     void OnInit();
     void OnClose(wxCloseEvent& evt);
     void OnOK(wxCommandEvent& evt);

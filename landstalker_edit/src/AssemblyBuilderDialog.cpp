@@ -47,15 +47,14 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
 {
     m_config = new wxConfig(APPLICATION_NAME);
 
-    wxPanel* panel = new wxPanel(this, wxID_ANY);
-    m_logctrl = new wxTextCtrl(panel, wxID_ANY, wxEmptyString,
+    m_logctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
         wxDefaultPosition, wxDefaultSize,
         wxTE_WORDWRAP | wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
     auto font = m_logctrl->GetFont();
     font.SetFamily(wxFONTFAMILY_TELETYPE);
     m_logctrl->SetBackgroundColour(*wxWHITE);
     m_logctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
-    m_ok = new wxButton(panel, wxID_OK, "OK");
+    m_ok = new wxButton(this, wxID_OK, "OK");
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxStdDialogButtonSizer* btnszr = new wxStdDialogButtonSizer();
@@ -67,8 +66,8 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
     btnszr->AddButton(m_ok);
     btnszr->Realize();
 
-    panel->SetSizer(sizer);
-    panel->Layout();
+    this->SetSizer(sizer);
+    this->Layout();
     MakeBusy();
 
     m_ok->Bind(wxEVT_BUTTON, &AssemblyBuilderDialog::OnOK, this);
@@ -107,9 +106,9 @@ void AssemblyBuilderDialog::InitConfig(const wxString& name)
         InitConfigVar(config, "/build/baseasm", baseasm, init_baseasm);
         InitConfigVar(config, "/build/outname", outname, init_outname);
         InitConfigVar(config, "/build/emulator", emulator, init_emulator);
-        InitConfigVar(config, "build/run_after_build", run_after_build, init_run_after_build);
-        InitConfigVar(config, "build/build_on_save", build_on_save, init_build_on_save);
-        InitConfigVar(config, "build/clone_in_new_dir", clone_in_new_dir, init_clone_in_new_dir);
+        InitConfigVar(config, "/build/run_after_build", run_after_build, init_run_after_build);
+        InitConfigVar(config, "/build/build_on_save", build_on_save, init_build_on_save);
+        InitConfigVar(config, "/build/clone_in_new_dir", clone_in_new_dir, init_clone_in_new_dir);
         delete config;
     }
 }

@@ -22,6 +22,7 @@
 #include "Blockmap2D.h"
 #include "ImageBuffer.h"
 #include "AssemblyBuilderDialog.h"
+#include "PreferencesDialog.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -758,6 +759,8 @@ void MainFrame::OnRunEmulator(wxCommandEvent& event)
 
 void MainFrame::OnPreferences(wxCommandEvent& event)
 {
+    PreferencesDialog dlg(this);
+    dlg.ShowModal();
 }
 
 void MainFrame::OnMRUFile(wxCommandEvent& event)
