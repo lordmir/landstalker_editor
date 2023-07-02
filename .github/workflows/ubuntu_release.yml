@@ -18,6 +18,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with:
+          path: landstalker_editor
+
+      - name: Archive sources
+        working-directory: ${{github.workspace}}/
+        shell: bash
+        run: tar zvcf landstalker_editor_sources.tar.gz landstalker_editor/
 
       - name: Install Dependencies
         shell: bash
@@ -65,17 +72,23 @@ jobs:
             sudo ldconfig
 
       - name: Build Landstalker Editor
-        working-directory: ${{github.workspace}}/
+        working-directory: ${{github.workspace}}/landstalker_editor
         shell: bash
         run: make -j8
 
       - name: Compress artifacts
-        working-directory: ${{github.workspace}}/
+        working-directory: ${{github.workspace}}/landstalker_editor
         shell: bash
         run: tar zvcf landstalker_editor.tar.gz landstalker_editor
 
       - name: Archive build
         uses: actions/upload-artifact@v3
         with:
-          name: landstalker_editor_binary
-          path: ./landstalker_editor.tar.gz
+          name: landstalker_editor_binary_ubuntu
+          path: ${{github.workspace}}/landstalker_editor/landstalker_editor.tar.gz
+
+      - name: Archive sources
+        uses: actions/upload-artifact@v3
+        with:
+          name: landstalker_editor_sources_tar
+          path: ${{github.workspace}}/landstalker_editor_sources.tar.gz
