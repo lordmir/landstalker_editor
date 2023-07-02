@@ -102,7 +102,9 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     wxUnusedVar(event);
     wxAboutDialogInfo info;
     info.SetCopyright(_("Landstalker Editor"));
-    info.SetDescription(_("Github: https://github.com/lordmir/landstalker_editor \nEmail: hase@redfern.xyz"));
+    info.SetDescription(_("Github: https://github.com/lordmir/landstalker_editor \n"
+                          "Email: hase@redfern.xyz\n\n"
+                          "User Guide: https://github.com/lordmir/landstalker_editor/wiki/"));
     ::wxAboutBox(info);
     event.Skip();
 }
