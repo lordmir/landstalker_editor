@@ -1,4 +1,4 @@
-name: build-release
+name: build-release-windows
 
 on:
   push:
@@ -75,8 +75,8 @@ jobs:
         working-directory: ${{github.workspace}}/wxwidgets/build/msw
         shell: cmd
         run: |
-          COPY ..\..\include\wx\msw\setup0.h ..\..\include\wx\msw\setup.h
-          nmake /f makefile.vc BUILD=release SHARED=1 TARGET_CPU=X86
+          COPY ..\..\include\wx\msw\setup.h ..\..\include\wx\msw\setup.h
+          nmake /f makefile.vc BUILD=release SHARED=0 TARGET_CPU=X86
 
       - name: Build Landstalker Editor
         working-directory: ${{github.workspace}}/landstalker_editor
@@ -85,7 +85,7 @@ jobs:
             ZLIB_PATH: ${{github.workspace}}/zlib
             LIBPNG_PATH: ${{github.workspace}}/libpng
             WX_WIN: ${{github.workspace}}/wxWidgets
-        run: msbuild .\VC2019\landstalker_edit.sln /t:build /property:Configuration=Release /property:Platform=x86
+        run: msbuild .\VC2019\landstalker_edit.sln /t:build /property:Configuration=Release /property:Platform=x86 /m
 
       - name: Compress artifacts
         working-directory: ${{github.workspace}}/landstalker_editor/VC2019/Release
