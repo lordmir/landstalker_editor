@@ -27,11 +27,11 @@ jobs:
           submodules: recursive
           path: wxwidgets
 
-       - name: Set up MSBuild
-         uses: microsoft/setup-msbuild@v1.1
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Install MSVC Dev
-      - uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: amd64_x86
 
