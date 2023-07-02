@@ -40,6 +40,7 @@ jobs:
         with:
           repository: wxWidgets/wxWidgets
           ref: refs/heads/3.2.2-hotfix
+          submodules: recursive
           path: wxwidgets
 
       - shell: bash
