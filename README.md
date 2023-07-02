@@ -3,6 +3,8 @@ A tool for extracting, viewing, editing and re-inserting the various data found 
 
 This tool can work with any of the six publicly available ROM dumps, as well as with my other project: [Landstalker Disassembly](https://github.com/lordmir/landstalker_disasm)
 
+Work-in-progress documentation [here](https://github.com/lordmir/landstalker_editor/wiki).
+
 Current State of progress:
 
 | Asset                       | Viewable           | Editable           | Notes                                                      |
@@ -24,7 +26,7 @@ Current State of progress:
 | Room Graphic Transitions    | :x:                | :x:                | ROM format reverse engineered.                             |
 | Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
 | Entity Behaviours           | :x:                | :x:                | ROM format reverse engineered.                             |
-| Sprite Frames               | :heavy_check_mark: | :heavy_minus_mark: | Editor UI could do with improvements.                      |
+| Sprite Frames               | :heavy_check_mark: | :heavy_minus_sign: | Editor UI could do with improvements.                      |
 | Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
 
 # Build

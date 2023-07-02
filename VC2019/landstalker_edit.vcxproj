@@ -226,7 +226,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -234,7 +234,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -247,7 +247,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -257,7 +257,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>

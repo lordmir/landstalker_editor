@@ -73,7 +73,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As &Assembly...\tF3"), _("Save As Assembly"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_as_asm);
 
-    m_mnu_save = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Save...\tCtrl-S"), _("Save Changes"), wxITEM_NORMAL);
+    m_mnu_save = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Save...\tF4"), _("Save Changes"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save);
 
     m_mnu_build_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Build Assembly...\tF5"), _("Build Assembly"), wxITEM_NORMAL);
