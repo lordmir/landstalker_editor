@@ -38,7 +38,7 @@ public:
     wxString GetBuiltRomName();
     bool DidOperationSucceed();
 
-    static void InitConfig(const wxString& name);
+    static void InitConfig(wxConfig* config);
 private:
     static void InitConfigVar(wxConfig* cfg, const wxString& path, wxString& var, const wxString& defval);
     static void InitConfigVar(wxConfig* cfg, const wxString& path, bool& var, bool defval);

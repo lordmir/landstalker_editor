@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #include <wx/wx.h>
+#include <wx/filename.h>
 #include <wx/aboutdlg.h>
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
@@ -139,8 +140,9 @@ void MainFrame::OpenAsmFile(const wxString& path)
         }
         m_g = std::make_shared<GameData>(path.ToStdString());
         this->SetLabel("Landstalker Editor - " + path);
+        wxFileName name(path);
         m_asmfile = true;
-        m_last_asm = path;
+        m_last_asm = name.GetPath();
         InitUI();
     }
     catch (const std::runtime_error& e)
@@ -356,7 +358,7 @@ void MainFrame::InitUI()
 
 void MainFrame::InitConfig()
 {
-    AssemblyBuilderDialog::InitConfig(APPLICATION_NAME);
+    AssemblyBuilderDialog::InitConfig(m_config);
 }
 
 MainFrame::ReturnCode MainFrame::Save()
@@ -745,6 +747,16 @@ void MainFrame::OnBuildAsm(wxCommandEvent& event)
     }
     AssemblyBuilderDialog bdlg(this, m_last_asm, m_g, AssemblyBuilderDialog::Func::BUILD);
     bdlg.ShowModal();
+    if(bdlg.DidOperationSucceed())
+    {
+        auto romfile = wxFileName(m_last_asm, "");
+        romfile.SetFullName(bdlg.GetBuiltRomName());
+        if (romfile.Exists())
+        {
+            m_built_rom = romfile.GetFullPath();
+            m_mnu_run_emu->Enable(true);
+        }
+    }
 }
 
 void MainFrame::OnRunEmulator(wxCommandEvent& event)
@@ -759,7 +771,7 @@ void MainFrame::OnRunEmulator(wxCommandEvent& event)
 
 void MainFrame::OnPreferences(wxCommandEvent& event)
 {
-    PreferencesDialog dlg(this);
+    PreferencesDialog dlg(this, m_config);
     dlg.ShowModal();
 }
 

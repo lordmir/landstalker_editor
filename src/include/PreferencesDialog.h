@@ -2,11 +2,12 @@
 #define _PREFERENCES_DIALOG_H_
 
 #include <wx/wx.h>
+#include <wx/config.h>
 
 class PreferencesDialog : public wxDialog
 {
 public:
-	PreferencesDialog(wxWindow* parent);
+	PreferencesDialog(wxWindow* parent, wxConfig* config);
 	virtual ~PreferencesDialog();
 private:
 	void Init();
@@ -29,6 +30,8 @@ private:
 
 	wxButton* m_ok;
 	wxButton* m_cancel;
+
+	wxConfig* m_config;
 };
 
 #endif // _PREFERENCES_DIALOG_H_

@@ -45,8 +45,6 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
       m_fn(fn),
       m_operation_succeeded(false)
 {
-    m_config = new wxConfig(APPLICATION_NAME);
-
     m_logctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
         wxDefaultPosition, wxDefaultSize,
         wxTE_WORDWRAP | wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
@@ -93,9 +91,8 @@ bool AssemblyBuilderDialog::DidOperationSucceed()
     return m_operation_succeeded;
 }
 
-void AssemblyBuilderDialog::InitConfig(const wxString& name)
+void AssemblyBuilderDialog::InitConfig(wxConfig* config)
 {
-    auto config = new wxConfig(name);
     if (config != nullptr)
     {
         InitConfigVar(config, "/build/cloneurl", cloneurl, init_cloneurl);
@@ -109,7 +106,7 @@ void AssemblyBuilderDialog::InitConfig(const wxString& name)
         InitConfigVar(config, "/build/run_after_build", run_after_build, init_run_after_build);
         InitConfigVar(config, "/build/build_on_save", build_on_save, init_build_on_save);
         InitConfigVar(config, "/build/clone_in_new_dir", clone_in_new_dir, init_clone_in_new_dir);
-        delete config;
+        config->Flush();
     }
 }
 

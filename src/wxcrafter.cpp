@@ -56,7 +56,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     }
     SetIcons( app_icons );
 
-    m_config = new wxConfig(APPLICATION_NAME);
+    m_config = new wxConfig(APPLICATION_NAME + "_conf");
     
     m_menubar = new wxMenuBar(0);
     this->SetMenuBar(m_menubar);
@@ -172,7 +172,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     m_window->Update();
     
     SetName(wxT("MainFrameBaseClass"));
-    SetSize(wxDLG_UNIT(this, wxSize(800,600)));
+    SetSize(wxSize(1024,768));
+    SetMinSize(wxSize(640,480));
+    SetInitialSize(wxSize(1024,768));
+
     if (GetSizer()) {
          GetSizer()->Fit(this);
     }
@@ -224,8 +227,9 @@ MainFrameBaseClass::~MainFrameBaseClass()
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);
 
     m_filehistory->Save(*m_config);
-    delete m_config;
+    m_config->Flush();
     delete m_filehistory;
+    delete m_config;
     m_window->UnInit();
     delete m_window;
 }

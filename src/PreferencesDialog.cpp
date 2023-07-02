@@ -3,8 +3,9 @@
 #include <wxcrafter.h>
 #include <AssemblyBuilderDialog.h>
 
-PreferencesDialog::PreferencesDialog(wxWindow* parent)
-    : wxDialog(parent, wxID_ANY, "Preferences", wxDefaultPosition, wxSize(600, 500))
+PreferencesDialog::PreferencesDialog(wxWindow* parent, wxConfig* config)
+    : wxDialog(parent, wxID_ANY, "Preferences", wxDefaultPosition, wxSize(600, 500)),
+      m_config(config)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -73,44 +74,39 @@ PreferencesDialog::~PreferencesDialog()
 
 void PreferencesDialog::Init()
 {
-    AssemblyBuilderDialog::InitConfig(APPLICATION_NAME);
-    auto config = new wxConfig(APPLICATION_NAME);
-    if (config != nullptr)
+    if (m_config != nullptr)
     {
-        m_ctrl_clone_in_new_dir->SetValue(config->ReadBool("/build/clone_in_new_dir", true));
-        m_ctrl_clonecmd->SetValue(config->Read("/build/clonecmd"));
-        m_ctrl_clonetag->SetValue(config->Read("/build/clonetag"));
-        m_ctrl_cloneurl->SetValue(config->Read("/build/cloneurl"));
-        m_ctrl_build_on_save->SetValue(config->ReadBool("/build/build_on_save", true));
-        m_ctrl_assembler->SetValue(config->Read("/build/assembler"));
-        m_ctrl_asmargs->SetValue(config->Read("/build/asmargs"));
-        m_ctrl_baseasm->SetValue(config->Read("/build/baseasm"));
-        m_ctrl_outname->SetValue(config->Read("/build/outname"));
-        m_ctrl_run_after_build->SetValue(config->ReadBool("/build/run_after_build", true));
-        m_ctrl_emulator->SetValue(config->Read("/build/emulator"));
-        delete config;
+        m_ctrl_clone_in_new_dir->SetValue(m_config->ReadBool("/build/clone_in_new_dir", true));
+        m_ctrl_clonecmd->SetValue(m_config->Read("/build/clonecmd"));
+        m_ctrl_clonetag->SetValue(m_config->Read("/build/clonetag"));
+        m_ctrl_cloneurl->SetValue(m_config->Read("/build/cloneurl"));
+        m_ctrl_build_on_save->SetValue(m_config->ReadBool("/build/build_on_save", true));
+        m_ctrl_assembler->SetValue(m_config->Read("/build/assembler"));
+        m_ctrl_asmargs->SetValue(m_config->Read("/build/asmargs"));
+        m_ctrl_baseasm->SetValue(m_config->Read("/build/baseasm"));
+        m_ctrl_outname->SetValue(m_config->Read("/build/outname"));
+        m_ctrl_run_after_build->SetValue(m_config->ReadBool("/build/run_after_build", true));
+        m_ctrl_emulator->SetValue(m_config->Read("/build/emulator"));
     }
 }
 
 void PreferencesDialog::Commit()
 {
-    auto config = new wxConfig(APPLICATION_NAME);
-    if (config != nullptr)
+    if (m_config != nullptr)
     {
-        config->Write("/build/clone_in_new_dir", m_ctrl_clone_in_new_dir->GetValue());
-        config->Write("/build/clonecmd", m_ctrl_clonecmd->GetValue());
-        config->Write("/build/clonetag", m_ctrl_clonetag->GetValue());
-        config->Write("/build/cloneurl", m_ctrl_cloneurl->GetValue());
-        config->Write("/build/build_on_save", m_ctrl_build_on_save->GetValue());
-        config->Write("/build/assembler", m_ctrl_assembler->GetValue());
-        config->Write("/build/asmargs", m_ctrl_asmargs->GetValue());
-        config->Write("/build/baseasm", m_ctrl_baseasm->GetValue());
-        config->Write("/build/outname", m_ctrl_outname->GetValue());
-        config->Write("/build/run_after_build", m_ctrl_run_after_build->GetValue());
-        config->Write("/build/emulator", m_ctrl_emulator->GetValue());
-
-        delete config;
-        AssemblyBuilderDialog::InitConfig(APPLICATION_NAME);
+        m_config->Write("/build/clone_in_new_dir", m_ctrl_clone_in_new_dir->GetValue());
+        m_config->Write("/build/clonecmd", m_ctrl_clonecmd->GetValue());
+        m_config->Write("/build/clonetag", m_ctrl_clonetag->GetValue());
+        m_config->Write("/build/cloneurl", m_ctrl_cloneurl->GetValue());
+        m_config->Write("/build/build_on_save", m_ctrl_build_on_save->GetValue());
+        m_config->Write("/build/assembler", m_ctrl_assembler->GetValue());
+        m_config->Write("/build/asmargs", m_ctrl_asmargs->GetValue());
+        m_config->Write("/build/baseasm", m_ctrl_baseasm->GetValue());
+        m_config->Write("/build/outname", m_ctrl_outname->GetValue());
+        m_config->Write("/build/run_after_build", m_ctrl_run_after_build->GetValue());
+        m_config->Write("/build/emulator", m_ctrl_emulator->GetValue());
+        m_config->Flush();
+        AssemblyBuilderDialog::InitConfig(m_config);
     }
 }
 
