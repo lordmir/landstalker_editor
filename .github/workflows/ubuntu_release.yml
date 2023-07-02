@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-release:
+    name: Linux release build
     runs-on: ubuntu-20.04
     env:
       BUILD_TYPE: Release
@@ -13,8 +14,7 @@ jobs:
       fail-fast: false
 
     steps:
-      – name: Checkout repository
-        uses: actions/checkout@v3
+      – uses: actions/checkout@v3
 
       - name: Install Dependencies
         shell: bash
@@ -32,8 +32,7 @@ jobs:
                 libwebkit2gtk-4.0-dev
                 libpng-dev
 
-      - name: Download wxWidgets
-        uses: actions/checkout@master
+      - uses: actions/checkout@v3
         with:
           repository: wxWidgets/wxWidgets
           ref: refs/heads/3.2.2-hotfix
