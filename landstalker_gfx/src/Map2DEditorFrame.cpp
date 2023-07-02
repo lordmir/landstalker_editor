@@ -1,5 +1,6 @@
 #include <Map2DEditorFrame.h>
 
+
 enum TOOL_IDS
 {
 	ID_TOGGLE_GRIDLINES = 30000,

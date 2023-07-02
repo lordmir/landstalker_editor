@@ -1,6 +1,40 @@
 #include <AssemblyBuilderDialog.h>
 #include <wxcrafter.h>
 
+static wxString init_clonecmd = "git clone {URL} --branch {TAG} --single-branch .";
+static wxString init_cloneurl = "https://github.com/lordmir/landstalker_disasm.git";
+static wxString init_clonetag = "0.2";
+static wxString init_asmargs = "/p /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_ /e EXPANDED=0";
+#ifdef __WXMSW__
+static wxString init_assembler = ".\\tools\\build\\asm68k.exe";
+#else
+static wxString init_assembler = "wine ./tools/build/asm68k.exe";
+#endif
+static wxString init_baseasm = "landstalker_us.asm";
+static wxString init_outname = "landstalker.bin";
+#ifdef __WXMSW__
+static wxString init_emulator = "fusion.exe";
+#else
+static wxString init_emulator = "kega-fusion";
+#endif
+static bool init_run_after_build = true;
+static bool init_build_on_save = true;
+static bool init_clone_in_new_dir = true;
+
+
+wxString AssemblyBuilderDialog::clonecmd;
+wxString AssemblyBuilderDialog::cloneurl;
+wxString AssemblyBuilderDialog::clonetag;
+wxString AssemblyBuilderDialog::asmargs;
+wxString AssemblyBuilderDialog::assembler;
+wxString AssemblyBuilderDialog::baseasm;
+wxString AssemblyBuilderDialog::outname;
+wxString AssemblyBuilderDialog::emulator;
+bool AssemblyBuilderDialog::run_after_build;
+bool AssemblyBuilderDialog::build_on_save;
+bool AssemblyBuilderDialog::clone_in_new_dir;
+
+
 AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& dir, std::shared_ptr<GameData> gd, Func fn, std::shared_ptr<Rom> rom)
     : wxDialog(parent, wxID_ANY, "Build", wxDefaultPosition, wxSize(600, 400), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_execThread(nullptr),
@@ -8,7 +42,8 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
       m_gd(gd),
       m_dir(dir),
       m_rom(rom),
-      m_fn(fn)
+      m_fn(fn),
+      m_operation_succeeded(false)
 {
     m_config = new wxConfig(APPLICATION_NAME);
 
@@ -35,7 +70,6 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
     panel->SetSizer(sizer);
     panel->Layout();
     MakeBusy();
-    InitConfig();
 
     m_ok->Bind(wxEVT_BUTTON, &AssemblyBuilderDialog::OnOK, this);
     Bind(wxEVT_CLOSE_WINDOW, &AssemblyBuilderDialog::OnClose, this);
@@ -52,24 +86,57 @@ AssemblyBuilderDialog::~AssemblyBuilderDialog()
 
 wxString AssemblyBuilderDialog::GetBuiltRomName()
 {
-    return m_outname;
+    return outname;
 }
 
-void AssemblyBuilderDialog::InitConfig()
+bool AssemblyBuilderDialog::DidOperationSucceed()
 {
-    if (m_config != nullptr)
+    return m_operation_succeeded;
+}
+
+void AssemblyBuilderDialog::InitConfig(const wxString& name)
+{
+    auto config = new wxConfig(name);
+    if (config != nullptr)
     {
-        m_clonecmd = m_config->Read("/build/clonecmd");
-        m_cloneurl = m_config->Read("/build/cloneurl");
-        m_clonetag = m_config->Read("/build/clonetag");
-        m_assembler = m_config->Read("/build/assembler");
-        m_asmargs = m_config->Read("/build/asmargs");
-        m_baseasm = m_config->Read("/build/baseasm");
-        m_outname = m_config->Read("/build/outname");
-        m_emulator = m_config->Read("/build/emulator");
-        m_run_after_build = m_config->ReadBool("/build/run_after_build", true);
-        m_build_on_save = m_config->ReadBool("/build/build_on_save", true);
-        m_clone_in_new_dir = m_config->ReadBool("/build/clone_in_new_dir", true);
+        InitConfigVar(config, "/build/cloneurl", cloneurl, init_cloneurl);
+        InitConfigVar(config, "/build/clonetag", clonetag, init_clonetag);
+        InitConfigVar(config, "/build/clonecmd", clonecmd, init_clonecmd);
+        InitConfigVar(config, "/build/assembler", assembler, init_assembler);
+        InitConfigVar(config, "/build/asmargs", asmargs, init_asmargs);
+        InitConfigVar(config, "/build/baseasm", baseasm, init_baseasm);
+        InitConfigVar(config, "/build/outname", outname, init_outname);
+        InitConfigVar(config, "/build/emulator", emulator, init_emulator);
+        InitConfigVar(config, "build/run_after_build", run_after_build, init_run_after_build);
+        InitConfigVar(config, "build/build_on_save", build_on_save, init_build_on_save);
+        InitConfigVar(config, "build/clone_in_new_dir", clone_in_new_dir, init_clone_in_new_dir);
+        delete config;
+    }
+}
+
+void AssemblyBuilderDialog::InitConfigVar(wxConfig* cfg, const wxString& path, wxString& var, const wxString& defval)
+{
+    if (!cfg->Exists(path))
+    {
+        cfg->Write(path, defval);
+        var = defval;
+    }
+    else
+    {
+        var = cfg->Read(path);
+    }
+}
+
+void AssemblyBuilderDialog::InitConfigVar(wxConfig* cfg, const wxString& path, bool& var, bool defval)
+{
+    if (!cfg->Exists(path))
+    {
+        cfg->Write(path, defval);
+        var = defval;
+    }
+    else
+    {
+        var = cfg->ReadBool(path, defval);
     }
 }
 
@@ -90,15 +157,15 @@ void AssemblyBuilderDialog::OnInit()
         }
         break;
     case Func::INJECT:
-        Inject(true);
+        m_operation_succeeded = Inject(true);
         MakeIdle();
         break;
     case Func::RBUILD:
-        Inject(false);
+        m_operation_succeeded = Inject(false);
         MakeIdle();
         break;
     case Func::RUN:
-        Run();
+        m_operation_succeeded = Run();
         MakeIdle();
         break;
     }
@@ -139,10 +206,19 @@ void AssemblyBuilderDialog::OnProcessComplete(wxProcessEvent& evt)
     case Step::CLONE:
         if (JoinThread())
         {
-            retval = DoSave() && DoBuild();
+            retval = DoSave();
             if (retval)
             {
-                m_step = Step::BUILD;
+                if (build_on_save)
+                {
+                    retval = DoBuild();
+                    m_step = Step::BUILD;
+                }
+                else
+                {
+                    MakeIdle();
+                    m_operation_succeeded = true;
+                }
             }
             else
             {
@@ -155,10 +231,12 @@ void AssemblyBuilderDialog::OnProcessComplete(wxProcessEvent& evt)
         if (JoinThread())
         {
             auto f = wxFileName(m_dir, "");
-            f.SetFullName(m_outname);
-            retval = DoFixChecksum() && DoRun(f.GetFullPath(), true);
+            f.SetFullName(outname);
+            retval = DoFixChecksum();
             if (retval)
             {
+                m_operation_succeeded = true;
+                DoRun(f.GetFullPath(), true);
                 m_step = Step::BUILD;
             }
             else
@@ -194,13 +272,18 @@ bool AssemblyBuilderDialog::Assemble(bool post_save)
     if (dir.HasFiles() || dir.HasSubDirs())
     {
         m_step = Step::BUILD;
-        if (!post_save || m_build_on_save)
+        if (!post_save || build_on_save)
         {
-            return DoSave() && DoBuild();
+            if (!DoSave())
+            {
+                return false;
+            }
+            return DoBuild();
         }
         else
         {
-            return DoSave();
+            m_operation_succeeded = DoSave();
+            return false;
         }
     }
     else
@@ -223,12 +306,12 @@ bool AssemblyBuilderDialog::Build(bool post_save)
         Log("Unable to write to directory \"" + m_dir + "\".\n", *wxRED);
         return false;
     }
-    if (post_save && !m_build_on_save)
+    if (post_save && !build_on_save)
     {
         return true;
     }
     wxSetWorkingDirectory(m_dir);
-    if (dir.HasFiles(m_baseasm) && dir.HasSubDirs())
+    if (dir.HasFiles(baseasm) && dir.HasSubDirs())
     {
         m_step = Step::BUILD;
         return DoSave() && DoBuild();
@@ -242,17 +325,13 @@ bool AssemblyBuilderDialog::Build(bool post_save)
 
 bool AssemblyBuilderDialog::Inject(bool post_save)
 {
-    if (post_save && !m_build_on_save)
-    {
-        return true;
-    }
     auto file = wxFileName(m_dir);
     if (!file.IsFileWritable() && file.Exists())
     {
         Log("Unable to write to file \"" + m_dir + "\".\n", *wxRED);
         return false;
     }
-    return DoSaveToRom() && DoRun(m_dir, true);
+    return DoSaveToRom() && DoRun(m_dir, post_save);
 }
 
 bool AssemblyBuilderDialog::Run()
@@ -311,10 +390,15 @@ bool AssemblyBuilderDialog::DoClone()
         return false;
     }
 
-    wxString cmd(m_clonecmd);
-    cmd.Replace("{TAG}", m_clonetag, true);
-    cmd.Replace("{URL}", m_cloneurl, true);
+    wxString cmd(clonecmd);
+    cmd.Replace("{TAG}", clonetag, true);
+    cmd.Replace("{URL}", cloneurl, true);
     Log(cmd + "\n", *wxBLUE);
+    if (cmd.empty())
+    {
+        Log("Clone command has not been set!", *wxRED);
+        return false;
+    }
 
     if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
     {
@@ -361,9 +445,14 @@ bool AssemblyBuilderDialog::DoBuild()
         return false;
     }
 
-    wxString cmd = m_assembler;
-    cmd << " " << m_asmargs << " " << m_baseasm << "," << m_outname;
+    wxString cmd = assembler;
+    cmd << " " << asmargs << " \"" << baseasm << "\",\"" << outname << "\"";
     Log(cmd + "\n", *wxBLUE);
+    if (cmd.empty())
+    {
+        Log("Assemble command has not been set!", *wxRED);
+        return false;
+    }
     if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
     {
         Log("Command execution failed.", *wxRED);
@@ -374,32 +463,32 @@ bool AssemblyBuilderDialog::DoBuild()
 
 bool AssemblyBuilderDialog::DoFixChecksum()
 {
-    if (wxFileName(m_outname).Exists())
+    if (wxFileName(outname).Exists())
     {
         Log("Fixing ROM checksum...\n", *wxBLUE);
-        auto r = Rom(m_outname.ToStdString());
-        r.writeFile(m_outname.ToStdString());
+        auto r = Rom(outname.ToStdString());
+        r.writeFile(outname.ToStdString());
 
         Log(StrPrintf("Done! Checksum is 0x%04X.\n", r.read_checksum()), *wxGREEN);
         return true;
     }
     else
     {
-        Log(wxString("Failed to read ROM file \"") + m_outname + "\".");
+        Log(wxString("Failed to read ROM file \"") + outname + "\".");
     }
     return false;
 }
 
 bool AssemblyBuilderDialog::DoRun(const wxString& fname, bool post_build)
 {
-    wxString cmd = m_emulator;
+    wxString cmd = emulator;
     if (cmd.empty())
     {
         return false;
     }
-    if (!post_build || m_run_after_build)
+    if (!post_build || run_after_build)
     {
-        cmd << " " << fname;
+        cmd << " \"" << fname << "\"";
         Log(cmd + "\n", *wxBLUE);
         if (wxExecute(cmd, wxEXEC_ASYNC) < 1)
         {
@@ -418,7 +507,8 @@ bool AssemblyBuilderDialog::DoSaveToRom()
         return false;
     }
     std::ostringstream message, details;
-    m_gd->RefreshPendingWrites(*m_rom);
+    Rom output(*m_rom);
+    m_gd->RefreshPendingWrites(output);
     auto result = m_gd->GetPendingWrites();
     bool warning = false;
     try
@@ -464,8 +554,12 @@ bool AssemblyBuilderDialog::DoSaveToRom()
     Refresh();
     Update();
     wxYieldIfNeeded();
-    message << "Proceed?";
-    int answer = wxMessageBox(message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+    int answer = wxYES;
+    if (warning)
+    {
+        message << "Proceed?";
+        answer = wxMessageBox(message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
+    }
     if (answer != wxYES)
     {
         m_gd->AbandomRomInjection();
@@ -473,7 +567,6 @@ bool AssemblyBuilderDialog::DoSaveToRom()
     }
     else
     {
-        Rom output(*m_rom);
         m_gd->InjectIntoRom(output);
         output.writeFile(m_dir.ToStdString());
         Log("ROM Injection complete!\n", *wxGREEN);

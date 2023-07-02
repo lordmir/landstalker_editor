@@ -149,6 +149,7 @@ private:
     bool m_last_was_asm;
     wxString m_last_asm;
     wxString m_last_rom;
+    wxString m_built_rom;
 
     std::string m_selname;
     int m_seldata;

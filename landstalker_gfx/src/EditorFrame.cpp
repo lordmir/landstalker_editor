@@ -175,6 +175,26 @@ void EditorFrame::EnableToolbarItem(const std::string& name, int id, bool enable
 	}
 }
 
+wxControl* EditorFrame::GetToolbarItem(const std::string& name, int id)
+{
+	auto* tb = GetToolbar(name);
+	if (tb != nullptr)
+	{
+		return tb->FindControl(id);
+	}
+	return nullptr;
+}
+
+wxControl* EditorFrame::GetToolbarItem(const std::string& name, int id) const
+{
+	auto* tb = GetToolbar(name);
+	if (tb != nullptr)
+	{
+		return tb->FindControl(id);
+	}
+	return nullptr;
+}
+
 void EditorFrame::SetPaneVisibility(wxWindow* pane, bool visible)
 {
 	if (pane == nullptr)
@@ -268,9 +288,9 @@ wxMenu& EditorFrame::AddMenu(wxMenuBar& parent, int position, int id, const std:
 wxMenuItem& EditorFrame::AddMenuItem(wxMenu& parent, int position, int id, const std::string& name, wxItemKind kind, const std::string& help) const
 {
 	wxMenuItem* menuItem = new wxMenuItem(&parent, id, name, help, kind);
-	if (parent.GetTitle() == "File")
+	if (parent.GetTitle() == "&File")
 	{
-		position += 4;
+		position += 10;
 	}
 	parent.Insert(position, menuItem);
 	m_menuitems.insert({ id, {&parent, menuItem} });

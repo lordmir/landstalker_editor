@@ -37,6 +37,8 @@ protected:
 	void CheckToolbarItem(const std::string& name, int id, bool checked) const;
 	void EnableMenuItem(int id, bool enabled) const;
 	void EnableToolbarItem(const std::string& name, int id, bool enabled) const;
+	wxControl* GetToolbarItem(const std::string& name, int id);
+	wxControl* GetToolbarItem(const std::string& name, int id) const;
 	void SetPaneVisibility(wxWindow* pane, bool visible);
 	bool IsPaneVisible(wxWindow* pane) const;
 	void InsertPane(wxWindow* pane, const wxAuiPaneInfo& insert_location, int insert_level = wxAUI_INSERT_PANE);

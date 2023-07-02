@@ -91,9 +91,6 @@
     <Filter Include="src\Data\2D Maps">
       <UniqueIdentifier>{8ea91b93-cf5e-4e82-810f-fbb32f4bae51}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Data\3D Maps">
-      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\Data\Sprites">
       <UniqueIdentifier>{e29568f1-0473-48b0-b633-6af122b43bf6}</UniqueIdentifier>
     </Filter>
@@ -141,6 +138,9 @@
     </Filter>
     <Filter Include="src\Data\AsmBuild">
       <UniqueIdentifier>{6e6e5142-8c02-4146-bade-ec5a4005547c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\3D Maps">
+      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

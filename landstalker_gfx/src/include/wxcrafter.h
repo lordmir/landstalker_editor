@@ -49,7 +49,8 @@
 #define WXC_FROM_DIP(x) x
 #endif
 
-const wxString APPLICATION_NAME("Landstalker Editor");
+const wxString APPLICATION_NAME("landstalker_editor");
+const wxString APPLICATION_TITLE("Landstalker Editor");
 
 // clang-format on
 
@@ -171,7 +172,7 @@ public:
     }
     MainFrameBaseClass(wxWindow* parent,
         wxWindowID id = wxID_ANY,
-        const wxString& title = APPLICATION_NAME,
+        const wxString& title = APPLICATION_TITLE,
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxSize(1024, 768),
         long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxCLOSE_BOX);

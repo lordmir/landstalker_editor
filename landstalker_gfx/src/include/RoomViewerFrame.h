@@ -106,9 +106,6 @@ private:
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
 
-	mutable wxChoice* m_tb_hmcell;
-	mutable wxSlider* m_tb_hmzoom;
-
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
 	double m_zoom;

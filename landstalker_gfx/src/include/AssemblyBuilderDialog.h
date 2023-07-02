@@ -36,9 +36,12 @@ public:
     virtual ~AssemblyBuilderDialog();
 
     wxString GetBuiltRomName();
+    bool DidOperationSucceed();
 
+    static void InitConfig(const wxString& name);
+    static void InitConfigVar(wxConfig* cfg, const wxString& path, wxString& var, const wxString& defval);
+    static void InitConfigVar(wxConfig* cfg, const wxString& path, bool& var, bool defval);
 private:
-    void InitConfig();
     void OnInit();
     void OnClose(wxCloseEvent& evt);
     void OnOK(wxCommandEvent& evt);
@@ -75,18 +78,19 @@ private:
     std::shared_ptr<Rom> m_rom;
     Func m_fn;
     wxConfig* m_config;
+    bool m_operation_succeeded;
 
-    wxString m_clonecmd;
-    wxString m_cloneurl;
-    wxString m_clonetag;
-    wxString m_asmargs;
-    wxString m_assembler;
-    wxString m_baseasm;
-    wxString m_outname;
-    wxString m_emulator;
-    bool m_run_after_build;
-    bool m_build_on_save;
-    bool m_clone_in_new_dir;
+    static wxString clonecmd;
+    static wxString cloneurl;
+    static wxString clonetag;
+    static wxString asmargs;
+    static wxString assembler;
+    static wxString baseasm;
+    static wxString outname;
+    static wxString emulator;
+    static bool run_after_build;
+    static bool build_on_save;
+    static bool clone_in_new_dir;
 };
 
 #endif // _ASSEMBLY_BUILDER_DIALOG_H_

@@ -158,8 +158,8 @@ bool RoomData::Save()
 
 bool RoomData::HasBeenModified() const
 {
-    auto entry_pred = [](const auto& e) {return e != nullptr && e->HasDataChanged(); };
-    auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasDataChanged(); };
+    auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
+    auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
     if (std::any_of(m_animated_ts.begin(), m_animated_ts.end(), pair_pred))
     {
         return true;
