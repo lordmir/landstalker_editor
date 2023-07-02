@@ -29,14 +29,14 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: madler/zlib
-          ref: refs/heads/v1.2.13
+          ref: refs/tags/v1.2.13
           path: zlib
 
       - name: Checkout libpng
         uses: actions/checkout@v3
         with:
           repository: glennrp/libpng
-          ref: refs/heads/libpng16
+          ref: refs/tags/libpng16
           submodules: recursive
           path: libpng
 
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: wxWidgets/wxWidgets
-          ref: refs/heads/3.2.2-hotfix
+          ref: refs/tags/v3.2.2.1
           submodules: recursive
           path: wxwidgets
 
