@@ -43,6 +43,7 @@ protected:
     virtual void OnOpen(wxCommandEvent& event);
     virtual void OnSaveAsAsm(wxCommandEvent& event);
     virtual void OnSaveToRom(wxCommandEvent& event);
+    virtual void OnSave(wxCommandEvent& event);
     virtual void OnBuildAsm(wxCommandEvent& event);
     virtual void OnRunEmulator(wxCommandEvent& event);
     virtual void OnPreferences(wxCommandEvent& event);
@@ -119,6 +120,7 @@ private:
     void OpenRomFile(const wxString& path);
     void OpenAsmFile(const wxString& path);
     void InitUI();
+    void InitConfig();
     ReturnCode Save();
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
@@ -142,6 +144,11 @@ private:
     Rom m_rom;
     bool m_asmfile;
     std::shared_ptr<GameData> m_g;
+
+    wxString m_last;
+    bool m_last_was_asm;
+    wxString m_last_asm;
+    wxString m_last_rom;
 
     std::string m_selname;
     int m_seldata;

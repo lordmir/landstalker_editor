@@ -49,10 +49,14 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     SetMode(MODE_NONE);
     m_mnu_save_as_asm->Enable(false);
     m_mnu_save_to_rom->Enable(false);
+    m_mnu_save->Enable(false);
+    m_mnu_build_asm->Enable(false);
+    m_mnu_run_emu->Enable(false);
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
     }
+    InitConfig();
 	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
 	this->Connect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
 	this->Connect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
@@ -115,6 +119,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         this->SetLabel("Landstalker Editor - " + m_rom.get_description());
         InitUI();
         m_asmfile = false;
+        m_last_rom = path;
     }
     catch (const std::runtime_error& e)
     {
@@ -136,6 +141,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         this->SetLabel("Landstalker Editor - " + path);
         InitUI();
         m_asmfile = true;
+        m_last_asm = path;
     }
     catch (const std::runtime_error& e)
     {
@@ -338,6 +344,73 @@ void MainFrame::InitUI()
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
+    if (m_asmfile)
+    {
+        m_mnu_build_asm->Enable(true);
+    }
+    else
+    {
+        m_mnu_run_emu->Enable(true);
+    }
+}
+
+void MainFrame::InitConfig()
+{
+    if (m_config)
+    {
+        if (!m_config->Exists("/build/cloneurl"))
+        {
+            m_config->Write("/build/cloneurl", "https://github.com/lordmir/landstalker_disasm.git");
+        }
+        if (!m_config->Exists("/build/clonetag"))
+        {
+            m_config->Write("/build/clonetag", "0.2");
+        }
+        if (!m_config->Exists("/build/clonecmd"))
+        {
+            m_config->Write("/build/clonecmd", "git clone {URL} --branch {TAG} --single-branch .");
+        }
+        if (!m_config->Exists("/build/assembler"))
+        {
+#ifdef __WXMSW__
+            m_config->Write("/build/assembler", ".\\tools\\build\\asm68k.exe");
+#else
+            m_config->Write("/build/assembler", "wine ./tools/build/asm68k.exe");
+#endif
+        }
+        if (!m_config->Exists("/build/asmargs"))
+        {
+            m_config->Write("/build/asmargs", "/p /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_ /e EXPANDED=0");
+        }
+        if (!m_config->Exists("/build/baseasm"))
+        {
+            m_config->Write("/build/baseasm", "landstalker_us.asm");
+        }
+        if (!m_config->Exists("/build/outname"))
+        {
+            m_config->Write("/build/outname", "landstalker.bin");
+        }
+        if (!m_config->Exists("/build/emulator"))
+        {
+#ifdef __WXMSW__
+            m_config->Write("/build/emulator", "fusion.exe");
+#else
+            m_config->Write("/build/emulator", "kega-fusion");
+#endif
+        }
+        if (!m_config->Exists("/build/run_after_build"))
+        {
+            m_config->Write("/build/run_after_build", true);
+        }
+        if (!m_config->Exists("/build/build_on_save"))
+        {
+            m_config->Write("/build/build_on_save", true);
+        }
+        if (!m_config->Exists("/build/clone_in_new_dir"))
+        {
+            m_config->Write("/build/clone_in_new_dir", true);
+        }
+    }
 }
 
 MainFrame::ReturnCode MainFrame::Save()
@@ -370,6 +443,18 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         {
             AssemblyBuilderDialog bdlg(this, path, m_g);
             bdlg.ShowModal();
+            m_last_asm = path;
+            m_last = path;
+            m_last_was_asm = true;
+            m_mnu_save->Enable(true);
+            m_mnu_build_asm->Enable(true);
+            auto romfile = wxFileName(path, "");
+            romfile.SetFullName(bdlg.GetBuiltRomName());
+            if (romfile.Exists())
+            {
+                m_last_rom = path;
+                m_mnu_run_emu->Enable(true);
+            }
         }
         return ReturnCode::OK;
     }
@@ -416,6 +501,15 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         {
             auto dlg = AssemblyBuilderDialog(this, path, m_g, AssemblyBuilderDialog::Func::INJECT, std::make_shared<Rom>(m_rom));
             dlg.ShowModal();
+            if (wxFileName(path).Exists())
+            {
+                m_last_rom = path;
+                m_last = path;
+                m_last_was_asm = false;
+                m_mnu_run_emu->Enable(true);
+                m_mnu_save->Enable(true);
+            }
+            return ReturnCode::OK;
         }
     }
     catch (const std::exception& e)
@@ -600,6 +694,12 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     this->SetLabel("Landstalker Editor");
     m_mnu_save_as_asm->Enable(false);
     m_mnu_save_to_rom->Enable(false);
+    m_mnu_save->Enable(false);
+    m_mnu_build_asm->Enable(false);
+    m_mnu_run_emu->Enable(false);
+    m_last.clear();
+    m_last_asm.clear();
+    m_last_rom.clear();
     return ReturnCode::OK;
 }
 
@@ -677,12 +777,42 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
     event.Skip();
 }
 
+void MainFrame::OnSave(wxCommandEvent& event)
+{
+    if (m_last.empty())
+    {
+        return;
+    }
+    if (m_last_was_asm)
+    {
+        AssemblyBuilderDialog bdlg(this, m_last, m_g, AssemblyBuilderDialog::Func::SAVE_ASM);
+        bdlg.ShowModal();
+    }
+    else
+    {
+        AssemblyBuilderDialog bdlg(this, m_last, m_g, AssemblyBuilderDialog::Func::INJECT);
+        bdlg.ShowModal();
+    }
+}
+
 void MainFrame::OnBuildAsm(wxCommandEvent& event)
 {
+    if (m_last_asm.empty())
+    {
+        return;
+    }
+    AssemblyBuilderDialog bdlg(this, m_last_asm, m_g, AssemblyBuilderDialog::Func::BUILD);
+    bdlg.ShowModal();
 }
 
 void MainFrame::OnRunEmulator(wxCommandEvent& event)
 {
+    if (m_last_rom.empty())
+    {
+        return;
+    }
+    AssemblyBuilderDialog bdlg(this, m_last_rom, m_g, AssemblyBuilderDialog::Func::RUN);
+    bdlg.ShowModal();
 }
 
 void MainFrame::OnPreferences(wxCommandEvent& event)

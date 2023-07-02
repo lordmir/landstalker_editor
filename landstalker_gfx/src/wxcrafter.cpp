@@ -56,47 +56,50 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     }
     SetIcons( app_icons );
 
-    m_config = new wxConfig(title);
+    m_config = new wxConfig(APPLICATION_NAME);
     
     m_menubar = new wxMenuBar(0);
     this->SetMenuBar(m_menubar);
     
     m_mnu_file = new wxMenu();
-    m_menubar->Append(m_mnu_file, _("File"));
+    m_menubar->Append(m_mnu_file, _("&File"));
     
-    m_mnu_open = new wxMenuItem(m_mnu_file, wxID_ANY, _("Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
+    m_mnu_open = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Open\tCtrl-O"), _("Open"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_open);
 
-    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save To Rom...\tF4"), _("Save To Rom"), wxITEM_NORMAL);
+    m_mnu_save_to_rom = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As &ROM...\tF2"), _("Save As Rom"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_to_rom);
 
-    m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As Assembly...\tCtrl-S"), _("Save As Assembly"), wxITEM_NORMAL);
+    m_mnu_save_as_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Save As &Assembly...\tF3"), _("Save As Assembly"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_save_as_asm);
 
-    m_mnu_build_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("Build Assembly...\tF5"), _("Build Assembly"), wxITEM_NORMAL);
+    m_mnu_save = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Save...\tCtrl-S"), _("Save Changes"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_save);
+
+    m_mnu_build_asm = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Build Assembly...\tF5"), _("Build Assembly"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_build_asm);
 
-    m_mnu_run_emu = new wxMenuItem(m_mnu_file, wxID_ANY, _("Run ROM in Emulator\tF6"), _("Run ROM in Emulator"), wxITEM_NORMAL);
+    m_mnu_run_emu = new wxMenuItem(m_mnu_file, wxID_ANY, _("Run ROM in &Emulator\tF6"), _("Run ROM in Emulator"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_run_emu);
     
     m_mnu_file->AppendSeparator();
 
     m_mnu_recent_files = new wxMenu();
-    m_mnu_file->AppendSubMenu(m_mnu_recent_files, "Open Recent");
+    m_mnu_file->AppendSubMenu(m_mnu_recent_files, "Open Re&cent");
 
     m_mnu_file->AppendSeparator();
 
-    m_mnu_preferences = new wxMenuItem(m_mnu_file, wxID_ANY, _("Preferences..."), _("Preferences"), wxITEM_NORMAL);
+    m_mnu_preferences = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Preferences...\tF12"), _("Preferences"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_preferences);
     
-    m_mnu_exit = new wxMenuItem(m_mnu_file, wxID_EXIT, _("Exit\tAlt-X"), _("Quit"), wxITEM_NORMAL);
+    m_mnu_exit = new wxMenuItem(m_mnu_file, wxID_EXIT, _("E&xit\tAlt-X"), _("Quit"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_exit);
 
     
     m_mnu_help = new wxMenu();
-    m_menubar->Append(m_mnu_help, _("Help"));
+    m_menubar->Append(m_mnu_help, _("&Help"));
     
-    m_mnu_about = new wxMenuItem(m_mnu_help, wxID_ABOUT, _("About..."), wxT(""), wxITEM_NORMAL);
+    m_mnu_about = new wxMenuItem(m_mnu_help, wxID_ABOUT, _("&About..."), wxT(""), wxITEM_NORMAL);
     m_mnu_help->Append(m_mnu_about);
     
     m_statusbar = new wxStatusBar(this, wxID_ANY, wxSTB_DEFAULT_STYLE);
@@ -190,6 +193,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
     this->Connect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Connect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Connect(m_mnu_save->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSave), NULL, this);
     this->Connect(m_mnu_build_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnBuildAsm), NULL, this);
     this->Connect(m_mnu_run_emu->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnRunEmulator), NULL, this);
     this->Connect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);
@@ -210,6 +214,7 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(m_mnu_open->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnOpen), NULL, this);
     this->Disconnect(m_mnu_save_as_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Disconnect(m_mnu_save_to_rom->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Disconnect(m_mnu_save->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSave), NULL, this);
     this->Disconnect(m_mnu_build_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Disconnect(m_mnu_run_emu->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Disconnect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);

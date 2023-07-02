@@ -49,6 +49,8 @@
 #define WXC_FROM_DIP(x) x
 #endif
 
+const wxString APPLICATION_NAME("Landstalker Editor");
+
 // clang-format on
 
 class MainFrameBaseClass : public wxFrame
@@ -59,6 +61,7 @@ protected:
     wxMenuItem* m_mnu_open;
     wxMenuItem* m_mnu_save_as_asm;
     wxMenuItem* m_mnu_save_to_rom;
+    wxMenuItem* m_mnu_save;
     wxMenuItem* m_mnu_build_asm;
     wxMenuItem* m_mnu_run_emu;
     wxMenuItem* m_mnu_sep1;
@@ -93,6 +96,10 @@ protected:
         event.Skip();
     }
     virtual void OnSaveToRom(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnSave(wxCommandEvent& event)
     {
         event.Skip();
     }
@@ -164,7 +171,7 @@ public:
     }
     MainFrameBaseClass(wxWindow* parent,
         wxWindowID id = wxID_ANY,
-        const wxString& title = _("Landstalker Editor"),
+        const wxString& title = APPLICATION_NAME,
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxSize(1024, 768),
         long style = wxCAPTION | wxRESIZE_BORDER | wxMAXIMIZE_BOX | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxCLOSE_BOX);
