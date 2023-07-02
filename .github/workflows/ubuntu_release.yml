@@ -41,7 +41,8 @@ jobs:
           repository: wxWidgets/wxWidgets
           ref: refs/heads/3.2.2-hotfix
           path: wxwidgets
-        shell: bash
+
+      - shell: bash
         working-directory: ${{github.workspace}}/wxwidgets
         run: mkdir gtkbuild
 
