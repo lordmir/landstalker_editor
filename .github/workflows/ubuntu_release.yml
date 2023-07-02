@@ -72,7 +72,7 @@ jobs:
       - name: Compress artifacts
         working-directory: ${{github.workspace}}/
         shell: bash
-        run: tar zxcf landstalker_editor.tar.gz landstalker_editor
+        run: tar zvcf landstalker_editor.tar.gz landstalker_editor
 
       - name: Archive build
         uses: actions/upload-artifact@v3

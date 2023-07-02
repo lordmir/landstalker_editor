@@ -1,0 +1,43 @@
+name: build-release
+
+on:
+  push:
+  release:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-release:
+    name: Windows release build
+    runs-on: windows-2022
+    env:
+      BUILD_TYPE: Release
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Checkout wxWidgets
+        uses: actions/checkout@v3
+        with:
+          repository: wxWidgets/wxWidgets
+          ref: refs/heads/3.2.2-hotfix
+          submodules: recursive
+          path: wxwidgets
+
+       - name: Set up MSBuild
+         uses: microsoft/setup-msbuild@v1.1
+
+      - name: Install MSVC Dev
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_x86
+
+      - name: Build wxWidgets
+        working-directory: ${{github.workspace}}/wxwidgets/build/msw
+        shell: cmd
+        run: |
+          COPY ..\..\include\wx\msw\setup0.h ..\..\include\wx\msw\setup.h
+          nmake /f makefile.vc BUILD=release SHARED=1 TARGET_CPU=X86
