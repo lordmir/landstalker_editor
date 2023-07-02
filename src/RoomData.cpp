@@ -158,8 +158,8 @@ bool RoomData::Save()
 
 bool RoomData::HasBeenModified() const
 {
-    auto entry_pred = [](const auto& e) {return e != nullptr && e->HasDataChanged(); };
-    auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasDataChanged(); };
+    auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
+    auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
     if (std::any_of(m_animated_ts.begin(), m_animated_ts.end(), pair_pred))
     {
         return true;
@@ -1769,8 +1769,8 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
 bool RoomData::AsmSaveChestData(const filesystem::path& dir)
 {
     auto result = m_chests.GetData(GetRoomCount());
-    WriteBytes(result.first, dir / m_chest_data_filename);
-    WriteBytes(result.second, dir / m_chest_offset_data_filename);
+    WriteBytes(result.first, dir / m_chest_offset_data_filename);
+    WriteBytes(result.second, dir / m_chest_data_filename);
     return true;
 }
 

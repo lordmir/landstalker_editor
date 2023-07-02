@@ -5,39 +5,45 @@ This tool can work with any of the six publicly available ROM dumps, as well as 
 
 Current State of progress:
 
-| Asset                       | Viewable           | Editable           |
-|-----------------------------|--------------------|--------------------|
-| Strings                     | :heavy_check_mark: | :heavy_check_mark: |
-| Script                      | :x:                | :x:                |
-| Tiles                       | :heavy_check_mark: | :heavy_check_mark: |
-| 2D Maps                     | :heavy_check_mark: | :heavy_check_mark: |
-| Misc Graphics (Fonts, etc.) | :heavy_minus_sign: | :heavy_minus_sign: |
-| Palettes                    | :heavy_check_mark: | :heavy_check_mark: |
-| Blocksets                   | :heavy_check_mark: | :x:                |
-| 3D Maps                     | :heavy_check_mark: | :x:                |
-| Heightmaps                  | :heavy_check_mark: | :heavy_check_mark: |
-| Room Entity Placement       | :heavy_check_mark: | :heavy_check_mark: |
-| Room Warp Placement         | :heavy_check_mark: | :heavy_check_mark: |
-| Chest Contents              | :heavy_check_mark: | :heavy_check_mark: |
-| Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |
-| Room Flags                  | :heavy_check_mark: | :heavy_check_mark: |
-| Room Graphic Transitions    | :x:                | :x:                |
-| Entity Properties           | :x:                | :x:                |
-| Entity Behaviours           | :x:                | :x:                |
-| Sprite Frames               | :hEavy_check_mark: | :heavy_check_mark: |
-| Sprite Animations           | :heavy_check_mark: | :x:                |
+| Asset                       | Viewable           | Editable           | Notes                                                      |
+|-----------------------------|--------------------|--------------------|------------------------------------------------------------|
+| Strings                     | :heavy_check_mark: | :heavy_check_mark: | Custom character sets to be added.                         |
+| Script                      | :x:                | :x:                | ROM format reverse engineered.                             |
+| Tiles                       | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| 2D Maps                     | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Misc Graphics (Fonts, etc.) | :heavy_minus_sign: | :heavy_minus_sign: | 90% complete. Still need to understand end credit font.    |
+| Palettes                    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Blocksets                   | :heavy_check_mark: | :x:                | Editor UI still needs to be made.                          |
+| 3D Maps                     | :heavy_check_mark: | :x:                | Editor UI still needs to be made.                          |
+| Heightmaps                  | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Entity Placement       | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Warp Placement         | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Chest Contents              | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Flags                  | :heavy_minus_sign: | :heavy_minus_sign: | Most flags understood. Some still to be added.             |
+| Room Graphic Transitions    | :x:                | :x:                | ROM format reverse engineered.                             |
+| Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
+| Entity Behaviours           | :x:                | :x:                | ROM format reverse engineered.                             |
+| Sprite Frames               | :heavy_check_mark: | :heavy_minus_mark: | Editor UI could do with improvements.                      |
+| Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
 
-# Linux
+# Build
 
-## Packages
+## Linux
+
+### Packages
 
 In addition to build-essential (compiler and make), the following libraries are required:
 - [wxWidgets](https://www.wxwidgets.org/downloads/) (at least v3.2.2)
 - libpng
 - zlib
-- boost
 
-## Build and Install wxWidgets (all distributions)
+It is recommended to have the following installed in addition to the above, in order to build assemblies:
+- git
+- wine
+- kega-fusion
+
+#### Build and Install wxWidgets (all distributions)
 
  1. Download the wxWidgets v3.2+ source from the [official website](https://www.wxwidgets.org/downloads/). Extract the contents of the tar file to a suitable location.
  2. Install the prerequisites (see the README.md file in the wxWidgets source). For Debian/Ubuntu, you will need to run this command:
@@ -63,9 +69,7 @@ In addition to build-essential (compiler and make), the following libraries are 
     sudo ldconfig
     ```
 
-## Build
-
-### With make
+### Build
 
  build using the Makefile by calling make
 
@@ -79,13 +83,13 @@ To build with debug symbols, use pass the DEBUG=yes parameter to make
 $ make DEBUG=yes
 ```
 
-# Windows
+## Windows
 
-## Visual Studio 2019 (Community)
+### Visual Studio 2019 (Community)
 
-### Prerequisites
+#### Prerequisites
 
-#### WxWidgets
+##### WxWidgets
 
 You will need to download and build the WxWidgets 3.1.3 library (https://www.wxwidgets.org/). Download the Windows ZIP version and extract somewhere convenient (e.g. the root of the C: drive). Note that the final extracted path cannot contain spaces.
 
@@ -95,7 +99,7 @@ Finally, we need to add an environment variable to tell Visual Studio where to f
 
 Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
 
-#### LibPng and ZLib
+##### LibPng and ZLib
 
 You will need to obtain the LibPng 1.6.37 library - this can be found at https://download.sourceforge.net/libpng/lpng1637.zip. You will also need the ZLib source, download this from https://www.zlib.net/zlib-1.2.11.tar.gz.
 

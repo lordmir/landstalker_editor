@@ -28,6 +28,7 @@ enum MENU_IDS
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
+	ID_VIEW_SEP1,
 	ID_VIEW_ERRORS
 };
 
@@ -96,9 +97,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
 	  m_warpctrl_visible(true),
-	  m_sizes_set(false),
-	  m_tb_hmcell(nullptr),
-	  m_tb_hmzoom(nullptr)
+	  m_sizes_set(false)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -835,12 +834,11 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
-	AddMenuItem(fileMenu, 0, wxID_ANY, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_BIN, "Export Map as Binary...");
-	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_CSV, "Export Map as CSV Set...");
-	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
-	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
-	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_BIN, "Export Map as Binary...");
+	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_CSV, "Export Map as CSV Set...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
+	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
@@ -852,7 +850,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 3, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 3, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 4, ID_VIEW_ERRORS, "Errors...");
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
@@ -929,9 +927,9 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	celltypes.Add("[2F] ???");
 	celltypes.Add("???");
 	wxAuiToolBar* hm_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	m_tb_hmcell = new wxChoice(hm_tb, HM_TYPE_DROPDOWN, wxDefaultPosition, wxDefaultSize, celltypes);
-	m_tb_hmcell->SetSelection(0);
-	m_tb_hmzoom = new wxSlider(hm_tb, HM_ZOOM, 2, 1, 5);
+	auto hmcell = new wxChoice(hm_tb, HM_TYPE_DROPDOWN, wxDefaultPosition, wxDefaultSize, celltypes);
+	hmcell->SetSelection(0);
+	auto hmzoom = new wxSlider(hm_tb, HM_ZOOM, 2, 1, 5);
 	hm_tb->SetToolBitmapSize(wxSize(16, 16));
 	hm_tb->AddTool(HM_INSERT_ROW_BEFORE, "Insert Row Before", ilist.GetImage("hm_insert_se"), "Insert Row Before", wxITEM_NORMAL);
 	hm_tb->AddTool(HM_INSERT_ROW_AFTER, "Insert Row After", ilist.GetImage("hm_insert_nw"), "Insert Row After", wxITEM_NORMAL);
@@ -940,7 +938,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	hm_tb->AddTool(HM_INSERT_COLUMN_AFTER, "Insert Column After", ilist.GetImage("hm_insert_ne"), "Insert Column After", wxITEM_NORMAL);
 	hm_tb->AddTool(HM_DELETE_COLUMN, "Delete Column", ilist.GetImage("hm_delete_nwse"), "Delete Column", wxITEM_NORMAL);
 	hm_tb->AddSeparator();
-	hm_tb->AddControl(m_tb_hmcell, "Cell Type");
+	hm_tb->AddControl(hmcell, "Cell Type");
 	hm_tb->AddTool(HM_TOGGLE_PLAYER, "Toggle Player Passable", ilist.GetImage("hm_player_walkable"), "Toggle Player Passable", wxITEM_CHECK);
 	hm_tb->AddTool(HM_TOGGLE_NPC, "Toggle NPC Passable", ilist.GetImage("hm_npc_walkable"), "Toggle NPC Passable", wxITEM_CHECK);
 	hm_tb->AddTool(HM_TOGGLE_RAFT, "Toggle Raft Track", ilist.GetImage("hm_raft_track"), "Toggle Raft Track", wxITEM_CHECK);
@@ -952,7 +950,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	hm_tb->AddTool(HM_NUDGE_HM_SE, "Nudge Heightmap South East", ilist.GetImage("hm_nudge_se"), "Nudge Heightmap South East");
 	hm_tb->AddTool(HM_NUDGE_HM_SW, "Nudge Heightmap South West", ilist.GetImage("hm_nudge_sw"), "Nudge Heightmap South West");
 	hm_tb->AddSeparator();
-	hm_tb->AddControl(m_tb_hmzoom, "Zoom");
+	hm_tb->AddControl(hmzoom, "Zoom");
 	AddToolbar(m_mgr, *hm_tb, "Heightmap", "Heightmap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(2));
 
 	UpdateUI();
@@ -1171,6 +1169,14 @@ void RoomViewerFrame::OnImportCsv()
 
 void RoomViewerFrame::UpdateUI() const
 {
+	wxChoice* hmcell = nullptr;
+	wxSlider * hmzoom = nullptr;
+	auto tb = GetToolbar("Heightmap");
+	if (tb != nullptr)
+	{
+		hmcell = static_cast<wxChoice*>(tb->FindControl(HM_TYPE_DROPDOWN));
+		hmzoom = static_cast<wxSlider*>(tb->FindControl(HM_ZOOM));
+	}
 	if (m_mode == Mode::NORMAL)
 	{
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
@@ -1182,6 +1188,11 @@ void RoomViewerFrame::UpdateUI() const
 		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, true);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
+
+		EnableMenuItem(ID_VIEW_WARPS, true);
+		CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
+		EnableToolbarItem("Main", TOOL_TOGGLE_WARPS, true);
+		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
 		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
@@ -1216,11 +1227,11 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, false);
 		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, false);
 		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, false);
-		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		if (hmcell != nullptr && hmzoom != nullptr)
 		{
-			m_tb_hmcell->SetSelection(0);
-			m_tb_hmcell->Enable(false);
-			m_tb_hmzoom->Enable(false);
+			hmcell->SetSelection(0);
+			hmcell->Enable(false);
+			hmzoom->Enable(false);
 		}
 	}
 	else
@@ -1269,23 +1280,26 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15);
 		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0);
-		m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
-		m_tb_hmzoom->Enable(true);
+		if (hmcell != nullptr && hmzoom != nullptr)
+		{
+			hmcell->Enable(m_hmedit->IsSelectionValid());
+			hmzoom->Enable(true);
+		}
 
 		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedPlayerPassable());
 		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid() && !m_hmedit->IsSelectedNPCPassable());
 		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedRaftTrack());
-		if (m_tb_hmcell != nullptr && m_tb_hmzoom != nullptr)
+		if (hmcell != nullptr && hmzoom != nullptr)
 		{
-			m_tb_hmcell->Enable(m_hmedit->IsSelectionValid());
-			m_tb_hmzoom->Enable(true);
+			hmcell->Enable(m_hmedit->IsSelectionValid());
+			hmzoom->Enable(true);
 			if (m_hmedit->IsSelectionValid())
 			{
-				m_tb_hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
+				hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
 			}
 			else
 			{
-				m_tb_hmcell->SetSelection(0);
+				hmcell->SetSelection(0);
 			}
 		}
 	}
@@ -1433,13 +1447,21 @@ void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& evt)
 
 void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 {
-	m_hmedit->SetSelectedType(m_tb_hmcell->GetSelection());
+	wxChoice* ctrl = static_cast<wxChoice*>(evt.GetEventObject());
+	if (ctrl != nullptr)
+	{
+		m_hmedit->SetSelectedType(ctrl->GetSelection());
+	}
 	evt.Skip();
 }
 
 void RoomViewerFrame::OnHMZoom(wxCommandEvent& evt)
 {
-	m_hmedit->SetZoom(static_cast<double>(m_tb_hmzoom->GetValue()) * 0.5);
+	wxSlider* ctrl = static_cast<wxSlider*>(evt.GetEventObject());
+	if (ctrl != nullptr)
+	{
+		m_hmedit->SetZoom(static_cast<double>(ctrl->GetValue()) * 0.5);
+	}
 	evt.Skip();
 }
 

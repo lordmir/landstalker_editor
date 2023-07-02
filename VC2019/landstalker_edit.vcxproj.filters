@@ -91,9 +91,6 @@
     <Filter Include="src\Data\2D Maps">
       <UniqueIdentifier>{8ea91b93-cf5e-4e82-810f-fbb32f4bae51}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Data\3D Maps">
-      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\Data\Sprites">
       <UniqueIdentifier>{e29568f1-0473-48b0-b633-6af122b43bf6}</UniqueIdentifier>
     </Filter>
@@ -135,6 +132,9 @@
     </Filter>
     <Filter Include="src\UI\Tileset">
       <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\3D Maps">
+      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -368,6 +368,15 @@
     </ClCompile>
     <ClCompile Include="..\src\RoomErrorDialog.cpp">
       <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AssemblyBuilderDialog.cpp">
+      <Filter>src\UI\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ExecutorThread.cpp">
+      <Filter>src\UI\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\PreferencesDialog.cpp">
+      <Filter>src\UI\Miscellaneous</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -624,6 +633,15 @@
     </ClInclude>
     <ClInclude Include="..\src\include\RoomErrorDialog.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AssemblyBuilderDialog.h">
+      <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\ExecutorThread.h">
+      <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\PreferencesDialog.h">
+      <Filter>include\UI\Miscellaneous</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

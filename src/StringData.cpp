@@ -164,8 +164,8 @@ bool StringData::Save()
 
 bool StringData::HasBeenModified() const
 {
-	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasDataChanged(); };
-	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasDataChanged(); };
+	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
+	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
 	if (std::any_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), pair_pred))
 	{
 		return true;

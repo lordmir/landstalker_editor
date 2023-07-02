@@ -265,8 +265,8 @@ void AsmFile::WriteFileHeader(const filesystem::path& p, const std::string& shor
 	*this << AsmFile::Comment(PrintCentered(short_description));
 	*this << AsmFile::Comment(PrintCentered(p.str()));
 	*this << AsmFile::Comment(PrintCentered(""));
-	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker editor:"));
-	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_gfx"));
+	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor:"));
+	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_editor"));
 	*this << AsmFile::Comment(PrintCentered("For use with the Landstalker disassembly:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_disasm"));
 	*this << AsmFile::Comment(std::string(78, ';'));

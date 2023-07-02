@@ -705,7 +705,6 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ALL, "Export All Tilesets...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Tileset...");
-	AddMenuItem(fileMenu, 5, wxID_ANY, "", wxITEM_SEPARATOR);
 	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);

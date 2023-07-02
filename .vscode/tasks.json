@@ -8,7 +8,7 @@
             "type": "shell",
             "command": "make clean && make all -j8",
             "options": {
-                "cwd": "${workspaceFolder}/landstalker_gfx"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [ "$gcc" ],
             "group": {
@@ -21,7 +21,7 @@
             "type": "shell",
             "command": "make clean && make all -j8 DEBUG=yes",
             "options": {
-                "cwd": "${workspaceFolder}/landstalker_gfx"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [ "$gcc" ],
             "group": {
@@ -33,7 +33,7 @@
             "type": "shell",
             "command": "make clean",
             "options": {
-                "cwd": "${workspaceFolder}/landstalker_gfx"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [ "$gcc" ],
             "group": {

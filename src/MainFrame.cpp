@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #include <wx/wx.h>
+#include <wx/filename.h>
 #include <wx/aboutdlg.h>
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
@@ -21,6 +22,8 @@
 #include "Rom.h"
 #include "Blockmap2D.h"
 #include "ImageBuffer.h"
+#include "AssemblyBuilderDialog.h"
+#include "PreferencesDialog.h"
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -48,10 +51,14 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     SetMode(MODE_NONE);
     m_mnu_save_as_asm->Enable(false);
     m_mnu_save_to_rom->Enable(false);
+    m_mnu_save->Enable(false);
+    m_mnu_build_asm->Enable(false);
+    m_mnu_run_emu->Enable(false);
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
     }
+    InitConfig();
 	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
 	this->Connect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
 	this->Connect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
@@ -95,8 +102,7 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     wxUnusedVar(event);
     wxAboutDialogInfo info;
     info.SetCopyright(_("Landstalker Editor"));
-    info.SetLicence(_("GPL v2 or later"));
-    info.SetDescription(_("Github: www.github.com/lordmir/landstalker_gfx\nEmail: hase@redfern.xyz"));
+    info.SetDescription(_("Github: https://github.com/lordmir/landstalker_editor \nEmail: hase@redfern.xyz"));
     ::wxAboutBox(info);
     event.Skip();
 }
@@ -112,8 +118,9 @@ void MainFrame::OpenRomFile(const wxString& path)
         m_rom.load_from_file(static_cast<std::string>(path));
         m_g = std::make_shared<GameData>(m_rom);
         this->SetLabel("Landstalker Editor - " + m_rom.get_description());
-        InitUI();
         m_asmfile = false;
+        m_built_rom = path;
+        InitUI();
     }
     catch (const std::runtime_error& e)
     {
@@ -133,8 +140,10 @@ void MainFrame::OpenAsmFile(const wxString& path)
         }
         m_g = std::make_shared<GameData>(path.ToStdString());
         this->SetLabel("Landstalker Editor - " + path);
-        InitUI();
+        wxFileName name(path);
         m_asmfile = true;
+        m_last_asm = name.GetPath();
+        InitUI();
     }
     catch (const std::runtime_error& e)
     {
@@ -337,17 +346,30 @@ void MainFrame::InitUI()
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
+    if (m_asmfile)
+    {
+        m_mnu_build_asm->Enable(true);
+    }
+    else
+    {
+        m_mnu_run_emu->Enable(true);
+    }
+}
+
+void MainFrame::InitConfig()
+{
+    AssemblyBuilderDialog::InitConfig(m_config);
 }
 
 MainFrame::ReturnCode MainFrame::Save()
 {
-    if (m_asmfile == true)
+    if (m_last_was_asm == true)
     {
-        return SaveAsAsm();
+        return SaveAsAsm(m_last.ToStdString());
     }
     else
     {
-        return SaveToRom();
+        return SaveToRom(m_last.ToStdString());
     }
     return ReturnCode::ERR;
 }
@@ -367,7 +389,24 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
-            m_g->Save(path);
+            AssemblyBuilderDialog bdlg(this, path, m_g);
+            bdlg.ShowModal();
+            if (bdlg.DidOperationSucceed())
+            {
+                m_last_asm = path;
+                m_last = path;
+                m_last_was_asm = true;
+                m_mnu_save->Enable(true);
+                m_mnu_build_asm->Enable(true);
+
+                auto romfile = wxFileName(path, "");
+                romfile.SetFullName(bdlg.GetBuiltRomName());
+                if (romfile.Exists())
+                {
+                    m_built_rom = romfile.GetFullPath();
+                    m_mnu_run_emu->Enable(true);
+                }
+            }
         }
         return ReturnCode::OK;
     }
@@ -412,54 +451,18 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         }
         if (m_g)
         {
-            std::ostringstream message, details;
-            m_g->RefreshPendingWrites(m_rom);
-            auto result = m_g->GetPendingWrites();
-            bool warning = false;
-            if (!m_g->WillFitInRom(m_rom))
+            auto dlg = AssemblyBuilderDialog(this, path, m_g, AssemblyBuilderDialog::Func::INJECT, std::make_shared<Rom>(m_rom));
+            dlg.ShowModal();
+            if (dlg.DidOperationSucceed() && wxFileName(path).Exists())
             {
-                message << "Warning: Data will not fit in ROM without overwriting existing structures!\n";
-                message << "To avoid this issue, it is recommended to use a disassembly source.\n\n";
-                warning = true;
+                m_last_rom = path;
+                m_built_rom = path;
+                m_last = path;
+                m_last_was_asm = false;
+                m_mnu_run_emu->Enable(true);
+                m_mnu_save->Enable(true);
             }
-            else
-            {
-                message << "Success: Data will fit into ROM without overwriting existing structures.\n\n";
-            }
-            for (const auto& w : result)
-            {
-                uint32_t addr = 0;
-                uint32_t size = 0;
-                if (m_rom.section_exists(w.first))
-                {
-                    auto sec = m_rom.get_section(w.first);
-                    addr = sec.begin;
-                    size = sec.size();
-                }
-                else if (m_rom.address_exists(w.first))
-                {
-                    addr = m_rom.get_address(w.first);
-                    size = sizeof(uint32_t);
-                }
-                details << w.first << " @ " << Hex(addr) << ": write " << w.second->size() << " bytes, available "
-                    << size << " bytes: " << ((w.second->size() <= size) ? "OK" : "BAD") << std::endl;
-            }
-            message << "\nProceed?";
-            auto msgbox = wxRichMessageDialog(this, message.str(), "Inject into ROM", wxYES_NO | (warning ? wxICON_EXCLAMATION : wxICON_INFORMATION));
-            msgbox.ShowDetailedText(details.str());
-            int answer = msgbox.ShowModal();
-            if (answer != wxID_YES)
-            {
-                m_g->AbandomRomInjection();
-                return ReturnCode::CANCELLED;
-            }
-            else
-            {
-                Rom output(m_rom);
-                m_g->InjectIntoRom(output);
-                output.writeFile(path);
-                return ReturnCode::OK;
-            }
+            return ReturnCode::OK;
         }
     }
     catch (const std::exception& e)
@@ -644,6 +647,13 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     this->SetLabel("Landstalker Editor");
     m_mnu_save_as_asm->Enable(false);
     m_mnu_save_to_rom->Enable(false);
+    m_mnu_save->Enable(false);
+    m_mnu_build_asm->Enable(false);
+    m_mnu_run_emu->Enable(false);
+    m_last.clear();
+    m_last_asm.clear();
+    m_last_rom.clear();
+    m_built_rom.clear();
     return ReturnCode::OK;
 }
 
@@ -719,6 +729,50 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
         wxMessageBox(std::string("Failed to save to ROM: ") + e.what(), "Error", wxICON_ERROR);
     }
     event.Skip();
+}
+
+void MainFrame::OnSave(wxCommandEvent& event)
+{
+    if (!m_last.empty())
+    {
+        Save();
+    }
+}
+
+void MainFrame::OnBuildAsm(wxCommandEvent& event)
+{
+    if (m_last_asm.empty())
+    {
+        return;
+    }
+    AssemblyBuilderDialog bdlg(this, m_last_asm, m_g, AssemblyBuilderDialog::Func::BUILD);
+    bdlg.ShowModal();
+    if(bdlg.DidOperationSucceed())
+    {
+        auto romfile = wxFileName(m_last_asm, "");
+        romfile.SetFullName(bdlg.GetBuiltRomName());
+        if (romfile.Exists())
+        {
+            m_built_rom = romfile.GetFullPath();
+            m_mnu_run_emu->Enable(true);
+        }
+    }
+}
+
+void MainFrame::OnRunEmulator(wxCommandEvent& event)
+{
+    if (m_built_rom.empty())
+    {
+        return;
+    }
+    AssemblyBuilderDialog bdlg(this, m_built_rom, m_g, AssemblyBuilderDialog::Func::RUN);
+    bdlg.ShowModal();
+}
+
+void MainFrame::OnPreferences(wxCommandEvent& event)
+{
+    PreferencesDialog dlg(this, m_config);
+    dlg.ShowModal();
 }
 
 void MainFrame::OnMRUFile(wxCommandEvent& event)

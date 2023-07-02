@@ -84,6 +84,9 @@ public:
 	static bool section_exists(const std::string& name);
 	static bool address_exists(const std::string& name);
 
+	uint16_t read_checksum();
+	uint16_t calc_checksum();
+
 private:
 	void ValidateRomChecksum();
 	void FixRomChecksum();

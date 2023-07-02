@@ -30,6 +30,7 @@ public:
 		virtual void Commit();
 		virtual void AbandonChanges();
 		virtual bool HasDataChanged() const;
+		virtual bool HasSavedDataChanged() const;
 		virtual bool Save(const filesystem::path& dir);
 
 		DataManager* GetOwner() { return m_owner; }
@@ -52,6 +53,7 @@ public:
 	private:
 		std::shared_ptr<T> m_data;
 		std::shared_ptr<T> m_orig_data;
+		std::shared_ptr<T> m_saved_data;
 		uint32_t m_begin_address;
 		std::string m_name;
 		filesystem::path m_filename;
@@ -105,6 +107,7 @@ inline void DataManager::Entry<T>::Initialise()
 {
 	Deserialise(m_raw_data, m_orig_data);
 	m_data = std::make_shared<T>(*m_orig_data);
+	m_saved_data = std::make_shared<T>(*m_orig_data);
 }
 
 template<class T>
@@ -113,7 +116,7 @@ inline void DataManager::Entry<T>::Commit()
 	if (HasDataChanged())
 	{
 		Serialise(m_data, m_cached_raw_data);
-		*m_orig_data = *m_data;
+		*m_saved_data = *m_data;
 		*m_raw_data = *m_cached_raw_data;
 	}
 }
@@ -121,7 +124,7 @@ inline void DataManager::Entry<T>::Commit()
 template<class T>
 inline void DataManager::Entry<T>::AbandonChanges()
 {
-	*m_data = *m_orig_data;
+	*m_data = *m_saved_data;
 	m_cached_raw_data->clear();
 }
 
@@ -129,6 +132,12 @@ template<class T>
 inline bool DataManager::Entry<T>::HasDataChanged() const
 {
 	return *m_orig_data != *m_data;
+}
+
+template<class T>
+inline bool DataManager::Entry<T>::HasSavedDataChanged() const
+{
+	return *m_saved_data != *m_data;
 }
 
 template<class T>

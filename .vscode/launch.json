@@ -9,7 +9,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/landstalker_gfx/landstalker_gfx",
+            "program": "${workspaceFolder}/landstalker_editor",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

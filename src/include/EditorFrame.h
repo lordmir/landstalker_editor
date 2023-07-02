@@ -37,6 +37,8 @@ protected:
 	void CheckToolbarItem(const std::string& name, int id, bool checked) const;
 	void EnableMenuItem(int id, bool enabled) const;
 	void EnableToolbarItem(const std::string& name, int id, bool enabled) const;
+	wxControl* GetToolbarItem(const std::string& name, int id);
+	wxControl* GetToolbarItem(const std::string& name, int id) const;
 	void SetPaneVisibility(wxWindow* pane, bool visible);
 	bool IsPaneVisible(wxWindow* pane) const;
 	void InsertPane(wxWindow* pane, const wxAuiPaneInfo& insert_location, int insert_level = wxAUI_INSERT_PANE);
@@ -60,8 +62,8 @@ protected:
 private:
 	mutable bool m_props_init;
 
-	mutable std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
-	mutable std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
+	static std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
+	static std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
 	mutable std::unordered_map<std::string, wxAuiToolBar*> m_toolbars;
 
 	ImageList* m_imglst;
