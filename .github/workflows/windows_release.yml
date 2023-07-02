@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: madler/zlib
-          ref: refs/heads/1.2.13
+          ref: refs/heads/v1.2.13
           submodules: recursive
           path: zlib
 
