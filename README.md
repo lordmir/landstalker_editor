@@ -3,6 +3,8 @@ A tool for extracting, viewing, editing and re-inserting the various data found 
 
 This tool can work with any of the six publicly available ROM dumps, as well as with my other project: [Landstalker Disassembly](https://github.com/lordmir/landstalker_disasm)
 
+Work-in-progress documentation [here](https://github.com/lordmir/landstalker_editor/wiki).
+
 Current State of progress:
 
 | Asset                       | Viewable           | Editable           | Notes                                                      |

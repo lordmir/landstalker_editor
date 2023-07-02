@@ -70,13 +70,12 @@ jobs:
           COPY ..\zlib\zlib.lib zlib\
           COPY ..\zlib\zlib.h zlib\
           nmake /f scripts\makefile.vcwin32
+          COPY libpng.lib libpng16.lib
 
       - name: Build wxWidgets
         working-directory: ${{github.workspace}}/wxwidgets/build/msw
         shell: cmd
-        run: |
-          COPY ..\..\include\wx\msw\setup.h ..\..\include\wx\msw\setup.h
-          nmake /f makefile.vc BUILD=release SHARED=0 TARGET_CPU=X86
+        run: nmake /f makefile.vc BUILD=release SHARED=0 TARGET_CPU=X86
 
       - name: Build Landstalker Editor
         working-directory: ${{github.workspace}}/landstalker_editor
