@@ -69,7 +69,7 @@ jobs:
           MKDIR  zlib
           COPY ..\zlib\zlib.lib zlib\
           COPY ..\zlib\zlib.h zlib\
-          nmake /f scriptsmakefile.vcwin32
+          nmake /f scripts\makefile.vcwin32
 
       - name: Build wxWidgets
         working-directory: ${{github.workspace}}/wxwidgets/build/msw
