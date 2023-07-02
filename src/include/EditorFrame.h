@@ -62,8 +62,8 @@ protected:
 private:
 	mutable bool m_props_init;
 
-	mutable std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
-	mutable std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
+	static std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> m_menus;
+	static std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
 	mutable std::unordered_map<std::string, wxAuiToolBar*> m_toolbars;
 
 	ImageList* m_imglst;

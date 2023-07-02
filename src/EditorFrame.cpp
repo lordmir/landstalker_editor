@@ -11,6 +11,9 @@ wxDEFINE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
 wxDEFINE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
 
+std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> EditorFrame::m_menus;
+std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> EditorFrame::m_menuitems;
+
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
 	  m_props_init(false),
@@ -66,6 +69,7 @@ void EditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 
 void EditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
+	ClearMenu(menu);
 }
 
 void EditorFrame::ClearMenu(wxMenuBar& menu) const
@@ -288,9 +292,17 @@ wxMenu& EditorFrame::AddMenu(wxMenuBar& parent, int position, int id, const std:
 wxMenuItem& EditorFrame::AddMenuItem(wxMenu& parent, int position, int id, const std::string& name, wxItemKind kind, const std::string& help) const
 {
 	wxMenuItem* menuItem = new wxMenuItem(&parent, id, name, help, kind);
+	assert(id != wxID_ANY);
+	assert(m_menuitems.find(id) == m_menuitems.end());
 	if (parent.GetTitle() == "&File")
 	{
-		position += 10;
+		if (position == 0)
+		{
+			auto sep = new wxMenuItem(&parent, wxID_ANY, wxEmptyString, wxEmptyString, wxITEM_SEPARATOR);
+			parent.Insert(position + 6, sep);
+			m_menuitems.insert({ wxID_ANY, {&parent, sep} });
+		}
+		position += 7;
 	}
 	parent.Insert(position, menuItem);
 	m_menuitems.insert({ id, {&parent, menuItem} });
