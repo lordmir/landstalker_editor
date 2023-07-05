@@ -6,6 +6,7 @@
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
 #include "HeightmapEditorCtrl.h"
+#include "Map3DEditor.h"
 #include "GameData.h"
 #include <memory>
 
@@ -102,6 +103,8 @@ private:
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
 	HeightmapEditorCtrl* m_hmedit;
+	Map3DEditor* m_bgedit;
+	Map3DEditor* m_fgedit;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;

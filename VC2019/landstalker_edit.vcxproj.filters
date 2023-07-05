@@ -378,6 +378,9 @@
     <ClCompile Include="..\src\PreferencesDialog.cpp">
       <Filter>src\UI\Miscellaneous</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Map3DEditor.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -642,6 +645,9 @@
     </ClInclude>
     <ClInclude Include="..\src\include\PreferencesDialog.h">
       <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Map3DEditor.h">
+      <Filter>include\UI\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

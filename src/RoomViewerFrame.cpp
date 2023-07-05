@@ -114,8 +114,12 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_nb->Freeze();
 	m_roomview = new RoomViewerCtrl(m_nb, this);
 	m_hmedit = new HeightmapEditorCtrl(m_nb, this);
+	m_bgedit = new Map3DEditor(m_nb, this, Tilemap3D::Layer::BG);
+	m_fgedit = new Map3DEditor(m_nb, this, Tilemap3D::Layer::FG);
 	m_nb->AddPage(m_roomview, "Room", true);
 	m_nb->AddPage(m_hmedit, "Heightmap");
+	m_nb->AddPage(m_bgedit, "Background");
+	m_nb->AddPage(m_fgedit, "Foreground");
 	m_nb->Thaw();
 	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 
@@ -135,6 +139,8 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_hmedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_bgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_fgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 RoomViewerFrame::~RoomViewerFrame()
@@ -158,6 +164,8 @@ void RoomViewerFrame::UpdateFrame()
 	m_layerctrl->EnableLayers(m_mode == Mode::NORMAL);
 	m_roomview->SetRoomNum(m_roomnum);
 	m_hmedit->SetRoomNum(m_roomnum);
+	m_bgedit->SetRoomNum(m_roomnum);
+	m_fgedit->SetRoomNum(m_roomnum);
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -174,6 +182,14 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_hmedit->SetGameData(gd);
 	}
+	if (m_bgedit)
+	{
+		m_bgedit->SetGameData(gd);
+	}
+	if (m_fgedit)
+	{
+		m_fgedit->SetGameData(gd);
+	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
@@ -189,6 +205,14 @@ void RoomViewerFrame::ClearGameData()
 	{
 		m_hmedit->ClearGameData();
 	}
+	if (m_bgedit)
+	{
+		m_bgedit->ClearGameData();
+	}
+	if (m_fgedit)
+	{
+		m_fgedit->ClearGameData();
+	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
@@ -199,6 +223,8 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 	{
 		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->name);
 		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
+		m_nb->SetPageText(2, wxString("Background: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
+		m_nb->SetPageText(3, wxString("Foreground: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_g->GetRoomData()->CleanupChests(*m_g);
 	}
 	if (m_roomnum != roomnum)
@@ -427,6 +453,14 @@ void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 		return;
 	}
 	if (m_mode == Mode::HEIGHTMAP)
+	{
+		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+	}
+	else if (m_mode == Mode::BACKGROUND)
+	{
+		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+	}
+	else if (m_mode == Mode::FOREGROUND)
 	{
 		status.SetStatusText(m_hmedit->GetStatusText(), 0);
 	}
