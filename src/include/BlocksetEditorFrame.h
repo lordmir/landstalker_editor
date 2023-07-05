@@ -27,15 +27,32 @@ public:
 	void SetDrawTile(const Tile& tile);
 	void Redraw();
 	void RedrawTiles(int index = -1) const;
+
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+
+	void ExportBin(const std::string& filename) const;
+	void ExportPng(const std::string& filename) const;
+	void ExportCsv(const std::string& filename) const;
+	void ImportBin(const std::string& filename);
+	void ImportCsv(const std::string& filename);
 private:
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
 	void UpdateStatusBar();
 
+	void OnExportBin();
+	void OnExportPng();
+	void OnExportCsv();
+	void OnImportBin();
+	void OnImportCsv();
+
 	BlocksetEditorCtrl* m_editor;
 	TilesetEditor* m_tileset;
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
+	std::shared_ptr<BlocksetEntry> m_blocks;
+	std::shared_ptr<TilesetEntry> m_tiles;
 
 	wxStatusBar* m_statusbar = nullptr;
 	wxSlider* m_zoomslider = nullptr;
