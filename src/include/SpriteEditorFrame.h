@@ -37,6 +37,16 @@ public:
 	bool New(int r, int c);
 	const std::string& GetFilename() const;
 
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+
+	void ExportFrm(const std::string& filename) const;
+	void ExportTiles(const std::string& filename) const;
+	void ExportVdpSpritemap(const std::string& filename) const;
+	void ExportPng(const std::string& filename) const;
+	void ImportFrm(const std::string& filename);
+	void ImportTiles(const std::string& filename);
+	void ImportVdpSpritemap(const std::string& filename);
 private:
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
@@ -47,6 +57,14 @@ private:
 	void OnPaletteColourSelect(wxCommandEvent& evt);
 	void OnPaletteColourHover(wxCommandEvent& evt);
 	void OnTilePixelHover(wxCommandEvent& evt);
+
+	void OnExportFrm();
+	void OnExportTiles();
+	void OnExportVdpSpritemap();
+	void OnExportPng();
+	void OnImportFrm();
+	void OnImportTiles();
+	void OnImportVdpSpritemap();
 
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status) const;

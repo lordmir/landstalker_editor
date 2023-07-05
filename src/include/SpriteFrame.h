@@ -17,6 +17,11 @@ public:
 		std::size_t h;
 		std::size_t tile_idx;
 
+		SubSprite(int xp, int yp, int wp, int hp, int tidx = 0)
+			: x(xp), y(yp), w(wp), h(hp), tile_idx(tidx) {}
+		SubSprite()
+			: x(0), y(0), w(0), h(0), tile_idx(0) {}
+
 		bool operator==(const SubSprite& rhs) const
 		{
 			return ((this->x == rhs.x) &&
@@ -45,6 +50,14 @@ public:
 	std::size_t SetBits(const std::vector<uint8_t>& src);
 	bool Save(const std::string& filename, bool use_compression = false);
 	void Clear();
+
+	int GetLeft() const;
+	int GetRight() const;
+	int GetWidth() const;
+	int GetTop() const;
+	int GetBottom() const;
+	int GetHeight() const;
+
 	std::vector<uint8_t>  GetTile(const Tile& tile) const;
 	std::pair<int, int>   GetTilePosition(const Tile& tile) const;
 	std::vector<uint8_t>& GetTilePixels(int tile_index);
@@ -65,6 +78,7 @@ public:
 	SubSprite& AddSubSpriteBefore(std::size_t idx);
 	void       DeleteSubSprite(std::size_t idx);
 	void       SwapSubSprite(std::size_t src1, std::size_t src2);
+	void       SetSubSprites(const std::vector<SubSprite>& subs);
 
 private:
 	std::vector<SubSprite> m_subsprites;

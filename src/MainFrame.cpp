@@ -32,6 +32,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
       m_g(nullptr)
 {
     m_imgs = new ImageList();
+    m_imgs32 = new ImageList(true);
     wxGridSizer* sizer = new wxGridSizer(1);
     m_editors.insert({ EditorType::TILESET, new TilesetEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::STRING, new StringEditorFrame(this->m_mainwin, m_imgs) });
@@ -101,10 +102,15 @@ void MainFrame::OnAbout(wxCommandEvent& event)
 {
     wxUnusedVar(event);
     wxAboutDialogInfo info;
-    info.SetCopyright(_("Landstalker Editor - Version 0.2"));
-    info.SetDescription(_("Github: https://github.com/lordmir/landstalker_editor \n"
-                          "Email: hase@redfern.xyz\n\n"
-                          "User Guide: https://github.com/lordmir/landstalker_editor/wiki/"));
+    wxIcon icn;
+    icn.CopyFromBitmap(m_imgs32->GetImage("msword"));
+    info.SetIcon(icn);
+    info.SetName(_("Landstalker Editor"));
+    info.SetVersion(_("0.2"));
+    info.SetCopyright(_("Copyright 2023. All Rights Reserved."));
+    info.SetWebSite(_("https://github.com/lordmir/landstalker_editor"), _("GitHub"));
+    info.AddDeveloper(_("LordMir <hase@redfern.xyz>"));
+    info.SetDescription(_("User Guide: https://github.com/lordmir/landstalker_editor/wiki/"));
     ::wxAboutBox(info);
     event.Skip();
 }

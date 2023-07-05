@@ -194,7 +194,7 @@ bool Map2DEditorFrame::ExportPng(const std::string& filename) const
 	int height = m_map->GetData()->GetHeight() * m_tiles->GetData()->GetTileHeight();
 	ImageBuffer buf(width, height);
 	buf.InsertMap(0, 0, 0, *m_map->GetData(), *m_tiles->GetData());
-	return buf.WritePNG(filename, {m_palette->GetData()}, false);
+	return buf.WritePNG(filename, {m_palette->GetData()}, true);
 }
 
 bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
@@ -208,7 +208,7 @@ bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
 	{
 		for (int x = 0; x < m_map->GetData()->GetWidth(); ++x)
 		{
-			fs << StrPrintf("%04X", m_map->GetData()->GetTile(x, y).GetTileValue());
+			fs << StrPrintf("0x%04X", m_map->GetData()->GetTile(x, y).GetTileValue());
 			if ((x + 1) == m_map->GetData()->GetWidth())
 			{
 				fs << std::endl;

@@ -200,6 +200,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 {
 	auto it = src.begin();
+	m_subsprites.clear();
 	std::size_t tile_idx = 0;
 	do
 	{
@@ -215,11 +216,11 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			x -= 0x100;
 		}
 		std::size_t h = (*it & 0x03) + 1;
-		m_subsprites.push_back({ x,y,w,h, tile_idx });
+		m_subsprites.emplace_back(x,y,w,h,tile_idx);
 		tile_idx += w * h;
 	} while ((*it++ & 0x80) == 0);
 
-	for (const auto subs : m_subsprites)
+	for (const auto& subs : m_subsprites)
 	{
 		std::ostringstream ss;
 		ss << "Sprite T:" << subs.tile_idx << " X:" << subs.x << " Y:" << subs.y << " W:" << subs.w << " H:" << subs.h;
@@ -294,6 +295,86 @@ void SpriteFrame::Clear()
 {
 	m_subsprites.clear();
 	m_sprite_gfx->Clear();
+}
+
+int SpriteFrame::GetLeft() const
+{
+	if (m_subsprites.size() == 0)
+	{
+		return 0;
+	}
+	int left = 0xFFFFFF;
+	for (const auto& s : m_subsprites)
+	{
+		if (s.x < left)
+		{
+			left = s.x;
+		}
+	}
+	return left;
+}
+
+int SpriteFrame::GetRight() const
+{
+	if (m_subsprites.size() == 0)
+	{
+		return 0;
+	}
+	int right = -0xFFFFFF;
+	for (const auto& s : m_subsprites)
+	{
+		int r = s.x + s.w * m_sprite_gfx->GetTileWidth();
+		if (r > right)
+		{
+			right = r;
+		}
+	}
+	return right;
+}
+
+int SpriteFrame::GetWidth() const
+{
+	return GetRight() - GetLeft();
+}
+
+int SpriteFrame::GetTop() const
+{
+	if (m_subsprites.size() == 0)
+	{
+		return 0;
+	}
+	int top = 0xFFFFFF;
+	for (const auto& s : m_subsprites)
+	{
+		if (s.y < top)
+		{
+			top = s.y;
+		}
+	}
+	return top;
+}
+
+int SpriteFrame::GetBottom() const
+{
+	if (m_subsprites.size() == 0)
+	{
+		return 0;
+	}
+	int bottom = -0xFFFFFF;
+	for (const auto& s : m_subsprites)
+	{
+		int b = s.y + s.h * m_sprite_gfx->GetTileHeight();
+		if (b > bottom)
+		{
+			bottom = b;
+		}
+	}
+	return bottom;
+}
+
+int SpriteFrame::GetHeight() const
+{
+	return GetBottom() - GetTop();
 }
 
 std::vector<uint8_t> SpriteFrame::GetTile(const Tile& tile) const
@@ -404,4 +485,15 @@ void SpriteFrame::DeleteSubSprite(std::size_t idx)
 void SpriteFrame::SwapSubSprite(std::size_t src1, std::size_t src2)
 {
 	std::swap(m_subsprites[src1], m_subsprites[src2]);	
+}
+
+void SpriteFrame::SetSubSprites(const std::vector<SubSprite>& subs)
+{
+	m_subsprites = subs;
+	int c = 0;
+	for (auto& s : m_subsprites)
+	{
+		s.tile_idx += c;
+		c += s.w * s.h;
+	}
 }

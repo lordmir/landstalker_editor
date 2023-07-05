@@ -16,6 +16,13 @@ wxEND_EVENT_TABLE()
 
 enum MENU_IDS
 {
+	ID_FILE_EXPORT_FRM = 20000,
+	ID_FILE_EXPORT_TILES,
+	ID_FILE_EXPORT_VDPMAP,
+	ID_FILE_EXPORT_PNG,
+	ID_FILE_IMPORT_FRM,
+	ID_FILE_IMPORT_TILES,
+	ID_FILE_IMPORT_VDPMAP,
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_TILE_NOS,
 	ID_TOGGLE_ALPHA,
@@ -164,6 +171,140 @@ const std::string& SpriteEditorFrame::GetFilename() const
 	return m_filename;
 }
 
+void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+{
+	auto* parent = m_mgr.GetManagedWindow();
+
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_FRM, "Export Sprite Frame as Binary...");
+	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_TILES, "Export Sprite Tileset as Binary...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_VDPMAP, "Export VDP Sprite Map as CSV...");
+	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
+	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
+	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
+	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+
+	UpdateUI();
+
+	m_mgr.Update();
+}
+
+void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	switch (evt.GetId())
+	{
+	case ID_FILE_EXPORT_FRM:
+		OnExportFrm();
+		break;
+	case ID_FILE_EXPORT_TILES:
+		OnExportTiles();
+		break;
+	case ID_FILE_EXPORT_VDPMAP:
+		OnExportVdpSpritemap();
+		break;
+	case ID_FILE_EXPORT_PNG:
+		OnExportPng();
+		break;
+	case ID_FILE_IMPORT_FRM:
+		OnImportFrm();
+		break;
+	case ID_FILE_IMPORT_TILES:
+		OnImportTiles();
+		break;
+	case ID_FILE_IMPORT_VDPMAP:
+		OnImportVdpSpritemap();
+		break;
+	default:
+		break;
+	}
+	UpdateUI();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::ExportFrm(const std::string& filename) const
+{
+	auto bytes = m_sprite->GetData()->GetBits();
+	WriteBytes(bytes, filename);
+}
+
+void SpriteEditorFrame::ExportTiles(const std::string& filename) const
+{
+	auto bytes = m_sprite->GetData()->GetTileset()->GetBits(false);
+	WriteBytes(bytes, filename);
+}
+
+void SpriteEditorFrame::ExportVdpSpritemap(const std::string& filename) const
+{
+	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
+	fs << (m_sprite->GetData()->GetCompressed() ? "1" : "0") << std::endl;
+	for (int i = 0; i < m_sprite->GetData()->GetSubSpriteCount(); ++i)
+	{
+		auto data = m_sprite->GetData()->GetSubSprite(i);
+		fs << StrPrintf("% 03d,% 03d,%01d,%01d\n", data.x, data.y, data.w, data.h);
+	}
+}
+
+void SpriteEditorFrame::ExportPng(const std::string& filename) const
+{
+	int width = m_sprite->GetData()->GetWidth();
+	int height = m_sprite->GetData()->GetHeight();
+	ImageBuffer buf(width, height);
+	buf.InsertSprite(-m_sprite->GetData()->GetLeft(), -m_sprite->GetData()->GetTop(), 0, *m_sprite->GetData());
+	buf.WritePNG(filename, { m_palette }, true);
+}
+
+void SpriteEditorFrame::ImportFrm(const std::string& filename)
+{
+	auto bytes = ReadBytes(filename);
+	m_sprite->GetData()->SetBits(bytes);
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void SpriteEditorFrame::ImportTiles(const std::string& filename)
+{
+	auto bytes = ReadBytes(filename);
+	m_sprite->GetData()->GetTileset()->SetBits(bytes, false);
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
+{
+	std::ifstream fs(filename, std::ios::in);
+	bool compressed = false;
+	std::vector<SpriteFrame::SubSprite> subs;
+	std::string row;
+	std::string cell;
+	std::getline(fs, row);
+	if (row.size() > 0)
+	{
+		compressed = row[0] == '1';
+	}
+	while (std::getline(fs, row))
+	{
+		uint32_t x, y, w, h;
+		std::istringstream ss(row);
+		std::getline(ss, cell, ',');
+		StrToInt(cell, x);
+		std::getline(ss, cell, ',');
+		StrToInt(cell, y);
+		std::getline(ss, cell, ',');
+		StrToInt(cell, w);
+		std::getline(ss, cell, ',');
+		StrToInt(cell, h);
+		subs.emplace_back(x, y, w, h);
+	}
+	m_sprite->GetData()->SetCompressed(compressed);
+	m_sprite->GetData()->SetSubSprites(subs);
+
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
@@ -287,6 +428,97 @@ void SpriteEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
+}
+
+void SpriteEditorFrame::OnExportFrm()
+{
+	const wxString default_file = m_sprite->GetName() + ".frm";
+	wxFileDialog fd(this, _("Export Sprite As Binary"), "", default_file, "Compressed Sprite Frame (*.frm)|*.frm|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportFrm(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportTiles()
+{
+	const wxString default_file = m_sprite->GetName() + ".bin";
+	wxFileDialog fd(this, _("Export Sprite Tiles As Binary"), "", default_file, "Sprite Tiles (*.bin)|*.bin|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportTiles(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportVdpSpritemap()
+{
+	const wxString default_file = m_sprite->GetName() + ".csv";
+	wxFileDialog fd(this, _("Export Sprite VDP Spritemap As CSV"), "", default_file, "Comma-Separated Values file (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportVdpSpritemap(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportPng()
+{
+	const wxString default_file = m_sprite->GetName() + ".png";
+	wxFileDialog fd(this, _("Export Sprite As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPng(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnImportFrm()
+{
+	wxFileDialog fd(this, _("Import Sprite From FRM"), "", "", "FRM File (*.frm)|*.frm|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportFrm(path);
+	}
+	m_spriteeditor->SelectTile(0);
+	m_tileedit->SetTile(Tile(0));
+	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
+}
+
+void SpriteEditorFrame::OnImportTiles()
+{
+	wxFileDialog fd(this, _("Import Sprite Tiles From BIN"), "", "", "BIN File (*.bin)|*.bin|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportTiles(path);
+	}
+	m_spriteeditor->SelectTile(0);
+	m_tileedit->SetTile(Tile(0));
+	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
+}
+
+void SpriteEditorFrame::OnImportVdpSpritemap()
+{
+	wxFileDialog fd(this, _("Import Sprite VDP Spritemap From CSV"), "", "", "Comma-Separated Values file (*.csv)|*.csv|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportVdpSpritemap(path);
+	}
+	m_spriteeditor->SelectTile(0);
+	m_tileedit->SetTile(Tile(0));
+	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	RedrawTiles();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
