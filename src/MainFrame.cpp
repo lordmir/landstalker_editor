@@ -108,7 +108,7 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     info.SetName(_("Landstalker Editor"));
     info.SetVersion(_("0.2"));
     info.SetCopyright(_("Copyright 2023. All Rights Reserved."));
-    info.SetWebSite(_("https://github.com/lordmir/landstalker_editor", "GitHub"));
+    info.SetWebSite(_("https://github.com/lordmir/landstalker_editor"), _("GitHub"));
     info.AddDeveloper(_("LordMir <hase@redfern.xyz>"));
     info.SetDescription(_("User Guide: https://github.com/lordmir/landstalker_editor/wiki/"));
     ::wxAboutBox(info);
