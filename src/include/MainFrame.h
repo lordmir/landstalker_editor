@@ -137,7 +137,8 @@ private:
     SpriteEditorFrame* GetSpriteEditor();
     
     Mode m_mode;
-	ImageList* m_imgs;
+    ImageList* m_imgs;
+    ImageList* m_imgs32;
     EditorFrame* m_activeEditor;
     std::map<EditorType, EditorFrame*> m_editors;
 
