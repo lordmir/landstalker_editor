@@ -1111,7 +1111,7 @@ BlockLoc Tilemap3D::GetBlock(uint16_t block, Layer layer) const
 
 uint16_t Tilemap3D::GetBlock(const IsoPoint2D& iso, Layer layer) const
 {
-    int block = iso.x + iso.y * GetWidth();
+    uint16_t block = static_cast<uint16_t>(iso.x + iso.y * GetWidth());
     if (IsBlockValid(block))
     {
         if (layer == Layer::FG)

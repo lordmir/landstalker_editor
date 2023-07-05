@@ -20,6 +20,7 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
+	wxString GetStatusText() const;
 
 	void RefreshGraphics();
 private:

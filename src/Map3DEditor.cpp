@@ -57,6 +57,11 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
     }
 }
 
+wxString Map3DEditor::GetStatusText() const
+{
+    return m_status_text;
+}
+
 void Map3DEditor::RefreshGraphics()
 {
     UpdateScroll();
@@ -72,8 +77,12 @@ void Map3DEditor::ForceRedraw()
 
 void Map3DEditor::RecreateBuffer()
 {
-    m_width = (m_map->GetWidth() + m_map->GetHeight()) * TILE_WIDTH / 2 + 1;
+    m_width = (m_map->GetWidth() + m_map->GetHeight() - 1) * TILE_WIDTH + 1;
     m_height = (m_map->GetWidth() + m_map->GetHeight()) * TILE_HEIGHT / 2 + 1;
+    if (m_layer == Tilemap3D::Layer::FG)
+    {
+        m_width += TILE_WIDTH / 2;
+    }
     m_width *= m_zoom;
     m_height *= m_zoom;
     if (!IsCoordValid(m_hovered))
@@ -104,6 +113,28 @@ void Map3DEditor::DrawMap()
     dc.Clear();
     if (m_map)
     {
+        dc.SetPen(wxColor(128,128,128));
+        dc.SetBrush(wxColor(0,0,96));
+        for (int y = 0; y < m_map->GetHeight(); ++y)
+        {
+            for (int x = 0; x < m_map->GetWidth(); ++x)
+            {
+                int xp = (m_map->GetHeight() - 1 + x - y) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+                int yp = (x + y) * TILE_HEIGHT / 2;
+                dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+                wxString t = StrPrintf("%03X", m_map->GetBlock({x,y}, m_layer));
+                auto extent = dc.GetTextExtent(t);
+                dc.SetTextForeground(*wxWHITE);
+                int tx = xp + (TILE_WIDTH - extent.GetWidth()) / 2;
+                int ty = yp + (TILE_HEIGHT - extent.GetHeight()) / 2;
+                dc.DrawText(t, tx + 1, ty);
+                dc.DrawText(t, tx - 1, ty);
+                dc.DrawText(t, tx, ty + 1);
+                dc.DrawText(t, tx, ty - 1);
+                dc.SetTextForeground(*wxBLACK);
+                dc.DrawText(t, tx, ty);
+            }
+        }
     }
     dc.SelectObject(wxNullBitmap);
 }
@@ -128,6 +159,30 @@ void Map3DEditor::OnDraw(wxDC& dc)
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
     dc.SetUserScale(m_zoom, m_zoom);
     mdc.SelectObject(wxNullBitmap);
+    if (m_hovered.first != -1 && m_hovered != m_selected)
+    {
+        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        dc.SetPen(*wxWHITE_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+    }
+    if (m_selected.first != -1 && m_hovered != m_selected)
+    {
+        int xp = (m_map->GetHeight() - 1 + m_selected.first - m_selected.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int yp = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
+        dc.SetPen(*wxYELLOW_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+    }
+    if (m_selected.first != -1 && m_hovered == m_selected)
+    {
+        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        dc.SetPen(wxColor(255, 255, 128));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+    }
 }
 
 void Map3DEditor::OnPaint(wxPaintEvent& evt)
@@ -197,7 +252,35 @@ std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny
 
 std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny)
 {
-	return std::pair<int, int>();
+    auto xy = GetAbsoluteCoordinates(screenx, screeny);
+    int ix = 0, iy = 0;
+    int offsetx = (m_map->GetHeight() - 1) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+    int relx = xy.first - offsetx;
+    int column = relx / static_cast<int>(TILE_WIDTH) - (relx < 0 ? 1 : 0);
+
+    int row = 0;
+    if (column % 2 == 0)
+    {
+        row = xy.second / TILE_HEIGHT;
+    }
+    else
+    {
+        row = (xy.second - TILE_HEIGHT / 2) / TILE_HEIGHT;
+        column++;
+        iy = 1;
+    }
+
+    ix += row + column / 2;
+    iy += row - column / 2;
+
+    if (IsCoordValid({ ix, iy }))
+    {
+        return { ix, iy };
+    }
+    else
+    {
+        return { -1, -1 };
+    }
 }
 
 bool Map3DEditor::IsCoordValid(std::pair<int, int> c)

@@ -458,11 +458,11 @@ void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
 	}
 	else if (m_mode == Mode::BACKGROUND)
 	{
-		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+		status.SetStatusText(m_bgedit->GetStatusText(), 0);
 	}
 	else if (m_mode == Mode::FOREGROUND)
 	{
-		status.SetStatusText(m_hmedit->GetStatusText(), 0);
+		status.SetStatusText(m_fgedit->GetStatusText(), 0);
 	}
 	else
 	{
