@@ -10,6 +10,8 @@ EVT_PAINT(Map3DEditor::OnPaint)
 EVT_SIZE(Map3DEditor::OnSize)
 EVT_MOTION(Map3DEditor::OnMouseMove)
 EVT_LEAVE_WINDOW(Map3DEditor::OnMouseLeave)
+EVT_LEFT_UP(Map3DEditor::OnLeftClick)
+EVT_RIGHT_UP(Map3DEditor::OnRightClick)
 wxEND_EVENT_TABLE()
 
 Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::Layer layer)
@@ -31,7 +33,6 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE));
-
 }
 
 Map3DEditor::~Map3DEditor()
@@ -115,12 +116,13 @@ void Map3DEditor::DrawMap()
         auto pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
         auto tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
         auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        m_layer_buf->Clear();
         m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map, tileset, blockset, false);
         if (m_layer == Tilemap3D::Layer::FG)
         {
+            m_bg_buf->Clear();
             m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map, tileset, blockset, false);
         }
-        dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
         dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
         dc.Clear();
         dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
@@ -268,6 +270,60 @@ void Map3DEditor::OnMouseLeave(wxMouseEvent& evt)
         Refresh(false);
     }
 
+    evt.Skip();
+}
+
+void Map3DEditor::OnLeftClick(wxMouseEvent& evt)
+{
+    UpdateHoveredPosition(evt.GetX(), evt.GetY());
+    if (m_hovered.first == -1)
+    {
+        m_status_text = "";
+    }
+    else
+    {
+        uint16_t i = 0;
+        if (m_map != nullptr)
+        {
+            i = m_map->GetBlock({ m_hovered.first, m_hovered.second }, m_layer);
+            i++;
+            if (i > 0x3FF)
+            {
+                i = 0;
+            }
+            m_map->SetBlock({ i, {m_hovered.first, m_hovered.second} }, m_layer);
+        }
+        m_status_text = StrPrintf("(%04d, %04d) : 0x%04X", m_hovered.first, m_hovered.second, i);
+        ForceRedraw();
+    }
+    FireEvent(EVT_STATUSBAR_UPDATE);
+    evt.Skip();
+}
+
+void Map3DEditor::OnRightClick(wxMouseEvent& evt)
+{
+    UpdateHoveredPosition(evt.GetX(), evt.GetY());
+    if (m_hovered.first == -1)
+    {
+        m_status_text = "";
+    }
+    else
+    {
+        uint16_t i = 0;
+        if (m_map != nullptr)
+        {
+            i = m_map->GetBlock({ m_hovered.first, m_hovered.second }, m_layer);
+            i--;
+            if (i > 0x3FF)
+            {
+                i = 0x3FF;
+            }
+            m_map->SetBlock({ i, {m_hovered.first, m_hovered.second} }, m_layer);
+        }
+        m_status_text = StrPrintf("(%04d, %04d) : 0x%04X", m_hovered.first, m_hovered.second, i);
+        ForceRedraw();
+    }
+    FireEvent(EVT_STATUSBAR_UPDATE);
     evt.Skip();
 }
 

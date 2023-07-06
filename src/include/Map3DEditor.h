@@ -38,6 +38,8 @@ private:
 	void OnSize(wxSizeEvent& evt);
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
+	void OnLeftClick(wxMouseEvent& evt);
+	void OnRightClick(wxMouseEvent& evt);
 
 	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
 	std::pair<int, int> GetCellPosition(int screenx, int screeny);
