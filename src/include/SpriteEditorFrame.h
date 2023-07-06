@@ -21,7 +21,7 @@ public:
 	SpriteEditorFrame(wxWindow* parent, ImageList* imglst);
 	~SpriteEditorFrame();
 
-	bool Open(uint8_t entity, int frame = -1, int anim = -1);
+	bool Open(uint8_t spr, int frame = -1, int anim = -1, int ent = -1);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 

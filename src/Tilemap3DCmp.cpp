@@ -1022,13 +1022,15 @@ IsoPoint2D Tilemap3D::PixelToIsometric(const PixelPoint2D& pix, Layer layer) con
     return IsoPoint2D{ -1, -1 };
 }
 
-PixelPoint2D Tilemap3D::IsoToPixel(const IsoPoint2D& iso, Layer layer) const
+PixelPoint2D Tilemap3D::IsoToPixel(const IsoPoint2D& iso, Layer layer, bool offset) const
 {
     if (IsIsoPointValid(iso) == false) return { -1, -1 };
     int layer_offset = (layer == Layer::BG) ? 2 : 0;
+    int left_offset = offset ? GetLeft() : 0;
+    int top_offset = offset ? GetTop() : 0;
     return {
-        ((iso.x - iso.y + (GetHeight() - 1)) * 2 + GetLeft() + layer_offset) * tile_width,
-        (iso.x + iso.y + GetTop()) * tile_height
+        ((iso.x - iso.y + (GetHeight() - 1)) * 2 + left_offset + layer_offset) * tile_width,
+        (iso.x + iso.y + top_offset) * tile_height
     };
 }
 

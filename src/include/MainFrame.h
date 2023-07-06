@@ -65,7 +65,8 @@ private:
             NODE_PALETTE,
             NODE_ROOM,
             NODE_SPRITE,
-            NODE_SPRITE_FRAME
+            NODE_SPRITE_FRAME,
+            NODE_ENTITY
         };
         TreeNodeData(NodeType nodeType = NODE_BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
         std::size_t GetValue() const { return m_value; }

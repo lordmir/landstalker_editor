@@ -2,6 +2,7 @@
 #include <wx/graphics.h>
 #include <wx/dcbuffer.h>
 #include <RoomViewerFrame.h>
+#include <ImageBuffer.h>
 
 wxBEGIN_EVENT_TABLE(Map3DEditor, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(Map3DEditor::OnEraseBackground)
@@ -24,10 +25,13 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
     m_redraw(false),
     m_repaint(false),
     m_hovered(-1, -1),
-    m_selected(-1, -1)
+    m_selected(-1, -1),
+    m_layer_buf(std::make_unique<ImageBuffer>()),
+    m_bg_buf(std::make_unique<ImageBuffer>())
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetBackgroundColour(*wxBLACK);
+    SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE));
+
 }
 
 Map3DEditor::~Map3DEditor()
@@ -77,12 +81,10 @@ void Map3DEditor::ForceRedraw()
 
 void Map3DEditor::RecreateBuffer()
 {
-    m_width = (m_map->GetWidth() + m_map->GetHeight() - 1) * TILE_WIDTH + 1;
+    m_width = (m_map->GetWidth() + m_map->GetHeight()) * TILE_WIDTH + 1;
     m_height = (m_map->GetWidth() + m_map->GetHeight()) * TILE_HEIGHT / 2 + 1;
-    if (m_layer == Tilemap3D::Layer::FG)
-    {
-        m_width += TILE_WIDTH / 2;
-    }
+    m_bg_buf->Resize(m_width, m_height);
+    m_layer_buf->Resize(m_width, m_height);
     m_width *= m_zoom;
     m_height *= m_zoom;
     if (!IsCoordValid(m_hovered))
@@ -108,35 +110,66 @@ void Map3DEditor::DrawMap()
 {
     m_bmp->Create(m_width, m_height);
     wxMemoryDC dc(*m_bmp);
+    if (m_redraw)
+    {
+        auto pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
+        auto tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
+        auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map, tileset, blockset, false);
+        if (m_layer == Tilemap3D::Layer::FG)
+        {
+            m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map, tileset, blockset, false);
+        }
+        dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
+        dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+        dc.Clear();
+        dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
+        if (m_layer == Tilemap3D::Layer::FG)
+        {
+            dc.DrawBitmap(* m_bg_buf->MakeBitmap({pal}, true, 0x40, 0x40), 0, 0, false);
+        }
+        dc.DrawBitmap(*m_layer_buf->MakeBitmap({pal}, true), 0, 0, true);
+        m_redraw = false;
+    }
     dc.SetUserScale(m_zoom, m_zoom);
-    dc.SetBackground(m_layer == Tilemap3D::Layer::FG ? *wxGREEN_BRUSH : *wxBLUE_BRUSH);
-    dc.Clear();
     if (m_map)
     {
         dc.SetPen(wxColor(128,128,128));
-        dc.SetBrush(wxColor(0,0,96));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
         for (int y = 0; y < m_map->GetHeight(); ++y)
         {
             for (int x = 0; x < m_map->GetWidth(); ++x)
             {
-                int xp = (m_map->GetHeight() - 1 + x - y) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+                int xp = (m_map->GetHeight() - 1 + x - y) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
                 int yp = (x + y) * TILE_HEIGHT / 2;
                 dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
-                wxString t = StrPrintf("%03X", m_map->GetBlock({x,y}, m_layer));
-                auto extent = dc.GetTextExtent(t);
-                dc.SetTextForeground(*wxWHITE);
-                int tx = xp + (TILE_WIDTH - extent.GetWidth()) / 2;
-                int ty = yp + (TILE_HEIGHT - extent.GetHeight()) / 2;
-                dc.DrawText(t, tx + 1, ty);
-                dc.DrawText(t, tx - 1, ty);
-                dc.DrawText(t, tx, ty + 1);
-                dc.DrawText(t, tx, ty - 1);
-                dc.SetTextForeground(*wxBLACK);
-                dc.DrawText(t, tx, ty);
+                auto block = m_map->GetBlock({ x,y }, m_layer);
+                if (block > 0)
+                {
+                    wxString t = StrPrintf("%03X", m_map->GetBlock({ x,y }, m_layer));
+                    auto extent = dc.GetTextExtent(t);
+                    dc.SetTextForeground(*wxWHITE);
+                    int tx = xp + (TILE_WIDTH - extent.GetWidth()) / 2;
+                    int ty = yp + (TILE_HEIGHT - extent.GetHeight()) / 2;
+                    dc.DrawText(t, tx + 1, ty);
+                    dc.DrawText(t, tx - 1, ty);
+                    dc.DrawText(t, tx, ty + 1);
+                    dc.DrawText(t, tx, ty - 1);
+                    dc.SetTextForeground(*wxBLACK);
+                    dc.DrawText(t, tx, ty);
+                }
             }
         }
     }
     dc.SelectObject(wxNullBitmap);
+}
+
+void Map3DEditor::DrawTiles()
+{
+}
+
+void Map3DEditor::DrawTile(int tile)
+{
 }
 
 void Map3DEditor::OnDraw(wxDC& dc)
@@ -144,6 +177,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
     if (m_redraw)
     {
         DrawMap();
+        DrawTiles();
         m_redraw = false;
     }
     int sx, sy;
@@ -161,7 +195,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
     mdc.SelectObject(wxNullBitmap);
     if (m_hovered.first != -1 && m_hovered != m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
         int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
         dc.SetPen(*wxWHITE_PEN);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -169,7 +203,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
     }
     if (m_selected.first != -1 && m_hovered != m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_selected.first - m_selected.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int xp = (m_map->GetHeight() - 1 + m_selected.first - m_selected.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
         int yp = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
         dc.SetPen(*wxYELLOW_PEN);
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -177,7 +211,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
     }
     if (m_selected.first != -1 && m_hovered == m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
         int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
         dc.SetPen(wxColor(255, 255, 128));
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -254,7 +288,7 @@ std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny)
 {
     auto xy = GetAbsoluteCoordinates(screenx, screeny);
     int ix = 0, iy = 0;
-    int offsetx = (m_map->GetHeight() - 1) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::FG ? TILE_WIDTH / 2 : 0);
+    int offsetx = (m_map->GetHeight() - 1) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
     int relx = xy.first - offsetx;
     int column = relx / static_cast<int>(TILE_WIDTH) - (relx < 0 ? 1 : 0);
 

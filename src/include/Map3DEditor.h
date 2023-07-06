@@ -7,6 +7,7 @@
 #include <GameData.h>
 
 class RoomViewerFrame;
+class ImageBuffer;
 
 class Map3DEditor : public wxScrolledCanvas
 {
@@ -28,6 +29,8 @@ private:
 	void RecreateBuffer();
 	void UpdateScroll();
 	void DrawMap();
+	void DrawTiles();
+	void DrawTile(int tile);
 
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);
@@ -49,6 +52,8 @@ private:
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
+	std::unique_ptr<ImageBuffer> m_layer_buf;
+	std::unique_ptr<ImageBuffer> m_bg_buf;
 	RoomViewerFrame* m_frame;
 	uint16_t m_roomnum;
 	Tilemap3D::Layer m_layer;
