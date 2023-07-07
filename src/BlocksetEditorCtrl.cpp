@@ -855,12 +855,16 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 				auto pos = ToBlockPosition(*it);
 				if (DrawBlock(m_memdc, pos.x, pos.y, *it, m_blocks->at(*it)))
 				{
-					m_redraw_list.erase(it++);
+					it = m_redraw_list.erase(it);
 				}
 				else
 				{
 					++it;
 				}
+			}
+			else
+			{
+				it = m_redraw_list.erase(it);
 			}
 		}
 	}

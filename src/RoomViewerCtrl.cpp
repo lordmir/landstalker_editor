@@ -1024,6 +1024,21 @@ void RoomViewerCtrl::RefreshHeightmap()
     }
 }
 
+void RoomViewerCtrl::RefreshLayers()
+{
+    if (IsShownOnScreen())
+    {
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (m_layer_opacity[Layer::BACKGROUND1] > 0
+            || m_layer_opacity[Layer::BACKGROUND2] > 0
+            || m_layer_opacity[Layer::FOREGROUND] > 0)
+        {
+            DrawRoom(m_roomnum);
+        }
+        ForceRedraw();
+    }
+}
+
 void RoomViewerCtrl::DeleteSelectedWarp()
 {
     if (IsWarpSelected())

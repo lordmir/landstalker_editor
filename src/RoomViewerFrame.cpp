@@ -2,19 +2,27 @@
 
 #include <fstream>
 #include <sstream>
+#include <wx/busyinfo.h>
+#include <wx/dir.h>
 #include <FlagDialog.h>
 #include <ChestDialog.h>
 #include <CharacterDialog.h>
 #include <RoomErrorDialog.h>
+#include <MapToTmx.h>
 #include "RoomViewerCtrl.h"
 
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_BIN = 20000,
 	ID_FILE_EXPORT_CSV,
+	ID_FILE_EXPORT_TMX,
+	ID_FILE_EXPORT_ALL_TMX,
 	ID_FILE_EXPORT_PNG,
+	ID_FILE_SEP1,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
+	ID_FILE_IMPORT_TMX,
+	ID_FILE_IMPORT_ALL_TMX,
 	ID_EDIT,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
@@ -84,6 +92,7 @@ EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
 EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, RoomViewerFrame::OnBlockSelect)
+EVT_COMMAND(wxID_ANY, EVT_MAPLAYER_UPDATE, RoomViewerFrame::OnMapUpdate)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
@@ -297,6 +306,60 @@ bool RoomViewerFrame::ExportCsv(const std::array<std::string, 3>& paths)
 	return true;
 }
 
+bool RoomViewerFrame::ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum)
+{
+	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+	auto blocksets = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+	auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
+	auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
+
+	const int width = 16;
+	const int height = 64;
+	int blockwidth = MapBlock::GetBlockWidth() * tileset->GetTileWidth();
+	int blockheight = MapBlock::GetBlockHeight() * tileset->GetTileHeight();
+	int pixelwidth = blockwidth * width;
+	int pixelheight = blockheight * height;
+	ImageBuffer buf(pixelwidth, pixelheight);
+	int i = 0;
+	for (int y = 0; y < pixelheight; y += blockheight)
+	{
+		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
+		{
+			if (i < blocksets->size())
+			{
+				buf.InsertBlock(x, y, 0, blocksets->at(i), *tileset);
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+	buf.WritePNG(bs_path, { palette }, true);
+	return MapToTmx::ExportToTmx(tmx_path, *m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData(), bs_path);
+}
+
+bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
+{
+	wxBusyInfo wait("Exporting...");
+	wxString curdir = wxGetCwd();
+	wxSetWorkingDirectory(dir);
+	filesystem::path mappath(dir);
+	filesystem::path bspath(mappath / "blocksets");
+	filesystem::create_directories(bspath);
+	for (int i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
+	{
+		auto rd = m_g->GetRoomData()->GetRoom(i);
+		std::string mapfile = rd->map + ".tmx";
+		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
+		std::string blkpath = "blocksets";
+		blkpath += wxFileName::GetPathSeparator() + blkname;
+		ExportTmx(mapfile, blkpath, i);
+	}
+	wxSetWorkingDirectory(curdir);
+	return true;
+}
+
 bool RoomViewerFrame::ExportPng(const std::string& path)
 {
 	auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
@@ -319,6 +382,42 @@ bool RoomViewerFrame::ImportBin(const std::string& path)
 	auto bytes = ReadBytes(path);
 	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 	data->GetData()->Decode(bytes.data());
+	UpdateFrame();
+	return true;
+}
+
+bool RoomViewerFrame::ImportTmx(const std::string& paths, uint16_t roomnum)
+{
+	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+	auto retval = MapToTmx::ImportFromTmx(paths, *map);
+	UpdateFrame();
+	return retval;
+}
+
+bool RoomViewerFrame::ImportAllTmx(const std::string& dir)
+{
+	wxBusyInfo wait("Importing...");
+	wxDir d;
+
+	wxString curdir = wxGetCwd();
+	wxSetWorkingDirectory(dir);
+	if (d.Open(dir))
+	{
+		wxString file;
+		bool cont = d.GetFirst(&file, "*.tmx");
+		while (cont)
+		{
+			wxFileName name(file);
+			auto map = m_g->GetRoomData()->GetMap(name.GetName().ToStdString());
+			if (map)
+			{
+				MapToTmx::ImportFromTmx(file.ToStdString(), *map->GetData());
+			}
+			cont = d.GetNext(&file);
+		}
+	}
+	wxSetWorkingDirectory(curdir);
+	UpdateFrame();
 	return true;
 }
 
@@ -413,7 +512,7 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 			data->SetCellType({ x, y }, heightmap[y + 1][x] & 0xFF);
 		}
 	}
-
+	UpdateFrame();
 	return true;
 }
 
@@ -847,9 +946,13 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_BIN, "Export Map as Binary...");
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_CSV, "Export Map as CSV Set...");
-	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
-	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
-	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_TMX, "Export Map as Tiled TMX...");
+	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_ALL_TMX, "Export All Maps as Tiled TMX...");
+	AddMenuItem(fileMenu, 4, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
+	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
@@ -982,6 +1085,12 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_FILE_EXPORT_CSV:
 			OnExportCsv();
 			break;
+		case ID_FILE_EXPORT_TMX:
+			OnExportTmx();
+			break;
+		case ID_FILE_EXPORT_ALL_TMX:
+			OnExportAllTmx();
+			break;
 		case ID_FILE_EXPORT_PNG:
 			OnExportPng();
 			break;
@@ -990,6 +1099,12 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_IMPORT_CSV:
 			OnImportCsv();
+			break;
+		case ID_FILE_IMPORT_TMX:
+			OnImportTmx();
+			break;
+		case ID_FILE_IMPORT_ALL_TMX:
+			OnImportAllTmx();
 			break;
 		case ID_VIEW_ENTITIES:
 		case TOOL_TOGGLE_ENTITIES:
@@ -1100,7 +1215,7 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 void RoomViewerFrame::OnExportBin()
 {
 	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
-	const wxString default_file = rd->name + ".bin";
+	const wxString default_file = rd->map + ".bin";
 	wxFileDialog fd(this, _("Export Map As Binary"), "", default_file, "Room Map (*.cmp)|*.cmp|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
@@ -1112,25 +1227,51 @@ void RoomViewerFrame::OnExportCsv()
 {
 	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 	std::array<std::string, 3> fnames;
-	wxString default_file = rd->name + "_background.csv";
+	wxString default_file = rd->map + "_background.csv";
 	wxFileDialog fd(this, _("Export Background Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		fnames[0] = fd.GetPath().ToStdString();
 	}
-	default_file = rd->name + "_foreground.csv";
+	default_file = rd->map + "_foreground.csv";
 	fd.Create(this, _("Export Foreground Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		fnames[1] = fd.GetPath().ToStdString();
 	}
-	default_file = rd->name + "_heightmap.csv";
+	default_file = rd->map + "_heightmap.csv";
 	fd.Create(this, _("Export Heightmap Layer as CSV"), "", default_file, "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		fnames[2] = fd.GetPath().ToStdString();
 	}
 	ExportCsv(fnames);
+}
+
+void RoomViewerFrame::OnExportTmx()
+{
+	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	wxString default_file = rd->map + ".tmx";
+	wxFileDialog fd(this, _("Export Map As TMX"), "", default_file, "Tiled TMX Tilemap (*.tmx)|*.tmx|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		wxString tmx_file = fd.GetPath();
+		wxString default_file = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
+		wxFileDialog fd(this, _("Export Blockset As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+		if (fd.ShowModal() != wxID_CANCEL)
+		{
+			ExportTmx(tmx_file.ToStdString(), fd.GetPath().ToStdString(), m_roomnum);
+		}
+	}
+}
+
+void RoomViewerFrame::OnExportAllTmx()
+{
+	wxDirDialog dd(this, "Select TMX Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllTmx(dd.GetPath().ToStdString());
+	}
 }
 
 void RoomViewerFrame::OnExportPng()
@@ -1175,6 +1316,26 @@ void RoomViewerFrame::OnImportCsv()
 	}
 	ImportCsv(filenames);
 	UpdateFrame();
+}
+
+void RoomViewerFrame::OnImportTmx()
+{
+	wxFileDialog fd(this, _("Import Map From Tiled TMX"), "", "", "Tiled TMX Tilemap (*.tmx)|*.tmx|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		std::string path = fd.GetPath().ToStdString();
+		ImportTmx(path, m_roomnum);
+	}
+	UpdateFrame();
+}
+
+void RoomViewerFrame::OnImportAllTmx()
+{
+	wxDirDialog dd(this, "Select TMX Input Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ImportAllTmx(dd.GetPath().ToStdString());
+	}
 }
 
 
@@ -1490,6 +1651,19 @@ void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
 	if (m_blkctrl != nullptr)
 	{
 		m_blkctrl->SetBlockSelection(block);
+	}
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnMapUpdate(wxCommandEvent& evt)
+{
+	if (m_roomview)
+	{
+		m_roomview->RefreshLayers();
+	}
+	if (m_fgedit && static_cast<Tilemap3D::Layer>(evt.GetInt()) == Tilemap3D::Layer::BG)
+	{
+		m_fgedit->RefreshGraphics();
 	}
 	evt.Skip();
 }

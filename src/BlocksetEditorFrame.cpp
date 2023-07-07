@@ -302,9 +302,12 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 
 void BlocksetEditorFrame::UpdateStatus()
 {
-	std::ostringstream ss;
-	m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
-	m_editor->SetPixelSize(m_zoomslider->GetValue());
+	if (m_zoomslider)
+	{
+		std::ostringstream ss;
+		m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
+		m_editor->SetPixelSize(m_zoomslider->GetValue());
+	}
 }
 
 void BlocksetEditorFrame::OnExportBin()

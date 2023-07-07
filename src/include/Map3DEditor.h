@@ -57,6 +57,7 @@ private:
 	void FireEvent(const wxEventType& e, int userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
+	void FireMapEvent(const wxEventType& e);
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
@@ -93,5 +94,7 @@ private:
 
 	wxDECLARE_EVENT_TABLE();
 };
+
+wxDECLARE_EVENT(EVT_MAPLAYER_UPDATE, wxCommandEvent);
 
 #endif // _MAP_3D_EDITOR_H_

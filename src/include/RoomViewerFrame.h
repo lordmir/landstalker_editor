@@ -39,9 +39,13 @@ public:
 
 	bool ExportBin(const std::string& path);
 	bool ExportCsv(const std::array<std::string, 3>& paths);
+	bool ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
+	bool ExportAllTmx(const std::string& dir);
 	bool ExportPng(const std::string& path);
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
+	bool ImportTmx(const std::string& paths, uint16_t roomnum);
+	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 
@@ -61,9 +65,13 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void OnExportBin();
 	void OnExportCsv();
+	void OnExportTmx();
+	void OnExportAllTmx();
 	void OnExportPng();
 	void OnImportBin();
 	void OnImportCsv();
+	void OnImportTmx();
+	void OnImportAllTmx();
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
@@ -91,6 +99,7 @@ private:
 	void OnHMZoom(wxCommandEvent& evt);
 
 	void OnBlockSelect(wxCommandEvent& evt);
+	void OnMapUpdate(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);

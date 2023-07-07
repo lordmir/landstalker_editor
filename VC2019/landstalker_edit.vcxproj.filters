@@ -381,6 +381,9 @@
     <ClCompile Include="..\src\Map3DEditor.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\MapToTmx.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -648,6 +651,9 @@
     </ClInclude>
     <ClInclude Include="..\src\include\Map3DEditor.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\MapToTmx.h">
+      <Filter>include\Data\3D Maps</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

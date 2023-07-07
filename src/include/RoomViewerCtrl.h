@@ -75,6 +75,7 @@ public:
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
 	void RefreshHeightmap();
+	void RefreshLayers();
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;

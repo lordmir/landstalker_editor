@@ -4,6 +4,8 @@
 #include <RoomViewerFrame.h>
 #include <ImageBuffer.h>
 
+wxDEFINE_EVENT(EVT_MAPLAYER_UPDATE, wxCommandEvent);
+
 wxBEGIN_EVENT_TABLE(Map3DEditor, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(Map3DEditor::OnEraseBackground)
 EVT_PAINT(Map3DEditor::OnPaint)
@@ -329,6 +331,7 @@ void Map3DEditor::OnLeftClick(wxMouseEvent& evt)
     if (IsBlockSelected() && m_hovered.first != -1)
     {
         m_map->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
+        FireMapEvent(EVT_MAPLAYER_UPDATE);
         ForceRedraw();
     }
     RefreshStatusbar();
@@ -456,6 +459,14 @@ void Map3DEditor::FireEvent(const wxEventType& e, const std::string& userdata)
 void Map3DEditor::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
+}
+
+void Map3DEditor::FireMapEvent(const wxEventType& e)
+{
+    wxCommandEvent evt(e);
+    evt.SetInt(static_cast<int>(m_layer));
     evt.SetClientData(m_frame);
     wxPostEvent(m_frame, evt);
 }
