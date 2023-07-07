@@ -83,6 +83,7 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
+EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, RoomViewerFrame::OnBlockSelect)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
@@ -104,12 +105,15 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_layerctrl = new LayerControlFrame(this);
 	m_entityctrl = new EntityControlFrame(this, GetImageList());
 	m_warpctrl = new WarpControlFrame(this, GetImageList());
+	m_blkctrl = new BlocksetEditorCtrl(this);
 	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Layers"));
 	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
 	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Warps"));
+	m_mgr.AddPane(m_blkctrl, wxAuiPaneInfo().Bottom().Layer(2).Row(2).Movable(true).Resizable(true).MinSize(400, 200)
+		.BestSize(800, 300).FloatingSize(400, 400).Caption("Blocks"));
 	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
 	m_nb->Freeze();
 	m_roomview = new RoomViewerCtrl(m_nb, this);
@@ -162,6 +166,7 @@ void RoomViewerFrame::SetMode(RoomViewerFrame::Mode mode)
 void RoomViewerFrame::UpdateFrame()
 {
 	m_layerctrl->EnableLayers(m_mode == Mode::NORMAL);
+	m_blkctrl->OpenRoom(m_roomnum);
 	m_roomview->SetRoomNum(m_roomnum);
 	m_hmedit->SetRoomNum(m_roomnum);
 	m_bgedit->SetRoomNum(m_roomnum);
@@ -190,6 +195,10 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
 	{
 		m_fgedit->SetGameData(gd);
 	}
+	if (m_blkctrl)
+	{
+		m_blkctrl->SetGameData(gd);
+	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();
 }
@@ -212,6 +221,10 @@ void RoomViewerFrame::ClearGameData()
 	if (m_fgedit)
 	{
 		m_fgedit->ClearGameData();
+	}
+	if (m_blkctrl)
+	{
+		m_blkctrl->ClearGameData();
 	}
 	m_mode = Mode::NORMAL;
 	UpdateFrame();
@@ -446,48 +459,13 @@ void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 1);
 }
 
-void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status) const
+void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
 	if (status.GetFieldsCount() != 3)
 	{
 		return;
 	}
-	if (m_mode == Mode::HEIGHTMAP)
-	{
-		status.SetStatusText(m_hmedit->GetStatusText(), 0);
-	}
-	else if (m_mode == Mode::BACKGROUND)
-	{
-		status.SetStatusText(m_bgedit->GetStatusText(), 0);
-	}
-	else if (m_mode == Mode::FOREGROUND)
-	{
-		status.SetStatusText(m_fgedit->GetStatusText(), 0);
-	}
-	else
-	{
-		status.SetStatusText(m_roomview->GetStatusText(), 0);
-	}
-	if (m_roomview->IsEntitySelected())
-	{
-		auto& entity = m_roomview->GetSelectedEntity();
-		int idx = m_roomview->GetSelectedEntityIndex();
-		status.SetStatusText(StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
-			idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str()), 1);
-	}
-	else
-	{
-		status.SetStatusText("", 1);
-	}
-	if (m_roomview->GetErrorCount() > 0)
-	{
-		status.SetStatusText(StrPrintf("Total Errors: %d, Error #1 : %s",
-			m_roomview->GetErrorCount(), m_roomview->GetErrorText(0).c_str()), 2);
-	}
-	else
-	{
-		status.SetStatusText("", 2);
-	}
+	EditorFrame::UpdateStatusBar(status, evt);
 }
 
 void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
@@ -732,7 +710,6 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetChoiceSelection() != rd->bgm)
 		{
 			rd->bgm = property->GetChoiceSelection();
-			FireEvent(EVT_STATUSBAR_UPDATE);
 			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}
@@ -1499,6 +1476,24 @@ void RoomViewerFrame::OnHMZoom(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
+{
+	auto block = evt.GetInt();
+	if (m_bgedit != nullptr)
+	{
+		m_bgedit->SetSelectedBlock(block);
+	}
+	if (m_fgedit != nullptr)
+	{
+		m_fgedit->SetSelectedBlock(block);
+	}
+	if (m_blkctrl != nullptr)
+	{
+		m_blkctrl->SetBlockSelection(block);
+	}
+	evt.Skip();
+}
+
 void RoomViewerFrame::OnSize(wxSizeEvent& evt)
 {
 	evt.Skip();
@@ -1508,6 +1503,15 @@ void RoomViewerFrame::OnTabChange(wxAuiNotebookEvent& evt)
 {
 	SetMode(static_cast<Mode>(evt.GetSelection()));
 	evt.Skip();
+}
+
+void RoomViewerFrame::FireUpdateStatusEvent(const std::string& data, int pane)
+{
+	wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+	evt.SetString(data);
+	evt.SetInt(pane);
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
 }
 
 void RoomViewerFrame::FireEvent(const wxEventType& e)

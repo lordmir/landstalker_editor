@@ -489,7 +489,7 @@ void MainFrame::OnStatusBarInit(wxCommandEvent& event)
 void MainFrame::OnStatusBarUpdate(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->UpdateStatusBar(*this->m_statusbar);
+	frame->UpdateStatusBar(*this->m_statusbar, event);
 	event.Skip();
 }
 

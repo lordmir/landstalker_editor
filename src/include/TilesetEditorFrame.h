@@ -23,7 +23,7 @@ public:
 	TilesetEditorFrame(wxWindow *parent, ImageList* imglst);
 	virtual ~TilesetEditorFrame();
 	virtual void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);

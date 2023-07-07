@@ -67,7 +67,7 @@ private:
 	void OnImportVdpSpritemap();
 
 	void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
 	SpriteEditorCtrl* m_spriteeditor = nullptr;
 	PaletteEditor* m_paledit = nullptr;

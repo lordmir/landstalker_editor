@@ -18,7 +18,7 @@ public:
 	EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst);
 	virtual ~EditorFrame();
 	virtual void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void ClearStatusBar(wxStatusBar& status) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;

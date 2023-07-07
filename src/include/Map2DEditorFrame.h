@@ -45,7 +45,7 @@ private:
 	std::string PrettyPrintTile(const Map2DEditor::TilePosition& tp) const;
 	std::string PrettyPrintMode() const;
 	virtual void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);

@@ -21,10 +21,14 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	wxString GetStatusText() const;
+
+	void SetSelectedBlock(int block);
+	int GetSelectedBlock() const;
+	bool IsBlockSelected() const;
 
 	void RefreshGraphics();
 private:
+	void RefreshStatusbar();
 	void ForceRedraw();
 	void RecreateBuffer();
 	void UpdateScroll();
@@ -40,6 +44,7 @@ private:
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnRightClick(wxMouseEvent& evt);
+	void OnShow(wxShowEvent& evt);
 
 	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
 	std::pair<int, int> GetCellPosition(int screenx, int screeny);
@@ -48,7 +53,8 @@ private:
 	bool UpdateHoveredPosition(int screenx, int screeny);
 	bool UpdateSelectedPosition(int screenx, int screeny);
 
-	void FireEvent(const wxEventType& e, long userdata);
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
+	void FireEvent(const wxEventType& e, int userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
 
@@ -56,19 +62,29 @@ private:
 	std::shared_ptr<Tilemap3D> m_map;
 	std::unique_ptr<ImageBuffer> m_layer_buf;
 	std::unique_ptr<ImageBuffer> m_bg_buf;
+
+	std::shared_ptr<Tileset> m_tileset;
+	std::shared_ptr<Palette> m_pal;
+	std::shared_ptr<Blockset> m_blockset;
+
 	RoomViewerFrame* m_frame;
 	uint16_t m_roomnum;
 	Tilemap3D::Layer m_layer;
-	mutable wxString m_status_text;
 	int m_width;
 	int m_height;
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
+	int m_selected_block;
 	std::pair<int, int> m_selected;
 	std::pair<int, int> m_hovered;
 
 	wxBitmap* m_bmp;
+	wxPen* m_priority_pen;
+
+	bool m_show_blocknums;
+	bool m_show_borders;
+	bool m_show_priority;
 
 	static const std::size_t TILE_WIDTH = 32;
 	static const std::size_t TILE_HEIGHT = 32;

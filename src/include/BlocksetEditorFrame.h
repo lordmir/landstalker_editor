@@ -39,13 +39,15 @@ public:
 private:
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
-	void UpdateStatusBar();
+	void UpdateStatus();
 
 	void OnExportBin();
 	void OnExportPng();
 	void OnExportCsv();
 	void OnImportBin();
 	void OnImportCsv();
+
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 
 	BlocksetEditorCtrl* m_editor;
 	TilesetEditor* m_tileset;

@@ -34,7 +34,7 @@ public:
 	bool ExportAllPalettes(const filesystem::path& filename);
 	bool ImportPalettes(const filesystem::path& filename);
 private:
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
 

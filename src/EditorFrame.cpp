@@ -30,8 +30,12 @@ void EditorFrame::InitStatusBar(wxStatusBar& status) const
 {
 }
 
-void EditorFrame::UpdateStatusBar(wxStatusBar& status) const
+void EditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
+	if (status.GetFieldsCount() > evt.GetInt())
+	{
+		status.SetStatusText(evt.GetString(), evt.GetInt());
+	}
 }
 
 void EditorFrame::ClearStatusBar(wxStatusBar& status) const

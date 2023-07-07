@@ -23,7 +23,6 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	wxString GetStatusText() const;
 
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
@@ -72,6 +71,7 @@ public:
 	void IncrementSelectedType();
 	void DecrementSelectedType();
 private:
+	void RefreshStatusbar();
 	void DrawRoomHeightmap();
 	void ForceRepaint();
 	void ForceRedraw();
@@ -87,6 +87,7 @@ private:
 	wxColor GetCellBorder(uint8_t restrictions, uint8_t type, uint8_t z);
 	bool IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z);
 
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
@@ -110,7 +111,6 @@ private:
 	std::shared_ptr<Tilemap3D> m_map;
 	RoomViewerFrame* m_frame;
 	uint16_t m_roomnum;
-	mutable wxString m_status_text;
 	int m_width;
 	int m_height;
 	bool m_redraw;

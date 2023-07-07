@@ -4,6 +4,7 @@
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
+#include <EditorFrame.h>
 
 wxBEGIN_EVENT_TABLE(BlocksetEditorCtrl, wxVScrolledWindow)
 EVT_PAINT(BlocksetEditorCtrl::OnPaint)
@@ -21,7 +22,7 @@ wxDEFINE_EVENT(EVT_BLOCK_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BLOCK_TILE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BLOCK_ACTIVATE, wxCommandEvent);
 
-BlocksetEditorCtrl::BlocksetEditorCtrl(wxWindow* parent)
+BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	: wxVScrolledWindow(parent, wxID_ANY),
 	m_mode(Mode::BLOCK_SELECT),
 	m_columns(0),
@@ -38,17 +39,21 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(wxWindow* parent)
 	m_hoveredtile(-1),
 	block_width(2),
 	block_height(2),
+	m_blocks(std::make_shared<Blockset>()),
 	m_enableblocknumbers(true),
 	m_enabletilenumbers(false),
 	m_enableborders(true),
+	m_enabletileborders(true),
 	m_enableselection(true),
 	m_enablehover(true),
 	m_enablealpha(false),
 	m_redraw_all(true),
-	m_drawtile(0)
+	m_drawtile(0),
+	m_frame(parent)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
+	SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE));
 
 	InitialiseBrushesAndPens();
 }
@@ -60,6 +65,7 @@ BlocksetEditorCtrl::~BlocksetEditorCtrl()
 	delete m_selected_border_pen;
 	delete m_highlighted_border_pen;
 	delete m_highlighted_brush;
+	delete m_priority_pen;
 }
 
 void BlocksetEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
@@ -103,6 +109,30 @@ bool BlocksetEditorCtrl::Open(const std::string& name)
 	m_tileset = tse->GetData();
 	m_pal_name = tse->GetDefaultPalette();
 	m_pal = m_gd->GetPalette(m_pal_name)->GetData();
+	UpdateRowCount();
+	ForceRedraw();
+	return true;
+}
+
+bool BlocksetEditorCtrl::OpenRoom(uint16_t roomnum)
+{
+	if (m_gd == nullptr)
+	{
+		return false;
+	}
+	m_selectedblock = -1;
+	m_hoveredblock = -1;
+	m_selectedtile = -1;
+	m_hoveredtile = -1;
+	m_blocks = m_gd->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+	auto tse = m_gd->GetRoomData()->GetTilesetForRoom(roomnum);
+	m_tileset = tse->GetData();
+	m_pal_name = m_gd->GetRoomData()->GetPaletteForRoom(roomnum)->GetName();
+	m_pal = m_gd->GetRoomData()->GetPaletteForRoom(roomnum)->GetData();
+	m_enablealpha = false;
+	m_enabletileborders = false;
+	m_selectable = true;
+	m_pixelsize = 2;
 	UpdateRowCount();
 	ForceRedraw();
 	return true;
@@ -183,80 +213,87 @@ int BlocksetEditorCtrl::GetBlockHeight() const
 
 std::shared_ptr<Tileset> BlocksetEditorCtrl::GetTileset()
 {
-	return std::shared_ptr<Tileset>();
+	return m_tileset;
 }
 
 std::shared_ptr<Palette> BlocksetEditorCtrl::GetPalette()
 {
-	return std::shared_ptr<Palette>();
+	return m_pal;
 }
 
 std::shared_ptr<std::vector<MapBlock>> BlocksetEditorCtrl::GetBlocks()
 {
-	return std::shared_ptr<std::vector<MapBlock>>();
+	return m_blocks;
 }
 
 void BlocksetEditorCtrl::SetMode(const Mode& mode)
 {
+	m_mode = mode;
 }
 
 BlocksetEditorCtrl::Mode BlocksetEditorCtrl::GetMode() const
 {
-	return Mode();
+	return m_mode;
 }
 
 void BlocksetEditorCtrl::SetDrawTile(const Tile& tile)
 {
+	m_drawtile = tile;
 }
 
 Tile BlocksetEditorCtrl::GetDrawTile()
 {
-	return Tile();
+	return m_drawtile;
 }
 
 bool BlocksetEditorCtrl::GetTileNumbersEnabled() const
 {
-	return false;
+	return m_enabletilenumbers;
 }
 
 void BlocksetEditorCtrl::SetTileNumbersEnabled(bool enabled)
 {
+	m_enabletilenumbers = enabled;
 }
 
 bool BlocksetEditorCtrl::GetSelectionEnabled() const
 {
-	return false;
+	return m_enableselection;
 }
 
 void BlocksetEditorCtrl::SetSelectionEnabled(bool enabled)
 {
+	m_enableselection = enabled;
 }
 
 bool BlocksetEditorCtrl::GetHoverEnabled() const
 {
-	return false;
+	return m_enablehover;
 }
 
 void BlocksetEditorCtrl::SetHoverEnabled(bool enabled)
 {
+	m_enablehover = enabled;
 }
 
 bool BlocksetEditorCtrl::GetAlphaEnabled() const
 {
-	return false;
+	return m_enablealpha;
 }
 
 void BlocksetEditorCtrl::SetAlphaEnabled(bool enabled)
 {
+	m_enablealpha = enabled;
 }
 
 bool BlocksetEditorCtrl::GetBordersEnabled() const
 {
-	return false;
+	return m_enableborders;
 }
 
 void BlocksetEditorCtrl::SetBordersEnabled(bool enabled)
 {
+	m_enableborders = enabled;
 }
 
 bool BlocksetEditorCtrl::InsertBlock(int row)
@@ -271,47 +308,100 @@ bool BlocksetEditorCtrl::DeleteBlock(int row)
 
 bool BlocksetEditorCtrl::IsBlockSelectionValid() const
 {
-	return false;
+	return m_selectedblock >= 0 && m_selectedblock < m_blocks->size();
 }
 
 bool BlocksetEditorCtrl::IsBlockHoverValid() const
 {
-	return false;
+	return m_hoveredblock >= 0 && m_hoveredblock < m_blocks->size();
 }
 
 bool BlocksetEditorCtrl::IsTileSelectionValid() const
 {
-	return false;
+	return m_selectedtile >= 0 && m_selectedtile < m_blocks->size() * 4;
 }
 
 bool BlocksetEditorCtrl::IsTileHoverValid() const
 {
-	return false;
+	return m_hoveredblock >= 0 && m_hoveredblock < m_blocks->size() * 4;
 }
 
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::GetBlockSelection() const
+uint16_t BlocksetEditorCtrl::GetBlockSelection() const
 {
-	return Position();
+	if (IsBlockSelectionValid())
+	{
+		return m_selectedblock;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::GetBlockHover() const
+uint16_t BlocksetEditorCtrl::GetBlockHover() const
 {
-	return Position();
+	if (IsBlockHoverValid())
+	{
+		return m_hoveredblock;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::GetTileSelection() const
+void BlocksetEditorCtrl::SetBlockSelection(int block)
 {
-	return Position();
+	int b = -1;
+	if (block >= 0 && block < m_blocks->size())
+	{
+		b = block;
+	}
+	if (b != m_selectedblock)
+	{
+		if (m_selectedblock != -1)
+		{
+			m_redraw_list.insert(m_selectedblock);
+		}
+		m_selectedblock = b;
+		Refresh();
+	}
 }
 
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::GetTileHover() const
+uint16_t BlocksetEditorCtrl::GetTileSelection() const
 {
-	return Position();
+	if (IsTileSelectionValid())
+	{
+		return m_selectedtile;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+uint16_t BlocksetEditorCtrl::GetTileHover() const
+{
+	if (IsTileHoverValid())
+	{
+		return m_hoveredtile;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 MapBlock BlocksetEditorCtrl::GetSelectedBlock() const
 {
-	return MapBlock();
+	if (IsBlockSelectionValid())
+	{
+		return m_blocks->at(m_selectedblock);
+	}
+	else
+	{
+		return MapBlock();
+	}
 }
 
 Tile BlocksetEditorCtrl::GetSelectedTile() const
@@ -329,7 +419,14 @@ void BlocksetEditorCtrl::SetSelectedTile(const Tile& tile)
 
 MapBlock BlocksetEditorCtrl::GetHoveredBlock() const
 {
-	return MapBlock();
+	if (IsBlockHoverValid())
+	{
+		return m_blocks->at(m_hoveredblock);
+	}
+	else
+	{
+		return MapBlock();
+	}
 }
 
 void BlocksetEditorCtrl::SetHoveredBlock(const MapBlock& tile)
@@ -347,6 +444,11 @@ void BlocksetEditorCtrl::SetHoveredTile(const Tile& tile)
 
 MapBlock BlocksetEditorCtrl::GetBlockAtPosition(const Position& block) const
 {
+	int idx = ToBlockIndex(block);
+	if (idx >= 0 && idx < m_blocks->size())
+	{
+		return m_blocks->at(idx);
+	}
 	return MapBlock();
 }
 
@@ -357,6 +459,11 @@ Tile BlocksetEditorCtrl::GetTileAtPosition(const Position& block, const Position
 
 void BlocksetEditorCtrl::SetBlockAtPosition(const Position& block, const MapBlock& new_block)
 {
+	int idx = ToBlockIndex(block);
+	if (idx >= 0 && idx < m_blocks->size())
+	{
+		m_blocks->at(idx) = new_block;
+	}
 }
 
 void BlocksetEditorCtrl::SetTileAtPosition(const Position& block, const Position& tile, const Tile& new_tile)
@@ -365,7 +472,31 @@ void BlocksetEditorCtrl::SetTileAtPosition(const Position& block, const Position
 
 bool BlocksetEditorCtrl::IsPositionValid(const Position& tp) const
 {
-	return false;
+	int idx = ToBlockIndex(tp);
+	return (idx >= 0 && idx < m_blocks->size());
+}
+
+void BlocksetEditorCtrl::RefreshStatusbar()
+{
+	if (m_mode == Mode::BLOCK_SELECT)
+	{
+		if (IsBlockHoverValid())
+		{
+			FireUpdateStatusEvent(StrPrintf("Hovered: %03X", GetBlockHover()), 0);
+		}
+		else
+		{
+			FireUpdateStatusEvent("", 0);
+		}
+		if (IsBlockSelectionValid())
+		{
+			FireUpdateStatusEvent(StrPrintf("Selected: %03X", GetBlockSelection()), 1);
+		}
+		else
+		{
+			FireUpdateStatusEvent("", 1);
+		}
+	}
 }
 
 wxCoord BlocksetEditorCtrl::OnGetRowHeight(size_t row) const
@@ -413,7 +544,7 @@ bool BlocksetEditorCtrl::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 		dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
 		dc.DrawRectangle({ xx, yy, tile_width, tile_height });
 		DrawTilePixels(dc, xx, yy, tile);
-		if (m_enableborders)
+		if (m_enabletileborders)
 		{
 			dc.SetPen(*m_tile_border_pen);
 			dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -458,7 +589,7 @@ void BlocksetEditorCtrl::DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile
 	}
 }
 
-bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, const MapBlock& block)
+bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlock& block)
 {
 	bool retval = true;
 	for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
@@ -476,12 +607,54 @@ bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, const MapBlock& block
 		dc.SetPen(*m_border_pen);
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
+		bool pri = false;
+		for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
+		{
+			pri = pri || m_blocks->at(x + y * m_columns).GetTile(i).Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
+		}
+		if (pri)
+		{
+			dc.SetPen(*m_priority_pen);
+			dc.DrawRectangle({ x * m_cellwidth + 1, y * m_cellheight + 1, m_cellwidth - 2, m_cellheight - 2 });
+		}
+	}
+	if (m_enableblocknumbers)
+	{
+		auto label = (wxString::Format("%03X", idx));
+		auto extent = dc.GetTextExtent(label);
+		if ((extent.GetWidth() < GetBlockWidth() - 2) && (extent.GetHeight() < GetBlockHeight() - 2))
+		{
+			dc.DrawText(label, { x * GetBlockWidth() + 2, y * GetBlockHeight() + 2});
+		}
 	}
 	return retval;
 }
 
 void BlocksetEditorCtrl::DrawSelectionBorders(wxDC& dc)
 {
+	if (m_mode == Mode::BLOCK_SELECT)
+	{
+		auto hx = (m_hoveredblock % m_columns) * m_cellwidth;
+		auto hy = (m_hoveredblock / m_columns) * m_cellheight;
+		auto sx = (m_selectedblock % m_columns) * m_cellwidth;
+		auto sy = (m_selectedblock / m_columns) * m_cellheight;
+		dc.SetBrush(*wxTRANSPARENT_BRUSH);
+		if (m_hoveredblock != -1 && m_hoveredblock != m_selectedblock)
+		{
+			dc.SetPen(*wxWHITE_PEN);
+			dc.DrawRectangle({ hx, hy, m_cellwidth, m_cellheight });
+		}
+		if (m_selectedblock != -1 && m_hoveredblock != m_selectedblock)
+		{
+			dc.SetPen(*wxYELLOW_PEN);
+			dc.DrawRectangle({ sx, sy, m_cellwidth, m_cellheight });
+		}
+		if (m_selectedblock != -1 && m_hoveredblock == m_selectedblock)
+		{
+			dc.SetPen(wxPen(wxColor(255, 255, 128)));
+			dc.DrawRectangle({ sx, sy, m_cellwidth, m_cellheight });
+		}
+	}
 }
 
 void BlocksetEditorCtrl::PaintBitmap(wxDC& dc)
@@ -525,9 +698,10 @@ void BlocksetEditorCtrl::InitialiseBrushesAndPens()
 	delete imagememDC;
 	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
 	m_tile_border_pen = new wxPen(wxColour(65, 65, 65));
-	m_selected_border_pen = new wxPen(*wxRED_PEN);
+	m_selected_border_pen = new wxPen(*wxYELLOW_PEN);
 	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
 	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
+	m_priority_pen = new wxPen(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH);
 }
 
 void BlocksetEditorCtrl::ForceRedraw()
@@ -593,7 +767,19 @@ int BlocksetEditorCtrl::ToTileIndex(const Position& tp)
 
 int BlocksetEditorCtrl::ConvertXYToBlockIdx(const wxPoint& point) const
 {
-	return 0;
+	if (m_tileset == nullptr)
+	{
+		return -1;
+	}
+	int s = GetVisibleRowsBegin();
+	int x = point.x / (m_pixelsize * m_tileset->GetTileWidth() * MapBlock::GetBlockWidth());
+	int y = s + point.y / (m_pixelsize * m_tileset->GetTileHeight() * MapBlock::GetBlockHeight());
+	int sel = x + y * m_columns;
+	if ((sel >= m_blocks->size()) || (x < 0) || (y < 0) || (x >= m_columns))
+	{
+		sel = -1;
+	}
+	return sel;
 }
 
 BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToBlockPos(const wxPoint& point) const
@@ -603,7 +789,7 @@ BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToBlockPos(const wxPoi
 
 int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 {
-	return 0;
+	return -1;
 }
 
 BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToTilePos(const wxPoint& point) const
@@ -613,6 +799,7 @@ BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToTilePos(const wxPoin
 
 void BlocksetEditorCtrl::SelectBlock(const BlocksetEditorCtrl::Position& tp)
 {
+	
 }
 
 void BlocksetEditorCtrl::SelectTile(const BlocksetEditorCtrl::Position& tp)
@@ -635,7 +822,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 	m_memdc.SetTextBackground(wxColour(150, 150, 150));
 	m_memdc.SetBackgroundMode(wxSOLID);
 
-	if (m_pixelsize > 3)
+	if (m_pixelsize > 1)
 	{
 		m_border_pen->SetStyle(wxPENSTYLE_SOLID);
 	}
@@ -651,7 +838,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 		for (int i = 0; i < m_blocks->size(); ++i)
 		{
 			const auto pos = ToBlockPosition(i);
-			if (!DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(i)))
+			if (!DrawBlock(m_memdc, pos.x, pos.y, i, m_blocks->at(i)))
 			{
 				m_redraw_list.insert(i);
 			}
@@ -666,7 +853,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 			if ((*it >= 0) && (*it < m_blocks->size()))
 			{
 				auto pos = ToBlockPosition(*it);
-				if (DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(*it)))
+				if (DrawBlock(m_memdc, pos.x, pos.y, *it, m_blocks->at(*it)))
 				{
 					m_redraw_list.erase(it++);
 				}
@@ -703,24 +890,115 @@ void BlocksetEditorCtrl::OnSize(wxSizeEvent& evt)
 
 void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
+	if (m_enablehover)
+	{
+		if (m_mode == Mode::BLOCK_SELECT)
+		{
+			auto idx = ConvertXYToBlockIdx(evt.GetPosition());
+			if (m_hoveredblock != idx)
+			{
+				if (m_hoveredblock != -1)
+				{
+					m_redraw_list.insert(m_hoveredblock);
+				}
+				m_hoveredblock = idx;
+				FireBlockEvent(EVT_BLOCK_HOVER, "");
+				RefreshStatusbar();
+				Refresh();
+			}
+		}
+	}
+	evt.Skip();
 }
 
 void BlocksetEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
+	if (m_enablehover)
+	{
+		if (m_mode == Mode::BLOCK_SELECT)
+		{
+			if (m_hoveredblock != -1)
+			{
+				m_redraw_list.insert(m_hoveredblock);
+				m_hoveredblock = -1;
+				FireBlockEvent(EVT_BLOCK_HOVER, "");
+				RefreshStatusbar();
+				Refresh();
+			}
+		}
+	}
+	evt.Skip();
 }
 
 void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 {
+	if (m_mode == Mode::BLOCK_SELECT)
+	{
+		auto idx = ConvertXYToBlockIdx(evt.GetPosition());
+		bool refresh = false;
+		if (m_enablehover && m_hoveredblock != idx)
+		{
+			if (m_hoveredblock != -1)
+			{
+				m_redraw_list.insert(m_hoveredblock);
+			}
+			m_hoveredblock = idx;
+			FireBlockEvent(EVT_BLOCK_HOVER, "");
+			refresh = true;
+		}
+		if (m_enableselection && m_selectedblock != idx)
+		{
+			if (m_selectedblock != -1)
+			{
+				m_redraw_list.insert(m_selectedblock);
+			}
+			m_selectedblock = idx;
+			FireBlockEvent(EVT_BLOCK_SELECT, "");
+			refresh = true;
+		}
+		if (refresh)
+		{
+			RefreshStatusbar();
+			Refresh();
+		}
+	}
+	evt.Skip();
 }
 
 void BlocksetEditorCtrl::OnDoubleClick(wxMouseEvent& evt)
 {
+	evt.Skip();
+}
+
+void BlocksetEditorCtrl::FireUpdateStatusEvent(const std::string& caption, int pane)
+{
+	wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+	evt.SetString(caption);
+	evt.SetInt(pane);
+	evt.SetClientData(m_frame);
+	wxPostEvent(m_frame->GetParent(), evt);
 }
 
 void BlocksetEditorCtrl::FireEvent(const wxEventType& e, const std::string& data)
 {
+	wxCommandEvent evt(e);
+	evt.SetString(data);
+	evt.SetClientData(GetParent());
+	wxPostEvent(m_frame, evt);
 }
 
 void BlocksetEditorCtrl::FireTilesetEvent(const wxEventType& e, const std::string& data)
 {
+	wxCommandEvent evt(e);
+	evt.SetInt(m_selectedtile);
+	evt.SetClientData(GetParent());
+	wxPostEvent(m_frame, evt);
+}
+
+void BlocksetEditorCtrl::FireBlockEvent(const wxEventType& e, const std::string& data)
+{
+	wxCommandEvent evt(e);
+	evt.SetInt(m_selectedblock);
+	evt.SetClientData(GetParent());
+	wxPostEvent(m_frame, evt);
 }

@@ -6,6 +6,7 @@
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
 #include "HeightmapEditorCtrl.h"
+#include "BlocksetEditorCtrl.h"
 #include "Map3DEditor.h"
 #include "GameData.h"
 #include <memory>
@@ -50,7 +51,7 @@ public:
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
@@ -89,9 +90,12 @@ private:
 	void OnHMTypeSelect(wxCommandEvent& evt);
 	void OnHMZoom(wxCommandEvent& evt);
 
+	void OnBlockSelect(wxCommandEvent& evt);
+
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);
 
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 
@@ -108,6 +112,7 @@ private:
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+	BlocksetEditorCtrl* m_blkctrl;
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;

@@ -67,11 +67,6 @@ void HeightmapEditorCtrl::SetRoomNum(uint16_t roomnum)
     }
 }
 
-wxString HeightmapEditorCtrl::GetStatusText() const
-{
-    return m_status_text;
-}
-
 void HeightmapEditorCtrl::SetZoom(double zoom)
 {
     m_zoom = zoom;
@@ -618,6 +613,23 @@ void HeightmapEditorCtrl::DecrementSelectedType()
     SetSelectedType((GetSelectedType() - 1) & 0xFF);
 }
 
+void HeightmapEditorCtrl::RefreshStatusbar()
+{
+    std::string msg = "";
+    if (m_hovered.first != -1)
+    {
+        uint8_t z = 0, r = 0, t = 0;
+        if (m_map != nullptr)
+        {
+            z = m_map->GetHeight({ m_hovered.first, m_hovered.second });
+            r = m_map->GetCellProps({ m_hovered.first, m_hovered.second });
+            t = m_map->GetCellType({ m_hovered.first, m_hovered.second });
+        }
+        msg = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", m_hovered.first, m_hovered.second, z, r, t);
+    }
+    FireUpdateStatusEvent(msg, 0);
+}
+
 void HeightmapEditorCtrl::DrawRoomHeightmap()
 {
     m_bmp->Create(m_width, m_height);
@@ -858,6 +870,15 @@ bool HeightmapEditorCtrl::IsCellHidden(uint8_t restrictions, uint8_t type, uint8
     return (restrictions == 0x4 && type == 0 && z == 0);
 }
 
+void HeightmapEditorCtrl::FireUpdateStatusEvent(const std::string& data, int pane)
+{
+    wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+    evt.SetString(data);
+    evt.SetInt(pane);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
+}
+
 void HeightmapEditorCtrl::FireEvent(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
@@ -951,22 +972,7 @@ void HeightmapEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
     if(UpdateHoveredPosition(evt.GetX(), evt.GetY()))
     {
-        if (m_hovered.first == -1)
-        {
-            m_status_text = "";
-        }
-        else
-        {
-            uint8_t z = 0, r = 0, t = 0;
-            if (m_map != nullptr)
-            {
-                z = m_map->GetHeight({ m_hovered.first, m_hovered.second });
-                r = m_map->GetCellProps({ m_hovered.first, m_hovered.second });
-                t = m_map->GetCellType({ m_hovered.first, m_hovered.second });
-            }
-            m_status_text = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", m_hovered.first, m_hovered.second, z, r, t);
-        }
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         Refresh(false);
     }
     evt.Skip();
@@ -976,8 +982,7 @@ void HeightmapEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
     if (UpdateHoveredPosition(-10000, -10000))
     {
-        m_status_text = "";
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         Refresh(false);
     }
 

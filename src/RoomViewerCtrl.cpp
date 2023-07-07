@@ -147,8 +147,8 @@ void RoomViewerCtrl::SelectEntity(int selection)
         {
             m_selected = selection;
         }
-        FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_ENTITY_UPDATE);
+        RefreshStatusbar();
         RedrawAllSprites();
         ForceRedraw();
     }
@@ -159,9 +159,9 @@ void RoomViewerCtrl::ClearSelection()
     if (m_selected != -1)
     {
         m_selected = -1;
-        FireEvent(EVT_STATUSBAR_UPDATE);
         FireEvent(EVT_WARP_UPDATE);
         FireEvent(EVT_ENTITY_UPDATE);
+        RefreshStatusbar();
         RedrawAllSprites();
         if (m_show_warps)
         {
@@ -227,7 +227,7 @@ void RoomViewerCtrl::SelectWarp(int selection)
         {
             m_selected = new_sel;
         }
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_WARP_UPDATE);
         if (m_show_warps)
         {
@@ -401,6 +401,41 @@ void RoomViewerCtrl::UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> b
     else
     {
         m_layers[layer] = bmp;
+    }
+}
+
+void RoomViewerCtrl::RefreshStatusbar()
+{
+    auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+    std::ostringstream ss;
+    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
+        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
+        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
+        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->pri_blockset)
+        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->sec_blockset)
+        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->bgm)
+        << " Map: " << rd->map;
+    FireUpdateStatusEvent(ss.str(), 0);
+    if (IsEntitySelected())
+    {
+        auto& entity = GetSelectedEntity();
+        int idx = GetSelectedEntityIndex();
+        auto txt = StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+            idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str());
+        FireUpdateStatusEvent(txt, 1);
+    }
+    else
+    {
+        FireUpdateStatusEvent("", 1);
+    }
+    if (GetErrorCount() > 0)
+    {
+        FireUpdateStatusEvent(StrPrintf("Total Errors: %d, Error #1 : %s",
+            GetErrorCount(), GetErrorText(0).c_str()), 2);
+    }
+    else
+    {
+        FireUpdateStatusEvent("", 2);
     }
 }
 
@@ -643,17 +678,7 @@ void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
     {
         return;
     }
-    auto rd = m_g->GetRoomData()->GetRoom(roomnum);
-    std::ostringstream ss;
-    ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
-        << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
-        << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
-        << " PriBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->pri_blockset)
-        << " SecBlockset: 0x" << std::hex << std::uppercase << std::setw(1) << std::setfill('0') << static_cast<unsigned>(rd->sec_blockset)
-        << " BGM: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->bgm)
-        << " Map: " << rd->map;
-    m_status_text = ss.str();
-    FireEvent(EVT_STATUSBAR_UPDATE);
+    RefreshStatusbar();
 }
 
 std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
@@ -712,7 +737,7 @@ void RoomViewerCtrl::UpdateWarpProperties(int warp)
             {
                 m_is_warp_pending = false;
             }
-            FireEvent(EVT_STATUSBAR_UPDATE);
+            RefreshStatusbar();
             FireEvent(EVT_WARP_UPDATE);
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
             ForceRedraw();
@@ -958,7 +983,6 @@ void RoomViewerCtrl::AddWarp()
         ForceRedraw();
     }
     FireEvent(EVT_WARP_UPDATE);
-    FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y)
@@ -1025,7 +1049,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
             ForceRedraw();
         }
         m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_WARP_UPDATE);
     }
 }
@@ -1119,6 +1143,15 @@ void RoomViewerCtrl::GoToRoom(uint16_t room)
 {
     auto name = m_g->GetRoomData()->GetRoom(room)->name;
     FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
+}
+
+void RoomViewerCtrl::FireUpdateStatusEvent(const std::string& data, int pane)
+{
+    wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+    evt.SetString(data);
+    evt.SetInt(pane);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
 }
 
 void RoomViewerCtrl::FireEvent(const wxEventType& e, long userdata)
@@ -1244,8 +1277,7 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                     SetCursor(wxCURSOR_HAND);
                     if (status_text != m_status_text)
                     {
-                        m_status_text = status_text;
-                        FireEvent(EVT_STATUSBAR_UPDATE);
+                        FireUpdateStatusEvent(status_text, 0);
                     }
                     evt.Skip();
                     return;
@@ -1253,8 +1285,7 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
             }
             if (status_text != m_status_text)
             {
-                m_status_text = status_text;
-                FireEvent(EVT_STATUSBAR_UPDATE);
+                FireUpdateStatusEvent(status_text);
             }
             for (const auto& lp : m_link_poly)
             {
@@ -1273,8 +1304,7 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
                     status_text += StrPrintf(" - Entity(%d)", ep.first);
                     if (status_text != m_status_text)
                     {
-                        m_status_text = status_text;
-                        FireEvent(EVT_STATUSBAR_UPDATE);
+                        FireUpdateStatusEvent(status_text);
                     }
                     evt.Skip();
                     return;
@@ -1294,8 +1324,8 @@ void RoomViewerCtrl::UpdateEntityProperties(int entity)
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
-            FireEvent(EVT_STATUSBAR_UPDATE);
             FireEvent(EVT_ENTITY_UPDATE);
+            RefreshStatusbar();
             RedrawAllSprites();
             ForceRedraw();
         }
@@ -1305,7 +1335,7 @@ void RoomViewerCtrl::UpdateEntityProperties(int entity)
 void RoomViewerCtrl::AddEntity()
 {
     DoAddEntity();
-    FireEvent(EVT_STATUSBAR_UPDATE);
+    RefreshStatusbar();
     FireEvent(EVT_ENTITY_UPDATE);
     RedrawAllSprites();
     ForceRedraw();
@@ -1314,7 +1344,7 @@ void RoomViewerCtrl::AddEntity()
 void RoomViewerCtrl::DeleteSelectedEntity()
 {
     DoDeleteEntity(m_selected);
-    FireEvent(EVT_STATUSBAR_UPDATE);
+    RefreshStatusbar();
     FireEvent(EVT_ENTITY_UPDATE);
     RedrawAllSprites();
     ForceRedraw();
@@ -1326,7 +1356,7 @@ void RoomViewerCtrl::MoveSelectedEntityUp()
     {
         DoMoveEntityUp(m_selected);
         m_selected--;
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
@@ -1339,7 +1369,7 @@ void RoomViewerCtrl::MoveSelectedEntityDown()
     {
         DoMoveEntityDown(m_selected);
         m_selected++;
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
@@ -1683,7 +1713,7 @@ bool RoomViewerCtrl::HandleNEntityKeyDown(unsigned int key, unsigned int modifie
     if (refresh_entities)
     {
         m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_ENTITY_UPDATE);
         RedrawAllSprites();
         ForceRedraw();
@@ -1835,7 +1865,7 @@ bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers
     if (refresh_warps)
     {
         m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
-        FireEvent(EVT_STATUSBAR_UPDATE);
+        RefreshStatusbar();
         FireEvent(EVT_WARP_UPDATE);
         m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         ForceRedraw();
@@ -1924,30 +1954,24 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
     {
         if (Pnpoly(wp.second, xy.first, xy.second))
         {
-            if (wp.first != GetSelectedWarpIndex() - 1)
+            const auto& warp = m_warps.at(wp.first);
+            uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
+            GoToRoom(room);
+            evt.Skip();
+            return;
+        }
+    }
+    for (const auto& ep : m_entity_poly)
+    {
+        if (Pnpoly(ep.second, xy.first, xy.second))
+        {
+            if (ep.first != GetSelectedEntityIndex())
             {
-                const auto& warp = m_warps.at(wp.first);
-                uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
-                GoToRoom(room);
+                SelectEntity(ep.first);
+                UpdateEntityProperties(ep.first);
             }
             selection_made = true;
             break;
-        }
-    }
-    if (!selection_made)
-    {
-        for (const auto& ep : m_entity_poly)
-        {
-            if (Pnpoly(ep.second, xy.first, xy.second))
-            {
-                if (ep.first != GetSelectedEntityIndex())
-                {
-                    SelectEntity(ep.first);
-                    UpdateEntityProperties(ep.first);
-                }
-                selection_made = true;
-                break;
-            }
         }
     }
     if (!selection_made)
