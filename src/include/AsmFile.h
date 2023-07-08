@@ -10,6 +10,7 @@
 #include <map>
 #include <wjakob/filesystem/path.h>
 #include <Utils.h>
+#include <iterator> 
 
 class AsmFile
 {
