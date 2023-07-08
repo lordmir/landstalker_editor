@@ -78,7 +78,7 @@ void BlocksetEditorFrame::SetActivePalette(const std::string& name)
 void BlocksetEditorFrame::SetDrawTile(const Tile& tile)
 {
 	m_editor->SetDrawTile(tile);
-	UpdateStatusBar();
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void BlocksetEditorFrame::Redraw()
@@ -131,7 +131,7 @@ void BlocksetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	}
 	UpdateUI();
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	UpdateStatus();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	evt.Skip();
 }
@@ -195,7 +195,7 @@ void BlocksetEditorFrame::ImportBin(const std::string& filename)
 	m_blocks->GetData()->clear();
 	auto sz = BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
 	m_editor->RedrawTiles();
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	UpdateStatus();
 }
 
 void BlocksetEditorFrame::ImportCsv(const std::string& filename)
@@ -220,12 +220,12 @@ void BlocksetEditorFrame::ImportCsv(const std::string& filename)
 	}
 	*m_blocks->GetData() = blocks;
 	m_editor->RedrawTiles();
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	UpdateStatus();
 }
 
 void BlocksetEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
-	UpdateStatusBar();
+	UpdateStatus();
 	evt.Skip();
 }
 
@@ -245,19 +245,16 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 	case ID_INSERT_BLOCK_BEFORE:
 		if (m_editor->IsBlockSelectionValid())
 		{
-			m_editor->InsertBlock(m_editor->GetBlockSelection().x);
 		}
 		break;
 	case ID_INSERT_BLOCK_AFTER:
 		if (m_editor->IsBlockSelectionValid())
 		{
-			m_editor->InsertBlock(m_editor->GetBlockSelection().x + 1);
 		}
 		break;
 	case ID_DELETE_BLOCK:
 		if (m_editor->IsBlockSelectionValid())
 		{
-			m_editor->DeleteBlock(m_editor->GetBlockSelection().x);
 		}
 		break;
 	case ID_HFLIP_TILE:
@@ -299,15 +296,18 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 	default:
 		break;
 	}
-	UpdateStatusBar();
+	UpdateStatus();
 	evt.Skip();
 }
 
-void BlocksetEditorFrame::UpdateStatusBar()
+void BlocksetEditorFrame::UpdateStatus()
 {
-	std::ostringstream ss;
-	m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
-	m_editor->SetPixelSize(m_zoomslider->GetValue());
+	if (m_zoomslider)
+	{
+		std::ostringstream ss;
+		m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
+		m_editor->SetPixelSize(m_zoomslider->GetValue());
+	}
 }
 
 void BlocksetEditorFrame::OnExportBin()
@@ -360,4 +360,13 @@ void BlocksetEditorFrame::OnImportCsv()
 		std::string path = fd.GetPath().ToStdString();
 		ImportCsv(path);
 	}
+}
+
+void BlocksetEditorFrame::FireUpdateStatusEvent(const std::string& data, int pane)
+{
+	wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+	evt.SetString(data);
+	evt.SetInt(pane);
+	evt.SetClientData(GetParent());
+	wxPostEvent(GetParent(), evt);
 }

@@ -50,6 +50,8 @@
     <ClCompile Include="..\src\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\Map2DEditor.cpp" />
     <ClCompile Include="..\src\Map2DEditorFrame.cpp" />
+    <ClCompile Include="..\src\Map3DEditor.cpp" />
+    <ClCompile Include="..\src\MapToTmx.cpp" />
     <ClCompile Include="..\src\PreferencesDialog.cpp" />
     <ClCompile Include="..\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\RoomErrorDialog.cpp" />
@@ -145,6 +147,8 @@
     <ClInclude Include="..\src\include\MainFrame.h" />
     <ClInclude Include="..\src\include\Map2DEditor.h" />
     <ClInclude Include="..\src\include\Map2DEditorFrame.h" />
+    <ClInclude Include="..\src\include\Map3DEditor.h" />
+    <ClInclude Include="..\src\include\MapToTmx.h" />
     <ClInclude Include="..\src\include\PreferencesDialog.h" />
     <ClInclude Include="..\src\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\include\RoomErrorDialog.h" />

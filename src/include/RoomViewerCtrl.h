@@ -75,6 +75,7 @@ public:
 	uint8_t GetLayerOpacity(Layer layer) const;
 	void RefreshGraphics();
 	void RefreshHeightmap();
+	void RefreshLayers();
 
 	int GetErrorCount() const;
 	std::string GetErrorText(int errnum) const;
@@ -104,6 +105,7 @@ private:
 	void AddEntityClickRegions(const std::vector<SpriteQ>& q);
 	void RedrawAllSprites();
 	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
+	void RefreshStatusbar();
 
 	void UpdateRoomDescText(uint16_t roomnum);
 	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
@@ -125,6 +127,7 @@ private:
 	void DoMoveEntityUp(int entity);
 	void DoMoveEntityDown(int entity);
 
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);

@@ -16,6 +16,8 @@
 #include "BlocksetCmp.h"
 #include "GameData.h"
 
+class EditorFrame;
+
 class BlocksetEditorCtrl : public wxVScrolledWindow
 {
 public:
@@ -32,7 +34,7 @@ public:
 		PENCIL
 	};
 
-	BlocksetEditorCtrl(wxWindow* parent);
+	BlocksetEditorCtrl(EditorFrame* parent);
 	~BlocksetEditorCtrl();
 
 	void SetGameData(std::shared_ptr<GameData> gd);
@@ -43,6 +45,7 @@ public:
 	bool Open(const wxString& filename);
 	bool Open(const std::vector<uint8_t>& data);
 	bool Open(const std::string& name);
+	bool OpenRoom(uint16_t num);
 	bool New();
 	void RedrawTiles(int index = -1);
 	void RedrawBlock(int index = -1);
@@ -80,10 +83,11 @@ public:
 	bool IsBlockHoverValid() const;
 	bool IsTileSelectionValid() const;
 	bool IsTileHoverValid() const;
-	Position GetBlockSelection() const;
-	Position GetBlockHover() const;
-	Position GetTileSelection() const;
-	Position GetTileHover() const;
+	uint16_t GetBlockSelection() const;
+	uint16_t GetBlockHover() const;
+	void SetBlockSelection(int block);
+	uint16_t GetTileSelection() const;
+	uint16_t GetTileHover() const;
 	MapBlock GetSelectedBlock() const;
 	Tile GetSelectedTile() const;
 	void SetSelectedBlock(const MapBlock& block);
@@ -98,12 +102,13 @@ public:
 	void SetTileAtPosition(const Position& block, const Position& tile, const Tile& new_tile);
 	bool IsPositionValid(const Position& tp) const;
 private:
+	void RefreshStatusbar();
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
 
 	bool UpdateRowCount();
 	bool DrawTile(wxDC& dc, int x, int y, const Tile& tile);
 	void DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile);
-	bool DrawBlock(wxDC& dc, int x, int y, const MapBlock& block);
+	bool DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlock& block);
 	void DrawSelectionBorders(wxDC& dc);
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
@@ -128,8 +133,10 @@ private:
 	void OnMouseDown(wxMouseEvent& evt);
 	void OnDoubleClick(wxMouseEvent& evt);
 
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, const std::string& data);
 	void FireTilesetEvent(const wxEventType& e, const std::string& data);
+	void FireBlockEvent(const wxEventType& e, const std::string& data);
 
 	std::shared_ptr<BlocksetEntry> m_blockset_entry;
 	std::shared_ptr<Blockset> m_blocks;
@@ -159,6 +166,7 @@ private:
 	bool m_enableblocknumbers;
 	bool m_enabletilenumbers;
 	bool m_enableborders;
+	bool m_enabletileborders;
 	bool m_enableselection;
 	bool m_enablehover;
 	bool m_enablealpha;
@@ -168,11 +176,13 @@ private:
 	Tile m_drawtile;
 
 	wxBrush* m_alpha_brush = nullptr;
+	wxPen* m_priority_pen = nullptr;
 	wxPen* m_border_pen = nullptr;
 	wxPen* m_tile_border_pen = nullptr;
 	wxPen* m_selected_border_pen = nullptr;
 	wxPen* m_highlighted_border_pen = nullptr;
 	wxBrush* m_highlighted_brush = nullptr;
+	EditorFrame* m_frame;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

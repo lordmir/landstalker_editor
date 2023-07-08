@@ -63,13 +63,13 @@ SpriteEditorFrame::~SpriteEditorFrame()
 {
 }
 
-bool SpriteEditorFrame::Open(uint8_t entity, int frame, int anim)
+bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 {
 	if (m_gd == nullptr)
 	{
 		return false;
 	}
-	uint8_t spr = m_gd->GetSpriteData()->GetSpriteFromEntity(entity);
+	uint8_t entity = ent == -1 ? m_gd->GetSpriteData()->GetEntitiesFromSprite(spr)[0] : ent;
 	if (frame == -1 && anim == -1)
 	{
 		m_sprite = m_gd->GetSpriteData()->GetDefaultEntityFrame(entity);
@@ -529,7 +529,7 @@ void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 2);
 }
 
-void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status) const
+void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
 	std::ostringstream ss;
 	int colour = m_paledit->GetHoveredColour();

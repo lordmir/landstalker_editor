@@ -117,7 +117,8 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
     }
 }
 
-void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<const Tilemap3D> map, const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset)
+void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<const Tilemap3D> map,
+    const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset, bool offset)
 {
     Point2D tilepos = {0, 0};
     for (int y = 0; y < map->GetHeight(); ++y)
@@ -125,7 +126,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
         {
             tilepos = { x, y };
             auto tile = map->GetBlock(tilepos, layer);
-            auto loc(map->IsoToPixel(tilepos, layer));
+            auto loc(map->IsoToPixel(tilepos, layer, offset));
             if (tile >= blockset->size())
             {
                 std::ostringstream ss;

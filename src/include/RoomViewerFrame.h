@@ -6,6 +6,8 @@
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
 #include "HeightmapEditorCtrl.h"
+#include "BlocksetEditorCtrl.h"
+#include "Map3DEditor.h"
 #include "GameData.h"
 #include <memory>
 
@@ -37,9 +39,13 @@ public:
 
 	bool ExportBin(const std::string& path);
 	bool ExportCsv(const std::array<std::string, 3>& paths);
+	bool ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
+	bool ExportAllTmx(const std::string& dir);
 	bool ExportPng(const std::string& path);
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
+	bool ImportTmx(const std::string& paths, uint16_t roomnum);
+	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 
@@ -49,7 +55,7 @@ public:
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
-	virtual void UpdateStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
@@ -59,9 +65,13 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void OnExportBin();
 	void OnExportCsv();
+	void OnExportTmx();
+	void OnExportAllTmx();
 	void OnExportPng();
 	void OnImportBin();
 	void OnImportCsv();
+	void OnImportTmx();
+	void OnImportAllTmx();
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
@@ -88,9 +98,13 @@ private:
 	void OnHMTypeSelect(wxCommandEvent& evt);
 	void OnHMZoom(wxCommandEvent& evt);
 
+	void OnBlockSelect(wxCommandEvent& evt);
+	void OnMapUpdate(wxCommandEvent& evt);
+
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);
 
+	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 
@@ -102,9 +116,12 @@ private:
 	std::string m_title;
 	RoomViewerCtrl* m_roomview;
 	HeightmapEditorCtrl* m_hmedit;
+	Map3DEditor* m_bgedit;
+	Map3DEditor* m_fgedit;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+	BlocksetEditorCtrl* m_blkctrl;
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;

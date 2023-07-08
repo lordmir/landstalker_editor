@@ -419,7 +419,7 @@ std::string Map2DEditorFrame::PrettyPrintMode() const
 	return ss.str();
 }
 
-void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status) const
+void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
 	std::ostringstream ss;
 	if (m_mapedit->IsSelectionValid())

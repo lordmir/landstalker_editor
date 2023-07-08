@@ -180,6 +180,7 @@ void MainFrame::InitUI()
     const int pal_img = m_imgs->GetIdx("palette");
     const int rm_img = m_imgs->GetIdx("room");
     const int spr_img = m_imgs->GetIdx("sprite");
+    const int ent_img = m_imgs->GetIdx("entity");
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
@@ -198,6 +199,7 @@ void MainFrame::InitUI()
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
     wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
+    wxTreeItemId nodeEnt = m_browser->AppendItem(nodeRoot, "Entities", ent_img, ent_img, new TreeNodeData());
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::NODE_STRING,
@@ -244,34 +246,31 @@ void MainFrame::InitUI()
             continue;
         }
         auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
-        const auto& entities = m_g->GetSpriteData()->GetEntitiesFromSprite(i);
         const auto& anims = m_g->GetSpriteData()->GetSpriteAnimations(i);
         wxTreeItemId spr_node;
-        if (entities.size() > 0)
+        spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, i));
+        int j = 0;
+        for (const auto& anim : anims)
         {
-            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entities[0]));
-            for (const auto& entity : entities)
+            int k = 0;
+            j++;
+            auto anim_node = m_browser->AppendItem(spr_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (j << 8) | i));
+            const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
+            for (const auto& frame : frames)
             {
-                int j = 0;
-                auto entity_node = m_browser->AppendItem(spr_node, StrPrintf("Entity %03d", entity), spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, entity));
-                for (const auto& anim : anims)
-                {
-                    int k = 0;
-                    j++;
-                    auto anim_node = m_browser->AppendItem(entity_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (j << 8) | entity));
-                    const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
-                    for (const auto& frame : frames)
-                    {
-                        k++;
-                        m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (k << 16) | (j << 8) | entity));
-                    }
-                }
+                k++;
+                m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_SPRITE, (k << 16) | (j << 8) | i));
             }
         }
-        else
+    }
+    for (int i = 0; i < 255; ++i)
+    {
+        if (!m_g->GetSpriteData()->IsEntity(i))
         {
-            spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::NODE_BASE));
+            continue;
         }
+        const auto& ent_name = Entity::EntityNames[i];
+        wxTreeItemId ent_node = m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::NODE_ENTITY, i));
     }
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
@@ -490,7 +489,7 @@ void MainFrame::OnStatusBarInit(wxCommandEvent& event)
 void MainFrame::OnStatusBarUpdate(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->UpdateStatusBar(*this->m_statusbar);
+	frame->UpdateStatusBar(*this->m_statusbar, event);
 	event.Skip();
 }
 
