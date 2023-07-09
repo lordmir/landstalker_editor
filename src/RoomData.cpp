@@ -5,6 +5,108 @@
 #include <set>
 #include <cassert>
 
+std::map<std::pair<uint16_t, uint8_t>, uint16_t> DecodeGfxSwap(const ByteVector& data)
+{
+    std::map<std::pair<uint16_t, uint8_t>, uint16_t> map;
+    assert(data.size() % (sizeof(uint16_t) * 2) == 2);
+    int i = 0;
+    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    {
+        uint16_t room = (data[i] << 8) | data[i + 1];
+        uint16_t flag = data[i + 2] == 0xFF ? -1 : (data[i + 2] << 3) | (data[i + 3] & 0x07);
+        uint8_t idx = data[i + 3] >> 3;
+        map.insert({ {room, idx}, flag });
+    }
+    return map;
+}
+
+ByteVector EncodeGfxSwap(const std::map<std::pair<uint16_t, uint8_t>, uint16_t>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * 4 + 2);
+    for (const auto& e : data)
+    {
+        ret.push_back(e.first.first >> 8);
+        ret.push_back(e.first.first & 0xFF);
+        if (e.second != 0xFFFF)
+        {
+            ret.push_back(e.second >> 3);
+            ret.push_back((e.second & 0x07) | (e.first.second << 3));
+        }
+        else
+        {
+            ret.push_back(0xFF);
+            ret.push_back(e.first.second << 3);
+        }
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::map<uint16_t, uint16_t> DecodeToMap(const ByteVector& data)
+{
+    std::map<uint16_t, uint16_t> map;
+    assert(data.size() % (sizeof(uint16_t) * 2) == 2);
+    int i = 0;
+    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    {
+        uint16_t room = (data[i] << 8) | data[i + 1];
+        uint16_t flag = (data[i + 2] << 3) | (data[i + 3] & 0x07);
+        map.insert({ room, flag });
+    }
+    return map;
+}
+
+ByteVector EncodeFromMap(const std::map<uint16_t, uint16_t>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * 4 + 2);
+    for (const auto& e : data)
+    {
+        ret.push_back(e.first >> 8);
+        ret.push_back(e.first & 0xFF);
+        ret.push_back(e.second >> 3);
+        ret.push_back(e.second & 0x07);
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::set<uint16_t> DecodeToSet(const ByteVector& data, bool terminate = true)
+{
+    std::set<uint16_t> set;
+    assert(data.size() % sizeof(uint16_t) == 0);
+    for (int i = 0; i < data.size(); i += 2)
+    {
+        if (terminate && data[i] == 0xFF)
+        {
+            break;
+        }
+        set.insert((data[i] << 8) | data[i + 1]);
+    }
+    return set;
+}
+
+ByteVector EncodeFromSet(const std::set<uint16_t>& data, bool terminate = true)
+{
+    assert(data.size() % sizeof(uint16_t) == 0);
+    ByteVector ret;
+    ret.reserve(data.size() * 2 + 2);
+    for (const auto& e : data)
+    {
+        ret.push_back(e >> 8);
+        ret.push_back(e & 0xFF);
+    }
+    if (terminate)
+    {
+        ret.push_back(0xFF);
+        ret.push_back(0xFF);
+    }
+    return ret;
+}
+
 RoomData::RoomData(const filesystem::path& asm_file)
     : DataManager(asm_file)
 {
@@ -52,6 +154,18 @@ RoomData::RoomData(const filesystem::path& asm_file)
     {
         throw std::runtime_error(std::string("Unable to load chest data from \'") + m_chest_data_filename.str() + '\'');
     }
+    if (!AsmLoadDoorData())
+    {
+        throw std::runtime_error(std::string("Unable to load door data from \'") + m_door_table_data_filename.str() + '\'');
+    }
+    if (!AsmLoadGfxSwapData())
+    {
+        throw std::runtime_error(std::string("Unable to load tile swap data from \'") + m_gfxswap_table_data_filename.str() + '\'');
+    }
+    if (!AsmLoadMiscData())
+    {
+        throw std::runtime_error(std::string("Unable to load miscellaneous room data from \'") + asm_file.str() + '\'');
+    }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
 }
@@ -87,6 +201,18 @@ RoomData::RoomData(const Rom& rom)
     if (!RomLoadChestData(rom))
     {
         throw std::runtime_error(std::string("Unable to load chest data from ROM"));
+    }
+    if (!RomLoadDoorData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load door data from ROM"));
+    }
+    if (!RomLoadGfxSwapData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load graphic swap data from ROM"));
+    }
+    if (!RomLoadMiscData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load miscellaneous room data from ROM"));
     }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
@@ -146,6 +272,18 @@ bool RoomData::Save(const filesystem::path& dir)
     if (!AsmSaveChestData(dir))
     {
         throw std::runtime_error(std::string("Unable to save chest data to \'") + m_chest_data_filename.str() + '\'');
+    }
+    if (!AsmSaveDoorData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save door data to \'") + m_door_table_data_filename.str() + '\'');
+    }
+    if (!AsmSaveGfxSwapData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save tile swap data to \'") + m_gfxswap_table_data_filename.str() + '\'');
+    }
+    if (!AsmSaveMiscData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save miscellaneous room data to \'") + directory.str() + '\'');
     }
     CommitAllChanges();
     return true;
@@ -243,6 +381,46 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
+    if (m_door_offsets != m_door_offsets_orig)
+    {
+        return true;
+    }
+    if (m_door_table != m_door_table_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_flags != m_gfxswap_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_locked_door_flags != m_gfxswap_locked_door_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_big_tree_flags != m_gfxswap_big_tree_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_table != m_gfxswap_table_orig)
+    {
+        return true;
+    }
+    if (m_shop_list != m_shop_list_orig)
+    {
+        return true;
+    }
+    if (m_lifestock_sold_flags != m_lifestock_sold_flags_orig)
+    {
+        return true;
+    }
+    if (m_big_tree_list != m_big_tree_list_orig)
+    {
+        return true;
+    }
+    if (m_lantern_flag_list != m_lantern_flag_list_orig)
+    {
+        return true;
+    }
     
     return false;
 }
@@ -277,6 +455,18 @@ void RoomData::RefreshPendingWrites(const Rom& rom)
     if (!RomPrepareInjectChestData(rom))
     {
         throw std::runtime_error(std::string("Unable to prepare chest data for ROM injection"));
+    }
+    if (!RomPrepareInjectDoorData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare door data for ROM injection"));
+    }
+    if (!RomPrepareInjectGfxSwapData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare tile swap data for ROM injection"));
+    }
+    if (!RomPrepareInjectMiscData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare miscellaneous room data for ROM injection"));
     }
 }
 
@@ -739,6 +929,16 @@ void RoomData::CommitAllChanges()
     m_tilesets_orig = m_tilesets;
     m_warp_palette_orig = m_warp_palette;
     m_chests_orig = m_chests;
+    m_door_offsets_orig = m_door_offsets;
+    m_door_table_orig = m_door_table;
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswap_table_orig = m_gfxswap_table;
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     m_pending_writes.clear();
 }
 
@@ -766,6 +966,16 @@ bool RoomData::LoadAsmFilenames()
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::DATA, m_blockset_data_filename);
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_OFFSETS, m_chest_offset_data_filename);
         retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_CONTENTS, m_chest_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::DOOR_OFFSET_TABLE, m_door_offset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::DOOR_TABLE, m_door_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::GFX_SWAP_FLAGS, m_gfxswap_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1, m_gfxswap_locked_door_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::GFX_SWAP_TREE_FLAGS, m_gfxswap_big_tree_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::GFX_SWAP_TABLE, m_gfxswap_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::SHOP_LIST_LEA1, m_shop_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS, m_lifestock_sold_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::BIG_TREE_LOCATIONS, m_bigtree_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::LANTERN_ROOM_FLAGS, m_lantern_flag_data_filename);
         return retval;
     }
     catch (...)
@@ -776,24 +986,34 @@ bool RoomData::LoadAsmFilenames()
 
 void RoomData::SetDefaultFilenames()
 {
-    if (m_room_data_filename.empty())          m_room_data_filename         = RomOffsets::Rooms::ROOM_DATA_FILE;
-    if (m_map_data_filename.empty())           m_map_data_filename          = RomOffsets::Rooms::MAP_DATA_FILE;
-    if (m_warp_data_filename.empty())          m_warp_data_filename         = RomOffsets::Rooms::WARP_FILENAME;
-    if (m_fall_data_filename.empty())          m_fall_data_filename         = RomOffsets::Rooms::FALL_DEST_FILENAME;
-    if (m_climb_data_filename.empty())         m_climb_data_filename        = RomOffsets::Rooms::CLIMB_DEST_FILENAME;
-    if (m_transition_data_filename.empty())    m_transition_data_filename   = RomOffsets::Rooms::TRANSITION_FILENAME;
-    if (m_palette_data_filename.empty())       m_palette_data_filename      = RomOffsets::Rooms::PALETTE_DATA_FILE;
-    if (m_lava_pal_data_filename.empty())      m_lava_pal_data_filename     = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
-    if (m_warp_pal_data_filename.empty())      m_warp_pal_data_filename     = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
-    if (m_lantern_pal_data_filename.empty())   m_lantern_pal_data_filename  = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
-    if (m_tileset_data_filename.empty())       m_tileset_data_filename      = RomOffsets::Tilesets::INCLUDE_FILE;
-    if (m_tileset_ptrtab_filename.empty())     m_tileset_ptrtab_filename    = RomOffsets::Tilesets::PTRTAB_FILE;
-    if (m_tileset_anim_filename.empty())       m_tileset_anim_filename      = RomOffsets::Tilesets::ANIM_FILE;
-    if (m_blockset_pri_ptr_filename.empty())   m_blockset_pri_ptr_filename  = RomOffsets::Blocksets::PRI_PTR_FILE;
-    if (m_blockset_sec_ptr_filename.empty())   m_blockset_sec_ptr_filename  = RomOffsets::Blocksets::SEC_PTR_FILE;
-    if (m_blockset_data_filename.empty())      m_blockset_data_filename     = RomOffsets::Blocksets::DATA_FILE;
-    if (m_chest_data_filename.empty())         m_chest_data_filename        = RomOffsets::Rooms::CHEST_CONTENTS_FILENAME;
-    if (m_chest_offset_data_filename.empty())  m_chest_offset_data_filename = RomOffsets::Rooms::CHEST_OFFSETS_FILENAME;
+    if (m_room_data_filename.empty())                     m_room_data_filename                     = RomOffsets::Rooms::ROOM_DATA_FILE;
+    if (m_map_data_filename.empty())                      m_map_data_filename                      = RomOffsets::Rooms::MAP_DATA_FILE;
+    if (m_warp_data_filename.empty())                     m_warp_data_filename                     = RomOffsets::Rooms::WARP_FILENAME;
+    if (m_fall_data_filename.empty())                     m_fall_data_filename                     = RomOffsets::Rooms::FALL_DEST_FILENAME;
+    if (m_climb_data_filename.empty())                    m_climb_data_filename                    = RomOffsets::Rooms::CLIMB_DEST_FILENAME;
+    if (m_transition_data_filename.empty())               m_transition_data_filename               = RomOffsets::Rooms::TRANSITION_FILENAME;
+    if (m_palette_data_filename.empty())                  m_palette_data_filename                  = RomOffsets::Rooms::PALETTE_DATA_FILE;
+    if (m_lava_pal_data_filename.empty())                 m_lava_pal_data_filename                 = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
+    if (m_warp_pal_data_filename.empty())                 m_warp_pal_data_filename                 = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
+    if (m_lantern_pal_data_filename.empty())              m_lantern_pal_data_filename              = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
+    if (m_tileset_data_filename.empty())                  m_tileset_data_filename                  = RomOffsets::Tilesets::INCLUDE_FILE;
+    if (m_tileset_ptrtab_filename.empty())                m_tileset_ptrtab_filename                = RomOffsets::Tilesets::PTRTAB_FILE;
+    if (m_tileset_anim_filename.empty())                  m_tileset_anim_filename                  = RomOffsets::Tilesets::ANIM_FILE;
+    if (m_blockset_pri_ptr_filename.empty())              m_blockset_pri_ptr_filename              = RomOffsets::Blocksets::PRI_PTR_FILE;
+    if (m_blockset_sec_ptr_filename.empty())              m_blockset_sec_ptr_filename              = RomOffsets::Blocksets::SEC_PTR_FILE;
+    if (m_blockset_data_filename.empty())                 m_blockset_data_filename                 = RomOffsets::Blocksets::DATA_FILE;
+    if (m_chest_data_filename.empty())                    m_chest_data_filename                    = RomOffsets::Rooms::CHEST_CONTENTS_FILENAME;
+    if (m_chest_offset_data_filename.empty())             m_chest_offset_data_filename             = RomOffsets::Rooms::CHEST_OFFSETS_FILENAME;
+    if (m_door_offset_data_filename.empty())              m_door_offset_data_filename              = RomOffsets::Rooms::DOOR_OFFSET_TABLE_FILE;
+    if (m_door_table_data_filename.empty())               m_door_table_data_filename               = RomOffsets::Rooms::DOOR_TABLE_FILE;
+    if (m_gfxswap_flag_data_filename.empty())             m_gfxswap_flag_data_filename             = RomOffsets::Rooms::GFX_SWAP_FLAGS_FILE;
+    if (m_gfxswap_locked_door_flag_data_filename.empty()) m_gfxswap_locked_door_flag_data_filename = RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_FILE;
+    if (m_gfxswap_big_tree_flag_data_filename.empty())    m_gfxswap_big_tree_flag_data_filename    = RomOffsets::Rooms::GFX_SWAP_TREE_FLAGS_FILE;
+    if (m_gfxswap_table_data_filename.empty())            m_gfxswap_table_data_filename            = RomOffsets::Rooms::GFX_SWAP_TABLE;
+    if (m_shop_table_data_filename.empty())               m_shop_table_data_filename               = RomOffsets::Rooms::SHOP_LIST_FILE;
+    if (m_lifestock_sold_flag_data_filename.empty())      m_lifestock_sold_flag_data_filename      = RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS_FILE;
+    if (m_bigtree_data_filename.empty())                  m_bigtree_data_filename                  = RomOffsets::Rooms::BIG_TREE_LOCATIONS_FILE;
+    if (m_lantern_flag_data_filename.empty())             m_lantern_flag_data_filename             = RomOffsets::Rooms::LANTERN_ROOM_FILE;
 }
 
 bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -818,6 +1038,16 @@ bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
     retval = retval && CreateDirectoryTree(dir / m_blockset_data_filename);
     retval = retval && CreateDirectoryTree(dir / m_chest_data_filename);
     retval = retval && CreateDirectoryTree(dir / m_chest_offset_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_door_offset_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_door_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_locked_door_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_big_tree_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_shop_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_lifestock_sold_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_bigtree_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_lantern_flag_data_filename);
 
     for (const auto& m : m_maps)
     {
@@ -1170,10 +1400,51 @@ bool RoomData::AsmLoadChestData()
     auto offsets = ReadBytes(GetBasePath() / m_chest_offset_data_filename);
     while (contents.back() == 0xFF)
     {
-        contents.resize(contents.size() - 1);
+        contents.pop_back();
     }
     m_chests = Chests(offsets, contents);
     m_chests_orig = m_chests;
+    return true;
+}
+
+bool RoomData::AsmLoadDoorData()
+{
+    m_door_offsets = ReadBytes(GetBasePath() / m_door_offset_data_filename);
+    m_door_table = ReadBytes(GetBasePath() / m_door_table_data_filename);
+    while (m_door_table.back() == 0xFF)
+    {
+        m_door_table.pop_back();
+    }
+    m_door_offsets_orig = m_door_offsets;
+    m_door_table_orig = m_door_table;
+    return true;
+}
+
+bool RoomData::AsmLoadGfxSwapData()
+{
+    m_gfxswap_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_flag_data_filename));
+    m_gfxswap_locked_door_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_locked_door_flag_data_filename));
+    m_gfxswap_big_tree_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_big_tree_flag_data_filename));
+    m_gfxswap_table = ReadBytes(GetBasePath() / m_gfxswap_table_data_filename);
+
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswap_table_orig = m_gfxswap_table;
+    return true;
+}
+
+bool RoomData::AsmLoadMiscData()
+{
+    m_shop_list = DecodeToSet(ReadBytes(GetBasePath() / m_shop_table_data_filename), true);
+    m_lifestock_sold_flags = DecodeToMap(ReadBytes(GetBasePath() / m_lifestock_sold_flag_data_filename));
+    m_big_tree_list = DecodeToSet(ReadBytes(GetBasePath() / m_bigtree_data_filename), false);
+    m_lantern_flag_list = DecodeToMap(ReadBytes(GetBasePath() / m_lantern_flag_data_filename));
+
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     return true;
 }
 
@@ -1484,10 +1755,77 @@ bool RoomData::RomLoadChestData(const Rom& rom)
     auto chest_bytes = rom.read_array<uint8_t>(chests_begin, chests_end - chests_begin);
     while (chest_bytes.back() == 0xFF)
     {
-        chest_bytes.resize(chest_bytes.size() - 1);
+        chest_bytes.pop_back();
     }
     m_chests = Chests(offset_bytes, chest_bytes);
     m_chests_orig = m_chests;
+    return true;
+}
+
+bool RoomData::RomLoadDoorData(const Rom& rom)
+{
+    uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::DOOR_OFFSET_TABLE);
+    uint32_t doors_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::DOOR_TABLE);
+    uint32_t offsets_end = doors_begin;
+    uint32_t doors_end = rom.get_section(RomOffsets::Rooms::DOOR_TABLE_SECTION).end;
+    auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
+    auto door_bytes = rom.read_array<uint8_t>(doors_begin, doors_end - doors_begin);
+    while (door_bytes.back() == 0xFF)
+    {
+        door_bytes.pop_back();
+    }
+    m_door_offsets = offset_bytes;
+    m_door_table = door_bytes;
+    m_door_offsets_orig = m_door_offsets;
+    m_door_table_orig = m_door_table;
+    return true;
+}
+
+bool RoomData::RomLoadGfxSwapData(const Rom& rom)
+{
+    uint32_t flags_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::GFX_SWAP_FLAGS);
+    uint32_t locked_door_flags_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1);
+    uint32_t tree_flags_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::GFX_SWAP_TREE_FLAGS);
+    uint32_t swap_table_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::GFX_SWAP_TABLE);
+    uint32_t swap_table_end = rom.get_section(RomOffsets::Rooms::GFX_SWAP_SECTION).end;
+    auto flag_bytes = rom.read_array<uint8_t>(flags_begin, locked_door_flags_begin - flags_begin);
+    auto door_bytes = rom.read_array<uint8_t>(locked_door_flags_begin, tree_flags_begin - locked_door_flags_begin);
+    auto tree_bytes = rom.read_array<uint8_t>(tree_flags_begin, swap_table_begin - tree_flags_begin);
+    m_gfxswap_table = rom.read_array<uint8_t>(swap_table_begin, swap_table_end - swap_table_begin);
+    m_gfxswap_flags = DecodeGfxSwap(flag_bytes);
+    m_gfxswap_locked_door_flags = DecodeGfxSwap(door_bytes);
+    m_gfxswap_big_tree_flags = DecodeGfxSwap(tree_bytes);
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswap_table_orig = m_gfxswap_table;
+    return true;
+}
+
+bool RoomData::RomLoadMiscData(const Rom& rom)
+{
+    uint32_t shops_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::SHOP_LIST_LEA1);
+    uint32_t shops_end = rom.get_section(RomOffsets::Rooms::SHOP_LIST_SECTION).end;
+    uint32_t lifestock_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS);
+    uint32_t lifestock_end = rom.get_section(RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION).end;
+    uint32_t trees_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::BIG_TREE_LOCATIONS);
+    uint32_t trees_end = rom.get_section(RomOffsets::Rooms::BIG_TREE_LOCATIONS_SECTION).end;
+    uint32_t lantern_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::LANTERN_ROOM_FLAGS);
+    uint32_t lantern_end = rom.get_section(RomOffsets::Rooms::LANTERN_ROOM_FLAGS_SECTION).end;
+
+    auto shops_bytes = rom.read_array<uint8_t>(shops_begin, shops_end - shops_begin);
+    auto lifestock_bytes = rom.read_array<uint8_t>(lifestock_begin, lifestock_end - lifestock_begin);
+    auto trees_bytes = rom.read_array<uint8_t>(trees_begin, trees_end - trees_begin);
+    auto lantern_bytes = rom.read_array<uint8_t>(lantern_begin, lantern_end - lantern_begin);
+    m_shop_list = DecodeToSet(shops_bytes, true);
+    m_lifestock_sold_flags = DecodeToMap(lifestock_bytes);
+    m_big_tree_list = DecodeToSet(trees_bytes, false);
+    m_lantern_flag_list = DecodeToMap(lantern_bytes);
+    
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     return true;
 }
 
@@ -1774,6 +2112,31 @@ bool RoomData::AsmSaveChestData(const filesystem::path& dir)
     return true;
 }
 
+bool RoomData::AsmSaveDoorData(const filesystem::path& dir)
+{
+    WriteBytes(m_door_offsets, dir / m_door_offset_data_filename);
+    WriteBytes(m_door_table, dir / m_door_table_data_filename);
+    return true;
+}
+
+bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
+{
+    WriteBytes(EncodeGfxSwap(m_gfxswap_flags), dir / m_gfxswap_flag_data_filename);
+    WriteBytes(EncodeGfxSwap(m_gfxswap_locked_door_flags), dir / m_gfxswap_locked_door_flag_data_filename);
+    WriteBytes(EncodeGfxSwap(m_gfxswap_big_tree_flags), dir / m_gfxswap_big_tree_flag_data_filename);
+    WriteBytes(m_gfxswap_table, dir / m_gfxswap_table_data_filename);
+    return true;
+}
+
+bool RoomData::AsmSaveMiscData(const filesystem::path& dir)
+{
+    WriteBytes(EncodeFromSet(m_shop_list, true), dir / m_shop_table_data_filename);
+    WriteBytes(EncodeFromMap(m_lifestock_sold_flags), dir / m_lifestock_sold_flag_data_filename);
+    WriteBytes(EncodeFromSet(m_big_tree_list, false), dir / m_bigtree_data_filename);
+    WriteBytes(EncodeFromMap(m_lantern_flag_list), dir / m_lantern_flag_data_filename);
+    return true;
+}
+
 bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
 {
     auto fall_bytes = m_warps.GetFallBytes();
@@ -2018,6 +2381,63 @@ bool RoomData::RomPrepareInjectChestData(const Rom& rom)
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS, offsets_begin));
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS, chests_begin));
     m_pending_writes.push_back({ RomOffsets::Rooms::CHEST_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectDoorData(const Rom& rom)
+{
+    uint32_t offsets_begin = rom.get_section(RomOffsets::Rooms::DOOR_TABLE_SECTION).begin;
+    uint32_t doors_begin = offsets_begin + m_door_offsets.size();
+    auto data = std::make_shared<ByteVector>(m_door_offsets);
+    data->insert(data->end(), m_door_table.begin(), m_door_table.end());
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::DOOR_OFFSET_TABLE, offsets_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::DOOR_TABLE, doors_begin));
+    m_pending_writes.push_back({ RomOffsets::Rooms::DOOR_TABLE_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectGfxSwapData(const Rom& rom)
+{
+    auto flag_bytes = EncodeGfxSwap(m_gfxswap_flags);
+    auto door_bytes = EncodeGfxSwap(m_gfxswap_locked_door_flags);
+    auto tree_bytes = EncodeGfxSwap(m_gfxswap_big_tree_flags);
+    uint32_t flags_begin = rom.get_section(RomOffsets::Rooms::GFX_SWAP_SECTION).begin;
+    uint32_t doors_begin = flags_begin + flag_bytes.size();
+    uint32_t trees_begin = doors_begin + door_bytes.size();
+    uint32_t table_begin = trees_begin + tree_bytes.size();
+    auto data = std::make_shared<ByteVector>(flag_bytes);
+    data->insert(data->end(), door_bytes.begin(), door_bytes.end());
+    data->insert(data->end(), tree_bytes.begin(), tree_bytes.end());
+    data->insert(data->end(), m_gfxswap_table.begin(), m_gfxswap_table.end());
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_FLAGS, flags_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1, doors_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA2, doors_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_TREE_FLAGS, trees_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_TABLE, table_begin));
+    m_pending_writes.push_back({ RomOffsets::Rooms::GFX_SWAP_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectMiscData(const Rom& rom)
+{
+    auto shop_bytes = std::make_shared<ByteVector>(EncodeFromSet(m_shop_list, true));
+    auto lifestock_bytes = std::make_shared<ByteVector>(EncodeFromMap(m_lifestock_sold_flags));
+    auto tree_bytes = std::make_shared<ByteVector>(EncodeFromSet(m_big_tree_list, false));
+    auto lantern_bytes = std::make_shared<ByteVector>(EncodeFromMap(m_lantern_flag_list));
+    uint32_t shops_begin = rom.get_section(RomOffsets::Rooms::SHOP_LIST_SECTION).begin;
+    uint32_t lifestock_begin = rom.get_section(RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION).begin;
+    uint32_t trees_begin = rom.get_section(RomOffsets::Rooms::BIG_TREE_LOCATIONS_SECTION).begin;
+    uint32_t lantern_begin = rom.get_section(RomOffsets::Rooms::LANTERN_ROOM_FLAGS_SECTION).begin;
+
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::SHOP_LIST_LEA1, shops_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::SHOP_LIST_LEA2, shops_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS, lifestock_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::BIG_TREE_LOCATIONS, trees_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::LANTERN_ROOM_FLAGS, lantern_begin));
+    m_pending_writes.push_back({ RomOffsets::Rooms::SHOP_LIST_SECTION, shop_bytes });
+    m_pending_writes.push_back({ RomOffsets::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION, lifestock_bytes });
+    m_pending_writes.push_back({ RomOffsets::Rooms::BIG_TREE_LOCATIONS_SECTION, tree_bytes });
+    m_pending_writes.push_back({ RomOffsets::Rooms::LANTERN_ROOM_FLAGS_SECTION, lantern_bytes });
     return true;
 }
 

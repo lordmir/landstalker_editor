@@ -78,7 +78,7 @@ AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& d
 
 AssemblyBuilderDialog::~AssemblyBuilderDialog()
 {
-
+    Abandon();
 }
 
 wxString AssemblyBuilderDialog::GetBuiltRomName()
@@ -393,12 +393,14 @@ bool AssemblyBuilderDialog::DoClone()
     if (cmd.empty())
     {
         Log("Clone command has not been set!", *wxRED);
+        m_msgQueue.Post(ExecutorThread::ThreadMessage::ExitThread);
         return false;
     }
 
     if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
     {
         Log("Command execution failed!", *wxRED);
+        m_msgQueue.Post(ExecutorThread::ThreadMessage::ExitThread);
         return false;
     }
     return true;
@@ -447,11 +449,13 @@ bool AssemblyBuilderDialog::DoBuild()
     if (cmd.empty())
     {
         Log("Assemble command has not been set!", *wxRED);
+        Abandon();
         return false;
     }
     if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
     {
         Log("Command execution failed.", *wxRED);
+        Abandon();
         return false;
     }
     return true;
