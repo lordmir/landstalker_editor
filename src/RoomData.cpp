@@ -901,6 +901,108 @@ void RoomData::SetSrcTransitions(uint16_t room, const std::vector<WarpList::Tran
     m_warps.SetSrcTransitionsForRoom(room, data);
 }
 
+bool RoomData::IsShop(uint16_t room) const
+{
+    return m_shop_list.count(room) > 0;
+}
+
+void RoomData::SetShop(uint16_t room, bool is_shop)
+{
+    if (is_shop && !IsShop(room))
+    {
+        m_shop_list.insert(room);
+    }
+    else if (!is_shop && IsShop(room))
+    {
+        m_shop_list.erase(room);
+    }
+}
+
+bool RoomData::IsTree(uint16_t room) const
+{
+    return m_big_tree_list.count(room) > 0;
+}
+
+void RoomData::SetTree(uint16_t room, bool is_tree)
+{
+    if (is_tree && !IsTree(room))
+    {
+        m_big_tree_list.insert(room);
+    }
+    else if (!is_tree && IsTree(room))
+    {
+        m_big_tree_list.erase(room);
+    }
+}
+
+bool RoomData::HasLifestockSaleFlag(uint16_t room) const
+{
+    return m_lifestock_sold_flags.count(room) > 0;
+}
+
+uint16_t RoomData::GetLifestockSaleFlag(uint16_t room) const
+{
+    if (HasLifestockSaleFlag(room))
+    {
+        return m_lifestock_sold_flags.at(room);
+    }
+    else
+    {
+        return 0xFFFF;
+    }
+}
+
+void RoomData::SetLifestockSaleFlag(uint16_t room, uint16_t flag)
+{
+    if (flag != 0xFFFF && !HasLifestockSaleFlag(room))
+    {
+        m_lifestock_sold_flags.insert({ room, flag });
+    }
+    else if (flag == 0xFFFF && HasLifestockSaleFlag(room))
+    {
+        m_lifestock_sold_flags.erase(room);
+    }
+}
+
+void RoomData::ClearLifestockSaleFlag(uint16_t room)
+{
+    SetLifestockSaleFlag(room, 0xFFFF);
+}
+
+bool RoomData::HasLanternFlag(uint16_t room) const
+{
+    return m_lantern_flag_list.count(room) > 0;
+}
+
+uint16_t RoomData::GetLanternFlag(uint16_t room) const
+{
+    if (HasLanternFlag(room))
+    {
+        return m_lantern_flag_list.at(room);
+    }
+    else
+    {
+        return 0xFFFF;
+    }
+}
+
+void RoomData::SetLanternFlag(uint16_t room, uint16_t flag)
+{
+    if (flag != 0xFFFF && !HasLanternFlag(room))
+    {
+        m_lantern_flag_list.insert({ room, flag });
+    }
+    else if (flag == 0xFFFF && HasLanternFlag(room))
+    {
+        m_lantern_flag_list.erase(room);
+    }
+}
+
+void RoomData::ClearLanternFlag(uint16_t room)
+{
+    SetLanternFlag(room, 0xFFFF);
+}
+
 void RoomData::CommitAllChanges()
 {
     auto entry_commit = [](const auto& e) {return e->Commit(); };

@@ -802,6 +802,10 @@ uint8_t StringData::GetMapPosition(uint16_t room)
 
 void StringData::SetMapLocation(uint16_t room, uint8_t name, uint8_t position)
 {
+	if (position == 0xFF)
+	{
+		return;
+	}
 	auto loc = m_island_map_locations.find(room);
 	if (loc != m_island_map_locations.cend())
 	{
@@ -817,7 +821,7 @@ void StringData::SetMapLocation(uint16_t room, uint8_t name, uint8_t position)
 	}
 	else
 	{
-		m_save_game_locations.insert({ room, {name, position} });
+		m_island_map_locations.insert({ room, {name, position} });
 	}
 }
 

@@ -601,7 +601,21 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
 		props.Append(new wxPropertyCategory("Flags", "Flags"));
 		props.Append(new wxIntProperty("Visit Flag", "VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum)));
+		auto lantern_prop = new wxBoolProperty("Lantern Room", "LanternRoom", m_g->GetRoomData()->HasLanternFlag(m_roomnum));
+		lantern_prop->SetAttribute("UseCheckbox", 1);
+		props.Append(lantern_prop);
+		props.Append(new wxIntProperty("Lantern Activate Flag", "LanternFlag", m_g->GetRoomData()->GetLanternFlag(m_roomnum)));
 		props.Append(new wxPropertyCategory("Misc", "Misc"));
+		auto tree_prop = new wxBoolProperty("Is Tree", "IsTree", m_g->GetRoomData()->IsTree(m_roomnum));
+		tree_prop->SetAttribute("UseCheckbox", 1);
+		props.Append(tree_prop);
+		auto shop_prop = new wxBoolProperty("Is Shop/Church/Inn", "IsShop", m_g->GetRoomData()->IsShop(m_roomnum));
+		shop_prop->SetAttribute("UseCheckbox", 1);
+		props.Append(shop_prop);
+		auto ls_prop = new wxBoolProperty("Lifestock For Sale", "LifestockSale", m_g->GetRoomData()->HasLifestockSaleFlag(m_roomnum));
+		ls_prop->SetAttribute("UseCheckbox", 1);
+		props.Append(ls_prop);
+		props.Append(new wxIntProperty("Lifestock Sale Flag", "LifestockFlag", m_g->GetRoomData()->GetLifestockSaleFlag(m_roomnum)));
 		props.Append(new wxEnumProperty("Save Location String", "SLS", m_menustrings));
 		props.Append(new wxEnumProperty("Island Location String", "ILS", m_menustrings));
 		props.Append(new wxIntProperty("Island Position", "ILP", -1));
@@ -740,7 +754,42 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		map_loc = map_loc == 0xFF ? 0 : map_loc + 1;
 		props.GetGrid()->GetProperty("SLS")->SetChoiceSelection(save_loc);
 		props.GetGrid()->GetProperty("ILS")->SetChoiceSelection(map_loc);
-		props.GetGrid()->SetPropertyValue("ILP", m_g->GetStringData()->GetMapPosition(m_roomnum));
+		props.GetGrid()->SetPropertyValue("IsShop", m_g->GetRoomData()->IsShop(m_roomnum));
+		props.GetGrid()->SetPropertyValue("IsTree", m_g->GetRoomData()->IsTree(m_roomnum));
+		if (map_loc == 0)
+		{
+			props.GetGrid()->GetProperty("ILP")->Enable(false);
+			props.GetGrid()->SetPropertyValue("ILP", 0);
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("ILP")->Enable(true);
+			props.GetGrid()->SetPropertyValue("ILP", m_g->GetStringData()->GetMapPosition(m_roomnum));
+		}
+		if (m_g->GetRoomData()->HasLanternFlag(m_roomnum))
+		{
+			props.GetGrid()->GetProperty("LanternFlag")->Enable(true);
+			props.GetGrid()->SetPropertyValue("LanternFlag", m_g->GetRoomData()->GetLanternFlag(m_roomnum));
+			props.GetGrid()->SetPropertyValue("LanternRoom", true);
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("LanternFlag")->Enable(false);
+			props.GetGrid()->SetPropertyValue("LanternFlag", 0xFFFF);
+			props.GetGrid()->SetPropertyValue("LanternRoom", false);
+		}
+		if (m_g->GetRoomData()->HasLifestockSaleFlag(m_roomnum))
+		{
+			props.GetGrid()->GetProperty("LifestockFlag")->Enable(true);
+			props.GetGrid()->SetPropertyValue("LifestockFlag", m_g->GetRoomData()->GetLifestockSaleFlag(m_roomnum));
+			props.GetGrid()->SetPropertyValue("LifestockSale", true);
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("LifestockFlag")->Enable(false);
+			props.GetGrid()->SetPropertyValue("LifestockFlag", 0xFFFF);
+			props.GetGrid()->SetPropertyValue("LifestockSale", false);
+		}
 		props.GetGrid()->Thaw();
 	}
 }
@@ -924,6 +973,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (m_g->GetStringData()->GetMapLocation(m_roomnum) != string)
 		{
 			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}
 	else if (name == "ILP")
@@ -933,6 +983,74 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (string != 0xFF && m_g->GetStringData()->GetMapPosition(m_roomnum) != position)
 		{
 			m_g->GetStringData()->SetMapLocation(m_roomnum, string, position);
+		}
+	}
+	else if (name == "IsShop")
+	{
+		bool enabled = property->GetValuePlain().GetBool();
+		if (enabled != m_g->GetRoomData()->IsShop(m_roomnum))
+		{
+			m_g->GetRoomData()->SetShop(m_roomnum, enabled);
+		}
+	}
+	else if (name == "IsTree")
+	{
+		bool enabled = property->GetValuePlain().GetBool();
+		if (enabled != m_g->GetRoomData()->IsTree(m_roomnum))
+		{
+			m_g->GetRoomData()->SetTree(m_roomnum, enabled);
+		}
+	}
+	else if (name == "LifestockSale")
+	{
+		bool enabled = property->GetValuePlain().GetBool();
+		if (enabled != m_g->GetRoomData()->HasLifestockSaleFlag(m_roomnum))
+		{
+			if (enabled)
+			{
+				m_g->GetRoomData()->SetLifestockSaleFlag(m_roomnum, 0);
+			}
+			else
+			{
+				m_g->GetRoomData()->ClearLifestockSaleFlag(m_roomnum);
+			}
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "LifestockFlag")
+	{
+		uint16_t flag = property->GetValuePlain().GetLong() & 0xFFFF;
+		if (flag != 0xFFFF &&
+			m_g->GetRoomData()->HasLifestockSaleFlag(m_roomnum) &&
+			m_g->GetRoomData()->GetLifestockSaleFlag(m_roomnum) != flag)
+		{
+			m_g->GetRoomData()->SetLifestockSaleFlag(m_roomnum, flag);
+		}
+	}
+	else if (name == "LanternRoom")
+	{
+		bool enabled = property->GetValuePlain().GetBool();
+		if (enabled != m_g->GetRoomData()->HasLanternFlag(m_roomnum))
+		{
+			if (enabled)
+			{
+				m_g->GetRoomData()->SetLanternFlag(m_roomnum, 0);
+			}
+			else
+			{
+				m_g->GetRoomData()->ClearLanternFlag(m_roomnum);
+			}
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "LanternFlag")
+	{
+		uint16_t flag = property->GetValuePlain().GetLong() & 0xFFFF;
+		if (flag != 0xFFFF &&
+			m_g->GetRoomData()->HasLanternFlag(m_roomnum) &&
+			m_g->GetRoomData()->GetLanternFlag(m_roomnum) != flag)
+		{
+			m_g->GetRoomData()->SetLanternFlag(m_roomnum, flag);
 		}
 	}
 	ctrl->GetGrid()->Thaw();

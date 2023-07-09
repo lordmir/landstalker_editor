@@ -98,6 +98,19 @@ public:
     std::vector<WarpList::Transition> GetSrcTransitions(uint16_t room) const;
     void SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data);
 
+    bool IsShop(uint16_t room) const;
+    void SetShop(uint16_t room, bool is_shop);
+    bool IsTree(uint16_t room) const;
+    void SetTree(uint16_t room, bool is_tree);
+    bool HasLifestockSaleFlag(uint16_t room) const;
+    uint16_t GetLifestockSaleFlag(uint16_t room) const;
+    void SetLifestockSaleFlag(uint16_t room, uint16_t flag);
+    void ClearLifestockSaleFlag(uint16_t room);
+    bool HasLanternFlag(uint16_t room) const;
+    uint16_t GetLanternFlag(uint16_t room) const;
+    void SetLanternFlag(uint16_t room, uint16_t flag);
+    void ClearLanternFlag(uint16_t room);
+
 protected:
     virtual void CommitAllChanges();
 private:
