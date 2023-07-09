@@ -606,7 +606,7 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(lantern_prop);
 		props.Append(new wxIntProperty("Lantern Activate Flag", "LanternFlag", m_g->GetRoomData()->GetLanternFlag(m_roomnum)));
 		props.Append(new wxPropertyCategory("Misc", "Misc"));
-		auto tree_prop = new wxBoolProperty("Is Tree", "IsTree", m_g->GetRoomData()->IsTree(m_roomnum));
+		auto tree_prop = new wxBoolProperty("Has Tree", "HasTree", m_g->GetRoomData()->IsTree(m_roomnum));
 		tree_prop->SetAttribute("UseCheckbox", 1);
 		props.Append(tree_prop);
 		auto shop_prop = new wxBoolProperty("Is Shop/Church/Inn", "IsShop", m_g->GetRoomData()->IsShop(m_roomnum));
@@ -755,7 +755,7 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("SLS")->SetChoiceSelection(save_loc);
 		props.GetGrid()->GetProperty("ILS")->SetChoiceSelection(map_loc);
 		props.GetGrid()->SetPropertyValue("IsShop", m_g->GetRoomData()->IsShop(m_roomnum));
-		props.GetGrid()->SetPropertyValue("IsTree", m_g->GetRoomData()->IsTree(m_roomnum));
+		props.GetGrid()->SetPropertyValue("HasTree", m_g->GetRoomData()->IsTree(m_roomnum));
 		if (map_loc == 0)
 		{
 			props.GetGrid()->GetProperty("ILP")->Enable(false);
@@ -993,7 +993,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			m_g->GetRoomData()->SetShop(m_roomnum, enabled);
 		}
 	}
-	else if (name == "IsTree")
+	else if (name == "HasTree")
 	{
 		bool enabled = property->GetValuePlain().GetBool();
 		if (enabled != m_g->GetRoomData()->IsTree(m_roomnum))

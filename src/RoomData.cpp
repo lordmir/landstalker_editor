@@ -381,11 +381,7 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
-    if (m_door_offsets != m_door_offsets_orig)
-    {
-        return true;
-    }
-    if (m_door_table != m_door_table_orig)
+    if (m_doors != m_doors_orig)
     {
         return true;
     }
@@ -401,7 +397,7 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
-    if (m_gfxswap_table != m_gfxswap_table_orig)
+    if (m_gfxswaps != m_gfxswaps_orig)
     {
         return true;
     }
@@ -1031,12 +1027,11 @@ void RoomData::CommitAllChanges()
     m_tilesets_orig = m_tilesets;
     m_warp_palette_orig = m_warp_palette;
     m_chests_orig = m_chests;
-    m_door_offsets_orig = m_door_offsets;
-    m_door_table_orig = m_door_table;
+    m_doors_orig = m_doors;
     m_gfxswap_flags_orig = m_gfxswap_flags;
     m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
     m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
-    m_gfxswap_table_orig = m_gfxswap_table;
+    m_gfxswaps_orig = m_gfxswaps;
     m_shop_list_orig = m_shop_list;
     m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
     m_big_tree_list_orig = m_big_tree_list;
@@ -1511,14 +1506,10 @@ bool RoomData::AsmLoadChestData()
 
 bool RoomData::AsmLoadDoorData()
 {
-    m_door_offsets = ReadBytes(GetBasePath() / m_door_offset_data_filename);
-    m_door_table = ReadBytes(GetBasePath() / m_door_table_data_filename);
-    while (m_door_table.back() == 0xFF)
-    {
-        m_door_table.pop_back();
-    }
-    m_door_offsets_orig = m_door_offsets;
-    m_door_table_orig = m_door_table;
+    auto door_offsets = ReadBytes(GetBasePath() / m_door_offset_data_filename);
+    auto door_table = ReadBytes(GetBasePath() / m_door_table_data_filename);
+    m_doors = Doors(door_offsets, door_table);
+    m_doors_orig = m_doors;
     return true;
 }
 
@@ -1527,12 +1518,12 @@ bool RoomData::AsmLoadGfxSwapData()
     m_gfxswap_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_flag_data_filename));
     m_gfxswap_locked_door_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_locked_door_flag_data_filename));
     m_gfxswap_big_tree_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_big_tree_flag_data_filename));
-    m_gfxswap_table = ReadBytes(GetBasePath() / m_gfxswap_table_data_filename);
+    m_gfxswaps = TileSwaps(ReadBytes(GetBasePath() / m_gfxswap_table_data_filename));
 
     m_gfxswap_flags_orig = m_gfxswap_flags;
     m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
     m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
-    m_gfxswap_table_orig = m_gfxswap_table;
+    m_gfxswaps_orig = m_gfxswaps;
     return true;
 }
 
@@ -1872,14 +1863,8 @@ bool RoomData::RomLoadDoorData(const Rom& rom)
     uint32_t doors_end = rom.get_section(RomOffsets::Rooms::DOOR_TABLE_SECTION).end;
     auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
     auto door_bytes = rom.read_array<uint8_t>(doors_begin, doors_end - doors_begin);
-    while (door_bytes.back() == 0xFF)
-    {
-        door_bytes.pop_back();
-    }
-    m_door_offsets = offset_bytes;
-    m_door_table = door_bytes;
-    m_door_offsets_orig = m_door_offsets;
-    m_door_table_orig = m_door_table;
+    m_doors = Doors(offset_bytes, door_bytes);
+    m_doors_orig = m_doors;
     return true;
 }
 
@@ -1893,14 +1878,14 @@ bool RoomData::RomLoadGfxSwapData(const Rom& rom)
     auto flag_bytes = rom.read_array<uint8_t>(flags_begin, locked_door_flags_begin - flags_begin);
     auto door_bytes = rom.read_array<uint8_t>(locked_door_flags_begin, tree_flags_begin - locked_door_flags_begin);
     auto tree_bytes = rom.read_array<uint8_t>(tree_flags_begin, swap_table_begin - tree_flags_begin);
-    m_gfxswap_table = rom.read_array<uint8_t>(swap_table_begin, swap_table_end - swap_table_begin);
+    m_gfxswaps = TileSwaps(rom.read_array<uint8_t>(swap_table_begin, swap_table_end - swap_table_begin));
     m_gfxswap_flags = DecodeGfxSwap(flag_bytes);
     m_gfxswap_locked_door_flags = DecodeGfxSwap(door_bytes);
     m_gfxswap_big_tree_flags = DecodeGfxSwap(tree_bytes);
     m_gfxswap_flags_orig = m_gfxswap_flags;
     m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
     m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
-    m_gfxswap_table_orig = m_gfxswap_table;
+    m_gfxswaps_orig = m_gfxswaps;
     return true;
 }
 
@@ -2216,8 +2201,9 @@ bool RoomData::AsmSaveChestData(const filesystem::path& dir)
 
 bool RoomData::AsmSaveDoorData(const filesystem::path& dir)
 {
-    WriteBytes(m_door_offsets, dir / m_door_offset_data_filename);
-    WriteBytes(m_door_table, dir / m_door_table_data_filename);
+    auto result = m_doors.GetData(GetRoomCount());
+    WriteBytes(result.first, dir / m_door_offset_data_filename);
+    WriteBytes(result.second, dir / m_door_table_data_filename);
     return true;
 }
 
@@ -2226,7 +2212,7 @@ bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
     WriteBytes(EncodeGfxSwap(m_gfxswap_flags), dir / m_gfxswap_flag_data_filename);
     WriteBytes(EncodeGfxSwap(m_gfxswap_locked_door_flags), dir / m_gfxswap_locked_door_flag_data_filename);
     WriteBytes(EncodeGfxSwap(m_gfxswap_big_tree_flags), dir / m_gfxswap_big_tree_flag_data_filename);
-    WriteBytes(m_gfxswap_table, dir / m_gfxswap_table_data_filename);
+    WriteBytes(m_gfxswaps.GetData(), dir / m_gfxswap_table_data_filename);
     return true;
 }
 
@@ -2488,10 +2474,11 @@ bool RoomData::RomPrepareInjectChestData(const Rom& rom)
 
 bool RoomData::RomPrepareInjectDoorData(const Rom& rom)
 {
+    auto result = m_doors.GetData(GetRoomCount());
     uint32_t offsets_begin = rom.get_section(RomOffsets::Rooms::DOOR_TABLE_SECTION).begin;
-    uint32_t doors_begin = offsets_begin + m_door_offsets.size();
-    auto data = std::make_shared<ByteVector>(m_door_offsets);
-    data->insert(data->end(), m_door_table.begin(), m_door_table.end());
+    uint32_t doors_begin = offsets_begin + result.first.size();
+    auto data = std::make_shared<ByteVector>(result.first);
+    data->insert(data->end(), result.second.begin(), result.second.end());
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::DOOR_OFFSET_TABLE, offsets_begin));
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::DOOR_TABLE, doors_begin));
     m_pending_writes.push_back({ RomOffsets::Rooms::DOOR_TABLE_SECTION, data });
@@ -2503,6 +2490,7 @@ bool RoomData::RomPrepareInjectGfxSwapData(const Rom& rom)
     auto flag_bytes = EncodeGfxSwap(m_gfxswap_flags);
     auto door_bytes = EncodeGfxSwap(m_gfxswap_locked_door_flags);
     auto tree_bytes = EncodeGfxSwap(m_gfxswap_big_tree_flags);
+    auto table_bytes = m_gfxswaps.GetData();
     uint32_t flags_begin = rom.get_section(RomOffsets::Rooms::GFX_SWAP_SECTION).begin;
     uint32_t doors_begin = flags_begin + flag_bytes.size();
     uint32_t trees_begin = doors_begin + door_bytes.size();
@@ -2510,7 +2498,7 @@ bool RoomData::RomPrepareInjectGfxSwapData(const Rom& rom)
     auto data = std::make_shared<ByteVector>(flag_bytes);
     data->insert(data->end(), door_bytes.begin(), door_bytes.end());
     data->insert(data->end(), tree_bytes.begin(), tree_bytes.end());
-    data->insert(data->end(), m_gfxswap_table.begin(), m_gfxswap_table.end());
+    data->insert(data->end(), table_bytes.begin(), table_bytes.end());
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_FLAGS, flags_begin));
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1, doors_begin));
     m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA2, doors_begin));

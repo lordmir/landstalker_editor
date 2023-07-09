@@ -29,6 +29,7 @@
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
+    <ClCompile Include="..\src\Doors.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\Entity.cpp" />
@@ -87,6 +88,7 @@
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\TileSwaps.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\WarpList.cpp" />
@@ -120,6 +122,7 @@
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
+    <ClInclude Include="..\src\include\Doors.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\Entity.h" />
@@ -181,6 +184,7 @@
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\TilesetEditorFrame.h" />
+    <ClInclude Include="..\src\include\TileSwaps.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\include\WarpList.h" />

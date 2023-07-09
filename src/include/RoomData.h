@@ -10,6 +10,8 @@
 #include <Room.h>
 #include <WarpList.h>
 #include <Chests.h>
+#include <Doors.h>
+#include <TileSwaps.h>
 
 class GameData;
 
@@ -245,19 +247,17 @@ private:
 
     Chests m_chests;
     Chests m_chests_orig;
+    Doors m_doors;
+    Doors m_doors_orig;
+    TileSwaps m_gfxswaps;
+    TileSwaps m_gfxswaps_orig;
 
-    ByteVector m_door_offsets;
-    ByteVector m_door_offsets_orig;
-    ByteVector m_door_table;
-    ByteVector m_door_table_orig;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_flags;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_flags_orig;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_locked_door_flags;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_locked_door_flags_orig;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_big_tree_flags;
     std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_big_tree_flags_orig;
-    ByteVector m_gfxswap_table;
-    ByteVector m_gfxswap_table_orig;
     std::set<uint16_t> m_shop_list;
     std::set<uint16_t> m_shop_list_orig;
     std::map<uint16_t, uint16_t> m_lifestock_sold_flags;

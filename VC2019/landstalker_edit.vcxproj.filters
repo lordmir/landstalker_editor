@@ -384,6 +384,12 @@
     <ClCompile Include="..\src\MapToTmx.cpp">
       <Filter>src\Data\3D Maps</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Doors.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileSwaps.cpp">
+      <Filter>src\Data\Rooms</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -654,6 +660,12 @@
     </ClInclude>
     <ClInclude Include="..\src\include\MapToTmx.h">
       <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Doors.h">
+      <Filter>include\Data\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwaps.h">
+      <Filter>include\Data\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
