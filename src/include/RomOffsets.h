@@ -486,6 +486,36 @@ namespace RomOffsets
 
 		static const std::string ROOM_VISIT_FLAGS("RoomVisitedFlagLookup");
 
+		static const std::string DOOR_OFFSET_TABLE("DoorLookup");
+		static const std::string DOOR_TABLE("DoorTable");
+		static const std::string DOOR_TABLE_SECTION("DoorTableSection");
+		static const std::string GFX_SWAP_FLAGS("RoomGfxSwapFlags");
+		static const std::string GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1("LockedDoorGfxSwapFlags");
+		static const std::string GFX_SWAP_LOCKED_DOOR_FLAGS_LEA2("LockedDoorGfxSwapFlagsLEA");
+		static const std::string GFX_SWAP_TREE_FLAGS("TreeWarpGfxSwapFlags");
+		static const std::string GFX_SWAP_TABLE("TileSwaps");
+		static const std::string GFX_SWAP_SECTION("GfxSwapSection");
+		static const std::string LIFESTOCK_SOLD_FLAGS("LifestockSoldFlags");
+		static const std::string LIFESTOCK_SOLD_FLAGS_SECTION("LifestockSoldFlagsSection");
+		static const std::string BIG_TREE_LOCATIONS("BigTreeLocations");
+		static const std::string BIG_TREE_LOCATIONS_SECTION("BigTreeLocationsSection");
+		static const std::string SHOP_LIST_LEA1("Shops");
+		static const std::string SHOP_LIST_LEA2("ShopsLea");
+		static const std::string SHOP_LIST_SECTION("ShopsSection");
+		static const std::string LANTERN_ROOM_FLAGS("LightableRooms");
+		static const std::string LANTERN_ROOM_FLAGS_SECTION("LightableRoomsSection");
+
+		static const std::string DOOR_OFFSET_TABLE_FILE("assets_packed/roomdata/misc/doorlookup.bin");
+		static const std::string DOOR_TABLE_FILE("assets_packed/roomdata/misc/doortable.bin");
+		static const std::string GFX_SWAP_FLAGS_FILE("assets_packed/roomdata/flagactions/roomgfxswapflags.bin");
+		static const std::string GFX_SWAP_LOCKED_DOOR_FLAGS_FILE("assets_packed/roomdata/flagactions/lockeddoorgfxswapflags.bin");
+		static const std::string GFX_SWAP_TREE_FLAGS_FILE("assets_packed/roomdata/flagactions/treewarpgfxswapflags.bin");
+		static const std::string GFX_SWAP_TABLE_FILE("assets_packed/roomdata/flagactions/tileswaps.bin");
+		static const std::string LIFESTOCK_SOLD_FLAGS_FILE("assets_packed/roomdata/flagactions/lifestocksoldflags.bin");
+		static const std::string BIG_TREE_LOCATIONS_FILE("assets_packed/roomdata/misc/bigtreelocs.bin");
+		static const std::string SHOP_LIST_FILE("assets_packed/roomdata/misc/shops.bin");
+		static const std::string LANTERN_ROOM_FILE("assets_packed/roomdata/flagactions/lanternflags.bin");
+
 		static const std::string ROOM_DATA_FILE("code/pointertables/maps/roomlist.asm");
 		static const std::string MAP_DATA_FILE("code/graphics/roommaps.asm");
 		static const std::string MAP_FILENAME_FORMAT_STRING("assets_packed/maps/%s.cmp");
@@ -668,6 +698,18 @@ namespace RomOffsets
 		{ Rooms::ROOM_VISIT_FLAGS,                 {{Region::JP, 0x00293C}, {Region::US, 0x002942}, {Region::UK, 0x002942}, {Region::FR, 0x002942}, {Region::DE, 0x002942}, {Region::US_BETA, 0x00293C}}},
 		{ Rooms::CHEST_CONTENTS,                   {{Region::JP, 0x09E76E}, {Region::US, 0x09E776}, {Region::UK, 0x09E776}, {Region::FR, 0x09E776}, {Region::DE, 0x09E776}, {Region::US_BETA, 0x09E776}}},
 		{ Rooms::CHEST_OFFSETS,                    {{Region::JP, 0x09E764}, {Region::US, 0x09E76C}, {Region::UK, 0x09E76C}, {Region::FR, 0x09E76C}, {Region::DE, 0x09E76C}, {Region::US_BETA, 0x09E76C}}},
+		{ Rooms::DOOR_OFFSET_TABLE,                {{Region::JP, 0x000000}, {Region::US, 0x00961E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::DOOR_TABLE,                       {{Region::JP, 0x000000}, {Region::US, 0x00963E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::GFX_SWAP_FLAGS,                   {{Region::JP, 0x000000}, {Region::US, 0x004DFC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1,  {{Region::JP, 0x000000}, {Region::US, 0x004E08}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA2,  {{Region::JP, 0x000000}, {Region::US, 0x004FAC}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::GFX_SWAP_TREE_FLAGS,              {{Region::JP, 0x000000}, {Region::US, 0x004E46}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::GFX_SWAP_TABLE,                   {{Region::JP, 0x000000}, {Region::US, 0x004ECA}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::BIG_TREE_LOCATIONS,               {{Region::JP, 0x000000}, {Region::US, 0x01A03E}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::SHOP_LIST_LEA1,                   {{Region::JP, 0x000000}, {Region::US, 0x009BE4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::SHOP_LIST_LEA2,                   {{Region::JP, 0x000000}, {Region::US, 0x009C12}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::LIFESTOCK_SOLD_FLAGS,             {{Region::JP, 0x000000}, {Region::US, 0x009CD6}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}} },
+		{ Rooms::LANTERN_ROOM_FLAGS,               {{Region::JP, 0x000000}, {Region::US, 0x0087BE}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
 		{ Tilesets::INTRO_FONT_PTR,                {{Region::JP, 0x00C4C2}, {Region::US, 0x00C528}, {Region::UK, 0x00C528}, {Region::FR, 0x00C528}, {Region::DE, 0x00C532}, {Region::US_BETA, 0x00C4D0}}}
 	};
 
@@ -720,6 +762,12 @@ namespace RomOffsets
 		{ Rooms::PALETTE_LANTERN,                  {{Region::JP, {0x002DAE, 0x002DC8}}, {Region::US, {0x002DB4, 0x002DCE}}, {Region::UK, {0x002DB4, 0x002DCE}}, {Region::FR, {0x002DB4, 0x002DCE}}, {Region::DE, {0x002DB4, 0x002DCE}}, {Region::US_BETA, {0x002DAE, 0x002DC8}}}},
 		{ Rooms::PALETTE_WARP,                     {{Region::JP, {0x00E98A, 0x00E9AE}}, {Region::US, {0x00E80E, 0x00E832}}, {Region::UK, {0x00E80E, 0x00E832}}, {Region::FR, {0x00E778, 0x00E79C}}, {Region::DE, {0x00E76C, 0x00E790}}, {Region::US_BETA, {0x00E7B8, 0x00E7DC}}}},
 		{ Rooms::CHEST_SECTION,                    {{Region::JP, {0x09E786, 0x09EB94}}, {Region::US, {0x09E78E, 0x09EB9C}}, {Region::UK, {0x09E78E, 0x09EB9C}}, {Region::FR, {0x09E78E, 0x09EB9C}}, {Region::DE, {0x09E78E, 0x09EB9C}}, {Region::US_BETA, {0x09E78E, 0x09EB9C}}}},
+		{ Rooms::DOOR_TABLE_SECTION,               {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x00976C, 0x009BCA}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::GFX_SWAP_SECTION,                 {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x004FEA, 0x00603C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::BIG_TREE_LOCATIONS_SECTION,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x01A058, 0x01A06C}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::SHOP_LIST_SECTION,                {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009C42, 0x009C82}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::LIFESTOCK_SOLD_FLAGS_SECTION,     {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x009D18, 0x009D36}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
+		{ Rooms::LANTERN_ROOM_FLAGS_SECTION,       {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x008800, 0x008832}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}},
 		{ Graphics::SEGA_LOGO_PAL,                 {{Region::JP, {0x0386C2, 0x0386D0}}, {Region::US, {0x0386C2, 0x0386D0}}, {Region::UK, {0x0386C2, 0x0386D0}}, {Region::FR, {0x0386C2, 0x0386D0}}, {Region::DE, {0x0386C2, 0x0386D0}}, {Region::US_BETA, {0x0386C2, 0x0386D0}}}},
 		{ Graphics::GAME_LOAD_PALETTE,             {{Region::JP, {0x00F828, 0x00F848}}, {Region::US, {0x00F6BC, 0x00F6DC}}, {Region::UK, {0x00F6BC, 0x00F6DC}}, {Region::FR, {0x00F626, 0x00F646}}, {Region::DE, {0x00F61A, 0x00F63A}}, {Region::US_BETA, {0x00F658, 0x00F678}}}},
 		{ Graphics::TITLE_PALETTE_BLUE,            {{Region::JP, {0x039AF4, 0x039B2C}}, {Region::US, {0x039B04, 0x039B3C}}, {Region::UK, {0x039B04, 0x039B3C}}, {Region::FR, {0x039AF0, 0x039B28}}, {Region::DE, {0x039AF0, 0x039B28}}, {Region::US_BETA, {0x039B10, 0x039B48}}}},
