@@ -390,6 +390,42 @@ protected:
     }
 };
 
+class TileSwapFlagViewModel : public FlagDataViewModel<TileSwapFlag>
+{
+public:
+    TileSwapFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<TileSwapFlag>(roomnum, gd)
+    {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetRoomData()->SetNormalTileSwaps(m_roomnum, m_data);
+    }
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetRoomData()->GetNormalTileSwaps(m_roomnum);
+    }
+};
+
+class LockedDoorTileSwapFlagViewModel : public FlagDataViewModel<TileSwapFlag>
+{
+public:
+    LockedDoorTileSwapFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<TileSwapFlag>(roomnum, gd)
+    {}
+
+    virtual void CommitData() override
+    {
+        m_gd->GetRoomData()->SetLockedDoorTileSwaps(m_roomnum, m_data);
+    }
+protected:
+    virtual void InitData() override
+    {
+        m_data = m_gd->GetRoomData()->GetLockedDoorTileSwaps(m_roomnum);
+    }
+};
+
 template <>
 unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
 
@@ -515,5 +551,29 @@ bool FlagDataViewModel<Character>::GetAttrByRow(unsigned int row, unsigned int c
 
 template <>
 bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int row);
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::DeleteRow(unsigned int row);
+
+template <>
+wxString FlagDataViewModel<TileSwapFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<TileSwapFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

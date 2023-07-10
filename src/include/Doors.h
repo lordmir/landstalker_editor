@@ -49,7 +49,7 @@ public:
 	std::pair<std::vector<uint8_t>, std::vector<uint8_t>> GetData(int roomcount) const;
 	std::vector<Door> GetDoorsForRoom(uint16_t room) const;
 	bool RoomHasDoors(uint16_t room) const;
-	void SetRoomDoors(uint16_t room, std::vector<Door>&& swaps);
+	void SetRoomDoors(uint16_t room, const std::vector<Door>& swaps);
 private:
 	std::map<uint16_t, std::vector<Door>> m_doors;
 };

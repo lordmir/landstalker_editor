@@ -803,3 +803,138 @@ bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsig
 	}
 	return updated;
 }
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int row)
+{
+	if (m_data.size() < 32)
+	{
+		uint8_t next_idx = 0;
+		while (next_idx < 32)
+		{
+			if (std::none_of(m_data.cbegin(), m_data.cend(), [&](const auto& e)
+				{
+					return e.index == next_idx;
+				}))
+			{
+				break;
+			}
+				next_idx++;
+		};
+		m_data.insert(m_data.end(), TileSwapFlag(m_roomnum, next_idx));
+		RowInserted(m_data.size() - 1);
+		return true;
+	}
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::DeleteRow(unsigned int row)
+{
+	if (row < m_data.size())
+	{
+		m_data.erase(m_data.begin() + row);
+		RowDeleted(row);
+		return true;
+	}
+	return false;
+}
+
+template <>
+unsigned int FlagDataViewModel<TileSwapFlag>::GetColumnCount() const
+{
+	return 3;
+}
+
+template <>
+wxString FlagDataViewModel<TileSwapFlag>::GetColumnHeader(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "Index";
+	case 1:
+		return "Always";
+	case 2:
+		return "Flag";
+	default:
+		return "?";
+	}
+}
+
+template <>
+wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int col) const
+{
+	return wxArrayString();
+}
+
+template <>
+wxString FlagDataViewModel<TileSwapFlag>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "long";
+	case 1:
+		return "bool";
+	case 2:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	if (row < m_data.size())
+	{
+		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+		wxString label;
+		int idx = 0;
+		switch (col)
+		{
+		case 0:
+			variant = static_cast<long>(m_data[row].index);
+			break;
+		case 1:
+			variant = m_data[row].always;
+			break;
+		case 2:
+			variant = m_data[row].always ? 0 : static_cast<long>(m_data[row].flag);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	if (row < m_data.size())
+	{
+		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+		wxString label;
+		int idx = 0;
+		switch (col)
+		{
+		case 0:
+			m_data[row].index = variant.GetLong();
+			return true;
+		case 1:
+			m_data[row].always = variant.GetBool();
+			return true;
+		case 2:
+			if (m_data[row].always)
+			{
+				m_data[row].flag = variant.GetLong();
+				return true;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	return false;
+}

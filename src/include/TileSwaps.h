@@ -25,6 +25,7 @@ struct TileSwap
 	};
 
 	TileSwap(const std::vector<uint8_t>& in);
+	TileSwap() : map({ 0,0,0,0,1,1 }), heightmap({ 0,0,0,0,1,1 }), mode(Mode::FLOOR) {}
 	std::vector<uint8_t> GetBytes(uint16_t room, uint8_t idx) const;
 
 	bool operator==(const TileSwap& rhs) const;
@@ -45,11 +46,11 @@ public:
 	bool operator!=(const TileSwaps& rhs) const;
 
 	std::vector<uint8_t> GetData() const;
-	std::map<uint8_t, TileSwap> GetSwapsForRoom(uint16_t room) const;
+	std::vector<TileSwap> GetSwapsForRoom(uint16_t room) const;
 	bool RoomHasSwaps(uint16_t room) const;
-	void SetRoomSwaps(uint16_t room, std::map<uint8_t, TileSwap>&& swaps);
+	void SetRoomSwaps(uint16_t room, const std::vector<TileSwap>& swaps);
 private:
-	std::map<uint16_t, std::map<uint8_t, TileSwap>> m_swaps;
+	std::map<uint16_t, std::vector<TileSwap>> m_swaps;
 };
 
 #endif // _TILE_SWAPS_H_

@@ -601,6 +601,9 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
 		props.Append(new wxPropertyCategory("Flags", "Flags"));
 		props.Append(new wxIntProperty("Visit Flag", "VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum)));
+		int paired_tree = m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) ? m_g->GetRoomData()->GetTreeWarp(m_roomnum).first + 1 : 0;
+		props.Append(new wxEnumProperty("Paired Tree", "PairedTree", m_rooms))->SetChoiceSelection(paired_tree);
+		props.Append(new wxIntProperty("Tree Active Flag Begin", "TreeFlag", m_g->GetRoomData()->GetTreeWarp(m_roomnum).second));
 		auto lantern_prop = new wxBoolProperty("Lantern Room", "LanternRoom", m_g->GetRoomData()->HasLanternFlag(m_roomnum));
 		lantern_prop->SetAttribute("UseCheckbox", 1);
 		props.Append(lantern_prop);
@@ -765,6 +768,19 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		{
 			props.GetGrid()->GetProperty("ILP")->Enable(true);
 			props.GetGrid()->SetPropertyValue("ILP", m_g->GetStringData()->GetMapPosition(m_roomnum));
+		}
+		if (m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
+		{
+			auto tree = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
+			props.GetGrid()->GetProperty("TreeFlag")->Enable(true);
+			props.GetGrid()->SetPropertyValue("TreeFlag", tree.second);
+			props.GetGrid()->SetPropertyValue("PairedTree", tree.first + 1);
+		}
+		else
+		{
+			props.GetGrid()->GetProperty("TreeFlag")->Enable(false);
+			props.GetGrid()->SetPropertyValue("TreeFlag", 0xFFFF);
+			props.GetGrid()->SetPropertyValue("PairedTree", 0);
 		}
 		if (m_g->GetRoomData()->HasLanternFlag(m_roomnum))
 		{
@@ -1029,28 +1045,65 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	}
 	else if (name == "LanternRoom")
 	{
-		bool enabled = property->GetValuePlain().GetBool();
-		if (enabled != m_g->GetRoomData()->HasLanternFlag(m_roomnum))
+	bool enabled = property->GetValuePlain().GetBool();
+	if (enabled != m_g->GetRoomData()->HasLanternFlag(m_roomnum))
+	{
+		if (enabled)
 		{
-			if (enabled)
-			{
-				m_g->GetRoomData()->SetLanternFlag(m_roomnum, 0);
-			}
-			else
-			{
-				m_g->GetRoomData()->ClearLanternFlag(m_roomnum);
-			}
-			FireEvent(EVT_PROPERTIES_UPDATE);
+			m_g->GetRoomData()->SetLanternFlag(m_roomnum, 0);
 		}
+		else
+		{
+			m_g->GetRoomData()->ClearLanternFlag(m_roomnum);
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
 	}
 	else if (name == "LanternFlag")
 	{
-		uint16_t flag = property->GetValuePlain().GetLong() & 0xFFFF;
-		if (flag != 0xFFFF &&
-			m_g->GetRoomData()->HasLanternFlag(m_roomnum) &&
-			m_g->GetRoomData()->GetLanternFlag(m_roomnum) != flag)
+	uint16_t flag = property->GetValuePlain().GetLong() & 0xFFFF;
+	if (flag != 0xFFFF &&
+		m_g->GetRoomData()->HasLanternFlag(m_roomnum) &&
+		m_g->GetRoomData()->GetLanternFlag(m_roomnum) != flag)
+	{
+		m_g->GetRoomData()->SetLanternFlag(m_roomnum, flag);
+	}
+	}
+	else if (name == "PairedTree")
+	{
+		bool updated = false;
+		auto dest = property->GetValuePlain().GetLong();
+		if (dest > 0 && !m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
 		{
-			m_g->GetRoomData()->SetLanternFlag(m_roomnum, flag);
+			m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, 0);
+			updated = true;
+		}
+		else if (dest == 0 && m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
+		{
+			m_g->GetRoomData()->ClearTreeWarp(m_roomnum);
+			updated = true;
+		}
+		else
+		{
+			auto warp = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
+			if (dest != warp.first)
+			{
+				m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, warp.second);
+				updated = true;
+			}
+		}
+		if (updated)
+		{
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "TreeFlag")
+	{
+		uint16_t flag = property->GetValuePlain().GetLong() & 0x07FE;
+		if (m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) &&
+			m_g->GetRoomData()->GetTreeWarp(m_roomnum).second != flag)
+		{
+			m_g->GetRoomData()->SetTreeWarp(m_roomnum, m_g->GetRoomData()->GetTreeWarp(m_roomnum).first, flag);
 		}
 	}
 	ctrl->GetGrid()->Thaw();

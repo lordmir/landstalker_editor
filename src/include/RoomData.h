@@ -12,6 +12,7 @@
 #include <Chests.h>
 #include <Doors.h>
 #include <TileSwaps.h>
+#include <Flags.h>
 
 class GameData;
 
@@ -112,6 +113,24 @@ public:
     uint16_t GetLanternFlag(uint16_t room) const;
     void SetLanternFlag(uint16_t room, uint16_t flag);
     void ClearLanternFlag(uint16_t room);
+    bool HasTreeWarpFlag(uint16_t room) const;
+    std::pair<uint16_t, uint16_t> GetTreeWarp(uint16_t room) const;
+    void SetTreeWarp(uint16_t room1, uint16_t room2, uint16_t flag);
+    void ClearTreeWarp(uint16_t room);
+
+    bool HasNormalTileSwaps(uint16_t room) const;
+    std::vector<TileSwapFlag> GetNormalTileSwaps(uint16_t room) const;
+    void SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps);
+    bool HasLockedDoorTileSwaps(uint16_t room) const;
+    std::vector<TileSwapFlag> GetLockedDoorTileSwaps(uint16_t room) const;
+    void SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps);
+    bool HasTileSwaps(uint16_t room) const;
+    std::vector<TileSwap> GetTileSwaps(uint16_t room) const;
+    void SetTileSwaps(uint16_t room, const std::vector<TileSwap>& swaps);
+    bool HasDoors(uint16_t room) const;
+    std::vector<Door> GetDoors(uint16_t room) const;
+    void SetDoors(uint16_t room, const std::vector<Door>& swaps);
+
 
 protected:
     virtual void CommitAllChanges();
@@ -252,12 +271,12 @@ private:
     TileSwaps m_gfxswaps;
     TileSwaps m_gfxswaps_orig;
 
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_flags;
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_flags_orig;
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_locked_door_flags;
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_locked_door_flags_orig;
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_big_tree_flags;
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> m_gfxswap_big_tree_flags_orig;
+    std::vector<TileSwapFlag> m_gfxswap_flags;
+    std::vector<TileSwapFlag> m_gfxswap_flags_orig;
+    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags;
+    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags_orig;
+    std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags;
+    std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags_orig;
     std::set<uint16_t> m_shop_list;
     std::set<uint16_t> m_shop_list_orig;
     std::map<uint16_t, uint16_t> m_lifestock_sold_flags;

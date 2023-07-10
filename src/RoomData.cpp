@@ -5,39 +5,54 @@
 #include <set>
 #include <cassert>
 
-std::map<std::pair<uint16_t, uint8_t>, uint16_t> DecodeGfxSwap(const ByteVector& data)
+std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
 {
-    std::map<std::pair<uint16_t, uint8_t>, uint16_t> map;
+    std::vector<TileSwapFlag> flags;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
     int i = 0;
     for (int i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
-        uint16_t room = (data[i] << 8) | data[i + 1];
-        uint16_t flag = data[i + 2] == 0xFF ? -1 : (data[i + 2] << 3) | (data[i + 3] & 0x07);
-        uint8_t idx = data[i + 3] >> 3;
-        map.insert({ {room, idx}, flag });
+        flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
     }
-    return map;
+    return flags;
 }
 
-ByteVector EncodeGfxSwap(const std::map<std::pair<uint16_t, uint8_t>, uint16_t>& data)
+ByteVector EncodeGfxSwap(const std::vector<TileSwapFlag>& data)
 {
     ByteVector ret;
     ret.reserve(data.size() * 4 + 2);
     for (const auto& e : data)
     {
-        ret.push_back(e.first.first >> 8);
-        ret.push_back(e.first.first & 0xFF);
-        if (e.second != 0xFFFF)
-        {
-            ret.push_back(e.second >> 3);
-            ret.push_back((e.second & 0x07) | (e.first.second << 3));
-        }
-        else
-        {
-            ret.push_back(0xFF);
-            ret.push_back(e.first.second << 3);
-        }
+        auto data = e.GetData();
+        ret.insert(ret.end(), data.cbegin(), data.cend());
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::vector<TreeWarpFlag> DecodeTreeWarp(const ByteVector& data)
+{
+    std::vector<TreeWarpFlag> flags;
+    assert(data.size() % TreeWarpFlag::SIZE == 2);
+    int i = 0;
+    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 8)
+    {
+        std::array<uint8_t, TreeWarpFlag::SIZE> bytes;
+        std::copy_n(data.begin() + i, TreeWarpFlag::SIZE, bytes.begin());
+        flags.push_back(TreeWarpFlag(bytes));
+    }
+    return flags;
+}
+
+ByteVector EncodeTreeWarp(const std::vector<TreeWarpFlag>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * TreeWarpFlag::SIZE + 2);
+    for (const auto& e : data)
+    {
+        auto data = e.GetData();
+        ret.insert(ret.end(), data.cbegin(), data.cend());
     }
     ret.push_back(0xFF);
     ret.push_back(0xFF);
@@ -999,6 +1014,133 @@ void RoomData::ClearLanternFlag(uint16_t room)
     SetLanternFlag(room, 0xFFFF);
 }
 
+bool RoomData::HasTreeWarpFlag(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_big_tree_flags.cbegin(), m_gfxswap_big_tree_flags.cend(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        });
+}
+
+std::pair<uint16_t, uint16_t> RoomData::GetTreeWarp(uint16_t room) const
+{
+    auto result = std::find_if(m_gfxswap_big_tree_flags.cbegin(), m_gfxswap_big_tree_flags.cend(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        });
+    if (result == m_gfxswap_big_tree_flags.cend())
+    {
+        return { 0,0 };
+    }
+    return {result->room1 == room ? result->room2 : result->room1, result->flag};
+}
+
+void RoomData::SetTreeWarp(uint16_t room1, uint16_t room2, uint16_t flag)
+{
+    auto result = std::find_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
+        return w.room1 == room1 || w.room2 == room1 || w.room1 == room2 || w.room2 == room2;
+        });
+    if (result == m_gfxswap_big_tree_flags.cend())
+    {
+        m_gfxswap_big_tree_flags.push_back({ room1, room2, flag });
+    }
+    else
+    {
+        result->room1 = room1;
+        result->room2 = room2;
+        result->flag = flag;
+    }
+}
+
+void RoomData::ClearTreeWarp(uint16_t room)
+{
+    std::remove_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        });
+}
+
+bool RoomData::HasNormalTileSwaps(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(), [&](const auto& f) {
+        return f.room == room;
+    });
+}
+
+std::vector<TileSwapFlag> RoomData::GetNormalTileSwaps(uint16_t room) const
+{
+    std::vector<TileSwapFlag> ret;
+    std::copy_if(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(), ret.end(), [&](const auto& f) {
+        return f.room == room;
+        });
+    return ret;
+}
+
+void RoomData::SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
+{
+    std::remove_if(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [&](const auto& f) {
+        return f.room == room;
+        });
+    m_gfxswap_flags.insert(m_gfxswap_flags.end(), swaps.cbegin(), swaps.cend());
+    std::sort(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+    });
+}
+
+bool RoomData::HasLockedDoorTileSwaps(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(), [&](const auto& f) {
+        return f.room == room;
+        });
+}
+
+std::vector<TileSwapFlag> RoomData::GetLockedDoorTileSwaps(uint16_t room) const
+{
+    std::vector<TileSwapFlag> ret;
+    std::copy_if(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(), ret.end(), [&](const auto& f) {
+        return f.room == room;
+    });
+    return ret;
+}
+
+void RoomData::SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
+{
+    std::remove_if(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [&](const auto& f) {
+        return f.room == room;
+        });
+    m_gfxswap_flags.insert(m_gfxswap_locked_door_flags.end(), swaps.cbegin(), swaps.cend());
+    std::sort(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+        });
+}
+
+bool RoomData::HasTileSwaps(uint16_t room) const
+{
+    return m_gfxswaps.RoomHasSwaps(room);
+}
+
+std::vector<TileSwap> RoomData::GetTileSwaps(uint16_t room) const
+{
+    return m_gfxswaps.GetSwapsForRoom(room);
+}
+
+void RoomData::SetTileSwaps(uint16_t room, const std::vector<TileSwap>& swaps)
+{
+    m_gfxswaps.SetRoomSwaps(room, swaps);
+}
+
+bool RoomData::HasDoors(uint16_t room) const
+{
+    return m_doors.RoomHasDoors(room);
+}
+
+std::vector<Door> RoomData::GetDoors(uint16_t room) const
+{
+    return m_doors.GetDoorsForRoom(room);
+}
+
+void RoomData::SetDoors(uint16_t room, const std::vector<Door>& doors)
+{
+    m_doors.SetRoomDoors(room, doors);
+}
+
 void RoomData::CommitAllChanges()
 {
     auto entry_commit = [](const auto& e) {return e->Commit(); };
@@ -1517,7 +1659,7 @@ bool RoomData::AsmLoadGfxSwapData()
 {
     m_gfxswap_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_flag_data_filename));
     m_gfxswap_locked_door_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_locked_door_flag_data_filename));
-    m_gfxswap_big_tree_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_big_tree_flag_data_filename));
+    m_gfxswap_big_tree_flags = DecodeTreeWarp(ReadBytes(GetBasePath() / m_gfxswap_big_tree_flag_data_filename));
     m_gfxswaps = TileSwaps(ReadBytes(GetBasePath() / m_gfxswap_table_data_filename));
 
     m_gfxswap_flags_orig = m_gfxswap_flags;
@@ -1881,7 +2023,7 @@ bool RoomData::RomLoadGfxSwapData(const Rom& rom)
     m_gfxswaps = TileSwaps(rom.read_array<uint8_t>(swap_table_begin, swap_table_end - swap_table_begin));
     m_gfxswap_flags = DecodeGfxSwap(flag_bytes);
     m_gfxswap_locked_door_flags = DecodeGfxSwap(door_bytes);
-    m_gfxswap_big_tree_flags = DecodeGfxSwap(tree_bytes);
+    m_gfxswap_big_tree_flags = DecodeTreeWarp(tree_bytes);
     m_gfxswap_flags_orig = m_gfxswap_flags;
     m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
     m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
@@ -2211,7 +2353,7 @@ bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
 {
     WriteBytes(EncodeGfxSwap(m_gfxswap_flags), dir / m_gfxswap_flag_data_filename);
     WriteBytes(EncodeGfxSwap(m_gfxswap_locked_door_flags), dir / m_gfxswap_locked_door_flag_data_filename);
-    WriteBytes(EncodeGfxSwap(m_gfxswap_big_tree_flags), dir / m_gfxswap_big_tree_flag_data_filename);
+    WriteBytes(EncodeTreeWarp(m_gfxswap_big_tree_flags), dir / m_gfxswap_big_tree_flag_data_filename);
     WriteBytes(m_gfxswaps.GetData(), dir / m_gfxswap_table_data_filename);
     return true;
 }
@@ -2489,7 +2631,7 @@ bool RoomData::RomPrepareInjectGfxSwapData(const Rom& rom)
 {
     auto flag_bytes = EncodeGfxSwap(m_gfxswap_flags);
     auto door_bytes = EncodeGfxSwap(m_gfxswap_locked_door_flags);
-    auto tree_bytes = EncodeGfxSwap(m_gfxswap_big_tree_flags);
+    auto tree_bytes = EncodeTreeWarp(m_gfxswap_big_tree_flags);
     auto table_bytes = m_gfxswaps.GetData();
     uint32_t flags_begin = rom.get_section(RomOffsets::Rooms::GFX_SWAP_SECTION).begin;
     uint32_t doors_begin = flags_begin + flag_bytes.size();

@@ -9,17 +9,15 @@ TileSwaps::TileSwaps(const std::vector<uint8_t>& bytes)
 		uint16_t room = bytes[i + 12] << 8 | bytes[i + 13];
 		uint8_t idx = bytes[i + 14] >> 3;
 		TileSwap swap(std::vector<uint8_t>(bytes.cbegin() + i, bytes.cend() + i + 16));
-		if (m_swaps.count(room) > 0)
+		if (m_swaps.count(room) == 0)
 		{
-			if (m_swaps[room].count(idx) == 0)
-			{
-				m_swaps[room].insert({ idx, swap });
-			}
+			m_swaps.insert({ idx, {} });
 		}
-		else
+		if (idx >= m_swaps[room].size())
 		{
-			m_swaps.insert({ room, {{idx, swap}} });
+			m_swaps[room].resize(idx + 1);
 		}
+		m_swaps[room][idx] = swap;
 	}
 }
 
@@ -42,17 +40,17 @@ std::vector<uint8_t> TileSwaps::GetData() const
 	std::vector<uint8_t> out;
 	for (const auto& r : m_swaps)
 	{
-		for (const auto& s : r.second)
+		for (int i = 0; i < r.second.size(); ++i)
 		{
 		
-			auto bytes = s.second.GetBytes(r.first, s.first);
+			auto bytes = r.second[i].GetBytes(r.first, i);
 			out.insert(out.end(), bytes.cbegin(), bytes.cend());
 		}
 	}
 	return out;
 }
 
-std::map<uint8_t, TileSwap> TileSwaps::GetSwapsForRoom(uint16_t room) const
+std::vector<TileSwap> TileSwaps::GetSwapsForRoom(uint16_t room) const
 {
 	if (m_swaps.count(room) > 0)
 	{
@@ -69,7 +67,7 @@ bool TileSwaps::RoomHasSwaps(uint16_t room) const
 	return (m_swaps.count(room) > 0);
 }
 
-void TileSwaps::SetRoomSwaps(uint16_t room, std::map<uint8_t, TileSwap>&& swaps)
+void TileSwaps::SetRoomSwaps(uint16_t room, const std::vector<TileSwap>& swaps)
 {
 	m_swaps[room] = swaps;
 }
