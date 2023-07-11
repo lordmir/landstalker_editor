@@ -114,14 +114,20 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_layerctrl = new LayerControlFrame(this);
 	m_entityctrl = new EntityControlFrame(this, GetImageList());
 	m_warpctrl = new WarpControlFrame(this, GetImageList());
+	m_doorctrl = new DoorControlFrame(this, GetImageList());
+	m_swapctrl = new TileSwapControlFrame(this, GetImageList());
 	m_blkctrl = new BlocksetEditorCtrl(this);
-	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+	m_mgr.AddPane(m_layerctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 200)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Layers"));
-	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+	m_mgr.AddPane(m_entityctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Entities"));
-	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(1).Resizable(false).MinSize(220, 200)
+	m_mgr.AddPane(m_warpctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Warps"));
-	m_mgr.AddPane(m_blkctrl, wxAuiPaneInfo().Bottom().Layer(2).Row(2).Movable(true).Resizable(true).MinSize(400, 200)
+	m_mgr.AddPane(m_doorctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Doors"));
+	m_mgr.AddPane(m_swapctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Swaps"));
+	m_mgr.AddPane(m_blkctrl, wxAuiPaneInfo().Bottom().Layer(1).Movable(true).Resizable(true).MinSize(400, 200)
 		.BestSize(800, 300).FloatingSize(400, 400).Caption("Blocks"));
 	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
 	m_nb->Freeze();
@@ -151,6 +157,8 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_doorctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
+	m_swapctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_hmedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_bgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_fgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
@@ -180,6 +188,8 @@ void RoomViewerFrame::UpdateFrame()
 	m_hmedit->SetRoomNum(m_roomnum);
 	m_bgedit->SetRoomNum(m_roomnum);
 	m_fgedit->SetRoomNum(m_roomnum);
+	DoorRefresh();
+	TileSwapRefresh();
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -1770,6 +1780,22 @@ void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->DeleteSelectedWarp();
+}
+
+void RoomViewerFrame::DoorRefresh()
+{
+	if (m_g != nullptr)
+	{
+		m_doorctrl->SetDoors(m_g->GetRoomData()->GetDoors(m_roomnum));
+	}
+}
+
+void RoomViewerFrame::TileSwapRefresh()
+{
+	if (m_g != nullptr)
+	{
+		m_swapctrl->SetSwaps(m_g->GetRoomData()->GetTileSwaps(m_roomnum));
+	}
 }
 
 void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)

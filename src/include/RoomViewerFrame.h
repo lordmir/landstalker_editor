@@ -5,6 +5,8 @@
 #include "LayerControlFrame.h"
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
+#include "DoorControlFrame.h"
+#include "TileSwapControlFrame.h"
 #include "HeightmapEditorCtrl.h"
 #include "BlocksetEditorCtrl.h"
 #include "Map3DEditor.h"
@@ -92,6 +94,9 @@ private:
 	void OnWarpAdd(wxCommandEvent& evt);
 	void OnWarpDelete(wxCommandEvent& evt);
 
+	void DoorRefresh();
+	void TileSwapRefresh();
+
 	void OnHeightmapUpdate(wxCommandEvent& evt);
 	void OnHeightmapMove(wxCommandEvent& evt);
 	void OnHeightmapSelect(wxCommandEvent& evt);
@@ -121,6 +126,8 @@ private:
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+	DoorControlFrame* m_doorctrl;
+	TileSwapControlFrame* m_swapctrl;
 	BlocksetEditorCtrl* m_blkctrl;
 
 	std::shared_ptr<GameData> m_g;
