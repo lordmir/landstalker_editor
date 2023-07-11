@@ -148,11 +148,12 @@ private:
 	std::set<int> m_redraw_list;
 	Tile m_drawtile;
 
-	wxBrush* m_alpha_brush = nullptr;
-	wxPen* m_border_pen = nullptr;
-	wxPen* m_selected_border_pen = nullptr;
-	wxPen* m_highlighted_border_pen = nullptr;
-	wxBrush* m_highlighted_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxPen> m_border_pen;
+	std::unique_ptr<wxPen> m_selected_border_pen;
+	std::unique_ptr<wxPen> m_highlighted_border_pen;
+	std::unique_ptr<wxBrush> m_highlighted_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

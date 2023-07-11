@@ -104,7 +104,7 @@ TileSwapFlag::TileSwapFlag(const std::array<uint8_t, TileSwapFlag::SIZE>& data)
 	room = (data[0] << 8) | data[1];
 	always = data[2] == 0xFF;
 	flag = always ? 0 : (data[2] << 3) | (data[3] & 7);
-	index = (data[3] - 1) >> 3;
+	index = ((data[3]) >> 3) - 1;
 }
 
 std::array<uint8_t, TileSwapFlag::SIZE> TileSwapFlag::GetData() const

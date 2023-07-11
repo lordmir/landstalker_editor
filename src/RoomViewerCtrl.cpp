@@ -44,7 +44,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
-    m_warp_brush = new wxBrush(*wxRED, wxBRUSHSTYLE_BDIAGONAL_HATCH);
+    m_warp_brush = std::make_unique<wxBrush>(*wxRED, wxBRUSHSTYLE_BDIAGONAL_HATCH);
     m_layer_opacity = { {Layer::BACKGROUND1, 0xFF}, {Layer::BACKGROUND2, 0xFF}, {Layer::BG_SPRITES, 0xFF },
                         {Layer::FOREGROUND, 0xFF}, {Layer::FG_SPRITES, 0xFF}, {Layer::HEIGHTMAP, 0x80} };
     m_layer_bufs = { {Layer::BACKGROUND1, std::make_shared<ImageBuffer>()}, {Layer::BACKGROUND2, std::make_shared<ImageBuffer>()},
@@ -54,8 +54,6 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 
 RoomViewerCtrl::~RoomViewerCtrl()
 {
-    delete m_bmp;
-    delete m_warp_brush;
 }
 
 void RoomViewerCtrl::SetGameData(std::shared_ptr<GameData> gd)

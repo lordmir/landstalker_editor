@@ -23,9 +23,11 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     AddPage(FlagType::ENTITY_VISIBILITY, "Entity Visibility", PageProperties(true, true, true));
     AddPage(FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", PageProperties(true, true, true));
     AddPage(FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", PageProperties(true, true, true));
-    AddPage(FlagType::LOCKED_DOOR, "Locked Doors", PageProperties(true, true, true));
+    AddPage(FlagType::LOCKED_DOOR, "Locked Door (Entity)", PageProperties(true, true, true));
     AddPage(FlagType::PERMANENT_SWITCH, "Permanent Switches", PageProperties(true, true, true));
     AddPage(FlagType::SACRED_TREE, "Sacred Trees", PageProperties(true, true, false));
+    AddPage(FlagType::TILE_SWAP, "Tile Swaps", PageProperties(true, true, true));
+    AddPage(FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", PageProperties(true, true, true));
 
     InitRoomTransitionFlags();
     InitEntityVisibleFlags();
@@ -34,6 +36,8 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     InitLockedDoorFlags();
     InitPermanentSwitchFlags();
     InitSacredTreeFlags();
+    InitTileSwapFlags();
+    InitLockedDoorTileSwapFlags();
 
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 5);
@@ -306,6 +310,42 @@ void FlagDialog::InitSacredTreeFlags()
         new wxDataViewTextRenderer(), 0, 420, wxALIGN_LEFT));
     ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
         new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitTileSwapFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::TILE_SWAP];
+    ctrl->ClearColumns();
+    auto* model = new TileSwapFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::TILE_SWAP] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
+    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
+        new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
+}
+
+void FlagDialog::InitLockedDoorTileSwapFlags()
+{
+    auto* ctrl = m_dvc_ctrls[FlagType::LOCKED_DOOR_TILESWAP];
+    ctrl->ClearColumns();
+    auto* model = new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd);
+    m_models[FlagType::LOCKED_DOOR_TILESWAP] = model;
+    model->Initialise();
+    ctrl->AssociateModel(model);
+    model->DecRef();
+
+    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
+        new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
+    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
+        new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
+    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
+        new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
 }
 
 void FlagDialog::UpdateUI()

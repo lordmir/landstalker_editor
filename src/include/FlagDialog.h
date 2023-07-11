@@ -46,6 +46,8 @@ private:
 	void InitLockedDoorFlags();
 	void InitPermanentSwitchFlags();
 	void InitSacredTreeFlags();
+	void InitTileSwapFlags();
+	void InitLockedDoorTileSwapFlags();
 	void UpdateUI();
 
 	FlagType GetSelectedTab();

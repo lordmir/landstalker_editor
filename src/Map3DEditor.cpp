@@ -39,13 +39,11 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE));
-    m_priority_pen = new wxPen(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH);
+    m_priority_pen = std::make_unique<wxPen>(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH);
 }
 
 Map3DEditor::~Map3DEditor()
 {
-    delete m_bmp;
-    delete m_priority_pen;
 }
 
 void Map3DEditor::SetGameData(std::shared_ptr<GameData> gd)

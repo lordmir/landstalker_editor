@@ -80,8 +80,8 @@ private:
 	std::pair<int, int> m_selected;
 	std::pair<int, int> m_hovered;
 
-	wxBitmap* m_bmp;
-	wxPen* m_priority_pen;
+	std::unique_ptr<wxBitmap> m_bmp;
+	std::unique_ptr<wxPen> m_priority_pen;
 
 	bool m_show_blocknums;
 	bool m_show_borders;

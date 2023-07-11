@@ -112,11 +112,12 @@ private:
 	bool m_secondary_active;
 	bool m_drawing;
 
-	wxBrush* m_alpha_brush = nullptr;
-	wxPen* m_border_pen = nullptr;
-	wxPen* m_selected_border_pen = nullptr;
-	wxPen* m_highlighted_border_pen = nullptr;
-	wxBrush* m_highlighted_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxPen> m_border_pen;
+	std::unique_ptr<wxPen> m_selected_border_pen;
+	std::unique_ptr<wxPen> m_highlighted_border_pen;
+	std::unique_ptr<wxBrush> m_highlighted_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 
 	bool m_enableborders;
 	bool m_enableedit;

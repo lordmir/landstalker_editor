@@ -170,11 +170,11 @@ private:
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;
 	std::map<Layer, uint8_t> m_layer_opacity;
-	wxBitmap* m_bmp;
+	std::unique_ptr<wxBitmap> m_bmp;
 	std::vector<Entity> m_entities;
 	std::vector<WarpList::Warp> m_warps;
 
-	wxBrush* m_warp_brush;
+	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
 	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_entity_poly;

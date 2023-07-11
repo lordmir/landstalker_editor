@@ -8,7 +8,7 @@ TileSwaps::TileSwaps(const std::vector<uint8_t>& bytes)
 	{
 		uint16_t room = bytes[i + 12] << 8 | bytes[i + 13];
 		uint8_t idx = bytes[i + 14] >> 3;
-		TileSwap swap(std::vector<uint8_t>(bytes.cbegin() + i, bytes.cend() + i + 16));
+		TileSwap swap(std::vector<uint8_t>(bytes.cbegin() + i, bytes.cbegin() + i + 16));
 		if (m_swaps.count(room) == 0)
 		{
 			m_swaps.insert({ idx, {} });

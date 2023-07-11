@@ -119,7 +119,7 @@ private:
 	std::pair<int, int> m_selected;
 	std::pair<int, int> m_hovered;
 
-	wxBitmap* m_bmp;
+	std::unique_ptr<wxBitmap> m_bmp;
 
 	static const std::size_t TILE_WIDTH = 64;
 	static const std::size_t TILE_HEIGHT = 32;

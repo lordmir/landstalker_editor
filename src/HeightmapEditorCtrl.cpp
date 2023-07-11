@@ -41,7 +41,6 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
 
 HeightmapEditorCtrl::~HeightmapEditorCtrl()
 {
-    delete m_bmp;
 }
 
 void HeightmapEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)

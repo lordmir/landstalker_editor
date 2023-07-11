@@ -60,11 +60,6 @@ TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset)
 
 TilesetEditor::~TilesetEditor()
 {
-	delete m_alpha_brush;
-	delete m_border_pen;
-	delete m_selected_border_pen;
-	delete m_highlighted_border_pen;
-	delete m_highlighted_brush;
 }
 
 void TilesetEditor::SetColour(int c)
@@ -320,11 +315,7 @@ void TilesetEditor::DrawAllTiles(wxDC& dest)
 		}
 	}
 	auto img = m_buf.MakeImage( { m_selected_palette }, true);
-	if (m_tiles_bmp)
-	{
-		delete m_tiles_bmp;
-	}
-	m_tiles_bmp = new wxBitmap(img);
+	m_tiles_bmp = std::make_unique<wxBitmap>(img);
 	wxMemoryDC tiles(*m_tiles_bmp);
 	dest.StretchBlit({ 0,0 },
 		{ img.GetWidth() * m_pixelsize, img.GetHeight() * m_pixelsize },
@@ -355,11 +346,7 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 		it++;
 	}
 	auto img = m_buf.MakeImage({ m_selected_palette }, true);
-	if (m_tiles_bmp)
-	{
-		delete m_tiles_bmp;
-	}
-	m_tiles_bmp = new wxBitmap(img);
+	m_tiles_bmp = std::make_unique<wxBitmap>(img);
 	wxMemoryDC tiles(*m_tiles_bmp);
 
 	it = m_redraw_list.begin();
@@ -489,10 +476,10 @@ void TilesetEditor::PaintBitmap(wxDC& src, wxDC& dst)
 
 void TilesetEditor::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush(*wxBLACK);
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -501,13 +488,11 @@ void TilesetEditor::InitialiseBrushesAndPens()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
-	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
-	m_selected_border_pen = new wxPen(*wxRED_PEN);
-	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
-	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
+	m_alpha_brush->SetStipple(*m_stipple);
+	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	m_selected_border_pen = std::make_unique<wxPen>(*wxRED_PEN);
+	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
+	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
 }
 
 void TilesetEditor::ForceRedraw()

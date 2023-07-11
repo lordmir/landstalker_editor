@@ -14,6 +14,9 @@ std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
     {
         flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
     }
+    std::sort(flags.begin(), flags.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+        });
     return flags;
 }
 
@@ -1052,9 +1055,9 @@ void RoomData::SetTreeWarp(uint16_t room1, uint16_t room2, uint16_t flag)
 
 void RoomData::ClearTreeWarp(uint16_t room)
 {
-    std::remove_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
+    m_gfxswap_big_tree_flags.erase(std::remove_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
         return w.room1 == room || w.room2 == room;
-        });
+        }), m_gfxswap_big_tree_flags.end());
 }
 
 bool RoomData::HasNormalTileSwaps(uint16_t room) const
@@ -1067,7 +1070,8 @@ bool RoomData::HasNormalTileSwaps(uint16_t room) const
 std::vector<TileSwapFlag> RoomData::GetNormalTileSwaps(uint16_t room) const
 {
     std::vector<TileSwapFlag> ret;
-    std::copy_if(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(), ret.end(), [&](const auto& f) {
+    std::copy_if(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(),
+        std::back_inserter(ret), [&](const auto& f) {
         return f.room == room;
         });
     return ret;
@@ -1075,13 +1079,16 @@ std::vector<TileSwapFlag> RoomData::GetNormalTileSwaps(uint16_t room) const
 
 void RoomData::SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
 {
-    std::remove_if(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [&](const auto& f) {
+    m_gfxswap_flags.erase(std::remove_if(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [&](const auto& f) {
         return f.room == room;
-        });
-    m_gfxswap_flags.insert(m_gfxswap_flags.end(), swaps.cbegin(), swaps.cend());
-    std::sort(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
-    });
+        }), m_gfxswap_flags.end());
+    if (swaps.empty() == false)
+    {
+        m_gfxswap_flags.insert(m_gfxswap_flags.end(), swaps.cbegin(), swaps.cend());
+        std::sort(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [](const auto& lhs, const auto& rhs) {
+            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+            });
+    }
 }
 
 bool RoomData::HasLockedDoorTileSwaps(uint16_t room) const
@@ -1094,7 +1101,8 @@ bool RoomData::HasLockedDoorTileSwaps(uint16_t room) const
 std::vector<TileSwapFlag> RoomData::GetLockedDoorTileSwaps(uint16_t room) const
 {
     std::vector<TileSwapFlag> ret;
-    std::copy_if(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(), ret.end(), [&](const auto& f) {
+    std::copy_if(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(),
+        std::back_inserter(ret), [&](const auto& f) {
         return f.room == room;
     });
     return ret;
@@ -1102,13 +1110,16 @@ std::vector<TileSwapFlag> RoomData::GetLockedDoorTileSwaps(uint16_t room) const
 
 void RoomData::SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
 {
-    std::remove_if(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [&](const auto& f) {
+    m_gfxswap_locked_door_flags.erase(std::remove_if(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [&](const auto& f) {
         return f.room == room;
-        });
-    m_gfxswap_flags.insert(m_gfxswap_locked_door_flags.end(), swaps.cbegin(), swaps.cend());
-    std::sort(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
-        });
+        }), m_gfxswap_locked_door_flags.end());
+    if (swaps.empty() == false)
+    {
+        m_gfxswap_locked_door_flags.insert(m_gfxswap_locked_door_flags.end(), swaps.cbegin(), swaps.cend());
+        std::sort(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [](const auto& lhs, const auto& rhs) {
+            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+            });
+    }
 }
 
 bool RoomData::HasTileSwaps(uint16_t room) const

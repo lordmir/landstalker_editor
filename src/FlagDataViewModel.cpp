@@ -898,7 +898,7 @@ void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned
 			variant = static_cast<long>(m_data[row].index);
 			break;
 		case 1:
-			variant = m_data[row].always;
+			variant = static_cast<bool>(m_data[row].always);
 			break;
 		case 2:
 			variant = m_data[row].always ? 0 : static_cast<long>(m_data[row].flag);
@@ -907,6 +907,12 @@ void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned
 			break;
 		}
 	}
+}
+
+template <>
+bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+{
+	return false;
 }
 
 template <>

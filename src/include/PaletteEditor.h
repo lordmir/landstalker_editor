@@ -54,7 +54,8 @@ private:
 	std::string m_selected_palette_name;
 	std::shared_ptr<PaletteEntry> m_selected_palette_entry;
 	std::shared_ptr<Palette> m_selected_palette;
-	wxBrush* m_alpha_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 	Palette m_default_palette;
 	std::vector<bool> m_disabled;
 	std::vector<bool> m_locked;

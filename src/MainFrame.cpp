@@ -90,6 +90,7 @@ MainFrame::~MainFrame()
     this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
 
     delete m_imgs;
+    delete m_imgs32;
 }
 
 void MainFrame::OnExit(wxCommandEvent& event)

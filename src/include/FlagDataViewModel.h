@@ -553,6 +553,9 @@ template <>
 bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 template <>
+unsigned int FlagDataViewModel<TileSwapFlag>::GetColumnCount() const;
+
+template <>
 bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int row);
 
 template <>

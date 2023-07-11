@@ -39,7 +39,6 @@ PaletteEditor::PaletteEditor(wxWindow* parent)
 
 PaletteEditor::~PaletteEditor()
 {
-	delete m_alpha_brush;
 }
 
 void PaletteEditor::SetGameData(std::shared_ptr<GameData> gd)
@@ -418,10 +417,10 @@ wxBrush PaletteEditor::GetBrush(int index)
 
 void PaletteEditor::InitialiseBrushes()
 {
-	m_alpha_brush = new wxBrush(*wxBLACK);
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -430,9 +429,7 @@ void PaletteEditor::InitialiseBrushes()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
+	m_alpha_brush->SetStipple(*m_stipple);
 }
 
 void PaletteEditor::FireEvent(const wxEventType& e, const std::string& data)
