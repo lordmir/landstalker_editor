@@ -9,7 +9,7 @@ Doors::Doors(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& by
 		{
 			while (bytes[offset] != 0xFF)
 			{
-				Door door{ bytes[offset] & 0x3F, bytes[offset + 1] & 0x3F,
+				Door door{ static_cast<uint8_t>(bytes[offset] & 0x3F), static_cast<uint8_t>(bytes[offset + 1] & 0x3F),
 					static_cast<Door::Size>(((bytes[offset] & 0x40) >> 4) | ((bytes[offset + 1] & 0xC0) >> 6))};
 				if (m_doors.count(i) > 0)
 				{
