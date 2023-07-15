@@ -5,7 +5,6 @@
 #include "LayerControlFrame.h"
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
-#include "DoorControlFrame.h"
 #include "TileSwapControlFrame.h"
 #include "HeightmapEditorCtrl.h"
 #include "BlocksetEditorCtrl.h"
@@ -15,9 +14,8 @@
 
 class RoomViewerCtrl;
 
-class RoomViewerFrame : public EditorFrame
+namespace RoomEdit
 {
-public:
 	enum class Mode : uint8_t
 	{
 		NORMAL,
@@ -25,12 +23,17 @@ public:
 		BACKGROUND,
 		FOREGROUND
 	};
+}
+
+class RoomViewerFrame : public EditorFrame
+{
+public:
 
 	RoomViewerFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~RoomViewerFrame();
 
-	Mode GetMode() const { return m_mode; }
-	void SetMode(Mode mode);
+	RoomEdit::Mode GetMode() const { return m_mode; }
+	void SetMode(RoomEdit::Mode mode);
 	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
@@ -94,7 +97,6 @@ private:
 	void OnWarpAdd(wxCommandEvent& evt);
 	void OnWarpDelete(wxCommandEvent& evt);
 
-	void DoorRefresh();
 	void TileSwapRefresh();
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
@@ -115,7 +117,7 @@ private:
 
 	void SetPaneSizes();
 
-	Mode m_mode;
+	RoomEdit::Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
@@ -126,7 +128,6 @@ private:
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
-	DoorControlFrame* m_doorctrl;
 	TileSwapControlFrame* m_swapctrl;
 	BlocksetEditorCtrl* m_blkctrl;
 
@@ -137,6 +138,8 @@ private:
 	bool m_layerctrl_visible;
 	bool m_entityctrl_visible;
 	bool m_warpctrl_visible;
+	bool m_swapctrl_visible;
+	bool m_blkctrl_visible;
 
 	mutable bool m_sizes_set;
 	mutable bool m_reset_props;

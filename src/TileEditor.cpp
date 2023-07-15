@@ -204,8 +204,8 @@ void TileEditor::SetBordersEnabled(bool enabled)
 bool TileEditor::IsPointValid(const Point& point) const
 {
 	if (!m_tileset) return false;
-	return ((point.x >= 0) && (point.x < m_tileset->GetTileWidth()) &&
-	        (point.y >= 0) && (point.y < m_tileset->GetTileHeight()));
+	return ((point.x >= 0) && (point.x < static_cast<int>(m_tileset->GetTileWidth())) &&
+	        (point.y >= 0) && (point.y < static_cast<int>(m_tileset->GetTileHeight())));
 }
 
 bool TileEditor::IsSelectionValid() const
@@ -280,7 +280,7 @@ void TileEditor::OnDraw(wxDC& dc)
 		{
 			m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 		}
-		for (int i = 0; i < m_pixels.size(); ++i)
+		for (std::size_t i = 0; i < m_pixels.size(); ++i)
 		{
 			Point p = ConvertPixelToXY(i);
 			if ((p.x >= s.GetCol()) && (p.x < e.GetCol()) &&
@@ -498,7 +498,7 @@ int TileEditor::ConvertXYToPixel(const Point& point)
 
 TileEditor::Point TileEditor::ConvertPixelToXY(int pixel)
 {
-	if (m_pixels.empty() || (pixel < 0) || (pixel > m_pixels.size()))
+	if (m_pixels.empty() || (pixel < 0) || (pixel > static_cast<int>(m_pixels.size())))
 	{
 		return { -1, -1 };
 	}
@@ -547,7 +547,7 @@ int TileEditor::ValidateColour(int colour) const
 int TileEditor::GetColour(int index) const
 {
 	auto cmap = m_tileset->GetColourIndicies();
-	if (index >= cmap.size())
+	if (index >= static_cast<int>(cmap.size()))
 	{
 		if (index < (1 << m_tileset->GetTileBitDepth()))
 		{

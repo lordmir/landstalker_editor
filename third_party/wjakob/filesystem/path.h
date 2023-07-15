@@ -282,7 +282,7 @@ public:
         }
     }
 
-    path &operator=(const path &path) {
+    path &operator=(const path &path) noexcept {
         m_type = path.m_type;
         m_path = path.m_path;
         m_absolute = path.m_absolute;
@@ -290,7 +290,7 @@ public:
         return *this;
     }
 
-    path &operator=(path &&path) {
+    path &operator=(path &&path) noexcept {
         if (this != &path) {
             m_type = path.m_type;
             m_path = std::move(path.m_path);

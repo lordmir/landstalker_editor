@@ -20,13 +20,13 @@ void TileAttributes::setAttribute(const TileAttributes::Attribute& attr)
 {
     switch(attr)
     {
-        case TileAttributes::ATTR_HFLIP:
+        case TileAttributes::Attribute::ATTR_HFLIP:
             hflip_ = true;
             break;
-        case TileAttributes::ATTR_VFLIP:
+        case TileAttributes::Attribute::ATTR_VFLIP:
             vflip_ = true;
             break;
-        case TileAttributes::ATTR_PRIORITY:
+        case TileAttributes::Attribute::ATTR_PRIORITY:
             priority_ = true;
             break;
         default:
@@ -38,13 +38,13 @@ void TileAttributes::clearAttribute(const TileAttributes::Attribute& attr)
 {
     switch(attr)
     {
-        case TileAttributes::ATTR_HFLIP:
+        case TileAttributes::Attribute::ATTR_HFLIP:
             hflip_ = false;
             break;
-        case TileAttributes::ATTR_VFLIP:
+        case TileAttributes::Attribute::ATTR_VFLIP:
             vflip_ = false;
             break;
-        case TileAttributes::ATTR_PRIORITY:
+        case TileAttributes::Attribute::ATTR_PRIORITY:
             priority_ = false;
             break;
         default:
@@ -57,15 +57,15 @@ bool TileAttributes::toggleAttribute(const Attribute& attr)
     bool retval = false;
     switch (attr)
     {
-    case TileAttributes::ATTR_HFLIP:
+    case TileAttributes::Attribute::ATTR_HFLIP:
         hflip_ = !hflip_;
         retval = hflip_;
         break;
-    case TileAttributes::ATTR_VFLIP:
+    case TileAttributes::Attribute::ATTR_VFLIP:
         vflip_ = !vflip_;
         retval = vflip_;
         break;
-    case TileAttributes::ATTR_PRIORITY:
+    case TileAttributes::Attribute::ATTR_PRIORITY:
         priority_ = !priority_;
         retval = priority_;
         break;
@@ -80,13 +80,13 @@ bool TileAttributes::getAttribute(const TileAttributes::Attribute& attr) const
     bool retval = false;
     switch(attr)
     {
-        case TileAttributes::ATTR_HFLIP:
+        case TileAttributes::Attribute::ATTR_HFLIP:
             retval = hflip_;
             break;
-        case TileAttributes::ATTR_VFLIP:
+        case TileAttributes::Attribute::ATTR_VFLIP:
             retval = vflip_;
             break;
-        case TileAttributes::ATTR_PRIORITY:
+        case TileAttributes::Attribute::ATTR_PRIORITY:
             retval = priority_;
             break;
         default:

@@ -1590,7 +1590,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 			lut.push_back(anim_count & 0xFF);
 			lut.push_back((m_sprite_mystery_data[spr.first] >> 8) & 0xFF);
 			lut.push_back(m_sprite_mystery_data[spr.first] & 0xFF);
-			anim_count += spr.second.size();
+			anim_count += static_cast<uint16_t>(spr.second.size());
 		}
 		WriteBytes(lut, dir / m_sprite_lut_file);
 		return true;

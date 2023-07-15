@@ -80,7 +80,7 @@ Palette::Palette(const std::string& name, const Type& type)
 	std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 	m_owner.resize(m_pal.size(), "");
 	m_locked = LOCKED_ENTRIES.at(type);
-	for (int i = 0; i < m_pal.size(); ++i)
+	for (std::size_t i = 0; i < m_pal.size(); ++i)
 	{
 		if (!m_locked[i])
 		{
@@ -133,7 +133,7 @@ bool Palette::operator==(const Palette& rhs) const
 	retval = retval && (this->m_pal.size() == rhs.m_pal.size());
 	if (retval)
 	{
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			retval = retval && (*this->m_pal[i] == *rhs.m_pal[i]);
 		}
@@ -166,7 +166,7 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
 		auto it = colours.begin();
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
@@ -176,7 +176,7 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 		m_pal[0]->SetTransparent(true);
 		m_owner.resize(m_pal.size(), "");
 		m_locked = LOCKED_ENTRIES.at(type);
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!m_locked[i])
 			{
@@ -228,7 +228,7 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
 		auto it = colours.begin();
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
@@ -238,7 +238,7 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 		m_pal[0]->SetTransparent(true);
 		m_owner.resize(m_pal.size(), "");
 		m_locked = LOCKED_ENTRIES.at(type);
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!m_locked[i])
 			{
@@ -272,7 +272,7 @@ Palette::Palette(const std::vector<std::shared_ptr<Palette>>& pals)
 		Clear();
 		for (const auto& pal : pals)
 		{
-			for (int i = 0; i < m_pal.size(); ++i)
+			for (std::size_t i = 0; i < m_pal.size(); ++i)
 			{
 				if (pal->m_locked[i] == false)
 				{
@@ -381,7 +381,7 @@ Palette::Colour Palette::GetColour(uint8_t index) const
 uint8_t Palette::GetNthUnlockedIndex(uint8_t n) const
 {
 	assert(n < GetSize());
-	for (int i = 0; i < m_pal.size(); ++i)
+	for (uint8_t i = 0; i < static_cast<uint8_t>(m_pal.size()); ++i)
 	{
 		if (m_locked[i] == true)
 		{
@@ -393,7 +393,7 @@ uint8_t Palette::GetNthUnlockedIndex(uint8_t n) const
 		}
 		n--;
 	}
-	return m_pal.size();
+	return static_cast<uint8_t>(m_pal.size());
 }
 
 Palette::Colour Palette::GetNthUnlockedColour(uint8_t n) const

@@ -56,7 +56,7 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
         auto dest_it = row_it;
         auto pri_row_it = m_priority.begin() + begin_offset;
         auto pri_dest_it = row_it;
-        uint8_t priority = tile.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
+        uint8_t priority = tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
         for (std::size_t i = 0; i < tile_bits.size(); ++i)
         {
             if (i % tileset.GetTileWidth() == 0)
@@ -83,8 +83,8 @@ void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const Sprite
     {
         const auto& subs = frame.GetSubSprite(i);
         std::size_t index = subs.tile_idx;
-        for (int xi = 0; xi < subs.w; ++xi)
-            for (int yi = 0; yi < subs.h; ++yi)
+        for (std::size_t xi = 0; xi < subs.w; ++xi)
+            for (std::size_t yi = 0; yi < subs.h; ++yi)
             {
                 int xx, yy;
                 if (hflip)
@@ -105,9 +105,9 @@ void ImageBuffer::InsertSprite(int x, int y, uint8_t palette_index, const Sprite
 
 void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D& map, const Tileset& tileset)
 {
-    for (int yy = 0; yy < map.GetHeight(); ++yy)
+    for (std::size_t yy = 0; yy < map.GetHeight(); ++yy)
     {
-        for (int xx = 0; xx < map.GetWidth(); ++xx)
+        for (std::size_t xx = 0; xx < map.GetWidth(); ++xx)
         {
             const int tile_idx(xx + yy * map.GetWidth());
             const int xpos = x + xx * tileset.GetTileWidth();
@@ -250,7 +250,7 @@ const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<std::shared_
     {
         uint8_t alpha = pals[pixel >> 4]->getA(pixel & 0x0F);
         uint8_t max_opacity = *pri++ ? high_pri_max_opacity : low_pri_max_opacity;
-        *it++ = std::min(max_opacity, alpha);
+        *it++ = std::min<uint8_t>(max_opacity, alpha);
     }
     return m_alpha;
 }

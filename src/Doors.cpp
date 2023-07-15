@@ -9,8 +9,7 @@ Doors::Doors(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& by
 		{
 			while (bytes[offset] != 0xFF)
 			{
-				Door door{ static_cast<uint8_t>(bytes[offset] & 0x3F), static_cast<uint8_t>(bytes[offset + 1] & 0x3F),
-					static_cast<Door::Size>(((bytes[offset] & 0x40) >> 4) | ((bytes[offset + 1] & 0xC0) >> 6))};
+				Door door(bytes[offset], bytes[offset + 1]);
 				if (m_doors.count(i) > 0)
 				{
 					m_doors[i].push_back(door);
@@ -54,9 +53,9 @@ std::pair< std::vector<uint8_t>, std::vector<uint8_t>> Doors::GetData(int roomco
 			lastsz = m_doors.at(i).size() * 2 + 1;
 			for (const auto& d : m_doors.at(i))
 			{
-				uint8_t sz = static_cast<uint8_t>(d.size);
-				doors.push_back((d.x & 0x3F) | ((sz & 0x04) << 4));
-				doors.push_back((d.y & 0x3F) | ((sz & 0x03) << 6));
+				auto b = d.GetBytes();
+				doors.push_back(b.first);
+				doors.push_back(b.second);
 			}
 			doors.push_back(0xFF);
 		}
@@ -95,6 +94,20 @@ void Doors::SetRoomDoors(uint16_t room, const std::vector<Door>& swaps)
 	{
 		m_doors.insert({room, swaps});
 	}
+}
+
+Door::Door(uint8_t b1, uint8_t b2)
+{
+	y = (b1 & 0x3F) - 12;
+	x = (b2 & 0x3F) - 12;
+	size = static_cast<Door::Size>(((b1 & 0x40) >> 4) | ((b2 & 0xC0) >> 6));
+}
+
+std::pair<uint8_t, uint8_t> Door::GetBytes() const
+{
+	uint8_t sz = static_cast<uint8_t>(size);
+	return { (((y + 12) & 0x3F) | ((sz & 0x04) << 4)),
+	         (((x + 12) & 0x3F) | ((sz & 0x03) << 6)) };
 }
 
 bool Door::operator==(const Door& rhs) const

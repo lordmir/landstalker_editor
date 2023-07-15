@@ -67,7 +67,7 @@ bool Map2DEditor::Open(const std::vector<Tile>& map, int width, int height, int 
 		data.push_back(t.GetIndex() >> 8);
 		data.push_back(t.GetIndex() & 0xFF);
 	}
-	return Open(data, Tilemap2D::NONE, width, height, base);
+	return Open(data, Tilemap2D::Compression::NONE, width, height, base);
 }
 
 bool Map2DEditor::Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression, int width, int height, int base)
@@ -480,9 +480,9 @@ bool Map2DEditor::DrawTileAtPosition(wxDC& dc, int x, int y)
 		}
 		if (m_enabletilenumbers)
 		{
-			auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::ATTR_HFLIP) ? 'H' : ' ',
-				t.Attributes().getAttribute(TileAttributes::ATTR_VFLIP) ? 'V' : ' ',
-				t.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY) ? 'P' : ' ');
+			auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? 'H' : ' ',
+				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? 'V' : ' ',
+				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? '!' : ' ');
 			auto extent = dc.GetTextExtent(label);
 			if ((extent.GetWidth() < cellwidth - 2) && (extent.GetHeight() < cellheight - 2))
 			{

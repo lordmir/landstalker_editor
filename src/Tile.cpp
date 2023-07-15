@@ -35,9 +35,9 @@ uint16_t Tile::GetTileValue() const
 {
     uint16_t tv = m_index;
     
-    if(m_attrs.getAttribute(TileAttributes::ATTR_PRIORITY)) tv |= 0x8000;
-    if(m_attrs.getAttribute(TileAttributes::ATTR_VFLIP)) tv |= 0x1000;
-    if(m_attrs.getAttribute(TileAttributes::ATTR_HFLIP)) tv |= 0x0800;
+    if(m_attrs.getAttribute(TileAttributes::Attribute::ATTR_PRIORITY)) tv |= 0x8000;
+    if(m_attrs.getAttribute(TileAttributes::Attribute::ATTR_VFLIP)) tv |= 0x1000;
+    if(m_attrs.getAttribute(TileAttributes::Attribute::ATTR_HFLIP)) tv |= 0x0800;
     
     return tv;
 }
@@ -59,21 +59,21 @@ Tile Tile::operator-(const Tile& rhs) const
 Tile Tile::operator~() const
 {
 	Tile t(*this);
-	t.m_attrs.toggleAttribute(TileAttributes::ATTR_VFLIP);
+	t.m_attrs.toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
 	return t;
 }
 
 Tile Tile::operator!() const
 {
 	Tile t(*this);
-	t.m_attrs.toggleAttribute(TileAttributes::ATTR_HFLIP);
+	t.m_attrs.toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 	return t;
 }
 
 Tile Tile::operator*() const
 {
 	Tile t(*this);
-	t.m_attrs.toggleAttribute(TileAttributes::ATTR_PRIORITY);
+	t.m_attrs.toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 	return t;
 }
 
@@ -154,9 +154,9 @@ void Tile::SetTileValue(uint16_t value)
 {
     m_index = value & 0x7FF;
     m_attrs = TileAttributes();
-    if (value && 0x8000) m_attrs.setAttribute(TileAttributes::ATTR_PRIORITY);
-    if (value && 0x1000) m_attrs.setAttribute(TileAttributes::ATTR_VFLIP);
-    if (value && 0x0800) m_attrs.setAttribute(TileAttributes::ATTR_HFLIP);
+    if (value && 0x8000) m_attrs.setAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+    if (value && 0x1000) m_attrs.setAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+    if (value && 0x0800) m_attrs.setAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 }
 
 TileAttributes& Tile::Attributes()

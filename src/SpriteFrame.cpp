@@ -64,7 +64,7 @@ bool SpriteFrame::Open(const std::string& filename)
 	ifs.seekg(0, std::ios::beg);
 
 	std::vector<uint8_t> bytes;
-	bytes.reserve(filesize);
+	bytes.reserve(static_cast<std::size_t>(filesize));
 	bytes.insert(bytes.begin(),
 		std::istream_iterator<uint8_t>(ifs),
 		std::istream_iterator<uint8_t>());
@@ -104,7 +104,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	int last_cmd = bits.size();
 	if (m_compressed) // compression
 	{
-		uint16_t word_count = std::min(actual_tiles, expected_tiles) * 16;
+		uint16_t word_count = static_cast<uint16_t>(std::min<std::size_t>(actual_tiles, expected_tiles) * 16);
 		bits.push_back(0x20 | word_count >> 8);
 		bits.push_back(word_count & 0xFF);
 		auto tiles = m_sprite_gfx->GetBits();
@@ -114,7 +114,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	}
 	else
 	{
-		uint16_t total_words = std::min(actual_tiles, expected_tiles) * 16;
+		uint16_t total_words = static_cast<uint16_t>(std::min<std::size_t>(actual_tiles, expected_tiles) * 16);
 		int blanks = 0;
 		auto tiles = m_sprite_gfx->GetBits();
 		uint16_t src_idx = 0;
@@ -187,7 +187,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	if (actual_tiles < expected_tiles)
 	{
 		last_cmd = bits.size();
-		uint16_t word_count = (expected_tiles - actual_tiles) * 32;
+		uint16_t word_count = static_cast<uint16_t>((expected_tiles - actual_tiles) * 32);
 		bits.push_back(0x80 | (word_count >> 8));
 		bits.push_back(word_count & 0xFF);
 	}

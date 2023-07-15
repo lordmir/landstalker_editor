@@ -399,9 +399,6 @@
     <ClCompile Include="..\src\TileSwapControlFrame.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\DoorControlFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -683,9 +680,6 @@
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\TileSwapDataViewModel.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\DoorControlFrame.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\TileSwapControlFrame.h">

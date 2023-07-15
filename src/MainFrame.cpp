@@ -350,7 +350,7 @@ void MainFrame::InitUI()
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
         wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::NODE_ROOM,
-            (static_cast<int>(RoomViewerFrame::Mode::NORMAL) << 16) | room->index));
+            (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);

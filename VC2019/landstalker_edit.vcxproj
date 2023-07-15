@@ -29,7 +29,6 @@
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
-    <ClCompile Include="..\src\DoorControlFrame.cpp" />
     <ClCompile Include="..\src\DoorDataViewModel.cpp" />
     <ClCompile Include="..\src\Doors.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
@@ -126,7 +125,6 @@
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
-    <ClInclude Include="..\src\include\DoorControlFrame.h" />
     <ClInclude Include="..\src\include\DoorDataViewModel.h" />
     <ClInclude Include="..\src\include\Doors.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
@@ -251,7 +249,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH);$(ZLIB_PATH);$(WX_WIN)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -275,8 +273,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libpng.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>

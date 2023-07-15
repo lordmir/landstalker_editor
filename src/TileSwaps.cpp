@@ -1,5 +1,6 @@
 #include <TileSwaps.h>
 #include <cassert>
+#include <algorithm>
 
 TileSwaps::TileSwaps(const std::vector<uint8_t>& bytes)
 {
@@ -81,10 +82,10 @@ TileSwap::TileSwap(const std::vector<uint8_t>& in)
 	map.dst_y = in[3];
 	map.width = in[4] + 1;
 	map.height = in[5] + 1;
-	heightmap.src_x = in[6];
-	heightmap.src_y = in[7];
-	heightmap.dst_x = in[8];
-	heightmap.dst_y = in[9];
+	heightmap.src_x = std::clamp<uint8_t>(in[6] - 12, 0, 0x3F);
+	heightmap.src_y = std::clamp<uint8_t>(in[7] - 12, 0, 0x3F);
+	heightmap.dst_x = std::clamp<uint8_t>(in[8] - 12, 0, 0x3F);
+	heightmap.dst_y = std::clamp<uint8_t>(in[9] - 12, 0, 0x3F);
 	heightmap.width = in[10] + 1;
 	heightmap.height = in[11] + 1;
 	mode = static_cast<Mode>(in[15]);
@@ -99,10 +100,10 @@ std::vector<uint8_t> TileSwap::GetBytes(uint16_t room, uint8_t idx) const
 	data[3] = map.dst_y;
 	data[4] = map.width - 1;
 	data[5] = map.height - 1;
-	data[6] = heightmap.src_x;
-	data[7] = heightmap.src_y;
-	data[8] = heightmap.dst_x;
-	data[9] = heightmap.dst_y;
+	data[6] = heightmap.src_x + 12;
+	data[7] = heightmap.src_y + 12;
+	data[8] = heightmap.dst_x + 12;
+	data[9] = heightmap.dst_y + 12;
 	data[10] = heightmap.width - 1;
 	data[11] = heightmap.height - 1;
 	data[12] = room >> 8;

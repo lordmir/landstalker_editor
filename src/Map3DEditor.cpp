@@ -67,6 +67,8 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
         m_pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
         m_tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
         m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        UpdateSwaps();
+        UpdateDoors();
         RecreateBuffer();
     }
 }
@@ -97,6 +99,22 @@ void Map3DEditor::RefreshGraphics()
 {
     UpdateScroll();
     ForceRedraw();
+}
+
+void Map3DEditor::UpdateSwaps()
+{
+    if (m_g)
+    {
+        m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+    }
+}
+
+void Map3DEditor::UpdateDoors()
+{
+    if (m_g)
+    {
+        m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+    }
 }
 
 void Map3DEditor::RefreshStatusbar()
@@ -201,7 +219,7 @@ void Map3DEditor::DrawMap()
                     bool pri = false;
                     for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
                     {
-                        pri = pri || m_blockset->at(blk).GetTile(i).Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
+                        pri = pri || m_blockset->at(blk).GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
                     }
                     if (pri)
                     {
@@ -238,6 +256,77 @@ void Map3DEditor::DrawTile(int tile)
 {
 }
 
+void Map3DEditor::DrawCell(wxDC& dc, const std::pair<int, int>& pos, const wxPen& pen, const wxBrush& brush)
+{
+    auto p = GetScreenPosition(pos);
+    dc.SetPen(pen);
+    dc.SetBrush(brush);
+    dc.DrawRectangle(p.first, p.second, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+}
+
+void Map3DEditor::DrawTileSwaps(wxDC& dc)
+{
+    int offsetx = 0, offsety = 0;
+    if (m_map)
+    {
+        offsetx = m_map->GetLeft();
+        offsety = m_map->GetTop();
+    }
+    for (const auto& s : m_swaps)
+    {
+        std::pair<int, int> src, dst;
+        int tsoffsetx = 0, tsoffsety = 0;
+        if (s.mode == TileSwap::Mode::WALL_NE && m_layer == Tilemap3D::Layer::FG)
+        {
+            tsoffsetx = 1;
+        }
+        else if (s.mode == TileSwap::Mode::WALL_NW && m_layer == Tilemap3D::Layer::BG)
+        {
+            tsoffsety = 1;
+        }
+        src = { s.map.src_x - offsetx + tsoffsetx, s.map.src_y - offsety + tsoffsety };
+        dst = { s.map.dst_x - offsetx + tsoffsetx, s.map.dst_y - offsety + tsoffsety };
+        DrawCell(dc, src, (src == m_selected || src == m_hovered) ? wxColor(128, 128, 255) : *wxBLUE_PEN, *wxTRANSPARENT_BRUSH);
+        DrawCell(dc, dst, (dst == m_selected || dst == m_hovered) ? wxColor(255, 128, 128) : *wxRED_PEN, *wxTRANSPARENT_BRUSH);
+    }
+}
+
+void Map3DEditor::DrawDoors(wxDC& dc)
+{
+    int offsetx = 0, offsety = 0;
+    if (m_map)
+    {
+        offsetx = m_map->GetLeft();
+        offsety = m_map->GetTop();
+    }
+    for (const auto& d : m_doors)
+    {
+        if (m_map && d.x >= 0 && d.x < m_map->GetHeightmapWidth() && d.y >= 0 && d.y < m_map->GetHeightmapHeight())
+        {
+            int z = m_map->GetHeight({ d.x, d.y });
+            auto type =  static_cast<Tilemap3D::FloorType>(m_map->GetCellType({ d.x, d.y }));
+            if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
+            {
+                continue;
+            }
+            int doorxoffset = type == Tilemap3D::FloorType::DOOR_NE ? 1 : 0;
+            int dooryoffset = 0;
+            if (m_layer == Tilemap3D::Layer::BG)
+            {
+                --doorxoffset;
+            }
+            if (m_layer == Tilemap3D::Layer::FG && type == Tilemap3D::FloorType::DOOR_NE)
+            {
+                --doorxoffset;
+                --dooryoffset;
+            }
+            std::pair<int, int> loc{ d.x + 12 - offsetx - z + doorxoffset,
+                                     d.y + 12 - offsety - z + dooryoffset };
+            DrawCell(dc, loc, wxColor(255,0,255), *wxTRANSPARENT_BRUSH);
+        }
+    }
+}
+
 void Map3DEditor::OnDraw(wxDC& dc)
 {
     if (m_redraw)
@@ -259,29 +348,19 @@ void Map3DEditor::OnDraw(wxDC& dc)
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
     dc.SetUserScale(m_zoom, m_zoom);
     mdc.SelectObject(wxNullBitmap);
+    DrawTileSwaps(dc);
+    DrawDoors(dc);
     if (m_hovered.first != -1 && m_hovered != m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
-        int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
-        dc.SetPen(*wxWHITE_PEN);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+        DrawCell(dc, m_hovered, *wxWHITE_PEN, *wxTRANSPARENT_BRUSH);
     }
     if (m_selected.first != -1 && m_hovered != m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_selected.first - m_selected.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
-        int yp = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
-        dc.SetPen(*wxYELLOW_PEN);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+        DrawCell(dc, m_selected, *wxYELLOW_PEN, *wxWHITE_BRUSH);
     }
     if (m_selected.first != -1 && m_hovered == m_selected)
     {
-        int xp = (m_map->GetHeight() - 1 + m_hovered.first - m_hovered.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
-        int yp = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
-        dc.SetPen(wxColor(255, 255, 128));
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
+        DrawCell(dc, m_selected, wxColor(255, 255, 128), *wxWHITE_BRUSH);
     }
 }
 
@@ -354,7 +433,7 @@ void Map3DEditor::OnShow(wxShowEvent& evt)
     evt.Skip();
 }
 
-std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny)
+std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny) const
 {
     int x, y;
     GetViewStart(&x, &y);
@@ -367,7 +446,7 @@ std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny
     return { x, y };
 }
 
-std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny)
+std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny) const
 {
     auto xy = GetAbsoluteCoordinates(screenx, screeny);
     int ix = 0, iy = 0;
@@ -400,7 +479,14 @@ std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny)
     }
 }
 
-bool Map3DEditor::IsCoordValid(std::pair<int, int> c)
+std::pair<int, int> Map3DEditor::GetScreenPosition(const std::pair<int, int>& pos) const
+{
+    int xp = (m_map->GetHeight() - 1 + pos.first - pos.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
+    int yp = (pos.first + pos.second) * TILE_HEIGHT / 2;
+    return { xp, yp };
+}
+
+bool Map3DEditor::IsCoordValid(std::pair<int, int> c) const
 {
     return (m_map != nullptr &&
         (c.first >= 0 && c.first < m_map->GetWidth() &&

@@ -173,6 +173,8 @@ private:
 	std::unique_ptr<wxBitmap> m_bmp;
 	std::vector<Entity> m_entities;
 	std::vector<WarpList::Warp> m_warps;
+	std::vector<Door> m_doors;
+	std::vector<TileSwap> m_swaps;
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;

@@ -566,14 +566,14 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
 #ifndef NDEBUG
                 std::cout << "PLACE REL TILE [" << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(1, static_cast<int>(tiles[i] - tile_dict[0]), static_cast<uint16_t>(ilog2(tile_increment[0])));
+                tile_entries.emplace_back(1, static_cast<uint16_t>(tiles[i] - tile_dict[0]), static_cast<uint8_t>(ilog2(tile_increment[0])));
             }
             else
             {
 #ifndef NDEBUG
                 std::cout << "PLACE TILE " << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(0, tiles[i], ilog2(tile_dict[1]));
+                tile_entries.emplace_back(0, tiles[i], static_cast<uint8_t>(ilog2(tile_dict[1])));
             }
         }
     }

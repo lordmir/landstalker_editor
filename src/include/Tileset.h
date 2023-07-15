@@ -12,7 +12,7 @@
 class Tileset
 {
 public:
-    enum BlockType
+    enum class BlockType
     {
         NORMAL,
         BLOCK1X2,
@@ -22,19 +22,28 @@ public:
         BLOCK4X4,
         BLOCK4X6
     };
-	inline static const std::array<std::string, 7> BLOCKTYPE_STRINGS = { "Normal", "Block 1x2", "Block 2x1", "Block 2x2", "Block 3x3", "Block 4x4", "Block 4x6" };
+	inline static const std::unordered_map<BlockType, std::string> BLOCKTYPE_STRINGS =
+    { {
+        {BlockType::NORMAL, "Normal"},
+        {BlockType::BLOCK1X2, "Block 1x2"},
+        {BlockType::BLOCK2X1, "Block 2x1"},
+        {BlockType::BLOCK2X2, "Block 2x2"},
+        {BlockType::BLOCK3X3, "Block 3x3"},
+        {BlockType::BLOCK4X4, "Block 4x4"},
+        {BlockType::BLOCK4X6, "Block 4x6"}
+    } };
 
-    Tileset(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
-    Tileset(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
-    Tileset(const std::vector<uint8_t>& src, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
+    Tileset(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = BlockType::NORMAL);
+    Tileset(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = BlockType::NORMAL);
+    Tileset(const std::vector<uint8_t>& src, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = BlockType::NORMAL);
     ~Tileset();
 
     bool operator==(const Tileset& rhs) const;
     bool operator!=(const Tileset& rhs) const;
     
     uint32_t SetBits(const std::vector<uint8_t>& src, bool compressed = false);
-    void SetParams(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
-    bool Open(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = NORMAL);
+    void SetParams(std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = BlockType::NORMAL);
+    bool Open(const std::string& filename, bool compressed = false, std::size_t width = 8, std::size_t height = 8, uint8_t bit_depth = 4, BlockType blocktype = BlockType::NORMAL);
     std::vector<uint8_t> GetBits(bool compressed = false);
     bool Save(const std::string& filename, bool compressed = false);
     void Clear();

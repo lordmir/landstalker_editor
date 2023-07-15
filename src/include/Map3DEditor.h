@@ -27,6 +27,8 @@ public:
 	bool IsBlockSelected() const;
 
 	void RefreshGraphics();
+	void UpdateSwaps();
+	void UpdateDoors();
 private:
 	void RefreshStatusbar();
 	void ForceRedraw();
@@ -35,6 +37,9 @@ private:
 	void DrawMap();
 	void DrawTiles();
 	void DrawTile(int tile);
+	void DrawCell(wxDC& dc, const std::pair<int, int>& pos, const wxPen& pen, const wxBrush& brush);
+	void DrawTileSwaps(wxDC& dc);
+	void DrawDoors(wxDC& dc);
 
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);
@@ -46,9 +51,10 @@ private:
 	void OnRightClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
 
-	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
-	std::pair<int, int> GetCellPosition(int screenx, int screeny);
-	bool IsCoordValid(std::pair<int, int> c);
+	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny) const;
+	std::pair<int, int> GetCellPosition(int screenx, int screeny) const;
+	std::pair<int, int> GetScreenPosition(const std::pair<int, int>& pos) const;
+	bool IsCoordValid(std::pair<int, int> c) const;
 
 	bool UpdateHoveredPosition(int screenx, int screeny);
 	bool UpdateSelectedPosition(int screenx, int screeny);
@@ -82,6 +88,9 @@ private:
 
 	std::unique_ptr<wxBitmap> m_bmp;
 	std::unique_ptr<wxPen> m_priority_pen;
+
+	std::vector<Door> m_doors;
+	std::vector<TileSwap> m_swaps;
 
 	bool m_show_blocknums;
 	bool m_show_borders;

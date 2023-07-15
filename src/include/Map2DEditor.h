@@ -35,10 +35,10 @@ public:
 	~Map2DEditor();
 
 	void SetColour(int c);
-	bool Save(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::NONE, int base = 0);
-	bool Open(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::NONE, int base = 0);
+	bool Save(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
+	bool Open(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
 	bool Open(const std::vector<Tile>& map, int width = 0, int height = 0, int base = 0);
-	bool Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression = Tilemap2D::NONE, int width = 0, int height = 0, int base = 0);
+	bool Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int width = 0, int height = 0, int base = 0);
 	bool Open(std::shared_ptr<Tilemap2DEntry> map);
 	bool New(int width, int height, int base = 0);
 	void RedrawTiles(int index = -1);

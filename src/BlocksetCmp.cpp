@@ -138,7 +138,7 @@ static void decompressTiles(std::vector<Tile>& tiles, BitBarrel& bb)
         }
         else
         {
-            if(it->Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+            if(it->Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP))
             {
                 (it + 1)->SetIndex(tile - 1);
             }
@@ -199,9 +199,9 @@ uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, Blockset& blocks
     new_tiles.resize(TOTAL * 4);   
     blocks.reserve(blocks.size() + TOTAL);
     
-    maskTiles(new_tiles, TileAttributes::ATTR_PRIORITY, bb);
-    maskTiles(new_tiles, TileAttributes::ATTR_VFLIP, bb);
-    maskTiles(new_tiles, TileAttributes::ATTR_HFLIP, bb);
+    maskTiles(new_tiles, TileAttributes::Attribute::ATTR_PRIORITY, bb);
+    maskTiles(new_tiles, TileAttributes::Attribute::ATTR_VFLIP, bb);
+    maskTiles(new_tiles, TileAttributes::Attribute::ATTR_HFLIP, bb);
     
     decompressTiles(new_tiles, bb);
     
@@ -267,7 +267,7 @@ static void CompressTiles(const Blockset& blocks, BitBarrelWriter& cbs)
         {
             uint16_t next = block.GetTile(i).GetIndex();
             EncodeTile(tq, next, cbs);
-            if (block.GetTile(i).Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+            if (block.GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP))
             {
                 next--;
             }
@@ -295,11 +295,11 @@ uint16_t BlocksetCmp::Encode(const Blockset& blocks, uint8_t* dst, size_t bufsiz
     // STEP 1: Write out total blocks
     cbs.Write<uint16_t>(static_cast<uint16_t>(blocks.size()));
     // STEP 2: Calculate mask for PRIORITY
-    SetMask(blocks, TileAttributes::ATTR_PRIORITY, cbs);
+    SetMask(blocks, TileAttributes::Attribute::ATTR_PRIORITY, cbs);
     // STEP 3: Calculate mask for VFLIP
-    SetMask(blocks, TileAttributes::ATTR_VFLIP, cbs);
+    SetMask(blocks, TileAttributes::Attribute::ATTR_VFLIP, cbs);
     // STEP 4: Calculate mask for HFLIP
-    SetMask(blocks, TileAttributes::ATTR_HFLIP, cbs);
+    SetMask(blocks, TileAttributes::Attribute::ATTR_HFLIP, cbs);
     // STEP 5: Encode tile values
     CompressTiles(blocks, cbs);
     // Done!

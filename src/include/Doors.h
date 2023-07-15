@@ -10,28 +10,33 @@ struct Door
 {
 	enum class Size : uint8_t
 	{
+		DOOR_1X4,
+		DOOR_2X4,
 		DOOR_2X5,
-		DOOR_3X5,
-		DOOR_3X6,
-		DOOR_2X1
+		DOOR_1X0
 	};
 	inline static const std::map<Size, std::pair<uint8_t, uint8_t>> SIZES =
 	{ {
+		{Size::DOOR_1X4, {1,4}},
+		{Size::DOOR_2X4, {2,4}},
 		{Size::DOOR_2X5, {2,5}},
-		{Size::DOOR_3X5, {3,5}},
-		{Size::DOOR_3X6, {3,6}},
-		{Size::DOOR_2X1, {2,1}}
+		{Size::DOOR_1X0, {1,0}}
 	} };
 	inline static const std::map<Size, std::string> SIZE_NAMES =
 	{ {
+		{Size::DOOR_1X4, "1x4 Door"},
+		{Size::DOOR_2X4, "2x4 Door"},
 		{Size::DOOR_2X5, "2x5 Door"},
-		{Size::DOOR_3X5, "3x5 Door"},
-		{Size::DOOR_3X6, "3x6 Door"},
-		{Size::DOOR_2X1, "2x1 Door"}
+		{Size::DOOR_1X0, "1x0 Door"}
 	} };
 	uint8_t x;
 	uint8_t y;
 	Size size;
+
+	Door(uint8_t b1, uint8_t b2);
+	Door() : x(0), y(0), size(Size::DOOR_1X4) {}
+
+	std::pair<uint8_t, uint8_t> GetBytes() const;
 
 	bool operator==(const Door& rhs) const;
 	bool operator!=(const Door& rhs) const;

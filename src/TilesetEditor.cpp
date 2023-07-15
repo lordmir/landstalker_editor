@@ -694,7 +694,7 @@ void TilesetEditor::InsertTileAfter(const Tile& tile)
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
 		m_tileset->InsertTilesBefore(tile.GetIndex() + 1);
-		for (int i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
+		for (std::size_t i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
 		{
 			m_redraw_list.insert(i);
 		}

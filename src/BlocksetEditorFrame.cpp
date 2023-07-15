@@ -261,7 +261,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_HFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;
@@ -269,7 +269,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_VFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;
@@ -277,7 +277,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_PRIORITY);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;

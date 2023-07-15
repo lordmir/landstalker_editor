@@ -401,7 +401,7 @@ void TilesetEditorFrame::ExportAsPng()
 		const int cols = std::min<std::size_t>(m_tileset->GetTileCount(), max_width);
 		const int rows = std::max<std::size_t>(1UL, (m_tileset->GetTileCount() + max_width - 1) / max_width);
 		ImageBuffer buf(cols * m_tileset->GetTileWidth(), rows * m_tileset->GetTileHeight());
-		for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+		for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
 		{
 			buf.InsertTile((i % cols) * m_tileset->GetTileWidth(), (i / cols) * m_tileset->GetTileHeight(), 0, i, *m_tileset);
 		}
@@ -517,7 +517,7 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 	{
 		for (const auto& b : Tileset::BLOCKTYPE_STRINGS)
 		{
-			m_blocktype_list.Add(b);
+			m_blocktype_list.Add(b.second);
 		}
 		props.GetGrid()->Clear();
 		props.Append(new wxPropertyCategory("Main", "M"));
@@ -613,7 +613,7 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
 		props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
 		props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
-		props.GetGrid()->SetPropertyValue("B", wxString(Tileset::BLOCKTYPE_STRINGS[m_tileset->GetTileBlockType()]));
+		props.GetGrid()->SetPropertyValue("B", wxString(Tileset::BLOCKTYPE_STRINGS.at(m_tileset->GetTileBlockType())));
 		props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
 		props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
 	}

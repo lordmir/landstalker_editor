@@ -201,7 +201,7 @@ bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
 {
 	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
 
-	fs << m_map->GetData()->GetCompression() << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
+	fs << static_cast<int>(m_map->GetData()->GetCompression()) << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
 	   << "," << m_map->GetData()->GetTop() << std::endl;
 
 	for (int y = 0; y < m_map->GetData()->GetHeight(); ++y)
@@ -685,7 +685,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_HFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;
@@ -693,7 +693,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_VFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;
@@ -701,7 +701,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_PRIORITY);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;

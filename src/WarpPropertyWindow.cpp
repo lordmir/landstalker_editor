@@ -43,7 +43,7 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Source Room:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString room_names;
-    for (int i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
+    for (std::size_t i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
     {
         room_names.Add(gd.GetRoomData()->GetRoom(i)->name);
     }

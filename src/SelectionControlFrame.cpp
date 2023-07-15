@@ -13,17 +13,17 @@ SelectionControlFrame::SelectionControlFrame(wxWindow* parent, ImageList* imglst
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(vboxsizer);
 
-    wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);
+    m_buttons_boxsizer = new wxBoxSizer(wxHORIZONTAL);
 
-    vboxsizer->Add(hboxsizer, 0, 0);
+    vboxsizer->Add(m_buttons_boxsizer, 0, 0);
     m_ctrl_add = new wxBitmapButton(this, wxID_ADD, imglst->GetBitmap(plus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_add, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_add, 0, 0, 0);
     m_ctrl_delete = new wxBitmapButton(this, wxID_DELETE, imglst->GetBitmap(minus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_delete, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_delete, 0, 0, 0);
     m_ctrl_move_up = new wxBitmapButton(this, wxID_UP, imglst->GetBitmap(up_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_move_up, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_move_up, 0, 0, 0);
     m_ctrl_move_down = new wxBitmapButton(this, wxID_DOWN, imglst->GetBitmap(down_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_move_down, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_move_down, 0, 0, 0);
 
     m_ctrl_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxArrayString(), wxWANTS_CHARS);
     vboxsizer->Add(m_ctrl_list, 1, wxALL | wxEXPAND);
@@ -111,6 +111,7 @@ void SelectionControlFrame::UpdateUI()
             m_ctrl_list->SetString(i, label);
         }
     }
+    UpdateOtherControls();
     m_ctrl_list->Thaw();
 }
 

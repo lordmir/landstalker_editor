@@ -993,9 +993,9 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		}
 
 		menucursor = TilesetEntry::Create(this, *std::get<2>(gfx[1]), std::get<0>(gfx[1]),
-					std::get<1>(gfx[1]), false, 8, 8, 2, Tileset::BLOCK4X4);
+					std::get<1>(gfx[1]), false, 8, 8, 2, Tileset::BlockType::BLOCK4X4);
 		arrow = TilesetEntry::Create(this, *std::get<2>(gfx[2]), std::get<0>(gfx[2]),
-			std::get<1>(gfx[2]), false, 8, 8, 2, Tileset::BLOCK2X2);
+			std::get<1>(gfx[2]), false, 8, 8, 2, Tileset::BlockType::BLOCK2X2);
 
 		if (gfx.size() == 5)
 		{
@@ -1135,11 +1135,11 @@ bool GraphicsData::AsmLoadTextGraphics()
 		file.Goto(RomOffsets::Graphics::DOWN_ARROW);
 		file >> inc;
 		auto down_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::DOWN_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
+			RomOffsets::Graphics::DOWN_ARROW, inc.path, false, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 		file.Goto(RomOffsets::Graphics::RIGHT_ARROW);
 		file >> inc;
 		auto right_arrow = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BLOCK2X2);
+			RomOffsets::Graphics::RIGHT_ARROW, inc.path, false, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 		m_ui_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
 		m_ui_gfx_by_name.insert({ right_arrow->GetName(), right_arrow });
 		m_ui_gfx_internal.insert({ down_arrow->GetName(), down_arrow });
@@ -1177,15 +1177,15 @@ bool GraphicsData::AsmLoadSwordFx()
 			if ((count == 2) || (count == 4))
 			{
 				e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-					name, inc.path, true, 8, 8, 4, Tileset::BLOCK4X4);
+					name, inc.path, true, 8, 8, 4, Tileset::BlockType::BLOCK4X4);
 			}
 			else
 			{
 				e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path),
-					name, inc.path, true, 8, 8, 4, Tileset::BLOCK4X6);
+					name, inc.path, true, 8, 8, 4, Tileset::BlockType::BLOCK4X6);
 			}
 			m_sword_fx.insert({ e->GetName(), e });
-			if (count < names.size())
+			if (count < static_cast<int>(names.size()))
 			{
 				m_sword_fx_internal.insert({ *names_it++, e });
 			}
@@ -1214,7 +1214,7 @@ bool GraphicsData::AsmLoadStatusFx()
 		{
 			file >> name >> inc;
 			std::shared_ptr<TilesetEntry> e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name,
-				inc.path, true, 8, 8, 4, Tileset::BLOCK4X4);
+				inc.path, true, 8, 8, 4, Tileset::BlockType::BLOCK4X4);
 			m_status_fx_frames.insert({ e->GetName(), e });
 		}
 		AsmFile pfile(GetBasePath() / m_status_fx_pointers_path);
@@ -1232,12 +1232,12 @@ bool GraphicsData::AsmLoadStatusFx()
 				m_status_fx[s].push_back(frame);
 			} while (pfile.IsGood() && !pfile.IsLabel());
 		}
-		for (int si = 0; si < status.size(); si++)
+		for (std::size_t si = 0; si < status.size(); si++)
 		{
 			const auto& status_name = status[si];
 			const auto& status_frame_name = status_frame_names[si];
 			const auto& status_frames = m_status_fx[status_name];
-			for (int fi = 0; fi < status_frames.size(); ++fi)
+			for (std::size_t fi = 0; fi < status_frames.size(); ++fi)
 			{
 				std::string fname = StrPrintf(status_frame_name, fi + 1);
 				m_status_fx_internal[status_name].push_back(status_frame_name);
@@ -1336,7 +1336,7 @@ bool GraphicsData::AsmLoadIslandMapData()
 		auto bg_tiles = TilesetEntry::Create(this, std::get<2>(entries[2]), std::get<0>(entries[2]), std::get<1>(entries[2]));
 		auto bg_map = Tilemap2DEntry::Create(this, std::get<2>(entries[3]), std::get<0>(entries[3]), std::get<1>(entries[3]), Tilemap2D::Compression::RLE, 0x100);
 		auto dots_tiles = TilesetEntry::Create(this, std::get<2>(entries[4]), std::get<0>(entries[4]), std::get<1>(entries[4]));
-		auto friday_tiles = TilesetEntry::Create(this, std::get<2>(entries[5]), std::get<0>(entries[5]), std::get<1>(entries[5]), true, 8, 8, 4, Tileset::BLOCK2X2);
+		auto friday_tiles = TilesetEntry::Create(this, std::get<2>(entries[5]), std::get<0>(entries[5]), std::get<1>(entries[5]), true, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 		auto fg_pal = PaletteEntry::Create(this, std::get<2>(entries[6]), std::get<0>(entries[6]), std::get<1>(entries[6]), Palette::Type::FULL);
 		auto bg_pal = PaletteEntry::Create(this, std::get<2>(entries[7]), std::get<0>(entries[7]), std::get<1>(entries[7]), Palette::Type::FULL);
 
@@ -1585,9 +1585,9 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 			RomOffsets::Graphics::INV_FONT, RomOffsets::Graphics::INV_FONT_LARGE_FILE, true, 8, 16, 1);
 	}
 	auto cursor = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_SIZE),
-		RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_FILE, false, 8, 8, 2, Tileset::BLOCK4X4);
+		RomOffsets::Graphics::INV_CURSOR, RomOffsets::Graphics::INV_CURSOR_FILE, false, 8, 8, 2, Tileset::BlockType::BLOCK4X4);
 	auto arrow = TilesetEntry::Create(this, load_bytes(RomOffsets::Graphics::INV_ARROW, RomOffsets::Graphics::INV_ARROW_SIZE),
-		RomOffsets::Graphics::INV_ARROW, RomOffsets::Graphics::INV_ARROW_FILE, false, 8, 8, 2, Tileset::BLOCK2X2);
+		RomOffsets::Graphics::INV_ARROW, RomOffsets::Graphics::INV_ARROW_FILE, false, 8, 8, 2, Tileset::BlockType::BLOCK2X2);
 	std::shared_ptr<TilesetEntry> unused1;
 	if (rom.get_address(RomOffsets::Graphics::INV_UNUSED1_SIZE) > 0)
 	{
@@ -1694,9 +1694,9 @@ bool GraphicsData::RomLoadTextGraphics(const Rom& rom)
 	auto down_arrow_bytes = rom.read_array<uint8_t>(down_arrow_addr, down_arrow_size);
 	auto right_arrow_bytes = rom.read_array<uint8_t>(right_arrow_addr, right_arrow_size);
 	auto down_arrow = TilesetEntry::Create(this, down_arrow_bytes, RomOffsets::Graphics::DOWN_ARROW,
-		RomOffsets::Graphics::DOWN_ARROW_FILE, false, 8, 8, 4, Tileset::BLOCK2X2);
+		RomOffsets::Graphics::DOWN_ARROW_FILE, false, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 	auto right_arrow = TilesetEntry::Create(this, right_arrow_bytes, RomOffsets::Graphics::RIGHT_ARROW,
-		RomOffsets::Graphics::RIGHT_ARROW_FILE, false, 8, 8, 4, Tileset::BLOCK2X2);
+		RomOffsets::Graphics::RIGHT_ARROW_FILE, false, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 	down_arrow->SetStartAddress(down_arrow_size);
 	right_arrow->SetStartAddress(right_arrow_size);
 	m_ui_gfx_by_name.insert({ down_arrow->GetName(), down_arrow });
@@ -1733,15 +1733,15 @@ bool GraphicsData::RomLoadSwordFx(const Rom& rom)
 	auto inv_tilemap = Tilemap2DEntry::Create(this, inv_tilemap_bytes, RomOffsets::Graphics::INV_TILEMAP,
 		RomOffsets::Graphics::INV_TILEMAP_FILE, Tilemap2D::Compression::LZ77, 0x6B4);
 	auto magic_sword = TilesetEntry::Create(this, magic_sword_bytes, RomOffsets::Graphics::SWORD_MAGIC,
-		RomOffsets::Graphics::SWORD_MAGIC_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+		RomOffsets::Graphics::SWORD_MAGIC_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK4X6);
 	auto thunder_sword = TilesetEntry::Create(this, thunder_sword_bytes, RomOffsets::Graphics::SWORD_THUNDER,
-		RomOffsets::Graphics::SWORD_THUNDER_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+		RomOffsets::Graphics::SWORD_THUNDER_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK4X6);
 	auto gaia_sword = TilesetEntry::Create(this, gaia_sword_bytes, RomOffsets::Graphics::SWORD_GAIA,
-		RomOffsets::Graphics::SWORD_GAIA_FILE, true, 8, 8, 4, Tileset::BLOCK4X4);
+		RomOffsets::Graphics::SWORD_GAIA_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK4X4);
 	auto ice_sword = TilesetEntry::Create(this, ice_sword_bytes, RomOffsets::Graphics::SWORD_ICE,
-		RomOffsets::Graphics::SWORD_ICE_FILE, true, 8, 8, 4, Tileset::BLOCK4X6);
+		RomOffsets::Graphics::SWORD_ICE_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK4X6);
 	auto coinfall = TilesetEntry::Create(this, coinfall_bytes, RomOffsets::Graphics::COINFALL,
-		RomOffsets::Graphics::COINFALL_FILE, true, 8, 8, 4, Tileset::BLOCK4X4);
+		RomOffsets::Graphics::COINFALL_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK4X4);
 
 	inv_tilemap->SetStartAddress(inv_tilemap_addr);
 	magic_sword->SetStartAddress(magic_sword_addr);
@@ -1804,7 +1804,7 @@ bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 			std::string name = StrPrintf(frame_name, i);
 			std::string fname = StrPrintf(filename, i++);
 			auto b = rom.read_array<uint8_t>(addr, end - addr);
-			auto e = TilesetEntry::Create(this, b, name, fname, true, 8, 8, 4, Tileset::BLOCK4X4);
+			auto e = TilesetEntry::Create(this, b, name, fname, true, 8, 8, 4, Tileset::BlockType::BLOCK4X4);
 			e->SetStartAddress(addr);
 			m_status_fx_frames.insert({ name, e });
 			m_status_fx_frames_internal.insert({ name, e });
@@ -1914,7 +1914,7 @@ bool GraphicsData::RomLoadIslandMapData(const Rom& rom)
 	auto bg_tiles = TilesetEntry::Create(this, bg_tiles_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_TILES, RomOffsets::Graphics::ISLAND_MAP_BG_TILES_FILE);
 	auto bg_map = Tilemap2DEntry::Create(this, bg_map_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_MAP, RomOffsets::Graphics::ISLAND_MAP_BG_MAP_FILE, Tilemap2D::Compression::RLE, 0x100);
 	auto dots_tiles = TilesetEntry::Create(this, dots_bytes, RomOffsets::Graphics::ISLAND_MAP_DOTS, RomOffsets::Graphics::ISLAND_MAP_DOTS_FILE);
-	auto friday_tiles = TilesetEntry::Create(this, friday_bytes, RomOffsets::Graphics::ISLAND_MAP_FRIDAY, RomOffsets::Graphics::ISLAND_MAP_FRIDAY_FILE, true, 8, 8, 4, Tileset::BLOCK2X2);
+	auto friday_tiles = TilesetEntry::Create(this, friday_bytes, RomOffsets::Graphics::ISLAND_MAP_FRIDAY, RomOffsets::Graphics::ISLAND_MAP_FRIDAY_FILE, true, 8, 8, 4, Tileset::BlockType::BLOCK2X2);
 	auto fg_pal = PaletteEntry::Create(this, fg_pal_bytes, RomOffsets::Graphics::ISLAND_MAP_FG_PAL, RomOffsets::Graphics::ISLAND_MAP_FG_PAL_FILE, Palette::Type::FULL);
 	auto bg_pal = PaletteEntry::Create(this, bg_pal_bytes, RomOffsets::Graphics::ISLAND_MAP_BG_PAL, RomOffsets::Graphics::ISLAND_MAP_BG_PAL_FILE, Palette::Type::FULL);
 

@@ -15,9 +15,9 @@ public:
 	{
 	public:
 		Colour(uint8_t r, uint8_t g, uint8_t b, bool transparent = false)
-			: m_r(std::min(0x07, r / 36)),
-			  m_g(std::min(0x07, g / 36)),
-			  m_b(std::min(0x07, b / 36)),
+			: m_r(std::min<uint8_t>(0x07, r / 36)),
+			  m_g(std::min<uint8_t>(0x07, g / 36)),
+			  m_b(std::min<uint8_t>(0x07, b / 36)),
 			  m_transparent(transparent)
 		{
 		}
@@ -58,9 +58,9 @@ public:
 			uint8_t g = (c >> 8) & 0xFF;
 			uint8_t b = c & 0xFF;
 			m_transparent = transparent;
-			m_r = std::min(0x07, r / 36);
-			m_g = std::min(0x07, g / 36);
-			m_b = std::min(0x07, b / 36);
+			m_r = std::min<uint8_t>(0x07, r / 36);
+			m_g = std::min<uint8_t>(0x07, g / 36);
+			m_b = std::min<uint8_t>(0x07, b / 36);
 		}
 
 		inline void FromBGR(uint32_t c, bool transparent = false)
@@ -69,9 +69,9 @@ public:
 			uint8_t g = (c >> 8) & 0xFF;
 			uint8_t r = c & 0xFF;
 			m_transparent = transparent;
-			m_r = std::min(0x07, r / 36);
-			m_g = std::min(0x07, g / 36);
-			m_b = std::min(0x07, b / 36);
+			m_r = std::min<uint8_t>(0x07, r / 36);
+			m_g = std::min<uint8_t>(0x07, g / 36);
+			m_b = std::min<uint8_t>(0x07, b / 36);
 		}
 
 		inline void FromRGBA(uint32_t c)
@@ -96,15 +96,15 @@ public:
 
 		inline uint8_t GetR() const
 		{
-			return std::min(0xFF, m_r * 36);
+			return std::min<uint8_t>(0xFF, m_r * 36);
 		}
 		inline uint8_t GetG() const
 		{
-			return std::min(0xFF, m_g * 36);
+			return std::min<uint8_t>(0xFF, m_g * 36);
 		}
 		inline uint8_t GetB() const
 		{
-			return std::min(0xFF, m_b * 36);
+			return std::min<uint8_t>(0xFF, m_b * 36);
 		}
 		inline uint8_t GetA() const
 		{
