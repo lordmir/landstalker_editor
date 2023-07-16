@@ -55,37 +55,37 @@ private:
     class TreeNodeData : public wxTreeItemData
     {
     public:
-        enum NodeType {
-            NODE_BASE,
-            NODE_STRING,
-            NODE_IMAGE,
-            NODE_TILESET,
-            NODE_ANIM_TILESET,
-            NODE_BLOCKSET,
-            NODE_PALETTE,
-            NODE_ROOM,
-            NODE_SPRITE,
-            NODE_SPRITE_FRAME,
-            NODE_ENTITY
+        enum class Node {
+            BASE,
+            STRING,
+            IMAGE,
+            TILESET,
+            ANIM_TILESET,
+            BLOCKSET,
+            PALETTE,
+            ROOM,
+            SPRITE,
+            SPRITE_FRAME,
+            ENTITY
         };
-        TreeNodeData(NodeType nodeType = NODE_BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
+        TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
         std::size_t GetValue() const { return m_value; }
-        NodeType GetNodeType() const { return m_nodeType; }
+        Node GetNodeType() const { return m_nodeType; }
     private:
-        const NodeType m_nodeType;
+        const Node m_nodeType;
         const std::size_t m_value;
     };
-    enum Mode
+    enum class Mode
     {
-        MODE_NONE,
-        MODE_STRING,
-        MODE_IMAGE,
-        MODE_TILESET,
-        MODE_ANIMATED_TILESET,
-        MODE_BLOCKSET,
-        MODE_PALETTE,
-        MODE_ROOMMAP,
-        MODE_SPRITE
+        NONE,
+        STRING,
+        IMAGE,
+        TILESET,
+        ANIMATED_TILESET,
+        BLOCKSET,
+        PALETTE,
+        ROOMMAP,
+        SPRITE
     };
 
     enum class EditorType

@@ -32,7 +32,7 @@ wxArrayString FlagDataViewModel<EntityFlag>::GetColumnChoices(unsigned int col) 
 	case 0:
 	{
 		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
-		for (int i = 0; i < 15; ++i)
+		for (std::size_t i = 0; i < 15; ++i)
 		{
 			if (i < ent.size())
 			{
@@ -162,7 +162,7 @@ wxArrayString FlagDataViewModel<OneTimeEventFlag>::GetColumnChoices(unsigned int
 	case 0:
 	{
 		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
-		for (int i = 0; i < 15; ++i)
+		for (std::size_t i = 0; i < 15; ++i)
 		{
 			if (i < ent.size())
 			{
@@ -392,7 +392,7 @@ void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsign
 		switch (col)
 		{
 		case 0:
-			for (int i = 0; i < 15; ++i)
+			for (std::size_t i = 0; i < 15; ++i)
 			{
 				if (i < ent.size() && ent[i].GetType() == 0x4B)
 				{
@@ -475,7 +475,7 @@ wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned
 	switch (col)
 	{
 	case 0:
-		for (int i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
+		for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
 		{
 			choices.Add(m_gd->GetRoomData()->GetRoom(i)->name);
 		}
@@ -576,7 +576,7 @@ wxArrayString FlagDataViewModel<ChestItem>::GetColumnChoices(unsigned int col) c
 	{
 	case 1:
 	{
-		for (int i = 0; i < 0x41; ++i)
+		for (std::size_t i = 0; i < 0x41; ++i)
 		{
 			if (i < m_gd->GetStringData()->GetItemNameCount())
 			{
@@ -613,7 +613,7 @@ template <>
 void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
 	auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
-	int count = 0;
+	unsigned int count = 0;
 	int idx = 0;
 	switch (col)
 	{

@@ -47,9 +47,15 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
     m_warp_brush = std::make_unique<wxBrush>(*wxRED, wxBRUSHSTYLE_BDIAGONAL_HATCH);
     m_layer_opacity = { {Layer::BACKGROUND1, 0xFF}, {Layer::BACKGROUND2, 0xFF}, {Layer::BG_SPRITES, 0xFF },
                         {Layer::FOREGROUND, 0xFF}, {Layer::FG_SPRITES, 0xFF}, {Layer::HEIGHTMAP, 0x80} };
-    m_layer_bufs = { {Layer::BACKGROUND1, std::make_shared<ImageBuffer>()}, {Layer::BACKGROUND2, std::make_shared<ImageBuffer>()},
-                     {Layer::BG_SPRITES,  std::make_shared<ImageBuffer>()}, {Layer::FOREGROUND,  std::make_shared<ImageBuffer>()},
-                     {Layer::FG_SPRITES,  std::make_shared<ImageBuffer>()}};
+    m_layer_bufs = { {Layer::BACKGROUND1, std::make_unique<ImageBuffer>()}, {Layer::BACKGROUND2, std::make_unique<ImageBuffer>()},
+                     {Layer::BG_SPRITES,  std::make_unique<ImageBuffer>()}, {Layer::FOREGROUND,  std::make_unique<ImageBuffer>()},
+                     {Layer::FG_SPRITES,  std::make_unique<ImageBuffer>()} };
+    m_layers = { {Layer::BACKGROUND1, std::make_unique<wxBitmap>()},              {Layer::BACKGROUND2, std::make_unique<wxBitmap>()},
+                 {Layer::BG_SPRITES_WIREFRAME_BG, std::make_unique<wxBitmap>()},  {Layer::BG_SPRITES,  std::make_unique<wxBitmap>()},
+                 {Layer::BG_SPRITES_WIREFRAME_FG, std::make_unique<wxBitmap>()},  {Layer::FOREGROUND,  std::make_unique<wxBitmap>()},
+                 {Layer::HEIGHTMAP, std::make_unique<wxBitmap>()},                {Layer::FG_SPRITES_WIREFRAME_BG, std::make_unique<wxBitmap>()},
+                 {Layer::FG_SPRITES, std::make_unique<wxBitmap>()},               {Layer::FG_SPRITES_WIREFRAME_FG,  std::make_unique<wxBitmap>()},
+                 {Layer::WARPS, std::make_unique<wxBitmap>()} };
 }
 
 RoomViewerCtrl::~RoomViewerCtrl()
@@ -133,12 +139,12 @@ void RoomViewerCtrl::SetWarpsVisible(bool visible)
 void RoomViewerCtrl::SelectEntity(int selection)
 {
     if (selection != m_selected && (selection == -1
-        || (selection > 0 && selection <= m_entities.size())))
+        || (selection > 0 && selection <= static_cast<int>(m_entities.size()))))
     {
         if (IsWarpSelected() && m_show_warps)
         {
             m_selected = selection;
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+            UpdateLayer(Layer::WARPS, DrawRoomWarps(m_roomnum));
             FireEvent(EVT_WARP_UPDATE);
         }
         else
@@ -331,30 +337,30 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     {
         m_layer_bufs[Layer::BACKGROUND1]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND1]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeBitmap(m_rpalette,
-            true, m_layer_opacity[Layer::BACKGROUND1]) });
+        UpdateLayer(Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeImage(
+            m_rpalette, true, m_layer_opacity[Layer::BACKGROUND1]));
     }
     if (m_layer_opacity[Layer::BACKGROUND2] > 0)
     {
         m_layer_bufs[Layer::BACKGROUND2]->Resize(m_width, m_height);
         m_layer_bufs[Layer::BACKGROUND2]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeBitmap(m_rpalette,
-            true, m_layer_opacity[Layer::BACKGROUND2], 0) });
+        UpdateLayer(Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeImage(
+            m_rpalette, true, m_layer_opacity[Layer::BACKGROUND2]));
     }
     if (m_layer_opacity[Layer::FOREGROUND] > 0)
     {
         m_layer_bufs[Layer::FOREGROUND]->Resize(m_width, m_height);
         m_layer_bufs[Layer::FOREGROUND]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-        m_layers.insert({ Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeBitmap(m_rpalette,
-            true, 0, m_layer_opacity[Layer::FOREGROUND]) });
+        UpdateLayer(Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeImage(
+            m_rpalette, true, m_layer_opacity[Layer::FOREGROUND]));
     }
     if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
     {
-        m_layers.insert({ Layer::HEIGHTMAP, DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]) });
+        UpdateLayer(Layer::HEIGHTMAP, DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]));
     }
     if (m_show_warps)
     {
-        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+        UpdateLayer(Layer::WARPS, DrawRoomWarps(m_roomnum));
     }
     if (m_show_entities || m_show_entity_hitboxes)
     {
@@ -374,12 +380,12 @@ void RoomViewerCtrl::RedrawAllSprites()
         DrawSprites(q);
         if (m_layer_opacity[Layer::BG_SPRITES] > 0)
         {
-            UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::BG_SPRITES]->MakeBitmap(m_rpalette,
+            UpdateLayer(Layer::BG_SPRITES, m_layer_bufs[Layer::BG_SPRITES]->MakeImage(m_rpalette,
                 true, m_layer_opacity[Layer::BG_SPRITES], m_layer_opacity[Layer::BG_SPRITES]));
         }
         if (m_layer_opacity[Layer::FG_SPRITES] > 0)
         {
-            UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeBitmap(m_rpalette,
+            UpdateLayer(Layer::FG_SPRITES, m_layer_bufs[Layer::FG_SPRITES]->MakeImage(m_rpalette,
                 true, m_layer_opacity[Layer::FG_SPRITES], m_layer_opacity[Layer::FG_SPRITES]));
         }
     }
@@ -390,15 +396,24 @@ void RoomViewerCtrl::RedrawAllSprites()
     }
 }
 
-void RoomViewerCtrl::UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp)
+void RoomViewerCtrl::UpdateLayer(const Layer& layer, std::unique_ptr<wxBitmap> bmp)
 {
     if (m_layers.find(layer) == m_layers.cend())
     {
-        m_layers.insert({ layer, bmp });
+        m_layers.insert({ layer, nullptr });
+    }
+    m_layers[layer] = std::move(bmp);
+}
+
+void RoomViewerCtrl::UpdateLayer(const Layer& layer, const wxImage& img)
+{
+    if (m_layers.find(layer) == m_layers.cend())
+    {
+        m_layers.insert({ layer, std::make_unique<wxBitmap>(img)});
     }
     else
     {
-        m_layers[layer] = bmp;
+        m_layers[layer] = std::make_unique<wxBitmap>(img);
     }
 }
 
@@ -641,14 +656,7 @@ void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
     ctxs.clear();
     for (auto& layer : layers)
     {
-        if (m_layers.find(layer.first) == m_layers.cend())
-        {
-            m_layers.insert({ layer.first, std::make_shared<wxBitmap>(layer.second) });
-        }
-        else
-        {
-            m_layers[layer.first] = std::make_shared<wxBitmap>(layer.second);
-        }
+        UpdateLayer(layer.first, layer.second);
     }
 }
 
@@ -679,7 +687,7 @@ void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
     RefreshStatusbar();
 }
 
-std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
+std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
 {
     m_warp_poly.clear();
     m_link_poly.clear();
@@ -719,7 +727,7 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
         line++;
     }
     delete gc;
-    return std::make_shared<wxBitmap>(img);
+    return std::make_unique<wxBitmap>(img);
 }
 
 void RoomViewerCtrl::UpdateWarpProperties(int warp)
@@ -737,13 +745,13 @@ void RoomViewerCtrl::UpdateWarpProperties(int warp)
             }
             RefreshStatusbar();
             FireEvent(EVT_WARP_UPDATE);
-            m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+            UpdateLayer(Layer::WARPS, DrawRoomWarps(m_roomnum));
             ForceRedraw();
         }
     }
 }
 
-std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity)
+std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity)
 {
     wxImage hm_img(m_buffer_width, m_buffer_height);
     hm_img.InitAlpha();
@@ -768,7 +776,7 @@ std::shared_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
     }
     delete hm_gc;
     SetOpacity(hm_img, opacity);
-    return std::make_shared<wxBitmap>(hm_img);
+    return std::make_unique<wxBitmap>(hm_img);
 }
 
 void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int zz, int width, int height, int restrictions, int classification, bool draw_walls, wxColor border_colour)
@@ -1154,7 +1162,7 @@ bool RoomViewerCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int
 
 void RoomViewerCtrl::GoToRoom(uint16_t room)
 {
-    auto name = m_g->GetRoomData()->GetRoom(room)->name;
+    const auto& name = m_g->GetRoomData()->GetRoom(room)->name;
     FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
 }
 
@@ -1916,7 +1924,7 @@ void RoomViewerCtrl::DoDeleteEntity(int entity)
 
 void RoomViewerCtrl::DoMoveEntityUp(int entity)
 {
-    if (entity > 1 && entity <= m_entities.size())
+    if (entity > 1 && entity <= static_cast<int>(m_entities.size()))
     {
         std::swap(m_entities[entity - 1], m_entities[entity - 2]);
         m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
@@ -1925,7 +1933,7 @@ void RoomViewerCtrl::DoMoveEntityUp(int entity)
 
 void RoomViewerCtrl::DoMoveEntityDown(int entity)
 {
-    if (entity > 0 && entity < m_entities.size())
+    if (entity > 0 && entity < static_cast<int>(m_entities.size()))
     {
         std::swap(m_entities[entity - 1], m_entities[entity]);
         m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);

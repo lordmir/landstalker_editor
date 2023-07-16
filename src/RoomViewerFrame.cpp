@@ -346,7 +346,7 @@ bool RoomViewerFrame::ExportTmx(const std::string& tmx_path, const std::string& 
 	int pixelwidth = blockwidth * width;
 	int pixelheight = blockheight * height;
 	ImageBuffer buf(pixelwidth, pixelheight);
-	int i = 0;
+	std::size_t i = 0;
 	for (int y = 0; y < pixelheight; y += blockheight)
 	{
 		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
@@ -373,7 +373,7 @@ bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 	filesystem::path mappath(dir);
 	filesystem::path bspath(mappath / "blocksets");
 	filesystem::create_directories(bspath);
-	for (int i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
+	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		auto rd = m_g->GetRoomData()->GetRoom(i);
 		std::string mapfile = rd->map + ".tmx";
@@ -905,7 +905,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	}
 	else if (name == "M")
 	{
-		const auto map_name = m_maps.GetLabel(property->GetChoiceSelection());
+		const auto& map_name = m_maps.GetLabel(property->GetChoiceSelection());
 		if (map_name != rd->map)
 		{
 			rd->map = map_name;
@@ -1721,6 +1721,7 @@ void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 
 void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
 {
+	m_hmedit->UpdateEntities(m_roomview->GetEntities());
 	m_entityctrl->SetEntities(m_roomview->GetEntities());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
@@ -1771,6 +1772,7 @@ void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& evt)
 void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& evt)
 {
 	m_warpctrl->SetWarps(m_roomview->GetWarps());
+	m_hmedit->UpdateWarps(m_roomview->GetWarps());
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
 }

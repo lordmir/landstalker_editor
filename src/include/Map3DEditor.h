@@ -34,7 +34,7 @@ private:
 	void ForceRedraw();
 	void RecreateBuffer();
 	void UpdateScroll();
-	void DrawMap();
+	void DrawMap(wxDC& dc);
 	void DrawTiles();
 	void DrawTile(int tile);
 	void DrawCell(wxDC& dc, const std::pair<int, int>& pos, const wxPen& pen, const wxBrush& brush);

@@ -75,7 +75,7 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
 
 void Map3DEditor::SetSelectedBlock(int block)
 {
-    if (m_blockset != nullptr && block >= 0 && block < m_blockset->size())
+    if (m_blockset != nullptr && block >= 0 && block < static_cast<int>(m_blockset->size()))
     {
         m_selected_block = block;
     }
@@ -92,7 +92,7 @@ int Map3DEditor::GetSelectedBlock() const
 
 bool Map3DEditor::IsBlockSelected() const
 {
-    return (m_blockset != nullptr && m_selected_block >= 0 && m_selected_block < m_blockset->size());
+    return (m_blockset != nullptr && m_selected_block >= 0 && m_selected_block < static_cast<int>(m_blockset->size()));
 }
 
 void Map3DEditor::RefreshGraphics()
@@ -172,32 +172,8 @@ void Map3DEditor::UpdateScroll()
     AdjustScrollbars();
 }
 
-void Map3DEditor::DrawMap()
+void Map3DEditor::DrawMap(wxDC& dc)
 {
-    m_bmp->Create(m_width, m_height);
-    wxMemoryDC dc(*m_bmp);
-    if (m_redraw)
-    {
-        m_pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
-        m_tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
-        m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
-        m_layer_buf->Clear();
-        m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map, m_tileset, m_blockset, false);
-        if (m_layer == Tilemap3D::Layer::FG)
-        {
-            m_bg_buf->Clear();
-            m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map, m_tileset, m_blockset, false);
-        }
-        dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-        dc.Clear();
-        dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
-        if (m_layer == Tilemap3D::Layer::FG)
-        {
-            dc.DrawBitmap(* m_bg_buf->MakeBitmap({m_pal}, true, 0x40, 0x40), 0, 0, false);
-        }
-        dc.DrawBitmap(*m_layer_buf->MakeBitmap({m_pal}, true), 0, 0, true);
-        m_redraw = false;
-    }
     dc.SetUserScale(m_zoom, m_zoom);
     if (m_map)
     {
@@ -217,7 +193,7 @@ void Map3DEditor::DrawMap()
                 if (m_show_priority)
                 {
                     bool pri = false;
-                    for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
+                    for (std::size_t i = 0; i < MapBlock::GetBlockSize(); ++i)
                     {
                         pri = pri || m_blockset->at(blk).GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
                     }
@@ -245,11 +221,34 @@ void Map3DEditor::DrawMap()
             }
         }
     }
-    dc.SelectObject(wxNullBitmap);
 }
 
 void Map3DEditor::DrawTiles()
 {
+    if (m_redraw)
+    {
+        wxMemoryDC dc(*m_bmp);
+        m_pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
+        m_tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
+        m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        m_layer_buf->Clear();
+        m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map, m_tileset, m_blockset, false);
+        if (m_layer == Tilemap3D::Layer::FG)
+        {
+            m_bg_buf->Clear();
+            m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map, m_tileset, m_blockset, false);
+        }
+        dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+        dc.Clear();
+        dc.SetUserScale(m_zoom * 2.0, m_zoom * 2.0);
+        if (m_layer == Tilemap3D::Layer::FG)
+        {
+            dc.DrawBitmap(*m_bg_buf->MakeBitmap({ m_pal }, true, 0x40, 0x40), 0, 0, false);
+        }
+        dc.DrawBitmap(*m_layer_buf->MakeBitmap({ m_pal }, true), 0, 0, true);
+        m_redraw = false;
+        dc.SelectObject(wxNullBitmap);
+    }
 }
 
 void Map3DEditor::DrawTile(int tile)
@@ -331,7 +330,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
 {
     if (m_redraw)
     {
-        DrawMap();
+        m_bmp->Create(m_width, m_height);
         DrawTiles();
         m_redraw = false;
     }
@@ -348,6 +347,7 @@ void Map3DEditor::OnDraw(wxDC& dc)
     dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
     dc.SetUserScale(m_zoom, m_zoom);
     mdc.SelectObject(wxNullBitmap);
+    DrawMap(dc);
     DrawTileSwaps(dc);
     DrawDoors(dc);
     if (m_hovered.first != -1 && m_hovered != m_selected)

@@ -109,7 +109,7 @@ void Palette::Clear()
 
 void Palette::LoadDebugPal()
 {
-	m_pal[0]->FromGenesis(0x0C0C);
+	m_pal[0]->FromGenesis(0x0C0C, true);
 	m_pal[1]->FromGenesis(0x0CCC);
 	m_pal[2]->FromGenesis(0x000E);
 	m_pal[3]->FromGenesis(0x00E0);

@@ -240,7 +240,7 @@ void SpriteEditorFrame::ExportVdpSpritemap(const std::string& filename) const
 {
 	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
 	fs << (m_sprite->GetData()->GetCompressed() ? "1" : "0") << std::endl;
-	for (int i = 0; i < m_sprite->GetData()->GetSubSpriteCount(); ++i)
+	for (std::size_t i = 0; i < m_sprite->GetData()->GetSubSpriteCount(); ++i)
 	{
 		auto data = m_sprite->GetData()->GetSubSprite(i);
 		fs << StrPrintf("% 03d,% 03d,%01d,%01d\n", data.x, data.y, data.w, data.h);

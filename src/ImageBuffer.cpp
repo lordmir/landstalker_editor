@@ -3,7 +3,16 @@
 #include <cassert>
 #include <png.h>
 #include <numeric>
+#include <emmintrin.h>
 #include "Utils.h"
+
+#if defined(_MSC_VER)
+#define ALIGNED_(x) __declspec(align(x))
+#else
+#if defined(__GNUC__)
+#define ALIGNED_(x) __attribute__ ((aligned(x)))
+#endif
+#endif
 
 ImageBuffer::ImageBuffer()
     : m_width(0), m_height(0)
@@ -18,8 +27,13 @@ ImageBuffer::ImageBuffer(std::size_t width, std::size_t height)
 
 void ImageBuffer::Clear()
 {
-    std::fill(m_pixels.begin(), m_pixels.end(), 0);
-    std::fill(m_priority.begin(), m_priority.end(), 0);
+    Clear(0);
+}
+
+void ImageBuffer::Clear(uint8_t colour)
+{
+    std::fill(m_pixels.begin(), m_pixels.end(), colour);
+    std::fill(m_priority.begin(), m_priority.end(), colour);
 }
 
 void ImageBuffer::Resize(std::size_t width, std::size_t height)
@@ -29,6 +43,11 @@ void ImageBuffer::Resize(std::size_t width, std::size_t height)
     m_pixels.clear();
     m_pixels.assign(m_width * m_height, 0);
     m_priority.assign(width * height, 0);
+}
+
+void ImageBuffer::PutPixel(std::size_t x, std::size_t y, uint8_t colour)
+{
+    m_pixels[x + m_width * y] = colour;
 }
 
 void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& tile, const Tileset& tileset, bool use_alpha)
@@ -74,6 +93,56 @@ void ImageBuffer::InsertTile(int x, int y, uint8_t palette_index, const Tile& ti
             dest_it++;
             pri_dest_it++;
         }
+    }
+}
+
+void ImageBuffer::ClearTile(int x, int y, const Tileset& ts)
+{
+
+    int max_x = x + 7;
+    int max_y = y + 7;
+    if ((max_x >= static_cast<int>(m_width)) || (max_y >= static_cast<int>(m_height)) || (x < 0) || (y < 0))
+    {
+        std::ostringstream ss;
+        ss << "Attempt to clear tile in out-of-range position " << x << ", " << y
+            << " : The image buffer is only " << m_width << " x " << m_height << " pixels." << std::endl;
+        Debug(ss.str());
+    }
+    else
+    {
+        std::size_t begin_offset = y * m_width + x;
+        auto row_it = m_pixels.begin() + begin_offset;
+        auto dest_it = row_it;
+        auto pri_row_it = m_priority.begin() + begin_offset;
+        auto pri_dest_it = row_it;
+        for (std::size_t i = 0; i < ts.GetTileWidth() * ts.GetTileHeight(); ++i)
+        {
+            if (i % ts.GetTileWidth() == 0)
+            {
+                dest_it = row_it + m_width * (i / ts.GetTileWidth());
+                pri_dest_it = pri_row_it + m_width * (i / ts.GetTileWidth());
+                y++;
+                x -= ts.GetTileWidth();
+            }
+            *dest_it++ = 0;
+            *pri_dest_it++ = false;
+        }
+    }
+}
+
+void ImageBuffer::ClearBlock(int x, int y, const Blockset& bs, const Tileset& ts)
+{
+    if ((y + 7) * m_width + x + 7 < m_pixels.size())
+    {
+        ClearTile(x, y, ts);
+        ClearTile(x + 8, y, ts);
+        ClearTile(x, y + 8, ts);
+        ClearTile(x + 8, y + 8, ts);
+    }
+    else
+    {
+        assert(true);
+        Debug("Coordinates out of range");
     }
 }
 
@@ -232,11 +301,23 @@ const std::vector<uint8_t>& ImageBuffer::GetRGB(const std::vector<std::shared_pt
 {
     m_rgb.resize(m_width * m_height * 3);
     auto it = m_rgb.begin();
+    std::unique_ptr<uint8_t[]> pal_lookup(new uint8_t[pals.size() * 16 * 4]);
+    int idx = 0;
+    for (const auto& p : pals)
+    {
+        for (int i = 0; i < 16; ++i)
+        {
+            pal_lookup[idx++] = p->getR(i);
+            pal_lookup[idx++] = p->getG(i);
+            pal_lookup[idx++] = p->getB(i);
+            pal_lookup[idx++] = 0;
+        }
+    }
     for (const auto& pixel : m_pixels)
     {
-        *it++ = (pals[pixel >> 4]->getR(pixel & 0x0F));
-        *it++ = (pals[pixel >> 4]->getG(pixel & 0x0F));
-        *it++ = (pals[pixel >> 4]->getB(pixel & 0x0F));
+        *it++ = pal_lookup[(pixel << 2)];
+        *it++ = pal_lookup[(pixel << 2) + 1];
+        *it++ = pal_lookup[(pixel << 2) + 2];
     }
     return m_rgb;
 }
@@ -246,9 +327,18 @@ const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<std::shared_
     m_alpha.resize(m_width * m_height);
     auto pri = m_priority.cbegin();
     auto it = m_alpha.begin();
+    std::unique_ptr<uint8_t[]> pal_lookup(new uint8_t[pals.size() * 16]);
+    int pi = 0;
+    for (const auto& p : pals)
+    {
+        for (int i = 0; i < 16; ++i)
+        {
+            pal_lookup[pi++] = p->getA(i);
+        }
+    }
     for (const auto& pixel : m_pixels)
     {
-        uint8_t alpha = pals[pixel >> 4]->getA(pixel & 0x0F);
+        uint8_t alpha = pal_lookup[pixel];
         uint8_t max_opacity = *pri++ ? high_pri_max_opacity : low_pri_max_opacity;
         *it++ = std::min<uint8_t>(max_opacity, alpha);
     }
@@ -258,13 +348,13 @@ const std::vector<uint8_t>& ImageBuffer::GetAlpha(const std::vector<std::shared_
 std::shared_ptr<wxBitmap> ImageBuffer::MakeBitmap(const std::vector<std::shared_ptr<Palette>>& pals, bool use_alpha, uint8_t low_pri_max_opacity, uint8_t high_pri_max_opacity) const
 {
     GetRGB(pals);
-    wxImage img(m_width, m_height, m_rgb.data(), true);
+    wxImage* img = new wxImage(m_width, m_height, m_rgb.data(), true);
     if (use_alpha)
     {
         GetAlpha(pals, low_pri_max_opacity, high_pri_max_opacity);
-        img.SetAlpha(m_alpha.data(), true);
+        img->SetAlpha(m_alpha.data(), true);
     }
-    auto ret = std::make_shared<wxBitmap>(img);
+    auto ret = std::make_shared<wxBitmap>(*img);
     return ret;
 }
 

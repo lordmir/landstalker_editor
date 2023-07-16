@@ -71,7 +71,7 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
 
     UpdateUI();
 
-    for (auto ctrl : m_dvc_ctrls)
+    for (auto& ctrl : m_dvc_ctrls)
     {
         ctrl.second->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(FlagDialog::OnKeyPress), nullptr, this);
     }
@@ -86,7 +86,7 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
 
 FlagDialog::~FlagDialog()
 {
-    for (auto ctrl : m_dvc_ctrls)
+    for (auto& ctrl : m_dvc_ctrls)
     {
         ctrl.second->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(FlagDialog::OnKeyPress), nullptr, this);
     }
@@ -129,7 +129,7 @@ void FlagDialog::DeleteFromCurrentList()
         }
         auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
         auto* model = m_models[GetSelectedTab()];
-        int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
+        unsigned int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
         model->DeleteRow(sel);
         if (model->GetRowCount() > sel)
         {
@@ -171,7 +171,7 @@ void FlagDialog::MoveSelectedDownCurrentList()
         {
             return;
         }
-        int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
+        unsigned int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
         if (sel < model->GetRowCount() - 1)
         {
             model->SwapRows(sel, sel + 1);
@@ -350,7 +350,7 @@ void FlagDialog::InitLockedDoorTileSwapFlags()
 
 void FlagDialog::UpdateUI()
 {
-    const auto props = m_page_properties[GetSelectedTab()];
+    const auto& props = m_page_properties[GetSelectedTab()];
     m_ctrl_add->Enable(props.add_enabled);
     m_ctrl_delete->Enable(props.delete_enabled);
     m_ctrl_move_up->Enable(props.rearrange_enabled);

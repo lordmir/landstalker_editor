@@ -33,7 +33,8 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
     m_redraw(false),
     m_repaint(false),
     m_hovered(-1, -1),
-    m_selected(-1, -1)
+    m_selected(-1, -1),
+    m_cpysrc(-1, -1)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -61,8 +62,11 @@ void HeightmapEditorCtrl::SetRoomNum(uint16_t roomnum)
     {
         m_roomnum = roomnum;
         m_map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+        m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
+        m_warps = m_g->GetRoomData()->GetWarpsForRoom(roomnum);
+        UpdateSwaps();
+        UpdateDoors();
         RecreateBuffer();
-
     }
 }
 
@@ -76,6 +80,38 @@ void HeightmapEditorCtrl::RefreshGraphics()
 {
     UpdateScroll();
     ForceRedraw();
+}
+
+void HeightmapEditorCtrl::UpdateSwaps()
+{
+    if (m_g)
+    {
+        m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+    }
+}
+
+void HeightmapEditorCtrl::UpdateDoors()
+{
+    if (m_g)
+    {
+        m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+    }
+}
+
+void HeightmapEditorCtrl::UpdateWarps(const std::vector<WarpList::Warp>& warps)
+{
+    if (m_g)
+    {
+        m_warps = warps;
+    }
+}
+
+void HeightmapEditorCtrl::UpdateEntities(const std::vector<Entity>& entities)
+{
+    if (m_g)
+    {
+        m_entities = entities;
+    }
 }
 
 bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
@@ -629,14 +665,8 @@ void HeightmapEditorCtrl::RefreshStatusbar()
     FireUpdateStatusEvent(msg, 0);
 }
 
-void HeightmapEditorCtrl::DrawRoomHeightmap()
+void HeightmapEditorCtrl::DrawRoomHeightmapBackground(wxDC& dc)
 {
-    m_bmp->Create(m_width, m_height);
-    wxMemoryDC dc(*m_bmp);
-
-    dc.SetUserScale(m_zoom, m_zoom);
-    dc.SetBackground(*wxBLACK_BRUSH);
-    dc.Clear();
     if (m_map)
     {
         dc.SetPen(*wxTRANSPARENT_PEN);
@@ -655,10 +685,19 @@ void HeightmapEditorCtrl::DrawRoomHeightmap()
                 dc.DrawPolygon(lines.size(), lines.data(), x, y);
             }
         }
-        // Do stuff
+    }
+}
+
+void HeightmapEditorCtrl::DrawRoomHeightmapForeground(wxDC& dc)
+{
+    if (m_map)
+    {
+        auto lines = GetTilePoly(0, 0);
         auto font = wxFont(wxSize(0, TILE_HEIGHT / 2), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL,
             wxFONTWEIGHT_NORMAL, false);
         dc.SetFont(font);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.SetPen(wxPen(wxColor(128, 128, 128)));
         for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
         {
             for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
@@ -686,9 +725,6 @@ void HeightmapEditorCtrl::DrawRoomHeightmap()
                 }
             }
         }
-        ///
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.SetPen(wxPen(wxColor(128,128,128)));
         for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
         {
             for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
@@ -698,31 +734,122 @@ void HeightmapEditorCtrl::DrawRoomHeightmap()
                 auto restrictions = m_map->GetCellProps({ ix, iy });
                 auto z = m_map->GetHeight({ ix, iy });
                 auto type = m_map->GetCellType({ ix, iy });
-                if (IsCellHidden(restrictions, type, z))
-                {
-                    dc.DrawPolygon(lines.size(), lines.data(), x, y);
-                }
-            }
-        }
-        dc.SetPen(wxPen(wxColor(200,200,200)));
-        for (int iy = 0; iy < m_map->GetHeightmapHeight(); ++iy)
-        {
-            for (int ix = 0; ix < m_map->GetHeightmapWidth(); ++ix)
-            {
-                int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
-                int y = (ix + iy) * TILE_HEIGHT / 2;
-                auto restrictions = m_map->GetCellProps({ ix, iy });
-                auto z = m_map->GetHeight({ ix, iy });
-                auto type = m_map->GetCellType({ ix, iy });
-                if (!IsCellHidden(restrictions, type, z))
-                {
-                    dc.DrawPolygon(lines.size(), lines.data(), x, y);
-                }
+                dc.DrawPolygon(lines.size(), lines.data(), x, y);
             }
         }
     }
+}
 
-    dc.SelectObject(wxNullBitmap);
+void HeightmapEditorCtrl::DrawCellRange(wxDC& dc, float x, float y, float w, float h, int s)
+{
+    int xx = (m_map->GetHeightmapHeight() + x - y - 1) * TILE_WIDTH / 2;
+    int yy = (x + y) * TILE_HEIGHT / 2;
+    auto lines = GetTilePoly(0, 0, w, h, s);
+    dc.DrawPolygon(lines.size(), lines.data(), xx, yy);
+}
+
+void HeightmapEditorCtrl::DrawDoors(wxDC& dc)
+{
+    std::unique_ptr<wxPen> m_door_pen(new wxPen(wxColor(128, 255, 192), 2, wxPENSTYLE_DOT));
+    dc.SetPen(*m_door_pen);
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    for (const auto& door : m_doors)
+    {
+        if (m_map && m_map->GetCellType({ door.x, door.y }) == static_cast<int>(Tilemap3D::FloorType::DOOR_NW))
+        {
+            DrawCellRange(dc, door.x, door.y, 1, Door::SIZES.at(door.size).first, 2);
+        }
+        else
+        {
+            DrawCellRange(dc, door.x, door.y, Door::SIZES.at(door.size).first, 1, 2);
+        }
+    }
+}
+
+void HeightmapEditorCtrl::DrawTileSwaps(wxDC& dc)
+{
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    std::unique_ptr<wxPen> m_swap_src_pen(new wxPen(*wxGREEN, 3, wxPENSTYLE_DOT));
+    std::unique_ptr<wxPen> m_swap_dst_pen(new wxPen(wxColor(64, 192, 255), 3, wxPENSTYLE_DOT));
+    for (const auto& swap : m_swaps)
+    {
+        dc.SetPen(*m_swap_dst_pen);
+        DrawCellRange(dc, swap.heightmap.dst_x, swap.heightmap.dst_y, swap.heightmap.width, swap.heightmap.height, 2);
+        dc.SetPen(*m_swap_src_pen);
+        DrawCellRange(dc, swap.heightmap.src_x, swap.heightmap.src_y, swap.heightmap.width, swap.heightmap.height, 2);
+    }
+}
+
+void HeightmapEditorCtrl::DrawWarps(wxDC& dc)
+{
+    std::unique_ptr<wxPen> m_warp_pen(new wxPen(*wxYELLOW, 2, wxPENSTYLE_SHORT_DASH));
+    dc.SetPen(*m_warp_pen);
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    for (const auto& warp : m_warps)
+    {
+        if (m_roomnum == warp.room1)
+        {
+            DrawCellRange(dc, warp.x1 - 12, warp.y1 - 12, warp.x_size, warp.y_size, 0);
+        }
+        if (m_roomnum == warp.room2)
+        {
+            DrawCellRange(dc, warp.x2 - 12, warp.y2 - 12, warp.x_size, warp.y_size, 0);
+        }
+    }
+}
+
+void HeightmapEditorCtrl::DrawEntities(wxDC& dc)
+{
+    std::unique_ptr<wxBrush> m_entity_brush1(new wxBrush(wxColor(32, 32, 32), wxBRUSHSTYLE_CROSS_HATCH));
+    std::unique_ptr<wxBrush> m_entity_brush2(new wxBrush(wxColor(32, 32, 32), wxBRUSHSTYLE_CROSSDIAG_HATCH));
+    dc.SetPen(*wxBLUE_PEN);
+
+    for (const auto& entity : m_entities)
+    {
+        auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(entity.GetType());
+        dc.SetBrush(*m_entity_brush1);
+        //DrawCellRange(dc, entity.GetXDbl() - 12.5, entity.GetYDbl() - 12.5, hitbox.first / 8.0, hitbox.first / 8.0, 2);
+        dc.SetBrush(*m_entity_brush2);
+        DrawCellRange(dc, entity.GetXDbl() - 12.5, entity.GetYDbl() - 12.5, hitbox.first / 8.0, hitbox.first / 8.0, 2);
+    }
+}
+
+void HeightmapEditorCtrl::DrawSelectionCursors(wxDC& dc)
+{
+    auto lines = GetTilePoly(0, 0);
+    if (m_hovered.first != -1 && m_hovered != m_selected)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
+        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        dc.SetPen(*wxWHITE_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
+    if (m_selected.first != -1 && m_hovered != m_selected)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_selected.first - m_selected.second - 1) * TILE_WIDTH / 2;
+        int y = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
+        dc.SetPen(*wxYELLOW_PEN);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
+    if (m_selected.first != -1 && m_hovered == m_selected)
+    {
+        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
+        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
+        dc.SetPen(wxColor(255, 255, 128));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
+    if (m_cpysrc.first != -1)
+    {
+        std::unique_ptr<wxPen> m_cpysrc_pen(new wxPen(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH));
+        int x = (m_map->GetHeightmapHeight() + m_cpysrc.first - m_cpysrc.second - 1) * TILE_WIDTH / 2;
+        int y = (m_cpysrc.first + m_cpysrc.second) * TILE_HEIGHT / 2;
+        dc.SetPen(*m_cpysrc_pen);
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+    }
 }
 
 void HeightmapEditorCtrl::SetOpacity(wxImage& image, uint8_t opacity)
@@ -765,14 +892,14 @@ bool HeightmapEditorCtrl::UpdateSelectedPosition(int screenx, int screeny)
     return false;
 }
 
-std::vector<wxPoint> HeightmapEditorCtrl::GetTilePoly(int x, int y, int width, int height) const
+std::vector<wxPoint> HeightmapEditorCtrl::GetTilePoly(float x, float y, float cols, float rows, int s, int width, int height) const
 {
     return {
-        wxPoint(x + width / 2, y),
-        wxPoint(x + width    , y + height / 2),
-        wxPoint(x + width / 2, y + height),
-        wxPoint(x            , y + height / 2),
-        wxPoint(x + width / 2, y)
+        wxPoint(x     + (width / 2)                     , y + s                                ),
+        wxPoint(x - s + (width / 2) * (cols + 1)        , y     + (height / 2) * (cols)        ),
+        wxPoint(x     + (width / 2) * (cols - rows + 1) , y - s + (height / 2) * (cols + rows) ),
+        wxPoint(x + s - (width / 2) * (rows - 1)        , y     + (height / 2) * (rows)        ),
+        wxPoint(x     + (width / 2)                     , y + s                                )
     };
 }
 
@@ -835,6 +962,7 @@ void HeightmapEditorCtrl::RecreateBuffer()
     {
         m_selected = { -1, -1 };
     }
+    m_cpysrc = {-1, -1};
     RefreshGraphics();
 }
 
@@ -848,7 +976,7 @@ void HeightmapEditorCtrl::UpdateScroll()
 
 bool HeightmapEditorCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y)
 {
-    int i, j;
+    std::size_t i, j;
     bool c = false;
     for (i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
         if (((poly[i].m_y > y) != (poly[j].m_y > y)) &&
@@ -860,7 +988,7 @@ bool HeightmapEditorCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x
 
 void HeightmapEditorCtrl::GoToRoom(uint16_t room)
 {
-    auto name = m_g->GetRoomData()->GetRoom(room)->name;
+    const auto& name = m_g->GetRoomData()->GetRoom(room)->name;
     FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
 }
 
@@ -903,51 +1031,16 @@ void HeightmapEditorCtrl::FireEvent(const wxEventType& e)
 
 void HeightmapEditorCtrl::OnDraw(wxDC& dc)
 {
-    if (m_redraw)
-    {
-        DrawRoomHeightmap();
-        m_redraw = false;
-    }
-    int sx, sy;
-    GetViewStart(&sx, &sy);
-    sx *= m_scroll_rate;
-    sy *= m_scroll_rate;
-    int sw, sh;
-    GetClientSize(&sw, &sh);
-    wxMemoryDC mdc(*m_bmp);
-    mdc.SetUserScale(1.0, 1.0);
     dc.SetBackground(*wxBLACK_BRUSH);
     dc.Clear();
-    dc.Blit(sx, sy, sw, sh, &mdc, sx, sy, wxCOPY);
     dc.SetUserScale(m_zoom, m_zoom);
-    if (m_hovered.first != -1 && m_hovered != m_selected)
-    {
-        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
-        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
-        auto lines = GetTilePoly(0, 0);
-        dc.SetPen(*wxWHITE_PEN);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawPolygon(lines.size(), lines.data(), x, y);
-    }
-    if (m_selected.first != -1 && m_hovered != m_selected)
-    {
-        int x = (m_map->GetHeightmapHeight() + m_selected.first - m_selected.second - 1) * TILE_WIDTH / 2;
-        int y = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
-        auto lines = GetTilePoly(0, 0);
-        dc.SetPen(*wxYELLOW_PEN);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawPolygon(lines.size(), lines.data(), x, y);
-    }
-    if (m_selected.first != -1 && m_hovered == m_selected)
-    {
-        int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
-        int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
-        auto lines = GetTilePoly(0, 0);
-        dc.SetPen(wxColor(255, 255, 128));
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawPolygon(lines.size(), lines.data(), x, y);
-    }
-    mdc.SelectObject(wxNullBitmap);
+    DrawRoomHeightmapBackground(dc);
+    DrawEntities(dc);
+    DrawRoomHeightmapForeground(dc);
+    DrawWarps(dc);
+    DrawDoors(dc);
+    DrawTileSwaps(dc);
+    DrawSelectionCursors(dc);
 }
 
 void HeightmapEditorCtrl::OnPaint(wxPaintEvent& evt)
@@ -1024,13 +1117,14 @@ std::pair<int, int> HeightmapEditorCtrl::GetHMPosition(int screenx, int screeny)
 
 void HeightmapEditorCtrl::OnLeftClick(wxMouseEvent& evt)
 {
-    if (UpdateSelectedPosition(evt.GetX(), evt.GetY()))
+    UpdateSelectedPosition(evt.GetX(), evt.GetY());
+    if (m_cpysrc.first != -1 && m_selected.first != -1 && m_selected != m_cpysrc)
     {
-        Refresh(false);
-    }
-    else
-    {
-        IncreaseSelectedHeight();
+        m_map->SetHeight({ m_selected.first, m_selected.second}, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second}));
+        m_map->SetCellProps({ m_selected.first, m_selected.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+        m_map->SetCellType({ m_selected.first, m_selected.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+        ForceRedraw();
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
     }
 }
 
@@ -1043,11 +1137,8 @@ void HeightmapEditorCtrl::OnRightClick(wxMouseEvent& evt)
 {
     if (UpdateSelectedPosition(evt.GetX(), evt.GetY()))
     {
+        m_cpysrc = m_selected;
         Refresh(false);
-    }
-    else
-    {
-        DecreaseSelectedHeight();
     }
     
     evt.Skip();

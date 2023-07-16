@@ -27,6 +27,10 @@ public:
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
 	void RefreshGraphics();
+	void UpdateSwaps();
+	void UpdateDoors();
+	void UpdateWarps(const std::vector<WarpList::Warp>& warps);
+	void UpdateEntities(const std::vector<Entity>& entities);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 
@@ -72,7 +76,14 @@ public:
 	void DecrementSelectedType();
 private:
 	void RefreshStatusbar();
-	void DrawRoomHeightmap();
+	void DrawRoomHeightmapBackground(wxDC& dc);
+	void DrawRoomHeightmapForeground(wxDC& dc);
+	void DrawCellRange(wxDC& dc, float x, float y, float w = 1.0f, float h = 1.0f, int s = 1);
+	void DrawDoors(wxDC& dc);
+	void DrawTileSwaps(wxDC& dc);
+	void DrawWarps(wxDC& dc);
+	void DrawEntities(wxDC& dc);
+	void DrawSelectionCursors(wxDC& dc);
 	void ForceRepaint();
 	void ForceRedraw();
 	void RecreateBuffer();
@@ -82,7 +93,7 @@ private:
 	void SetOpacity(wxImage& image, uint8_t opacity);
 	bool IsCoordValid(std::pair<int, int> c);
 
-	std::vector<wxPoint> GetTilePoly(int x, int y, int width = TILE_WIDTH, int height = TILE_HEIGHT) const;
+	std::vector<wxPoint> GetTilePoly(float x, float y, float cols = 1.0f, float rows = 1.0f, int shrink = 0, int width = TILE_WIDTH, int height = TILE_HEIGHT) const;
 	wxColor GetCellBackground(uint8_t restrictions, uint8_t type, uint8_t z);
 	wxColor GetCellBorder(uint8_t restrictions, uint8_t type, uint8_t z);
 	bool IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z);
@@ -118,6 +129,11 @@ private:
 	double m_zoom;
 	std::pair<int, int> m_selected;
 	std::pair<int, int> m_hovered;
+	std::pair<int, int> m_cpysrc;
+	std::vector<Door> m_doors;
+	std::vector<TileSwap> m_swaps;
+	std::vector<Entity> m_entities;
+	std::vector<WarpList::Warp> m_warps;
 
 	std::unique_ptr<wxBitmap> m_bmp;
 

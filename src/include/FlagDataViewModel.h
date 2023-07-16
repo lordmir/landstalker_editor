@@ -376,7 +376,7 @@ protected:
         m_data = m_gd->GetStringData()->GetRoomCharacters(m_roomnum);
         m_list.push_back(wxArrayString());
         m_list[0].clear();
-        for (int i = 0; i < 0x400; ++i)
+        for (std::size_t i = 0; i < 0x400; ++i)
         {
             if (i < m_gd->GetStringData()->GetCharNameCount())
             {

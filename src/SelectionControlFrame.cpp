@@ -89,21 +89,21 @@ void SelectionControlFrame::UpdateUI()
 {
     m_ctrl_list->Freeze();
     m_ctrl_list->Clear();
-    if (m_ctrl_list->GetCount() > GetMaxSelection())
+    if (m_ctrl_list->GetCount() > static_cast<unsigned int>(GetMaxSelection()))
     {
-        for (int i = m_ctrl_list->GetCount(); i >= GetMaxSelection(); --i)
+        for (unsigned int i = m_ctrl_list->GetCount(); i >= static_cast<unsigned int>(GetMaxSelection()); --i)
         {
             m_ctrl_list->Delete(i);
         }
     }
-    else if (m_ctrl_list->GetCount() < GetMaxSelection())
+    else if (m_ctrl_list->GetCount() < static_cast<unsigned int>(GetMaxSelection()))
     {
-        for (int i = m_ctrl_list->GetCount(); i < GetMaxSelection(); ++i)
+        for (unsigned int i = m_ctrl_list->GetCount(); i < static_cast<unsigned int>(GetMaxSelection()); ++i)
         {
             m_ctrl_list->Insert(MakeLabel(i), i);
         }
     }
-    for (int i = 0; i < GetMaxSelection(); ++i)
+    for (unsigned int i = 0; i < static_cast<unsigned int>(GetMaxSelection()); ++i)
     {
         auto label = MakeLabel(i);
         if (m_ctrl_list->GetString(i) != label)
