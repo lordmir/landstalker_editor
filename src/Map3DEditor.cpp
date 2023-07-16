@@ -283,10 +283,15 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
         {
             tsoffsety = 1;
         }
+        auto lines = GetRegionPoly(0, 0, s.map.width, s.map.height, s.mode);
         src = { s.map.src_x - offsetx + tsoffsetx, s.map.src_y - offsety + tsoffsety };
         dst = { s.map.dst_x - offsetx + tsoffsetx, s.map.dst_y - offsety + tsoffsety };
-        DrawCell(dc, src, (src == m_selected || src == m_hovered) ? wxColor(128, 128, 255) : *wxBLUE_PEN, *wxTRANSPARENT_BRUSH);
-        DrawCell(dc, dst, (dst == m_selected || dst == m_hovered) ? wxColor(255, 128, 128) : *wxRED_PEN, *wxTRANSPARENT_BRUSH);
+        auto sp = GetScreenPosition(src);
+        auto dp = GetScreenPosition(dst);
+        dc.SetPen((src == m_selected || src == m_hovered || dst == m_selected || dst == m_hovered) ? wxColor(128, 128, 255) : *wxBLUE_PEN);
+        dc.DrawPolygon(lines.size(), lines.data(), sp.first, sp.second);
+        dc.SetPen((src == m_selected || src == m_hovered || dst == m_selected || dst == m_hovered) ? wxColor(255, 128, 128) : *wxRED_PEN);
+        dc.DrawPolygon(lines.size(), lines.data(), dp.first, dp.second);
     }
 }
 
@@ -314,14 +319,20 @@ void Map3DEditor::DrawDoors(wxDC& dc)
             {
                 --doorxoffset;
             }
-            if (m_layer == Tilemap3D::Layer::FG && type == Tilemap3D::FloorType::DOOR_NE)
+            if (m_layer != Tilemap3D::Layer::FG || type != Tilemap3D::FloorType::DOOR_NE)
             {
-                --doorxoffset;
-                --dooryoffset;
+                ++doorxoffset;
+                ++dooryoffset;
             }
+            doorxoffset -= Door::SIZES.at(d.size).second;
+            dooryoffset -= Door::SIZES.at(d.size).second;
+            auto lines = GetRegionPoly(0, 0, Door::SIZES.at(d.size).first, Door::SIZES.at(d.size).second,
+                type == Tilemap3D::FloorType::DOOR_NE ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW);
             std::pair<int, int> loc{ d.x + 12 - offsetx - z + doorxoffset,
                                      d.y + 12 - offsety - z + dooryoffset };
-            DrawCell(dc, loc, wxColor(255,0,255), *wxTRANSPARENT_BRUSH);
+            dc.SetPen((loc == m_selected || loc == m_hovered) ? wxColor(255, 128, 255) : wxColor(255, 0, 255));
+            auto pos = GetScreenPosition(loc);
+            dc.DrawPolygon(lines.size(), lines.data(), pos.first, pos.second);
         }
     }
 }
@@ -431,6 +442,92 @@ void Map3DEditor::OnShow(wxShowEvent& evt)
 {
     RefreshStatusbar();
     evt.Skip();
+}
+
+std::vector<wxPoint> Map3DEditor::GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode)
+{
+    std::vector<wxPoint> points;
+    int xstep = x;
+    int ystep = y;
+
+    if (mode == TileSwap::Mode::WALL_NW)
+    {
+        xstep += TILE_WIDTH;
+        for (int i = 0; i < w; ++i)
+        {
+            points.push_back({ xstep, ystep });
+            xstep -= TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+            ystep += TILE_HEIGHT / 2;
+        }
+        ystep -= TILE_HEIGHT / 2;
+    }
+    else
+    {
+        for (int i = 0; i < w; ++i)
+        {
+            points.push_back({ xstep, ystep });
+            xstep += TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+            ystep += TILE_HEIGHT / 2;
+        }
+    }
+    if (mode == TileSwap::Mode::FLOOR)
+    {
+        for (int i = 0; i < h; ++i)
+        {
+            ystep += TILE_HEIGHT / 2;
+            points.push_back({ xstep, ystep });
+            xstep -= TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+        }
+    }
+    else
+    {
+        ystep += TILE_HEIGHT * h;
+    }
+    if (mode == TileSwap::Mode::WALL_NW)
+    {
+        for (int i = 1; i < w; ++i)
+        {
+            points.push_back({ xstep, ystep });
+            xstep += TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+            ystep -= TILE_HEIGHT / 2;
+        }
+        //ystep += TILE_HEIGHT / 2;
+    }
+    else
+    {
+        ystep -= TILE_HEIGHT / 2;
+        for (int i = 1; i < w; ++i)
+        {
+            points.push_back({ xstep, ystep });
+            xstep -= TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+            ystep -= TILE_HEIGHT / 2;
+        }
+    }
+    if (mode == TileSwap::Mode::FLOOR)
+    {
+        for (int i = 1; i < h; ++i)
+        {
+            ystep -= TILE_HEIGHT / 2;
+            points.push_back({ xstep, ystep });
+            xstep += TILE_WIDTH;
+            points.push_back({ xstep, ystep });
+        }
+    }
+    else
+    {
+        points.push_back({ xstep, ystep });
+        xstep += mode == TileSwap::Mode::WALL_NW ? static_cast<int>(TILE_WIDTH) : -static_cast<int>(TILE_WIDTH);
+        points.push_back({ xstep, ystep });
+        ystep -= TILE_HEIGHT * h;
+        points.push_back({ xstep, ystep });
+    }
+
+    return points;
 }
 
 std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny) const

@@ -50,6 +50,7 @@ private:
 	void OnLeftClick(wxMouseEvent& evt);
 	void OnRightClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
+	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
 
 	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny) const;
 	std::pair<int, int> GetCellPosition(int screenx, int screeny) const;

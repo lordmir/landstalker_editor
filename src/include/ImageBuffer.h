@@ -47,7 +47,6 @@ private:
 	mutable std::vector<uint8_t> m_rgb;
 	mutable std::vector<uint8_t> m_rgba;
 	mutable std::vector<uint8_t> m_alpha;
-	mutable bool m_pixels_stale;
 	mutable wxImage m_img;
 };
 

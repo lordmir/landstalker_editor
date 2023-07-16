@@ -204,9 +204,9 @@ bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
 	fs << static_cast<int>(m_map->GetData()->GetCompression()) << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
 	   << "," << m_map->GetData()->GetTop() << std::endl;
 
-	for (int y = 0; y < m_map->GetData()->GetHeight(); ++y)
+	for (std::size_t y = 0; y < m_map->GetData()->GetHeight(); ++y)
 	{
-		for (int x = 0; x < m_map->GetData()->GetWidth(); ++x)
+		for (std::size_t x = 0; x < m_map->GetData()->GetWidth(); ++x)
 		{
 			fs << StrPrintf("0x%04X", m_map->GetData()->GetTile(x, y).GetTileValue());
 			if ((x + 1) == m_map->GetData()->GetWidth())

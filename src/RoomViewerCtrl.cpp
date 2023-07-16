@@ -182,7 +182,7 @@ int RoomViewerCtrl::GetTotalEntities() const
 
 bool RoomViewerCtrl::IsEntitySelected() const
 {
-    return (m_selected > 0 && m_selected <= m_entities.size());
+    return (m_selected > 0 && m_selected <= static_cast<int>(m_entities.size()));
 }
 
 int RoomViewerCtrl::GetSelectedEntityIndex() const
@@ -215,9 +215,9 @@ const std::vector<WarpList::Warp>& RoomViewerCtrl::GetWarps() const
 
 void RoomViewerCtrl::SelectWarp(int selection)
 {
-    bool warp_currently_selected = (m_selected > 0x100 && m_selected <= m_warps.size() + 0x100);
+    bool warp_currently_selected = (m_selected > 0x100 && m_selected <= static_cast<int>(m_warps.size() + 0x100));
     int cur_sel = warp_currently_selected ? m_selected : -1;
-    int new_sel = (selection > 0 && selection <= m_warps.size()) ? selection + 0x100 : -1;
+    int new_sel = (selection > 0 && selection <= static_cast<int>(m_warps.size())) ? selection + 0x100 : -1;
 
     if ((warp_currently_selected && new_sel == -1) || (cur_sel != new_sel && new_sel != -1))
     {
@@ -248,7 +248,7 @@ int RoomViewerCtrl::GetTotalWarps() const
 
 bool RoomViewerCtrl::IsWarpSelected() const
 {
-    return (m_selected > 0x100 && m_selected <= m_warps.size() + 0x100);
+    return (m_selected > 0x100 && m_selected <= static_cast<int>(m_warps.size() + 0x100));
 }
 
 const WarpList::Warp& RoomViewerCtrl::GetSelectedWarp() const
@@ -701,7 +701,7 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
     gc->Scale(m_zoom, m_zoom);
     gc->SetPen(*wxWHITE_PEN);
     gc->SetBrush(*wxBLACK_BRUSH);
-    for (int i = 0; i < m_warps.size(); ++i)
+    for (std::size_t i = 0; i < m_warps.size(); ++i)
     {
         DrawWarp(*gc, i, map, TILE_WIDTH, TILE_HEIGHT, false);
     }
@@ -1060,7 +1060,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
         {
             m_selected = -1;
         }
-        else if (idx > m_warps.size())
+        else if (idx > static_cast<int>(m_warps.size()))
         {
             m_selected = 0x100 + m_warps.size();
         }
@@ -1150,7 +1150,7 @@ const std::string& RoomViewerCtrl::GetStatusText() const
 
 bool RoomViewerCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int y)
 {
-    int i, j;
+    std::size_t i, j;
     bool c = false;
     for (i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
         if (((poly[i].m_y > y) != (poly[j].m_y > y)) &&
@@ -1339,7 +1339,7 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
 
 void RoomViewerCtrl::UpdateEntityProperties(int entity)
 {
-    if (entity > 0 && entity <= m_entities.size())
+    if (entity > 0 && entity <= static_cast<int>(m_entities.size()))
     {
         EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1]);
         if (dlg.ShowModal() == wxID_OK)
@@ -1386,7 +1386,7 @@ void RoomViewerCtrl::MoveSelectedEntityUp()
 
 void RoomViewerCtrl::MoveSelectedEntityDown()
 {
-    if (m_selected < m_entities.size())
+    if (m_selected < static_cast<int>(m_entities.size()))
     {
         DoMoveEntityDown(m_selected);
         m_selected++;
@@ -1717,7 +1717,7 @@ bool RoomViewerCtrl::HandleNEntityKeyDown(unsigned int key, unsigned int modifie
             }
             break;
         case ']':
-            if (m_selected < m_entities.size())
+            if (m_selected < static_cast<int>(m_entities.size()))
             {
                 DoMoveEntityDown(m_selected);
                 m_selected++;
@@ -1906,14 +1906,14 @@ void RoomViewerCtrl::DoAddEntity()
 
 void RoomViewerCtrl::DoDeleteEntity(int entity)
 {
-    if (entity > 0 && entity <= m_entities.size())
+    if (entity > 0 && entity <= static_cast<int>(m_entities.size()))
     {
         m_entities.erase(m_entities.begin() + (m_selected - 1));
         if (m_entities.size() == 0)
         {
             m_selected = -1;
         }
-        else if (m_selected > m_entities.size())
+        else if (m_selected > static_cast<int>(m_entities.size()))
         {
             m_selected = m_entities.size();
         }

@@ -218,17 +218,17 @@ std::string AsmFile::ToAsmValue(T value, AsmFile::Base base)
 	const char digits[] = "0123456789ABCDEF";
 	std::unordered_map<Base, std::array<int, 5>> places_u =
 	{
-		{BIN, {0, 8, 16, 24, 32}},
-		{OCT, {0, 3,  6,  8, 11}},
-		{DEC, {0, 3,  5,  8, 10}},
-		{HEX, {0, 2,  4,  6,  8}}
+		{Base::BIN, {0, 8, 16, 24, 32}},
+		{Base::OCT, {0, 3,  6,  8, 11}},
+		{Base::DEC, {0, 3,  5,  8, 10}},
+		{Base::HEX, {0, 2,  4,  6,  8}}
 	};
 	std::unordered_map<Base, std::array<int, 5>> places_s =
 	{
-		{BIN, {0, 7, 15, 23, 31}},
-		{OCT, {0, 3,  5,  8, 11}},
-		{DEC, {0, 3,  5,  7, 10}},
-		{HEX, {0, 2,  4,  6,  8}}
+		{Base::BIN, {0, 7, 15, 23, 31}},
+		{Base::OCT, {0, 3,  5,  8, 11}},
+		{Base::DEC, {0, 3,  5,  7, 10}},
+		{Base::HEX, {0, 2,  4,  6,  8}}
 	};
 	std::string num;
 	bool neg = false;
@@ -256,16 +256,16 @@ std::string AsmFile::ToAsmValue(T value, AsmFile::Base base)
 
 	for (int i = 0; i < places; i++)
 	{
-		num += digits[v % base];
-		v /= base;
+		num += digits[v % static_cast<int>(base)];
+		v /= static_cast<int>(base);
 	}
 	if (num.empty())
 	{
 		num = '0';
 	}
-	if (bases[base] != ' ')
+	if (bases[static_cast<int>(base)] != ' ')
 	{
-		num += bases[base];
+		num += bases[static_cast<int>(base)];
 	}
 	if (neg)
 	{

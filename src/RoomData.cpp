@@ -10,7 +10,7 @@ std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
     std::vector<TileSwapFlag> flags;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
     int i = 0;
-    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
         flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
     }
@@ -39,7 +39,7 @@ std::vector<TreeWarpFlag> DecodeTreeWarp(const ByteVector& data)
     std::vector<TreeWarpFlag> flags;
     assert(data.size() % TreeWarpFlag::SIZE == 2);
     int i = 0;
-    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 8)
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 8)
     {
         std::array<uint8_t, TreeWarpFlag::SIZE> bytes;
         std::copy_n(data.begin() + i, TreeWarpFlag::SIZE, bytes.begin());
@@ -67,7 +67,7 @@ std::map<uint16_t, uint16_t> DecodeToMap(const ByteVector& data)
     std::map<uint16_t, uint16_t> map;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
     int i = 0;
-    for (int i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
         uint16_t room = (data[i] << 8) | data[i + 1];
         uint16_t flag = (data[i + 2] << 3) | (data[i + 3] & 0x07);
@@ -96,7 +96,7 @@ std::set<uint16_t> DecodeToSet(const ByteVector& data, bool terminate = true)
 {
     std::set<uint16_t> set;
     assert(data.size() % sizeof(uint16_t) == 0);
-    for (int i = 0; i < data.size(); i += 2)
+    for (std::size_t i = 0; i < data.size(); i += 2)
     {
         if (terminate && data[i] == 0xFF)
         {
@@ -1978,7 +1978,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         auto e = AnimatedTilesetEntry::Create(this, tilesets[addr], name, filename, base, length, speed, frames, *idx);
         e->SetStartAddress(addr);
         e->SetPointerName(ptrname);
-        e->SetIndex(*idx, subts - 1);
+        e->SetIndex(*idx, static_cast<uint8_t>(subts - 1));
         m_animated_ts.insert({ e->GetIndex(), e });
         m_animated_ts_by_name.insert({ name, e });
         m_animated_ts_by_ptr.insert({ ptrname, e });
@@ -2077,7 +2077,7 @@ bool RoomData::AsmSaveMaps(const filesystem::path& dir)
         file.WriteFileHeader(m_map_data_filename, "Map data include file");
         for (auto& map : m_maps)
         {
-            file << AsmFile::Label(map.first) << AsmFile::IncludeFile(map.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(map.first) << AsmFile::IncludeFile(map.second->GetFilename(), AsmFile::FileType::BINARY);
             if (!map.second->Save(dir))
             {
                 return false;
@@ -2140,7 +2140,7 @@ bool RoomData::AsmSaveRoomPalettes(const filesystem::path& dir)
             {
                 return false;
             }
-            file << AsmFile::Label(palette->GetName()) << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(palette->GetName()) << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::FileType::BINARY);
         }
         file.WriteFile(dir / m_palette_data_filename);
         return true;
@@ -2230,7 +2230,7 @@ bool RoomData::AsmSaveBlocksetData(const filesystem::path& dir)
         file.WriteFileHeader(m_blockset_data_filename, "Blockset data include file");
         for (const auto& bs : m_blocksets)
         {
-            file << AsmFile::Label(bs.second->GetName()) << AsmFile::IncludeFile(bs.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(bs.second->GetName()) << AsmFile::IncludeFile(bs.second->GetFilename(), AsmFile::FileType::BINARY);
             bs.second->Save(dir);
         }
         auto incfname = dir / m_blockset_data_filename;
@@ -2251,16 +2251,16 @@ bool RoomData::AsmSaveTilesetData(const filesystem::path& dir)
         file.WriteFileHeader(m_tileset_data_filename, "Tileset data include file");
         for (const auto& ts : m_tilesets)
         {
-            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::FileType::BINARY);
             ts.second->Save(dir);
         }
         file << AsmFile::Align(2);
         for (const auto& ts : m_animated_ts)
         {
-            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::FileType::BINARY);
             ts.second->Save(dir);
         }
-        file << AsmFile::Label(m_intro_font->GetName()) << AsmFile::IncludeFile(m_intro_font->GetFilename(), AsmFile::BINARY);
+        file << AsmFile::Label(m_intro_font->GetName()) << AsmFile::IncludeFile(m_intro_font->GetFilename(), AsmFile::FileType::BINARY);
         m_intro_font->Save(dir);
         auto incfname = dir / m_tileset_data_filename;
         file.WriteFile(incfname);

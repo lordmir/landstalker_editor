@@ -91,7 +91,7 @@ void CharacterDialog::DeleteRow()
 {
     if (m_ctrl_list->HasSelection())
     {
-        int sel = reinterpret_cast<intptr_t>(m_ctrl_list->GetSelection().GetID()) - 1;
+        unsigned int sel = reinterpret_cast<intptr_t>(m_ctrl_list->GetSelection().GetID()) - 1;
         m_model->DeleteRow(sel);
         if (m_model->GetRowCount() > sel)
         {

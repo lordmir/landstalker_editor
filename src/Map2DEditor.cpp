@@ -122,8 +122,8 @@ void Map2DEditor::RedrawTiles(int index)
 	}
 	else
 	{
-		for (int x = 0; x < m_map->GetWidth(); ++x)
-			for (int y = 0; y < m_map->GetHeight(); ++y)
+		for (std::size_t x = 0; x < m_map->GetWidth(); ++x)
+			for (std::size_t y = 0; y < m_map->GetHeight(); ++y)
 			{
 				if (m_map->GetTile(x, y).GetIndex() == index)
 				{
@@ -216,7 +216,7 @@ std::shared_ptr<Tileset> Map2DEditor::GetTileset()
 
 std::shared_ptr<Palette> Map2DEditor::GetPalette()
 {
-	return std::shared_ptr<Palette>(&GetSelectedPalette());
+	return GetSelectedPalette();
 }
 
 std::shared_ptr<Tilemap2D> Map2DEditor::GetMap()
@@ -433,9 +433,9 @@ void Map2DEditor::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 	brush.SetStyle(wxBRUSHSTYLE_SOLID);
 	dc.SetPen(pen);
 
-	auto tile_pixels = m_tileset->GetTileBGRA(tile, GetSelectedPalette());
+	auto tile_pixels = m_tileset->GetTileBGRA(tile, *GetSelectedPalette());
 
-	for (int i = 0; i < tile_pixels.size(); ++i)
+	for (std::size_t i = 0; i < tile_pixels.size(); ++i)
 	{
 		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
 		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
@@ -573,9 +573,9 @@ void Map2DEditor::ForceRedraw()
 	Refresh();
 }
 
-Palette& Map2DEditor::GetSelectedPalette()
+std::shared_ptr<Palette> Map2DEditor::GetSelectedPalette()
 {
-	return *m_active_palette->GetData();
+	return m_active_palette->GetData();
 }
 
 Map2DEditor::TilePosition Map2DEditor::ToPosition(int index) const
@@ -673,8 +673,8 @@ void Map2DEditor::OnDraw(wxDC& dc)
 	if (m_redraw_all == true)
 	{
 		m_redraw_list.clear();
-		for (int x = 0; x < m_map->GetWidth(); ++x)
-			for (int y = 0; y < m_map->GetHeight(); ++y)
+		for (std::size_t x = 0; x < m_map->GetWidth(); ++x)
+			for (std::size_t y = 0; y < m_map->GetHeight(); ++y)
 			{
 				int i = x + y * m_map->GetWidth();
 				if (!DrawTileAtPosition(m_memdc, x, y))
@@ -689,7 +689,7 @@ void Map2DEditor::OnDraw(wxDC& dc)
 		auto it = m_redraw_list.begin();
 		while (it != m_redraw_list.end())
 		{
-			if ((*it >= 0) && (*it < (m_map->GetWidth() * m_map->GetHeight())))
+			if ((*it >= 0) && (*it < static_cast<int>(m_map->GetWidth() * m_map->GetHeight())))
 			{
 				int x = *it % m_map->GetWidth();
 				int y = *it / m_map->GetWidth();
@@ -798,7 +798,7 @@ void Map2DEditor::FireTilesetEvent(const wxEventType& e, const std::string& data
 
 bool Map2DEditor::InsertRow(int row)
 {
-	if (row > m_map->GetHeight())
+	if (row > static_cast<int>(m_map->GetHeight()))
 	{
 		return false;
 	}
@@ -812,7 +812,7 @@ bool Map2DEditor::InsertRow(int row)
 
 bool Map2DEditor::DeleteRow(int row)
 {
-	if (row >= m_map->GetHeight())
+	if (row >= static_cast<int>(m_map->GetHeight()))
 	{
 		return false;
 	}
@@ -826,7 +826,7 @@ bool Map2DEditor::DeleteRow(int row)
 
 bool Map2DEditor::InsertColumn(int column)
 {
-	if (column > m_map->GetWidth())
+	if (column > static_cast<int>(m_map->GetWidth()))
 	{
 		return false;
 	}
@@ -840,7 +840,7 @@ bool Map2DEditor::InsertColumn(int column)
 
 bool Map2DEditor::DeleteColumn(int column)
 {
-	if (column >= m_map->GetWidth())
+	if (column >= static_cast<int>(m_map->GetWidth()))
 	{
 		return false;
 	}

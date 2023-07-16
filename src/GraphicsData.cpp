@@ -2270,10 +2270,10 @@ bool GraphicsData::AsmSaveSwordFx(const filesystem::path& dir)
 		AsmFile file;
 		file.WriteFileHeader(m_sword_fx_path, "Magic Sword Effects");
 		auto invmap = m_ui_tilemaps_internal[RomOffsets::Graphics::INV_TILEMAP];
-		file << AsmFile::Label(invmap->GetName()) << AsmFile::IncludeFile(invmap->GetFilename(), AsmFile::BINARY);
+		file << AsmFile::Label(invmap->GetName()) << AsmFile::IncludeFile(invmap->GetFilename(), AsmFile::FileType::BINARY);
 		for (const auto& t : m_sword_fx)
 		{
-			file << AsmFile::Label(t.first) << AsmFile::IncludeFile(t.second->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(t.first) << AsmFile::IncludeFile(t.second->GetFilename(), AsmFile::FileType::BINARY);
 		}
 		file.WriteFile(dir / m_sword_fx_path);
 		return true;
@@ -2303,7 +2303,7 @@ bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
 		file.WriteFileHeader(m_status_fx_path, "Status Effects Data File");
 		for (const auto& frame : m_status_fx_frames)
 		{
-			file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::FileType::BINARY);
 		}
 		file.WriteFile(dir / m_status_fx_path);
 		return true;
@@ -2321,13 +2321,13 @@ bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
 		AsmFile file;
 		file.WriteFileHeader(m_end_credits_path, "End Credits Data File");
 		file << AsmFile::Label(m_end_credits_palette->GetName())
-			<< AsmFile::IncludeFile(m_end_credits_palette->GetFilename(), AsmFile::BINARY);
+			<< AsmFile::IncludeFile(m_end_credits_palette->GetFilename(), AsmFile::FileType::BINARY);
 		const auto& font = m_fonts_internal[RomOffsets::Graphics::END_CREDITS_FONT];
-		file << AsmFile::Label(font->GetName()) << AsmFile::IncludeFile(font->GetFilename(), AsmFile::BINARY);
+		file << AsmFile::Label(font->GetName()) << AsmFile::IncludeFile(font->GetFilename(), AsmFile::FileType::BINARY);
 		file << AsmFile::Label(m_end_credits_tileset->GetName())
-			<< AsmFile::IncludeFile(m_end_credits_tileset->GetFilename(), AsmFile::BINARY);
+			<< AsmFile::IncludeFile(m_end_credits_tileset->GetFilename(), AsmFile::FileType::BINARY);
 		file << AsmFile::Label(m_end_credits_map->GetName())
-			<< AsmFile::IncludeFile(m_end_credits_map->GetFilename(), AsmFile::BINARY);
+			<< AsmFile::IncludeFile(m_end_credits_map->GetFilename(), AsmFile::FileType::BINARY);
 		file.WriteFile(dir / m_end_credits_path);
 		return true;
 	}
@@ -2345,7 +2345,7 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 		file.WriteFileHeader(m_island_map_path, "Island Map Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
 		write_include(m_island_map_tiles_internal[RomOffsets::Graphics::ISLAND_MAP_FG_TILES]);
 		write_include(m_island_map_tilemaps_internal[RomOffsets::Graphics::ISLAND_MAP_FG_MAP]);
@@ -2374,7 +2374,7 @@ bool GraphicsData::AsmSaveLithographData(const filesystem::path& dir)
 		file.WriteFileHeader(m_lithograph_path, "Lithograph Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
 		write_include(m_lithograph_palette);
 		write_include(m_lithograph_tileset);
@@ -2398,13 +2398,13 @@ bool GraphicsData::AsmSaveTitleScreenData(const filesystem::path& dir)
 		file.WriteFileHeader(m_title_path, "Title Screen Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
-		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_1) << AsmFile::IncludeFile(m_title_routines_1_path, AsmFile::ASSEMBLER);
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_1) << AsmFile::IncludeFile(m_title_routines_1_path, AsmFile::FileType::ASSEMBLER);
 		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_BLUE]);
-		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_2) << AsmFile::IncludeFile(m_title_routines_2_path, AsmFile::ASSEMBLER);
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_2) << AsmFile::IncludeFile(m_title_routines_2_path, AsmFile::FileType::ASSEMBLER);
 		write_include(m_title_pals_internal[RomOffsets::Graphics::TITLE_PALETTE_YELLOW]);
-		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_3) << AsmFile::IncludeFile(m_title_routines_3_path, AsmFile::ASSEMBLER);
+		file << AsmFile::Label(RomOffsets::Graphics::TITLE_ROUTINES_3) << AsmFile::IncludeFile(m_title_routines_3_path, AsmFile::FileType::ASSEMBLER);
 		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_1_TILES]);
 		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_2_TILES]);
 		write_include(m_title_tiles_internal[RomOffsets::Graphics::TITLE_3_TILES]);
@@ -2432,13 +2432,13 @@ bool GraphicsData::AsmSaveSegaLogoData(const filesystem::path& dir)
 		file.WriteFileHeader(m_sega_logo_path, "Sega Logo Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
 		file << AsmFile::Label(RomOffsets::Graphics::SEGA_LOGO_ROUTINES1)
-			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES1_FILE, AsmFile::ASSEMBLER);
+			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES1_FILE, AsmFile::FileType::ASSEMBLER);
 		write_include(m_sega_logo_palette);
 		file << AsmFile::Label(RomOffsets::Graphics::SEGA_LOGO_ROUTINES2)
-			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES2_FILE, AsmFile::ASSEMBLER);
+			 << AsmFile::IncludeFile(RomOffsets::Graphics::SEGA_LOGO_ROUTINES2_FILE, AsmFile::FileType::ASSEMBLER);
 		write_include(m_sega_logo_tileset);
 		file << AsmFile::Align(2);
 
@@ -2459,7 +2459,7 @@ bool GraphicsData::AsmSaveClimaxLogoData(const filesystem::path& dir)
 		file.WriteFileHeader(m_climax_logo_path, "Climax Logo Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
 		write_include(m_climax_logo_tileset);
 		write_include(m_climax_logo_map);
@@ -2483,20 +2483,20 @@ bool GraphicsData::AsmSaveGameLoadData(const filesystem::path& dir)
 		file.WriteFileHeader(m_load_game_path, "Load Game Screen Data File");
 		auto write_include = [&](const auto& data)
 		{
-			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::Label(data->GetName()) << AsmFile::IncludeFile(data->GetFilename(), AsmFile::FileType::BINARY);
 		};
 		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_1)
-			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_1_FILE, AsmFile::ASSEMBLER);
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_1_FILE, AsmFile::FileType::ASSEMBLER);
 		write_include(m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PALETTE]);
 		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_2)
-			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_2_FILE, AsmFile::ASSEMBLER);
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_2_FILE, AsmFile::FileType::ASSEMBLER);
 		write_include(m_load_game_pals_internal[RomOffsets::Graphics::GAME_LOAD_PLAYER_PALETTE]);
 		write_include(m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_CHARS]);
 		write_include(m_load_game_tiles_internal[RomOffsets::Graphics::GAME_LOAD_TILES]);
 		write_include(m_load_game_map);
 		file << AsmFile::Align(2);
 		file << AsmFile::Label(RomOffsets::Graphics::GAME_LOAD_ROUTINES_3)
-			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_3_FILE, AsmFile::ASSEMBLER);
+			<< AsmFile::IncludeFile(RomOffsets::Graphics::GAME_LOAD_ROUTINES_3_FILE, AsmFile::FileType::ASSEMBLER);
 
 		file.WriteFile(dir / m_load_game_path);
 		return true;

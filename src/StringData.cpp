@@ -1681,15 +1681,15 @@ bool StringData::AsmSaveStringTables(const filesystem::path& dir)
 	{
 		AsmFile file;
 		file.WriteFileHeader(m_string_table_path, "String Tables");
-		file << AsmFile::Label(RomOffsets::Strings::CHAR_NAME_TABLE) << AsmFile::IncludeFile(m_char_table_path, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Strings::CHAR_NAME_TABLE) << AsmFile::IncludeFile(m_char_table_path, AsmFile::FileType::BINARY);
 		file << AsmFile::Align(2);
-		file << AsmFile::Label(RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE) << AsmFile::IncludeFile(m_schar_table_path, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Strings::SPECIAL_CHAR_NAME_TABLE) << AsmFile::IncludeFile(m_schar_table_path, AsmFile::FileType::BINARY);
 		file << AsmFile::Align(2);
-		file << AsmFile::Label(RomOffsets::Strings::DEFAULT_NAME) << AsmFile::IncludeFile(m_dchar_table_path, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Strings::DEFAULT_NAME) << AsmFile::IncludeFile(m_dchar_table_path, AsmFile::FileType::BINARY);
 		file << AsmFile::Align(2);
-		file << AsmFile::Label(RomOffsets::Strings::ITEM_NAME_TABLE) << AsmFile::IncludeFile(m_item_table_path, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Strings::ITEM_NAME_TABLE) << AsmFile::IncludeFile(m_item_table_path, AsmFile::FileType::BINARY);
 		file << AsmFile::Align(2);
-		file << AsmFile::Label(RomOffsets::Strings::MENU_STRING_TABLE) << AsmFile::IncludeFile(m_menu_table_path, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Strings::MENU_STRING_TABLE) << AsmFile::IncludeFile(m_menu_table_path, AsmFile::FileType::BINARY);
 		file << AsmFile::Align(2);
 		file.WriteFile(dir / m_string_table_path);
 		ByteVector cbytes, sbytes, dbytes, ibytes, mbytes;

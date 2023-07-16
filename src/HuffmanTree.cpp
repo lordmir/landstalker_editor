@@ -55,7 +55,7 @@ size_t HuffmanTree::DecodeTree(const uint8_t* tree_data, size_t offset, size_t b
 			else
 			{
 				// We should never get here
-				std::runtime_error("Huffman tree corruption detected.");
+				throw std::runtime_error("Huffman tree corruption detected.");
 			}
 		}
 		else // leaf

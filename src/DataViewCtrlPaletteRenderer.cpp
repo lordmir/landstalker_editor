@@ -37,7 +37,7 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
         r.y += SWATCH_SEPARATION / 2;
         wxRect sel_r = wxRect(r).Deflate(1);
 
-        for (int i = 0; i < palette_size; ++i)
+        for (std::size_t i = 0; i < palette_size; ++i)
         {
             bool selected = active && i == sel;
             dc->SetPen(selected ? *wxRED_PEN : *wxBLACK_PEN);
@@ -111,7 +111,7 @@ int DataViewCtrlPaletteRenderer::HitColour(const wxPoint& point, bool range_chec
     {
         int col_idx = point.x / (SWATCH_WIDTH + SWATCH_SEPARATION);
         const auto& palette = m_pal->GetData();
-        std::size_t palette_size = palette->GetSize();
+        int palette_size = static_cast<int>(palette->GetSize());
         if (!range_check || col_idx < palette_size)
         {
             return col_idx;

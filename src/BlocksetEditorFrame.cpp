@@ -153,7 +153,7 @@ void BlocksetEditorFrame::ExportPng(const std::string& filename) const
 	int pixelwidth = blockwidth * width;
 	int pixelheight = blockheight * height;
 	ImageBuffer buf(pixelwidth, pixelheight);
-	int i = 0;
+	std::size_t i = 0;
 	for (int y = 0; y < pixelheight; y += blockheight)
 	{
 		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
@@ -172,9 +172,9 @@ void BlocksetEditorFrame::ExportCsv(const std::string& filename) const
 {
 	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
 
-	for (int y = 0; y < m_blocks->GetData()->size(); ++y)
+	for (std::size_t y = 0; y < m_blocks->GetData()->size(); ++y)
 	{
-		for (int x = 0; x < 4; ++x)
+		for (std::size_t x = 0; x < 4; ++x)
 		{
 			fs << StrPrintf("0x%04X", m_blocks->GetData()->at(y).GetTile(x).GetTileValue());
 			if (x == 3)

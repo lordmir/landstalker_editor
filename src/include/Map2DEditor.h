@@ -104,7 +104,7 @@ private:
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
 	void ForceRedraw();
-	Palette& GetSelectedPalette();
+	std::shared_ptr<Palette> GetSelectedPalette();
 	TilePosition ToPosition(int index) const;
 	int ToIndex(const TilePosition& tp) const;
 	int ConvertXYToTileIdx(const wxPoint& point) const;

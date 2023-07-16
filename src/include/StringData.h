@@ -12,7 +12,7 @@
 class StringData : public DataManager
 {
 public:
-    enum Type
+    enum class Type
     {
         MAIN,
         INTRO,

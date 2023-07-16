@@ -171,7 +171,8 @@ class SpriteFrameEntry : public DataManager::Entry<SpriteFrame>, public PaletteP
 {
 public:
 	SpriteFrameEntry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
-		: Entry(owner, b, name, filename)
+		: Entry(owner, b, name, filename),
+		  m_sprite(0)
 	{}
 
 	static std::shared_ptr<SpriteFrameEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);

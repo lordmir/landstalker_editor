@@ -179,7 +179,7 @@ bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
 		{
 			PushNextLine();
 		}
-		if (type == BINARY)
+		if (type == FileType::BINARY)
 		{
 			WriteBytes(ToBinary(), filename.str());
 			return true;
@@ -208,7 +208,7 @@ std::ostream& AsmFile::PrintFile(std::ostream& stream)
 	{
 		PushNextLine();
 	}
-	if (m_type == ASSEMBLER)
+	if (m_type == FileType::ASSEMBLER)
 	{
 		for (const auto& line : m_asm)
 		{
@@ -265,7 +265,7 @@ void AsmFile::WriteFileHeader(const filesystem::path& p, const std::string& shor
 	*this << AsmFile::Comment(PrintCentered(short_description));
 	*this << AsmFile::Comment(PrintCentered(p.str()));
 	*this << AsmFile::Comment(PrintCentered(""));
-	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor:"));
+	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor v0.3:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_editor"));
 	*this << AsmFile::Comment(PrintCentered("For use with the Landstalker disassembly:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_disasm"));
@@ -406,7 +406,7 @@ bool AsmFile::Write(const IncludeFile& file)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == FileType::ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
 	m_nextline.operand = "\"";
 	m_nextline.operand += file.path.str();
 	m_nextline.operand += "\"";
@@ -586,14 +586,14 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DCB>(const AsmFile::AsmLine& line)
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::INCLUDE>(const AsmFile::AsmLine& line)
 {
-	m_data.push_back(IncludeFile(line.operand, ASSEMBLER));
+	m_data.push_back(IncludeFile(line.operand, FileType::ASSEMBLER));
 	return true;
 }
 
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::INCBIN>(const AsmFile::AsmLine& line)
 {
-	m_data.push_back(IncludeFile(line.operand, BINARY));
+	m_data.push_back(IncludeFile(line.operand, FileType::BINARY));
 	return true;
 }
 
@@ -670,42 +670,42 @@ std::string AsmFile::ToAsmValue(const std::string& value)
 
 std::string AsmFile::ToAsmValue(uint64_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int64_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint32_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int32_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint16_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int16_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint8_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int8_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 void AsmFile::PushNextLine()

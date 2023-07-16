@@ -10,7 +10,7 @@ template <std::size_t N>
 std::vector<std::array<uint8_t, N>> DeserialiseFixedWidth(const std::vector<uint8_t>& bytes)
 {
 	std::vector<std::array<uint8_t, N>> result;
-	int i = 0, j = 0;
+	std::size_t i = 0, j = 0;
 	result.push_back(std::array<uint8_t, N>());
 	while (i < bytes.size())
 	{
@@ -61,7 +61,7 @@ template <std::size_t N>
 std::map<uint8_t, std::array<uint8_t, N>> DeserialiseMap(const std::vector<uint8_t>& bytes)
 {
 	std::map<uint8_t, std::array<uint8_t, N>> result;
-	int i = 0, j = 0;
+	std::size_t i = 0, j = 0;
 	uint8_t key = bytes[i++];
 	std::array<uint8_t, N> buf;
 	while (i < bytes.size())
@@ -110,7 +110,7 @@ std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, std::array<uint8_t, N>
 std::map<uint8_t, uint8_t> DeserialiseMap(const std::vector<uint8_t>& bytes, bool reverse_key_value = false)
 {
 	std::map<uint8_t, uint8_t> result;
-	int i = 0, j = 0;
+	std::size_t i = 0, j = 0;
 	while (i < bytes.size())
 	{
 		uint8_t key = bytes[i++];
@@ -804,7 +804,7 @@ std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
 
 uint8_t SpriteData::GetLoPaletteCount() const
 {
-	return m_lo_palettes.size();
+	return static_cast<uint8_t>(m_lo_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetLoPalette(uint8_t idx) const
@@ -815,7 +815,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetLoPalette(uint8_t idx) const
 
 uint8_t SpriteData::GetHiPaletteCount() const
 {
-	return m_hi_palettes.size();
+	return static_cast<uint8_t>(m_hi_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetHiPalette(uint8_t idx) const
@@ -826,7 +826,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetHiPalette(uint8_t idx) const
 
 uint8_t SpriteData::GetProjectile1PaletteCount() const
 {
-	return m_projectile1_palettes.size();
+	return static_cast<uint8_t>(m_projectile1_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetProjectile1Palette(uint8_t idx) const
@@ -837,7 +837,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile1Palette(uint8_t idx) con
 
 uint8_t SpriteData::GetProjectile2PaletteCount() const
 {
-	return m_projectile2_palettes.size();
+	return static_cast<uint8_t>(m_projectile2_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) const
@@ -1031,7 +1031,7 @@ ByteVector SpriteData::SerialisePaletteLUT() const
 
 void SpriteData::DeserialisePaletteLUT(const ByteVector& bytes)
 {
-	for (int i = 0; i < bytes.size(); i += 2)
+	for (std::size_t i = 0; i < bytes.size(); i += 2)
 	{
 		uint8_t sprite = bytes[i];
 		uint8_t pal = bytes[i + 1];
@@ -1105,7 +1105,7 @@ std::vector<std::shared_ptr<PaletteEntry>> SpriteData::DeserialisePalArray(const
 
 void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const ByteVector& bytes)
 {
-	for (int i = 0; (i * 2) < offsets.size(); ++i)
+	for (std::size_t i = 0; (i * 2) < offsets.size(); ++i)
 	{
 		uint16_t offset = (offsets[i * 2] << 8) | offsets[i * 2 + 1];
 		if (offset == 0)
@@ -1137,7 +1137,7 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 			offsets.push_back(0);
 			continue;
 		}
-		uint16_t offset = bytes.size() + 1;
+		uint16_t offset = static_cast<uint16_t>(bytes.size() + 1);
 		offsets.push_back((offset >> 8) & 0xFF);
 		offsets.push_back(offset & 0xFF);
 		for (const auto& ent : res->second)
@@ -1556,7 +1556,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		frm_file.WriteFileHeader(m_sprite_frames_data_file, "Sprite Frame Data");
 		for (const auto& frame : m_frames)
 		{
-			frm_file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::BINARY);
+			frm_file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::FileType::BINARY);
 			frm_file << AsmFile::Align(2);
 		}
 		frm_file.WriteFile(dir / m_sprite_frames_data_file);
@@ -1614,17 +1614,17 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 
 		AsmFile file;
 		file.WriteFileHeader(m_palette_data_file, "Sprite Palette Data");
-		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LUT) << AsmFile::IncludeFile(m_palette_lut_file, AsmFile::BINARY);
+		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LUT) << AsmFile::IncludeFile(m_palette_lut_file, AsmFile::FileType::BINARY);
 		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LO_DATA);
 		for (const auto& pal : m_lo_palettes)
 		{
-			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::FileType::BINARY);
 			pal->Save(dir);
 		}
 		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_HI_DATA);
 		for (const auto& pal : m_hi_palettes)
 		{
-			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::FileType::BINARY);
 			pal->Save(dir);
 		}
 		file.WriteFile(dir / m_palette_data_file);
@@ -1692,7 +1692,7 @@ bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 	{
 		it = Insert<uint16_t>(it, anim_count);
 		it = Insert<uint16_t>(it, m_sprite_mystery_data[spr.first]);
-		anim_count += spr.second.size();
+		anim_count += static_cast<uint16_t>(spr.second.size());
 	}
 	uint32_t frame_count = 0;
 	for (const auto& anim : m_animation_frames)
