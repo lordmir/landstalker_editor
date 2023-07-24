@@ -399,6 +399,12 @@
     <ClCompile Include="..\src\TileSwapControlFrame.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\RomOffsets.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RomLabels.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -684,6 +690,9 @@
     </ClInclude>
     <ClInclude Include="..\src\include\TileSwapControlFrame.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RomLabels.h">
+      <Filter>src\Data\Main</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

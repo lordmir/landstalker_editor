@@ -55,6 +55,8 @@
     <ClCompile Include="..\src\Map3DEditor.cpp" />
     <ClCompile Include="..\src\MapToTmx.cpp" />
     <ClCompile Include="..\src\PreferencesDialog.cpp" />
+    <ClCompile Include="..\src\RomLabels.cpp" />
+    <ClCompile Include="..\src\RomOffsets.cpp" />
     <ClCompile Include="..\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\RoomErrorDialog.cpp" />
     <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
@@ -157,6 +159,7 @@
     <ClInclude Include="..\src\include\Map3DEditor.h" />
     <ClInclude Include="..\src\include\MapToTmx.h" />
     <ClInclude Include="..\src\include\PreferencesDialog.h" />
+    <ClInclude Include="..\src\include\RomLabels.h" />
     <ClInclude Include="..\src\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\include\RoomErrorDialog.h" />
     <ClInclude Include="..\src\include\RoomViewerCtrl.h" />

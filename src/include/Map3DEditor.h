@@ -2,6 +2,8 @@
 #define _MAP_3D_EDITOR_H_
 
 #include <memory>
+#include <vector>
+#include <set>
 #include <wx/wx.h>
 #include <wx/window.h>
 #include <GameData.h>
@@ -12,6 +14,7 @@ class ImageBuffer;
 class Map3DEditor : public wxScrolledCanvas
 {
 public:
+	using Coord = std::pair<int, int>;
 
 	Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::Layer layer);
 	virtual ~Map3DEditor();
@@ -26,9 +29,22 @@ public:
 	int GetSelectedBlock() const;
 	bool IsBlockSelected() const;
 
+	void SetHovered(Coord sel);
+	Coord GetHovered() const;
+	bool IsHoverValid() const;
+
+	void SetSelectedSwap(int swap);
+	int GetSelectedSwap() const;
+	bool IsSwapSelected() const;
+	void SetSelectedDoor(int swap);
+	int GetSelectedDoor() const;
+	bool IsDoorSelected() const;
+
 	void RefreshGraphics();
 	void UpdateSwaps();
 	void UpdateDoors();
+
+	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
 	void RefreshStatusbar();
 	void ForceRedraw();
@@ -51,14 +67,18 @@ private:
 	void OnRightClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
 	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
+	std::vector<wxPoint> OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset);
+	bool Pnpoly(const std::vector<wxPoint>& poly, int x, int y);
 
-	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny) const;
-	std::pair<int, int> GetCellPosition(int screenx, int screeny) const;
-	std::pair<int, int> GetScreenPosition(const std::pair<int, int>& pos) const;
-	bool IsCoordValid(std::pair<int, int> c) const;
+	Coord GetAbsoluteCoordinates(int screenx, int screeny) const;
+	Coord GetCellPosition(int screenx, int screeny) const;
+	std::pair<int, int> GetScreenPosition(const Coord& pos) const;
+	bool IsCoordValid(const Coord& c) const;
 
 	bool UpdateHoveredPosition(int screenx, int screeny);
 	bool UpdateSelectedPosition(int screenx, int screeny);
+	int GetFirstDoorRegion(const Coord& c);
+	std::pair<int, bool> GetFirstSwapRegion(const Coord& c);
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, int userdata);
@@ -84,8 +104,11 @@ private:
 	bool m_repaint;
 	double m_zoom;
 	int m_selected_block;
-	std::pair<int, int> m_selected;
-	std::pair<int, int> m_hovered;
+	Coord m_selected;
+	Coord m_hovered;
+	int m_selected_region;
+	std::vector<std::pair<std::vector<wxPoint>, std::vector<wxPoint>>> m_swap_regions;
+	std::vector<std::vector<wxPoint>> m_door_regions;
 
 	std::unique_ptr<wxBitmap> m_bmp;
 	std::unique_ptr<wxPen> m_priority_pen;
@@ -99,7 +122,7 @@ private:
 
 	static const std::size_t TILE_WIDTH = 32;
 	static const std::size_t TILE_HEIGHT = 32;
-	static const int SCROLL_RATE = 8;
+	static const int SCROLL_RATE = 16;
 	int m_scroll_rate;
 
 	wxDECLARE_EVENT_TABLE();

@@ -327,7 +327,7 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 		wxColourDialog dlg(this, &cd);
 		if (dlg.ShowModal() == wxID_OK)
 		{
-			auto colour = dlg.GetColourData().GetColour();
+			const auto& colour = dlg.GetColourData().GetColour();
 			auto result = Palette::Colour::CreateFromBGRA(colour.GetRGBA());
 			if (result != orig_colour)
 			{
@@ -451,7 +451,7 @@ void PaletteEditor::OnHover(int colour)
 
 int PaletteEditor::GetColour(int index) const
 {
-	if (index < m_indicies.size())
+	if (index < static_cast<int>(m_indicies.size()))
 	{
 		return m_indicies[index];
 	}

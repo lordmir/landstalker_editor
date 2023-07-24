@@ -1686,6 +1686,16 @@ void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 		evt.Skip(m_hmedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 		return;
 	}
+	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		evt.Skip(m_fgedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		evt.Skip(m_bgedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+		return;
+	}
 	evt.Skip();
 }
 

@@ -1,13 +1,18 @@
 #include <TileSwaps.h>
 #include <cassert>
 #include <algorithm>
+#include <iterator>
 
 TileSwaps::TileSwaps(const std::vector<uint8_t>& bytes)
 {
 	assert(bytes.size() % 16 == 0);
-	for (int i = 0; i < bytes.size(); i += 16)
+	for (std::size_t i = 0; i < bytes.size(); i += 16)
 	{
 		uint16_t room = bytes[i + 12] << 8 | bytes[i + 13];
+		if (room == 0xFFFF)
+		{
+			break;
+		}
 		uint8_t idx = bytes[i + 14] >> 3;
 		TileSwap swap(std::vector<uint8_t>(bytes.cbegin() + i, bytes.cbegin() + i + 16));
 		if (m_swaps.count(room) == 0)
@@ -41,13 +46,16 @@ std::vector<uint8_t> TileSwaps::GetData() const
 	std::vector<uint8_t> out;
 	for (const auto& r : m_swaps)
 	{
-		for (int i = 0; i < r.second.size(); ++i)
+		for (uint8_t i = 0; i < static_cast<uint8_t>(r.second.size()); ++i)
 		{
-		
-			auto bytes = r.second[i].GetBytes(r.first, i);
-			out.insert(out.end(), bytes.cbegin(), bytes.cend());
+			if (r.second[i].active == true)
+			{
+				auto bytes = r.second[i].GetBytes(r.first, i);
+				out.insert(out.end(), bytes.cbegin(), bytes.cend());
+			}
 		}
 	}
+	std::fill_n(std::back_inserter(out), 16, 0xFF);
 	return out;
 }
 
@@ -70,10 +78,18 @@ bool TileSwaps::RoomHasSwaps(uint16_t room) const
 
 void TileSwaps::SetRoomSwaps(uint16_t room, const std::vector<TileSwap>& swaps)
 {
-	m_swaps[room] = swaps;
+	if (m_swaps.count(room) != 0 && swaps.empty())
+	{
+		m_swaps.erase(room);
+	}
+	else
+	{
+		m_swaps[room] = swaps;
+	}
 }
 
 TileSwap::TileSwap(const std::vector<uint8_t>& in)
+	: active(true)
 {
 	assert(in.size() == 16);
 	map.src_x = in[0];

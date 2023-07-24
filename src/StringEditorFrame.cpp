@@ -177,7 +177,7 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
     {
     case StringData::Type::INTRO:
         fs << utf8_conv.to_bytes(sd->GetIntroString(0).GetHeaderRow()) << std::endl;
-        for (int i = 0; i < sd->GetIntroStringCount(); ++i)
+        for (std::size_t i = 0; i < sd->GetIntroStringCount(); ++i)
         {
             const auto& str = sd->GetIntroString(i);
             fs << utf8_conv.to_bytes(str.Serialise()) << std::endl;
@@ -185,14 +185,14 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
         break;
     case StringData::Type::END_CREDITS:
         fs << utf8_conv.to_bytes(sd->GetEndCreditString(0).GetHeaderRow()) << std::endl;
-        for (int i = 0; i < sd->GetEndCreditStringCount(); ++i)
+        for (std::size_t i = 0; i < sd->GetEndCreditStringCount(); ++i)
         {
             const auto& str = sd->GetEndCreditString(i);
             fs << utf8_conv.to_bytes(str.Serialise()) << std::endl;
         }
         break;
     default:
-        for (int i = 0; i < sd->GetStringCount(m_type); ++i)
+        for (std::size_t i = 0; i < sd->GetStringCount(m_type); ++i)
         {
             fs << sd->GetString(m_type, i) << std::endl;
         }

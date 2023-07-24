@@ -139,7 +139,7 @@ private:
 
 	static const std::size_t TILE_WIDTH = 64;
 	static const std::size_t TILE_HEIGHT = 32;
-	static const int SCROLL_RATE = 8;
+	static const int SCROLL_RATE = 32;
 	int m_scroll_rate;
 
 	std::vector<std::string> m_errors;

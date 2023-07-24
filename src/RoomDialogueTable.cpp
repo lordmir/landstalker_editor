@@ -2,7 +2,7 @@
 
 RoomDialogueTable::RoomDialogueTable(const std::vector<uint16_t>& data)
 {
-	int i = 0;
+	std::size_t i = 0;
 	while(i < data.size())
 	{
 		if (data[i] == 0xFFFF)

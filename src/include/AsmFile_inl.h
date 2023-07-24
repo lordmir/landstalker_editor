@@ -59,7 +59,8 @@ bool AsmFile::Read(T& value)
 				m_good = false;
 				return false;
 			}
-			value <<= 8;
+			value <<= 4;
+			value <<= 4;
 			value |= std::get<uint8_t>(*m_readptr++);
 		}
 	}

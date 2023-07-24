@@ -39,7 +39,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
     vboxsizer->Add(sizer, 0, wxALL | wxEXPAND);
 
 
-    for (int i = 0; i < LABELS.size(); ++i)
+    for (int i = 0; i < static_cast<int>(LABELS.size()); ++i)
     {
         auto label = new wxStaticText(this, wxID_ANY, LABELS[i]);
         m_visible_ctrls.push_back(new wxCheckBox(this, i + 1000, ""));
@@ -110,7 +110,7 @@ void LayerControlFrame::EnableZoom(bool enabled)
 
 void LayerControlFrame::EnableLayers(bool enabled)
 {
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         m_visible_ctrls[i]->Enable(enabled);
         if (m_visible_ctrls[i]->IsChecked())
@@ -140,7 +140,7 @@ void LayerControlFrame::EnableLayer(Layer layer, bool enabled)
 void LayerControlFrame::UpdateUI()
 {
     m_zoom = ZOOM_LEVELS[std::clamp<int>(m_zoom_slider->GetValue(), 0, ZOOM_LEVELS.size() - 1)];
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         if (m_visible_ctrls[i]->IsChecked())
         {
@@ -167,7 +167,7 @@ void LayerControlFrame::SetUI()
     m_zoom_slider->SetValue(std::clamp<int>(i, 0, ZOOM_LEVELS.size() - 1));
     m_zoom_label->SetLabelText(StrPrintf("%d%%", static_cast<int>(m_zoom * 100.0)));
 
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         m_opacity_ctrls[i]->SetValue(m_opacities[i]);
         m_opacity_ctrls[i]->Enable(m_visibilities[i]);
@@ -190,7 +190,7 @@ void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& evt)
 void LayerControlFrame::OnVisibilityChecked(wxCommandEvent& evt)
 {
     int id = evt.GetId() - 1000;
-    if ((id >= 0) && (id < m_visible_ctrls.size()))
+    if ((id >= 0) && (id < static_cast<int>(m_visible_ctrls.size())))
     {
         bool new_visibility = m_visible_ctrls[id]->GetValue();
         if (m_visibilities[id] != new_visibility)
@@ -205,7 +205,7 @@ void LayerControlFrame::OnVisibilityChecked(wxCommandEvent& evt)
 void LayerControlFrame::OnOpacityChanged(wxCommandEvent& evt)
 {
     int id = evt.GetId() - 2000;
-    if ((id >= 0) && (id < m_opacity_ctrls.size()))
+    if ((id >= 0) && (id < static_cast<int>(m_opacity_ctrls.size())))
     {
         if (m_visible_ctrls[id]->GetValue() == true)
         {

@@ -25,7 +25,7 @@ struct TileSwap
 	};
 
 	TileSwap(const std::vector<uint8_t>& in);
-	TileSwap() : map({ 0,0,0,0,1,1 }), heightmap({ 0,0,0,0,1,1 }), mode(Mode::FLOOR) {}
+	TileSwap() : map({ 0,0,0,0,1,1 }), heightmap({ 0,0,0,0,1,1 }), mode(Mode::FLOOR), active(false) {}
 	std::vector<uint8_t> GetBytes(uint16_t room, uint8_t idx) const;
 
 	bool operator==(const TileSwap& rhs) const;
@@ -34,6 +34,7 @@ struct TileSwap
 	CopyOp map;
 	CopyOp heightmap;
 	Mode mode;
+	bool active;
 };
 
 class TileSwaps

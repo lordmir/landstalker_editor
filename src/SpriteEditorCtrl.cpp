@@ -92,7 +92,7 @@ bool SpriteEditorCtrl::New(int r, int c)
 
 void SpriteEditorCtrl::RedrawTiles(int index)
 {
-	if ((index < 0) || (index >= m_sprite->GetTileCount()))
+	if ((index < 0) || (index >= static_cast<int>(m_sprite->GetTileCount())))
 	{
 		ForceRedraw();
 	}
@@ -159,7 +159,7 @@ void SpriteEditorCtrl::OnDraw(wxDC& dc)
 		if (m_redraw_all == true)
 		{
 			m_redraw_list.clear();
-			for (int i = 0; i < m_sprite->GetTileCount(); ++i)
+			for (int i = 0; i < static_cast<int>(m_sprite->GetTileCount()); ++i)
 			{
 				if (!DrawTileAtPosition(m_memdc, i))
 				{
@@ -173,7 +173,7 @@ void SpriteEditorCtrl::OnDraw(wxDC& dc)
 			auto it = m_redraw_list.begin();
 			while (it != m_redraw_list.end())
 			{
-				if ((*it >= 0) && (*it < m_sprite->GetTileCount()))
+				if ((*it >= 0) && (*it < static_cast<int>(m_sprite->GetTileCount())))
 				{
 					if (DrawTileAtPosition(m_memdc, *it))
 					{
@@ -286,12 +286,12 @@ void SpriteEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 
 int SpriteEditorCtrl::ConvertXYToTile(const wxPoint& point)
 {
-	auto c = point;
+	wxPoint c = point;
 	c.x += GetVisibleColumnsBegin() * m_sprite->GetTileWidth() * m_pixelsize;
 	c.y += GetVisibleRowsBegin() * m_sprite->GetTileHeight() * m_pixelsize;
 	auto p = ScreenToSpriteXY(c);
 	int tile = 0;
-	for (int i = 0; i < m_sprite->GetSubSpriteCount(); i++)
+	for (std::size_t i = 0; i < m_sprite->GetSubSpriteCount(); i++)
 	{
 		const auto& ss = m_sprite->GetSubSprite(i);
 		if ((p.x >= ss.x && p.x < ss.x + static_cast<int>(ss.w * m_sprite->GetTileWidth())) &&
@@ -309,15 +309,15 @@ int SpriteEditorCtrl::ConvertXYToTile(const wxPoint& point)
 
 wxPoint SpriteEditorCtrl::ConvertTileToXY(int tile) const
 {
-	if (tile >= 0 && tile < m_sprite->GetExpectedTileCount())
+	if (tile >= 0 && tile < static_cast<int>(m_sprite->GetExpectedTileCount()))
 	{
 
-		for (int i = 0; i < m_sprite->GetSubSpriteCount(); i++)
+		for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); i++)
 		{
 			const auto& ss = m_sprite->GetSubSprite(i);
-			if (tile >= (ss.w * ss.h))
+			if (tile >= static_cast<int>(ss.w * ss.h))
 			{
-				tile -= (ss.w * ss.h);
+				tile -= static_cast<int>(ss.w * ss.h);
 				continue;
 			}
 			else
@@ -369,7 +369,7 @@ void SpriteEditorCtrl::DrawTile(wxDC& dc, int x, int y, int tile)
 		tile_pixels.push_back(pal.getBGRA(b));
 	}
 
-	for (int i = 0; i < tile_pixels.size(); ++i)
+	for (int i = 0; i < static_cast<int>(tile_pixels.size()); ++i)
 	{
 		int xx = x + (i % m_sprite->GetTileWidth()) * m_pixelsize;
 		int yy = y + (i / m_sprite->GetTileWidth()) * m_pixelsize;
@@ -612,7 +612,7 @@ void SpriteEditorCtrl::SetBordersEnabled(bool enabled)
 
 bool SpriteEditorCtrl::IsSelectionValid() const
 {
-	return ((m_selectedtile != -1) && (m_selectedtile < m_sprite->GetTileCount()));
+	return ((m_selectedtile != -1) && (m_selectedtile < static_cast<int>(m_sprite->GetTileCount())));
 }
 
 Tile SpriteEditorCtrl::GetSelectedTile() const
@@ -655,7 +655,7 @@ void SpriteEditorCtrl::InsertTileBefore(const Tile& tile)
 	if (tile.GetIndex() <= m_sprite->GetTileCount())
 	{
 		m_sprite->GetTileset()->InsertTilesBefore(tile.GetIndex());
-		for (int i = tile.GetIndex(); i < m_sprite->GetTileCount(); ++i)
+		for (int i = tile.GetIndex(); i < static_cast<int>(m_sprite->GetTileCount()); ++i)
 		{
 			m_redraw_list.insert(i);
 		}
@@ -671,7 +671,7 @@ void SpriteEditorCtrl::InsertTileAfter(const Tile& tile)
 	if (tile.GetIndex() <= m_sprite->GetTileCount())
 	{
 		m_sprite->GetTileset()->InsertTilesBefore(tile.GetIndex() + 1);
-		for (int i = tile.GetIndex(); i < m_sprite->GetTileCount(); ++i)
+		for (int i = tile.GetIndex(); i < static_cast<int>(m_sprite->GetTileCount()); ++i)
 		{
 			m_redraw_list.insert(i);
 		}

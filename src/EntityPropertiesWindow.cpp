@@ -51,7 +51,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString entity_types;
-    for (int i = 0; i < Entity::EntityNames.size(); ++i)
+    for (std::size_t i = 0; i < Entity::EntityNames.size(); ++i)
     {
         entity_types.Add(StrPrintf("[%02X] %s", i, Entity::EntityNames.at(i).c_str()));
     }

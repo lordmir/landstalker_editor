@@ -35,7 +35,8 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
     m_bg_buf(std::make_unique<ImageBuffer>()),
     m_show_blocknums(false),
     m_show_borders(true),
-    m_show_priority(true)
+    m_show_priority(true),
+    m_selected_region(-1)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE));
@@ -67,6 +68,7 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
         m_pal = m_g->GetRoomData()->GetPaletteForRoom(m_roomnum)->GetData();
         m_tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
         m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        SetSelectedSwap(-1);
         UpdateSwaps();
         UpdateDoors();
         RecreateBuffer();
@@ -95,6 +97,73 @@ bool Map3DEditor::IsBlockSelected() const
     return (m_blockset != nullptr && m_selected_block >= 0 && m_selected_block < static_cast<int>(m_blockset->size()));
 }
 
+void Map3DEditor::SetHovered(Coord sel)
+{
+    if (IsCoordValid(sel) && m_hovered != sel)
+    {
+        m_hovered = sel;
+        Refresh();
+    }
+}
+
+Map3DEditor::Coord Map3DEditor::GetHovered() const
+{
+    return m_hovered;
+}
+
+bool Map3DEditor::IsHoverValid() const
+{
+    return IsCoordValid(m_hovered);
+}
+
+void Map3DEditor::SetSelectedSwap(int swap)
+{
+    int new_region = -1;
+    if (swap >= 0 && swap < static_cast<int>(m_swaps.size()))
+    {
+        new_region = swap;
+    }
+    if (new_region != m_selected_region)
+    {
+        m_selected_region = new_region;
+        Refresh();
+    }
+}
+
+int Map3DEditor::GetSelectedSwap() const
+{
+    return IsSwapSelected() ? m_selected_region : - 1;
+}
+
+bool Map3DEditor::IsSwapSelected() const
+{
+    return (m_selected_region >= 0 && m_selected_region < static_cast<int>(m_swaps.size()));
+}
+
+void Map3DEditor::SetSelectedDoor(int door)
+{
+    int new_region = -1;
+    if (door >= 0 && door < static_cast<int>(m_doors.size()))
+    {
+        new_region = 0x100 + door;
+    }
+    if (new_region != m_selected_region)
+    {
+        m_selected_region = new_region;
+        Refresh();
+    }
+}
+
+int Map3DEditor::GetSelectedDoor() const
+{
+    return IsDoorSelected() ? m_selected_region - 0x100 : -1;
+}
+
+bool Map3DEditor::IsDoorSelected() const
+{
+    return (m_selected_region >= 0x100 && m_selected_region < static_cast<int>(0x100 + m_doors.size()));
+}
+
 void Map3DEditor::RefreshGraphics()
 {
     UpdateScroll();
@@ -106,6 +175,7 @@ void Map3DEditor::UpdateSwaps()
     if (m_g)
     {
         m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+        m_swap_regions.clear();
     }
 }
 
@@ -114,7 +184,76 @@ void Map3DEditor::UpdateDoors()
     if (m_g)
     {
         m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+        m_door_regions.clear();
     }
+}
+
+bool Map3DEditor::HandleKeyDown(unsigned int key, unsigned int modifiers)
+{
+    switch(key)
+    {
+    case WXK_ESCAPE:
+        m_selected = { -1, -1 };
+        m_hovered = { -1, -1 };
+        SetSelectedSwap(-1);
+        return true;
+    case WXK_LEFT:
+    case 'a':
+    case 'A':
+        if (IsHoverValid())
+        {
+            SetHovered({ m_hovered.first - 1, m_hovered.second });
+        }
+        else
+        {
+            SetHovered({ 0,0 });
+        }
+        return true;
+    case WXK_RIGHT:
+    case 'd':
+    case 'D':
+        if (IsHoverValid())
+        {
+            SetHovered({ m_hovered.first + 1, m_hovered.second });
+        }
+        else
+        {
+            SetHovered({ 0,0 });
+        }
+        return true;
+    case WXK_UP:
+    case 'w':
+    case 'W':
+        if (IsHoverValid())
+        {
+            SetHovered({ m_hovered.first, m_hovered.second - 1 });
+        }
+        else
+        {
+            SetHovered({ 0,0 });
+        }
+        return true;
+    case WXK_DOWN:
+    case 's':
+    case 'S':
+        if (IsHoverValid())
+        {
+            SetHovered({ m_hovered.first, m_hovered.second + 1 });
+        }
+        else
+        {
+            SetHovered({ 0,0 });
+        }
+        return true;
+    case WXK_SPACE:
+        // click
+        return true;
+    case 'c':
+    case 'C':
+        // right-click
+        return true;
+    }
+    return false;
 }
 
 void Map3DEditor::RefreshStatusbar()
@@ -266,11 +405,13 @@ void Map3DEditor::DrawCell(wxDC& dc, const std::pair<int, int>& pos, const wxPen
 void Map3DEditor::DrawTileSwaps(wxDC& dc)
 {
     int offsetx = 0, offsety = 0;
+    m_swap_regions.clear();
     if (m_map)
     {
         offsetx = m_map->GetLeft();
         offsety = m_map->GetTop();
     }
+    int si = 0;
     for (const auto& s : m_swaps)
     {
         std::pair<int, int> src, dst;
@@ -288,16 +429,21 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
         dst = { s.map.dst_x - offsetx + tsoffsetx, s.map.dst_y - offsety + tsoffsety };
         auto sp = GetScreenPosition(src);
         auto dp = GetScreenPosition(dst);
-        dc.SetPen((src == m_selected || src == m_hovered || dst == m_selected || dst == m_hovered) ? wxColor(128, 128, 255) : *wxBLUE_PEN);
+        auto [hx, hy] = GetScreenPosition(m_hovered);
+        m_swap_regions.push_back({OffsetRegionPoly(lines, sp), OffsetRegionPoly(lines, dp)});
+        bool hovered = Pnpoly(m_swap_regions.back().first, hx, hy) || Pnpoly(m_swap_regions.back().second, hx, hy);
+        dc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, m_selected_region == si ? 3 : 1));
         dc.DrawPolygon(lines.size(), lines.data(), sp.first, sp.second);
-        dc.SetPen((src == m_selected || src == m_hovered || dst == m_selected || dst == m_hovered) ? wxColor(255, 128, 128) : *wxRED_PEN);
+        dc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, m_selected_region == si ? 3 : 1));
         dc.DrawPolygon(lines.size(), lines.data(), dp.first, dp.second);
+        ++si;
     }
 }
 
 void Map3DEditor::DrawDoors(wxDC& dc)
 {
-    int offsetx = 0, offsety = 0;
+    int offsetx = 0, offsety = 0, di = 0x100;
+    m_door_regions.clear();
     if (m_map)
     {
         offsetx = m_map->GetLeft();
@@ -330,9 +476,13 @@ void Map3DEditor::DrawDoors(wxDC& dc)
                 type == Tilemap3D::FloorType::DOOR_NE ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW);
             std::pair<int, int> loc{ d.x + 12 - offsetx - z + doorxoffset,
                                      d.y + 12 - offsety - z + dooryoffset };
-            dc.SetPen((loc == m_selected || loc == m_hovered) ? wxColor(255, 128, 255) : wxColor(255, 0, 255));
             auto pos = GetScreenPosition(loc);
+            auto [hx, hy] = GetScreenPosition(m_hovered);
+            m_door_regions.push_back(OffsetRegionPoly(lines, pos));
+            dc.SetPen(wxPen(Pnpoly(m_door_regions.back(), hx, hy) ? wxColor(255, 128, 255) : wxColor(255, 0, 255),
+                di == m_selected_region ? 3 : 1));
             dc.DrawPolygon(lines.size(), lines.data(), pos.first, pos.second);
+            di++;
         }
     }
 }
@@ -396,6 +546,23 @@ void Map3DEditor::OnMouseMove(wxMouseEvent& evt)
 {
     if (UpdateHoveredPosition(evt.GetX(), evt.GetY()))
     {
+        if ((evt.GetModifiers() & wxMOD_CONTROL) > 0)
+        {
+            auto sw = GetFirstSwapRegion(m_hovered);
+            auto dw = GetFirstDoorRegion(m_hovered);
+            if (sw.first != -1 || dw != -1)
+            {
+                SetCursor(wxCURSOR_HAND);
+            }
+            else
+            {
+                SetCursor(wxCURSOR_ARROW);
+            }
+        }
+        else
+        {
+            SetCursor(wxCURSOR_ARROW);
+        }
         RefreshStatusbar();
         Refresh(false);
     }
@@ -416,7 +583,24 @@ void Map3DEditor::OnMouseLeave(wxMouseEvent& evt)
 void Map3DEditor::OnLeftClick(wxMouseEvent& evt)
 {
     UpdateHoveredPosition(evt.GetX(), evt.GetY());
-    if (IsBlockSelected() && m_hovered.first != -1)
+    if ((evt.GetModifiers() & wxMOD_CONTROL) > 0)
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1)
+        {
+            SetSelectedSwap(sw.first);
+        }
+        else if (dw != -1)
+        {
+            SetSelectedDoor(dw);
+        }
+        else
+        {
+            SetSelectedSwap(-1);
+        }
+    }
+    else if (IsBlockSelected() && m_hovered.first != -1)
     {
         m_map->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
         FireMapEvent(EVT_MAPLAYER_UPDATE);
@@ -530,7 +714,28 @@ std::vector<wxPoint> Map3DEditor::GetRegionPoly(int x, int y, int w, int h, Tile
     return points;
 }
 
-std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny) const
+std::vector<wxPoint> Map3DEditor::OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset)
+{
+    std::transform(points.begin(), points.end(), points.begin(), [&](const auto& pt)
+        {
+            return wxPoint{ pt.x + offset.first, pt.y + offset.second };
+        });
+    return points;
+}
+
+bool Map3DEditor::Pnpoly(const std::vector<wxPoint>& poly, int x, int y)
+{
+    std::size_t i, j;
+    bool c = false;
+    for (i = 0, j = poly.size() - 1; i < poly.size(); j = i++) {
+        if (((poly[i].y > y) != (poly[j].y > y)) &&
+            (x < (poly[j].x - poly[i].x) * (y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x))
+            c = !c;
+    }
+    return c;
+}
+
+Map3DEditor::Coord Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny) const
 {
     int x, y;
     GetViewStart(&x, &y);
@@ -543,7 +748,7 @@ std::pair<int, int> Map3DEditor::GetAbsoluteCoordinates(int screenx, int screeny
     return { x, y };
 }
 
-std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny) const
+Map3DEditor::Coord Map3DEditor::GetCellPosition(int screenx, int screeny) const
 {
     auto xy = GetAbsoluteCoordinates(screenx, screeny);
     int ix = 0, iy = 0;
@@ -576,14 +781,14 @@ std::pair<int, int> Map3DEditor::GetCellPosition(int screenx, int screeny) const
     }
 }
 
-std::pair<int, int> Map3DEditor::GetScreenPosition(const std::pair<int, int>& pos) const
+Map3DEditor::Coord Map3DEditor::GetScreenPosition(const Map3DEditor::Coord& pos) const
 {
     int xp = (m_map->GetHeight() - 1 + pos.first - pos.second) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
     int yp = (pos.first + pos.second) * TILE_HEIGHT / 2;
     return { xp, yp };
 }
 
-bool Map3DEditor::IsCoordValid(std::pair<int, int> c) const
+bool Map3DEditor::IsCoordValid(const Map3DEditor::Coord& c) const
 {
     return (m_map != nullptr &&
         (c.first >= 0 && c.first < m_map->GetWidth() &&
@@ -610,6 +815,36 @@ bool Map3DEditor::UpdateSelectedPosition(int screenx, int screeny)
         return true;
     }
     return false;
+}
+
+int Map3DEditor::GetFirstDoorRegion(const Coord& c)
+{
+    auto [x, y] = GetScreenPosition(c);
+    for (std::size_t i = 0; i < m_door_regions.size(); ++i)
+    {
+        if (Pnpoly(m_door_regions[i], x, y) == true)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+std::pair<int, bool> Map3DEditor::GetFirstSwapRegion(const Coord& c)
+{
+    auto [x, y] = GetScreenPosition(c);
+    for (std::size_t i = 0; i < m_swap_regions.size(); ++i)
+    {
+        if (Pnpoly(m_swap_regions[i].first, x, y) == true)
+        {
+            return { i, false };
+        }
+        if (Pnpoly(m_swap_regions[i].second, x, y) == true)
+        {
+            return { i, true };
+        }
+    }
+    return {-1, false};
 }
 
 void Map3DEditor::FireUpdateStatusEvent(const std::string& data, int pane)

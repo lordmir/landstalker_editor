@@ -122,7 +122,7 @@ bool TilesetEditor::New(int r, int c)
 
 void TilesetEditor::RedrawTiles(int index)
 {
-	if ((index < 0) || (index >= m_tileset->GetTileCount()))
+	if ((index < 0) || (index >= static_cast<int>(m_tileset->GetTileCount())))
 	{
 		ForceRedraw();
 	}
@@ -258,7 +258,7 @@ int TilesetEditor::ConvertXYToTile(const wxPoint& point)
 	int x = point.x / (m_pixelsize * m_tileset->GetTileWidth());
 	int y = s + point.y / (m_pixelsize * m_tileset->GetTileHeight());
 	int sel = x + y * m_columns;
-	if ((sel >= m_tileset->GetTileCount()) || (x < 0) || (y < 0) || (x >= m_columns))
+	if ((sel >= static_cast<int>(m_tileset->GetTileCount())) || (x < 0) || (y < 0) || (x >= m_columns))
 	{
 		sel = -1;
 	}
@@ -303,7 +303,7 @@ void TilesetEditor::DrawAllTiles(wxDC& dest)
 	dest.SetBrush(*wxTRANSPARENT_BRUSH);
 	dest.SetPen(*wxTRANSPARENT_PEN);
 	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
 	{
 		dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
 		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset);
@@ -334,7 +334,7 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 	auto it = m_redraw_list.begin();
 	while (it != m_redraw_list.end())
 	{
-		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
 		{
 			const int x = *it % m_columns;
 			const int y = *it / m_columns;
@@ -352,7 +352,7 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 	it = m_redraw_list.begin();
 	while (it != m_redraw_list.end())
 	{
-		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
 		{
 			const int x = *it % m_columns;
 			const int y = *it / m_columns;
@@ -398,7 +398,7 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
 	{
 		int s = GetVisibleRowsBegin();
 		int e = GetVisibleRowsEnd();
@@ -410,7 +410,7 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 			}
 			if (m_enabletilenumbers)
 			{
-				auto label = (wxString::Format("%03d", i));
+				auto label = (wxString::Format("%03u", i));
 				auto extent = dest.GetTextExtent(label);
 				if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
 				{
@@ -635,7 +635,7 @@ void TilesetEditor::SetBordersEnabled(bool enabled)
 
 bool TilesetEditor::IsSelectionValid() const
 {
-	return ((m_selectedtile != -1) && (m_selectedtile < m_tileset->GetTileCount()));
+	return ((m_selectedtile != -1) && (m_selectedtile < static_cast<int>(m_tileset->GetTileCount())));
 }
 
 Tile TilesetEditor::GetSelectedTile() const
@@ -678,7 +678,7 @@ void TilesetEditor::InsertTileBefore(const Tile& tile)
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
 		m_tileset->InsertTilesBefore(tile.GetIndex());
-		for (int i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
+		for (int i = tile.GetIndex(); i < static_cast<int>(m_tileset->GetTileCount()); ++i)
 		{
 			m_redraw_list.insert(i);
 		}
