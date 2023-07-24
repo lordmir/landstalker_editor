@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <string>
 
 namespace RomOffsets
 {
