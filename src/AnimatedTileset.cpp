@@ -58,7 +58,7 @@ std::vector<uint8_t> AnimatedTileset::GetTile(const Tile& tile, uint8_t frame) c
 {
 	auto t = tile.GetIndex() - GetStartTile().GetIndex();
 	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTile(t + static_cast<uint16_t>(f_offset));
+	return Tileset::GetTile(static_cast<uint16_t>(t + f_offset));
 }
 
 std::vector<uint8_t>& AnimatedTileset::GetTilePixels(int tile_index, uint8_t frame)

@@ -47,8 +47,10 @@ public:
 
 	bool Open(const std::string& filename);
 	std::vector<uint8_t> GetBits();
+	std::vector<uint8_t> GetBits(bool compressed);
 	std::size_t SetBits(const std::vector<uint8_t>& src);
-	bool Save(const std::string& filename, bool use_compression = false);
+	bool Save(const std::string& filename);
+	bool Save(const std::string& filename, bool compressed);
 	void Clear();
 
 	int GetLeft() const;

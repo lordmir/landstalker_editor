@@ -167,7 +167,7 @@ void AssemblyBuilderDialog::OnInit()
     }
 }
 
-void AssemblyBuilderDialog::OnClose(wxCloseEvent& evt)
+void AssemblyBuilderDialog::OnClose(wxCloseEvent&)
 {
     if (m_execThread != nullptr && m_execThread->IsRunning())
     {
@@ -179,7 +179,7 @@ void AssemblyBuilderDialog::OnClose(wxCloseEvent& evt)
     Destroy();
 }
 
-void AssemblyBuilderDialog::OnOK(wxCommandEvent& evt)
+void AssemblyBuilderDialog::OnOK(wxCommandEvent&)
 {
     EndModal(wxID_OK);
 }
@@ -533,13 +533,13 @@ bool AssemblyBuilderDialog::DoSaveToRom()
     {
         uint32_t addr = 0;
         uint32_t size = 0;
-        if (m_rom->section_exists(w.first))
+        if (Rom::section_exists(w.first))
         {
             auto sec = m_rom->get_section(w.first);
             addr = sec.begin;
             size = sec.size();
         }
-        else if (m_rom->address_exists(w.first))
+        else if (Rom::address_exists(w.first))
         {
             addr = m_rom->get_address(w.first);
             size = sizeof(uint32_t);

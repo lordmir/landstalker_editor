@@ -16,8 +16,8 @@ IntroString::IntroString()
 	  m_line1Y(0),
 	  m_line1X(0),
 	  m_line2Y(0),
-	  m_line2X(0),
-	  m_displayTime(0)
+	  m_displayTime(0),
+	  m_line2X(0)
 {
 }
 
@@ -27,8 +27,8 @@ IntroString::IntroString(uint16_t line1_y, uint16_t line1_x, uint16_t line2_y, u
 	m_line1X(line1_x),
 	m_line2Y(line2_y),
 	m_line2X(line2_x),
-	m_line2(line2),
-	m_displayTime(display_time)
+	m_displayTime(display_time),
+	m_line2(line2)
 {
 }
 
@@ -38,7 +38,8 @@ IntroString::IntroString(const IntroString::StringType& serialised)
 	  m_line1X(0),
 	  m_line2Y(0),
 	  m_line2X(0),
-	  m_displayTime(0)
+	  m_displayTime(0),
+	  m_line2()
 {
 	Deserialise(serialised);
 }

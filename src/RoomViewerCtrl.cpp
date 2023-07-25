@@ -461,7 +461,6 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
     m_errors.clear();
     std::array<int, 3> sprite_palette_alloc = { -1, -1, -1 };
     m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
-    int i = 0;
     for (const auto& entity : m_entities)
     {
         auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
@@ -678,7 +677,7 @@ void RoomViewerCtrl::DrawSprites(const std::vector<SpriteQ>& q)
     }
 }
 
-void RoomViewerCtrl::UpdateRoomDescText(uint16_t roomnum)
+void RoomViewerCtrl::UpdateRoomDescText(uint16_t /*roomnum*/)
 {
     if (m_g == nullptr)
     {
@@ -732,14 +731,14 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
 
 void RoomViewerCtrl::UpdateWarpProperties(int warp)
 {
-    if (IsWarpSelected())
+    if (warp > 0 && warp <= static_cast<int>(m_warps.size()))
     {
-        bool pend = m_is_warp_pending && !GetSelectedWarp().IsValid();
-        WarpPropertyWindow dlg(m_frame, m_roomnum, GetSelectedWarpIndex(), &m_warps[GetSelectedWarpIndex() - 1], *m_g);
+        bool pend = m_is_warp_pending && !m_warps[warp - 1].IsValid();
+        WarpPropertyWindow dlg(m_frame, m_roomnum, warp, &m_warps[warp - 1], *m_g);
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);
-            if (pend && GetSelectedWarp().IsValid())
+            if (pend && m_warps[warp-1].IsValid())
             {
                 m_is_warp_pending = false;
             }
@@ -881,8 +880,6 @@ void RoomViewerCtrl::DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<
         xy.y = (x + y) * TILE_HEIGHT;
     }
 
-    int width = tile_width;
-    int height = tile_height;
     std::vector<wxPoint2DDouble> tile_points = {
         wxPoint2DDouble(xy.x + tile_width / 2, xy.y),
         wxPoint2DDouble(xy.x + (warp.x_size + 1) * tile_width / 2, xy.y + warp.x_size * tile_height / 2),
@@ -1236,16 +1233,15 @@ void RoomViewerCtrl::OnDraw(wxDC& dc)
     mdc.SelectObject(wxNullBitmap);
 }
 
-void RoomViewerCtrl::OnPaint(wxPaintEvent& evt)
+void RoomViewerCtrl::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
 	this->OnDraw(dc);
 }
 
-void RoomViewerCtrl::OnEraseBackground(wxEraseEvent& evt)
+void RoomViewerCtrl::OnEraseBackground(wxEraseEvent& /*evt*/)
 {
-    //evt.Skip();
 }
 
 void RoomViewerCtrl::AddEntityClickRegions(const std::vector<SpriteQ>& q)

@@ -72,13 +72,13 @@ void ChestDialog::OnCheck(wxCommandEvent& evt)
     evt.Skip();
 }
 
-void ChestDialog::OnOK(wxCommandEvent& evt)
+void ChestDialog::OnOK(wxCommandEvent&)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void ChestDialog::OnCancel(wxCommandEvent& evt)
+void ChestDialog::OnCancel(wxCommandEvent&)
 {
     EndModal(wxID_CANCEL);
 }

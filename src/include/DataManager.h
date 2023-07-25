@@ -63,7 +63,7 @@ public:
 	};
 
 	DataManager(const filesystem::path& asm_file) : m_asm_filename(asm_file), m_base_path(asm_file.parent_path()) {}
-	DataManager(const Rom& rom) {}
+	DataManager(const Rom&) {}
 
 	virtual ~DataManager() {}
 

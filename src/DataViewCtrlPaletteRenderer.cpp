@@ -39,7 +39,7 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
 
         for (std::size_t i = 0; i < palette_size; ++i)
         {
-            bool selected = active && i == sel;
+            bool selected = active && static_cast<int>(i) == sel;
             dc->SetPen(selected ? *wxRED_PEN : *wxBLACK_PEN);
             dc->SetBrush(wxColor(palette->GetNthUnlockedColour(i).GetBGR(false)));
             dc->DrawRectangle(r);
@@ -208,7 +208,7 @@ Palette::Colour DataViewCtrlPaletteRenderer::GetCursorColour()
     {
         return m_pal->GetData()->GetNthUnlockedColour(m_cursor);
     }
-    return -1;
+    return Palette::Colour();
 }
 
 bool DataViewCtrlPaletteRenderer::SetColour()

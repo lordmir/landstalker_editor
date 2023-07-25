@@ -48,7 +48,10 @@ void Map2DEditor::SetColour(int c)
 
 bool Map2DEditor::Save(const wxString& filename, Tilemap2D::Compression compression, int base)
 {
+	auto orig_base = m_map->GetBase();
+	m_map->SetBase(base);
 	m_map->Save(filename.ToStdString(), compression);
+	m_map->SetBase(orig_base);
 	return true;
 }
 
@@ -377,7 +380,7 @@ Tile Map2DEditor::GetTileAtPosition(const TilePosition& tp) const
 	}
 	else
 	{
-		return Tile(-1);
+		return Tile(0xFFFF);
 	}
 }
 

@@ -46,13 +46,13 @@ size_t LZ77::Decode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf, size_
             if(offset)
             {
                 dsize += length;
-                int l = length;
                 for(; length != 0; --length)
                 {
                     *outbuf = *(outbuf - offset);
                     outbuf++;
                 }
 #ifndef NDEBUG
+                int l = length;
                 std::cout << "O[" << offset << "," << (int)l << "]; ";
                 for (int z = l; z > 0; --z)
                     std::cout << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << (int)*(outbuf - offset - z) << std::dec;
@@ -192,7 +192,7 @@ size_t LZ77::Encode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf)
                         std::cout << "O[" << bstart->entry2 << "," << (int)bstart->entry1 << "];" << std::endl;
 #endif
                         assert((bstart->entry2 & 0xFFF) != 0);
-                        *outbuf++ = (bstart->entry2 & 0xF00) >> 4 | ((18 - bstart->entry1) & 0xF);
+                        *outbuf++ = static_cast<uint8_t>((bstart->entry2 & 0xF00) >> 4 | ((18 - bstart->entry1) & 0xF));
                         *outbuf++ = bstart->entry2 & 0xFF;
                         esize+=2;
                         break;

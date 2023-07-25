@@ -58,7 +58,7 @@ void DataViewCtrlPaletteModel::GetValueByRow(wxVariant& variant, unsigned int ro
 	}
 }
 
-bool DataViewCtrlPaletteModel::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool DataViewCtrlPaletteModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }

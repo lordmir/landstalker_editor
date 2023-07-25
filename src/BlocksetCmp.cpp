@@ -27,7 +27,7 @@ public:
     }
     void push(int x)
     {
-        d.push_front(x);
+        d.push_front(static_cast<T>(x));
         d.erase(d.end() - 1);
     }
     void moveToFront(int x)
@@ -83,7 +83,7 @@ static uint16_t getCompNumber(BitBarrel& bb)
     if(!exponent) return 0;
     
     uint16_t val = 1 << exponent;
-    mantissa = bb.readBits(exponent);
+    mantissa = static_cast<int16_t>(bb.readBits(exponent));
     val += mantissa;
     --val;
 
@@ -92,7 +92,7 @@ static uint16_t getCompNumber(BitBarrel& bb)
 
 static void writeCompNumber(BitBarrelWriter& bb, uint16_t val)
 {
-    uint16_t exp = ilog2(val) - 1;
+    uint16_t exp = static_cast<uint16_t>(ilog2(val) - 1);
     uint16_t i = exp;
     uint16_t num = val - (1 << exp);
 
@@ -113,12 +113,12 @@ static uint16_t decodeTile(TileQueue<uint16_t, 16>& tq, BitBarrel& bb)
 {
     if(bb.getNextBit())
     {
-        uint8_t idx = bb.readBits(4);
+        uint8_t idx = static_cast<uint8_t>(bb.readBits(4));
         if(idx) tq.moveToFront(idx);
     }
     else
     {
-        uint16_t val = bb.readBits(11);
+        uint16_t val = static_cast<uint16_t>(bb.readBits(11));
         tq.push(val);
     }
     return tq.front();
@@ -194,7 +194,7 @@ uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, Blockset& blocks
         throw std::runtime_error("Unexpected end of input data");
     }
 
-    const uint16_t TOTAL = bb.readBits(16);
+    const uint16_t TOTAL = static_cast<uint16_t>(bb.readBits(16));
     
     new_tiles.resize(TOTAL * 4);   
     blocks.reserve(blocks.size() + TOTAL);

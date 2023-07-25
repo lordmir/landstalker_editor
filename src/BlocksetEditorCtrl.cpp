@@ -328,7 +328,7 @@ uint16_t BlocksetEditorCtrl::GetBlockSelection() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -340,7 +340,7 @@ uint16_t BlocksetEditorCtrl::GetBlockHover() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -370,7 +370,7 @@ uint16_t BlocksetEditorCtrl::GetTileSelection() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -382,7 +382,7 @@ uint16_t BlocksetEditorCtrl::GetTileHover() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 

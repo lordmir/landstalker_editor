@@ -27,7 +27,6 @@ void ResizeableGrid::SizeColumns()
         m_columnWidths.push_back(0);
     }
 
-    int side_width = GetRowLabelSize();
     int width = 0;
     int prop_count = 0;
 

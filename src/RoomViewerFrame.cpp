@@ -454,7 +454,7 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 	std::ifstream fg(paths[1], std::ios::in);
 	std::ifstream hm(paths[2], std::ios::in);
 	
-	int w, h, t, l, hw, hh;
+	std::size_t w, h, t, l, hw, hh;
 	std::vector<std::vector<uint16_t>> foreground, background, heightmap;
 
 	auto read_csv = [](auto& iss, auto& data)
@@ -500,14 +500,14 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 		return false;
 	}
 
-	for (int i = 0; i < h; ++i)
+	for (std::size_t i = 0; i < h; ++i)
 	{
 		if (background[i].size() != w || foreground[i].size() != w)
 		{
 			return false;
 		}
 	}
-	for (int i = 1; i <= hh; ++i)
+	for (std::size_t i = 1; i <= hh; ++i)
 	{
 		if (heightmap[i].size() != hw)
 		{
@@ -521,17 +521,17 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 	data->SetTop(t);
 	
 	int i = 0;
-	for (int y = 0; y < h; ++y)
+	for (std::size_t y = 0; y < h; ++y)
 	{
-		for (int x = 0; x < w; ++x)
+		for (std::size_t x = 0; x < w; ++x)
 		{
 			data->SetBlock(background[y][x], i, Tilemap3D::Layer::BG);
 			data->SetBlock(foreground[y][x], i++, Tilemap3D::Layer::FG);
 		}
 	}
-	for (int y = 0; y < hh; ++y)
+	for (int y = 0; y < static_cast<int>(hh); ++y)
 	{
-		for (int x = 0; x < hw; ++x)
+		for (int x = 0; x < static_cast<int>(hw); ++x)
 		{
 			data->SetCellProps({ x, y }, (heightmap[y + 1][x] >> 12) & 0xF);
 			data->SetHeight({ x, y }, (heightmap[y + 1][x] >> 8) & 0xF);
@@ -544,11 +544,23 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 
 bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
-	if (m_roomview != nullptr)
+	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
 	{
 		return m_roomview->HandleKeyDown(key, modifiers);
 	}
-	return true;
+	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
+	{
+		return m_hmedit->HandleKeyDown(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		return m_fgedit->HandleKeyDown(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		return m_bgedit->HandleKeyDown(key, modifiers);
+	}
+	return false;
 }
 
 void RoomViewerFrame::ShowFlagDialog()
@@ -1453,11 +1465,11 @@ void RoomViewerFrame::OnExportTmx()
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		wxString tmx_file = fd.GetPath();
-		wxString default_file = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
-		wxFileDialog fd(this, _("Export Blockset As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-		if (fd.ShowModal() != wxID_CANCEL)
+		default_file = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
+		wxFileDialog bfd(this, _("Export Blockset As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+		if (bfd.ShowModal() != wxID_CANCEL)
 		{
-			ExportTmx(tmx_file.ToStdString(), fd.GetPath().ToStdString(), m_roomnum);
+			ExportTmx(tmx_file.ToStdString(), bfd.GetPath().ToStdString(), m_roomnum);
 		}
 	}
 }
@@ -1676,30 +1688,10 @@ void RoomViewerFrame::UpdateUI() const
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 {
-	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
-	{
-		evt.Skip(m_roomview->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
-		return;
-	}
-	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
-	{
-		evt.Skip(m_hmedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
-		return;
-	}
-	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
-	{
-		evt.Skip(m_fgedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
-		return;
-	}
-	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
-	{
-		evt.Skip(m_bgedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
-		return;
-	}
-	evt.Skip();
+	evt.Skip(!HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 }
 
-void RoomViewerFrame::OnZoomChange(wxCommandEvent& evt)
+void RoomViewerFrame::OnZoomChange(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SetZoom(m_layerctrl->GetZoom());
 }
@@ -1729,7 +1721,7 @@ void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 	m_roomview->RefreshGraphics();
 }
 
-void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& /*evt*/)
 {
 	m_hmedit->UpdateEntities(m_roomview->GetEntities());
 	m_entityctrl->SetEntities(m_roomview->GetEntities());
@@ -1738,48 +1730,48 @@ void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntitySelect(wxCommandEvent& /*evt*/)
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& /*evt*/)
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->UpdateEntityProperties(m_entityctrl->GetSelected());
 }
 
-void RoomViewerFrame::OnEntityAdd(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityAdd(wxCommandEvent& /*evt*/)
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->AddEntity();
 }
 
-void RoomViewerFrame::OnEntityDelete(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityDelete(wxCommandEvent& /*evt*/)
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->DeleteSelectedEntity();
 }
 
-void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& /*evt*/)
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->MoveSelectedEntityUp();
 }
 
-void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& evt)
+void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& /*evt*/ )
 {
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_roomview->SelectEntity(m_entityctrl->GetSelected());
 	m_roomview->MoveSelectedEntityDown();
 }
 
-void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& /*evt*/ )
 {
 	m_warpctrl->SetWarps(m_roomview->GetWarps());
 	m_hmedit->UpdateWarps(m_roomview->GetWarps());
@@ -1787,24 +1779,24 @@ void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& evt)
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
 }
 
-void RoomViewerFrame::OnWarpSelect(wxCommandEvent& evt)
+void RoomViewerFrame::OnWarpSelect(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
 }
 
-void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& evt)
+void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
 }
 
-void RoomViewerFrame::OnWarpAdd(wxCommandEvent& evt)
+void RoomViewerFrame::OnWarpAdd(wxCommandEvent& /*evt*/)
 {
 	m_roomview->AddWarp();
 }
 
-void RoomViewerFrame::OnWarpDelete(wxCommandEvent& evt)
+void RoomViewerFrame::OnWarpDelete(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->DeleteSelectedWarp();
@@ -1818,7 +1810,7 @@ void RoomViewerFrame::TileSwapRefresh()
 	}
 }
 
-void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& /*evt*/)
 {
 	m_roomview->RefreshHeightmap();
 }
@@ -1829,7 +1821,7 @@ void RoomViewerFrame::OnHeightmapMove(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& evt)
+void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& /*evt*/)
 {
 	UpdateUI();
 }

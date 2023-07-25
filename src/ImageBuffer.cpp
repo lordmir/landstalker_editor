@@ -130,7 +130,7 @@ void ImageBuffer::ClearTile(int x, int y, const Tileset& ts)
     }
 }
 
-void ImageBuffer::ClearBlock(int x, int y, const Blockset& bs, const Tileset& ts)
+void ImageBuffer::ClearBlock(int x, int y, const Blockset&, const Tileset& ts)
 {
     if ((y + 7) * m_width + x + 7 < m_pixels.size())
     {
@@ -178,7 +178,6 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
     {
         for (std::size_t xx = 0; xx < map.GetWidth(); ++xx)
         {
-            const int tile_idx(xx + yy * map.GetWidth());
             const int xpos = x + xx * tileset.GetTileWidth();
             const int ypos = y + yy * tileset.GetTileHeight();
             InsertTile(xpos, ypos, palette_index, map.GetTile(xx, yy), tileset);
@@ -190,10 +189,10 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
     const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset, bool offset)
 {
     Point2D tilepos = {0, 0};
-    for (int y = 0; y < map->GetHeight(); ++y)
-        for (int x = 0; x < map->GetWidth(); ++x)
+    for (int yy = 0; yy < map->GetHeight(); ++yy)
+        for (int xx = 0; xx < map->GetWidth(); ++xx)
         {
-            tilepos = { x, y };
+            tilepos = { xx + x, yy + y };
             auto tile = map->GetBlock(tilepos, layer);
             auto loc(map->IsoToPixel(tilepos, layer, offset));
             if (tile >= blockset->size())
@@ -205,7 +204,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
             }
             InsertBlock(loc.x, loc.y, palette_index, blockset->at(tile), *tileset);
             tilepos.x++;
-            if (tilepos.x == GetWidth())
+            if (tilepos.x == static_cast<int>(GetWidth()))
             {
                 tilepos.x = 0;
                 tilepos.y++;

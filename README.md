@@ -22,8 +22,8 @@ Current State of progress:
 | Room Warp Placement         | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Chest Contents              | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Room Flags                  | :heavy_minus_sign: | :heavy_minus_sign: | Most flags understood. Some still to be added.             |
-| Room Graphic Transitions    | :x:                | :x:                | ROM format reverse engineered.                             |
+| Room Flags                  | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Graphic Transitions    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
 | Entity Behaviours           | :x:                | :x:                | ROM format reverse engineered.                             |
 | Sprite Frames               | :heavy_check_mark: | :heavy_minus_sign: | Editor UI could do with improvements.                      |

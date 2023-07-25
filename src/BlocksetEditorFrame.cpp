@@ -91,10 +91,8 @@ void BlocksetEditorFrame::RedrawTiles(int index) const
 	m_editor->RedrawTiles(index);
 }
 
-void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList&) const
 {
-	auto* parent = m_mgr.GetManagedWindow();
-
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_CBS, "Export Blockset as Binary...");
@@ -193,7 +191,7 @@ void BlocksetEditorFrame::ImportBin(const std::string& filename)
 {
 	ByteVector bytes = ReadBytes(filename);
 	m_blocks->GetData()->clear();
-	auto sz = BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
+	BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
 	m_editor->RedrawTiles();
 	UpdateStatus();
 }

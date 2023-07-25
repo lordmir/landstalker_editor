@@ -96,7 +96,7 @@ namespace Charset
 
 	inline const LSString::DiacriticMap DEFAULT_DIACRITIC_MAP = {};
 
-	static RomOffsets::Region DeduceRegion(uint32_t printable_charset_size)
+	inline RomOffsets::Region DeduceRegion(uint32_t printable_charset_size)
 	{
 		switch (printable_charset_size)
 		{
@@ -112,7 +112,7 @@ namespace Charset
 		}
 	}
 
-	static const LSString::CharacterSet& GetDefaultCharset(RomOffsets::Region region)
+	inline const LSString::CharacterSet& GetDefaultCharset(RomOffsets::Region region)
 	{
 		switch (region)
 		{
@@ -130,7 +130,7 @@ namespace Charset
 		}
 	}
 
-	static uint8_t GetEOSChar(RomOffsets::Region region)
+	inline uint8_t GetEOSChar(RomOffsets::Region region)
 	{
 		switch (region)
 		{
@@ -148,7 +148,7 @@ namespace Charset
 		}
 	}
 
-	static const LSString::DiacriticMap& GetDiacriticMap(RomOffsets::Region region)
+	inline const LSString::DiacriticMap& GetDiacriticMap(RomOffsets::Region region)
 	{
 		if (region == RomOffsets::Region::JP)
 		{

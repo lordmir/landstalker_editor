@@ -45,7 +45,15 @@ public:
 	void UpdateDoors();
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleMouse(unsigned int btns, unsigned int modifiers, int x, int y);
+	bool HandleLeftDown(unsigned int modifiers);
+	bool HandleRightDown(unsigned int modifiers);
 private:
+	void SetHoveredTile();
+	void SelectHoveredTile();
+
 	void RefreshStatusbar();
 	void ForceRedraw();
 	void RecreateBuffer();
@@ -80,6 +88,7 @@ private:
 	int GetFirstDoorRegion(const Coord& c);
 	std::pair<int, bool> GetFirstSwapRegion(const Coord& c);
 
+	void UpdateCursor(wxStockCursor cursor);
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, int userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
@@ -124,6 +133,8 @@ private:
 	static const std::size_t TILE_HEIGHT = 32;
 	static const int SCROLL_RATE = 16;
 	int m_scroll_rate;
+
+	wxStockCursor m_cursorid;
 
 	wxDECLARE_EVENT_TABLE();
 };

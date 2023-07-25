@@ -104,13 +104,13 @@ void CharacterDialog::DeleteRow()
     }
 }
 
-void CharacterDialog::OnOK(wxCommandEvent& evt)
+void CharacterDialog::OnOK(wxCommandEvent&)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void CharacterDialog::OnCancel(wxCommandEvent& evt)
+void CharacterDialog::OnCancel(wxCommandEvent&)
 {
     CommitAll();
     EndModal(wxID_OK);

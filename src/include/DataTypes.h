@@ -58,7 +58,7 @@ public:
 		  m_speed(speed),
 		  m_frames(frames),
 		  m_base_tileset(base_tileset),
-		  m_index({0,0})
+		  m_index(std::make_pair<uint8_t, uint8_t>(0,0))
 	{}
 
 	static std::shared_ptr<AnimatedTilesetEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset);

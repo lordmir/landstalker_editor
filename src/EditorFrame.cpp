@@ -110,7 +110,7 @@ void EditorFrame::ClearMenu(wxMenuBar& menu) const
 	this->GetParent()->Refresh(true);
 }
 
-void EditorFrame::OnMenuClick(wxMenuEvent& evt)
+void EditorFrame::OnMenuClick(wxMenuEvent&)
 {
 }
 

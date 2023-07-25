@@ -548,7 +548,7 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 }
 
 template <class T>
-wxPGChoices UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& props)
+wxPGChoices UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& /*props*/)
 {
 	wxPGChoices list;
 	list.Clear();

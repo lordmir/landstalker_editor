@@ -24,7 +24,7 @@ static uint16_t getCodedNumber(BitBarrel& bb)
     if(exp)
     {
         num = 1 << exp;
-        num += bb.readBits(exp);
+        num += static_cast<uint16_t>(bb.readBits(exp));
     }
     
     return num;
@@ -66,10 +66,10 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
     background.clear();
     heightmap.clear();
 
-    left   = bb.readBits(8);
-    top    = bb.readBits(8);
-    width  = bb.readBits(8) + 1;
-    height = (bb.readBits(8) + 1) / 2;
+    left   = static_cast<uint8_t>(bb.readBits(8));
+    top    = static_cast<uint8_t>(bb.readBits(8));
+    width  = static_cast<uint8_t>(bb.readBits(8) + 1);
+    height = static_cast<uint8_t>((bb.readBits(8) + 1) / 2);
     
     uint16_t tileDictionary[2] = {0, 0};
     uint16_t offsetDictionary[14] = {0xFFFF,
@@ -82,12 +82,12 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
     const uint16_t t = GetSize() * 2;
     std::vector<uint16_t> buffer(t,0);
     
-    tileDictionary[1] = bb.readBits(10);
-    tileDictionary[0] = bb.readBits(10);
+    tileDictionary[1] = static_cast<uint16_t>(bb.readBits(10));
+    tileDictionary[0] = static_cast<uint16_t>(bb.readBits(10));
     
     for(size_t i = 6; i < 14; ++i)
     {
-        offsetDictionary[i] = bb.readBits(12);
+        offsetDictionary[i] = static_cast<uint16_t>(bb.readBits(12));
     }
     
     int16_t dst_addr = -1;
@@ -104,10 +104,10 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
             break;
         }
         
-        uint8_t command = bb.readBits(3);
+        uint8_t command = static_cast<uint8_t>(bb.readBits(3));
         if(command > 5)
         {
-            command = 6 + (((command & 1) << 2) | bb.readBits(2));
+            command = static_cast<uint8_t>(6 + (((command & 1) << 2) | bb.readBits(2)));
         }
         buffer[dst_addr] = offsetDictionary[command];
         
@@ -145,21 +145,21 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
         {
             do
             {
-                operand = bb.readBits(2);
+                operand = static_cast<uint8_t>(bb.readBits(2));
                 uint16_t value = 0;
                 switch(operand)
                 {
                     case 0:
                         if(tiles[0])
                         {
-                            value = bb.readBits(ilog2(tiles[0]));
+                            value = static_cast<uint16_t>(bb.readBits(ilog2(tiles[0])));
                         }
                         buffer[dst_addr++] = value;
                         break;
                     case 1:
                         if(tiles[1] != tileDictionary[1])
                         {
-                            value = bb.readBits(ilog2(tiles[1] - tileDictionary[1]));
+                            value = static_cast<uint16_t>(bb.readBits(ilog2(tiles[1] - tileDictionary[1])));
                         }
                         value += tileDictionary[1];
                         buffer[dst_addr++] = value;
@@ -183,8 +183,8 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
     std::copy(buffer.begin(), buffer.begin() + t / 2, foreground.begin());
     
     bb.advanceNextByte();
-    hmwidth = bb.readBits(8);
-    hmheight = bb.readBits(8);
+    hmwidth = static_cast<uint8_t>(bb.readBits(8));
+    hmheight = static_cast<uint8_t>(bb.readBits(8));
     
     uint16_t hm_pattern = 0;
     uint16_t hm_rle_count = 0;
@@ -199,10 +199,10 @@ uint16_t Tilemap3D::Decode(const uint8_t* src)
             {
                 uint8_t read_count = 0;
                 hm_rle_count = 0;
-                hm_pattern = bb.readBits(16);
+                hm_pattern = static_cast<uint16_t>(bb.readBits(16));
                 do
                 {
-                    read_count = bb.readBits(8);
+                    read_count = static_cast<uint8_t>(bb.readBits(8));
                     hm_rle_count += read_count;
                 } while(read_count == 0xFF);
             }
@@ -380,7 +380,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
 #endif
         if (std::find(offsets.begin(), offsets.end(), it->first) == offsets.end())
         {
-            offsets.push_back(it->first);
+            offsets.push_back(static_cast<uint16_t>(it->first));
         }
     }
     offsets.resize(14);
@@ -442,7 +442,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
                 next += GetWidth() + (right ? 1 : 0);
                 auto nit = std::find_if(it, lz77.end(), [&](const LZ77Entry& comp)
                     {
-                        return (comp.index == next) && (comp.back_offset_idx == it->back_offset_idx);
+                        return (comp.index == static_cast<int>(next)) && (comp.back_offset_idx == it->back_offset_idx);
                     });
                 if (nit != lz77.end())
                 {
@@ -539,8 +539,6 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
     // STEP 7: Start to compress tile data. Identify if tile is (1) equal to any in tile dictionary + increment,
     //         (2) between tileDict[0] and tileDict[0] + tileDictIncr[0], or (3) none of the above.
 
-    size_t z = 0; // LZ77 entry index
-    bool lz77_mode = false;
     for (size_t i = 0; i < tiles.size(); ++i)
     {
         if (compressed[i] == false)
@@ -608,8 +606,8 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
         cmap.WriteBits(offsets[6 + i], 12);
     }
     // LZ77 Data: run length, back offset index, vertical run data
-    size_t last_idx = -1;
-    size_t prev_run = 1;
+    int last_idx = -1;
+    int prev_run = 1;
     for (const auto& entry : lz77)
     {
         // Run length
@@ -695,7 +693,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
             cmap.Write<uint8_t>(0xFF);
             len -= 0xFF;
         }
-        cmap.Write<uint8_t>(len);
+        cmap.Write<uint8_t>(static_cast<uint8_t>(len));
     }
     if (cmap.GetByteCount() <= size)
     {
@@ -907,14 +905,14 @@ void Tilemap3D::DeleteHeightmapRow(uint8_t col)
     }
 }
 
-void Tilemap3D::SetLeft(uint8_t left)
+void Tilemap3D::SetLeft(uint8_t pleft)
 {
-    this->left = left;
+    this->left = pleft;
 }
 
-void Tilemap3D::SetTop(uint8_t top)
+void Tilemap3D::SetTop(uint8_t ptop)
 {
-    this->top = top;
+    this->top = ptop;
 }
 
 uint8_t Tilemap3D::GetHeightmapWidth() const
@@ -1169,13 +1167,13 @@ uint8_t Tilemap3D::GetHeight(const HMPoint2D& p) const
     return (heightmap[p.x + p.y * hmwidth] & 0x0F00) >> 8;
 }
 
-bool Tilemap3D::SetHeight(const HMPoint2D& p, uint8_t height)
+bool Tilemap3D::SetHeight(const HMPoint2D& p, uint8_t pheight)
 {
-    if (IsHMPointValid(p) && height < 0x10)
+    if (IsHMPointValid(p) && pheight < 0x10)
     {
         int cell = p.x + p.y * hmwidth;
         heightmap[cell] &= 0xF0FF;
-        heightmap[cell] |= (height & 0x0F) << 8;
+        heightmap[cell] |= (pheight & 0x0F) << 8;
         return true;
     }
     return false;

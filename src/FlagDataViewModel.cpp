@@ -95,7 +95,7 @@ void FlagDataViewModel<EntityFlag>::GetValueByRow(wxVariant& variant, unsigned i
 }
 
 template <>
-bool FlagDataViewModel<EntityFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<EntityFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -236,7 +236,7 @@ void FlagDataViewModel<OneTimeEventFlag>::GetValueByRow(wxVariant& variant, unsi
 }
 
 template <>
-bool FlagDataViewModel<OneTimeEventFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<OneTimeEventFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -387,7 +387,7 @@ void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsign
 	if (row < m_data.size())
 	{
 		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
-		int tree = 0;
+		unsigned int tree = 0;
 		bool found = false;
 		switch (col)
 		{
@@ -421,7 +421,7 @@ void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsign
 }
 
 template <>
-bool FlagDataViewModel<SacredTreeFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<SacredTreeFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -520,7 +520,7 @@ void FlagDataViewModel<WarpList::Transition>::GetValueByRow(wxVariant& variant, 
 }
 
 template <>
-bool FlagDataViewModel<WarpList::Transition>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<WarpList::Transition>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -657,7 +657,7 @@ void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned in
 }
 
 template <>
-bool FlagDataViewModel<ChestItem>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<ChestItem>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -780,7 +780,7 @@ void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned in
 }
 
 template <>
-bool FlagDataViewModel<Character>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<Character>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
@@ -805,7 +805,7 @@ bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsig
 }
 
 template <>
-bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int row)
+bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int /*row*/)
 {
 	if (m_data.size() < 32)
 	{
@@ -863,7 +863,7 @@ wxString FlagDataViewModel<TileSwapFlag>::GetColumnHeader(unsigned int col) cons
 }
 
 template <>
-wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int col) const
+wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int /*col*/) const
 {
 	return wxArrayString();
 }

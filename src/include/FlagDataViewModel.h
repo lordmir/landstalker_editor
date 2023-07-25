@@ -30,21 +30,21 @@ public:
 
     virtual wxArrayString GetColumnChoices(unsigned int col) const = 0;
 
-    virtual wxString GetColumnType(unsigned int col) const override
+    virtual wxString GetColumnType(unsigned int /*col*/) const override
     {
         return "string";
     }
 
-    virtual void GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const override
+    virtual void GetValueByRow(wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) const override
     {
     }
 
-    virtual bool GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const override
+    virtual bool GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const override
     {
         return false;
     }
 
-    virtual bool SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col) override
+    virtual bool SetValueByRow(const wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) override
     {
         return false;
     }
@@ -359,7 +359,7 @@ public:
         return false;
     }
 
-    virtual bool AddRow(unsigned int row) override
+    virtual bool AddRow(unsigned int /*row*/) override
     {
         if (m_data.size() < 64)
         {

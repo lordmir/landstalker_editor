@@ -10,7 +10,7 @@ Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& 
 	{
 		if (offsets[i] == 0 && max_offset > 0)
 		{
-			m_enabled.insert(i);
+			m_enabled.insert(static_cast<uint16_t>(i));
 		}
 		else if (offsets[i] > max_offset)
 		{
@@ -58,7 +58,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomco
 	std::vector<uint8_t> contents;
 	contents.reserve(256);
 	int offset = 0;
-	for (int i = 0; i < roomcount; ++i)
+	for (uint16_t i = 0; i < static_cast<uint16_t>(roomcount); ++i)
 	{
 		if (m_enabled.count(i) > 0)
 		{
@@ -136,7 +136,7 @@ bool Chests::CleanupRoomChests(const GameData& gd)
 	for (uint16_t r = 0; r < static_cast<uint16_t>(gd.GetRoomData()->GetRoomCount()); ++r)
 	{
 		auto ents = gd.GetSpriteData()->GetRoomEntities(r);
-		int chests = 0;
+		std::size_t chests = 0;
 		for (const auto& e : ents)
 		{
 			if (e.GetType() == 0x12)

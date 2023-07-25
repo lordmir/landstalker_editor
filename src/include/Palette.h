@@ -22,9 +22,9 @@ public:
 		{
 		}
 		Colour(uint16_t c, bool transparent = false)
-			: m_b((c & 0x0E00) >> 9),
+			: m_r((c & 0x000E) >> 1),
 			  m_g((c & 0x00E0) >> 5),
-			  m_r((c & 0x000E) >> 1),
+			  m_b((c & 0x0E00) >> 9),
 			  m_transparent(transparent)
 		{
 		}
