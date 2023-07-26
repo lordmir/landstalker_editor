@@ -220,7 +220,6 @@ uint16_t BlocksetCmp::Decode(const uint8_t* src, size_t length, Blockset& blocks
 static void SetMask(const Blockset& blocks, const TileAttributes::Attribute& attr, BitBarrelWriter& cbs)
 {
     bool attr_set = false;
-    bool first_loop = true;
     uint16_t count = 0;
     for (const auto& block : blocks)
     {
@@ -235,7 +234,6 @@ static void SetMask(const Blockset& blocks, const TileAttributes::Attribute& att
                 attr_set = !attr_set;
                 writeCompNumber(cbs, ++count);
                 count = 0;
-                first_loop = false;
             }
         }
     }

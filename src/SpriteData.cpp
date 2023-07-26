@@ -110,7 +110,7 @@ std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, std::array<uint8_t, N>
 std::map<uint8_t, uint8_t> DeserialiseMap(const std::vector<uint8_t>& bytes, bool reverse_key_value = false)
 {
 	std::map<uint8_t, uint8_t> result;
-	std::size_t i = 0, j = 0;
+	std::size_t i = 0;
 	while (i < bytes.size())
 	{
 		uint8_t key = bytes[i++];
@@ -328,7 +328,6 @@ bool SpriteData::Save()
 
 bool SpriteData::HasBeenModified() const
 {
-	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
 	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
 	if (std::any_of(m_frames.begin(), m_frames.end(), pair_pred))
 	{
@@ -848,7 +847,6 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) con
 
 void SpriteData::CommitAllChanges()
 {
-	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
 	std::for_each(m_frames.begin(), m_frames.end(), pair_commit);
 	std::for_each(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_commit);
@@ -1355,7 +1353,6 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 
 	// Parse anim and frame pointer list, segregate by sprite/animation as appropriate
 	assert((offset_table.size() & 1) == 0);
-	auto anim_it = anim_idxs.cbegin();
 	std::map<uint32_t, std::string> frames;
 	std::map<uint32_t, std::string> frame_filenames;
 	std::map<uint32_t, uint8_t> frame_sprite;

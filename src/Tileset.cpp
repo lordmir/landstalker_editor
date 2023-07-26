@@ -52,9 +52,9 @@ const std::unordered_map<Tileset::BlockType, BlockDimensions> BLOCK_DIMENSIONS =
 Tileset::Tileset(std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
     : m_width(width * BLOCK_DIMENSIONS.at(blocktype).width),
       m_height(height * BLOCK_DIMENSIONS.at(blocktype).height),
+      m_bit_depth(bit_depth),
       m_tilewidth(width),
       m_tileheight(height),
-      m_bit_depth(bit_depth),
 	  m_compressed(false),
       m_blocktype(blocktype)
 {
@@ -68,9 +68,9 @@ Tileset::Tileset(const std::string& filename, bool compressed, std::size_t width
 Tileset::Tileset(const std::vector<uint8_t>& src, bool compressed, std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
     : m_width(width * BLOCK_DIMENSIONS.at(blocktype).width),
       m_height(height * BLOCK_DIMENSIONS.at(blocktype).height),
+      m_bit_depth(bit_depth),
       m_tilewidth(width),
       m_tileheight(height),
-      m_bit_depth(bit_depth),
       m_compressed(compressed),
       m_blocktype(blocktype)
 {
@@ -556,7 +556,7 @@ void Tileset::TransposeBlock()
         //  Here, we store which tiles need to be copied where, and use this lookup table to do
         //  the transform.
         const std::array<int, 24> transpose4x6  { 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,18,20,22,17,19,21,23};
-        const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
+        // const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
 
         for (auto& b : m_tiles)
         {

@@ -23,18 +23,20 @@ wxEND_EVENT_TABLE()
 
 HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* frame)
     : wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
-    m_roomnum(0),
-    m_frame(frame),
-    m_bmp(new wxBitmap),
-    m_zoom(1.0),
-    m_scroll_rate(SCROLL_RATE),
-    m_width(1),
-    m_height(1),
-    m_redraw(false),
-    m_repaint(false),
-    m_hovered(-1, -1),
-    m_selected(-1, -1),
-    m_cpysrc(-1, -1)
+      m_g(nullptr),
+      m_map(nullptr),
+      m_frame(frame),
+      m_roomnum(0),
+      m_width(1),
+      m_height(1),
+      m_redraw(false),
+      m_repaint(false),
+      m_zoom(1.0),
+      m_selected(-1, -1),
+      m_hovered(-1, -1),
+      m_cpysrc(-1, -1),
+      m_bmp(std::make_unique<wxBitmap>()),
+      m_scroll_rate(SCROLL_RATE)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -731,9 +733,6 @@ void HeightmapEditorCtrl::DrawRoomHeightmapForeground(wxDC& dc)
             {
                 int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
                 int y = (ix + iy) * TILE_HEIGHT / 2;
-                auto restrictions = m_map->GetCellProps({ ix, iy });
-                auto z = m_map->GetHeight({ ix, iy });
-                auto type = m_map->GetCellType({ ix, iy });
                 dc.DrawPolygon(lines.size(), lines.data(), x, y);
             }
         }

@@ -87,7 +87,7 @@ public:
     : foreground(),
       background(),
       heightmap(),
-      left(0), top(0), width(0), height(0), tile_width(8), tile_height(8), hmwidth(0), hmheight(0)
+      hmwidth(0), hmheight(0), left(0), top(0), width(0), height(0), tile_width(8), tile_height(8)
     {
     }
 

@@ -57,11 +57,17 @@ wxEND_EVENT_TABLE()
 Map2DEditorFrame::Map2DEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
-	  m_zoom(6),
+	  m_tileset(nullptr),
+	  m_mapedit(nullptr),
 	  m_zoomslider(nullptr),
 	  m_tileset_zoomslider(nullptr),
 	  m_tileset_select(nullptr),
-	  m_palette_select(nullptr)
+	  m_palette_select(nullptr),
+	  m_map(nullptr),
+	  m_tiles(nullptr),
+	  m_palette(nullptr),
+	  m_tile(0),
+	  m_zoom(6)
 {
 	m_mgr.SetManagedWindow(this);
 

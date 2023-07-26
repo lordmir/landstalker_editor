@@ -165,7 +165,6 @@ bool StringData::Save()
 
 bool StringData::HasBeenModified() const
 {
-	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
 	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
 	if (std::any_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), pair_pred))
 	{
@@ -465,6 +464,10 @@ void StringData::SetString(Type type, std::size_t index, const LSString::StringT
 		break;
 	case Type::SYSTEM:
 		SetSystemString(index, value);
+		break;
+	case Type::INTRO:
+	case Type::END_CREDITS:
+	default:
 		break;
 	}
 }
@@ -828,7 +831,6 @@ void StringData::SetMapLocation(uint16_t room, uint8_t name, uint8_t position)
 
 void StringData::CommitAllChanges()
 {
-	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
 	std::for_each(m_fonts_by_name.begin(), m_fonts_by_name.end(), pair_commit);
 	std::for_each(m_ui_tilemaps.begin(), m_ui_tilemaps.end(), pair_commit);
@@ -1054,7 +1056,6 @@ bool StringData::CompressStrings()
 
 bool StringData::DecodeStrings(const std::vector<uint8_t>& bytes, std::vector<LSString::StringType>& strings)
 {
-	int i = 0;
 	const auto& charset = Charset::GetDefaultCharset(m_region);
 	const auto& diacritic_map = Charset::GetDiacriticMap(m_region);
 	auto decoder = LSString(charset, diacritic_map);
@@ -1072,8 +1073,6 @@ bool StringData::DecodeStrings(const std::vector<uint8_t>& bytes, std::vector<LS
 
 bool StringData::DecodeString(const std::vector<uint8_t>& bytes, LSString::StringType& string)
 {
-	int i = 0;
-	uint8_t next = bytes[0];
 	const auto& charset = Charset::GetDefaultCharset(m_region);
 	const auto& diacritic_map = Charset::GetDiacriticMap(m_region);
 	auto decoder = LSString(charset, diacritic_map);
@@ -1084,7 +1083,6 @@ bool StringData::DecodeString(const std::vector<uint8_t>& bytes, LSString::Strin
 
 bool StringData::EncodeStrings(const std::vector<LSString::StringType>& strings, std::vector<uint8_t>& bytes)
 {
-	int i = 0;
 	const auto& charset = Charset::GetDefaultCharset(m_region);
 	const auto& diacritic_map = Charset::GetDiacriticMap(m_region);
 	auto encoder = LSString(charset, diacritic_map);
@@ -1101,7 +1099,6 @@ bool StringData::EncodeStrings(const std::vector<LSString::StringType>& strings,
 
 bool StringData::EncodeString(const LSString::StringType& string, std::vector<uint8_t>& bytes)
 {
-	int i = 0;
 	const auto& charset = Charset::GetDefaultCharset(m_region);
 	const auto& diacritic_map = Charset::GetDiacriticMap(m_region);
 	auto encoder = LSString(charset, diacritic_map);
@@ -1401,16 +1398,12 @@ bool StringData::RomLoadSystemFont(const Rom& rom)
 bool StringData::RomLoadSystemStrings(const Rom& rom)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	uint32_t line1_lea = rom.read<uint32_t>(RomLabels::Strings::REGION_ERROR_LINE1);
 	uint32_t line1_begin = Disasm::ReadOffset16(rom, RomLabels::Strings::REGION_ERROR_LINE1);
 	m_system_strings[0] = converter.from_bytes(rom.read_string(line1_begin));
-	uint32_t line2_lea = rom.read<uint32_t>(RomLabels::Strings::REGION_ERROR_NTSC);
 	uint32_t line2_begin = Disasm::ReadOffset16(rom, RomLabels::Strings::REGION_ERROR_NTSC);
 	m_system_strings[1] = converter.from_bytes(rom.read_string(line2_begin));
-	uint32_t line3_lea = rom.read<uint32_t>(RomLabels::Strings::REGION_ERROR_PAL);
 	uint32_t line3_begin = Disasm::ReadOffset16(rom, RomLabels::Strings::REGION_ERROR_PAL);
 	m_system_strings[2] = converter.from_bytes(rom.read_string(line3_begin));
-	uint32_t line4_lea = rom.read<uint32_t>(RomLabels::Strings::REGION_ERROR_LINE3);
 	uint32_t line4_begin = Disasm::ReadOffset16(rom, RomLabels::Strings::REGION_ERROR_LINE3);
 	m_system_strings[3] = converter.from_bytes(rom.read_string(line4_begin));
 	return true;

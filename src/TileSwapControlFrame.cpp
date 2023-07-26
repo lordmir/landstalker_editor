@@ -20,8 +20,8 @@ TileSwapControlFrame::TileSwapControlFrame(RoomViewerFrame* parent, ImageList* i
 	: SelectionControlFrame(parent, imglst),
 	  m_rvf(parent),
 	  m_selected(ID::TILESWAP),
-	  m_roomnum(0),
-	  m_mode(RoomEdit::Mode::NORMAL)
+	  m_mode(RoomEdit::Mode::NORMAL),
+	  m_roomnum(0)
 {
 	m_swap_btn = new wxBitmapToggleButton(this, static_cast<int>(ID::TILESWAP), imglst->GetImage("map_edit_tileswaps"), wxDefaultPosition, {24, -1});
 	m_door_btn = new wxBitmapToggleButton(this, static_cast<int>(ID::DOOR), imglst->GetImage("map_edit_doors"), wxDefaultPosition, { 24, -1 });

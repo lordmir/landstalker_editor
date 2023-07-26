@@ -24,19 +24,24 @@ wxDEFINE_EVENT(EVT_TILE_PIXEL_HOVER, wxCommandEvent);
 
 TileEditor::TileEditor(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY),
-	  m_tileset(nullptr),
-	  m_tile(0),
+	  m_ctrlwidth(1),
+	  m_ctrlheight(1),
 	  m_pixelsize(16),
 	  m_primary_colour(1),
 	  m_secondary_colour(0),
 	  m_selectedpixel{ -1, -1 },
 	  m_hoveredpixel{ -1, -1 },
+	  m_secondary_active(false),
+	  m_drawing(false),
 	  m_enableborders(true),
 	  m_enableedit(true),
 	  m_enablealpha(true),
-	  m_secondary_active(false),
-	  m_drawing(false),
-	  m_gd(nullptr)
+	  m_gd(nullptr),
+	  m_tileset(nullptr),
+	  m_selected_palette_name(),
+	  m_selected_palette_entry(nullptr),
+	  m_selected_palette(nullptr),
+	  m_tile(0)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 

@@ -891,7 +891,6 @@ void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned
 	{
 		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
 		wxString label;
-		int idx = 0;
 		switch (col)
 		{
 		case 0:
@@ -922,7 +921,6 @@ bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, un
 	{
 		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
 		wxString label;
-		int idx = 0;
 		switch (col)
 		{
 		case 0:

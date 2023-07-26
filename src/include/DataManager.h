@@ -93,11 +93,12 @@ template<class T>
 inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
 	: m_data(std::make_shared<T>()),
 	  m_orig_data(std::make_shared<T>()),
+	  m_saved_data(nullptr),
+	  m_begin_address(0),
+	  m_name(name),
+	  m_filename(filename),
 	  m_raw_data(std::make_shared<ByteVector>(b)),
 	  m_cached_raw_data(std::make_shared<ByteVector>()),
-	  m_name(name),\
-	  m_filename(filename),
-	  m_begin_address(0),
 	  m_owner(owner)
 {
 }

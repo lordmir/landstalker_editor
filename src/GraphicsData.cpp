@@ -1780,7 +1780,6 @@ bool GraphicsData::RomLoadStatusFx(const Rom& rom)
 	uint32_t ptrs_end = 0xFFFFFF;
 	auto get_ptrs = [&](uint32_t addr, uint32_t& end, std::vector<uint32_t>& ptrs)
 	{
-		int i = 0;
 		while (addr < end)
 		{
 			uint32_t p = rom.inc_read<uint32_t>(addr);
@@ -2073,7 +2072,6 @@ bool GraphicsData::RomLoadClimaxLogoData(const Rom& rom)
 	uint32_t pal_addr = Disasm::ReadOffset16(rom, RomLabels::Graphics::CLIMAX_LOGO_PAL);
 	uint32_t tiles_addr = Disasm::ReadOffset16(rom, RomLabels::Graphics::CLIMAX_LOGO_TILES);
 	uint32_t map_addr = Disasm::ReadOffset16(rom, RomLabels::Graphics::CLIMAX_LOGO_MAP);
-	uint32_t end = rom.get_section(RomLabels::Graphics::CLIMAX_LOGO_DATA).end;
 
 	uint32_t tiles_size = map_addr - tiles_addr;
 	uint32_t map_size = pal_addr - map_addr;
@@ -2705,7 +2703,6 @@ bool GraphicsData::RomPrepareInjectStatusFx(const Rom& rom)
 	uint32_t curse_begin = begin + pointer_table_size;
 	pointer_table_size += m_status_fx[RomLabels::Graphics::STATUS_FX_CURSE].size() * sizeof(uint32_t);
 
-	uint32_t addr = pointer_table_size;
 	bytes->resize(pointer_table_size);
 	for (const auto& f : m_status_fx_frames)
 	{
@@ -2979,7 +2976,6 @@ bool GraphicsData::RomPrepareInjectClimaxLogoData(const Rom& rom)
 
 bool GraphicsData::RomPrepareInjectGameLoadScreenData(const Rom& rom)
 {
-	uint32_t pal_begin = rom.get_section(RomLabels::Graphics::GAME_LOAD_PALETTE).begin;
 	auto pal_bytes = m_load_game_pals_internal[RomLabels::Graphics::GAME_LOAD_PALETTE]->GetBytes();
 
 	uint32_t begin = rom.get_section(RomLabels::Graphics::GAME_LOAD_DATA).begin;

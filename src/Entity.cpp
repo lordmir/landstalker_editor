@@ -296,26 +296,26 @@ Entity::Entity(std::array<uint8_t, 8> data)
 }
 
 Entity::Entity()
-    : m_type(0),
-    m_x_pos(0x1F80),
-    m_y_pos(0x1F80),
-    m_z_pos(0x000),
-    m_speed(0),
-    m_orientation(Orientation::NE),
-    m_palette(2),
-    m_behaviour(0),
-    m_dialogue(0),
-    m_no_rotate(false),
+    : m_x_pos(0x1F80),
+      m_y_pos(0x1F80),
+      m_z_pos(0x000),
+      m_type(0),
+      m_orientation(Orientation::NE),
+      m_palette(2),
+      m_speed(0),
+      m_behaviour(0),
+      m_dialogue(0),
+      m_copy_tiles(false),
+      m_copy_source(0),
     m_hostile(false),
     m_pickupable(false),
     m_has_dialogue(false),
+    m_no_rotate(false),
+    m_no_friction(false),
+    m_no_gravity(false),
     m_invisible(false),
     m_not_solid(false),
-    m_no_gravity(false),
-    m_no_friction(false),
-    m_reserved(false),
-    m_copy_tiles(false),
-    m_copy_source(0)
+    m_reserved(false)
 {
 }
 

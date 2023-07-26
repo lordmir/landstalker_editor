@@ -14,7 +14,6 @@ template<std::size_t N, std::size_t M>
 Block<N,M>::Block(const std::vector<Tile>::const_iterator& begin, const std::vector<Tile>::const_iterator& end)
 {
     assert(std::distance(begin, end) == GetBlockSize());
-    std::vector<Tile>::const_iterator it = begin;
     std::copy(begin, end, tiles.begin());
 }
 

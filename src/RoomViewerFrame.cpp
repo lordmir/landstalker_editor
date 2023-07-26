@@ -105,15 +105,28 @@ wxEND_EVENT_TABLE()
 
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
-	  m_title(""),
 	  m_mode(RoomEdit::Mode::NORMAL),
-	  m_reset_props(false),
+	  m_nb(nullptr),
+	  m_title(""),
+	  m_roomview(nullptr),
+	  m_hmedit(nullptr),
+	  m_bgedit(nullptr),
+	  m_fgedit(nullptr),
+	  m_layerctrl(nullptr),
+	  m_entityctrl(nullptr),
+	  m_warpctrl(nullptr),
+	  m_swapctrl(nullptr),
+	  m_blkctrl(nullptr),
+	  m_g(nullptr),
+	  m_roomnum(0),
+	  m_zoom(1.0),
 	  m_layerctrl_visible(true),
 	  m_entityctrl_visible(true),
 	  m_warpctrl_visible(true),
 	  m_swapctrl_visible(true),
 	  m_blkctrl_visible(true),
-	  m_sizes_set(false)
+	  m_sizes_set(false),
+	  m_reset_props(false)
 {
 	m_mgr.SetManagedWindow(this);
 

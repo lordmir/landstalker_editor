@@ -6,10 +6,10 @@
 DataViewCtrlPaletteRenderer::DataViewCtrlPaletteRenderer(wxWindow* owner, wxDataViewCellMode mode)
     : wxDataViewCustomRenderer("void*", mode, wxALIGN_LEFT),
     m_pal(nullptr),
+    m_owner(owner),
     m_sel_id(nullptr),
     m_cursor(0),
     m_cursor_limit(0),
-    m_owner(owner),
     m_been_activated(false)
 {
 }

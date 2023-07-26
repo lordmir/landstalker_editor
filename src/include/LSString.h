@@ -42,9 +42,9 @@ protected:
 	virtual size_t EncodeString(uint8_t* string, size_t len) const;
 	StringType DecodeChar(uint8_t chr) const;
 	size_t EncodeChar(StringType str, size_t index, uint8_t& chr) const;
+	StringType m_str;
 	CharacterSet m_charset;
 	DiacriticMap m_diacritic_map;
-	StringType m_str;
 	uint8_t m_eos_marker;
 
 private:

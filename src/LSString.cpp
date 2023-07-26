@@ -187,7 +187,7 @@ LSString::StringType LSString::ApplyDiacritics(const StringType& str) const
 			{
 				if (d.first == str.substr(index, d.first.size()))
 				{
-					for (const auto c : d.second)
+					for (const auto& c : d.second)
 					{
 						if (c.first.size() + d.first.size() <= str.size() - index)
 						{
@@ -225,7 +225,7 @@ LSString::StringType LSString::RemoveDiacritics(const StringType& str) const
 		bool found = false;
 		for (const auto& d : m_diacritic_map)
 		{
-			for (const auto c : d.second)
+			for (const auto& c : d.second)
 			{
 				if (c.second.size() <= str.size() - index)
 				{

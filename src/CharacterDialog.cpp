@@ -2,9 +2,9 @@
 
 CharacterDialog::CharacterDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Characters", wxDefaultPosition, { 640, 480 }),
+	  m_gd(gd),
 	  m_imglst(imglst),
-	  m_roomnum(room),
-	  m_gd(gd)
+	  m_roomnum(room)
 {
 	const int plus_img = m_imglst->GetIdx("plus");
 	const int minus_img = m_imglst->GetIdx("minus");

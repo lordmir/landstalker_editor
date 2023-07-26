@@ -11,9 +11,13 @@ wxDEFINE_EVENT(EVT_OPACITY_CHANGE, wxCommandEvent);
 
 LayerControlFrame::LayerControlFrame(wxWindow* parent)
     : wxWindow(parent, wxID_ANY, wxDefaultPosition, { 220, 200 }),
-    m_visibilities{ true, true, true, true, false },
-    m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
-    m_zoom(1.0)
+      m_zoom_label(nullptr),
+      m_zoom_slider(nullptr),
+      m_zoom(1.0),
+      m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
+      m_visibilities{ true, true, true, true, false },
+      m_zoom_enabled(true),
+      m_layers_enabled{ true, true, true, true, true }
 {
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);

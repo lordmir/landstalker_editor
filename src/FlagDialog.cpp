@@ -3,9 +3,17 @@
 
 FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Flags", wxDefaultPosition, {640, 480}),
-      m_imglst(imglst),
 	  m_gd(gd),
-	  m_roomnum(room)
+      m_imglst(imglst),
+	  m_roomnum(room),
+      m_tabs(nullptr),
+      m_button_sizer(nullptr),
+      m_ok(nullptr),
+      m_cancel(nullptr),
+      m_ctrl_add(nullptr),
+      m_ctrl_delete(nullptr),
+      m_ctrl_move_up(nullptr),
+      m_ctrl_move_down(nullptr)
 {
     const int plus_img = m_imglst->GetIdx("plus");
     const int minus_img = m_imglst->GetIdx("minus");

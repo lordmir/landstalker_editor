@@ -35,16 +35,23 @@ SpriteEditorCtrl::SpriteEditorCtrl(wxWindow* parent)
 	m_selectable(false),
 	m_selectedtile(-1),
 	m_hoveredtile(-1),
-	m_pendingswap(-1),
 	m_tilebase(0),
 	m_columns(36),
 	m_rows(36),
-	m_redraw_all(true),
-	m_enablealpha(true),
-	m_enableborders(true),
+	m_cellwidth(8),
+	m_cellheight(8),
 	m_enabletilenumbers(false),
+	m_enableborders(true),
 	m_enableselection(true),
-	m_enablehover(true)
+	m_enablehover(true),
+	m_enablealpha(true),
+	m_pal(nullptr),
+	m_sprite(nullptr),
+	m_gd(nullptr),
+	m_ctrlwidth(1),
+	m_ctrlheight(1),
+	m_redraw_all(true),
+	m_pendingswap(-1)
 {
 
 	SetRowColumnCount(m_rows, m_columns);

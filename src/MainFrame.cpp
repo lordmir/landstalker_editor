@@ -271,7 +271,7 @@ void MainFrame::InitUI()
             continue;
         }
         const auto& ent_name = Entity::EntityNames[i];
-        wxTreeItemId ent_node = m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
+        m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
     }
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
@@ -349,7 +349,7 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        wxTreeItemId cRm = m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
+        m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
             (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);

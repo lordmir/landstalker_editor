@@ -15,7 +15,7 @@ std::array<uint8_t, EntityFlag::SIZE> EntityFlag::GetData() const
 	data[0] = room >> 8;
 	data[1] = room & 0xFF;
 	data[2] = ((flag >> 3) & 0x7F) | (set ? 0x80 : 0x00);
-	data[3] = entity & 0x1F | ((flag & 0x07) << 5);
+	data[3] = (entity & 0x1F) | ((flag & 0x07) << 5);
 	return data;
 }
 
@@ -49,7 +49,7 @@ std::array<uint8_t, OneTimeEventFlag::SIZE> OneTimeEventFlag::GetData() const
 	data[0] = room >> 8;
 	data[1] = room & 0xFF;
 	data[2] = ((flag_on >> 3) & 0x7F) | (flag_on_set ? 0x80 : 0x00);
-	data[3] = entity & 0x1F | ((flag_on & 0x07) << 5);
+	data[3] = (entity & 0x1F) | ((flag_on & 0x07) << 5);
 	data[4] = ((flag_off >> 3) & 0x7F) | (flag_off_set ? 0x80 : 0x00);
 	data[5] = flag_off & 0x07;
 	return data;

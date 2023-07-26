@@ -22,15 +22,25 @@ wxDEFINE_EVENT(EVT_MAP_ACTIVATE, wxCommandEvent);
 
 Map2DEditor::Map2DEditor(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY),
-	m_pixelsize(8),
-	m_mode(Map2DEditor::Mode::SELECT),
-	m_drawtile(Tile(0)),
-	m_redraw_all(true),
-	m_enablealpha(true),
-	m_enableborders(true),
-	m_enabletilenumbers(true),
-	m_enableselection(true),
-	m_enablehover(true)
+	  m_map(nullptr),
+	  m_map_entry(nullptr),
+	  m_tileset(nullptr),
+	  m_tileset_entry(nullptr),
+	  m_g(nullptr),
+	  m_active_palette(nullptr),
+	  m_mode(Map2DEditor::Mode::SELECT),
+	  m_pixelsize(8),
+	  m_selectable(true),
+	  m_selectedtile(-1),
+	  m_hoveredtile(-1),
+	  m_tilebase(0),
+	  m_enabletilenumbers(true),
+	  m_enableborders(true),
+	  m_enableselection(true),
+	  m_enablehover(true),
+	  m_enablealpha(true),
+	  m_redraw_all(true),
+      m_drawtile(Tile(0))
 {
 	SetRowColumnCount(1, 1);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);

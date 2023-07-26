@@ -14,7 +14,13 @@
 #endif
 
 Tilemap::Tilemap(std::size_t width, std::size_t height, std::size_t tile_width, std::size_t tile_height, std::size_t left, std::size_t top, uint8_t palette)
-: m_width(width), m_height(height), m_left(left), m_top(top), TILE_WIDTH(tile_width), TILE_HEIGHT(tile_height), m_palette(palette)
+	: TILE_WIDTH(tile_width),
+	  TILE_HEIGHT(tile_height),
+	  m_width(width),
+	  m_height(height),
+	  m_left(left),
+	  m_top(top),
+	  m_palette(palette)
 {
 	m_tilevals.resize(width * height);
 }
@@ -332,10 +338,10 @@ bool Tilemap::ReadCSVFile(const std::string& filename)
 		retval = infile.good() && vals.size() == (width * height);
 		if (retval == true)
 		{
-			m_width = ntohs(width);
-			m_height = ntohs(width);
-			m_left = ntohs(width);
-			m_top = ntohs(width);
+			m_width = width;
+			m_height = height;
+			m_left = left;
+			m_top = top;
 			Clear();
 			for (std::size_t y = 0; y < m_height; ++y)
 			{

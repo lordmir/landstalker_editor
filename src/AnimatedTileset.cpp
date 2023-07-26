@@ -2,40 +2,40 @@
 
 AnimatedTileset::AnimatedTileset(uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: m_base(base),
-	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
-	  m_frames(frames)
+	  m_frames(frames),
+	  m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset(const std::vector<uint8_t>& bytes, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(bytes),
 	m_base(base),
-	m_base_tileset(0),
 	m_length(length),
 	m_speed(speed),
-	m_frames(frames)
+	m_frames(frames),
+	m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset(const std::string& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(filename),
 	  m_base(base),
-	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
-	  m_frames(frames)
+	  m_frames(frames),
+	  m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset()
 	: Tileset(),
 	  m_base(0),
-	  m_base_tileset(0),
-	  m_frames(0),
 	  m_length(0),
-	  m_speed(0)
+	  m_speed(0),
+	  m_frames(0),
+	  m_base_tileset(0)
 {
 }
 

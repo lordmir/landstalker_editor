@@ -16,8 +16,8 @@ IntroString::IntroString()
 	  m_line1Y(0),
 	  m_line1X(0),
 	  m_line2Y(0),
-	  m_displayTime(0),
-	  m_line2X(0)
+	  m_line2X(0),
+	  m_displayTime(0)
 {
 }
 

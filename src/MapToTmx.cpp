@@ -27,7 +27,7 @@ std::vector<uint16_t> ReadData(int width, int height, const wxString& csv)
 {
 	std::istringstream ss(csv.ToStdString());
 	std::vector<uint16_t> retval(width * height);
-	int i = 0, x = 0, y = 0;
+	int x = 0, y = 0;
     std::string row, cell;
 	while(std::getline(ss, row) && y < height)
 	{
@@ -70,7 +70,10 @@ bool MapToTmx::ImportFromTmx(const std::string& fname, Tilemap3D& map)
 		child = child->GetNext();
 	}
 
-	if (width > 0 && width < 64 && height > 0 && height < 64 && fg.size() == width * height && bg.size() == width * height)
+	if (width > 0 && width < 64 &&
+	    height > 0 && height < 64 &&
+		fg.size() == static_cast<std::size_t>(width * height) &&
+		bg.size() == static_cast<std::size_t>(width * height))
 	{
 		map.Resize(width, height);
 		int i = 0;

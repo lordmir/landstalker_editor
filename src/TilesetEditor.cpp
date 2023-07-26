@@ -32,19 +32,23 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	m_selectable(false),
 	m_selectedtile(-1),
 	m_hoveredtile(-1),
-	m_pendingswap(-1),
 	m_tilebase(0),
-	m_tilewidth(0),
-	m_tileheight(0),
 	m_columns(0),
 	m_rows(0),
-	m_redraw_all(true),
-	m_enablealpha(true),
-	m_enableborders(true),
+	m_tilewidth(0),
+	m_tileheight(0),
+	m_cellwidth(0),
+	m_cellheight(0),
 	m_enabletilenumbers(false),
+	m_enableborders(true),
 	m_enableselection(true),
 	m_enablehover(true),
-	m_gd(nullptr)
+	m_enablealpha(true),
+	m_gd(nullptr),
+	m_ctrlwidth(1),
+	m_ctrlheight(1),
+	m_redraw_all(true),
+	m_pendingswap(-1)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);

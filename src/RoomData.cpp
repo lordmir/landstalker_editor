@@ -11,7 +11,6 @@ std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
 {
     std::vector<TileSwapFlag> flags;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
-    int i = 0;
     for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
         flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
@@ -40,7 +39,6 @@ std::vector<TreeWarpFlag> DecodeTreeWarp(const ByteVector& data)
 {
     std::vector<TreeWarpFlag> flags;
     assert(data.size() % TreeWarpFlag::SIZE == 2);
-    int i = 0;
     for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 8)
     {
         std::array<uint8_t, TreeWarpFlag::SIZE> bytes;
@@ -68,7 +66,6 @@ std::map<uint16_t, uint16_t> DecodeToMap(const ByteVector& data)
 {
     std::map<uint16_t, uint16_t> map;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
-    int i = 0;
     for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
         uint16_t room = (data[i] << 8) | data[i + 1];
@@ -1758,9 +1755,8 @@ bool RoomData::RomLoadRoomPalettes(const Rom& rom)
     uint32_t palettes_begin = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_PALS_PTR));
     uint32_t palettes_end = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_EXITS_PTR));
     assert(palettes_end > palettes_begin);
-    uint32_t palettes_size = palettes_end - palettes_begin;
     uint32_t size = Palette::GetSizeBytes(Palette::Type::ROOM);
-    assert(palettes_size % size == 0);
+    assert((palettes_end - palettes_begin) % size == 0);
     unsigned int i = 0;
     unsigned int addr = palettes_begin;
     while (addr < palettes_end)
@@ -1794,7 +1790,6 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
         uint32_t addr = rom.get_section(name).begin;
         uint32_t end = rom.get_section(name).end;
         uint32_t size = Palette::GetSizeBytes(ptype);
-        unsigned int i = 0;
         std::vector<std::shared_ptr<PaletteEntry>> ret;
         int idx = 0;
         for (; addr < end; addr += size)
@@ -2409,7 +2404,6 @@ bool RoomData::RomPrepareInjectRoomData(const Rom& rom)
     auto bytes = std::make_shared<std::vector<uint8_t>>();
     uint32_t roomlist_size = m_roomlist.size() * 8;
     uint32_t data_begin = rom.get_section(RomLabels::Rooms::ROOM_DATA_SECTION).begin;
-    uint32_t addr = 0;
     auto warp_bytes = m_warps.GetWarpBytes();
     for (auto& map : m_maps)
     {

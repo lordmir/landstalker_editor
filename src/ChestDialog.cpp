@@ -2,9 +2,9 @@
 
 ChestDialog::ChestDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Chests", wxDefaultPosition, { 640, 480 }),
+	  m_gd(gd),
 	  m_imglst(imglst),
-	  m_roomnum(room),
-	  m_gd(gd)
+	  m_roomnum(room)
 {
 	wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
 	this->SetSizer(szr1);

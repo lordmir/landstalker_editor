@@ -23,8 +23,10 @@ static const std::string MODE_DESCRIPTORS[] =
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
-	  m_title(""),
-      m_type(StringData::Type::MAIN)
+      m_type(StringData::Type::MAIN),
+      m_stringView(nullptr),
+      m_model(nullptr),
+	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -259,8 +261,6 @@ bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringDa
 
 void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
-    auto* parent = m_mgr.GetManagedWindow();
-
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export Strings...");

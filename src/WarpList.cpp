@@ -437,12 +437,12 @@ bool WarpList::Warp::operator==(const Warp& rhs) const
 {
 	return ((this->type == rhs.type) && (this->x_size == rhs.x_size) &&
 		    (this->y_size == rhs.y_size) &&
-		    ((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
-			 (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
-			 (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
-		    ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
-		  	 (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
-			 (this->x2 == rhs.x1) && (this->y2 == rhs.y1)));
+		    (((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
+			  (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
+			  (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
+		     ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
+		  	  (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
+			  (this->x2 == rhs.x1) && (this->y2 == rhs.y1))));
 }
 
 bool WarpList::Warp::operator!=(const Warp& rhs) const

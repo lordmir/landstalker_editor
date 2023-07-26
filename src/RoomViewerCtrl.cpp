@@ -25,22 +25,23 @@ wxEND_EVENT_TABLE()
 
 RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 	: wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
+      m_g(nullptr),
 	  m_roomnum(0),
       m_frame(frame),
-      m_bmp(new wxBitmap),
-      m_zoom(1.0),
-      m_scroll_rate(SCROLL_RATE),
       m_width(1),
       m_height(1),
       m_buffer_width(1),
       m_buffer_height(1),
       m_redraw(false),
       m_repaint(false),
-      m_selected(-1),
+      m_zoom(1.0),
       m_show_entities(true),
-      m_show_entity_hitboxes(true),
       m_show_warps(true),
-      m_is_warp_pending(false)
+      m_show_entity_hitboxes(true),
+      m_is_warp_pending(false),
+      m_bmp(std::make_unique<wxBitmap>()),
+      m_scroll_rate(SCROLL_RATE),
+      m_selected(-1)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -612,13 +613,13 @@ void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
     {
         auto hitbox = m_g->GetSpriteData()->GetEntityHitbox(s.entity.GetType());
 
-        wxPoint2DDouble shadow_points[] = {
+        /* wxPoint2DDouble shadow_points[] = {
             wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
             wxPoint2DDouble(s.x, s.y + hitbox.first),
             wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
             wxPoint2DDouble(s.x, s.y - hitbox.first),
             wxPoint2DDouble(s.x + hitbox.first * 2, s.y)
-        };
+        }; */
         wxPoint2DDouble hitbox_fg_points[] = {
             wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
             wxPoint2DDouble(s.x, s.y + hitbox.first),

@@ -31,7 +31,7 @@ struct EntityFlag : public FlagTrigger
 	bool set;
 
 	EntityFlag(const std::array<uint8_t, SIZE>& data);
-	EntityFlag(uint16_t rm) : room(rm), entity(0), flag(0), set(false) {}
+	EntityFlag(uint16_t rm) : room(rm), flag(0), entity(0), set(false) {}
 	std::array<uint8_t, SIZE> GetData() const;
 	bool operator==(const EntityFlag& rhs) const;
 	bool operator!=(const EntityFlag& rhs) const;
@@ -79,7 +79,7 @@ struct TileSwapFlag : public FlagTrigger
 	bool always;
 
 	TileSwapFlag(const std::array<uint8_t, SIZE>& data);
-	TileSwapFlag(uint16_t rm, uint8_t idx) : room(rm), index(idx), flag(0), always(false) {}
+	TileSwapFlag(uint16_t rm, uint8_t idx) : room(rm), flag(0), index(idx), always(false) {}
 	std::array<uint8_t, SIZE> GetData() const;
 	bool operator==(const TileSwapFlag& rhs) const;
 	bool operator!=(const TileSwapFlag& rhs) const;

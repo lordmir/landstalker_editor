@@ -6,15 +6,13 @@
 #include "Utils.h"
 
 SpriteFrame::SpriteFrame(const std::vector<uint8_t>& src)
-	: m_compressed(false),
-	  m_sprite_gfx()
+	: m_compressed(false)
 {
 	SetBits(src);
 }
 
 SpriteFrame::SpriteFrame(const std::string& filename)
-	: m_compressed(false),
-	  m_sprite_gfx()
+	: m_compressed(false)
 {
 	Open(filename);
 }

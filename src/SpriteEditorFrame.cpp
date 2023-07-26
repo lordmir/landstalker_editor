@@ -173,8 +173,6 @@ const std::string& SpriteEditorFrame::GetFilename() const
 
 void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
-	auto* parent = m_mgr.GetManagedWindow();
-
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_FRM, "Export Sprite Frame as Binary...");

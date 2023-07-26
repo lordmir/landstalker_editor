@@ -24,32 +24,32 @@ wxDEFINE_EVENT(EVT_BLOCK_ACTIVATE, wxCommandEvent);
 
 BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	: wxVScrolledWindow(parent, wxID_ANY),
-	m_mode(Mode::BLOCK_SELECT),
-	m_columns(0),
-	m_rows(0),
-	m_cellwidth(0),
-	m_cellheight(0),
-	m_ctrlwidth(0),
-	m_ctrlheight(0),
-	m_pixelsize(4),
-	m_selectable(false),
-	m_selectedblock(-1),
-	m_hoveredblock(-1),
-	m_selectedtile(-1),
-	m_hoveredtile(-1),
-	block_width(2),
-	block_height(2),
-	m_blocks(std::make_shared<Blockset>()),
-	m_enableblocknumbers(true),
-	m_enabletilenumbers(false),
-	m_enableborders(true),
-	m_enabletileborders(true),
-	m_enableselection(true),
-	m_enablehover(true),
-	m_enablealpha(false),
-	m_redraw_all(true),
-	m_drawtile(0),
-	m_frame(parent)
+	  m_blocks(std::make_shared<Blockset>()),
+	  m_mode(Mode::BLOCK_SELECT),
+	  m_columns(0),
+	  m_rows(0),
+	  m_pixelsize(4),
+   	  m_selectable(false),
+	  m_selectedblock(-1),
+	  m_hoveredblock(-1),
+	  m_selectedtile(-1),
+	  m_hoveredtile(-1),
+	  block_width(2),
+	  block_height(2),
+	  m_cellwidth(0),
+	  m_cellheight(0),
+	  m_ctrlwidth(0),
+	  m_ctrlheight(0),
+	  m_enableblocknumbers(true),
+	  m_enabletilenumbers(false),
+	  m_enableborders(true),
+	  m_enabletileborders(true),
+	  m_enableselection(true),
+	  m_enablehover(true),
+	  m_enablealpha(false),
+	  m_redraw_all(true),
+	  m_drawtile(0),
+	  m_frame(parent)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -528,7 +528,6 @@ bool BlocksetEditorCtrl::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 	const int tile_height = m_pixelsize * m_tileset->GetTileHeight();
 	const int xx = x * tile_width;
 	const int yy = y * tile_height;
-	const int xcell = x / MapBlock::GetBlockWidth();
 	const int ycell = y / MapBlock::GetBlockHeight();
 
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -752,9 +751,9 @@ int BlocksetEditorCtrl::ToTileIndex(const Position& tp)
 		return -1;
 	}
 	auto tidx = bidx * MapBlock::GetBlockSize();
-	bidx += (tp.x % MapBlock::GetBlockWidth());
-	bidx += (tp.y % MapBlock::GetBlockHeight()) * MapBlock::GetBlockWidth();
-	return bidx;
+	tidx += (tp.x % MapBlock::GetBlockWidth());
+	tidx += (tp.y % MapBlock::GetBlockHeight()) * MapBlock::GetBlockWidth();
+	return tidx;
 }
 
 int BlocksetEditorCtrl::ConvertXYToBlockIdx(const wxPoint& point) const

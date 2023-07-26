@@ -11,36 +11,66 @@
 
 
 Tilemap2D::Tilemap2D()
-	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(0), m_compression(Compression::NONE)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(0),
+	  m_compression(Compression::NONE)
 {
 }
 
 Tilemap2D::Tilemap2D(size_t width, size_t height, size_t base)
-	: m_width(width), m_height(height), m_top(0), m_left(0), m_base(base), m_compression(Compression::NONE)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(Compression::NONE)
 {
 	m_tiles.resize(width * height);
 }
 
 Tilemap2D::Tilemap2D(const std::string& filename, Compression compression, size_t base)
-	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(base), m_compression(compression)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(filename, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression, size_t base)
-	: m_width(width), m_height(height), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(filename, width, height, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::vector<uint8_t>& data, Compression compression, size_t base)
-	: m_width(0), m_height(0), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(data, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression, size_t base)
-	: m_width(width), m_height(height), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(data, width, height, compression, base);
 }
@@ -686,7 +716,7 @@ void Tilemap2D::InsertRow(int position, const Tile& fill)
 	{
 		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (y == position)
+			if (y == static_cast<std::size_t>(position))
 			{
 				*nit++ = fill;
 			}
@@ -709,7 +739,7 @@ void Tilemap2D::InsertColumn(int position, const Tile& fill)
 	{
 		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (x == position)
+			if (x == static_cast<std::size_t>(position))
 			{
 				*nit++ = fill;
 			}
@@ -736,7 +766,7 @@ void Tilemap2D::DeleteRow(int position)
 	{
 		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (y == position)
+			if (y == static_cast<std::size_t>(position))
 			{
 				oit++;
 			}
@@ -763,7 +793,7 @@ void Tilemap2D::DeleteColumn(int position)
 	{
 		for (std::size_t x = 0; x < m_width + 1; ++x)
 		{
-			if (x == position)
+			if (x == static_cast<std::size_t>(position))
 			{
 				oit++;
 			}

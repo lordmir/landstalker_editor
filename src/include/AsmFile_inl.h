@@ -52,7 +52,7 @@ bool AsmFile::Read(T& value)
 	value = 0;
 	try
 	{
-		for (int i = 0; i < sizeof(T); ++i)
+		for (std::size_t i = 0; i < sizeof(T); ++i)
 		{
 			if (m_readptr == m_data.end())
 			{

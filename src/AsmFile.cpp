@@ -11,8 +11,8 @@ const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
 AsmFile::AsmFile(const filesystem::path& filename, FileType type)
-	: m_filename(filename),
-	m_type(type)
+	: m_type(type),
+	  m_filename(filename)
 {
 	if (!ReadFile(m_filename, m_type))
 	{
@@ -597,6 +597,12 @@ bool AsmFile::ProcessInst<AsmFile::Inst::INCBIN>(const AsmFile::AsmLine& line)
 	return true;
 }
 
+template<>
+bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& line)
+{
+	return true;
+}
+
 bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 {
 	auto it = INSTRUCTIONS.find(line.instruction);
@@ -610,8 +616,9 @@ bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 	case Inst::DCB:     return ProcessInst<Inst::DCB>(line);
 	case Inst::INCLUDE: return ProcessInst<Inst::INCLUDE>(line);
 	case Inst::INCBIN:  return ProcessInst<Inst::INCBIN>(line);
+	case Inst::ALIGN:   return ProcessInst<Inst::ALIGN>(line);
+	default:            return false;
 	}
-	return false;
 }
 
 std::string AsmFile::ToAsmLine(const AsmFile::AsmLine& line)

@@ -23,13 +23,16 @@ wxDEFINE_EVENT(EVT_PALETTE_COLOUR_HOVER, wxCommandEvent);
 
 PaletteEditor::PaletteEditor(wxWindow* parent)
 	: wxWindow(parent, wxID_ANY),
-	  m_pri_colour(1),
-	  m_sec_colour(0),
-	  m_hovered_colour(-1),
-	  m_bpp(4),
+	  m_gd(nullptr),
+	  m_selected_palette_entry(nullptr),
+	  m_selected_palette(nullptr),
 	  m_disabled{},
 	  m_locked{},
-	  m_gd(nullptr)
+	  m_indicies{},
+	  m_bpp(4),
+	  m_pri_colour(1),
+	  m_sec_colour(0),
+	  m_hovered_colour(-1)
 {
 	m_disabled.assign(16, false);
 	m_indicies.assign(16, 0);
@@ -113,7 +116,7 @@ void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 	if ((m_pri_colour >= 0) && (m_disabled[m_pri_colour] == true))
 	{
 		m_pri_colour = -1;
-		for (std::size_t i = entries.size(); i > 0; --i)
+		for (int i = static_cast<int>(entries.size()); i > 0; --i)
 		{
 			if (!entries[i - 1] && m_sec_colour != (i - 1))
 			{
@@ -125,7 +128,7 @@ void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 	if ((m_sec_colour >= 0) && (m_disabled[m_sec_colour] == true))
 	{
 		m_sec_colour = m_pri_colour;
-		for (std::size_t i = 0; i < entries.size(); ++i)
+		for (int i = 0; i < static_cast<int>(entries.size()); ++i)
 		{
 			if (!entries[i] && m_pri_colour != i)
 			{

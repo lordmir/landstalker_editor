@@ -394,14 +394,12 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
 
     lz77.emplace_back(1, 0, 0);
     idx = 1;
-    size_t run_count = 0;
     do
     {
         auto result = findMatch(tiles, idx, offsets);
         if ((result.first != 0) || (lz77.back().back_offset_idx != 0))
         {
             lz77.emplace_back(result.second, result.first, idx);
-            run_count = 0;
         }
         else
         {
@@ -607,13 +605,11 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
     }
     // LZ77 Data: run length, back offset index, vertical run data
     int last_idx = -1;
-    int prev_run = 1;
     for (const auto& entry : lz77)
     {
         // Run length
         makeCodedNumber(static_cast<uint16_t>(entry.index - last_idx), cmap);
         last_idx = entry.index;
-        prev_run = entry.run_length;
         // Back index
         if (entry.back_offset_idx < 6)
         {
@@ -654,7 +650,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
             cmap.WriteBits(0, 1);
         }
     }
-    if (last_idx < tiles.size())
+    if (last_idx < static_cast<int>(tiles.size()))
     {
         makeCodedNumber(static_cast<uint16_t>(tiles.size() - last_idx + 1), cmap);
     }
@@ -816,11 +812,13 @@ void Tilemap3D::InsertHeightmapColumn(uint8_t before)
             {
                 if (y <= before)
                 {
-                    dst[idx++] = src[idx];
+                    dst[idx] = src[idx];
+                    ++idx;
                 }
                 else
                 {
-                    dst[idx++] = src[idx - hmwidth];
+                    dst[idx] = src[idx - hmwidth];
+                    ++idx;
                 }
             }
         }

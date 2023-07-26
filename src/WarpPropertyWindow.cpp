@@ -23,8 +23,8 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     : wxDialog(parent, wxID_ANY, "Edit Warp", wxDefaultPosition, wxSize(500, 250)),
       m_warp(warp),
       m_id(id),
-      m_room_src(src_room),
-      m_unknown_selectable(false)
+      m_unknown_selectable(false),
+      m_room_src(src_room)
 {
 
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
