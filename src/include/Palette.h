@@ -207,6 +207,7 @@ public:
 	Palette(const Palette& pal);
 	Palette(const std::vector<std::shared_ptr<Palette>>& pals);
 
+	Palette& operator=(const Palette&);
 	bool operator==(const Palette& rhs) const;
 	bool operator!=(const Palette& rhs) const;
 
