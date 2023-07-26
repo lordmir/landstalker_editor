@@ -275,6 +275,18 @@ void Palette::LoadDebugPal()
 	m_pal[15]->FromGenesis(0x0000);
 }
 
+Palette& Palette::operator=(const Palette& rhs)
+{
+	m_type = rhs.m_type;
+	m_name = rhs.m_name;
+	m_owner = rhs.m_owner;
+	m_locked = rhs.m_locked;
+	m_pal.resize(rhs.m_pal.size());
+	auto it = rhs.m_pal.cbegin();
+	std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*(*it++)); });
+	return *this;
+}
+
 bool Palette::operator==(const Palette& rhs) const
 {
 	bool retval = (this->m_type == rhs.m_type);
