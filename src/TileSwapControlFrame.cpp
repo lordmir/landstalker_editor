@@ -2,6 +2,7 @@
 #include <Utils.h>
 #include <RoomViewerFrame.h>
 
+wxDEFINE_EVENT(EVT_TILESWAP_UPDATE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESWAP_SELECT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESWAP_OPEN_PROPERTIES, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESWAP_ADD, wxCommandEvent);
@@ -9,6 +10,7 @@ wxDEFINE_EVENT(EVT_TILESWAP_DELETE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESWAP_MOVE_UP, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESWAP_MOVE_DOWN, wxCommandEvent);
 
+wxDEFINE_EVENT(EVT_DOOR_UPDATE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DOOR_SELECT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DOOR_OPEN_PROPERTIES, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DOOR_ADD, wxCommandEvent);

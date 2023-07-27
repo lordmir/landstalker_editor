@@ -339,7 +339,7 @@ void Map2DEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& evt)
+void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& /*evt*/)
 {
 	if (m_gd == nullptr)
 	{
@@ -349,7 +349,7 @@ void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& evt)
 	m_tileset_select->SetStringSelection(m_map->GetTileset());
 }
 
-void Map2DEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
+void Map2DEditorFrame::OnPaletteSelect(wxCommandEvent& /*evt*/)
 {
 	if (m_gd == nullptr)
 	{
@@ -425,7 +425,7 @@ std::string Map2DEditorFrame::PrettyPrintMode() const
 	return ss.str();
 }
 
-void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
 	std::ostringstream ss;
 	if (m_mapedit->IsSelectionValid())

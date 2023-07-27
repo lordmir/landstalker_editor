@@ -909,7 +909,7 @@ void FlagDataViewModel<TileSwapFlag>::GetValueByRow(wxVariant& variant, unsigned
 }
 
 template <>
-bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }

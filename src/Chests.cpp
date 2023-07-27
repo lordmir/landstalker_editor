@@ -3,10 +3,10 @@
 
 Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& contents)
 {
-	int max_offset = offsets[0];
-	int last_room = 0;
+	uint8_t max_offset = offsets[0];
+	uint16_t last_room = 0;
 	std::map<uint16_t, uint8_t> chests;
-	for (int i = 0; i < static_cast<int>(offsets.size() - 1); ++i)
+	for (uint16_t i = 0; i < static_cast<uint16_t>(offsets.size() - 1); ++i)
 	{
 		if (offsets[i] == 0 && max_offset > 0)
 		{
@@ -66,7 +66,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomco
 		}
 		else
 		{
-			offsets.push_back(offset);
+			offsets.push_back(static_cast<uint8_t>(offset));
 			if (m_chests.count(i) > 0)
 			{
 				contents.insert(contents.end(), m_chests.at(i).begin(), m_chests.at(i).end());

@@ -22,7 +22,6 @@ public:
 	TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset>);
 	~TilesetEditor();
 
-	void SetColour(int c);
 	void SetGameData(std::shared_ptr<GameData> gd);
 	std::shared_ptr<Tileset> GetTileset();
 	bool Save(wxString filename, bool compressed = false);

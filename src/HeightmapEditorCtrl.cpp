@@ -1042,14 +1042,14 @@ void HeightmapEditorCtrl::OnDraw(wxDC& dc)
     DrawSelectionCursors(dc);
 }
 
-void HeightmapEditorCtrl::OnPaint(wxPaintEvent& evt)
+void HeightmapEditorCtrl::OnPaint(wxPaintEvent& /*evt*/)
 {
     wxBufferedPaintDC dc(this);
     this->PrepareDC(dc);
     this->OnDraw(dc);
 }
 
-void HeightmapEditorCtrl::OnEraseBackground(wxEraseEvent& evt)
+void HeightmapEditorCtrl::OnEraseBackground(wxEraseEvent& /*evt*/)
 {
 }
 

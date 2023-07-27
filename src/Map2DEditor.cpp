@@ -52,10 +52,6 @@ Map2DEditor::~Map2DEditor()
 {
 }
 
-void Map2DEditor::SetColour(int c)
-{
-}
-
 bool Map2DEditor::Save(const wxString& filename, Tilemap2D::Compression compression, int base)
 {
 	auto orig_base = m_map->GetBase();
@@ -408,7 +404,7 @@ bool Map2DEditor::IsPositionValid(const TilePosition& tp) const
 	return valid;
 }
 
-wxCoord Map2DEditor::OnGetRowHeight(size_t row) const
+wxCoord Map2DEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	if (m_tileset)
 	{
@@ -420,7 +416,7 @@ wxCoord Map2DEditor::OnGetRowHeight(size_t row) const
 	}
 }
 
-wxCoord Map2DEditor::OnGetColumnWidth(size_t column) const
+wxCoord Map2DEditor::OnGetColumnWidth(size_t /*column*/) const
 {
 	if (m_tileset)
 	{
@@ -723,7 +719,7 @@ void Map2DEditor::OnDraw(wxDC& dc)
 	m_memdc.SelectObject(wxNullBitmap);
 }
 
-void Map2DEditor::OnPaint(wxPaintEvent& evt)
+void Map2DEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);

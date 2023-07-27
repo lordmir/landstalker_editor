@@ -1014,12 +1014,12 @@ ByteVector SpriteData::SerialisePaletteLUT() const
 		if (m_lo_palette_lookup.find(i) != m_lo_palette_lookup.cend())
 		{
 			result.push_back(i);
-			result.push_back(m_lo_palette_lookup.at(i)->GetIndex());
+			result.push_back(static_cast<uint8_t>(m_lo_palette_lookup.at(i)->GetIndex()));
 		}
 		if (m_hi_palette_lookup.find(i) != m_hi_palette_lookup.cend())
 		{
 			result.push_back(i);
-			result.push_back(0x80 | m_hi_palette_lookup.at(i)->GetIndex());
+			result.push_back(static_cast<uint8_t>(0x80 | m_hi_palette_lookup.at(i)->GetIndex()));
 		}
 	}
 	result.push_back(0xFF);
@@ -1126,7 +1126,7 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 {
 	ByteVector bytes, offsets;
 	offsets.reserve((m_room_entities.rbegin()->first + 1) * sizeof(uint16_t));
-	for (int i = 0; i <= m_room_entities.rbegin()->first; ++i)
+	for (uint16_t i = 0; i <= m_room_entities.rbegin()->first; ++i)
 	{
 		auto res = m_room_entities.find(i);
 		if (res == m_room_entities.cend())

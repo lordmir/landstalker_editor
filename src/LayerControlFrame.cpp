@@ -160,15 +160,15 @@ void LayerControlFrame::UpdateUI()
 
 void LayerControlFrame::SetUI()
 {
-    int i = 0;
+    int level_index = 0;
     for (const auto& level : ZOOM_LEVELS)
     {
         if (m_zoom < level)
         {
-            i++;
+            level_index++;
         }
     }
-    m_zoom_slider->SetValue(std::clamp<int>(i, 0, ZOOM_LEVELS.size() - 1));
+    m_zoom_slider->SetValue(std::clamp<int>(level_index, 0, ZOOM_LEVELS.size() - 1));
     m_zoom_label->SetLabelText(StrPrintf("%d%%", static_cast<int>(m_zoom * 100.0)));
 
     for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
@@ -180,7 +180,7 @@ void LayerControlFrame::SetUI()
     Refresh();
 }
 
-void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& evt)
+void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& /*evt*/)
 {
     double new_zoom = ZOOM_LEVELS[std::clamp<int>(m_zoom_slider->GetValue(), 0, ZOOM_LEVELS.size() - 1)];
     if (new_zoom != m_zoom)

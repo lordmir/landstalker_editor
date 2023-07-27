@@ -211,7 +211,7 @@ EntityPropertiesWindow::~EntityPropertiesWindow()
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
 }
 
-void EntityPropertiesWindow::OnClickOK(wxCommandEvent& evt)
+void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     m_entity->SetType(m_ctrl_entity_type->GetSelection());
     m_entity->SetXDbl(m_ctrl_x->GetValue());
@@ -236,7 +236,7 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& evt)
     EndModal(wxID_OK);
 }
 
-void EntityPropertiesWindow::OnClickCancel(wxCommandEvent& evt)
+void EntityPropertiesWindow::OnClickCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

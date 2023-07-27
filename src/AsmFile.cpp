@@ -598,7 +598,7 @@ bool AsmFile::ProcessInst<AsmFile::Inst::INCBIN>(const AsmFile::AsmLine& line)
 }
 
 template<>
-bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& line)
+bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& /*line*/)
 {
 	return true;
 }

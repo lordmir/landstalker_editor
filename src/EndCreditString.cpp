@@ -118,9 +118,9 @@ void EndCreditString::Deserialise(const EndCreditString::StringType& in)
 	std::basic_istringstream<EndCreditString::StringType::value_type> liness(in);
 	EndCreditString::StringType cell;
 	std::getline<EndCreditString::StringType::value_type>(liness, cell, '\t');
-	m_height = std::stoi(cell);
+	m_height = static_cast<uint8_t>(std::stoi(cell));
 	std::getline<EndCreditString::StringType::value_type>(liness, cell, '\t');
-	m_column = -std::stoi(cell);
+	m_column = -static_cast<int8_t>(std::stoi(cell));
 	std::getline<EndCreditString::StringType::value_type>(liness, m_str, '\t');
 }
 

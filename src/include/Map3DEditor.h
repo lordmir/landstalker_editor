@@ -14,6 +14,17 @@ class ImageBuffer;
 class Map3DEditor : public wxScrolledCanvas
 {
 public:
+	enum class MouseEventType
+	{
+		NONE,
+		MOVE,
+		ENTER,
+		LEAVE,
+		LEFT_DOWN,
+		LEFT_UP,
+		RIGHT_DOWN,
+		RIGHT_UP
+	};
 	using Coord = std::pair<int, int>;
 
 	Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::Layer layer);
@@ -47,10 +58,11 @@ public:
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
-	bool HandleMouse(unsigned int btns, unsigned int modifiers, int x, int y);
+	bool HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y);
 	bool HandleLeftDown(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
 private:
+
 	void SetHoveredTile();
 	void SelectHoveredTile();
 
@@ -71,8 +83,10 @@ private:
 	void OnSize(wxSizeEvent& evt);
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
-	void OnLeftClick(wxMouseEvent& evt);
-	void OnRightClick(wxMouseEvent& evt);
+	void OnLeftDown(wxMouseEvent& evt);
+	void OnRightDown(wxMouseEvent& evt);
+	void OnLeftUp(wxMouseEvent& evt);
+	void OnRightUp(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
 	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
 	std::vector<wxPoint> OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset);
@@ -88,12 +102,18 @@ private:
 	int GetFirstDoorRegion(const Coord& c);
 	std::pair<int, bool> GetFirstSwapRegion(const Coord& c);
 
+	void RefreshCursor(bool ctrl_down);
 	void UpdateCursor(wxStockCursor cursor);
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, int userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
 	void FireMapEvent(const wxEventType& e);
+
+	void StartDrag();
+	void StopDrag(bool cancel = false);
+	void RefreshDrag();
+
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
@@ -115,7 +135,12 @@ private:
 	int m_selected_block;
 	Coord m_selected;
 	Coord m_hovered;
+	Coord m_dragged;
+	Coord m_dragged_orig_pos;
+	bool m_dragging;
 	int m_selected_region;
+	bool m_selected_is_src;
+
 	std::vector<std::pair<std::vector<wxPoint>, std::vector<wxPoint>>> m_swap_regions;
 	std::vector<std::vector<wxPoint>> m_door_regions;
 
@@ -124,6 +149,8 @@ private:
 
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
+
+	std::array<bool, 4> m_mousebtnstate;
 
 	bool m_show_blocknums;
 	bool m_show_borders;

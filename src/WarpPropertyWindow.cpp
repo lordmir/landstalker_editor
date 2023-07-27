@@ -150,7 +150,7 @@ WarpPropertyWindow::~WarpPropertyWindow()
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(WarpPropertyWindow::OnClickCancel), NULL, this);
 }
 
-void WarpPropertyWindow::OnClickOK(wxCommandEvent& evt)
+void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     m_warp->type = static_cast<WarpList::Warp::Type>(m_ctrl_type->GetSelection());
     if (m_ctrl_size->GetSelection() > 2)
@@ -212,7 +212,7 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& evt)
     EndModal(wxID_OK);
 }
 
-void WarpPropertyWindow::OnClickCancel(wxCommandEvent& evt)
+void WarpPropertyWindow::OnClickCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

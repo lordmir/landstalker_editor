@@ -692,7 +692,7 @@
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\RomLabels.h">
-      <Filter>src\Data\Main</Filter>
+      <Filter>include\Data\Main</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

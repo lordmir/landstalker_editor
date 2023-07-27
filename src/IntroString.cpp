@@ -78,15 +78,15 @@ void IntroString::Deserialise(const IntroString::StringType& in)
 	std::basic_istringstream<IntroString::StringType::value_type> liness(in);
 	IntroString::StringType cell;
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line1X = std::stoi(cell);
+	m_line1X = static_cast<uint16_t>(std::stoi(cell));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line1Y = std::stoi(cell.c_str());
+	m_line1Y = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line2X = std::stoi(cell.c_str());
+	m_line2X = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line2Y = std::stoi(cell.c_str());
+	m_line2Y = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_displayTime = std::stoi(cell.c_str());
+	m_displayTime = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, m_str, '\t');
 	std::getline<IntroString::StringType::value_type>(liness, m_line2, '\t');
 }

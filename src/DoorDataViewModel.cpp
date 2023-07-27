@@ -59,7 +59,7 @@ wxArrayString DoorDataViewModel::GetColumnChoices(unsigned int col) const
 	return choices;
 }
 
-wxString DoorDataViewModel::GetColumnType(unsigned int col) const
+wxString DoorDataViewModel::GetColumnType(unsigned int /*col*/) const
 {
 	return "long";
 }
@@ -89,7 +89,7 @@ void DoorDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, unsi
 	}
 }
 
-bool DoorDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool DoorDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }

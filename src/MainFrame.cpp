@@ -379,7 +379,6 @@ MainFrame::ReturnCode MainFrame::Save()
     {
         return SaveToRom(m_last.ToStdString());
     }
-    return ReturnCode::ERR;
 }
 
 MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
@@ -601,11 +600,11 @@ void MainFrame::ShowEditor(EditorType editor)
     if (!m_editors.at(editor)->IsShown())
     {
         m_activeEditor = m_editors.at(editor);
-        for (const auto& editor : m_editors)
+        for (const auto& ed : m_editors)
         {
-            if (editor.second != m_activeEditor)
+            if (ed.second != m_activeEditor)
             {
-                editor.second->Hide();
+                ed.second->Hide();
             }
         }
         m_activeEditor->Show();
@@ -739,7 +738,7 @@ void MainFrame::OnSaveToRom(wxCommandEvent& event)
     event.Skip();
 }
 
-void MainFrame::OnSave(wxCommandEvent& event)
+void MainFrame::OnSave(wxCommandEvent& /*event*/)
 {
     if (!m_last.empty())
     {
@@ -747,7 +746,7 @@ void MainFrame::OnSave(wxCommandEvent& event)
     }
 }
 
-void MainFrame::OnBuildAsm(wxCommandEvent& event)
+void MainFrame::OnBuildAsm(wxCommandEvent& /*event*/)
 {
     if (m_last_asm.empty())
     {
@@ -767,7 +766,7 @@ void MainFrame::OnBuildAsm(wxCommandEvent& event)
     }
 }
 
-void MainFrame::OnRunEmulator(wxCommandEvent& event)
+void MainFrame::OnRunEmulator(wxCommandEvent& /*event*/)
 {
     if (m_built_rom.empty())
     {
@@ -777,7 +776,7 @@ void MainFrame::OnRunEmulator(wxCommandEvent& event)
     bdlg.ShowModal();
 }
 
-void MainFrame::OnPreferences(wxCommandEvent& event)
+void MainFrame::OnPreferences(wxCommandEvent& /*event*/)
 {
     PreferencesDialog dlg(this, m_config);
     dlg.ShowModal();

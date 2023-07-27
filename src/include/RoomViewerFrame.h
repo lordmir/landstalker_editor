@@ -98,6 +98,14 @@ private:
 	void OnWarpDelete(wxCommandEvent& evt);
 
 	void TileSwapRefresh();
+	void OnSwapUpdate(wxCommandEvent& evt);
+	void OnSwapSelect(wxCommandEvent& evt);
+	void OnSwapAdd(wxCommandEvent& evt);
+	void OnSwapDelete(wxCommandEvent& evt);
+	void OnDoorUpdate(wxCommandEvent& evt);
+	void OnDoorSelect(wxCommandEvent& evt);
+	void OnDoorAdd(wxCommandEvent& evt);
+	void OnDoorDelete(wxCommandEvent& evt);
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
 	void OnHeightmapMove(wxCommandEvent& evt);

@@ -34,7 +34,6 @@ public:
 	Map2DEditor(wxWindow* parent);
 	~Map2DEditor();
 
-	void SetColour(int c);
 	bool Save(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
 	bool Open(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
 	bool Open(const std::vector<Tile>& map, int width = 0, int height = 0, int base = 0);

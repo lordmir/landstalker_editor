@@ -45,7 +45,7 @@ std::pair< std::vector<uint8_t>, std::vector<uint8_t>> Doors::GetData(int roomco
 	offsets.reserve(roomcount);
 	std::vector<uint8_t> doors;
 	int lastsz = 0;
-	for (int i = 0; i < roomcount; ++i)
+	for (uint16_t i = 0; i < static_cast<uint16_t>(roomcount); ++i)
 	{
 		if (m_doors.count(i) > 0)
 		{

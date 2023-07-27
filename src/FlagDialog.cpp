@@ -370,18 +370,18 @@ FlagType FlagDialog::GetSelectedTab()
     return m_pages[m_tabs->GetSelection()];
 }
 
-void FlagDialog::OnTabChange(wxBookCtrlEvent& e)
+void FlagDialog::OnTabChange(wxBookCtrlEvent& /*evt*/)
 {
     UpdateUI();
 }
 
-void FlagDialog::OnOK(wxCommandEvent& evt)
+void FlagDialog::OnOK(wxCommandEvent& /*evt*/)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void FlagDialog::OnCancel(wxCommandEvent& evt)
+void FlagDialog::OnCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

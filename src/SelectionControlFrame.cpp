@@ -82,12 +82,14 @@ void SelectionControlFrame::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
     evt.SetClientData(reinterpret_cast<void*>(this->GetParent()));
+    evt.SetInt(GetSelected());
     wxPostEvent(this->GetParent(), evt);
 }
 
 void SelectionControlFrame::UpdateUI()
 {
     m_ctrl_list->Freeze();
+    int sel = m_ctrl_list->GetSelection();
     m_ctrl_list->Clear();
     if (m_ctrl_list->GetCount() > static_cast<unsigned int>(GetMaxSelection()))
     {
@@ -112,15 +114,16 @@ void SelectionControlFrame::UpdateUI()
         }
     }
     UpdateOtherControls();
+    m_ctrl_list->SetSelection(sel);
     m_ctrl_list->Thaw();
 }
 
-void SelectionControlFrame::OnSelect(wxCommandEvent& evt)
+void SelectionControlFrame::OnSelect(wxCommandEvent& /*evt*/)
 {
     Select();
 }
 
-void SelectionControlFrame::OnListDoubleClick(wxCommandEvent& evt)
+void SelectionControlFrame::OnListDoubleClick(wxCommandEvent& /*evt*/)
 {
     OpenElement();
 }
@@ -137,22 +140,22 @@ void SelectionControlFrame::OnKeyDown(wxKeyEvent& evt)
     }
 }
 
-void SelectionControlFrame::OnAdd(wxCommandEvent& evt)
+void SelectionControlFrame::OnAdd(wxCommandEvent& /*evt*/)
 {
     Add();
 }
 
-void SelectionControlFrame::OnDelete(wxCommandEvent& evt)
+void SelectionControlFrame::OnDelete(wxCommandEvent& /*evt*/)
 {
     Delete();
 }
 
-void SelectionControlFrame::OnMoveUp(wxCommandEvent& evt)
+void SelectionControlFrame::OnMoveUp(wxCommandEvent& /*evt*/)
 {
     MoveUp();
 }
 
-void SelectionControlFrame::OnMoveDown(wxCommandEvent& evt)
+void SelectionControlFrame::OnMoveDown(wxCommandEvent& /*evt*/)
 {
     MoveDown();
 }

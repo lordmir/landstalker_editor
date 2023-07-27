@@ -257,12 +257,12 @@ void TileEditor::Clear()
 	}
 }
 
-wxCoord TileEditor::OnGetRowHeight(size_t row) const
+wxCoord TileEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	return wxCoord(m_pixelsize);
 }
 
-wxCoord TileEditor::OnGetColumnWidth(size_t column) const
+wxCoord TileEditor::OnGetColumnWidth(size_t /*column*/) const
 {
 	return wxCoord(m_pixelsize);
 }
@@ -315,7 +315,7 @@ void TileEditor::OnDraw(wxDC& dc)
 	}
 }
 
-void TileEditor::OnPaint(wxPaintEvent& evt)
+void TileEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);

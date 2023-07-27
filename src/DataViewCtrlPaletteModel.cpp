@@ -63,7 +63,7 @@ bool DataViewCtrlPaletteModel::GetAttrByRow(unsigned int /*row*/, unsigned int /
 	return false;
 }
 
-bool DataViewCtrlPaletteModel::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+bool DataViewCtrlPaletteModel::SetValueByRow(const wxVariant& /*variant*/, unsigned int row, unsigned int col)
 {
 	if (col == static_cast<int>(Col::NAME))
 	{

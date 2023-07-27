@@ -277,7 +277,7 @@ void PaletteEditor::OnDraw(wxDC& dc)
 	}
 }
 
-void PaletteEditor::OnPaint(wxPaintEvent& evt)
+void PaletteEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -348,7 +348,7 @@ void PaletteEditor::OnMouseMove(wxMouseEvent& evt)
 	OnHover(ConvertXYToColour(evt.GetPosition()));
 }
 
-void PaletteEditor::OnMouseLeave(wxMouseEvent& evt)
+void PaletteEditor::OnMouseLeave(wxMouseEvent& /*evt*/)
 {
 	OnHover(-1);
 }

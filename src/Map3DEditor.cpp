@@ -12,8 +12,10 @@ EVT_PAINT(Map3DEditor::OnPaint)
 EVT_SIZE(Map3DEditor::OnSize)
 EVT_MOTION(Map3DEditor::OnMouseMove)
 EVT_LEAVE_WINDOW(Map3DEditor::OnMouseLeave)
-EVT_LEFT_UP(Map3DEditor::OnLeftClick)
-EVT_RIGHT_UP(Map3DEditor::OnRightClick)
+EVT_LEFT_DOWN(Map3DEditor::OnLeftDown)
+EVT_RIGHT_DOWN(Map3DEditor::OnRightDown)
+EVT_LEFT_UP(Map3DEditor::OnLeftUp)
+EVT_RIGHT_UP(Map3DEditor::OnRightUp)
 EVT_SHOW(Map3DEditor::OnShow)
 wxEND_EVENT_TABLE()
 
@@ -37,7 +39,11 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
       m_selected_block(0),
       m_selected(-1, -1),
       m_hovered(-1, -1),
+      m_dragged(-1, -1),
+      m_dragged_orig_pos(-1, -1),
+      m_dragging(false),
       m_selected_region(-1),
+      m_selected_is_src(false),
       m_bmp(std::make_unique<wxBitmap>()),
       m_show_blocknums(false),
       m_show_borders(true),
@@ -197,11 +203,14 @@ void Map3DEditor::UpdateDoors()
 
 bool Map3DEditor::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
+    RefreshCursor((modifiers & wxMOD_CONTROL) > 0);
     if (key == WXK_ESCAPE)
     {
+        StopDrag(true);
         m_selected = { -1, -1 };
         m_hovered = { -1, -1 };
         SetSelectedSwap(-1);
+        FireEvent(EVT_TILESWAP_SELECT, -1);
         return true;
     }
     if (!HandleRegionKeyDown(key, modifiers))
@@ -294,7 +303,7 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
         {
             if (modifiers == wxMOD_SHIFT)
             {
-                DECDSZ(m_doors[GetSelectedDoor()].size, 8);
+                DECDSZ(m_doors[GetSelectedDoor()].size, Door::SIZES.size());
                 upd = true;
             }
             else if (modifiers == wxMOD_CONTROL)
@@ -329,7 +338,7 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
         {
             if (modifiers == wxMOD_SHIFT)
             {
-                INCDSZ(m_doors[GetSelectedDoor()].size, 8);
+                INCDSZ(m_doors[GetSelectedDoor()].size, Door::SIZES.size());
                 upd = true;
             }
             else if (modifiers == wxMOD_CONTROL)
@@ -364,7 +373,7 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
         {
             if (modifiers == wxMOD_SHIFT)
             {
-                DECDSZ(m_doors[GetSelectedDoor()].size, 8);
+                DECDSZ(m_doors[GetSelectedDoor()].size, Door::SIZES.size());
                 upd = true;
             }
             else if (modifiers == wxMOD_CONTROL)
@@ -399,7 +408,7 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
         {
             if (modifiers == wxMOD_SHIFT)
             {
-                INCDSZ(m_doors[GetSelectedDoor()].size, 8);
+                INCDSZ(m_doors[GetSelectedDoor()].size, Door::SIZES.size());
                 upd = true;
             }
             else if (modifiers == wxMOD_CONTROL)
@@ -451,6 +460,14 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
         {
             m_g->GetRoomData()->SetDoors(m_roomnum, m_doors);
             m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            if (IsDoorSelected())
+            {
+                FireEvent(EVT_DOOR_UPDATE, GetSelectedDoor());
+            }
+            else if (IsSwapSelected())
+            {
+                FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+            }
         }
         Refresh();
     }
@@ -464,38 +481,46 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
 #undef INCR
 }
 
-bool Map3DEditor::HandleMouse(unsigned int buttons, unsigned int modifiers, int x, int y)
+bool Map3DEditor::HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y)
 {
-    if (UpdateHoveredPosition(x, y))
+    // Refresh hover position
+    if (type != MouseEventType::LEAVE && UpdateHoveredPosition(x, y))
     {
         RefreshStatusbar();
         Refresh(false);
     }
-    if ((modifiers & wxMOD_CONTROL) > 0)
+
+    // Refresh cursor
+    RefreshCursor((modifiers & wxMOD_CONTROL) > 0);
+
+    // Refresh drag state
+    if (m_dragging)
     {
-        auto sw = GetFirstSwapRegion(m_hovered);
-        auto dw = GetFirstDoorRegion(m_hovered);
-        if (sw.first != -1 || dw != -1)
+        if (left_down)
         {
-            UpdateCursor(wxCURSOR_HAND);
+            RefreshDrag();
+        }
+        else if (right_down)
+        {
+            StopDrag(true);
         }
         else
         {
-            UpdateCursor(wxCURSOR_ARROW);
+            StopDrag();
         }
+        return true;
     }
-    else
-    {
-        UpdateCursor(wxCURSOR_ARROW);
-    }
-    if (buttons == wxMOUSE_BTN_LEFT)
+
+    // Handle buttons
+    if (type == MouseEventType::LEFT_DOWN)
     {
         return HandleLeftDown(modifiers);
     }
-    else if (buttons == wxMOUSE_BTN_RIGHT)
+    else if (type == MouseEventType::RIGHT_DOWN)
     {
         return HandleRightDown(modifiers);
     }
+
     return false;
 }
 
@@ -508,15 +533,24 @@ bool Map3DEditor::HandleLeftDown(unsigned int modifiers)
         if (sw.first != -1)
         {
             SetSelectedSwap(sw.first);
+            m_selected_is_src = sw.second;
+            FireEvent(EVT_TILESWAP_SELECT, GetSelectedSwap());
         }
         else if (dw != -1)
         {
             SetSelectedDoor(dw);
+            FireEvent(EVT_DOOR_SELECT, GetSelectedDoor());
         }
         else
         {
             SetSelectedSwap(-1);
+            FireEvent(EVT_TILESWAP_SELECT, -1);
         }
+        if (IsSwapSelected())
+        {
+            StartDrag();
+        }
+        Refresh();
     }
     else if (IsBlockSelected() && m_hovered.first != -1)
     {
@@ -729,10 +763,18 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
         auto dp = GetScreenPosition(dst);
         auto [hx, hy] = GetScreenPosition(m_hovered);
         m_swap_regions.push_back({OffsetRegionPoly(lines, sp), OffsetRegionPoly(lines, dp)});
-        bool hovered = Pnpoly(m_swap_regions.back().first, hx, hy) || Pnpoly(m_swap_regions.back().second, hx, hy);
-        dc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, m_selected_region == si ? 3 : 1));
+        bool hovered = false;
+        if (!m_dragging)
+        {
+            hovered = Pnpoly(m_swap_regions.back().first, hx, hy) || Pnpoly(m_swap_regions.back().second, hx, hy);
+        }
+        else
+        {
+            hovered = m_selected_region == si;
+        }
+        dc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, (m_selected_region == si && m_selected_is_src) ? 3 : 1));
         dc.DrawPolygon(lines.size(), lines.data(), sp.first, sp.second);
-        dc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, m_selected_region == si ? 3 : 1));
+        dc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, (m_selected_region == si && !m_selected_is_src) ? 3 : 1));
         dc.DrawPolygon(lines.size(), lines.data(), dp.first, dp.second);
         ++si;
     }
@@ -842,23 +884,32 @@ void Map3DEditor::OnSize(wxSizeEvent& evt)
 
 void Map3DEditor::OnMouseMove(wxMouseEvent& evt)
 {
-    evt.Skip(!HandleMouse(0, evt.GetModifiers(), evt.GetX(), evt.GetY()));
+    evt.Skip(!HandleMouse(MouseEventType::MOVE, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
 }
 
 void Map3DEditor::OnMouseLeave(wxMouseEvent& evt)
 {
-    evt.Skip(!HandleMouse(0, evt.GetModifiers(), -10000, -10000));
-    evt.Skip();
+    evt.Skip(!HandleMouse(MouseEventType::LEAVE, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
 }
 
-void Map3DEditor::OnLeftClick(wxMouseEvent& evt)
+void Map3DEditor::OnLeftDown(wxMouseEvent& evt)
 {
-    evt.Skip(!HandleMouse(wxMOUSE_BTN_LEFT, evt.GetModifiers(), evt.GetX(), evt.GetY()));
+    evt.Skip(!HandleMouse(MouseEventType::LEFT_DOWN, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
 }
 
-void Map3DEditor::OnRightClick(wxMouseEvent& evt)
+void Map3DEditor::OnRightDown(wxMouseEvent& evt)
 {
-    evt.Skip(!HandleMouse(wxMOUSE_BTN_RIGHT, evt.GetModifiers(), evt.GetX(), evt.GetY()));
+    evt.Skip(!HandleMouse(MouseEventType::RIGHT_DOWN, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void Map3DEditor::OnLeftUp(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::LEFT_UP, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void Map3DEditor::OnRightUp(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::RIGHT_UP, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
 }
 
 void Map3DEditor::OnShow(wxShowEvent& evt)
@@ -1076,14 +1127,39 @@ std::pair<int, bool> Map3DEditor::GetFirstSwapRegion(const Coord& c)
     {
         if (Pnpoly(m_swap_regions[i].first, x, y) == true)
         {
-            return { i, false };
+            return { i, true };
         }
         if (Pnpoly(m_swap_regions[i].second, x, y) == true)
         {
-            return { i, true };
+            return { i, false };
         }
     }
     return {-1, false};
+}
+
+void Map3DEditor::RefreshCursor(bool ctrl_down)
+{
+    if (m_dragging)
+    {
+        UpdateCursor(wxCURSOR_SIZING);
+    }
+    else if (ctrl_down)
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1 || dw != -1)
+        {
+            UpdateCursor(wxCURSOR_HAND);
+        }
+        else
+        {
+            UpdateCursor(wxCURSOR_ARROW);
+        }
+    }
+    else
+    {
+        UpdateCursor(wxCURSOR_ARROW);
+    }
 }
 
 void Map3DEditor::UpdateCursor(wxStockCursor cursor)
@@ -1133,4 +1209,93 @@ void Map3DEditor::FireMapEvent(const wxEventType& e)
     evt.SetInt(static_cast<int>(m_layer));
     evt.SetClientData(m_frame);
     wxPostEvent(m_frame, evt);
+}
+
+void Map3DEditor::StartDrag()
+{
+    if (!IsSwapSelected() || m_dragging)
+    {
+        return;
+    }
+    m_dragged = m_hovered;
+    m_dragging = true;
+    CaptureMouse();
+    if (m_selected_is_src)
+    {
+        m_dragged_orig_pos.first = m_swaps[GetSelectedSwap()].map.src_x;
+        m_dragged_orig_pos.second = m_swaps[GetSelectedSwap()].map.src_y;
+    }
+    else
+    {
+        m_dragged_orig_pos.first = m_swaps[GetSelectedSwap()].map.dst_x;
+        m_dragged_orig_pos.second = m_swaps[GetSelectedSwap()].map.dst_y;
+    }
+}
+
+void Map3DEditor::StopDrag(bool cancel)
+{
+    if (!m_dragging)
+    {
+        return;
+    }
+    ReleaseMouse();
+    m_dragged = std::make_pair(0, 0);
+    m_dragging = false;
+    if (cancel)
+    {
+        if (IsSwapSelected())
+        {
+            if (m_selected_is_src)
+            {
+                m_swaps[GetSelectedSwap()].map.src_x = m_dragged_orig_pos.first;
+                m_swaps[GetSelectedSwap()].map.src_y = m_dragged_orig_pos.second;
+            }
+            else
+            {
+                m_swaps[GetSelectedSwap()].map.dst_x = m_dragged_orig_pos.first;
+                m_swaps[GetSelectedSwap()].map.dst_y = m_dragged_orig_pos.second;
+            }
+        }
+        Refresh();
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+        }
+    }
+}
+
+void Map3DEditor::RefreshDrag()
+{
+    if (!m_dragging || !IsHoverValid())
+    {
+        return;
+    }
+    Coord relmv = { m_hovered.first - m_dragged.first, m_hovered.second - m_dragged.second };
+    if (IsSwapSelected())
+    {
+        if (m_selected_is_src)
+        {
+            if (m_swaps[GetSelectedSwap()].map.src_x != m_dragged_orig_pos.first + relmv.first ||
+                m_swaps[GetSelectedSwap()].map.src_y != m_dragged_orig_pos.second + relmv.second)
+            {
+                m_swaps[GetSelectedSwap()].map.src_x = m_dragged_orig_pos.first + relmv.first;
+                m_swaps[GetSelectedSwap()].map.src_y = m_dragged_orig_pos.second + relmv.second;
+            }
+        }
+        else
+        {
+            if (m_swaps[GetSelectedSwap()].map.dst_x != m_dragged_orig_pos.first + relmv.first ||
+                m_swaps[GetSelectedSwap()].map.dst_y != m_dragged_orig_pos.second + relmv.second)
+            {
+                m_swaps[GetSelectedSwap()].map.dst_x = m_dragged_orig_pos.first + relmv.first;
+                m_swaps[GetSelectedSwap()].map.dst_y = m_dragged_orig_pos.second + relmv.second;
+            }
+        }
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+        }
+    }
 }

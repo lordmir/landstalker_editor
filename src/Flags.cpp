@@ -112,7 +112,7 @@ std::array<uint8_t, TileSwapFlag::SIZE> TileSwapFlag::GetData() const
 	std::array<uint8_t, SIZE> data;
 	data[0] = room >> 8;
 	data[1] = room & 0xFF;
-	data[2] = always ? 0xFF : (flag >> 3);
+	data[2] = always ? 0xFF : static_cast<uint8_t>(flag >> 3);
 	data[3] = (index << 3) & 0xF8;
 	data[3] |= always ? 0 : (flag & 7);
 	return data;
@@ -150,7 +150,7 @@ std::array<uint8_t, TreeWarpFlag::SIZE> TreeWarpFlag::GetData() const
 	data[1] = room1 & 0xFF;
 	data[4] = room2 >> 8;
 	data[5] = room2 & 0xFF;
-	data[2] = data[6] = flag >> 3;
+	data[2] = data[6] = static_cast<uint8_t>(flag >> 3);
 	data[3] = data[7] = flag & 0x06;
 	return data;
 }

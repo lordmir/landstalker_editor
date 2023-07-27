@@ -151,7 +151,7 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 	colours.reserve(size);
 	for (; it != bytes.end(); it += 2)
 	{
-		colours.emplace_back((*it << 8) | *(it + 1));
+		colours.emplace_back(static_cast<uint16_t>((*it << 8) | *(it + 1)));
 		if (static_cast<int>(colours.size()) == size)
 		{
 			break;

@@ -27,8 +27,8 @@ ByteVector EncodeGfxSwap(const std::vector<TileSwapFlag>& data)
     ret.reserve(data.size() * 4 + 2);
     for (const auto& e : data)
     {
-        auto data = e.GetData();
-        ret.insert(ret.end(), data.cbegin(), data.cend());
+        auto bytes = e.GetData();
+        ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
     }
     ret.push_back(0xFF);
     ret.push_back(0xFF);
@@ -41,7 +41,7 @@ std::vector<TreeWarpFlag> DecodeTreeWarp(const ByteVector& data)
     assert(data.size() % TreeWarpFlag::SIZE == 2);
     for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 8)
     {
-        std::array<uint8_t, TreeWarpFlag::SIZE> bytes;
+        std::array<uint8_t, TreeWarpFlag::SIZE> bytes{ 0 };
         std::copy_n(data.begin() + i, TreeWarpFlag::SIZE, bytes.begin());
         flags.push_back(TreeWarpFlag(bytes));
     }
@@ -54,8 +54,8 @@ ByteVector EncodeTreeWarp(const std::vector<TreeWarpFlag>& data)
     ret.reserve(data.size() * TreeWarpFlag::SIZE + 2);
     for (const auto& e : data)
     {
-        auto data = e.GetData();
-        ret.insert(ret.end(), data.cbegin(), data.cend());
+        auto bytes = e.GetData();
+        ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
     }
     ret.push_back(0xFF);
     ret.push_back(0xFF);
@@ -83,7 +83,7 @@ ByteVector EncodeFromMap(const std::map<uint16_t, uint16_t>& data)
     {
         ret.push_back(e.first >> 8);
         ret.push_back(e.first & 0xFF);
-        ret.push_back(e.second >> 3);
+        ret.push_back((e.second >> 3) & 0xFF);
         ret.push_back(e.second & 0x07);
     }
     ret.push_back(0xFF);
@@ -236,7 +236,7 @@ RoomData::RoomData(const Rom& rom)
 
 bool RoomData::Save(const filesystem::path& dir)
 {
-    auto directory = dir;
+    filesystem::path directory = dir;
     if (directory.exists() && directory.is_file())
     {
         directory = directory.parent_path();
@@ -498,7 +498,7 @@ std::vector<std::shared_ptr<AnimatedTilesetEntry>> RoomData::GetAnimatedTilesets
     auto it = m_tilesets_by_name.find(tileset);
     if (it != m_tilesets_by_name.cend())
     {
-        uint8_t idx = it->second->GetIndex();
+        uint8_t idx = static_cast<uint8_t>(it->second->GetIndex());
         for (const auto& ts : m_animated_ts)
         {
             if (ts.first.first == idx)
@@ -515,7 +515,7 @@ bool RoomData::HasAnimatedTilesets(const std::string& tileset) const
     auto it = m_tilesets_by_name.find(tileset);
     if (it != m_tilesets_by_name.cend())
     {
-        uint8_t idx = it->second->GetIndex();
+        uint8_t idx = static_cast<uint8_t>(it->second->GetIndex());
         for (const auto& ts : m_animated_ts)
         {
             if (ts.first.first == idx)
@@ -709,7 +709,7 @@ std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(uint8_t tileset, uint8_t pr
 
 std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& tileset, uint8_t pri, uint8_t sec) const
 {
-    return GetBlockset(pri << 5 | GetTileset(tileset)->GetIndex(), sec);
+    return GetBlockset(static_cast<uint8_t>(pri << 5 | GetTileset(tileset)->GetIndex()), sec);
 }
 
 const std::vector<std::shared_ptr<Room>>& RoomData::GetRoomlist() const
@@ -1731,7 +1731,7 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
             std::string name = StrPrintf(RomLabels::Rooms::MAP_FORMAT_STRING, ++count);
             map_names[Hex(begin)] = name;
             auto fname = StrPrintf(RomLabels::Rooms::MAP_FILENAME_FORMAT_STRING, name.c_str());
-            std::transform(fname.begin(), fname.end(), fname.begin(), [](const unsigned char i) { return std::tolower(i); });
+            std::transform(fname.begin(), fname.end(), fname.begin(), [](const unsigned char i) { return static_cast<unsigned char>(std::tolower(i)); });
             auto map_entry = Tilemap3DEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, fname);
             map_entry->SetStartAddress(begin);
             m_maps.insert(std::make_pair(name, map_entry));
@@ -1924,7 +1924,7 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
     std::map<uint32_t, std::string> ptr_names;
     std::map<uint32_t, std::string> tileset_names;
 
-    for (unsigned int i = 0; i < room_tileset_ptrs.size(); ++i)
+    for (uint8_t i = 0; i < static_cast<uint8_t>(room_tileset_ptrs.size()); ++i)
     {
         uint32_t addr = room_tileset_ptrs[i];
         if (addr == 0)
@@ -2319,7 +2319,7 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
         {
             idxs.push_back(ts.second->GetData()->GetBaseTileset());
         }
-        idxs.push_back(-1);
+        idxs.push_back(0xFF);
         file << AsmFile::Label(RomLabels::Tilesets::ANIM_IDX_LOC) << idxs;
         file << AsmFile::Align(2) << AsmFile::Label(RomLabels::Tilesets::ANIM_LIST_LOC);
 
@@ -2439,7 +2439,7 @@ bool RoomData::RomPrepareInjectRoomData(const Rom& rom)
     return true;
 }
 
-bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& rom)
+bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& /*rom*/)
 {
     auto combine_palette_array = [](std::vector<std::shared_ptr<PaletteEntry>>& pals)
     {

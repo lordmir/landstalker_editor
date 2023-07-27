@@ -474,7 +474,7 @@ void TilesetEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
 	std::ostringstream ss;
 	ss << "Selected Tile " << m_tile.GetIndex();

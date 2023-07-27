@@ -69,7 +69,7 @@ bool DataManager::AbandomRomInjection()
 	return true;
 }
 
-bool DataManager::Save(const filesystem::path& dir)
+bool DataManager::Save(const filesystem::path& /*dir*/)
 {
 	bool success = true;
 	if (success)
@@ -88,7 +88,7 @@ bool DataManager::Save()
 	return Save(m_base_path);
 }
 
-void DataManager::RefreshPendingWrites(const Rom& rom)
+void DataManager::RefreshPendingWrites(const Rom& /*rom*/)
 {
 	m_pending_writes.clear();
 }

@@ -78,7 +78,7 @@ wxArrayString TileSwapDataViewModel::GetColumnChoices(unsigned int col) const
 	return choices;
 }
 
-wxString TileSwapDataViewModel::GetColumnType(unsigned int col) const
+wxString TileSwapDataViewModel::GetColumnType(unsigned int /*col*/) const
 {
 	return "long";
 }
@@ -138,7 +138,7 @@ void TileSwapDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, 
 	}
 }
 
-bool TileSwapDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool TileSwapDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }

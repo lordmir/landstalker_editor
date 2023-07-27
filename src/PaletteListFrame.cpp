@@ -232,7 +232,7 @@ bool PaletteListFrame::ImportPalettes(const filesystem::path& filename)
     return retval;
 }
 
-void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
     int sel_colour = m_renderer->GetCursorPosition();
     auto sel_item = m_list->GetSelection();
@@ -260,7 +260,7 @@ void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt)
     }
 }
 
-void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));

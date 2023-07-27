@@ -148,5 +148,5 @@ bool TileSwap::operator==(const TileSwap& rhs) const
 
 bool TileSwap::operator!=(const TileSwap& rhs) const
 {
-	return false;
+	return !(*this == rhs);
 }

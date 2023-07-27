@@ -66,10 +66,6 @@ TilesetEditor::~TilesetEditor()
 {
 }
 
-void TilesetEditor::SetColour(int c)
-{
-}
-
 void TilesetEditor::SetGameData(std::shared_ptr<GameData> gd)
 {
 	m_gd = gd;
@@ -121,7 +117,8 @@ bool TilesetEditor::Open(std::vector<uint8_t>& pixels, bool uses_compression, in
 
 bool TilesetEditor::New(int r, int c)
 {
-	return false;
+	m_tileset = std::make_shared<Tileset>(r, c);
+	return true;
 }
 
 void TilesetEditor::RedrawTiles(int index)
@@ -137,7 +134,7 @@ void TilesetEditor::RedrawTiles(int index)
 	}
 }
 
-wxCoord TilesetEditor::OnGetRowHeight(size_t row) const
+wxCoord TilesetEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	return wxCoord(m_pixelsize * m_tileset->GetTileHeight());
 }
@@ -184,7 +181,7 @@ void TilesetEditor::OnDraw(wxDC& dc)
 	memdc.SelectObject(wxNullBitmap);
 }
 
-void TilesetEditor::OnPaint(wxPaintEvent& evt)
+void TilesetEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);

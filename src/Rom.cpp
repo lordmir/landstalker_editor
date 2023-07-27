@@ -81,8 +81,13 @@ std::string Rom::read_string(uint32_t offset) const
 {
 	std::string s;
 	char c;
-	while ((c = inc_read<uint8_t>(offset)))
+	while (true)
 	{
+		c = inc_read<uint8_t>(offset);
+		if (c == '\0')
+		{
+			break;
+		}
 		s += c;
 	}
 	return s;

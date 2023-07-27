@@ -60,12 +60,11 @@ void ResizeableGrid::SizeColumns()
     {
         if (m_columnWidths[col] < 0)
         {
-            float width = ((float)leftover_width) / prop_count *
-                -m_columnWidths[col];
-            int int_width = int(width);
-            round_error += width - int_width;
+            float float_width = (static_cast<float>(leftover_width) / prop_count * -m_columnWidths[col]);
+            int int_width = static_cast<int>(float_width);
+            round_error += float_width - int_width;
 
-            SetColSize(col, int_width + int(round_error));
+            SetColSize(col, int_width + static_cast<int>(round_error));
             if (round_error > 1)
                 round_error -= 1;
         }

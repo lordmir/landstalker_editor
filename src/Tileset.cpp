@@ -556,7 +556,6 @@ void Tileset::TransposeBlock()
         //  Here, we store which tiles need to be copied where, and use this lookup table to do
         //  the transform.
         const std::array<int, 24> transpose4x6  { 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,18,20,22,17,19,21,23};
-        // const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
 
         for (auto& b : m_tiles)
         {
@@ -581,8 +580,9 @@ void Tileset::TransposeBlock()
     }
 }
 
-void Tileset::UntransposeBlock(std::vector<uint8_t>& bits)
+void Tileset::UntransposeBlock(std::vector<uint8_t>& /*bits*/)
 {
+    // const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
 }
 
 std::vector<uint8_t> Tileset::GetTile(const Tile& tile) const

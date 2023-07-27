@@ -56,7 +56,7 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
     return true;
 }
 
-bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& cell, wxDataViewModel* model, const wxDataViewItem& item, unsigned int col, const wxMouseEvent* evt)
+bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewModel* model, const wxDataViewItem& item, unsigned int col, const wxMouseEvent* evt)
 {
     if (item.GetID() != m_sel_id)
     {
@@ -129,12 +129,12 @@ bool DataViewCtrlPaletteRenderer::SetValue(const wxVariant& value)
     return true;
 }
 
-wxWindow* DataViewCtrlPaletteRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
+wxWindow* DataViewCtrlPaletteRenderer::CreateEditorCtrl(wxWindow* /*parent*/, wxRect /*labelRect*/, const wxVariant& /*value*/)
 {
     return nullptr;
 }
 
-bool DataViewCtrlPaletteRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value)
+bool DataViewCtrlPaletteRenderer::GetValueFromEditorCtrl(wxWindow* /*ctrl*/, wxVariant& /*value*/)
 {
     return false;
 }

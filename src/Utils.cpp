@@ -10,15 +10,21 @@
 #include <iterator>
 #include <algorithm>
 
+#ifndef NDEBUG
 void Debug(const std::string& message)
 {
-#if defined _WIN32 && defined _DEBUG
+#if defined _WIN32
 	OutputDebugStringA(message.c_str());
 	OutputDebugStringA("\n");
-#elif !defined NDEBUG
+#else
 	std::cout << message << std::endl;
 #endif
 }
+#else
+void Debug(const std::string&)
+{
+}
+#endif
 
 std::vector<uint8_t> ReadBytes(const std::string& filename)
 {

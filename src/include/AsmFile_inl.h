@@ -132,7 +132,7 @@ template<typename T>
 bool AsmFile::Write(const T& value)
 {
 	std::size_t w = 4;
-	if (std::is_integral<T>::value && sizeof(T) < 4)
+	if constexpr (std::is_integral<T>::value && sizeof(T) < 4)
 	{
 		w = sizeof(T);
 	}
@@ -162,7 +162,7 @@ template<typename Iter>
 inline bool AsmFile::Write(Iter begin, Iter end)
 {
 	std::size_t w = 4;
-	if (sizeof(decltype(*begin)) < 4)
+	if constexpr (sizeof(decltype(*begin)) < 4)
 	{
 		w = sizeof(decltype(*begin));
 	}
