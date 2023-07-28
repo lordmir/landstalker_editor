@@ -21,8 +21,8 @@ public:
 	std::shared_ptr<std::vector<MapBlock>> GetBlockset();
 	std::shared_ptr<const std::vector<MapBlock>> GetBlockset() const;
 	const MapBlock& GetBigTile(const TilePoint& point) const;
-	const std::size_t GetBlockWidth() const;
-	const std::size_t GetBlockHeight() const;
+	std::size_t GetBlockWidth() const;
+	std::size_t GetBlockHeight() const;
 	virtual std::size_t GetWidthInTiles() const;
 	virtual std::size_t GetHeightInTiles() const;
 private:

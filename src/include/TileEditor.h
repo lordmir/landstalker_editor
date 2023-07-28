@@ -21,6 +21,8 @@ public:
 	{
 		int x;
 		int y;
+		Point(int x_, int y_) : x(x_), y(y_) {}
+		Point(const Point& p) : x(p.x), y(p.y) {}
 		Point& operator=(const Point& rhs)
 		{
 			x = rhs.x;

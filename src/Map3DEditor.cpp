@@ -791,7 +791,7 @@ void Map3DEditor::DrawDoors(wxDC& dc)
     }
     for (const auto& d : m_doors)
     {
-        if (m_map && d.x >= 0 && d.x < m_map->GetHeightmapWidth() && d.y >= 0 && d.y < m_map->GetHeightmapHeight())
+        if (m_map && d.x < m_map->GetHeightmapWidth() && d.y < m_map->GetHeightmapHeight())
         {
             int z = m_map->GetHeight({ d.x, d.y });
             auto type =  static_cast<Tilemap3D::FloorType>(m_map->GetCellType({ d.x, d.y }));

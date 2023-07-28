@@ -233,8 +233,10 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::s
         PNG_FILTER_TYPE_BASE
     );
 
-    png_color png_palette[256] = { 0 };
-    png_byte png_alpha[256] = { 0 };
+    png_color png_palette[256];
+    memset(png_palette, 0, sizeof(png_palette));
+    png_byte png_alpha[256];
+    memset(png_alpha, 0, sizeof(png_alpha));
 
     std::size_t entry = 0;
     for (const auto& pal : palettes)

@@ -307,15 +307,15 @@ Entity::Entity()
       m_dialogue(0),
       m_copy_tiles(false),
       m_copy_source(0),
-    m_hostile(false),
-    m_pickupable(false),
-    m_has_dialogue(false),
-    m_no_rotate(false),
-    m_no_friction(false),
-    m_no_gravity(false),
-    m_invisible(false),
-    m_not_solid(false),
-    m_reserved(false)
+      m_hostile(false),
+      m_pickupable(false),
+      m_has_dialogue(false),
+      m_no_rotate(false),
+      m_no_friction(false),
+      m_no_gravity(false),
+      m_invisible(false),
+      m_not_solid(false),
+      m_reserved(false)
 {
 }
 
@@ -479,7 +479,7 @@ uint16_t Entity::GetZ() const
 
 bool Entity::SetZ(uint16_t z)
 {
-    if (z >= 0x000 && z <= 0xF80 && (z & 0x7F) == 0)
+    if (z <= 0xF80 && (z & 0x7F) == 0)
     {
         m_z_pos = z;
         return true;

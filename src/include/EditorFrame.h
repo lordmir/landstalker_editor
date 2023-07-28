@@ -29,7 +29,7 @@ public:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	virtual bool Show(bool show = true);
 	virtual void UpdateUI() const;
-	virtual void SetGameData(std::shared_ptr<GameData> gd) {}
+	virtual void SetGameData(std::shared_ptr<GameData> gd) { m_gd = gd; }
 	virtual void ClearGameData() { m_gd = nullptr; }
 	virtual void SetImageList(ImageList* imglst);
 protected:

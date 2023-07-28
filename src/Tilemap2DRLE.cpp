@@ -152,7 +152,7 @@ uint32_t Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compressio
 		}
 		break;
 	case Compression::LZ77:
-		if (data.size() >= 0)
+		if (data.size() > 0)
 		{
 			try
 			{

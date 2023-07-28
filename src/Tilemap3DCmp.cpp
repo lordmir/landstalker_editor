@@ -941,8 +941,8 @@ uint8_t Tilemap3D::GetTileHeight() const
 
 void Tilemap3D::SetTileDims(uint8_t tw, uint8_t th)
 {
-    tw = tile_width;
-    th = tile_height;
+    tile_width = tw;
+    tile_height = th;
 }
 
 std::size_t Tilemap3D::GetCartesianWidth() const

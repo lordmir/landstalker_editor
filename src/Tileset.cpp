@@ -479,8 +479,8 @@ void Tileset::InsertTilesBefore(int tile_number, int count)
 
 void Tileset::DuplicateTile(const Tile& src, const Tile& dst)
 {
-    if ((src.GetIndex() >= 0) && (src.GetIndex() < m_tiles.size()) &&
-        (dst.GetIndex() >= 0) && (dst.GetIndex() < m_tiles.size()) &&
+    if ((src.GetIndex() < m_tiles.size()) &&
+        (dst.GetIndex() < m_tiles.size()) &&
         (src.GetIndex() != dst.GetIndex()))
     {
         m_tiles[src.GetIndex()] = m_tiles[dst.GetIndex()];
@@ -489,8 +489,8 @@ void Tileset::DuplicateTile(const Tile& src, const Tile& dst)
 
 void Tileset::SwapTile(const Tile& lhs, const Tile& rhs)
 {
-    if ((lhs.GetIndex() >= 0) && (lhs.GetIndex() < m_tiles.size()) &&
-        (rhs.GetIndex() >= 0) && (rhs.GetIndex() < m_tiles.size()) &&
+    if ((lhs.GetIndex() < m_tiles.size()) &&
+        (rhs.GetIndex() < m_tiles.size()) &&
         (lhs.GetIndex() != rhs.GetIndex()))
     {
         std::swap(m_tiles[lhs.GetIndex()], m_tiles[rhs.GetIndex()]);
@@ -499,7 +499,7 @@ void Tileset::SwapTile(const Tile& lhs, const Tile& rhs)
 
 void Tileset::SetTile(const Tile& src, const std::vector<uint8_t>& value)
 {
-    if ((src.GetIndex() >= 0) && (src.GetIndex() < m_tiles.size()))
+    if (src.GetIndex() < m_tiles.size())
     {
         if (value.size() == m_height * m_width)
         {
