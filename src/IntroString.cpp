@@ -1,14 +1,15 @@
 #include "IntroString.h"
+#include "Literals.h"
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
 #include <cstring>
 
 const LSString::CharacterSet INTRO_CHARSET = {
-	{ 0, L" "}, { 1, L"A"}, { 2, L"B"}, { 3, L"C"}, { 4, L"D"}, { 5, L"E"}, { 6, L"F"}, { 7, L"G"},
-	{ 8, L"H"}, { 9, L"I"}, {10, L"J"}, {11, L"K"}, {12, L"L"}, {13, L"M"}, {14, L"N"}, {15, L"O"},
-	{16, L"P"}, {17, L"Q"}, {18, L"R"}, {19, L"S"}, {20, L"T"}, {21, L"U"}, {22, L"V"}, {23, L"W"},
-	{24, L"X"}, {25, L"Y"}, {26, L"Z"}, {27, L"1"}, {28, L"2"}, {29, L"3"}
+	{ 0_u8, L" "}, { 1_u8, L"A"}, { 2_u8, L"B"}, { 3_u8, L"C"}, { 4_u8, L"D"}, { 5_u8, L"E"}, { 6_u8, L"F"}, { 7_u8, L"G"},
+	{ 8_u8, L"H"}, { 9_u8, L"I"}, {10_u8, L"J"}, {11_u8, L"K"}, {12_u8, L"L"}, {13_u8, L"M"}, {14_u8, L"N"}, {15_u8, L"O"},
+	{16_u8, L"P"}, {17_u8, L"Q"}, {18_u8, L"R"}, {19_u8, L"S"}, {20_u8, L"T"}, {21_u8, L"U"}, {22_u8, L"V"}, {23_u8, L"W"},
+	{24_u8, L"X"}, {25_u8, L"Y"}, {26_u8, L"Z"}, {27_u8, L"1"}, {28_u8, L"2"}, {29_u8, L"3"}
 };
 
 IntroString::IntroString()

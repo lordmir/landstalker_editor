@@ -3,6 +3,7 @@
 #include <AsmUtils.h>
 #include <GameData.h>
 #include <RomLabels.h>
+#include <Literals.h>
 
 #include <set>
 #include <cassert>
@@ -1029,7 +1030,7 @@ std::pair<uint16_t, uint16_t> RoomData::GetTreeWarp(uint16_t room) const
         });
     if (result == m_gfxswap_big_tree_flags.cend())
     {
-        return { 0,0 };
+        return { 0_u16, 0_u16 };
     }
     return {result->room1 == room ? result->room2 : result->room1, result->flag};
 }
@@ -1621,8 +1622,8 @@ bool RoomData::AsmLoadTilesetData()
                     datafile >> inc;
                     auto e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, true);
                     m_tilesets_by_name.insert({ name, e });
-                    e->SetIndex(i++);
-                    m_tilesets.insert({ e->GetIndex(), e});
+                    e->SetIndex(static_cast<int>(i++));
+                    m_tilesets.insert({ static_cast<uint8_t>(e->GetIndex()), e});
                 }
                 else
                 {
@@ -1764,7 +1765,7 @@ bool RoomData::RomLoadRoomPalettes(const Rom& rom)
         std::string name = StrPrintf(RomLabels::Rooms::ROOM_PAL_NAME, i + 1);
         auto fname = StrPrintf(RomLabels::Rooms::PALETTE_FORMAT_STRING, i + 1);
         auto fpath = StrPrintf(RomLabels::Rooms::PALETTE_FILENAME_FORMAT_STRING, fname.c_str());
-        std::transform(fpath.begin(), fpath.end(), fpath.begin(), [](const unsigned char i) { return std::tolower(i); });
+        std::transform(fpath.begin(), fpath.end(), fpath.begin(), [](const unsigned char i) { return static_cast<unsigned char>(std::tolower(i)); });
         auto e = PaletteEntry::Create(this, rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
         e->SetStartAddress(addr);
         m_room_pals.push_back(e);

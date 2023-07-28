@@ -1,4 +1,5 @@
 #include <TileSwaps.h>
+#include <Literals.h>
 #include <cassert>
 #include <algorithm>
 #include <iterator>
@@ -55,7 +56,7 @@ std::vector<uint8_t> TileSwaps::GetData() const
 			}
 		}
 	}
-	std::fill_n(std::back_inserter(out), 16, 0xFF);
+	std::fill_n(std::back_inserter(out), 16, 0xFF_u8);
 	return out;
 }
 

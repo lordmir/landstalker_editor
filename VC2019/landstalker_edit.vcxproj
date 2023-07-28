@@ -151,6 +151,7 @@
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LayerControlFrame.h" />
+    <ClInclude Include="..\src\include\Literals.h" />
     <ClInclude Include="..\src\include\LSString.h" />
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />

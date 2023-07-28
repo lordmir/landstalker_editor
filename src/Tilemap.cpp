@@ -250,10 +250,10 @@ bool Tilemap::ReadBinaryFile(const std::string& filename, bool dimensions_includ
 	if (infile.good())
 	{
 		std::vector<uint16_t> vals;
-		uint16_t width;
-		uint16_t height;
-		uint16_t left;
-		uint16_t top;
+		uint16_t width = 0;
+		uint16_t height = 0;
+		uint16_t left = 0;
+		uint16_t top = 0;
 		if (dimensions_included)
 		{
 			infile.read(reinterpret_cast<char*>(&width), sizeof(width));
@@ -271,12 +271,12 @@ bool Tilemap::ReadBinaryFile(const std::string& filename, bool dimensions_includ
 		{
 			for (std::size_t x = 0; x < m_width; ++x)
 			{
-				uint16_t temp;
+				uint16_t temp = 0;
 				infile.read(reinterpret_cast<char*>(&temp), sizeof(temp));
 				vals.push_back(ntohs(temp));
 			}
 		}
-		retval = infile.good() && vals.size() == (width*height);
+		retval = infile.good() && vals.size() == static_cast<std::size_t>(width*height);
 		if (retval == true)
 		{
 			if (dimensions_included)
@@ -335,7 +335,7 @@ bool Tilemap::ReadCSVFile(const std::string& filename)
 				vals.push_back(std::stoul(val, nullptr, 16));
 			}
 		}
-		retval = infile.good() && vals.size() == (width * height);
+		retval = infile.good() && vals.size() == static_cast<std::size_t>(width * height);
 		if (retval == true)
 		{
 			m_width = width;

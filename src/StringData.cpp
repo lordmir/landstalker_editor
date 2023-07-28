@@ -1,6 +1,7 @@
 #include "StringData.h"
 #include "AsmUtils.h"
 #include "RomLabels.h"
+#include "Literals.h"
 #include <codecvt>
 
 StringData::StringData(const filesystem::path& asm_file)
@@ -472,7 +473,7 @@ void StringData::SetString(Type type, std::size_t index, const LSString::StringT
 	}
 }
 
-void StringData::InsertString(Type type, std::size_t index, const LSString::StringType& value)
+void StringData::InsertString(Type /*type*/, std::size_t /*index*/, const LSString::StringType& /*value*/)
 {
 }
 
@@ -780,7 +781,7 @@ void StringData::SetSaveLocation(uint16_t room, uint8_t name)
 	}
 	else
 	{
-		m_save_game_locations.insert({ room, {0, name} });
+		m_save_game_locations.insert({ room, {0_u8, name} });
 	}
 }
 

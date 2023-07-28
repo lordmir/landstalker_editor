@@ -14,7 +14,7 @@ Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& 
 		}
 		else if (offsets[i] > max_offset)
 		{
-			chests.insert({ last_room, offsets[i] - max_offset });
+			chests.insert({ last_room, static_cast<uint8_t>(offsets[i] - max_offset) });
 			max_offset = offsets[i];
 			last_room = i;
 		}

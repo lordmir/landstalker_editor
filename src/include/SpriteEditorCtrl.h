@@ -21,7 +21,6 @@ public:
 	SpriteEditorCtrl(wxWindow* parent);
 	~SpriteEditorCtrl();
 
-	void SetColour(int c);
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);

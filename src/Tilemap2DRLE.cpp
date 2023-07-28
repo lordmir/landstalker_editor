@@ -257,7 +257,7 @@ std::string Tilemap2D::GetFileExtension() const
 Tilemap2D::Compression Tilemap2D::FromFileExtension(const std::string& filename)
 {
 	std::string ext = filesystem::path(filename).extension();
-	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return std::tolower(c); });
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return static_cast<char>(std::tolower(c)); });
 	if (ext == "lz77")
 	{
 		return Compression::LZ77;
@@ -625,7 +625,7 @@ std::vector<uint8_t> Tilemap2D::PackBytes() const
 {
 	std::vector<uint8_t> result;
 	result.reserve(m_tiles.size() * 2);
-	for (auto t : m_tiles)
+	for (const auto& t : m_tiles)
 	{
 		result.push_back(t.GetTileValue() >> 8);
 		result.push_back(t.GetTileValue() & 0xFF);
@@ -688,7 +688,7 @@ void Tilemap2D::SetTile(const Tile& tile, size_t x, size_t y)
 {
 	if (IsTileValid(x, y))
 	{
-		auto t = tile;
+		Tile t = tile;
 		t.SetIndex(0x7FF & (t.GetIndex() + m_base));
 		m_tiles[y * m_width + x] = t;
 	}
@@ -708,7 +708,7 @@ bool Tilemap2D::IsTileValid(int x, int y) const
 void Tilemap2D::InsertRow(int position, const Tile& fill)
 {
 	m_height += 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
@@ -731,7 +731,7 @@ void Tilemap2D::InsertRow(int position, const Tile& fill)
 void Tilemap2D::InsertColumn(int position, const Tile& fill)
 {
 	m_width += 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
@@ -758,7 +758,7 @@ void Tilemap2D::DeleteRow(int position)
 		return;
 	}
 	m_height -= 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
@@ -785,10 +785,10 @@ void Tilemap2D::DeleteColumn(int position)
 		return;
 	}
 	m_width -= 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
-	auto oit = old.cbegin();
-	auto nit = m_tiles.begin();
+	std::vector<Tile>::const_iterator oit = old.cbegin();
+	std::vector<Tile>::iterator nit = m_tiles.begin();
 	for (std::size_t y = 0; y < m_height; ++y)
 	{
 		for (std::size_t x = 0; x < m_width + 1; ++x)

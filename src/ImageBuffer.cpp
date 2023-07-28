@@ -8,6 +8,8 @@
 
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec(align(x))
+// disable setjmp / longjmp warning for libpng
+#pragma warning( disable : 4611 )
 #else
 #if defined(__GNUC__)
 #define ALIGNED_(x) __attribute__ ((aligned(x)))
@@ -218,7 +220,7 @@ bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::s
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info = png_create_info_struct(png);
-    if (setjmp(png_jmpbuf(png))) abort();
+    if (setjmp(png_jmpbuf(png))) throw std::runtime_error("Unable to set libpng longjmp");
 
     png_set_IHDR(
         png,

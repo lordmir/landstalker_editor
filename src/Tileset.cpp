@@ -5,6 +5,7 @@
 #include <iterator>
 #include "Utils.h"
 #include "LZ77.h"
+#include "Literals.h"
 
 static const std::size_t MAXIMUM_CAPACITY = 0x400;
 
@@ -196,9 +197,10 @@ std::vector<uint8_t> Tileset::GetBits(bool compressed)
     if (m_blocktype != BlockType::NORMAL)
     {
         // Convert back into tiles and reverse transpose
-        for (auto t : m_tiles)
+        for (const auto& t : m_tiles)
         {
             for (int x = 0; x < BLOCK_DIMENSIONS.at(m_blocktype).width; ++x)
+            {
                 for (int y = 0; y < BLOCK_DIMENSIONS.at(m_blocktype).height; ++y)
                 {
                     tilebuf.insert(tilebuf.end(), std::vector<uint8_t>());
@@ -208,6 +210,7 @@ std::vector<uint8_t> Tileset::GetBits(bool compressed)
                         tilebuf.back().insert(tilebuf.back().end(), line, line + m_tilewidth);
                     }
                 }
+            }
             if (m_blocktype == BlockType::BLOCK4X6)
             {
                 // Additional processing for block4x6 special case 
@@ -230,12 +233,12 @@ std::vector<uint8_t> Tileset::GetBits(bool compressed)
             }
         }
     }
-    for (auto t : tiles)
+    for (const auto& t : tiles)
     {
         // Convert to n-bitdepth
         uint8_t byte = 0;
         uint8_t bit = 0;
-        for (auto p : t)
+        for (const auto& p : t)
         {
             byte <<= m_bit_depth;
             byte |= p & (0xFF >> (8 - m_bit_depth));
@@ -388,13 +391,13 @@ std::vector<uint8_t> Tileset::GetColourIndicies() const
 std::vector<uint8_t> Tileset::GetDefaultColourIndicies() const
 {
     std::vector<uint8_t> ret(1 << m_bit_depth);
-    std::iota(ret.begin(), ret.end(), 0);
+    std::iota(ret.begin(), ret.end(), 0_u8);
     return ret;
 }
 
 std::array<bool, 16> Tileset::GetLockedColours() const
 {
-    std::array<bool, 16> retval;
+    std::array<bool, 16> retval{0};
     retval.fill(true);
     if (m_colour_indicies.empty())
     {
@@ -523,13 +526,14 @@ void Tileset::TransposeBlock()
     {
         return;
     }
-    const auto DIMS = BLOCK_DIMENSIONS.at(m_blocktype);
+    const auto& DIMS = BLOCK_DIMENSIONS.at(m_blocktype);
+    std::vector<uint8_t>::const_iterator src_it;
     if (m_blocktype != BlockType::BLOCK4X6)
     {
         for (auto& b : m_tiles)
         {
-            auto t = b;
-            auto src_it = t.begin();
+            std::vector<uint8_t> t = b;
+            src_it = t.begin();
             for (int x = 0; x < DIMS.width; ++x)
             {
                 auto dest_it = b.begin();
@@ -560,7 +564,7 @@ void Tileset::TransposeBlock()
         for (auto& b : m_tiles)
         {
             std::vector<std::vector<uint8_t>> tilebuf;
-            auto src_it = b.begin();
+            src_it = b.begin();
             for (int i = 0; i < DIMS.Area(); ++i)
             {
                 tilebuf.push_back(std::vector<uint8_t>(src_it, src_it + m_tileheight * m_tilewidth));
@@ -568,7 +572,7 @@ void Tileset::TransposeBlock()
             }
             for (std::size_t i = 0; i < tilebuf.size(); ++i)
             {
-                auto src_it = tilebuf[transpose4x6[i]].begin();
+                src_it = tilebuf[transpose4x6[i]].begin();
                 auto dest_it = b.begin() + (i % DIMS.width) * m_tilewidth + (i / DIMS.width) * m_width * m_tileheight;
                 for (std::size_t y = 0; y < m_tileheight; ++y)
                 {

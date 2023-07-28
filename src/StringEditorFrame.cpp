@@ -259,7 +259,7 @@ bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringDa
     return retval;
 }
 
-void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));

@@ -5,6 +5,7 @@
 #include <map>
 #include <cstdint>
 #include <string>
+#include <Literals.h>
 
 struct Door
 {
@@ -17,10 +18,10 @@ struct Door
 	};
 	inline static const std::map<Size, std::pair<uint8_t, uint8_t>> SIZES =
 	{ {
-		{Size::DOOR_1X4, {1,4}},
-		{Size::DOOR_2X4, {2,4}},
-		{Size::DOOR_2X5, {2,5}},
-		{Size::DOOR_1X0, {1,0}}
+		{Size::DOOR_1X4, {1_u8, 4_u8}},
+		{Size::DOOR_2X4, {2_u8, 4_u8}},
+		{Size::DOOR_2X5, {2_u8, 5_u8}},
+		{Size::DOOR_1X0, {1_u8, 0_u8}}
 	} };
 	inline static const std::map<Size, std::string> SIZE_NAMES =
 	{ {

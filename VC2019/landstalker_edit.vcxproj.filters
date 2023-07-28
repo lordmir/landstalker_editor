@@ -694,6 +694,9 @@
     <ClInclude Include="..\src\include\RomLabels.h">
       <Filter>include\Data\Main</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\include\Literals.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\win_resources.rc">

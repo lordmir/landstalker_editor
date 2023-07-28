@@ -11,6 +11,7 @@
 
 #include "BitBarrel.h"
 #include "BitBarrelWriter.h"
+#include "Literals.h"
 
 static uint16_t getCodedNumber(BitBarrel& bb)
 {
@@ -547,7 +548,7 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
 #ifndef NDEBUG
                 std::cout << "INCREMENT TILE 1 [" << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(3, 0, 0);
+                tile_entries.emplace_back(3_u8, 0_u16, 0_u8);
             }
             else if (tiles[i] == tile_dict[1] + tile_increment[1])
             {
@@ -555,21 +556,21 @@ uint16_t Tilemap3D::Encode(uint8_t* dst, size_t size)
 #ifndef NDEBUG
                 std::cout << "INCREMENT TILE 2 [" << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(2, 0, 0);
+                tile_entries.emplace_back(2_u8, 0_u16, 0_u8);
             }
             else if ((tiles[i] >= tile_dict[0]) && (tiles[i] < (tile_dict[0] + tile_increment[0])))
             {
 #ifndef NDEBUG
                 std::cout << "PLACE REL TILE [" << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(1, static_cast<uint16_t>(tiles[i] - tile_dict[0]), static_cast<uint8_t>(ilog2(tile_increment[0])));
+                tile_entries.emplace_back(1_u8, static_cast<uint16_t>(tiles[i] - tile_dict[0]), static_cast<uint8_t>(ilog2(tile_increment[0])));
             }
             else
             {
 #ifndef NDEBUG
                 std::cout << "PLACE TILE " << std::hex << tiles[i] << " @ " << std::dec << i << std::endl;
 #endif
-                tile_entries.emplace_back(0, tiles[i], static_cast<uint8_t>(ilog2(tile_dict[1])));
+                tile_entries.emplace_back(0_u8, tiles[i], static_cast<uint8_t>(ilog2(tile_dict[1])));
             }
         }
     }
@@ -729,8 +730,8 @@ uint16_t Tilemap3D::GetSize() const
 
 void Tilemap3D::Resize(uint8_t w, uint8_t h)
 {
-    auto old_bg = background;
-    auto old_fg = foreground;
+    const std::vector<uint16_t> old_bg = background;
+    const std::vector<uint16_t> old_fg = foreground;
 
     background.resize(w * h);
     foreground.resize(w * h);
@@ -767,7 +768,7 @@ void Tilemap3D::Resize(uint8_t w, uint8_t h)
 
 void Tilemap3D::ResizeHeightmap(uint8_t w, uint8_t h)
 {
-    auto old_hm = heightmap;
+    const std::vector<uint16_t> old_hm = heightmap;
 
     heightmap.resize(w * h);
 
@@ -800,7 +801,7 @@ void Tilemap3D::InsertHeightmapColumn(uint8_t before)
 {
     if (before < hmheight && hmheight < 64)
     {
-        auto orig = heightmap;
+        const std::vector<uint16_t> orig = heightmap;
         hmheight += 1;
         heightmap.resize(hmwidth * hmheight);
         auto src = orig.data();
@@ -829,7 +830,7 @@ void Tilemap3D::InsertHeightmapRow(uint8_t before)
 {
     if (before < hmwidth && hmwidth < 64)
     {
-        auto orig = heightmap;
+        const std::vector<uint16_t> orig = heightmap;
         hmwidth += 1;
         heightmap.resize(hmwidth * hmheight);
         auto src = orig.data();
@@ -855,7 +856,7 @@ void Tilemap3D::DeleteHeightmapColumn(uint8_t row)
 {
     if (row < hmheight && hmheight > 1)
     {
-        auto orig = heightmap;
+        std::vector<uint16_t> orig = heightmap;
         hmheight -= 1;
         heightmap.resize(hmwidth * hmheight);
         auto src = orig.data();
@@ -881,11 +882,11 @@ void Tilemap3D::DeleteHeightmapRow(uint8_t col)
 {
     if (col < hmwidth && hmwidth > 1)
     {
-        auto orig = heightmap;
+        std::vector<uint16_t> orig = heightmap;
         hmwidth -= 1;
         heightmap.resize(hmwidth * hmheight);
-        auto src = orig.data();
-        auto dst = heightmap.data();
+        const uint16_t* src = orig.data();
+        uint16_t* dst = heightmap.data();
         for (int y = 0; y < hmheight; ++y)
         {
             for (int x = 0; x < hmwidth; ++x)

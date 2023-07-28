@@ -64,10 +64,6 @@ SpriteEditorCtrl::~SpriteEditorCtrl()
 {
 }
 
-void SpriteEditorCtrl::SetColour(int c)
-{
-}
-
 bool SpriteEditorCtrl::Save(wxString filename, bool compressed)
 {
 	return m_sprite->Save(filename.ToStdString(), compressed);
@@ -110,7 +106,7 @@ void SpriteEditorCtrl::RedrawTiles(int index)
 	}
 }
 
-wxCoord SpriteEditorCtrl::OnGetRowHeight(size_t row) const
+wxCoord SpriteEditorCtrl::OnGetRowHeight(size_t /*row*/) const
 {
 	if (m_sprite)
 	{
@@ -122,7 +118,7 @@ wxCoord SpriteEditorCtrl::OnGetRowHeight(size_t row) const
 	}
 }
 
-wxCoord SpriteEditorCtrl::OnGetColumnWidth(size_t column) const
+wxCoord SpriteEditorCtrl::OnGetColumnWidth(size_t /*column*/) const
 {
 	if (m_sprite)
 	{
@@ -215,7 +211,7 @@ void SpriteEditorCtrl::OnDraw(wxDC& dc)
 	m_memdc.SelectObject(wxNullBitmap);
 }
 
-void SpriteEditorCtrl::OnPaint(wxPaintEvent& evt)
+void SpriteEditorCtrl::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);

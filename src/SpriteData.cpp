@@ -5,6 +5,7 @@
 #include <queue>
 #include "AsmUtils.h"
 #include "RomLabels.h"
+#include "Literals.h"
 
 template <std::size_t N>
 std::vector<std::array<uint8_t, N>> DeserialiseFixedWidth(const std::vector<uint8_t>& bytes)
@@ -488,7 +489,7 @@ std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
 {
 	if (!EntityHasSprite(id))
 	{
-		return { 8, 10 };
+		return { 8_u8, 10_u8 };
 	}
 	uint8_t sprite_id = GetSpriteFromEntity(id);
 	return GetSpriteHitbox(sprite_id);
@@ -1180,7 +1181,8 @@ bool SpriteData::AsmLoadSpritePointers()
 		assert(lut_bytes.size() % 4 == 0);
 		for (std::size_t i = 0; i < lut_bytes.size(); i += 4)
 		{
-			lut.push_back({ (lut_bytes[i] << 8) | lut_bytes[i + 1], (lut_bytes[i + 2] << 8) | lut_bytes[i + 3] });
+			lut.push_back({ static_cast<uint16_t>((lut_bytes[i] << 8) | lut_bytes[i + 1]),
+				            static_cast<uint16_t>((lut_bytes[i + 2] << 8) | lut_bytes[i + 3]) });
 		}
 
 		AsmFile anim_file(GetBasePath() / m_sprite_anims_file);
@@ -1382,7 +1384,7 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 			uint16_t frame_count;
 			if ((total_anim_count + 1) < anim_idxs.size())
 			{
-				frame_count = anim_idxs[total_anim_count + 1] - anim_idxs[total_anim_count];
+				frame_count = static_cast<uint16_t>(anim_idxs[total_anim_count + 1] - anim_idxs[total_anim_count]);
 			}
 			else
 			{
@@ -1422,12 +1424,12 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 	frame_addrs.push_back({ it->first, sprites_end });
 
 	// Read each frame and store
-	for (const auto& addr : frame_addrs)
+	for (const auto& faddr : frame_addrs)
 	{
-		auto bytes = rom.read_array<uint8_t>(addr.first, addr.second - addr.first);
-		auto e = SpriteFrameEntry::Create(this, bytes, frames[addr.first], frame_filenames[addr.first]);
-		e->SetStartAddress(addr.first);
-		e->SetSprite(frame_sprite[addr.first]);
+		auto bytes = rom.read_array<uint8_t>(faddr.first, faddr.second - faddr.first);
+		auto e = SpriteFrameEntry::Create(this, bytes, frames[faddr.first], frame_filenames[faddr.first]);
+		e->SetStartAddress(faddr.first);
+		e->SetSprite(frame_sprite[faddr.first]);
 		m_frames.insert({ e->GetName(), e });
 		if (m_sprite_frames.find(e->GetSprite()) == m_sprite_frames.cend())
 		{

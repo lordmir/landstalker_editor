@@ -49,7 +49,7 @@ std::pair< std::vector<uint8_t>, std::vector<uint8_t>> Doors::GetData(int roomco
 	{
 		if (m_doors.count(i) > 0)
 		{
-			offsets.push_back(lastsz + 1);
+			offsets.push_back(static_cast<uint8_t>(lastsz + 1));
 			lastsz = m_doors.at(i).size() * 2 + 1;
 			for (const auto& d : m_doors.at(i))
 			{
@@ -106,8 +106,8 @@ Door::Door(uint8_t b1, uint8_t b2)
 std::pair<uint8_t, uint8_t> Door::GetBytes() const
 {
 	uint8_t sz = static_cast<uint8_t>(size);
-	return { (((y + 12) & 0x3F) | ((sz & 0x04) << 4)),
-	         (((x + 12) & 0x3F) | ((sz & 0x03) << 6)) };
+	return { static_cast<uint8_t>(((y + 12) & 0x3F) | ((sz & 0x04) << 4)),
+			 static_cast<uint8_t>(((x + 12) & 0x3F) | ((sz & 0x03) << 6)) };
 }
 
 bool Door::operator==(const Door& rhs) const
