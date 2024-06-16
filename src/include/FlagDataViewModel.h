@@ -379,6 +379,41 @@ protected:
     }
 };
 
+class TreeWarpFlagViewModel : public FlagDataViewModel<TreeWarpFlag>
+{
+public:
+    TreeWarpFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<TreeWarpFlag>(roomnum, gd)
+    {}
+
+    virtual void CommitData() override
+    {
+        if (m_data.size() >= 1)
+        {
+            m_gd->GetRoomData()->SetTreeWarp(m_data.at(0));
+        }
+        else
+        {
+            m_gd->GetRoomData()->ClearTreeWarp(m_roomnum);
+        }
+    }
+protected:
+    virtual void InitData() override
+    {
+        m_data.clear();
+        if (m_gd->GetRoomData()->HasTreeWarpFlag(m_roomnum))
+        {
+            m_data.push_back(m_gd->GetRoomData()->GetTreeWarp(m_roomnum));
+        }
+        m_list.resize(1);
+        m_list[0].reserve(m_gd->GetRoomData()->GetRoomCount());
+        for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
+        {
+            m_list[0].push_back(wxString(m_gd->GetRoomData()->GetRoomlist()[i]->name));
+        }
+    }
+};
+
 template <>
 unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
 
@@ -552,5 +587,32 @@ bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int row, unsigned in
 
 template <>
 bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<TreeWarpFlag>::GetColumnCount() const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::AddRow(unsigned int row);
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::DeleteRow(unsigned int row);
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<TreeWarpFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

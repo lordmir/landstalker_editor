@@ -669,9 +669,9 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
 		props.Append(new wxPropertyCategory("Flags", "Flags"));
 		props.Append(new wxIntProperty("Visit Flag", "VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum)));
-		int paired_tree = m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) ? m_g->GetRoomData()->GetTreeWarp(m_roomnum).first + 1 : 0;
+		int paired_tree = m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) ? m_g->GetRoomData()->GetTreeWarp(m_roomnum).room2 + 1 : 0;
 		props.Append(new wxEnumProperty("Paired Tree", "PairedTree", m_rooms))->SetChoiceSelection(paired_tree);
-		props.Append(new wxIntProperty("Tree Active Flag Begin", "TreeFlag", m_g->GetRoomData()->GetTreeWarp(m_roomnum).second));
+		props.Append(new wxIntProperty("Tree Active Flag Begin", "TreeFlag", m_g->GetRoomData()->GetTreeWarp(m_roomnum).flag));
 		auto lantern_prop = new wxBoolProperty("Lantern Room", "LanternRoom", m_g->GetRoomData()->HasLanternFlag(m_roomnum));
 		lantern_prop->SetAttribute("UseCheckbox", 1);
 		props.Append(lantern_prop);
@@ -841,8 +841,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		{
 			auto tree = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
 			props.GetGrid()->GetProperty("TreeFlag")->Enable(true);
-			props.GetGrid()->SetPropertyValue("TreeFlag", tree.second);
-			props.GetGrid()->SetPropertyValue("PairedTree", tree.first + 1);
+			props.GetGrid()->SetPropertyValue("TreeFlag", tree.flag);
+			props.GetGrid()->SetPropertyValue("PairedTree", tree.room2 + 1);
 		}
 		else
 		{
@@ -1143,7 +1143,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		auto dest = property->GetValuePlain().GetLong();
 		if (dest > 0 && !m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
 		{
-			m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, 0);
+			m_g->GetRoomData()->SetTreeWarp({ m_roomnum, static_cast<uint16_t>(dest - 1), 0 });
 			updated = true;
 		}
 		else if (dest == 0 && m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
@@ -1154,9 +1154,9 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		else
 		{
 			auto warp = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
-			if (dest != warp.first)
+			if (dest != warp.room2)
 			{
-				m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, warp.second);
+				m_g->GetRoomData()->SetTreeWarp({ m_roomnum, static_cast<uint16_t>(dest - 1), warp.flag});
 				updated = true;
 			}
 		}
@@ -1169,9 +1169,9 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		uint16_t flag = property->GetValuePlain().GetLong() & 0x07FE;
 		if (m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) &&
-			m_g->GetRoomData()->GetTreeWarp(m_roomnum).second != flag)
+			m_g->GetRoomData()->GetTreeWarp(m_roomnum).flag != flag)
 		{
-			m_g->GetRoomData()->SetTreeWarp(m_roomnum, m_g->GetRoomData()->GetTreeWarp(m_roomnum).first, flag);
+			m_g->GetRoomData()->SetTreeWarp({ m_roomnum, m_g->GetRoomData()->GetTreeWarp(m_roomnum).room2, flag });
 		}
 	}
 	ctrl->GetGrid()->Thaw();

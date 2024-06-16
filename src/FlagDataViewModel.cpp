@@ -1111,3 +1111,132 @@ void FlagDataViewModel<TileSwapFlag>::InitControl(wxDataViewCtrl* ctrl) const
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
 }
+
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::AddRow(unsigned int /*row*/)
+{
+	if (m_data.size() < 1)
+	{
+		m_data.insert(m_data.end(), TreeWarpFlag(m_roomnum, 0, 0));
+		RowInserted(m_data.size() - 1);
+		return true;
+	}
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::DeleteRow(unsigned int row)
+{
+	if (row < m_data.size())
+	{
+		m_data.erase(m_data.begin() + row);
+		RowDeleted(row);
+		return true;
+	}
+	return false;
+}
+
+template <>
+unsigned int FlagDataViewModel<TreeWarpFlag>::GetColumnCount() const
+{
+	return 3;
+}
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnHeader(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "Tree 1";
+	case 1:
+		return "Tree 2";
+	case 2:
+		return "Flag";
+	default:
+		return "?";
+	}
+}
+
+template <>
+wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int col) const
+{
+	return m_list[0];
+}
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "long";
+	case 1:
+		return "long";
+	case 2:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<TreeWarpFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	if (row < m_data.size())
+	{
+		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+		wxString label;
+		switch (col)
+		{
+		case 0:
+			variant = static_cast<long>(m_roomnum);
+			break;
+		case 1:
+			variant = static_cast<long>(m_data[row].room2);
+			break;
+		case 2:
+			variant = static_cast<long>(m_data[row].flag);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
+{
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 1:
+			m_data[row].room2 = variant.GetLong();
+			return true;
+		case 2:
+			m_data[row].flag = variant.GetLong();
+			return true;
+		default:
+			break;
+		}
+	}
+	return false;
+}
+
+void FlagDataViewModel<TreeWarpFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0), wxDATAVIEW_CELL_INERT), 0, 200, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 200, wxALIGN_LEFT));
+}

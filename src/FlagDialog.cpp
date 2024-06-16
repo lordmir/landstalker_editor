@@ -35,7 +35,9 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     AddPage(FlagType::LOCKED_DOOR, "Locked Door (Entity)", new LockedDoorFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
     AddPage(FlagType::PERMANENT_SWITCH, "Permanent Switches", new PermanentSwitchFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
     AddPage(FlagType::SACRED_TREE, "Sacred Trees", new SacredTreeFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(FlagType::TILESWAP, "Tile Swap Flags", new TileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
     AddPage(FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::TREE_WARP, "Tree Warp Flag", new TreeWarpFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
 
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 5);

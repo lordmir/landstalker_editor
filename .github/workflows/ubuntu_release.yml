@@ -37,10 +37,11 @@ jobs:
                 libgtk-3-dev \
                 libgl1-mesa-dev \
                 libglu1-mesa-dev \
-                libgstreamer-plugins-base1.0-dev \
                 libcurl4-openssl-dev \
                 libwebkit2gtk-4.0-dev \
-                libpng-dev \
+                libpng-dev
+             sudo apt-get remove libunwind-*
+             sudo apt-get install -y --no-install-recommends libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
       - name: Checkout wxWidgets
         uses: actions/checkout@v3
