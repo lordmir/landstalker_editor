@@ -59,15 +59,183 @@ TileSwapDialog::TileSwapDialog(wxWindow* parent, ImageList* imglst, uint16_t roo
     GetSizer()->Fit(this);
     CentreOnParent(wxBOTH);
 
+    for (std::size_t i = 0; i < m_tabs->GetPageCount(); ++i)
+    {
+        const auto* model = m_models[m_pages[i]];
+        if (model->GetRowCount() > 0)
+        {
+            m_tabs->ChangeSelection(i);
+            break;
+        }
+    }
+
     UpdateUI();
+
+    for (auto& ctrl : m_dvc_ctrls)
+    {
+        ctrl.second->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(TileSwapDialog::OnKeyPress), nullptr, this);
+    }
+    m_tabs->Connect(wxEVT_BOOKCTRL_PAGE_CHANGED, wxBookCtrlEventHandler(TileSwapDialog::OnTabChange), nullptr, this);
+    m_ok->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnOK), nullptr, this);
+    m_cancel->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnCancel), nullptr, this);
+    m_ctrl_add->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnAdd), nullptr, this);
+    m_ctrl_delete->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnDelete), nullptr, this);
+    m_ctrl_move_up->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnMoveUp), nullptr, this);
+    m_ctrl_move_down->Connect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnMoveDown), nullptr, this);
 }
 
 TileSwapDialog::~TileSwapDialog()
 {
+    for (auto& ctrl : m_dvc_ctrls)
+    {
+        ctrl.second->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(TileSwapDialog::OnKeyPress), nullptr, this);
+    }
+    m_tabs->Disconnect(wxEVT_BOOKCTRL_PAGE_CHANGED, wxBookCtrlEventHandler(TileSwapDialog::OnTabChange), nullptr, this);
+    m_ok->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnOK), nullptr, this);
+    m_cancel->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnCancel), nullptr, this);
+    m_ctrl_add->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnAdd), nullptr, this);
+    m_ctrl_delete->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnDelete), nullptr, this);
+    m_ctrl_move_up->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnMoveUp), nullptr, this);
+    m_ctrl_move_down->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(TileSwapDialog::OnMoveDown), nullptr, this);
+}
+
+void TileSwapDialog::CommitAll()
+{
+    for (auto& model : m_models)
+    {
+        model.second->CommitData();
+    }
+}
+
+void TileSwapDialog::AddToCurrentList()
+{
+    auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+    auto* model = m_models[GetSelectedTab()];
+    model->AddRow(model->GetRowCount());
+    ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(model->GetRowCount())));
+}
+
+void TileSwapDialog::DeleteFromCurrentList()
+{
+    if (m_dvc_ctrls[GetSelectedTab()]->HasSelection())
+    {
+        auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+        auto* model = m_models[GetSelectedTab()];
+        unsigned int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
+        model->DeleteRow(sel);
+        if (model->GetRowCount() > sel)
+        {
+            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel - 1)));
+        }
+        else if (model->GetRowCount() != 0)
+        {
+            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(model->GetRowCount())));
+        }
+    }
+}
+
+void TileSwapDialog::MoveSelectedUpCurrentList()
+{
+    auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+    auto* model = m_models[GetSelectedTab()];
+    if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
+    {
+        int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
+        if (sel > 0)
+        {
+            model->SwapRows(sel - 1, sel);
+            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
+        }
+    }
+}
+
+void TileSwapDialog::MoveSelectedDownCurrentList()
+{
+    auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+    auto* model = m_models[GetSelectedTab()];
+    if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
+    {
+        unsigned int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
+        if (sel < model->GetRowCount() - 1)
+        {
+            model->SwapRows(sel, sel + 1);
+            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
+        }
+    }
 }
 
 void TileSwapDialog::UpdateUI()
 {
+}
+
+TileSwapDialog::PageType TileSwapDialog::GetSelectedTab() const
+{
+    return m_pages[m_tabs->GetSelection()];
+}
+
+void TileSwapDialog::OnTabChange(wxBookCtrlEvent& e)
+{
+    e.Skip();
+}
+
+void TileSwapDialog::OnOK(wxCommandEvent& evt)
+{
+    CommitAll();
+    EndModal(wxID_OK);
+}
+
+void TileSwapDialog::OnCancel(wxCommandEvent& evt)
+{
+    EndModal(wxID_OK);
+}
+
+void TileSwapDialog::OnAdd(wxCommandEvent& evt)
+{
+    AddToCurrentList();
+    evt.Skip();
+}
+
+void TileSwapDialog::OnDelete(wxCommandEvent& evt)
+{
+    DeleteFromCurrentList();
+    evt.Skip();
+}
+
+void TileSwapDialog::OnMoveUp(wxCommandEvent& evt)
+{
+    MoveSelectedUpCurrentList();
+    evt.Skip();
+}
+
+void TileSwapDialog::OnMoveDown(wxCommandEvent& evt)
+{
+    MoveSelectedDownCurrentList();
+    evt.Skip();
+}
+
+void TileSwapDialog::OnKeyPress(wxKeyEvent& evt)
+{
+    switch (evt.GetKeyCode())
+    {
+    case WXK_DELETE:
+        DeleteFromCurrentList();
+        break;
+    case WXK_INSERT:
+        AddToCurrentList();
+        break;
+    case WXK_UP:
+        if (evt.ControlDown())
+        {
+            MoveSelectedUpCurrentList();
+        }
+        break;
+    case WXK_DOWN:
+        if (evt.ControlDown())
+        {
+            MoveSelectedDownCurrentList();
+        }
+    }
+    evt.Skip();
 }
 
 void TileSwapDialog::AddPage(const PageType type, const std::string& name, BaseDataViewModel* model)

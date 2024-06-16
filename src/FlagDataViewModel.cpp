@@ -300,7 +300,14 @@ void FlagDataViewModel<OneTimeEventFlag>::InitControl(wxDataViewCtrl* ctrl) cons
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
 }
 
-wxString RoomClearFlagViewModel::GetColumnHeader(unsigned int col) const
+template <>
+unsigned int FlagDataViewModel<RoomClearFlag>::GetColumnCount() const
+{
+	return 2;
+}
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnHeader(unsigned int col) const
 {
 	switch (col)
 	{
@@ -313,9 +320,103 @@ wxString RoomClearFlagViewModel::GetColumnHeader(unsigned int col) const
 	}
 }
 
-unsigned int RoomClearFlagViewModel::GetColumnCount() const
+template <>
+wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int col) const
 {
-	return 2;
+	wxArrayString choices;
+	switch (col)
+	{
+	case 0:
+	{
+		auto ent = m_gd->GetSpriteData()->GetRoomEntities(m_roomnum);
+		for (std::size_t i = 0; i < 15; ++i)
+		{
+			if (i < ent.size())
+			{
+				choices.Add(StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
+			}
+			else
+			{
+				choices.Add(StrPrintf("[%02d] ???", i + 1));
+			}
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return choices;
+}
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnType(unsigned int col) const
+{
+	switch (col)
+	{
+	case 0:
+		return "long";
+	case 1:
+		return "long";
+	default:
+		return "string";
+	}
+}
+
+template <>
+void FlagDataViewModel<RoomClearFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
+{
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 0:
+			variant = static_cast<long>(m_data[row].entity);
+			break;
+		case 1:
+			variant = static_cast<long>(m_data[row].flag);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
+{
+	return false;
+}
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
+{
+	bool updated = false;
+	if (row < m_data.size())
+	{
+		switch (col)
+		{
+		case 0:
+			m_data[row].entity = variant.GetLong();
+			updated = true;
+			break;
+		case 1:
+			m_data[row].flag = variant.GetLong();
+			updated = true;
+			break;
+		default:
+			break;
+		}
+	}
+	return updated;
+}
+
+void FlagDataViewModel<RoomClearFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 340, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 120, wxALIGN_LEFT));
 }
 
 wxString LockedDoorFlagViewModel::GetColumnHeader(unsigned int col) const

@@ -150,19 +150,16 @@ protected:
     }
 };
 
-class RoomClearFlagViewModel : public FlagDataViewModel<EntityFlag>
+class RoomClearFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     RoomClearFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
         m_gd->GetSpriteData()->SetMultipleEntityHideFlagsForRoom(m_roomnum, m_data);
     }
-
-    virtual wxString GetColumnHeader(unsigned int col) const override;
-    virtual unsigned int GetColumnCount() const override;
 
 protected:
     virtual void InitData() override
@@ -171,11 +168,11 @@ protected:
     }
 };
 
-class LockedDoorFlagViewModel : public FlagDataViewModel<EntityFlag>
+class LockedDoorFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     LockedDoorFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
@@ -192,11 +189,11 @@ protected:
     }
 };
 
-class PermanentSwitchFlagViewModel : public FlagDataViewModel<EntityFlag>
+class PermanentSwitchFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     PermanentSwitchFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
@@ -402,6 +399,27 @@ bool FlagDataViewModel<EntityFlag>::GetAttrByRow(unsigned int row, unsigned int 
 
 template <>
 bool FlagDataViewModel<EntityFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<RoomClearFlag>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<RoomClearFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 template <>
 unsigned int FlagDataViewModel<OneTimeEventFlag>::GetColumnCount() const;

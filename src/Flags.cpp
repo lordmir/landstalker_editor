@@ -166,3 +166,33 @@ bool TreeWarpFlag::operator!=(const TreeWarpFlag& rhs) const
 {
 	return !(*this == rhs);
 }
+
+RoomClearFlag::RoomClearFlag(const std::array<uint8_t, 4>& data)
+{
+	room = (data[0] << 8) | data[1];
+	entity = data[3] & 0x1F;
+	flag = (data[2] << 3) | (data[3] >> 5);
+}
+
+std::array<uint8_t, RoomClearFlag::SIZE> RoomClearFlag::GetData() const
+{
+	std::array<uint8_t, SIZE> data;
+	data[0] = room >> 8;
+	data[1] = room & 0xFF;
+	data[2] = (flag >> 3);
+	data[3] = (entity & 0x1F) | ((flag & 0x07) << 5);
+	return data;
+}
+
+bool RoomClearFlag::operator==(const RoomClearFlag& rhs) const
+{
+	return (
+		this->room == rhs.room &&
+		this->entity == rhs.entity &&
+		this->flag == rhs.flag);
+}
+
+bool RoomClearFlag::operator!=(const RoomClearFlag& rhs) const
+{
+	return !(*this == rhs);
+}

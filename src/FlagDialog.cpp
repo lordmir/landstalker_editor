@@ -67,6 +67,16 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     GetSizer()->Fit(this);
     CentreOnParent(wxBOTH);
 
+    for (std::size_t i = 0; i < m_tabs->GetPageCount(); ++i)
+    {
+        const auto* model = m_models[m_pages[i]];
+        if (model->GetRowCount() > 0)
+        {
+            m_tabs->ChangeSelection(i);
+            break;
+        }
+    }
+
     UpdateUI();
 
     for (auto& ctrl : m_dvc_ctrls)

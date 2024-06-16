@@ -14,7 +14,11 @@ public:
 	TileSwapDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd);
 	virtual ~TileSwapDialog();
 
-	void UpdateUI();
+	void CommitAll();
+	void AddToCurrentList();
+	void DeleteFromCurrentList();
+	void MoveSelectedUpCurrentList();
+	void MoveSelectedDownCurrentList();
 
 private:
 	enum class PageType
@@ -25,10 +29,23 @@ private:
 
 	void AddPage(const PageType type, const std::string& name, BaseDataViewModel* model);
 
+	void UpdateUI();
+
+	PageType GetSelectedTab() const;
+
+	void OnTabChange(wxBookCtrlEvent& e);
+	void OnOK(wxCommandEvent& evt);
+	void OnCancel(wxCommandEvent& evt);
+	void OnAdd(wxCommandEvent& evt);
+	void OnDelete(wxCommandEvent& evt);
+	void OnMoveUp(wxCommandEvent& evt);
+	void OnMoveDown(wxCommandEvent& evt);
+	void OnKeyPress(wxKeyEvent& evt);
+
 	std::shared_ptr<GameData> m_gd;
 	std::map<PageType, wxDataViewCtrl*> m_dvc_ctrls;
 	std::vector<PageType> m_pages;
-	std::map<PageType, wxDataViewVirtualListModel*> m_models;
+	std::map<PageType, BaseDataViewModel*> m_models;
 	ImageList* m_imglst;
 	uint16_t m_roomnum;
 	wxNotebook* m_tabs;
