@@ -1,5 +1,6 @@
 #include <FlagDialog.h>
 #include <FlagDataViewModel.h>
+#include <TileSwapDataViewModel.h>
 
 FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Flags", wxDefaultPosition, {640, 480}),
@@ -27,25 +28,14 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
 
     szr1->Add(m_tabs, 1, wxALL | wxEXPAND, 5);
 
-    AddPage(FlagType::ROOM_TRANSITION, "Room Transitions", PageProperties(true, true, false));
-    AddPage(FlagType::ENTITY_VISIBILITY, "Entity Visibility", PageProperties(true, true, true));
-    AddPage(FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", PageProperties(true, true, true));
-    AddPage(FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", PageProperties(true, true, true));
-    AddPage(FlagType::LOCKED_DOOR, "Locked Door (Entity)", PageProperties(true, true, true));
-    AddPage(FlagType::PERMANENT_SWITCH, "Permanent Switches", PageProperties(true, true, true));
-    AddPage(FlagType::SACRED_TREE, "Sacred Trees", PageProperties(true, true, false));
-    AddPage(FlagType::TILE_SWAP, "Tile Swaps", PageProperties(true, true, true));
-    AddPage(FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", PageProperties(true, true, true));
-
-    InitRoomTransitionFlags();
-    InitEntityVisibleFlags();
-    InitOneTimeFlags();
-    InitRoomClearFlags();
-    InitLockedDoorFlags();
-    InitPermanentSwitchFlags();
-    InitSacredTreeFlags();
-    InitTileSwapFlags();
-    InitLockedDoorTileSwapFlags();
+    AddPage(FlagType::ROOM_TRANSITION, "Room Transitions", new RoomTransitionFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(FlagType::ENTITY_VISIBILITY, "Entity Visibility", new EntityVisibilityFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", new OneTimeEventFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", new RoomClearFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::LOCKED_DOOR, "Locked Door (Entity)", new LockedDoorFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::PERMANENT_SWITCH, "Permanent Switches", new PermanentSwitchFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(FlagType::SACRED_TREE, "Sacred Trees", new SacredTreeFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
 
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 5);
@@ -188,7 +178,7 @@ void FlagDialog::MoveSelectedDownCurrentList()
     }
 }
 
-void FlagDialog::AddPage(FlagType type, const std::string& name, const FlagDialog::PageProperties& props)
+void FlagDialog::AddPage(FlagType type, const std::string& name, BaseDataViewModel* model, const FlagDialog::PageProperties& props)
 {
     auto* panel = new wxPanel(m_tabs, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_tabs, wxSize(-1, -1)), wxTAB_TRAVERSAL);
     m_tabs->AddPage(panel, _(name), false);
@@ -198,162 +188,14 @@ void FlagDialog::AddPage(FlagType type, const std::string& name, const FlagDialo
     szr->Add(m_dvc_ctrls[type], 1, wxALL | wxEXPAND, 5);
     m_pages.push_back(type);
     m_page_properties.insert({ type, props });
-}
 
-void FlagDialog::InitRoomTransitionFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::ROOM_TRANSITION];
+    auto* ctrl = m_dvc_ctrls[type];
     ctrl->ClearColumns();
-    auto* model = new RoomTransitionFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::ROOM_TRANSITION] = model;
+    m_models[type] = model;
     model->Initialise();
     ctrl->AssociateModel(model);
     model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitEntityVisibleFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::ENTITY_VISIBILITY];
-    ctrl->ClearColumns();
-    auto* model = new EntityVisibilityFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::ENTITY_VISIBILITY] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 340, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 120, wxALIGN_LEFT));
-    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(2)), 2, 100, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitOneTimeFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::ONE_TIME_ENTITY_VISIBILITY];
-    ctrl->ClearColumns();
-    auto* model = new OneTimeEventFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::ONE_TIME_ENTITY_VISIBILITY] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 200, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 100, wxALIGN_LEFT));
-    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(2)), 2, 80, wxALIGN_LEFT));
-    ctrl->InsertColumn(3, new wxDataViewColumn(model->GetColumnHeader(3),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 3, 100, wxALIGN_LEFT));
-    ctrl->InsertColumn(4, new wxDataViewColumn(model->GetColumnHeader(4),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitRoomClearFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::HIDE_MULTIPLE_ENTITIES];
-    ctrl->ClearColumns();
-    auto* model = new RoomClearFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::HIDE_MULTIPLE_ENTITIES] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitLockedDoorFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::LOCKED_DOOR];
-    ctrl->ClearColumns();
-    auto* model = new LockedDoorFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::LOCKED_DOOR] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitPermanentSwitchFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::PERMANENT_SWITCH];
-    ctrl->ClearColumns();
-    auto* model = new PermanentSwitchFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::PERMANENT_SWITCH] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewChoiceByIndexRenderer(model->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitSacredTreeFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::SACRED_TREE];
-    ctrl->ClearColumns();
-    auto* model = new SacredTreeFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::SACRED_TREE] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewTextRenderer(), 0, 420, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitTileSwapFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::TILE_SWAP];
-    ctrl->ClearColumns();
-    auto* model = new TileSwapFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::TILE_SWAP] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
-    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
-        new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
-}
-
-void FlagDialog::InitLockedDoorTileSwapFlags()
-{
-    auto* ctrl = m_dvc_ctrls[FlagType::LOCKED_DOOR_TILESWAP];
-    ctrl->ClearColumns();
-    auto* model = new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd);
-    m_models[FlagType::LOCKED_DOOR_TILESWAP] = model;
-    model->Initialise();
-    ctrl->AssociateModel(model);
-    model->DecRef();
-
-    ctrl->InsertColumn(0, new wxDataViewColumn(model->GetColumnHeader(0),
-        new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
-    ctrl->InsertColumn(1, new wxDataViewColumn(model->GetColumnHeader(1),
-        new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
-    ctrl->InsertColumn(2, new wxDataViewColumn(model->GetColumnHeader(2),
-        new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
+    model->InitControl(ctrl);
 }
 
 void FlagDialog::UpdateUI()

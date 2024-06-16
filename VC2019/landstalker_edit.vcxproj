@@ -49,6 +49,7 @@
     <ClCompile Include="..\src\HuffmanTrees.cpp" />
     <ClCompile Include="..\src\ImageBuffer.cpp" />
     <ClCompile Include="..\src\ImageList.cpp" />
+    <ClCompile Include="..\src\include\BaseDataViewModel.cpp" />
     <ClCompile Include="..\src\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\Map2DEditor.cpp" />
     <ClCompile Include="..\src\Map2DEditorFrame.cpp" />
@@ -93,6 +94,7 @@
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\TileSwapControlFrame.cpp" />
     <ClCompile Include="..\src\TileSwapDataViewModel.cpp" />
+    <ClCompile Include="..\src\TileSwapDialog.cpp" />
     <ClCompile Include="..\src\TileSwaps.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\WarpControlFrame.cpp" />
@@ -194,6 +196,7 @@
     <ClInclude Include="..\src\include\TilesetEditorFrame.h" />
     <ClInclude Include="..\src\include\TileSwapControlFrame.h" />
     <ClInclude Include="..\src\include\TileSwapDataViewModel.h" />
+    <ClInclude Include="..\src\include\TileSwapDialog.h" />
     <ClInclude Include="..\src\include\TileSwaps.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\WarpControlFrame.h" />
@@ -253,8 +256,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH);$(ZLIB_PATH);$(WX_WIN)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libpng.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -277,8 +280,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libpng.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>

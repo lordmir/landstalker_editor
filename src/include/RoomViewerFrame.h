@@ -57,6 +57,7 @@ public:
 	void ShowFlagDialog();
 	void ShowChestsDialog();
 	void ShowCharDialog();
+	void ShowTileswapDialog();
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;

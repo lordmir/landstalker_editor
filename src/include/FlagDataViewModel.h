@@ -3,69 +3,19 @@
 
 #include <cstdint>
 #include <memory>
-#include <wx/dataview.h>
+#include <BaseDataViewModel.h>
 #include <GameData.h>
 #include <Flags.h>
 #include <Chests.h>
 #include <RoomDialogueTable.h>
 #include <WarpList.h>
 
-class BaseFlagDataViewModel : public wxDataViewVirtualListModel
-{
-public:
-    BaseFlagDataViewModel() : wxDataViewVirtualListModel() {}
-
-    virtual void Initialise() = 0;
-
-    virtual void CommitData() = 0;
-
-    virtual unsigned int GetColumnCount() const override
-    {
-        return 0;
-    }
-
-    virtual unsigned int GetRowCount() const = 0;
-
-    virtual wxString GetColumnHeader(unsigned int col) const = 0;
-
-    virtual wxArrayString GetColumnChoices(unsigned int col) const = 0;
-
-    virtual wxString GetColumnType(unsigned int /*col*/) const override
-    {
-        return "string";
-    }
-
-    virtual void GetValueByRow(wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) const override
-    {
-    }
-
-    virtual bool GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const override
-    {
-        return false;
-    }
-
-    virtual bool SetValueByRow(const wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) override
-    {
-        return false;
-    }
-
-    virtual bool DeleteRow(unsigned int row) = 0;
-
-    virtual bool AddRow(unsigned int row) = 0;
-
-    virtual bool SwapRows(unsigned int r1, unsigned int r2) = 0;
-
-protected:
-
-    virtual void InitData() = 0;
-};
-
 template <class T>
-class FlagDataViewModel : public BaseFlagDataViewModel
+class FlagDataViewModel : public BaseDataViewModel
 {
 public:
     FlagDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : BaseFlagDataViewModel(),
+        : BaseDataViewModel(),
           m_roomnum(roomnum),
           m_gd(gd)
     {
@@ -151,7 +101,13 @@ public:
         }
         return false;
     }
+
+    virtual void InitControl(wxDataViewCtrl* ctrl) const override;
+
 protected:
+
+    virtual void InitData() = 0;
+
     uint16_t m_roomnum;
     std::shared_ptr<GameData> m_gd;
     std::vector<T> m_data;

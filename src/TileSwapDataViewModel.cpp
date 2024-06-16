@@ -1,7 +1,7 @@
 #include <TileSwapDataViewModel.h>
 
 TileSwapDataViewModel::TileSwapDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-	: wxDataViewVirtualListModel(),
+	: BaseDataViewModel(),
 	  m_roomnum(roomnum),
 	  m_gd(gd)
 {
@@ -241,4 +241,50 @@ bool TileSwapDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
 		return true;
 	}
 	return false;
+}
+
+void TileSwapDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
+{
+	// Index
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
+	// Type
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 75, wxALIGN_LEFT));
+	// Map Src X
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 2, 70, wxALIGN_LEFT));
+	// Map Src Y
+	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 3, 70, wxALIGN_LEFT));
+	// Map Dst X
+	ctrl->InsertColumn(4, new wxDataViewColumn(this->GetColumnHeader(4),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 4, 70, wxALIGN_LEFT));
+	// Map Dst Y
+	ctrl->InsertColumn(5, new wxDataViewColumn(this->GetColumnHeader(5),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 5, 70, wxALIGN_LEFT));
+	// Map Width
+	ctrl->InsertColumn(6, new wxDataViewColumn(this->GetColumnHeader(6),
+		new wxDataViewSpinRenderer(1, 0x40, wxDATAVIEW_CELL_EDITABLE), 6, 70, wxALIGN_LEFT));
+	// Map Height
+	ctrl->InsertColumn(7, new wxDataViewColumn(this->GetColumnHeader(7),
+		new wxDataViewSpinRenderer(1, 0x40, wxDATAVIEW_CELL_EDITABLE), 7, 70, wxALIGN_LEFT));
+	// HM Src X
+	ctrl->InsertColumn(8, new wxDataViewColumn(this->GetColumnHeader(8),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 8, 70, wxALIGN_LEFT));
+	// HM Src Y
+	ctrl->InsertColumn(9, new wxDataViewColumn(this->GetColumnHeader(9),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 9, 70, wxALIGN_LEFT));
+	// HM Dst X
+	ctrl->InsertColumn(10, new wxDataViewColumn(this->GetColumnHeader(10),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 10, 70, wxALIGN_LEFT));
+	// HM Dst Y
+	ctrl->InsertColumn(11, new wxDataViewColumn(this->GetColumnHeader(11),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 11, 70, wxALIGN_LEFT));
+	// HM Width
+	ctrl->InsertColumn(12, new wxDataViewColumn(this->GetColumnHeader(12),
+		new wxDataViewSpinRenderer(1, 0x40, wxDATAVIEW_CELL_EDITABLE), 12, 70, wxALIGN_LEFT));
+	// HM Height
+	ctrl->InsertColumn(13, new wxDataViewColumn(this->GetColumnHeader(13),
+		new wxDataViewSpinRenderer(1, 0x40, wxDATAVIEW_CELL_EDITABLE), 13, 70, wxALIGN_LEFT));
 }

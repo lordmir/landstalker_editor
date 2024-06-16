@@ -127,6 +127,16 @@ bool FlagDataViewModel<EntityFlag>::SetValueByRow(const wxVariant& variant, unsi
 	return updated;
 }
 
+void FlagDataViewModel<EntityFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 340, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 120, wxALIGN_LEFT));
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 100, wxALIGN_LEFT));
+}
+
 template <>
 unsigned int FlagDataViewModel<OneTimeEventFlag>::GetColumnCount() const
 {
@@ -274,6 +284,20 @@ bool FlagDataViewModel<OneTimeEventFlag>::SetValueByRow(const wxVariant& variant
 		}
 	}
 	return updated;
+}
+
+void FlagDataViewModel<OneTimeEventFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 200, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 100, wxALIGN_LEFT));
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 80, wxALIGN_LEFT));
+	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 3, 100, wxALIGN_LEFT));
+	ctrl->InsertColumn(4, new wxDataViewColumn(this->GetColumnHeader(4),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
 }
 
 wxString RoomClearFlagViewModel::GetColumnHeader(unsigned int col) const
@@ -448,6 +472,14 @@ bool FlagDataViewModel<SacredTreeFlag>::SetValueByRow(const wxVariant& variant, 
 	return updated;
 }
 
+void FlagDataViewModel<SacredTreeFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer(), 0, 420, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+}
+
 template <>
 unsigned int FlagDataViewModel<WarpList::Transition>::GetColumnCount() const
 {
@@ -546,6 +578,14 @@ bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& var
 		}
 	}
 	return updated;
+}
+
+void FlagDataViewModel<WarpList::Transition>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
 }
 
 template <>
@@ -682,6 +722,14 @@ bool FlagDataViewModel<ChestItem>::SetValueByRow(const wxVariant& variant, unsig
 	return updated;
 }
 
+void FlagDataViewModel<ChestItem>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer(), 0, 400, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
+}
+
 template <>
 unsigned int FlagDataViewModel<Character>::GetColumnCount() const
 {
@@ -753,7 +801,7 @@ void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned in
 
 			for (const auto& e : ent)
 			{
-				if (e.GetDialogue() == row)
+				if (e.GetDialogue() == row && e.HasDialogue())
 				{
 					if (label.empty())
 					{
@@ -802,6 +850,16 @@ bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsig
 		}
 	}
 	return updated;
+}
+
+void FlagDataViewModel<Character>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer("long"), 0, 80, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewTextRenderer(), 1, 320, wxALIGN_LEFT));
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
 }
 
 template <>
@@ -941,4 +999,14 @@ bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, un
 		}
 	}
 	return false;
+}
+
+void FlagDataViewModel<TileSwapFlag>::InitControl(wxDataViewCtrl* ctrl) const
+{
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
 }

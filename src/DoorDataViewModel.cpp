@@ -1,7 +1,7 @@
 #include <DoorDataViewModel.h>
 
 DoorDataViewModel::DoorDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-	: wxDataViewVirtualListModel(),
+	: BaseDataViewModel(),
 	m_roomnum(roomnum),
 	m_gd(gd)
 {
@@ -152,4 +152,20 @@ bool DoorDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
 		return true;
 	}
 	return false;
+}
+
+void DoorDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
+{
+	// Index
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
+	// Map Src X
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 1, 100, wxALIGN_LEFT));
+	// Map Src Y
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewSpinRenderer(0, 0x3F, wxDATAVIEW_CELL_EDITABLE), 2, 100, wxALIGN_LEFT));
+	// Size
+	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(3)), 3, 100, wxALIGN_LEFT));
 }

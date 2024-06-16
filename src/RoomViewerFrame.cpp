@@ -8,6 +8,7 @@
 #include <ChestDialog.h>
 #include <CharacterDialog.h>
 #include <RoomErrorDialog.h>
+#include <TileSwapDialog.h>
 #include <MapToTmx.h>
 #include "RoomViewerCtrl.h"
 
@@ -28,6 +29,7 @@ enum MENU_IDS
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
 	ID_EDIT_DIALOGUE,
+	ID_EDIT_TILESWAPS,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS,
 	ID_TOOLS_ENTITIES,
@@ -55,6 +57,7 @@ enum TOOL_IDS
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
 	TOOL_SHOW_DIALOGUE,
+	TOOL_SHOW_TILESWAPS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
 	TOOL_SHOW_ERRORS,
 	HM_INSERT_ROW_BEFORE,
@@ -600,6 +603,12 @@ void RoomViewerFrame::ShowChestsDialog()
 void RoomViewerFrame::ShowCharDialog()
 {
 	CharacterDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	dlg.ShowModal();
+}
+
+void RoomViewerFrame::ShowTileswapDialog()
+{
+	TileSwapDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
 }
 
@@ -1189,6 +1198,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
 	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
 	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
@@ -1211,6 +1221,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flag Editor");
 	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chest Editor");
 	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialogue Editor");
+	main_tb->AddTool(TOOL_SHOW_TILESWAPS, "Tile Swaps", ilist.GetImage("swap"), "Tile Swap Editor");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
@@ -1382,6 +1393,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_EDIT_DIALOGUE:
 		case TOOL_SHOW_DIALOGUE:
 			ShowCharDialog();
+			break;
+		case ID_EDIT_TILESWAPS:
+		case TOOL_SHOW_TILESWAPS:
+			ShowTileswapDialog();
 			break;
 		case ID_VIEW_ERRORS:
 		case TOOL_SHOW_ERRORS:
