@@ -127,6 +127,7 @@ bool FlagDataViewModel<EntityFlag>::SetValueByRow(const wxVariant& variant, unsi
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<EntityFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -286,6 +287,7 @@ bool FlagDataViewModel<OneTimeEventFlag>::SetValueByRow(const wxVariant& variant
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<OneTimeEventFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -411,6 +413,7 @@ bool FlagDataViewModel<RoomClearFlag>::SetValueByRow(const wxVariant& variant, u
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<RoomClearFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -573,6 +576,7 @@ bool FlagDataViewModel<SacredTreeFlag>::SetValueByRow(const wxVariant& variant, 
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<SacredTreeFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -681,6 +685,7 @@ bool FlagDataViewModel<WarpList::Transition>::SetValueByRow(const wxVariant& var
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<WarpList::Transition>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -823,6 +828,7 @@ bool FlagDataViewModel<ChestItem>::SetValueByRow(const wxVariant& variant, unsig
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<ChestItem>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -953,6 +959,7 @@ bool FlagDataViewModel<Character>::SetValueByRow(const wxVariant& variant, unsig
 	return updated;
 }
 
+template <>
 void FlagDataViewModel<Character>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -1102,6 +1109,7 @@ bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, un
 	return false;
 }
 
+template <>
 void FlagDataViewModel<TileSwapFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
@@ -1231,6 +1239,7 @@ bool FlagDataViewModel<TreeWarpFlag>::SetValueByRow(const wxVariant& variant, un
 	return false;
 }
 
+template <>
 void FlagDataViewModel<TreeWarpFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
