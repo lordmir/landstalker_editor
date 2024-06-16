@@ -610,6 +610,7 @@ void RoomViewerFrame::ShowTileswapDialog()
 {
 	TileSwapDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
+	TileSwapRefresh();
 }
 
 void RoomViewerFrame::ShowErrorDialog()
