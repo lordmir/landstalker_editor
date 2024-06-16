@@ -164,6 +164,11 @@ void TileSwapDialog::MoveSelectedDownCurrentList()
     }
 }
 
+void TileSwapDialog::SetPage(PageType p)
+{
+    m_tabs->ChangeSelection(static_cast<int>(p));
+}
+
 void TileSwapDialog::UpdateUI()
 {
 }

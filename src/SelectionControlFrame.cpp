@@ -114,6 +114,10 @@ void SelectionControlFrame::UpdateUI()
         }
     }
     UpdateOtherControls();
+    if (sel > m_ctrl_list->GetCount() || sel <= 0)
+    {
+        sel = -1;
+    }
     m_ctrl_list->SetSelection(sel);
     m_ctrl_list->Thaw();
 }

@@ -11,6 +11,11 @@
 class TileSwapDialog: public wxDialog
 {
 public:
+	enum class PageType
+	{
+		SWAPS,
+		DOORS
+	};
 	TileSwapDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd);
 	virtual ~TileSwapDialog();
 
@@ -19,13 +24,9 @@ public:
 	void DeleteFromCurrentList();
 	void MoveSelectedUpCurrentList();
 	void MoveSelectedDownCurrentList();
+	void SetPage(PageType p);
 
 private:
-	enum class PageType
-	{
-		SWAPS,
-		DOORS
-	};
 
 	void AddPage(const PageType type, const std::string& name, BaseDataViewModel* model);
 

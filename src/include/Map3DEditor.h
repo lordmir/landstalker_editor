@@ -51,6 +51,16 @@ public:
 	int GetSelectedDoor() const;
 	bool IsDoorSelected() const;
 
+	const std::vector<TileSwap>& GetTileswaps() const;
+	int GetTotalTileswaps() const;
+	void AddTileswap();
+	void DeleteTileswap();
+
+	const std::vector<Door>& GetDoors() const;
+	int GetTotalDoors() const;
+	void AddDoor();
+	void DeleteSelectedDoor();
+
 	void RefreshGraphics();
 	void UpdateSwaps();
 	void UpdateDoors();

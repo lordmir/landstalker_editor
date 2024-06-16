@@ -68,7 +68,6 @@ public:
 	void AddWarp();
 	void DeleteSelectedWarp();
 
-
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
 	void SetLayerOpacity(Layer layer, uint8_t opacity);

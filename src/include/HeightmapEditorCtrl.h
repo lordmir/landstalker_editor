@@ -32,6 +32,14 @@ public:
 	void UpdateWarps(const std::vector<WarpList::Warp>& warps);
 	void UpdateEntities(const std::vector<Entity>& entities);
 
+	void SetSelectedSwap(int swap);
+	int GetSelectedSwap() const;
+	bool IsSwapSelected() const;
+	const std::vector<TileSwap>& GetTileswaps() const;
+	int GetTotalTileswaps() const;
+	void AddTileswap();
+	void DeleteTileswap();
+
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 
 	void ClearSelection();
@@ -136,6 +144,8 @@ private:
 	std::vector<WarpList::Warp> m_warps;
 
 	std::unique_ptr<wxBitmap> m_bmp;
+	int m_selected_region;
+	bool m_selected_is_src;
 
 	static const std::size_t TILE_WIDTH = 64;
 	static const std::size_t TILE_HEIGHT = 32;

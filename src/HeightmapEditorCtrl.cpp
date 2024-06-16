@@ -116,6 +116,58 @@ void HeightmapEditorCtrl::UpdateEntities(const std::vector<Entity>& entities)
     }
 }
 
+void HeightmapEditorCtrl::SetSelectedSwap(int swap)
+{
+    int new_region = -1;
+    if (swap > 0 && swap <= static_cast<int>(m_swaps.size()))
+    {
+        new_region = swap - 1;
+    }
+    if (new_region != m_selected_region)
+    {
+        m_selected_region = new_region;
+        FireEvent(EVT_TILESWAP_SELECT, new_region + 1);
+    }
+}
+
+int HeightmapEditorCtrl::GetSelectedSwap() const
+{
+    return IsSwapSelected() ? m_selected_region : -1;
+}
+
+bool HeightmapEditorCtrl::IsSwapSelected() const
+{
+    return (m_selected_region >= 0 && m_selected_region < static_cast<int>(m_swaps.size()));
+}
+
+const std::vector<TileSwap>& HeightmapEditorCtrl::GetTileswaps() const
+{
+    return m_swaps;
+}
+
+int HeightmapEditorCtrl::GetTotalTileswaps() const
+{
+    return m_swaps.size();
+}
+
+void HeightmapEditorCtrl::AddTileswap()
+{
+    m_swaps.push_back(TileSwap());
+    SetSelectedSwap(m_swaps.size() - 1);
+    Refresh();
+}
+
+void HeightmapEditorCtrl::DeleteTileswap()
+{
+    if (m_swaps.size() > 0 && IsSwapSelected())
+    {
+        auto prev = GetSelectedSwap();
+        m_swaps.erase(m_swaps.cbegin() + prev);
+        SetSelectedSwap(prev);
+        Refresh();
+    }
+}
+
 bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
     switch(key)

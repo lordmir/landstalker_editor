@@ -83,7 +83,7 @@ void TileSwapControlFrame::SetPage(ID id)
 
 int TileSwapControlFrame::GetMaxSelection() const
 {
-	return m_selected == ID::TILESWAP ? m_swaps.size() : m_doors.size();
+	return (m_selected == ID::TILESWAP) ? m_swaps.size() : m_doors.size();
 }
 
 void TileSwapControlFrame::SetMode(RoomEdit::Mode mode)
@@ -94,32 +94,32 @@ void TileSwapControlFrame::SetMode(RoomEdit::Mode mode)
 
 void TileSwapControlFrame::Select()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_SELECT) : FireEvent(EVT_DOOR_SELECT);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_SELECT) : FireEvent(EVT_DOOR_SELECT);
 }
 
 void TileSwapControlFrame::Add()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_ADD) : FireEvent(EVT_DOOR_ADD);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_ADD) : FireEvent(EVT_DOOR_ADD);
 }
 
 void TileSwapControlFrame::Delete()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_DELETE) : FireEvent(EVT_DOOR_DELETE);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_DELETE) : FireEvent(EVT_DOOR_DELETE);
 }
 
 void TileSwapControlFrame::MoveUp()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_MOVE_UP) : FireEvent(EVT_DOOR_MOVE_UP);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_MOVE_UP) : FireEvent(EVT_DOOR_MOVE_UP);
 }
 
 void TileSwapControlFrame::MoveDown()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_MOVE_DOWN) : FireEvent(EVT_DOOR_MOVE_DOWN);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_MOVE_DOWN) : FireEvent(EVT_DOOR_MOVE_DOWN);
 }
 
 void TileSwapControlFrame::OpenElement()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_OPEN_PROPERTIES) : FireEvent(EVT_DOOR_OPEN_PROPERTIES);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_OPEN_PROPERTIES) : FireEvent(EVT_DOOR_OPEN_PROPERTIES);
 }
 
 bool TileSwapControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)

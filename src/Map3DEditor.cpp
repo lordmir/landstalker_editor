@@ -132,14 +132,14 @@ bool Map3DEditor::IsHoverValid() const
 void Map3DEditor::SetSelectedSwap(int swap)
 {
     int new_region = -1;
-    if (swap >= 0 && swap < static_cast<int>(m_swaps.size()))
+    if (swap > 0 && swap <= static_cast<int>(m_swaps.size()))
     {
-        new_region = swap;
+        new_region = swap - 1;
     }
     if (new_region != m_selected_region)
     {
         m_selected_region = new_region;
-        Refresh();
+        FireEvent(EVT_TILESWAP_SELECT, new_region + 1);
     }
 }
 
@@ -163,7 +163,7 @@ void Map3DEditor::SetSelectedDoor(int door)
     if (new_region != m_selected_region)
     {
         m_selected_region = new_region;
-        Refresh();
+        FireEvent(EVT_DOOR_SELECT);
     }
 }
 
@@ -175,6 +175,62 @@ int Map3DEditor::GetSelectedDoor() const
 bool Map3DEditor::IsDoorSelected() const
 {
     return (m_selected_region >= 0x100 && m_selected_region < static_cast<int>(0x100 + m_doors.size()));
+}
+
+const std::vector<TileSwap>& Map3DEditor::GetTileswaps() const
+{
+    return m_swaps;
+}
+
+int Map3DEditor::GetTotalTileswaps() const
+{
+    return m_swaps.size();
+}
+
+void Map3DEditor::AddTileswap()
+{
+    m_swaps.push_back(TileSwap());
+    SetSelectedSwap(m_swaps.size() - 1);
+    Refresh();
+}
+
+void Map3DEditor::DeleteTileswap()
+{
+    if (m_swaps.size() > 0 && IsSwapSelected())
+    {
+        auto prev = GetSelectedSwap();
+        m_swaps.erase(m_swaps.cbegin() + prev);
+        SetSelectedSwap(prev);
+        Refresh();
+    }
+}
+
+const std::vector<Door>& Map3DEditor::GetDoors() const
+{
+    return m_doors;
+}
+
+int Map3DEditor::GetTotalDoors() const
+{
+    return m_doors.size();
+}
+
+void Map3DEditor::AddDoor()
+{
+    m_doors.push_back(Door());
+    SetSelectedDoor(m_doors.size() - 1);
+    Refresh();
+}
+
+void Map3DEditor::DeleteSelectedDoor()
+{
+    if (m_doors.size() > 0 && IsDoorSelected())
+    {
+        auto prev = GetSelectedDoor();
+        m_doors.erase(m_doors.cbegin() + prev);
+        SetSelectedDoor(prev);
+        Refresh();
+    }
 }
 
 void Map3DEditor::RefreshGraphics()
@@ -534,17 +590,15 @@ bool Map3DEditor::HandleLeftDown(unsigned int modifiers)
         {
             SetSelectedSwap(sw.first);
             m_selected_is_src = sw.second;
-            FireEvent(EVT_TILESWAP_SELECT, GetSelectedSwap());
         }
         else if (dw != -1)
         {
             SetSelectedDoor(dw);
-            FireEvent(EVT_DOOR_SELECT, GetSelectedDoor());
         }
         else
         {
+            SetSelectedDoor(-1);
             SetSelectedSwap(-1);
-            FireEvent(EVT_TILESWAP_SELECT, -1);
         }
         if (IsSwapSelected())
         {

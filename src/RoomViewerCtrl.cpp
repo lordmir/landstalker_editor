@@ -137,6 +137,11 @@ void RoomViewerCtrl::SetWarpsVisible(bool visible)
     RefreshGraphics();
 }
 
+bool RoomViewerCtrl::EntitiesEnabled() const
+{
+    return m_show_entities;
+}
+
 void RoomViewerCtrl::SelectEntity(int selection)
 {
     if (selection != m_selected && (selection == -1

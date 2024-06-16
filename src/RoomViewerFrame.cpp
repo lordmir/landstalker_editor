@@ -104,10 +104,12 @@ EVT_COMMAND(wxID_ANY, EVT_TILESWAP_UPDATE, RoomViewerFrame::OnSwapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_SELECT, RoomViewerFrame::OnSwapSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_ADD, RoomViewerFrame::OnSwapAdd)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_DELETE, RoomViewerFrame::OnSwapDelete)
+EVT_COMMAND(wxID_ANY, EVT_TILESWAP_OPEN_PROPERTIES, RoomViewerFrame::OnSwapProperties)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_UPDATE, RoomViewerFrame::OnDoorUpdate)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_SELECT, RoomViewerFrame::OnDoorSelect)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_ADD, RoomViewerFrame::OnDoorAdd)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_DELETE, RoomViewerFrame::OnDoorDelete)
+EVT_COMMAND(wxID_ANY, EVT_DOOR_OPEN_PROPERTIES, RoomViewerFrame::OnDoorProperties)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
@@ -606,11 +608,15 @@ void RoomViewerFrame::ShowCharDialog()
 	dlg.ShowModal();
 }
 
-void RoomViewerFrame::ShowTileswapDialog()
+void RoomViewerFrame::ShowTileswapDialog(bool force, TileSwapDialog::PageType page)
 {
 	TileSwapDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	if (force)
+	{
+		dlg.SetPage(page);
+	}
 	dlg.ShowModal();
-	TileSwapRefresh();
+	FireEvent(EVT_TILESWAP_UPDATE);
 }
 
 void RoomViewerFrame::ShowErrorDialog()
@@ -1858,26 +1864,36 @@ void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& evt)
 	m_swapctrl->SetSelected(evt.GetInt() + 1);
 	m_fgedit->SetSelectedSwap(evt.GetInt());
 	m_bgedit->SetSelectedSwap(evt.GetInt());
-	// m_hmedit->SetSelectedSwap(evt.GetInt());
+	m_hmedit->SetSelectedSwap(evt.GetInt());
+	m_fgedit->Refresh();
+	m_bgedit->Refresh();
+	m_hmedit->Refresh();
 }
 
 void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 {
 	m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
-	m_swapctrl->SetSelected(evt.GetInt() + 1);
+	wxLogDebug("Event %d", evt.GetInt());
+	m_swapctrl->SetSelected(evt.GetInt());
 	m_fgedit->SetSelectedSwap(evt.GetInt());
 	m_bgedit->SetSelectedSwap(evt.GetInt());
-	// m_hmedit->SetSelectedSwap(evt.GetInt());
+	m_hmedit->SetSelectedSwap(evt.GetInt());
 }
 
 void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
 {
+	m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
 	TileSwapRefresh();
 }
 
 void RoomViewerFrame::OnSwapDelete(wxCommandEvent& /*evt*/)
 {
 	TileSwapRefresh();
+}
+
+void RoomViewerFrame::OnSwapProperties(wxCommandEvent& evt)
+{
+	ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS);
 }
 
 void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& evt)
@@ -1888,6 +1904,8 @@ void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& evt)
 	m_swapctrl->SetSelected(evt.GetInt() + 1);
 	m_fgedit->SetSelectedDoor(evt.GetInt());
 	m_bgedit->SetSelectedDoor(evt.GetInt());
+	m_fgedit->Refresh();
+	m_bgedit->Refresh();
 	// m_hmedit->SetSelectedDoor(evt.GetInt());
 }
 
@@ -1908,6 +1926,11 @@ void RoomViewerFrame::OnDoorAdd(wxCommandEvent& /*evt*/)
 void RoomViewerFrame::OnDoorDelete(wxCommandEvent& /*evt*/)
 {
 	TileSwapRefresh();
+}
+
+void RoomViewerFrame::OnDoorProperties(wxCommandEvent& evt)
+{
+	ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS);
 }
 
 void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& /*evt*/)
