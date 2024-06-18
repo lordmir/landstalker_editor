@@ -55,14 +55,17 @@ void TileSwapControlFrame::SetSwaps(const std::vector<TileSwap>& swaps, const st
 {
 	m_swaps = swaps;
 	m_doors = doors;
-	m_roomnum = roomnum;
-	if (m_swaps.empty() && !m_doors.empty())
+	if (roomnum != m_roomnum)
 	{
-		m_selected = ID::DOOR;
-	}
-	else
-	{
-		m_selected = ID::TILESWAP;
+		if (m_swaps.empty() && !m_doors.empty())
+		{
+			m_selected = ID::DOOR;
+		}
+		else if (m_doors.empty())
+		{
+			m_selected = ID::TILESWAP;
+		}
+		m_roomnum = roomnum;
 	}
 	UpdateUI();
 }
@@ -75,10 +78,15 @@ void TileSwapControlFrame::ResetSwaps()
 	UpdateUI();
 }
 
-void TileSwapControlFrame::SetPage(ID id)
+void TileSwapControlFrame::SetPage(TileSwapControlFrame::ID id)
 {
 	m_selected = id;
 	UpdateUI();
+}
+
+TileSwapControlFrame::ID TileSwapControlFrame::GetPage() const
+{
+	return m_selected;
 }
 
 int TileSwapControlFrame::GetMaxSelection() const

@@ -14,6 +14,20 @@ class RoomViewerFrame;
 class HeightmapEditorCtrl : public wxScrolledCanvas
 {
 public:
+	using Coord = std::pair<int, int>;
+	enum class MouseEventType
+	{
+		NONE,
+		MOVE,
+		ENTER,
+		LEAVE,
+		LEFT_DOWN,
+		LEFT_UP,
+		LEFT_DCLICK,
+		RIGHT_DOWN,
+		RIGHT_UP,
+		RIGHT_DCLICK
+	};
 
 	HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* frame);
 	virtual ~HeightmapEditorCtrl();
@@ -32,6 +46,9 @@ public:
 	void UpdateWarps(const std::vector<WarpList::Warp>& warps);
 	void UpdateEntities(const std::vector<Entity>& entities);
 
+	bool IsCoordValid(const HeightmapEditorCtrl::Coord& c) const;
+	bool IsHoverValid() const;
+
 	void SetSelectedSwap(int swap);
 	int GetSelectedSwap() const;
 	bool IsSwapSelected() const;
@@ -40,7 +57,15 @@ public:
 	void AddTileswap();
 	void DeleteTileswap();
 
+	void SetSelectedDoor(int door);
+	int GetSelectedDoor() const;
+	bool IsDoorSelected() const;
+	const std::vector<Door>& GetDoors() const;
+	int GetTotalDoors() const;
+
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
 
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
@@ -82,8 +107,15 @@ public:
 	void SetSelectedType(uint8_t type);
 	void IncrementSelectedType();
 	void DecrementSelectedType();
+
+	bool HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y);
+	bool HandleLeftDown(unsigned int modifiers);
+	bool HandleLeftDClick(unsigned int modifiers);
+	bool HandleRightDown(unsigned int modifiers);
 private:
 	void RefreshStatusbar();
+	void RefreshCursor(bool ctrl_down);
+	void UpdateCursor(wxStockCursor cursor);
 	void DrawRoomHeightmapBackground(wxDC& dc);
 	void DrawRoomHeightmapForeground(wxDC& dc);
 	void DrawCellRange(wxDC& dc, float x, float y, float w = 1.0f, float h = 1.0f, int s = 1);
@@ -107,7 +139,8 @@ private:
 	bool IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z);
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
-	void FireEvent(const wxEventType& e, long userdata);
+	void FireEvent(const wxEventType& e, int userdata);
+	void FireEventLong(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
 
@@ -115,8 +148,6 @@ private:
 	void OnPaint(wxPaintEvent& evt);
 	void OnEraseBackground(wxEraseEvent& evt);
 	void OnSize(wxSizeEvent& evt);
-	void OnMouseMove(wxMouseEvent& evt);
-	void OnMouseLeave(wxMouseEvent& evt);
 	std::pair<int, int> GetAbsoluteCoordinates(int screenx, int screeny);
 	std::pair<int, int> GetHMPosition(int screenx, int screeny);
 	bool UpdateHoveredPosition(int screenx, int screeny);
@@ -125,6 +156,21 @@ private:
 	void OnLeftDblClick(wxMouseEvent& evt);
 	void OnRightClick(wxMouseEvent& evt);
 	void OnRightDblClick(wxMouseEvent& evt);
+	void OnMouseMove(wxMouseEvent& evt);
+	void OnMouseLeave(wxMouseEvent& evt);
+	void OnLeftDown(wxMouseEvent& evt);
+	void OnLeftDClick(wxMouseEvent& evt);
+	void OnRightDown(wxMouseEvent& evt);
+	void OnLeftUp(wxMouseEvent& evt);
+	void OnRightUp(wxMouseEvent& evt);
+	void OnRightDClick(wxMouseEvent& evt);
+	void OnShow(wxShowEvent& evt);
+	int GetFirstDoorRegion(const Coord& c);
+	std::pair<int, bool> GetFirstSwapRegion(const Coord& c);
+
+	void StartDrag();
+	void StopDrag(bool cancel = false);
+	void RefreshDrag();
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
@@ -135,15 +181,18 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
-	std::pair<int, int> m_selected;
-	std::pair<int, int> m_hovered;
-	std::pair<int, int> m_cpysrc;
+	Coord m_selected;
+	Coord m_hovered;
+	Coord m_cpysrc;
+	Coord m_dragged;
+	Coord m_dragged_orig_pos;
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
 	std::vector<Entity> m_entities;
 	std::vector<WarpList::Warp> m_warps;
 
 	std::unique_ptr<wxBitmap> m_bmp;
+	bool m_dragging;
 	int m_selected_region;
 	bool m_selected_is_src;
 
@@ -151,6 +200,7 @@ private:
 	static const std::size_t TILE_HEIGHT = 32;
 	static const int SCROLL_RATE = 32;
 	int m_scroll_rate;
+	wxStockCursor m_cursorid;
 
 	std::vector<std::string> m_errors;
 

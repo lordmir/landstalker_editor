@@ -58,7 +58,7 @@ public:
 	void ShowFlagDialog();
 	void ShowChestsDialog();
 	void ShowCharDialog();
-	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS);
+	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
@@ -126,6 +126,7 @@ private:
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e, int userdata);
 
 	void SetPaneSizes();
 

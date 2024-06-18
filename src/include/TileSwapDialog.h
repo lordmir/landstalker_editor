@@ -25,6 +25,9 @@ public:
 	void MoveSelectedUpCurrentList();
 	void MoveSelectedDownCurrentList();
 	void SetPage(PageType p);
+	void SelectRow(int row);
+	PageType GetLastPage() const;
+	int GetLastSelected() const;
 
 private:
 

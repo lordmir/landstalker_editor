@@ -169,6 +169,31 @@ void TileSwapDialog::SetPage(PageType p)
     m_tabs->ChangeSelection(static_cast<int>(p));
 }
 
+void TileSwapDialog::SelectRow(int row)
+{
+    auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+    auto* model = m_models[GetSelectedTab()];
+    if (row > 0 && row <= model->GetRowCount())
+    {
+        ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(row)));
+    }
+    else
+    {
+        ctrl->UnselectAll();
+    }
+}
+
+TileSwapDialog::PageType TileSwapDialog::GetLastPage() const
+{
+    return GetSelectedTab();
+}
+
+int TileSwapDialog::GetLastSelected() const
+{
+    auto* ctrl = m_dvc_ctrls.at(GetSelectedTab());
+    return reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID());
+}
+
 void TileSwapDialog::UpdateUI()
 {
 }

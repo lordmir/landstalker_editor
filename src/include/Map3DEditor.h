@@ -22,8 +22,10 @@ public:
 		LEAVE,
 		LEFT_DOWN,
 		LEFT_UP,
+		LEFT_DCLICK,
 		RIGHT_DOWN,
-		RIGHT_UP
+		RIGHT_UP,
+		RIGHT_DCLICK
 	};
 	using Coord = std::pair<int, int>;
 
@@ -70,6 +72,7 @@ public:
 	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y);
 	bool HandleLeftDown(unsigned int modifiers);
+	bool HandleLeftDClick(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
 private:
 
@@ -94,9 +97,11 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnLeftDown(wxMouseEvent& evt);
+	void OnLeftDClick(wxMouseEvent& evt);
 	void OnRightDown(wxMouseEvent& evt);
 	void OnLeftUp(wxMouseEvent& evt);
 	void OnRightUp(wxMouseEvent& evt);
+	void OnRightDClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
 	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
 	std::vector<wxPoint> OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset);
