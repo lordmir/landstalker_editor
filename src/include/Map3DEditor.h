@@ -70,6 +70,7 @@ public:
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 	bool HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y);
 	bool HandleLeftDown(unsigned int modifiers);
 	bool HandleLeftDClick(unsigned int modifiers);
@@ -129,9 +130,13 @@ private:
 	void StopDrag(bool cancel = false);
 	void RefreshDrag();
 
+	void GeneratePreview();
+	void ResetPreview();
+
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
+	mutable std::shared_ptr<Tilemap3D> m_map_disp;
 	std::unique_ptr<ImageBuffer> m_layer_buf;
 	std::unique_ptr<ImageBuffer> m_bg_buf;
 
@@ -155,6 +160,7 @@ private:
 	bool m_dragging;
 	int m_selected_region;
 	bool m_selected_is_src;
+	bool m_preview_swap;
 
 	std::vector<std::pair<std::vector<wxPoint>, std::vector<wxPoint>>> m_swap_regions;
 	std::vector<std::vector<wxPoint>> m_door_regions;

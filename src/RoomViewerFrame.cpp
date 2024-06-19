@@ -81,6 +81,7 @@ enum TOOL_IDS
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
 EVT_KEY_DOWN(RoomViewerFrame::OnKeyDown)
+EVT_KEY_UP(RoomViewerFrame::OnKeyUp)
 EVT_COMMAND(wxID_ANY, EVT_ZOOM_CHANGE, RoomViewerFrame::OnZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_OPACITY_CHANGE, RoomViewerFrame::OnOpacityChange)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_UPDATE, RoomViewerFrame::OnEntityUpdate)
@@ -585,6 +586,27 @@ bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
 	{
 		return m_bgedit->HandleKeyDown(key, modifiers);
+	}
+	return false;
+}
+
+bool RoomViewerFrame::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
+	{
+		return m_roomview->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
+	{
+		return m_hmedit->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		return m_fgedit->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		return m_bgedit->HandleKeyUp(key, modifiers);
 	}
 	return false;
 }
@@ -1742,6 +1764,11 @@ void RoomViewerFrame::UpdateUI() const
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 {
 	evt.Skip(!HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
+}
+
+void RoomViewerFrame::OnKeyUp(wxKeyEvent& evt)
+{
+	evt.Skip(!HandleKeyUp(evt.GetKeyCode(), evt.GetModifiers()));
 }
 
 void RoomViewerFrame::OnZoomChange(wxCommandEvent& /*evt*/)

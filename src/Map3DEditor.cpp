@@ -25,6 +25,7 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
     : wxScrolledCanvas(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
       m_g(nullptr),
       m_map(nullptr),
+      m_map_disp(nullptr),
       m_layer_buf(std::make_unique<ImageBuffer>()),
       m_bg_buf(std::make_unique<ImageBuffer>()),
       m_tileset(nullptr),
@@ -46,6 +47,7 @@ Map3DEditor::Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Tilemap3D::La
       m_dragging(false),
       m_selected_region(-1),
       m_selected_is_src(false),
+      m_preview_swap(false),
       m_bmp(std::make_unique<wxBitmap>()),
       m_show_blocknums(false),
       m_show_borders(true),
@@ -79,6 +81,7 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
     if (m_g)
     {
         m_map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+        m_map_disp = std::make_shared<Tilemap3D>(*m_map);
         m_pal = m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData();
         m_tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
         m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
@@ -94,6 +97,7 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
                 SetSelectedSwap(-1);
             }
         }
+        m_preview_swap = false;
         UpdateSwaps();
         UpdateDoors();
         RecreateBuffer();
@@ -152,7 +156,23 @@ void Map3DEditor::SetSelectedSwap(int swap)
     {
         wxLogDebug("Selected tileswap = %d, was %d", new_region, m_selected_region);
         m_selected_region = new_region;
-        Refresh();
+        if (m_preview_swap)
+        {
+            if (!IsSwapSelected())
+            {
+                m_preview_swap = false;
+                Refresh();
+            }
+            else
+            {
+                ForceRedraw();
+            }
+        }
+        else
+        {
+            Refresh();
+        }
+        RefreshStatusbar();
     }
 }
 
@@ -177,7 +197,23 @@ void Map3DEditor::SetSelectedDoor(int door)
     {
         wxLogDebug("Selected door = %d, was %d", new_region, m_selected_region);
         m_selected_region = new_region;
-        Refresh();
+        if (m_preview_swap)
+        {
+            if (!IsDoorSelected())
+            {
+                m_preview_swap = false;
+                Refresh();
+            }
+            else
+            {
+                ForceRedraw();
+            }
+        }
+        else
+        {
+            Refresh();
+        }
+        RefreshStatusbar();
     }
 }
 
@@ -289,7 +325,7 @@ bool Map3DEditor::HandleKeyDown(unsigned int key, unsigned int modifiers)
     {
         return HandleDrawKeyDown(key, modifiers);
     }
-    return true;
+    return false;
 }
 
 bool Map3DEditor::HandleDrawKeyDown(unsigned int key, unsigned int /*modifiers*/)
@@ -582,6 +618,21 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
             FireEvent(EVT_DOOR_OPEN_PROPERTIES, GetSelectedDoor());
         }
         break;
+    case 'P':
+    case 'p':
+        if (!m_preview_swap && (IsDoorSelected() || IsSwapSelected()))
+        {
+            m_preview_swap = true;
+            GeneratePreview();
+        }
+        else if (m_preview_swap)
+        {
+            m_preview_swap = false;
+            ResetPreview();
+        }
+        RefreshStatusbar();
+        ForceRedraw();
+        break;
     }
 
     if (upd)
@@ -598,6 +649,10 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
             {
                 FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
             }
+            if (m_preview_swap)
+            {
+                ForceRedraw();
+            }
         }
         Refresh();
     }
@@ -609,6 +664,29 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
 #undef INCSZ
 #undef DECR
 #undef INCR
+}
+
+bool Map3DEditor::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+    switch (key)
+    {
+    case 'P':
+    case 'p':
+        if (m_preview_swap)
+        {
+            m_preview_swap = false;
+            for (int y = 0; y < m_map_disp->GetHeight(); ++y)
+            {
+                for (int x = 0; x < m_map_disp->GetWidth(); ++x)
+                {
+                    m_map_disp->SetBlock({ m_map->GetBlock({x, y}, m_layer), {x, y}}, m_layer);
+                }
+            }
+            Refresh();
+        }
+        break;
+    }
+    return false;
 }
 
 bool Map3DEditor::HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y)
@@ -718,6 +796,7 @@ void Map3DEditor::SetHoveredTile()
     if (m_hovered.first != -1)
     {
         m_map->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
+        m_map_disp->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
         FireMapEvent(EVT_MAPLAYER_UPDATE);
         ForceRedraw();
     }
@@ -737,21 +816,32 @@ void Map3DEditor::RefreshStatusbar()
 {
     std::string hovmsg = "";
     std::string selmsg = "";
+    std::string swpmsg = "";
     if (m_hovered.first != -1)
     {
         uint16_t i = 0;
-        if (m_map != nullptr)
+        if (m_map_disp != nullptr)
         {
-            i = m_map->GetBlock({ m_hovered.first, m_hovered.second }, m_layer);
+            i = m_map_disp->GetBlock({ m_hovered.first, m_hovered.second }, m_layer);
         }
-        hovmsg = StrPrintf("(%04d, %04d) : 0x%04X", m_hovered.first, m_hovered.second, i);
+        hovmsg = StrPrintf("Cursor (%04d, %04d) : Block %d", m_hovered.first, m_hovered.second, i);
     }
     if (IsBlockSelected())
     {
-        selmsg = StrPrintf("SELECTED 0x%04X", m_selected_block);
+        selmsg = StrPrintf("Selected Block %d", m_selected_block);
+    }
+    if (IsSwapSelected() || IsDoorSelected())
+    {
+        int sel = m_selected_region & 0xFF;
+        swpmsg = StrPrintf("Selected %s #%d", IsSwapSelected() ? "tile swap" : "door", sel);
+        if (m_preview_swap)
+        {
+            swpmsg += " [PREVIEW ACTIVE]";
+        }
     }
     FireUpdateStatusEvent(hovmsg, 0);
     FireUpdateStatusEvent(selmsg, 1);
+    FireUpdateStatusEvent(swpmsg, 2);
 }
 
 void Map3DEditor::ForceRedraw()
@@ -791,21 +881,21 @@ void Map3DEditor::UpdateScroll()
 void Map3DEditor::DrawMap(wxDC& dc)
 {
     dc.SetUserScale(m_zoom, m_zoom);
-    if (m_map)
+    if (m_map_disp)
     {
         dc.SetPen(wxColor(128,128,128));
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        for (int y = 0; y < m_map->GetHeight(); ++y)
+        for (int y = 0; y < m_map_disp->GetHeight(); ++y)
         {
-            for (int x = 0; x < m_map->GetWidth(); ++x)
+            for (int x = 0; x < m_map_disp->GetWidth(); ++x)
             {
-                int xp = (m_map->GetHeight() - 1 + x - y) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
+                int xp = (m_map_disp->GetHeight() - 1 + x - y) * TILE_WIDTH + (m_layer == Tilemap3D::Layer::BG ? TILE_WIDTH : 0);
                 int yp = (x + y) * TILE_HEIGHT / 2;
                 if (m_show_borders)
                 {
                     dc.DrawRectangle(xp, yp, TILE_WIDTH + 1, TILE_HEIGHT + 1);
                 }
-                uint16_t blk = m_map->GetBlock({ x,y }, m_layer);
+                uint16_t blk = m_map_disp->GetBlock({ x,y }, m_layer);
                 if (m_show_priority)
                 {
                     bool pri = false;
@@ -848,11 +938,11 @@ void Map3DEditor::DrawTiles()
         m_tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
         m_blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
         m_layer_buf->Clear();
-        m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map, m_tileset, m_blockset, false);
+        m_layer_buf->Insert3DMapLayer(0, 0, 0, m_layer, m_map_disp, m_tileset, m_blockset, false);
         if (m_layer == Tilemap3D::Layer::FG)
         {
             m_bg_buf->Clear();
-            m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map, m_tileset, m_blockset, false);
+            m_bg_buf->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, m_map_disp, m_tileset, m_blockset, false);
         }
         dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
         dc.Clear();
@@ -883,10 +973,10 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
 {
     int offsetx = 0, offsety = 0;
     m_swap_regions.clear();
-    if (m_map)
+    if (m_map_disp)
     {
-        offsetx = m_map->GetLeft();
-        offsety = m_map->GetTop();
+        offsetx = m_map_disp->GetLeft();
+        offsety = m_map_disp->GetTop();
     }
     int si = 0;
     for (const auto& s : m_swaps)
@@ -929,17 +1019,17 @@ void Map3DEditor::DrawDoors(wxDC& dc)
 {
     int offsetx = 0, offsety = 0, di = 0x100;
     m_door_regions.clear();
-    if (m_map)
+    if (m_map_disp)
     {
-        offsetx = m_map->GetLeft();
-        offsety = m_map->GetTop();
+        offsetx = m_map_disp->GetLeft();
+        offsety = m_map_disp->GetTop();
     }
     for (const auto& d : m_doors)
     {
-        if (m_map && d.x < m_map->GetHeightmapWidth() && d.y < m_map->GetHeightmapHeight())
+        if (m_map_disp && d.x < m_map_disp->GetHeightmapWidth() && d.y < m_map_disp->GetHeightmapHeight())
         {
-            int z = m_map->GetHeight({ d.x, d.y });
-            auto type =  static_cast<Tilemap3D::FloorType>(m_map->GetCellType({ d.x, d.y }));
+            int z = m_map_disp->GetHeight({ d.x, d.y });
+            auto type =  static_cast<Tilemap3D::FloorType>(m_map_disp->GetCellType({ d.x, d.y }));
             if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
             {
                 continue;
@@ -1453,4 +1543,88 @@ void Map3DEditor::RefreshDrag()
             FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
         }
     }
+}
+
+void Map3DEditor::GeneratePreview()
+{
+    if (IsSwapSelected())
+    {
+        const TileSwap& swp = m_swaps.at(GetSelectedSwap() - 1);
+        for (int y = 0; y < m_map->GetHeight(); ++y)
+        {
+            for (int x = 0; x < m_map->GetWidth(); ++x)
+            {
+                std::pair<uint16_t, uint16_t> swapped = { 0, 0 };
+                int x_off = x - swp.map.dst_x + m_map->GetLeft();
+                int y_off = y - swp.map.dst_y + m_map->GetTop();
+                std::pair<bool, bool> swap_condition = { false, false };
+                switch (swp.mode)
+                {
+                case TileSwap::Mode::FLOOR:
+                    swap_condition.first = (x_off >= 0 && x_off < swp.map.width) && (y_off >= 0 && y_off < swp.map.height);
+                    swap_condition.second = swap_condition.first;
+                    break;
+                case TileSwap::Mode::WALL_NE:
+                    swap_condition.first = (x_off - y_off >= 0 && x_off - y_off < swp.map.width) &&
+                        (y_off >= 0 && y_off < swp.map.height);
+                    swap_condition.second = (x_off - y_off - 1 >= 0 && x_off - y_off - 1 < swp.map.width) &&
+                        (y_off >= 0 && y_off < swp.map.height);
+                    break;
+                case TileSwap::Mode::WALL_NW:
+                    swap_condition.first = (x_off >= 0 && x_off < swp.map.height) &&
+                        (y_off > x_off && y_off <= x_off + swp.map.width);
+                    swap_condition.second = (x_off >= 0 && x_off < swp.map.height) &&
+                        (y_off >= x_off && y_off < x_off + swp.map.width);
+                    break;
+                }
+                int src_x = swp.map.src_x - swp.map.dst_x + x;
+                int src_y = swp.map.src_y - swp.map.dst_y + y;
+                if (swap_condition.first)
+                {
+                    swapped.first = (src_x >= 0 && src_x < m_map->GetWidth() && src_y >= 0 && src_y < m_map->GetHeight()) ?
+                        m_map->GetBlock({ src_x, src_y }, Tilemap3D::Layer::BG) : 0;
+                    wxLogDebug("B (%03d,%03d) -> (%03d,%03d)", swp.map.src_x - swp.map.dst_x + x, swp.map.src_y - swp.map.dst_y + y, x, y);
+                }
+                else
+                {
+                    swapped.first = m_map->GetBlock({ x, y }, Tilemap3D::Layer::BG);
+                }
+                if (swap_condition.second)
+                {
+                    swapped.second = (src_x >= 0 && src_x < m_map->GetWidth() && src_y >= 0 && src_y < m_map->GetHeight()) ?
+                        m_map->GetBlock({ src_x, src_y }, Tilemap3D::Layer::FG) : 0;
+                    wxLogDebug("F (%03d,%03d) -> (%03d,%03d)", swp.map.src_x - swp.map.dst_x + x, swp.map.src_y - swp.map.dst_y + y, x, y);
+                }
+                else
+                {
+                    swapped.second = m_map->GetBlock({ x, y }, Tilemap3D::Layer::FG);
+                }
+                m_map_disp->SetBlock({ swapped.first, {x, y} }, Tilemap3D::Layer::BG);
+                if (m_layer == Tilemap3D::Layer::FG)
+                {
+                    m_map_disp->SetBlock({swapped.second, {x, y}}, Tilemap3D::Layer::FG);
+                }
+            }
+        }
+    }
+    else
+    {
+        m_preview_swap = false;
+        ResetPreview();
+    }
+}
+
+void Map3DEditor::ResetPreview()
+{
+        for (int y = 0; y < m_map->GetHeight(); ++y)
+        {
+            for (int x = 0; x < m_map->GetWidth(); ++x)
+            {
+                m_map_disp->SetBlock({ m_map->GetBlock({x, y}, Tilemap3D::Layer::BG), {x, y} }, Tilemap3D::Layer::BG);
+                if (m_layer == Tilemap3D::Layer::FG)
+                {
+                    m_map_disp->SetBlock({ m_map->GetBlock({x, y}, Tilemap3D::Layer::FG), {x, y} }, Tilemap3D::Layer::FG);
+                }
+            }
+        }
 }

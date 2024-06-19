@@ -54,6 +54,7 @@ public:
 	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 
 	void ShowFlagDialog();
 	void ShowChestsDialog();
@@ -82,6 +83,7 @@ private:
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
+	void OnKeyUp(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
 

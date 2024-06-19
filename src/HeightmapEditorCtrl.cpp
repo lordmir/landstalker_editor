@@ -497,6 +497,11 @@ bool HeightmapEditorCtrl::HandleRegionKeyDown(unsigned int key, unsigned int mod
 #undef INCR
 }
 
+bool HeightmapEditorCtrl::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+    return false;
+}
+
 bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modifiers)
 {
     switch(key)

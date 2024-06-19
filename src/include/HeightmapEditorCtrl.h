@@ -66,6 +66,7 @@ public:
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
