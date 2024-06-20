@@ -82,6 +82,7 @@ public:
 
 	const std::string& GetStatusText() const;
 
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
 	struct SpriteQ
