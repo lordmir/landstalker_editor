@@ -55,14 +55,17 @@ void TileSwapControlFrame::SetSwaps(const std::vector<TileSwap>& swaps, const st
 {
 	m_swaps = swaps;
 	m_doors = doors;
-	m_roomnum = roomnum;
-	if (m_swaps.empty() && !m_doors.empty())
+	if (roomnum != m_roomnum)
 	{
-		m_selected = ID::DOOR;
-	}
-	else
-	{
-		m_selected = ID::TILESWAP;
+		if (m_swaps.empty() && !m_doors.empty())
+		{
+			m_selected = ID::DOOR;
+		}
+		else if (m_doors.empty())
+		{
+			m_selected = ID::TILESWAP;
+		}
+		m_roomnum = roomnum;
 	}
 	UpdateUI();
 }
@@ -75,15 +78,20 @@ void TileSwapControlFrame::ResetSwaps()
 	UpdateUI();
 }
 
-void TileSwapControlFrame::SetPage(ID id)
+void TileSwapControlFrame::SetPage(TileSwapControlFrame::ID id)
 {
 	m_selected = id;
 	UpdateUI();
 }
 
+TileSwapControlFrame::ID TileSwapControlFrame::GetPage() const
+{
+	return m_selected;
+}
+
 int TileSwapControlFrame::GetMaxSelection() const
 {
-	return m_selected == ID::TILESWAP ? m_swaps.size() : m_doors.size();
+	return (m_selected == ID::TILESWAP) ? m_swaps.size() : m_doors.size();
 }
 
 void TileSwapControlFrame::SetMode(RoomEdit::Mode mode)
@@ -94,32 +102,32 @@ void TileSwapControlFrame::SetMode(RoomEdit::Mode mode)
 
 void TileSwapControlFrame::Select()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_SELECT) : FireEvent(EVT_DOOR_SELECT);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_SELECT) : FireEvent(EVT_DOOR_SELECT);
 }
 
 void TileSwapControlFrame::Add()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_ADD) : FireEvent(EVT_DOOR_ADD);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_ADD) : FireEvent(EVT_DOOR_ADD);
 }
 
 void TileSwapControlFrame::Delete()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_DELETE) : FireEvent(EVT_DOOR_DELETE);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_DELETE) : FireEvent(EVT_DOOR_DELETE);
 }
 
 void TileSwapControlFrame::MoveUp()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_MOVE_UP) : FireEvent(EVT_DOOR_MOVE_UP);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_MOVE_UP) : FireEvent(EVT_DOOR_MOVE_UP);
 }
 
 void TileSwapControlFrame::MoveDown()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_MOVE_DOWN) : FireEvent(EVT_DOOR_MOVE_DOWN);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_MOVE_DOWN) : FireEvent(EVT_DOOR_MOVE_DOWN);
 }
 
 void TileSwapControlFrame::OpenElement()
 {
-	m_selected == ID::TILESWAP ? FireEvent(EVT_TILESWAP_OPEN_PROPERTIES) : FireEvent(EVT_DOOR_OPEN_PROPERTIES);
+	(m_selected == ID::TILESWAP) ? FireEvent(EVT_TILESWAP_OPEN_PROPERTIES) : FireEvent(EVT_DOOR_OPEN_PROPERTIES);
 }
 
 bool TileSwapControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)

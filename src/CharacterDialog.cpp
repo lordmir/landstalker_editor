@@ -19,20 +19,12 @@ CharacterDialog::CharacterDialog(wxWindow* parent, ImageList* imglst, uint16_t r
     m_model->Initialise();
     m_ctrl_list->AssociateModel(m_model);
     m_model->DecRef();
-
-    m_ctrl_list->InsertColumn(0, new wxDataViewColumn(m_model->GetColumnHeader(0),
-        new wxDataViewTextRenderer("long"), 0, 80, wxALIGN_LEFT));
-    m_ctrl_list->InsertColumn(1, new wxDataViewColumn(m_model->GetColumnHeader(1),
-        new wxDataViewTextRenderer(), 1, 320, wxALIGN_LEFT));
-    m_ctrl_list->InsertColumn(2, new wxDataViewColumn(m_model->GetColumnHeader(2),
-        new wxDataViewChoiceByIndexRenderer(m_model->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
-
+    m_model->InitControl(m_ctrl_list);
 
     wxBoxSizer* szr2 = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2, 0, wxEXPAND, 5);
     wxBoxSizer* szr3 = new wxBoxSizer(wxHORIZONTAL);
     szr2->Add(szr3, 1, wxALL | wxEXPAND, 5);
-
 
     m_add = new wxBitmapButton(this, wxID_ADD, imglst->GetBitmap(plus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
     m_delete = new wxBitmapButton(this, wxID_DELETE, imglst->GetBitmap(minus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
@@ -112,7 +104,6 @@ void CharacterDialog::OnOK(wxCommandEvent&)
 
 void CharacterDialog::OnCancel(wxCommandEvent&)
 {
-    CommitAll();
     EndModal(wxID_OK);
 }
 

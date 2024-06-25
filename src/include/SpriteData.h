@@ -63,12 +63,12 @@ public:
 	void SetEntityVisibilityFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
 	std::vector<OneTimeEventFlag> GetOneTimeEventFlagsForRoom(uint16_t room);
 	void SetOneTimeEventFlagsForRoom(uint16_t room, const std::vector<OneTimeEventFlag>& data);
-	std::vector<EntityFlag> GetMultipleEntityHideFlagsForRoom(uint16_t room);
-	void SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
-	std::vector<EntityFlag> GetLockedDoorFlagsForRoom(uint16_t room);
-	void SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
-	std::vector<EntityFlag> GetPermanentSwitchFlagsForRoom(uint16_t room);
-	void SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data);
+	std::vector<RoomClearFlag> GetMultipleEntityHideFlagsForRoom(uint16_t room);
+	void SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data);
+	std::vector<RoomClearFlag> GetLockedDoorFlagsForRoom(uint16_t room);
+	void SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data);
+	std::vector<RoomClearFlag> GetPermanentSwitchFlagsForRoom(uint16_t room);
+	void SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data);
 	std::vector<SacredTreeFlag> GetSacredTreeFlagsForRoom(uint16_t room);
 	void SetSacredTreeFlagsForRoom(uint16_t room, const std::vector<SacredTreeFlag>& data);
 
@@ -176,12 +176,12 @@ private:
 	std::vector<EntityFlag> m_sprite_visibility_flags_orig;
 	std::vector<OneTimeEventFlag> m_one_time_event_flags;
 	std::vector<OneTimeEventFlag> m_one_time_event_flags_orig;
-	std::vector<EntityFlag> m_room_clear_flags;
-	std::vector<EntityFlag> m_room_clear_flags_orig;
-	std::vector<EntityFlag> m_locked_door_flags;
-	std::vector<EntityFlag> m_locked_door_flags_orig;
-	std::vector<EntityFlag> m_permanent_switch_flags;
-	std::vector<EntityFlag> m_permanent_switch_flags_orig;
+	std::vector<RoomClearFlag> m_room_clear_flags;
+	std::vector<RoomClearFlag> m_room_clear_flags_orig;
+	std::vector<RoomClearFlag> m_locked_door_flags;
+	std::vector<RoomClearFlag> m_locked_door_flags_orig;
+	std::vector<RoomClearFlag> m_permanent_switch_flags;
+	std::vector<RoomClearFlag> m_permanent_switch_flags_orig;
 	std::vector<SacredTreeFlag> m_sacred_tree_flags;
 	std::vector<SacredTreeFlag> m_sacred_tree_flags_orig;
 

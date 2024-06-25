@@ -3,69 +3,19 @@
 
 #include <cstdint>
 #include <memory>
-#include <wx/dataview.h>
+#include <BaseDataViewModel.h>
 #include <GameData.h>
 #include <Flags.h>
 #include <Chests.h>
 #include <RoomDialogueTable.h>
 #include <WarpList.h>
 
-class BaseFlagDataViewModel : public wxDataViewVirtualListModel
-{
-public:
-    BaseFlagDataViewModel() : wxDataViewVirtualListModel() {}
-
-    virtual void Initialise() = 0;
-
-    virtual void CommitData() = 0;
-
-    virtual unsigned int GetColumnCount() const override
-    {
-        return 0;
-    }
-
-    virtual unsigned int GetRowCount() const = 0;
-
-    virtual wxString GetColumnHeader(unsigned int col) const = 0;
-
-    virtual wxArrayString GetColumnChoices(unsigned int col) const = 0;
-
-    virtual wxString GetColumnType(unsigned int /*col*/) const override
-    {
-        return "string";
-    }
-
-    virtual void GetValueByRow(wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) const override
-    {
-    }
-
-    virtual bool GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const override
-    {
-        return false;
-    }
-
-    virtual bool SetValueByRow(const wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/) override
-    {
-        return false;
-    }
-
-    virtual bool DeleteRow(unsigned int row) = 0;
-
-    virtual bool AddRow(unsigned int row) = 0;
-
-    virtual bool SwapRows(unsigned int r1, unsigned int r2) = 0;
-
-protected:
-
-    virtual void InitData() = 0;
-};
-
 template <class T>
-class FlagDataViewModel : public BaseFlagDataViewModel
+class FlagDataViewModel : public BaseDataViewModel
 {
 public:
     FlagDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : BaseFlagDataViewModel(),
+        : BaseDataViewModel(),
           m_roomnum(roomnum),
           m_gd(gd)
     {
@@ -151,7 +101,13 @@ public:
         }
         return false;
     }
+
+    virtual void InitControl(wxDataViewCtrl* ctrl) const override;
+
 protected:
+
+    virtual void InitData() = 0;
+
     uint16_t m_roomnum;
     std::shared_ptr<GameData> m_gd;
     std::vector<T> m_data;
@@ -194,19 +150,16 @@ protected:
     }
 };
 
-class RoomClearFlagViewModel : public FlagDataViewModel<EntityFlag>
+class RoomClearFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     RoomClearFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
         m_gd->GetSpriteData()->SetMultipleEntityHideFlagsForRoom(m_roomnum, m_data);
     }
-
-    virtual wxString GetColumnHeader(unsigned int col) const override;
-    virtual unsigned int GetColumnCount() const override;
 
 protected:
     virtual void InitData() override
@@ -215,11 +168,11 @@ protected:
     }
 };
 
-class LockedDoorFlagViewModel : public FlagDataViewModel<EntityFlag>
+class LockedDoorFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     LockedDoorFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
@@ -236,11 +189,11 @@ protected:
     }
 };
 
-class PermanentSwitchFlagViewModel : public FlagDataViewModel<EntityFlag>
+class PermanentSwitchFlagViewModel : public FlagDataViewModel<RoomClearFlag>
 {
 public:
     PermanentSwitchFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
-        : FlagDataViewModel<EntityFlag>(roomnum, gd) {}
+        : FlagDataViewModel<RoomClearFlag>(roomnum, gd) {}
 
     virtual void CommitData() override
     {
@@ -426,6 +379,41 @@ protected:
     }
 };
 
+class TreeWarpFlagViewModel : public FlagDataViewModel<TreeWarpFlag>
+{
+public:
+    TreeWarpFlagViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd)
+        : FlagDataViewModel<TreeWarpFlag>(roomnum, gd)
+    {}
+
+    virtual void CommitData() override
+    {
+        if (m_data.size() >= 1)
+        {
+            m_gd->GetRoomData()->SetTreeWarp(m_data.at(0));
+        }
+        else
+        {
+            m_gd->GetRoomData()->ClearTreeWarp(m_roomnum);
+        }
+    }
+protected:
+    virtual void InitData() override
+    {
+        m_data.clear();
+        if (m_gd->GetRoomData()->HasTreeWarpFlag(m_roomnum))
+        {
+            m_data.push_back(m_gd->GetRoomData()->GetTreeWarp(m_roomnum));
+        }
+        m_list.resize(1);
+        m_list[0].reserve(m_gd->GetRoomData()->GetRoomCount());
+        for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
+        {
+            m_list[0].push_back(wxString(m_gd->GetRoomData()->GetRoomlist()[i]->name));
+        }
+    }
+};
+
 template <>
 unsigned int FlagDataViewModel<EntityFlag>::GetColumnCount() const;
 
@@ -446,6 +434,27 @@ bool FlagDataViewModel<EntityFlag>::GetAttrByRow(unsigned int row, unsigned int 
 
 template <>
 bool FlagDataViewModel<EntityFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<RoomClearFlag>::GetColumnCount() const;
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<RoomClearFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<RoomClearFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<RoomClearFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 template <>
 unsigned int FlagDataViewModel<OneTimeEventFlag>::GetColumnCount() const;
@@ -578,5 +587,32 @@ bool FlagDataViewModel<TileSwapFlag>::GetAttrByRow(unsigned int row, unsigned in
 
 template <>
 bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
+
+template <>
+unsigned int FlagDataViewModel<TreeWarpFlag>::GetColumnCount() const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::AddRow(unsigned int row);
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::DeleteRow(unsigned int row);
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnHeader(unsigned int col) const;
+
+template <>
+wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int col) const;
+
+template <>
+wxString FlagDataViewModel<TreeWarpFlag>::GetColumnType(unsigned int col) const;
+
+template <>
+void FlagDataViewModel<TreeWarpFlag>::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const;
+
+template <>
+bool FlagDataViewModel<TreeWarpFlag>::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col);
 
 #endif // _FLAG_DATA_VIEW_MODEL_

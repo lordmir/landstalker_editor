@@ -7,6 +7,7 @@
 
 #include <set>
 #include <cassert>
+#include <algorithm>
 
 std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
 {
@@ -1023,32 +1024,35 @@ bool RoomData::HasTreeWarpFlag(uint16_t room) const
         });
 }
 
-std::pair<uint16_t, uint16_t> RoomData::GetTreeWarp(uint16_t room) const
+TreeWarpFlag RoomData::GetTreeWarp(uint16_t room) const
 {
     auto result = std::find_if(m_gfxswap_big_tree_flags.cbegin(), m_gfxswap_big_tree_flags.cend(), [&](const auto& w) {
         return w.room1 == room || w.room2 == room;
         });
     if (result == m_gfxswap_big_tree_flags.cend())
     {
-        return { 0_u16, 0_u16 };
+        return { 0_u16, 0_u16, 0_u16 };
     }
-    return {result->room1 == room ? result->room2 : result->room1, result->flag};
+    return {room, result->room1 == room ? result->room2 : result->room1, result->flag};
 }
 
-void RoomData::SetTreeWarp(uint16_t room1, uint16_t room2, uint16_t flag)
+void RoomData::SetTreeWarp(const TreeWarpFlag& flags)
 {
+    auto new_flags = flags;
+    if (flags.room2 < flags.room1)
+    {
+        new_flags = { flags.room2, flags.room1, flags.flag };
+    }
     auto result = std::find_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
-        return w.room1 == room1 || w.room2 == room1 || w.room1 == room2 || w.room2 == room2;
+        return w.room1 == new_flags.room1 || w.room2 == new_flags.room1 || w.room1 == new_flags.room2 || w.room2 == new_flags.room2;
         });
     if (result == m_gfxswap_big_tree_flags.cend())
     {
-        m_gfxswap_big_tree_flags.push_back({ room1, room2, flag });
+        m_gfxswap_big_tree_flags.push_back(new_flags);
     }
     else
     {
-        result->room1 = room1;
-        result->room2 = room2;
-        result->flag = flag;
+        *result = new_flags;
     }
 }
 

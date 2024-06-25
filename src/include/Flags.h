@@ -13,8 +13,9 @@ enum class FlagType
 	PERMANENT_SWITCH,
 	SACRED_TREE,
 	ROOM_TRANSITION,
-	TILE_SWAP,
-	LOCKED_DOOR_TILESWAP
+	LOCKED_DOOR_TILESWAP,
+	TILESWAP,
+	TREE_WARP
 };
 
 struct FlagTrigger
@@ -53,6 +54,21 @@ struct OneTimeEventFlag : public FlagTrigger
 	std::array<uint8_t, SIZE> GetData() const;
 	bool operator==(const OneTimeEventFlag& rhs) const;
 	bool operator!=(const OneTimeEventFlag& rhs) const;
+};
+
+struct RoomClearFlag : public FlagTrigger
+{
+	static const int SIZE = 4;
+
+	uint16_t room;
+	uint16_t flag;
+	uint8_t entity;
+
+	RoomClearFlag(const std::array<uint8_t, SIZE>& data);
+	RoomClearFlag(uint16_t rm) : room(rm), flag(0), entity(0) {}
+	std::array<uint8_t, SIZE> GetData() const;
+	bool operator==(const RoomClearFlag& rhs) const;
+	bool operator!=(const RoomClearFlag& rhs) const;
 };
 
 struct SacredTreeFlag : public FlagTrigger

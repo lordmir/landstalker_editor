@@ -114,8 +114,8 @@ public:
     void SetLanternFlag(uint16_t room, uint16_t flag);
     void ClearLanternFlag(uint16_t room);
     bool HasTreeWarpFlag(uint16_t room) const;
-    std::pair<uint16_t, uint16_t> GetTreeWarp(uint16_t room) const;
-    void SetTreeWarp(uint16_t room1, uint16_t room2, uint16_t flag);
+    TreeWarpFlag GetTreeWarp(uint16_t room) const;
+    void SetTreeWarp(const TreeWarpFlag& flag);
     void ClearTreeWarp(uint16_t room);
 
     bool HasNormalTileSwaps(uint16_t room) const;

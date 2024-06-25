@@ -405,6 +405,10 @@
     <ClCompile Include="..\src\RomLabels.cpp">
       <Filter>src\Data\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\TileSwapDialog.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\include\BaseDataViewModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -696,6 +700,8 @@
     </ClInclude>
     <ClInclude Include="..\src\include\Doors.h">
       <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\include\TileSwapDialog.h">
+      <Filter>include\UI\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
