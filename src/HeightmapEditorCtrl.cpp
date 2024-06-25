@@ -15,10 +15,13 @@ EVT_PAINT(HeightmapEditorCtrl::OnPaint)
 EVT_SIZE(HeightmapEditorCtrl::OnSize)
 EVT_MOTION(HeightmapEditorCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(HeightmapEditorCtrl::OnMouseLeave)
-EVT_LEFT_UP(HeightmapEditorCtrl::OnLeftClick)
-EVT_LEFT_DCLICK(HeightmapEditorCtrl::OnLeftDblClick)
-EVT_RIGHT_UP(HeightmapEditorCtrl::OnRightClick)
-EVT_RIGHT_DCLICK(HeightmapEditorCtrl::OnRightDblClick)
+EVT_LEFT_DOWN(HeightmapEditorCtrl::OnLeftDown)
+EVT_RIGHT_DOWN(HeightmapEditorCtrl::OnRightDown)
+EVT_LEFT_UP(HeightmapEditorCtrl::OnLeftUp)
+EVT_RIGHT_UP(HeightmapEditorCtrl::OnRightUp)
+EVT_LEFT_DCLICK(HeightmapEditorCtrl::OnLeftDClick)
+EVT_RIGHT_DCLICK(HeightmapEditorCtrl::OnRightDClick)
+EVT_SHOW(HeightmapEditorCtrl::OnShow)
 wxEND_EVENT_TABLE()
 
 HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* frame)
@@ -35,8 +38,14 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
       m_selected(-1, -1),
       m_hovered(-1, -1),
       m_cpysrc(-1, -1),
+      m_dragged(-1, -1),
+      m_dragged_orig_pos(-1, -1),
       m_bmp(std::make_unique<wxBitmap>()),
-      m_scroll_rate(SCROLL_RATE)
+      m_dragging(false),
+      m_selected_region(-1),
+      m_selected_is_src(false),
+      m_scroll_rate(SCROLL_RATE),
+      m_cursorid(wxCURSOR_ARROW)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -62,10 +71,21 @@ void HeightmapEditorCtrl::SetRoomNum(uint16_t roomnum)
 {
     if (m_g)
     {
-        m_roomnum = roomnum;
         m_map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
         m_entities = m_g->GetSpriteData()->GetRoomEntities(roomnum);
         m_warps = m_g->GetRoomData()->GetWarpsForRoom(roomnum);
+        if (m_roomnum != roomnum)
+        {
+            SetSelectedSwap(-1);
+            m_roomnum = roomnum;
+        }
+        else
+        {
+            if (!IsDoorSelected() && !IsSwapSelected())
+            {
+                SetSelectedSwap(-1);
+            }
+        }
         UpdateSwaps();
         UpdateDoors();
         RecreateBuffer();
@@ -116,7 +136,373 @@ void HeightmapEditorCtrl::UpdateEntities(const std::vector<Entity>& entities)
     }
 }
 
+bool HeightmapEditorCtrl::IsCoordValid(const HeightmapEditorCtrl::Coord& c) const
+{
+    return (m_map != nullptr &&
+        (c.first >= 0 && c.first < m_map->GetWidth() &&
+            c.second >= 0 && c.second < m_map->GetHeight()));
+}
+
+bool HeightmapEditorCtrl::IsHoverValid() const
+{
+    return IsCoordValid(m_hovered);
+}
+
+void HeightmapEditorCtrl::SetSelectedSwap(int swap)
+{
+    int new_region = -1;
+    if (swap > 0 && swap <= static_cast<int>(m_swaps.size()))
+    {
+        new_region = swap - 1;
+    }
+    if (new_region != m_selected_region)
+    {
+        wxLogDebug("Selected tileswap = %d, was %d", new_region, m_selected_region);
+        m_selected_region = new_region;
+        Refresh();
+    }
+}
+
+int HeightmapEditorCtrl::GetSelectedSwap() const
+{
+    return IsSwapSelected() ? m_selected_region + 1 : -1;
+}
+
+bool HeightmapEditorCtrl::IsSwapSelected() const
+{
+    return (m_selected_region >= 0 && m_selected_region < static_cast<int>(m_swaps.size()));
+}
+
+const std::vector<TileSwap>& HeightmapEditorCtrl::GetTileswaps() const
+{
+    return m_swaps;
+}
+
+int HeightmapEditorCtrl::GetTotalTileswaps() const
+{
+    return m_swaps.size();
+}
+
+void HeightmapEditorCtrl::AddTileswap()
+{
+    m_swaps.push_back(TileSwap());
+    SetSelectedSwap(m_swaps.size() - 1);
+    Refresh();
+}
+
+void HeightmapEditorCtrl::DeleteTileswap()
+{
+    if (m_swaps.size() > 0 && IsSwapSelected())
+    {
+        auto prev = GetSelectedSwap();
+        m_swaps.erase(m_swaps.cbegin() + prev);
+        SetSelectedSwap(prev);
+        Refresh();
+    }
+}
+
+void HeightmapEditorCtrl::SetSelectedDoor(int door)
+{
+    int new_region = -1;
+    if (door > 0 && door <= static_cast<int>(m_doors.size()))
+    {
+        new_region = 0xFF + door;
+    }
+    if (new_region != m_selected_region)
+    {
+        wxLogDebug("Selected door = %d, was %d", new_region, m_selected_region);
+        m_selected_region = new_region;
+        Refresh();
+    }
+}
+
+int HeightmapEditorCtrl::GetSelectedDoor() const
+{
+    return IsDoorSelected() ? m_selected_region - 0xFF : -1;
+}
+
+bool HeightmapEditorCtrl::IsDoorSelected() const
+{
+    return (m_selected_region >= 0x100 && m_selected_region < static_cast<int>(0x100 + m_doors.size()));
+}
+
+const std::vector<Door>& HeightmapEditorCtrl::GetDoors() const
+{
+    return m_doors;
+}
+
+int HeightmapEditorCtrl::GetTotalDoors() const
+{
+    return m_doors.size();
+}
+
 bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
+{
+    RefreshCursor((modifiers & wxMOD_CONTROL) > 0);
+    if (key == WXK_ESCAPE)
+    {
+        StopDrag(true);
+        m_selected = { -1, -1 };
+        m_hovered = { -1, -1 };
+        SetSelectedSwap(-1);
+        SetSelectedDoor(-1);
+        FireEvent(EVT_TILESWAP_SELECT, -1);
+        FireEvent(EVT_DOOR_SELECT, -1);
+        return true;
+    }
+    if (!HandleRegionKeyDown(key, modifiers))
+    {
+        return HandleDrawKeyDown(key, modifiers);
+    }
+    return true;
+}
+
+bool HeightmapEditorCtrl::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
+{
+#define INCR(X) X = std::clamp(X + 1, 0 , 0x3F)
+#define DECR(X) X = std::clamp(X - 1, 0 , 0x3F)
+#define INCSZ(X) X = std::clamp(X + 1, 1 , 0x3F)
+#define DECSZ(X) X = std::clamp(X - 1, 1 , 0x3F)
+#define INCDSZ(X, MAX) X = static_cast<decltype(X)>((static_cast<int>(X) + MAX + 1) % MAX)
+#define DECDSZ(X, MAX) X = static_cast<decltype(X)>((static_cast<int>(X) + MAX - 1) % MAX)
+
+    bool upd = false;
+
+    switch (key)
+    {
+    case WXK_TAB:
+        if (!(m_swaps.empty() && m_doors.empty()))
+        {
+            int position = m_selected_region;
+            if (modifiers == 0)
+            {
+                position++;
+                if ((position >= static_cast<int>(m_swaps.size())) && (position < 0x100))
+                {
+                    position = 0x100;
+                }
+                if ((position < 0) || (position >= static_cast<int>(0x100 + m_doors.size())))
+                {
+                    position = m_swaps.empty() ? (m_doors.empty() ? -1 : 0x100) : 0;
+                }
+            }
+            else if (modifiers == wxMOD_SHIFT)
+            {
+                position--;
+                if ((position >= static_cast<int>(m_swaps.size())) && (position < 0x100))
+                {
+                    position = m_swaps.size() - 1;
+                }
+                if ((position < 0) || (position >= static_cast<int>(0x100 + m_doors.size())))
+                {
+                    position = m_doors.empty() ? (m_swaps.empty() ? -1 : m_swaps.size() - 1) : 0xFF + m_doors.size();
+                }
+            }
+            if (position != m_selected_region)
+            {
+                m_selected_region = position;
+                if (IsDoorSelected())
+                {
+                    FireEvent(EVT_DOOR_SELECT, GetSelectedDoor());
+                }
+                else if (IsSwapSelected())
+                {
+                    FireEvent(EVT_TILESWAP_SELECT, GetSelectedSwap());
+                }
+                else
+                {
+                    FireEvent(EVT_DOOR_SELECT, -1);
+                    FireEvent(EVT_TILESWAP_SELECT, -1);
+                }
+                Refresh();
+            }
+        }
+        break;
+    case WXK_LEFT:
+    case 'a':
+    case 'A':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECDSZ(m_doors[GetSelectedDoor() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_doors[GetSelectedDoor() - 1].x);
+                upd = true;
+            }
+        }
+        else if (IsSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                DECR(m_swaps[GetSelectedSwap() - 1].heightmap.dst_x);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECSZ(m_swaps[GetSelectedSwap() - 1].heightmap.width);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_swaps[GetSelectedSwap() - 1].heightmap.src_x);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_RIGHT:
+    case 'd':
+    case 'D':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCDSZ(m_doors[GetSelectedDoor() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_doors[GetSelectedDoor() - 1].x);
+                upd = true;
+            }
+        }
+        else if (IsSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                INCR(m_swaps[GetSelectedSwap() - 1].heightmap.dst_x);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCSZ(m_swaps[GetSelectedSwap() - 1].heightmap.width);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_swaps[GetSelectedSwap() - 1].heightmap.src_x);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_UP:
+    case 'w':
+    case 'W':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECDSZ(m_doors[GetSelectedDoor() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_doors[GetSelectedDoor() - 1].y);
+                upd = true;
+            }
+        }
+        else if (IsSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                DECR(m_swaps[GetSelectedSwap() - 1].heightmap.dst_y);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECSZ(m_swaps[GetSelectedSwap() - 1].heightmap.height);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_swaps[GetSelectedSwap() - 1].heightmap.src_y);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_DOWN:
+    case 's':
+    case 'S':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCDSZ(m_doors[GetSelectedDoor() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_doors[GetSelectedDoor() - 1].y);
+                upd = true;
+            }
+        }
+        else if (IsSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                INCR(m_swaps[GetSelectedSwap() - 1].heightmap.dst_y);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCSZ(m_swaps[GetSelectedSwap() - 1].heightmap.height);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_swaps[GetSelectedSwap() - 1].heightmap.src_y);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_RETURN:
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_OPEN_PROPERTIES, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_OPEN_PROPERTIES, GetSelectedDoor());
+        }
+        break;
+    }
+
+    if (upd)
+    {
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetDoors(m_roomnum, m_doors);
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            if (IsDoorSelected())
+            {
+                FireEvent(EVT_DOOR_UPDATE, GetSelectedDoor());
+            }
+            else if (IsSwapSelected())
+            {
+                FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+            }
+        }
+        Refresh();
+    }
+
+    return upd;
+#undef DECDSZ
+#undef INCDSZ
+#undef DECSZ
+#undef INCSZ
+#undef DECR
+#undef INCR
+}
+
+bool HeightmapEditorCtrl::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+    return false;
+}
+
+bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modifiers)
 {
     switch(key)
     {
@@ -126,7 +512,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     case WXK_UP:
     case 'w':
     case 'W':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             InsertRowAbove();
         }
@@ -142,7 +528,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     case WXK_DOWN:
     case 's':
     case 'S':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             InsertRowBelow();
         }
@@ -158,7 +544,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     case WXK_LEFT:
     case 'a':
     case 'A':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             InsertColumnLeft();
         }
@@ -174,7 +560,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     case WXK_RIGHT:
     case 'd':
     case 'D':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             InsertColumnRight();
         }
@@ -206,7 +592,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
         return false;
     case WXK_ADD:
     case '+':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             IncrementSelectedRestrictions();
         }
@@ -217,7 +603,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
         return false;
     case WXK_SUBTRACT:
     case '-':
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             DecrementSelectedRestrictions();
         }
@@ -259,7 +645,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
         SetSelectedHeight(key - WXK_NUMPAD0);
         return false;
     case WXK_DELETE:
-        if (modifiers == wxMOD_CONTROL)
+        if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
         {
             DeleteColumn();
         }
@@ -650,6 +1036,115 @@ void HeightmapEditorCtrl::DecrementSelectedType()
     SetSelectedType((GetSelectedType() - 1) & 0xFF);
 }
 
+bool HeightmapEditorCtrl::HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y)
+{
+    // Refresh hover position
+    if (type != MouseEventType::LEAVE && UpdateHoveredPosition(x, y))
+    {
+        RefreshStatusbar();
+        Refresh(false);
+    }
+
+    // Refresh cursor
+    RefreshCursor((modifiers & wxMOD_CONTROL) > 0);
+
+    // Refresh drag state
+    if (m_dragging)
+    {
+        if (left_down)
+        {
+            RefreshDrag();
+        }
+        else if (right_down)
+        {
+            StopDrag(true);
+        }
+        else
+        {
+            StopDrag();
+        }
+        return true;
+    }
+
+    // Handle buttons
+    if (type == MouseEventType::LEFT_DCLICK)
+    {
+        return HandleLeftDClick(modifiers);
+    }
+    else if (type == MouseEventType::LEFT_DOWN)
+    {
+        return HandleLeftDown(modifiers);
+    }
+    else if (type == MouseEventType::RIGHT_DOWN)
+    {
+        return HandleRightDown(modifiers);
+    }
+
+    return false;
+}
+
+bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
+{
+    if ((modifiers & wxMOD_CONTROL) > 0)
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1)
+        {
+            FireEvent(EVT_TILESWAP_SELECT, sw.first + 1);
+            m_selected_is_src = sw.second;
+        }
+        else if (dw != -1)
+        {
+            FireEvent(EVT_DOOR_SELECT, dw + 1);
+        }
+        else if (IsDoorSelected() || IsSwapSelected())
+        {
+            SetSelectedDoor(-1);
+            SetSelectedSwap(-1);
+            FireEvent(EVT_TILESWAP_SELECT, -1);
+            FireEvent(EVT_DOOR_SELECT, -1);
+        }
+        Refresh();
+    }
+    else
+    {
+        if (m_selected != m_hovered)
+        {
+            m_selected = m_hovered;
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            if (m_cpysrc.first != -1 && m_selected.first != -1 && m_selected != m_cpysrc)
+            {
+                m_map->SetHeight({ m_selected.first, m_selected.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellProps({ m_selected.first, m_selected.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellType({ m_selected.first, m_selected.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+                ForceRedraw();
+                FireEvent(EVT_HEIGHTMAP_UPDATE);
+            }
+        }
+    }
+    return false;
+}
+
+bool HeightmapEditorCtrl::HandleLeftDClick(unsigned int modifiers)
+{
+    return false;
+}
+
+bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
+{
+    if ((modifiers & wxMOD_CONTROL) == 0)
+    {
+        if (m_selected != m_hovered)
+        {
+            m_selected = m_hovered;
+            m_cpysrc = m_selected;
+            Refresh(false);
+        }
+    }
+    return false;
+}
+
 void HeightmapEditorCtrl::RefreshStatusbar()
 {
     std::string msg = "";
@@ -665,6 +1160,40 @@ void HeightmapEditorCtrl::RefreshStatusbar()
         msg = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", m_hovered.first, m_hovered.second, z, r, t);
     }
     FireUpdateStatusEvent(msg, 0);
+}
+
+void HeightmapEditorCtrl::RefreshCursor(bool ctrl_down)
+{
+    if (m_dragging)
+    {
+        UpdateCursor(wxCURSOR_SIZING);
+    }
+    else if (ctrl_down)
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1 || dw != -1)
+        {
+            UpdateCursor(wxCURSOR_HAND);
+        }
+        else
+        {
+            UpdateCursor(wxCURSOR_ARROW);
+        }
+    }
+    else
+    {
+        UpdateCursor(wxCURSOR_ARROW);
+    }
+}
+
+void HeightmapEditorCtrl::UpdateCursor(wxStockCursor cursor)
+{
+    if (cursor != m_cursorid)
+    {
+        SetCursor(cursor);
+        m_cursorid = cursor;
+    }
 }
 
 void HeightmapEditorCtrl::DrawRoomHeightmapBackground(wxDC& dc)
@@ -749,11 +1278,23 @@ void HeightmapEditorCtrl::DrawCellRange(wxDC& dc, float x, float y, float w, flo
 
 void HeightmapEditorCtrl::DrawDoors(wxDC& dc)
 {
-    std::unique_ptr<wxPen> m_door_pen(new wxPen(wxColor(128, 255, 192), 2, wxPENSTYLE_DOT));
-    dc.SetPen(*m_door_pen);
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    for (const auto& door : m_doors)
+    int hovered = -1;
+    if (GetFirstSwapRegion(m_hovered).first != -1)
     {
+        hovered = GetFirstDoorRegion(m_hovered);
+    }
+    for (int i = static_cast<int>(m_doors.size()) - 1; i >= 0; --i)
+    {
+        const auto& door = m_doors.at(i);
+        std::unique_ptr<wxPen> m_door_pen(
+            new wxPen(
+                hovered == i ? wxColor(192, 255, 240) : wxColor(128, 255, 192),
+                m_selected_region == 0x100 + i ? 4 : 2,
+                wxPENSTYLE_DOT
+            )
+        );
+        dc.SetPen(*m_door_pen);
         if (m_map && m_map->GetCellType({ door.x, door.y }) == static_cast<int>(Tilemap3D::FloorType::DOOR_NW))
         {
             DrawCellRange(dc, door.x, door.y, 1, Door::SIZES.at(door.size).first, 2);
@@ -768,10 +1309,24 @@ void HeightmapEditorCtrl::DrawDoors(wxDC& dc)
 void HeightmapEditorCtrl::DrawTileSwaps(wxDC& dc)
 {
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    std::unique_ptr<wxPen> m_swap_src_pen(new wxPen(*wxGREEN, 3, wxPENSTYLE_DOT));
-    std::unique_ptr<wxPen> m_swap_dst_pen(new wxPen(wxColor(64, 192, 255), 3, wxPENSTYLE_DOT));
-    for (const auto& swap : m_swaps)
+    auto hovered = GetFirstSwapRegion(m_hovered);
+    for (int i = static_cast<int>(m_swaps.size()) - 1; i >= 0; --i)
     {
+        std::unique_ptr<wxPen> m_swap_src_pen(
+            new wxPen(
+                hovered.first == i ? wxColor(128, 255, 128) : *wxGREEN,
+                m_selected_region == i ? 4 : 2,
+                wxPENSTYLE_DOT
+            )
+        );
+        std::unique_ptr<wxPen> m_swap_dst_pen(
+            new wxPen(
+                hovered.first == i ? wxColor(140, 240, 255) : wxColor(64, 192, 255),
+                m_selected_region == i ? 4 : 2,
+                wxPENSTYLE_DOT
+            )
+        );
+        const TileSwap& swap = m_swaps.at(i);
         dc.SetPen(*m_swap_dst_pen);
         DrawCellRange(dc, swap.heightmap.dst_x, swap.heightmap.dst_y, swap.heightmap.width, swap.heightmap.height, 2);
         dc.SetPen(*m_swap_src_pen);
@@ -1005,7 +1560,15 @@ void HeightmapEditorCtrl::FireUpdateStatusEvent(const std::string& data, int pan
     wxPostEvent(m_frame, evt);
 }
 
-void HeightmapEditorCtrl::FireEvent(const wxEventType& e, long userdata)
+void HeightmapEditorCtrl::FireEvent(const wxEventType& e, int userdata)
+{
+    wxCommandEvent evt(e);
+    evt.SetInt(userdata);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
+}
+
+void HeightmapEditorCtrl::FireEventLong(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
     evt.SetExtraLong(userdata);
@@ -1061,22 +1624,47 @@ void HeightmapEditorCtrl::OnSize(wxSizeEvent& evt)
 
 void HeightmapEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
-    if(UpdateHoveredPosition(evt.GetX(), evt.GetY()))
-    {
-        RefreshStatusbar();
-        Refresh(false);
-    }
-    evt.Skip();
+    evt.Skip(!HandleMouse(MouseEventType::MOVE, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
 }
 
 void HeightmapEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
-    if (UpdateHoveredPosition(-10000, -10000))
-    {
-        RefreshStatusbar();
-        Refresh(false);
-    }
+    evt.Skip(!HandleMouse(MouseEventType::LEAVE, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
 
+void HeightmapEditorCtrl::OnLeftDown(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::LEFT_DOWN, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnLeftDClick(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::LEFT_DCLICK, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnRightDown(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::RIGHT_DOWN, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnLeftUp(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::LEFT_UP, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnRightUp(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::RIGHT_UP, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnRightDClick(wxMouseEvent& evt)
+{
+    evt.Skip(!HandleMouse(MouseEventType::RIGHT_DCLICK, evt.LeftIsDown(), evt.RightIsDown(), evt.GetModifiers(), evt.GetX(), evt.GetY()));
+}
+
+void HeightmapEditorCtrl::OnShow(wxShowEvent& evt)
+{
+    RefreshStatusbar();
     evt.Skip();
 }
 
@@ -1146,4 +1734,127 @@ void HeightmapEditorCtrl::OnRightClick(wxMouseEvent& evt)
 void HeightmapEditorCtrl::OnRightDblClick(wxMouseEvent& evt)
 {
     evt.Skip();
+}
+
+int HeightmapEditorCtrl::GetFirstDoorRegion(const Coord& c)
+{
+    auto [x, y] = c;
+    for (std::size_t i = 0; i < m_doors.size(); ++i)
+    {
+        const Door& door = m_doors.at(i);
+        if (door.x == x && door.y == y)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+std::pair<int, bool> HeightmapEditorCtrl::GetFirstSwapRegion(const Coord& c)
+{
+    auto [x, y] = c;
+    for (std::size_t i = 0; i < m_swaps.size(); ++i)
+    {
+        const TileSwap& swap = m_swaps.at(i);
+        if ((x >= swap.heightmap.src_x && x < swap.heightmap.src_x + swap.heightmap.width) &&
+            (y >= swap.heightmap.src_y && y < swap.heightmap.src_y + swap.heightmap.height))
+        {
+            return { i, true };
+        }
+        else if ((x >= swap.heightmap.dst_x && x < swap.heightmap.dst_x + swap.heightmap.width) &&
+                 (y >= swap.heightmap.dst_y && y < swap.heightmap.dst_y + swap.heightmap.height))
+        {
+            return { i, false };
+        }
+    }
+    return { -1, false };
+}
+
+void HeightmapEditorCtrl::StartDrag()
+{
+    if (!IsSwapSelected() || m_dragging)
+    {
+        return;
+    }
+    m_dragged = m_hovered;
+    m_dragging = true;
+    CaptureMouse();
+    if (m_selected_is_src)
+    {
+        m_dragged_orig_pos.first = m_swaps[GetSelectedSwap() - 1].map.src_x;
+        m_dragged_orig_pos.second = m_swaps[GetSelectedSwap() - 1].map.src_y;
+    }
+    else
+    {
+        m_dragged_orig_pos.first = m_swaps[GetSelectedSwap() - 1].map.dst_x;
+        m_dragged_orig_pos.second = m_swaps[GetSelectedSwap() - 1].map.dst_y;
+    }
+}
+
+void HeightmapEditorCtrl::StopDrag(bool cancel)
+{
+    if (!m_dragging)
+    {
+        return;
+    }
+    ReleaseMouse();
+    m_dragged = std::make_pair(0, 0);
+    m_dragging = false;
+    if (cancel)
+    {
+        if (IsSwapSelected())
+        {
+            if (m_selected_is_src)
+            {
+                m_swaps[GetSelectedSwap() - 1].map.src_x = m_dragged_orig_pos.first;
+                m_swaps[GetSelectedSwap() - 1].map.src_y = m_dragged_orig_pos.second;
+            }
+            else
+            {
+                m_swaps[GetSelectedSwap() - 1].map.dst_x = m_dragged_orig_pos.first;
+                m_swaps[GetSelectedSwap() - 1].map.dst_y = m_dragged_orig_pos.second;
+            }
+        }
+        Refresh();
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+        }
+    }
+}
+
+void HeightmapEditorCtrl::RefreshDrag()
+{
+    if (!m_dragging || !IsHoverValid())
+    {
+        return;
+    }
+    Coord relmv = { m_hovered.first - m_dragged.first, m_hovered.second - m_dragged.second };
+    if (IsSwapSelected())
+    {
+        if (m_selected_is_src)
+        {
+            if (m_swaps[GetSelectedSwap() - 1].map.src_x != m_dragged_orig_pos.first + relmv.first ||
+                m_swaps[GetSelectedSwap() - 1].map.src_y != m_dragged_orig_pos.second + relmv.second)
+            {
+                m_swaps[GetSelectedSwap() - 1].map.src_x = m_dragged_orig_pos.first + relmv.first;
+                m_swaps[GetSelectedSwap() - 1].map.src_y = m_dragged_orig_pos.second + relmv.second;
+            }
+        }
+        else
+        {
+            if (m_swaps[GetSelectedSwap() - 1].map.dst_x != m_dragged_orig_pos.first + relmv.first ||
+                m_swaps[GetSelectedSwap() - 1].map.dst_y != m_dragged_orig_pos.second + relmv.second)
+            {
+                m_swaps[GetSelectedSwap() - 1].map.dst_x = m_dragged_orig_pos.first + relmv.first;
+                m_swaps[GetSelectedSwap() - 1].map.dst_y = m_dragged_orig_pos.second + relmv.second;
+            }
+        }
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            FireEvent(EVT_TILESWAP_UPDATE, GetSelectedSwap());
+        }
+    }
 }

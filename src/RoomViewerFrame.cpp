@@ -8,6 +8,7 @@
 #include <ChestDialog.h>
 #include <CharacterDialog.h>
 #include <RoomErrorDialog.h>
+#include <TileSwapDialog.h>
 #include <MapToTmx.h>
 #include "RoomViewerCtrl.h"
 
@@ -28,6 +29,7 @@ enum MENU_IDS
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
 	ID_EDIT_DIALOGUE,
+	ID_EDIT_TILESWAPS,
 	ID_TOOLS,
 	ID_TOOLS_LAYERS,
 	ID_TOOLS_ENTITIES,
@@ -55,6 +57,7 @@ enum TOOL_IDS
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
 	TOOL_SHOW_DIALOGUE,
+	TOOL_SHOW_TILESWAPS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
 	TOOL_SHOW_ERRORS,
 	HM_INSERT_ROW_BEFORE,
@@ -78,6 +81,7 @@ enum TOOL_IDS
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
 EVT_KEY_DOWN(RoomViewerFrame::OnKeyDown)
+EVT_KEY_UP(RoomViewerFrame::OnKeyUp)
 EVT_COMMAND(wxID_ANY, EVT_ZOOM_CHANGE, RoomViewerFrame::OnZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_OPACITY_CHANGE, RoomViewerFrame::OnOpacityChange)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_UPDATE, RoomViewerFrame::OnEntityUpdate)
@@ -101,10 +105,12 @@ EVT_COMMAND(wxID_ANY, EVT_TILESWAP_UPDATE, RoomViewerFrame::OnSwapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_SELECT, RoomViewerFrame::OnSwapSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_ADD, RoomViewerFrame::OnSwapAdd)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_DELETE, RoomViewerFrame::OnSwapDelete)
+EVT_COMMAND(wxID_ANY, EVT_TILESWAP_OPEN_PROPERTIES, RoomViewerFrame::OnSwapProperties)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_UPDATE, RoomViewerFrame::OnDoorUpdate)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_SELECT, RoomViewerFrame::OnDoorSelect)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_ADD, RoomViewerFrame::OnDoorAdd)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_DELETE, RoomViewerFrame::OnDoorDelete)
+EVT_COMMAND(wxID_ANY, EVT_DOOR_OPEN_PROPERTIES, RoomViewerFrame::OnDoorProperties)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
 EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
@@ -584,6 +590,27 @@ bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 	return false;
 }
 
+bool RoomViewerFrame::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
+	{
+		return m_roomview->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
+	{
+		return m_hmedit->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		return m_fgedit->HandleKeyUp(key, modifiers);
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		return m_bgedit->HandleKeyUp(key, modifiers);
+	}
+	return false;
+}
+
 void RoomViewerFrame::ShowFlagDialog()
 {
 	FlagDialog dlg(this, GetImageList(), m_roomnum, m_g);
@@ -601,6 +628,27 @@ void RoomViewerFrame::ShowCharDialog()
 {
 	CharacterDialog dlg(this, GetImageList(), m_roomnum, m_g);
 	dlg.ShowModal();
+}
+
+void RoomViewerFrame::ShowTileswapDialog(bool force, TileSwapDialog::PageType page, int row)
+{
+	TileSwapDialog dlg(this, GetImageList(), m_roomnum, m_g);
+	if (force)
+	{
+		dlg.SetPage(page);
+		dlg.SelectRow(row);
+	}
+
+	dlg.ShowModal();
+	FireEvent(EVT_TILESWAP_UPDATE);
+	if (dlg.GetLastPage() == TileSwapDialog::PageType::SWAPS)
+	{
+		FireEvent(EVT_TILESWAP_SELECT, dlg.GetLastSelected());
+	}
+	else if (dlg.GetLastPage() == TileSwapDialog::PageType::DOORS)
+	{
+		FireEvent(EVT_DOOR_SELECT, dlg.GetLastSelected());
+	}
 }
 
 void RoomViewerFrame::ShowErrorDialog()
@@ -660,9 +708,9 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("Climb Destination", "CD",m_rooms));
 		props.Append(new wxPropertyCategory("Flags", "Flags"));
 		props.Append(new wxIntProperty("Visit Flag", "VF", m_g->GetStringData()->GetRoomVisitFlag(m_roomnum)));
-		int paired_tree = m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) ? m_g->GetRoomData()->GetTreeWarp(m_roomnum).first + 1 : 0;
+		int paired_tree = m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) ? m_g->GetRoomData()->GetTreeWarp(m_roomnum).room2 + 1 : 0;
 		props.Append(new wxEnumProperty("Paired Tree", "PairedTree", m_rooms))->SetChoiceSelection(paired_tree);
-		props.Append(new wxIntProperty("Tree Active Flag Begin", "TreeFlag", m_g->GetRoomData()->GetTreeWarp(m_roomnum).second));
+		props.Append(new wxIntProperty("Tree Active Flag Begin", "TreeFlag", m_g->GetRoomData()->GetTreeWarp(m_roomnum).flag));
 		auto lantern_prop = new wxBoolProperty("Lantern Room", "LanternRoom", m_g->GetRoomData()->HasLanternFlag(m_roomnum));
 		lantern_prop->SetAttribute("UseCheckbox", 1);
 		props.Append(lantern_prop);
@@ -832,8 +880,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		{
 			auto tree = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
 			props.GetGrid()->GetProperty("TreeFlag")->Enable(true);
-			props.GetGrid()->SetPropertyValue("TreeFlag", tree.second);
-			props.GetGrid()->SetPropertyValue("PairedTree", tree.first + 1);
+			props.GetGrid()->SetPropertyValue("TreeFlag", tree.flag);
+			props.GetGrid()->SetPropertyValue("PairedTree", tree.room2 + 1);
 		}
 		else
 		{
@@ -1134,7 +1182,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		auto dest = property->GetValuePlain().GetLong();
 		if (dest > 0 && !m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
 		{
-			m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, 0);
+			m_g->GetRoomData()->SetTreeWarp({ m_roomnum, static_cast<uint16_t>(dest - 1), 0 });
 			updated = true;
 		}
 		else if (dest == 0 && m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum))
@@ -1145,9 +1193,9 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		else
 		{
 			auto warp = m_g->GetRoomData()->GetTreeWarp(m_roomnum);
-			if (dest != warp.first)
+			if (dest != warp.room2)
 			{
-				m_g->GetRoomData()->SetTreeWarp(m_roomnum, dest - 1, warp.second);
+				m_g->GetRoomData()->SetTreeWarp({ m_roomnum, static_cast<uint16_t>(dest - 1), warp.flag});
 				updated = true;
 			}
 		}
@@ -1160,9 +1208,9 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		uint16_t flag = property->GetValuePlain().GetLong() & 0x07FE;
 		if (m_g->GetRoomData()->HasTreeWarpFlag(m_roomnum) &&
-			m_g->GetRoomData()->GetTreeWarp(m_roomnum).second != flag)
+			m_g->GetRoomData()->GetTreeWarp(m_roomnum).flag != flag)
 		{
-			m_g->GetRoomData()->SetTreeWarp(m_roomnum, m_g->GetRoomData()->GetTreeWarp(m_roomnum).first, flag);
+			m_g->GetRoomData()->SetTreeWarp({ m_roomnum, m_g->GetRoomData()->GetTreeWarp(m_roomnum).room2, flag });
 		}
 	}
 	ctrl->GetGrid()->Thaw();
@@ -1189,6 +1237,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
 	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
 	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
@@ -1211,6 +1260,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flag Editor");
 	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chest Editor");
 	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialogue Editor");
+	main_tb->AddTool(TOOL_SHOW_TILESWAPS, "Tile Swaps", ilist.GetImage("swap"), "Tile Swap Editor");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
@@ -1382,6 +1432,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_EDIT_DIALOGUE:
 		case TOOL_SHOW_DIALOGUE:
 			ShowCharDialog();
+			break;
+		case ID_EDIT_TILESWAPS:
+		case TOOL_SHOW_TILESWAPS:
+			ShowTileswapDialog();
 			break;
 		case ID_VIEW_ERRORS:
 		case TOOL_SHOW_ERRORS:
@@ -1712,6 +1766,11 @@ void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 	evt.Skip(!HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 }
 
+void RoomViewerFrame::OnKeyUp(wxKeyEvent& evt)
+{
+	evt.Skip(!HandleKeyUp(evt.GetKeyCode(), evt.GetModifiers()));
+}
+
 void RoomViewerFrame::OnZoomChange(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SetZoom(m_layerctrl->GetZoom());
@@ -1831,27 +1890,37 @@ void RoomViewerFrame::TileSwapRefresh()
 		m_fgedit->UpdateSwaps();
 		m_bgedit->UpdateSwaps();
 		m_hmedit->UpdateSwaps();
+		m_fgedit->UpdateDoors();
+		m_bgedit->UpdateDoors();
 	}
 }
 
 void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& evt)
 {
+	OnSwapSelect(evt);
 	TileSwapRefresh();
-
-	m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
-	m_swapctrl->SetSelected(evt.GetInt() + 1);
-	m_fgedit->SetSelectedSwap(evt.GetInt());
-	m_bgedit->SetSelectedSwap(evt.GetInt());
-	// m_hmedit->SetSelectedSwap(evt.GetInt());
+	m_fgedit->Refresh();
+	m_bgedit->Refresh();
+	m_hmedit->Refresh();
 }
 
 void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 {
-	m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
-	m_swapctrl->SetSelected(evt.GetInt() + 1);
-	m_fgedit->SetSelectedSwap(evt.GetInt());
-	m_bgedit->SetSelectedSwap(evt.GetInt());
-	// m_hmedit->SetSelectedSwap(evt.GetInt());
+	if (evt.GetInt() > 0 && m_swapctrl->GetPage() != TileSwapControlFrame::ID::TILESWAP)
+	{
+		m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
+	}
+	if (m_swapctrl->GetSelected() != evt.GetInt() ||
+		m_fgedit->GetSelectedSwap() != evt.GetInt() ||
+		m_bgedit->GetSelectedSwap() != evt.GetInt() ||
+		m_hmedit->GetSelectedSwap() != evt.GetInt())
+	{
+		wxLogDebug("Event %d", evt.GetInt());
+		m_swapctrl->SetSelected(evt.GetInt());
+		m_fgedit->SetSelectedSwap(evt.GetInt());
+		m_bgedit->SetSelectedSwap(evt.GetInt());
+		m_hmedit->SetSelectedSwap(evt.GetInt());
+	}
 }
 
 void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
@@ -1864,24 +1933,36 @@ void RoomViewerFrame::OnSwapDelete(wxCommandEvent& /*evt*/)
 	TileSwapRefresh();
 }
 
+void RoomViewerFrame::OnSwapProperties(wxCommandEvent& evt)
+{
+	ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, evt.GetInt());
+}
+
 void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& evt)
 {
+	OnDoorSelect(evt);
 	TileSwapRefresh();
-
-	m_swapctrl->SetPage(TileSwapControlFrame::ID::DOOR);
-	m_swapctrl->SetSelected(evt.GetInt() + 1);
-	m_fgedit->SetSelectedDoor(evt.GetInt());
-	m_bgedit->SetSelectedDoor(evt.GetInt());
-	// m_hmedit->SetSelectedDoor(evt.GetInt());
+	m_fgedit->Refresh();
+	m_bgedit->Refresh();
 }
 
 void RoomViewerFrame::OnDoorSelect(wxCommandEvent& evt)
 {
-	m_swapctrl->SetPage(TileSwapControlFrame::ID::DOOR);
-	m_swapctrl->SetSelected(evt.GetInt() + 1);
-	m_fgedit->SetSelectedDoor(evt.GetInt());
-	m_bgedit->SetSelectedDoor(evt.GetInt());
-	// m_hmedit->SetSelectedDoor(evt.GetInt());
+	if (evt.GetInt() > 0 && m_swapctrl->GetPage() != TileSwapControlFrame::ID::DOOR)
+	{
+		m_swapctrl->SetPage(TileSwapControlFrame::ID::DOOR);
+	}
+	if (m_swapctrl->GetSelected() != evt.GetInt() ||
+		m_fgedit->GetSelectedDoor() != evt.GetInt() ||
+		m_bgedit->GetSelectedDoor() != evt.GetInt() ||
+		m_hmedit->GetSelectedDoor() != evt.GetInt())
+	{
+		wxLogDebug("Event %d", evt.GetInt());
+		m_swapctrl->SetSelected(evt.GetInt());
+		m_fgedit->SetSelectedDoor(evt.GetInt());
+		m_bgedit->SetSelectedDoor(evt.GetInt());
+		m_hmedit->SetSelectedDoor(evt.GetInt());
+	}
 }
 
 void RoomViewerFrame::OnDoorAdd(wxCommandEvent& /*evt*/)
@@ -1892,6 +1973,11 @@ void RoomViewerFrame::OnDoorAdd(wxCommandEvent& /*evt*/)
 void RoomViewerFrame::OnDoorDelete(wxCommandEvent& /*evt*/)
 {
 	TileSwapRefresh();
+}
+
+void RoomViewerFrame::OnDoorProperties(wxCommandEvent& evt)
+{
+	ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS, evt.GetInt());
 }
 
 void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& /*evt*/)
@@ -1975,7 +2061,7 @@ void RoomViewerFrame::OnTabChange(wxAuiNotebookEvent& evt)
 void RoomViewerFrame::FireUpdateStatusEvent(const std::string& data, int pane)
 {
 	wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
-	evt.SetString(data);
+	evt.SetString(data); 
 	evt.SetInt(pane);
 	evt.SetClientData(this);
 	wxPostEvent(this, evt);
@@ -1992,6 +2078,14 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, const std::string& userdat
 {
 	wxCommandEvent evt(e);
 	evt.SetString(userdata);
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::FireEvent(const wxEventType& e, int userdata)
+{
+	wxCommandEvent evt(e);
+	evt.SetInt(userdata);
 	evt.SetClientData(this);
 	wxPostEvent(this, evt);
 }

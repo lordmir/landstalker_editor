@@ -19,11 +19,7 @@ ChestDialog::ChestDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std
     m_model->Initialise();
     m_ctrl_chest_list->AssociateModel(m_model);
     m_model->DecRef();
-
-    m_ctrl_chest_list->InsertColumn(0, new wxDataViewColumn(m_model->GetColumnHeader(0),
-        new wxDataViewTextRenderer(), 0, 400, wxALIGN_LEFT));
-    m_ctrl_chest_list->InsertColumn(1, new wxDataViewColumn(m_model->GetColumnHeader(1),
-        new wxDataViewChoiceByIndexRenderer(m_model->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
+    m_model->InitControl(m_ctrl_chest_list);
 
     m_button_sizer = new wxStdDialogButtonSizer();
     szr1->Add(m_button_sizer, 0, wxALL, 5);

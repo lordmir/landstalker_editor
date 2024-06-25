@@ -10,6 +10,7 @@
 #include "BlocksetEditorCtrl.h"
 #include "Map3DEditor.h"
 #include "GameData.h"
+#include "TileSwapDialog.h"
 #include <memory>
 
 class RoomViewerCtrl;
@@ -53,10 +54,12 @@ public:
 	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 
 	void ShowFlagDialog();
 	void ShowChestsDialog();
 	void ShowCharDialog();
+	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
@@ -80,6 +83,7 @@ private:
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
+	void OnKeyUp(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
 
@@ -102,10 +106,12 @@ private:
 	void OnSwapSelect(wxCommandEvent& evt);
 	void OnSwapAdd(wxCommandEvent& evt);
 	void OnSwapDelete(wxCommandEvent& evt);
+	void OnSwapProperties(wxCommandEvent& evt);
 	void OnDoorUpdate(wxCommandEvent& evt);
 	void OnDoorSelect(wxCommandEvent& evt);
 	void OnDoorAdd(wxCommandEvent& evt);
 	void OnDoorDelete(wxCommandEvent& evt);
+	void OnDoorProperties(wxCommandEvent& evt);
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
 	void OnHeightmapMove(wxCommandEvent& evt);
@@ -122,6 +128,7 @@ private:
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e, int userdata);
 
 	void SetPaneSizes();
 

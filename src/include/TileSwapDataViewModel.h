@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <memory>
 #include <map>
-#include <wx/dataview.h>
+#include <BaseDataViewModel.h>
 #include <GameData.h>
 #include <TileSwaps.h>
 
-class TileSwapDataViewModel : public wxDataViewVirtualListModel
+class TileSwapDataViewModel : public BaseDataViewModel
 {
 public:
     TileSwapDataViewModel(uint16_t roomnum, std::shared_ptr<GameData> gd);
@@ -38,6 +38,8 @@ public:
     virtual bool AddRow(unsigned int row);
 
     virtual bool SwapRows(unsigned int r1, unsigned int r2);
+
+    virtual void InitControl(wxDataViewCtrl* ctrl) const override;
 private:
     std::vector<TileSwap> m_swaps;
     uint16_t m_roomnum;

@@ -31,6 +31,7 @@ public:
 
 	void SetSwaps(const std::vector<TileSwap>& swaps, const std::vector<Door>& doors, uint16_t m_roomnum);
 	void ResetSwaps();
+	ID GetPage() const;
 	void SetPage(ID id);
 	virtual int GetMaxSelection() const;
 	void SetMode(RoomEdit::Mode mode);

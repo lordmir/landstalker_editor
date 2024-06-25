@@ -22,8 +22,10 @@ public:
 		LEAVE,
 		LEFT_DOWN,
 		LEFT_UP,
+		LEFT_DCLICK,
 		RIGHT_DOWN,
-		RIGHT_UP
+		RIGHT_UP,
+		RIGHT_DCLICK
 	};
 	using Coord = std::pair<int, int>;
 
@@ -51,6 +53,16 @@ public:
 	int GetSelectedDoor() const;
 	bool IsDoorSelected() const;
 
+	const std::vector<TileSwap>& GetTileswaps() const;
+	int GetTotalTileswaps() const;
+	void AddTileswap();
+	void DeleteTileswap();
+
+	const std::vector<Door>& GetDoors() const;
+	int GetTotalDoors() const;
+	void AddDoor();
+	void DeleteSelectedDoor();
+
 	void RefreshGraphics();
 	void UpdateSwaps();
 	void UpdateDoors();
@@ -58,8 +70,10 @@ public:
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleRegionKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 	bool HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y);
 	bool HandleLeftDown(unsigned int modifiers);
+	bool HandleLeftDClick(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
 private:
 
@@ -84,9 +98,11 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnLeftDown(wxMouseEvent& evt);
+	void OnLeftDClick(wxMouseEvent& evt);
 	void OnRightDown(wxMouseEvent& evt);
 	void OnLeftUp(wxMouseEvent& evt);
 	void OnRightUp(wxMouseEvent& evt);
+	void OnRightDClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
 	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
 	std::vector<wxPoint> OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset);
@@ -115,9 +131,13 @@ private:
 	void StopDrag(bool cancel = false);
 	void RefreshDrag();
 
+	void GeneratePreview();
+	void ResetPreview();
+
 
 	std::shared_ptr<GameData> m_g;
 	std::shared_ptr<Tilemap3D> m_map;
+	mutable std::shared_ptr<Tilemap3D> m_map_disp;
 	std::unique_ptr<ImageBuffer> m_layer_buf;
 	std::unique_ptr<ImageBuffer> m_bg_buf;
 
@@ -141,6 +161,7 @@ private:
 	bool m_dragging;
 	int m_selected_region;
 	bool m_selected_is_src;
+	bool m_preview_swap;
 
 	std::vector<std::pair<std::vector<wxPoint>, std::vector<wxPoint>>> m_swap_regions;
 	std::vector<std::vector<wxPoint>> m_door_regions;

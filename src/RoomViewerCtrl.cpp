@@ -137,6 +137,11 @@ void RoomViewerCtrl::SetWarpsVisible(bool visible)
     RefreshGraphics();
 }
 
+bool RoomViewerCtrl::EntitiesEnabled() const
+{
+    return m_show_entities;
+}
+
 void RoomViewerCtrl::SelectEntity(int selection)
 {
     if (selection != m_selected && (selection == -1
@@ -1470,6 +1475,11 @@ std::pair<int, int> RoomViewerCtrl::GetAbsoluteCoordinates(int screenx, int scre
     x = std::ceil(x / m_zoom);
     y = std::ceil(y / m_zoom);
     return { x, y };
+}
+
+bool RoomViewerCtrl::HandleKeyUp(unsigned int key, unsigned int modifiers)
+{
+    return true;
 }
 
 bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)

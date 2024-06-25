@@ -9,3 +9,5 @@ VC2019/Debug
 VC2019/Release
 VC2019/.vs
 VC2019/*.user
+.vs/
+VC2019/landstal.*/*
