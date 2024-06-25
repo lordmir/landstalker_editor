@@ -384,12 +384,6 @@
     <ClCompile Include="..\src\MapToTmx.cpp">
       <Filter>src\Data\3D Maps</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Doors.cpp">
-      <Filter>src\Data\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TileSwaps.cpp">
-      <Filter>src\Data\Rooms</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\TileSwapDataViewModel.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
@@ -408,7 +402,15 @@
     <ClCompile Include="..\src\TileSwapDialog.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\include\BaseDataViewModel.cpp" />
+    <ClCompile Include="..\src\Doors.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileSwaps.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\BaseDataViewModel.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">

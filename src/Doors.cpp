@@ -1,4 +1,7 @@
 #include <Doors.h>
+#include <algorithm>
+#include <iterator>
+#include <TileSwaps.h>
 
 Doors::Doors(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& bytes)
 {
@@ -108,6 +111,82 @@ std::pair<uint8_t, uint8_t> Door::GetBytes() const
 	uint8_t sz = static_cast<uint8_t>(size);
 	return { static_cast<uint8_t>(((y + 12) & 0x3F) | ((sz & 0x04) << 4)),
 			 static_cast<uint8_t>(((x + 12) & 0x3F) | ((sz & 0x03) << 6)) };
+}
+
+std::vector<std::pair<int, int>> Door::GetMapRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, int tile_width, int tile_height) const
+{
+	Tilemap3D::FloorType type = Tilemap3D::FloorType::NORMAL;
+	TileSwap ts;
+	ts.map.src_x = 0;
+	ts.map.src_y = 0;
+	ts.map.dst_x = 0;
+	ts.map.dst_y = 0;
+	ts.map.width = SIZES.at(size).first;
+	ts.map.height = SIZES.at(size).second;
+	if (tilemap)
+	{
+		type = static_cast<Tilemap3D::FloorType>(tilemap->GetCellType({ x, y }));
+	}
+	if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
+	{
+		return {};
+	}
+	ts.mode = (type == Tilemap3D::FloorType::DOOR_NE) ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW;
+	return ts.GetMapRegionPoly(TileSwap::Region::UNDEFINED, tile_width, tile_height);
+}
+
+std::vector<std::pair<int, int>> Door::OffsetRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
+{
+	std::vector<std::pair<int, int>> offsetted;
+	std::transform(points.begin(), points.end(), std::back_inserter(offsetted), [&](const auto& pt)
+		{
+			return std::make_pair<int, int>(pt.first + offset.first, pt.second + offset.second);
+		});
+	return offsetted;
+}
+
+std::pair<int, int> Door::GetTileOffset(std::shared_ptr<const Tilemap3D> tilemap, const Tilemap3D::Layer& layer) const
+{
+	Tilemap3D::FloorType type = Tilemap3D::FloorType::NORMAL;
+	std::pair<int, int> offset = { x + 12, y + 12 };
+	offset.first -= Door::SIZES.at(size).second;
+	offset.second -= Door::SIZES.at(size).second;
+	if (tilemap && x < tilemap->GetHeightmapWidth() && y < tilemap->GetHeightmapHeight())
+	{
+		type = static_cast<Tilemap3D::FloorType>(tilemap->GetCellType({ x, y }));
+		int z = tilemap->GetHeight({ x, y });
+		offset.first -= tilemap->GetLeft();
+		offset.second -= tilemap->GetTop();
+		offset.first -= z;
+		offset.second -= z;
+	}
+	if (type == Tilemap3D::FloorType::DOOR_NE)
+	{
+		if (layer == Tilemap3D::Layer::FG)
+		{
+			offset.first += 1;
+			offset.second += 0;
+		}
+		else
+		{
+			offset.first += 1;
+			offset.second += 1;
+		}
+	}
+	else if (type == Tilemap3D::FloorType::DOOR_NW)
+	{
+		if (layer == Tilemap3D::Layer::FG)
+		{
+			offset.first += 1;
+			offset.second += 1;
+		}
+		else
+		{
+			offset.first += 0;
+			offset.second += 1;
+		}
+	}
+	return offset;
 }
 
 bool Door::operator==(const Door& rhs) const

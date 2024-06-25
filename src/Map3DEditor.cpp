@@ -1003,46 +1003,20 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
 
 void Map3DEditor::DrawDoors(wxDC& dc)
 {
-    int offsetx = 0, offsety = 0, di = 0x100;
+    int di = 0x100;
     m_door_regions.clear();
-    if (m_map_disp)
-    {
-        offsetx = m_map_disp->GetLeft();
-        offsety = m_map_disp->GetTop();
-    }
     for (const auto& d : m_doors)
     {
         if (m_map_disp && d.x < m_map_disp->GetHeightmapWidth() && d.y < m_map_disp->GetHeightmapHeight())
         {
-            int z = m_map_disp->GetHeight({ d.x, d.y });
-            auto type =  static_cast<Tilemap3D::FloorType>(m_map_disp->GetCellType({ d.x, d.y }));
-            if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
-            {
-                continue;
-            }
-            int doorxoffset = type == Tilemap3D::FloorType::DOOR_NE ? 1 : 0;
-            int dooryoffset = 0;
-            if (m_layer == Tilemap3D::Layer::BG)
-            {
-                --doorxoffset;
-            }
-            if (m_layer != Tilemap3D::Layer::FG || type != Tilemap3D::FloorType::DOOR_NE)
-            {
-                ++doorxoffset;
-                ++dooryoffset;
-            }
-            doorxoffset -= Door::SIZES.at(d.size).second;
-            dooryoffset -= Door::SIZES.at(d.size).second;
-            auto lines = GetRegionPoly(0, 0, Door::SIZES.at(d.size).first, Door::SIZES.at(d.size).second,
-                type == Tilemap3D::FloorType::DOOR_NE ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW);
-            std::pair<int, int> loc{ d.x + 12 - offsetx - z + doorxoffset,
-                                     d.y + 12 - offsety - z + dooryoffset };
-            auto pos = GetScreenPosition(loc);
+            auto lines = d.GetMapRegionPoly(m_map_disp, TILE_WIDTH, TILE_HEIGHT);
+            auto wxpoints = ToWxPoints(lines);
+            auto pos = GetScreenPosition(d.GetTileOffset(m_map_disp, m_layer));
             auto [hx, hy] = GetScreenPosition(m_hovered);
-            m_door_regions.push_back(OffsetRegionPoly(lines, pos));
+            m_door_regions.push_back(ToWxPoints(Door::OffsetRegionPoly(m_map_disp, lines, pos)));
             dc.SetPen(wxPen(Pnpoly(m_door_regions.back(), hx, hy) ? wxColor(255, 128, 255) : wxColor(255, 0, 255),
                 di == m_selected_region ? 3 : 1));
-            dc.DrawPolygon(lines.size(), lines.data(), pos.first, pos.second);
+            dc.DrawPolygon(wxpoints.size(), wxpoints.data(), pos.first, pos.second);
             di++;
         }
     }
@@ -1147,101 +1121,6 @@ void Map3DEditor::OnShow(wxShowEvent& evt)
 {
     RefreshStatusbar();
     evt.Skip();
-}
-
-std::vector<wxPoint> Map3DEditor::GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode)
-{
-    std::vector<wxPoint> points;
-    int xstep = x;
-    int ystep = y;
-
-    if (mode == TileSwap::Mode::WALL_NW)
-    {
-        xstep += TILE_WIDTH;
-        for (int i = 0; i < w; ++i)
-        {
-            points.push_back({ xstep, ystep });
-            xstep -= TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-            ystep += TILE_HEIGHT / 2;
-        }
-        ystep -= TILE_HEIGHT / 2;
-    }
-    else
-    {
-        for (int i = 0; i < w; ++i)
-        {
-            points.push_back({ xstep, ystep });
-            xstep += TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-            ystep += TILE_HEIGHT / 2;
-        }
-    }
-    if (mode == TileSwap::Mode::FLOOR)
-    {
-        for (int i = 0; i < h; ++i)
-        {
-            ystep += TILE_HEIGHT / 2;
-            points.push_back({ xstep, ystep });
-            xstep -= TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-        }
-    }
-    else
-    {
-        ystep += TILE_HEIGHT * h;
-    }
-    if (mode == TileSwap::Mode::WALL_NW)
-    {
-        for (int i = 1; i < w; ++i)
-        {
-            points.push_back({ xstep, ystep });
-            xstep += TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-            ystep -= TILE_HEIGHT / 2;
-        }
-        //ystep += TILE_HEIGHT / 2;
-    }
-    else
-    {
-        ystep -= TILE_HEIGHT / 2;
-        for (int i = 1; i < w; ++i)
-        {
-            points.push_back({ xstep, ystep });
-            xstep -= TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-            ystep -= TILE_HEIGHT / 2;
-        }
-    }
-    if (mode == TileSwap::Mode::FLOOR)
-    {
-        for (int i = 1; i < h; ++i)
-        {
-            ystep -= TILE_HEIGHT / 2;
-            points.push_back({ xstep, ystep });
-            xstep += TILE_WIDTH;
-            points.push_back({ xstep, ystep });
-        }
-    }
-    else
-    {
-        points.push_back({ xstep, ystep });
-        xstep += mode == TileSwap::Mode::WALL_NW ? static_cast<int>(TILE_WIDTH) : -static_cast<int>(TILE_WIDTH);
-        points.push_back({ xstep, ystep });
-        ystep -= TILE_HEIGHT * h;
-        points.push_back({ xstep, ystep });
-    }
-
-    return points;
-}
-
-std::vector<wxPoint> Map3DEditor::OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset)
-{
-    std::transform(points.begin(), points.end(), points.begin(), [&](const auto& pt)
-        {
-            return wxPoint{ pt.x + offset.first, pt.y + offset.second };
-        });
-    return points;
 }
 
 std::vector<wxPoint> Map3DEditor::ToWxPoints(const std::vector<std::pair<int, int>>& points)

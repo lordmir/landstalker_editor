@@ -5,7 +5,9 @@
 #include <map>
 #include <cstdint>
 #include <string>
+#include <memory>
 #include <Literals.h>
+#include <Tilemap3DCmp.h>
 
 struct Door
 {
@@ -38,6 +40,10 @@ struct Door
 	Door() : x(0), y(0), size(Size::DOOR_1X4) {}
 
 	std::pair<uint8_t, uint8_t> GetBytes() const;
+
+	std::vector<std::pair<int, int>> GetMapRegionPoly(std::shared_ptr<const Tilemap3D> tilemap = nullptr, int tile_width = 8, int tile_height = 8) const;
+	static std::vector<std::pair<int, int>> OffsetRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset);
+	std::pair<int, int> GetTileOffset(std::shared_ptr<const Tilemap3D> tilemap = nullptr, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 
 	bool operator==(const Door& rhs) const;
 	bool operator!=(const Door& rhs) const;

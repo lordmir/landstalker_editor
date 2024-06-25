@@ -104,8 +104,6 @@ private:
 	void OnRightUp(wxMouseEvent& evt);
 	void OnRightDClick(wxMouseEvent& evt);
 	void OnShow(wxShowEvent& evt);
-	std::vector<wxPoint> GetRegionPoly(int x, int y, int w, int h, TileSwap::Mode mode);
-	std::vector<wxPoint> OffsetRegionPoly(std::vector<wxPoint> points, const Coord& offset);
 	std::vector<wxPoint> ToWxPoints(const std::vector<std::pair<int, int>>& points);
 	bool Pnpoly(const std::vector<wxPoint>& poly, int x, int y);
 
