@@ -52,7 +52,7 @@ enum TOOL_IDS
 	TOOL_SHOW_LAYERS_PANE,
 	TOOL_SHOW_ENTITIES_PANE,
 	TOOL_SHOW_WARPS_PANE,
-	TOOL_SHOW_SWAP_PANE,
+	TOOL_SHOW_TILESWAP_PANE,
 	TOOL_SHOW_BLOCKS_PANE,
 	TOOL_SHOW_FLAGS,
 	TOOL_SHOW_CHESTS,
@@ -1250,6 +1250,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_ENTITIES, "Entity List", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 2, ID_TOOLS_WARPS, "Warp List", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_SWAPS, "Tile Swap / Doors List", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 4, ID_TOOLS_BLOCKS, "Block Selector", wxITEM_CHECK);
 
 	wxAuiToolBar* main_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	main_tb->SetToolBitmapSize(wxSize(16, 16));
@@ -1266,6 +1268,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_SHOW_TILESWAP_PANE, "Tile Swap / Doors Pane", ilist.GetImage("map_edit_tileswaps"), "Tile Swap / Doors Pane", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_SHOW_BLOCKS_PANE, "Blocks Pane", ilist.GetImage("big_tiles"), "Blocks Pane", wxITEM_CHECK);
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
 	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
@@ -1409,6 +1413,14 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_TOOLS_WARPS:
 		case TOOL_SHOW_WARPS_PANE:
 			SetPaneVisibility(m_warpctrl, !IsPaneVisible(m_warpctrl));
+			break;
+		case ID_TOOLS_SWAPS:
+		case TOOL_SHOW_TILESWAP_PANE:
+			SetPaneVisibility(m_swapctrl, !IsPaneVisible(m_swapctrl));
+			break;
+		case ID_TOOLS_BLOCKS:
+		case TOOL_SHOW_BLOCKS_PANE:
+			SetPaneVisibility(m_blkctrl, !IsPaneVisible(m_blkctrl));
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
@@ -1633,6 +1645,32 @@ void RoomViewerFrame::UpdateUI() const
 		hmcell = static_cast<wxChoice*>(tb->FindControl(HM_TYPE_DROPDOWN));
 		hmzoom = static_cast<wxSlider*>(tb->FindControl(HM_ZOOM));
 	}
+
+	EnableMenuItem(ID_TOOLS_LAYERS, true);
+	EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, true);
+	CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
+	CheckToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, IsPaneVisible(m_layerctrl));
+
+	EnableMenuItem(ID_TOOLS_ENTITIES, true);
+	EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, true);
+	CheckMenuItem(ID_TOOLS_ENTITIES, IsPaneVisible(m_entityctrl));
+	CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, IsPaneVisible(m_entityctrl));
+
+	EnableMenuItem(ID_TOOLS_WARPS, true);
+	EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, true);
+	CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
+	CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
+
+	EnableMenuItem(ID_TOOLS_SWAPS, true);
+	EnableToolbarItem("Main", TOOL_SHOW_TILESWAP_PANE, true);
+	CheckMenuItem(ID_TOOLS_SWAPS, IsPaneVisible(m_swapctrl));
+	CheckToolbarItem("Main", TOOL_SHOW_TILESWAP_PANE, IsPaneVisible(m_swapctrl));
+
+	EnableMenuItem(ID_TOOLS_BLOCKS, true);
+	EnableToolbarItem("Main", TOOL_SHOW_BLOCKS_PANE, true);
+	CheckMenuItem(ID_TOOLS_BLOCKS, IsPaneVisible(m_blkctrl));
+	CheckToolbarItem("Main", TOOL_SHOW_BLOCKS_PANE, IsPaneVisible(m_blkctrl));
+
 	if (m_mode == RoomEdit::Mode::NORMAL)
 	{
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
@@ -1652,21 +1690,6 @@ void RoomViewerFrame::UpdateUI() const
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
 		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
-
-		EnableMenuItem(ID_TOOLS_LAYERS, true);
-		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, true);
-		CheckMenuItem(ID_TOOLS_LAYERS, IsPaneVisible(m_layerctrl));
-		CheckToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, IsPaneVisible(m_layerctrl));
-
-		EnableMenuItem(ID_TOOLS_ENTITIES, true);
-		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, true);
-		CheckMenuItem(ID_TOOLS_ENTITIES, IsPaneVisible(m_entityctrl));
-		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, IsPaneVisible(m_entityctrl));
-
-		EnableMenuItem(ID_TOOLS_WARPS, true);
-		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, true);
-		CheckMenuItem(ID_TOOLS_WARPS, IsPaneVisible(m_warpctrl));
-		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, IsPaneVisible(m_warpctrl));
 
 		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
 		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
@@ -1709,21 +1732,6 @@ void RoomViewerFrame::UpdateUI() const
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
-
-		CheckMenuItem(ID_TOOLS_LAYERS, false);
-		CheckToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, false);
-		EnableMenuItem(ID_TOOLS_LAYERS, false);
-		EnableToolbarItem("Main", TOOL_SHOW_LAYERS_PANE, false);
-
-		CheckMenuItem(ID_TOOLS_ENTITIES, false);
-		CheckToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
-		EnableMenuItem(ID_TOOLS_ENTITIES, false);
-		EnableToolbarItem("Main", TOOL_SHOW_ENTITIES_PANE, false);
-
-		CheckMenuItem(ID_TOOLS_WARPS, false);
-		CheckToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
-		EnableMenuItem(ID_TOOLS_WARPS, false);
-		EnableToolbarItem("Main", TOOL_SHOW_WARPS_PANE, false);
 
 		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, m_hmedit->IsSelectionValid());

@@ -271,6 +271,58 @@ std::pair<int, int> TileSwap::GetRelTileOffset(const Tilemap3D::Layer& layer) co
 	}
 }
 
+void TileSwap::DrawSwap(Tilemap3D& tilemap, Tilemap3D::Layer layer) const
+{
+	for (int y = 0; y < tilemap.GetHeight(); ++y)
+	{
+		for (int x = 0; x < tilemap.GetWidth(); ++x)
+		{
+			uint16_t swapped = 0;
+			int x_off = x - map.dst_x + tilemap.GetLeft();
+			int y_off = y - map.dst_y + tilemap.GetTop();
+			bool swap_condition = false;
+			switch (mode)
+			{
+			case TileSwap::Mode::FLOOR:
+				swap_condition = (x_off >= 0 && x_off < map.width) && (y_off >= 0 && y_off < map.height);
+				break;
+			case TileSwap::Mode::WALL_NE:
+				if (layer == Tilemap3D::Layer::BG)
+				{
+					swap_condition = (x_off - y_off >= 0 && x_off - y_off < map.width) &&
+						(y_off >= 0 && y_off < map.height);
+				}
+				else
+				{
+					swap_condition = (x_off - y_off - 1 >= 0 && x_off - y_off - 1 < map.width) &&
+						(y_off >= 0 && y_off < map.height);
+				}
+				break;
+			case TileSwap::Mode::WALL_NW:
+				if (layer == Tilemap3D::Layer::BG)
+				{
+					swap_condition = (x_off >= 0 && x_off < map.height) &&
+						(y_off > x_off && y_off <= x_off + map.width);
+				}
+				else
+				{
+					swap_condition = (x_off >= 0 && x_off < map.height) &&
+						(y_off >= x_off && y_off < x_off + map.width);
+				}
+				break;
+			}
+			int src_x = map.src_x - map.dst_x + x;
+			int src_y = map.src_y - map.dst_y + y;
+			if (swap_condition)
+			{
+				swapped = (src_x >= 0 && src_x < tilemap.GetWidth() && src_y >= 0 && src_y < tilemap.GetHeight()) ?
+					tilemap.GetBlock({ src_x, src_y }, layer) : 0;
+				tilemap.SetBlock({ swapped, {x, y} }, layer);
+			}
+		}
+	}
+}
+
 bool TileSwap::operator==(const TileSwap& rhs) const
 {
 	return (this->map.src_x == rhs.map.src_x &&

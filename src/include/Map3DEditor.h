@@ -169,6 +169,8 @@ private:
 
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
+	std::vector<Door> m_preview_doors;
+	std::vector<TileSwap> m_preview_swaps;
 
 	std::array<bool, 4> m_mousebtnstate;
 

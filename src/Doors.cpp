@@ -147,16 +147,21 @@ std::vector<std::pair<int, int>> Door::OffsetRegionPoly(std::shared_ptr<const Ti
 
 std::pair<int, int> Door::GetTileOffset(std::shared_ptr<const Tilemap3D> tilemap, const Tilemap3D::Layer& layer) const
 {
+	return tilemap ? GetTileOffset(*tilemap, layer) : std::make_pair<int, int>(0, 0);
+}
+
+std::pair<int, int> Door::GetTileOffset(const Tilemap3D& tilemap, const Tilemap3D::Layer& layer) const
+{
 	Tilemap3D::FloorType type = Tilemap3D::FloorType::NORMAL;
 	std::pair<int, int> offset = { x + 12, y + 12 };
 	offset.first -= Door::SIZES.at(size).second;
 	offset.second -= Door::SIZES.at(size).second;
-	if (tilemap && x < tilemap->GetHeightmapWidth() && y < tilemap->GetHeightmapHeight())
+	if (x < tilemap.GetHeightmapWidth() && y < tilemap.GetHeightmapHeight())
 	{
-		type = static_cast<Tilemap3D::FloorType>(tilemap->GetCellType({ x, y }));
-		int z = tilemap->GetHeight({ x, y });
-		offset.first -= tilemap->GetLeft();
-		offset.second -= tilemap->GetTop();
+		type = static_cast<Tilemap3D::FloorType>(tilemap.GetCellType({ x, y }));
+		int z = tilemap.GetHeight({ x, y });
+		offset.first -= tilemap.GetLeft();
+		offset.second -= tilemap.GetTop();
 		offset.first -= z;
 		offset.second -= z;
 	}
@@ -187,6 +192,30 @@ std::pair<int, int> Door::GetTileOffset(std::shared_ptr<const Tilemap3D> tilemap
 		}
 	}
 	return offset;
+}
+
+void Door::DrawDoor(Tilemap3D& tilemap, Tilemap3D::Layer layer) const
+{
+	if (layer == Tilemap3D::Layer::BG)
+	{
+		return;
+	}
+	Tilemap3D::FloorType type = static_cast<Tilemap3D::FloorType>(tilemap.GetCellType({ x, y }));
+	int z = tilemap.GetHeight({ x, y });
+
+	TileSwap ts;
+	ts.map.src_x = 255;
+	ts.map.src_y = 255;
+	ts.map.dst_x = 12 + x - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0);
+	ts.map.dst_y = 12 + y - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0);
+	ts.map.width = SIZES.at(size).first;
+	ts.map.height = SIZES.at(size).second;
+	if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
+	{
+		return;
+	}
+	ts.mode = (type == Tilemap3D::FloorType::DOOR_NE) ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW;
+	ts.DrawSwap(tilemap, layer);
 }
 
 bool Door::operator==(const Door& rhs) const

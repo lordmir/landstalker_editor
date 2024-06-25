@@ -188,15 +188,31 @@ void ImageBuffer::InsertMap(int x, int y, uint8_t palette_index, const Tilemap2D
 }
 
 void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3D::Layer layer, const std::shared_ptr<const Tilemap3D> map,
-    const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset, bool offset)
+    const std::shared_ptr<const Tileset> tileset, const std::shared_ptr<const std::vector<MapBlock>> blockset, bool offset,
+    std::optional<std::vector<TileSwap>> swaps, std::optional<std::vector<Door>> doors)
 {
     Point2D tilepos = {0, 0};
-    for (int yy = 0; yy < map->GetHeight(); ++yy)
-        for (int xx = 0; xx < map->GetWidth(); ++xx)
+    Tilemap3D disp_map = *map;
+    if (swaps)
+    {
+        for (const auto& swap : *swaps)
+        {
+            swap.DrawSwap(disp_map, layer);
+        }
+    }
+    if (doors)
+    {
+        for (const auto& door : *doors)
+        {
+            door.DrawDoor(disp_map, layer);
+        }
+    }
+    for (int yy = 0; yy < disp_map.GetHeight(); ++yy)
+        for (int xx = 0; xx < disp_map.GetWidth(); ++xx)
         {
             tilepos = { xx + x, yy + y };
-            auto tile = map->GetBlock(tilepos, layer);
-            auto loc(map->IsoToPixel(tilepos, layer, offset));
+            auto tile = disp_map.GetBlock(tilepos, layer);
+            auto loc(disp_map.IsoToPixel(tilepos, layer, offset));
             if (tile >= blockset->size())
             {
                 std::ostringstream ss;
