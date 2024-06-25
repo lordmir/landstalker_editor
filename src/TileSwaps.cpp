@@ -238,17 +238,11 @@ std::vector<std::pair<int, int>> TileSwap::OffsetRegionPoly(const std::vector<st
 
 std::pair<int, int> TileSwap::GetTileOffset(TileSwap::Region region, std::shared_ptr<const Tilemap3D> tilemap, const Tilemap3D::Layer& layer) const
 {
-	std::pair<int, int> offset = { 0, 0 };
+	std::pair<int, int> offset = GetRelTileOffset(layer);
 	if (tilemap)
 	{
 		offset.first -= tilemap->GetLeft();
 		offset.second -= tilemap->GetTop();
-	}
-	if (layer == Tilemap3D::Layer::FG)
-	{
-		auto foffset = GetForegroundTileOffset();
-		offset.first += foffset.first;
-		offset.second += foffset.second;
 	}
 	if (region == Region::SOURCE)
 	{
@@ -263,17 +257,18 @@ std::pair<int, int> TileSwap::GetTileOffset(TileSwap::Region region, std::shared
 	return offset;
 }
 
-std::pair<int, int> TileSwap::GetForegroundTileOffset() const
+std::pair<int, int> TileSwap::GetRelTileOffset(const Tilemap3D::Layer& layer) const
 {
-	if (mode == Mode::WALL_NE)
+	switch (mode)
 	{
-		return { 1, 0 };
+	case Mode::WALL_NE:
+		return { layer == Tilemap3D::Layer::FG ? 1 : 0, 0 };
+	case Mode::WALL_NW:
+		return { 0, layer == Tilemap3D::Layer::FG ? 0 : 1 };
+	case Mode::FLOOR:
+	default:
+		return { 0,0 };
 	}
-	else if (mode == Mode::WALL_NW)
-	{
-		return { 0, -1 };
-	}
-	return { 0, 0 };
 }
 
 bool TileSwap::operator==(const TileSwap& rhs) const

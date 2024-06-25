@@ -40,7 +40,7 @@ struct TileSwap
 	std::vector<std::pair<int, int>> GetMapRegionPoly(Region region = Region::UNDEFINED, int tile_width = 8, int tile_height = 8) const;
 	static std::vector<std::pair<int, int>> OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset);
 	std::pair<int, int> GetTileOffset(TileSwap::Region region = TileSwap::Region::UNDEFINED, std::shared_ptr<const Tilemap3D> tilemap = nullptr, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
-	std::pair<int, int> GetForegroundTileOffset() const;
+	std::pair<int, int> GetRelTileOffset(const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 
 	bool operator==(const TileSwap& rhs) const;
 	bool operator!=(const TileSwap& rhs) const;
