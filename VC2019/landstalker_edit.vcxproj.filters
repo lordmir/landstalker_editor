@@ -676,12 +676,6 @@
     <ClInclude Include="..\src\include\MapToTmx.h">
       <Filter>include\Data\3D Maps</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\Doors.h">
-      <Filter>include\Data\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\TileSwaps.h">
-      <Filter>include\Data\Rooms</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\include\DoorDataViewModel.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
@@ -696,6 +690,12 @@
     </ClInclude>
     <ClInclude Include="..\src\include\Literals.h">
       <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwaps.h">
+      <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Doors.h">
+      <Filter>include\Data\3D Maps</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

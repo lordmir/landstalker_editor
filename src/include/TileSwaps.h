@@ -1,9 +1,11 @@
 #ifndef _TILE_SWAPS_H_
 #define _TILE_SWAPS_H_
 
+#include "Tilemap3DCmp.h"
 #include <vector>
 #include <cstdint>
 #include <map>
+#include <memory>
 
 struct TileSwap
 {
@@ -12,6 +14,13 @@ struct TileSwap
 		FLOOR = 0,
 		WALL_NE = 1,
 		WALL_NW = 2
+	};
+
+	enum class Region : uint8_t
+	{
+		UNDEFINED = 0,
+		SOURCE = 1,
+		DESTINATION = 2
 	};
 
 	struct CopyOp
@@ -27,6 +36,11 @@ struct TileSwap
 	TileSwap(const std::vector<uint8_t>& in);
 	TileSwap() : map({ 0,0,0,0,1,1 }), heightmap({ 0,0,0,0,1,1 }), mode(Mode::FLOOR), active(false) {}
 	std::vector<uint8_t> GetBytes(uint16_t room, uint8_t idx) const;
+
+	std::vector<std::pair<int, int>> GetMapRegionPoly(Region region = Region::UNDEFINED, int tile_width = 8, int tile_height = 8) const;
+	static std::vector<std::pair<int, int>> OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset);
+	std::pair<int, int> GetTileOffset(TileSwap::Region region = TileSwap::Region::UNDEFINED, std::shared_ptr<const Tilemap3D> tilemap = nullptr, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
+	std::pair<int, int> GetForegroundTileOffset() const;
 
 	bool operator==(const TileSwap& rhs) const;
 	bool operator!=(const TileSwap& rhs) const;

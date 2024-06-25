@@ -1,6 +1,7 @@
 #include <TileSwaps.h>
 #include <Literals.h>
 #include <cassert>
+#include <memory>
 #include <algorithm>
 #include <iterator>
 
@@ -128,6 +129,151 @@ std::vector<uint8_t> TileSwap::GetBytes(uint16_t room, uint8_t idx) const
 	data[14] = idx << 3;
 	data[15] = static_cast<uint8_t>(mode);
 	return data;
+}
+
+std::vector<std::pair<int, int>> TileSwap::GetMapRegionPoly(TileSwap::Region region, int tile_width, int tile_height) const
+{
+	std::vector<std::pair<int, int>> points;
+	int xstep = 0;
+	int ystep = 0;
+	if (region == Region::SOURCE)
+	{
+		xstep = heightmap.src_x;
+		ystep = heightmap.src_y;
+	}
+	else if (region == Region::DESTINATION)
+	{
+		xstep = heightmap.dst_x;
+		ystep = heightmap.dst_y;
+	}
+
+	if (mode == TileSwap::Mode::WALL_NW)
+	{
+		xstep += tile_width;
+		for (int i = 0; i < map.width; ++i)
+		{
+			points.push_back({ xstep, ystep });
+			xstep -= tile_width;
+			points.push_back({ xstep, ystep });
+			ystep += tile_height / 2;
+		}
+		ystep -= tile_height / 2;
+	}
+	else
+	{
+		for (int i = 0; i < map.width; ++i)
+		{
+			points.push_back({ xstep, ystep });
+			xstep += tile_width;
+			points.push_back({ xstep, ystep });
+			ystep += tile_height / 2;
+		}
+	}
+	if (mode == TileSwap::Mode::FLOOR)
+	{
+		for (int i = 0; i < map.height; ++i)
+		{
+			ystep += tile_height / 2;
+			points.push_back({ xstep, ystep });
+			xstep -= tile_width;
+			points.push_back({ xstep, ystep });
+		}
+	}
+	else
+	{
+		ystep += tile_height * map.height;
+	}
+	if (mode == TileSwap::Mode::WALL_NW)
+	{
+		for (int i = 1; i < map.width; ++i)
+		{
+			points.push_back({ xstep, ystep });
+			xstep += tile_width;
+			points.push_back({ xstep, ystep });
+			ystep -= tile_height / 2;
+		}
+	}
+	else
+	{
+		ystep -= tile_height / 2;
+		for (int i = 1; i < map.width; ++i)
+		{
+			points.push_back({ xstep, ystep });
+			xstep -= tile_width;
+			points.push_back({ xstep, ystep });
+			ystep -= tile_height / 2;
+		}
+	}
+	if (mode == TileSwap::Mode::FLOOR)
+	{
+		for (int i = 1; i < map.height; ++i)
+		{
+			ystep -= tile_height / 2;
+			points.push_back({ xstep, ystep });
+			xstep += tile_width;
+			points.push_back({ xstep, ystep });
+		}
+	}
+	else
+	{
+		points.push_back({ xstep, ystep });
+		xstep += mode == TileSwap::Mode::WALL_NW ? static_cast<int>(tile_width) : -static_cast<int>(tile_width);
+		points.push_back({ xstep, ystep });
+		ystep -= tile_height * map.height;
+		points.push_back({ xstep, ystep });
+	}
+
+	return points;
+}
+
+std::vector<std::pair<int, int>> TileSwap::OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
+{
+	std::vector<std::pair<int, int>> offsetted;
+	std::transform(points.begin(), points.end(), std::back_inserter(offsetted), [&](const auto& pt)
+		{
+			return std::make_pair<int, int>(pt.first + offset.first, pt.second + offset.second);
+		});
+	return offsetted;
+}
+
+std::pair<int, int> TileSwap::GetTileOffset(TileSwap::Region region, std::shared_ptr<const Tilemap3D> tilemap, const Tilemap3D::Layer& layer) const
+{
+	std::pair<int, int> offset = { 0, 0 };
+	if (tilemap)
+	{
+		offset.first -= tilemap->GetLeft();
+		offset.second -= tilemap->GetTop();
+	}
+	if (layer == Tilemap3D::Layer::FG)
+	{
+		auto foffset = GetForegroundTileOffset();
+		offset.first += foffset.first;
+		offset.second += foffset.second;
+	}
+	if (region == Region::SOURCE)
+	{
+		offset.first += this->map.src_x;
+		offset.second += this->map.src_y;
+	}
+	else if (region == Region::DESTINATION)
+	{
+		offset.first += this->map.dst_x;
+		offset.second += this->map.dst_y;
+	}
+	return offset;
+}
+
+std::pair<int, int> TileSwap::GetForegroundTileOffset() const
+{
+	if (mode == Mode::WALL_NE)
+	{
+		return { 1, 0 };
+	}
+	else if (mode == Mode::WALL_NW)
+	{
+		return { 0, -1 };
+	}
+	return { 0, 0 };
 }
 
 bool TileSwap::operator==(const TileSwap& rhs) const

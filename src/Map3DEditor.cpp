@@ -736,33 +736,19 @@ void Map3DEditor::DrawCell(wxDC& dc, const std::pair<int, int>& pos, const wxPen
 
 void Map3DEditor::DrawTileSwaps(wxDC& dc)
 {
-    int offsetx = 0, offsety = 0;
     m_swap_regions.clear();
-    if (m_map)
-    {
-        offsetx = m_map->GetLeft();
-        offsety = m_map->GetTop();
-    }
     int si = 0;
     for (const auto& s : m_swaps)
     {
         std::pair<int, int> src, dst;
-        int tsoffsetx = 0, tsoffsety = 0;
-        if (s.mode == TileSwap::Mode::WALL_NE && m_layer == Tilemap3D::Layer::FG)
-        {
-            tsoffsetx = 1;
-        }
-        else if (s.mode == TileSwap::Mode::WALL_NW && m_layer == Tilemap3D::Layer::BG)
-        {
-            tsoffsety = 1;
-        }
-        auto lines = GetRegionPoly(0, 0, s.map.width, s.map.height, s.mode);
-        src = { s.map.src_x - offsetx + tsoffsetx, s.map.src_y - offsety + tsoffsety };
-        dst = { s.map.dst_x - offsetx + tsoffsetx, s.map.dst_y - offsety + tsoffsety };
-        auto sp = GetScreenPosition(src);
-        auto dp = GetScreenPosition(dst);
+        auto lines = s.GetMapRegionPoly(TileSwap::Region::UNDEFINED, TILE_WIDTH, TILE_HEIGHT);
+        std::vector<wxPoint> wxpoints = ToWxPoints(lines);
+        auto sp = GetScreenPosition(s.GetTileOffset(TileSwap::Region::SOURCE, m_map, m_layer));
+        auto dp = GetScreenPosition(s.GetTileOffset(TileSwap::Region::DESTINATION, m_map, m_layer));
         auto [hx, hy] = GetScreenPosition(m_hovered);
-        m_swap_regions.push_back({OffsetRegionPoly(lines, sp), OffsetRegionPoly(lines, dp)});
+        m_swap_regions.emplace_back(
+                ToWxPoints(TileSwap::OffsetRegionPoly(lines, sp)),
+                ToWxPoints(TileSwap::OffsetRegionPoly(lines, dp)));
         bool hovered = false;
         if (!m_dragging)
         {
@@ -772,10 +758,10 @@ void Map3DEditor::DrawTileSwaps(wxDC& dc)
         {
             hovered = m_selected_region == si;
         }
-        dc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, (m_selected_region == si && m_selected_is_src) ? 3 : 1));
-        dc.DrawPolygon(lines.size(), lines.data(), sp.first, sp.second);
-        dc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, (m_selected_region == si && !m_selected_is_src) ? 3 : 1));
-        dc.DrawPolygon(lines.size(), lines.data(), dp.first, dp.second);
+        dc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, (m_selected_region == si) ? 3 : 1));
+        dc.DrawPolygon(wxpoints.size(), wxpoints.data(), sp.first, sp.second);
+        dc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, (m_selected_region == si) ? 3 : 1));
+        dc.DrawPolygon(wxpoints.size(), wxpoints.data(), dp.first, dp.second);
         ++si;
     }
 }
@@ -1011,6 +997,15 @@ std::vector<wxPoint> Map3DEditor::OffsetRegionPoly(std::vector<wxPoint> points, 
             return wxPoint{ pt.x + offset.first, pt.y + offset.second };
         });
     return points;
+}
+
+std::vector<wxPoint> Map3DEditor::ToWxPoints(const std::vector<std::pair<int, int>>& points)
+{
+    std::vector<wxPoint> wxpoints;
+    std::transform(points.cbegin(), points.cend(),
+        std::back_inserter(wxpoints),
+        [](const auto& p) {return wxPoint(p.first, p.second); });
+    return wxpoints;
 }
 
 bool Map3DEditor::Pnpoly(const std::vector<wxPoint>& poly, int x, int y)
