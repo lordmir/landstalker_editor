@@ -700,6 +700,7 @@
     </ClInclude>
     <ClInclude Include="..\src\include\Doors.h">
       <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\include\TileSwapDialog.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
