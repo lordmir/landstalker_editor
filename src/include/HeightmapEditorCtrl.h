@@ -168,6 +168,10 @@ private:
 	void OnShow(wxShowEvent& evt);
 	int GetFirstDoorRegion(const Coord& c);
 	std::pair<int, bool> GetFirstSwapRegion(const Coord& c);
+	std::tuple<uint8_t, uint8_t, uint8_t> GetHeightmapCell(int x, int y);
+	uint8_t GetHeightmapCellType(int x, int y);
+	uint8_t GetHeightmapCellZ(int x, int y);
+	uint8_t GetHeightmapCellRestrictions(int x, int y);
 
 	void StartDrag();
 	void StopDrag(bool cancel = false);
@@ -196,6 +200,7 @@ private:
 	bool m_dragging;
 	int m_selected_region;
 	bool m_selected_is_src;
+	bool m_preview_swap;
 
 	static const std::size_t TILE_WIDTH = 64;
 	static const std::size_t TILE_HEIGHT = 32;

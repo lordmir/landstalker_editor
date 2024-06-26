@@ -42,6 +42,8 @@ struct TileSwap
 	std::pair<int, int> GetTileOffset(TileSwap::Region region = TileSwap::Region::UNDEFINED, std::shared_ptr<const Tilemap3D> tilemap = nullptr, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 	std::pair<int, int> GetRelTileOffset(const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 	void DrawSwap(Tilemap3D& map, Tilemap3D::Layer layer) const;
+	void DrawHeightmapSwap(Tilemap3D& map) const;
+	bool IsHeightmapPointInSwap(int x, int y) const;
 
 	bool operator==(const TileSwap& rhs) const;
 	bool operator!=(const TileSwap& rhs) const;

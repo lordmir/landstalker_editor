@@ -788,6 +788,39 @@ bool Map3DEditor::HandleRightDown(unsigned int modifiers)
     {
         SelectHoveredTile();
     }
+    else
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1)
+        {
+            FireEvent(EVT_TILESWAP_SELECT, sw.first + 1);
+            m_selected_is_src = sw.second;
+        }
+        else if (dw != -1)
+        {
+            FireEvent(EVT_DOOR_SELECT, dw + 1);
+        }
+        else if (IsDoorSelected() || IsSwapSelected())
+        {
+            SetSelectedDoor(-1);
+            SetSelectedSwap(-1);
+            FireEvent(EVT_TILESWAP_SELECT, -1);
+            FireEvent(EVT_DOOR_SELECT, -1);
+        }
+        if (!m_preview_swap && (IsSwapSelected() || IsDoorSelected()))
+        {
+            m_preview_swap = true;
+            GeneratePreview();
+        }
+        else if (m_preview_swap)
+        {
+            m_preview_swap = false;
+            ResetPreview();
+        }
+        RefreshStatusbar();
+        ForceRedraw();
+    }
     return false;
 }
 

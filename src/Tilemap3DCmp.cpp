@@ -1213,3 +1213,24 @@ bool Tilemap3D::SetCellType(const HMPoint2D& p, uint8_t type)
     }
     return false;
 }
+
+uint16_t Tilemap3D::GetHeightmapCell(const HMPoint2D& iso) const
+{
+    if (IsHMPointValid(iso) == true)
+    {
+        int cell = iso.x + iso.y * hmwidth;
+        return heightmap[cell];
+    }
+    return 0xFFFF;
+}
+
+bool Tilemap3D::SetHeightmapCell(const HMPoint2D& iso, uint16_t value)
+{
+    if (IsHMPointValid(iso) == true)
+    {
+        int cell = iso.x + iso.y * hmwidth;
+        heightmap[cell] = value;
+        return true;
+    }
+    return false;
+}

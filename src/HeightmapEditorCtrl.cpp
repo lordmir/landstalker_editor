@@ -44,6 +44,7 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
       m_dragging(false),
       m_selected_region(-1),
       m_selected_is_src(false),
+      m_preview_swap(false),
       m_scroll_rate(SCROLL_RATE),
       m_cursorid(wxCURSOR_ARROW)
 {
@@ -467,6 +468,19 @@ bool HeightmapEditorCtrl::HandleRegionKeyDown(unsigned int key, unsigned int mod
         {
             FireEvent(EVT_DOOR_OPEN_PROPERTIES, GetSelectedDoor());
         }
+        break;
+    case 'P':
+    case 'p':
+        if (!m_preview_swap && IsSwapSelected())
+        {
+            m_preview_swap = true;
+        }
+        else if (m_preview_swap)
+        {
+            m_preview_swap = false;
+        }
+        RefreshStatusbar();
+        ForceRedraw();
         break;
     }
 
@@ -1142,12 +1156,44 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
             Refresh(false);
         }
     }
+    else
+    {
+        auto sw = GetFirstSwapRegion(m_hovered);
+        auto dw = GetFirstDoorRegion(m_hovered);
+        if (sw.first != -1)
+        {
+            FireEvent(EVT_TILESWAP_SELECT, sw.first + 1);
+            m_selected_is_src = sw.second;
+        }
+        else if (dw != -1)
+        {
+            FireEvent(EVT_DOOR_SELECT, dw + 1);
+        }
+        else if (IsDoorSelected() || IsSwapSelected())
+        {
+            SetSelectedDoor(-1);
+            SetSelectedSwap(-1);
+            FireEvent(EVT_TILESWAP_SELECT, -1);
+            FireEvent(EVT_DOOR_SELECT, -1);
+        }
+        if (!m_preview_swap && IsSwapSelected())
+        {
+            m_preview_swap = true;
+        }
+        else if (m_preview_swap)
+        {
+            m_preview_swap = false;
+        }
+        RefreshStatusbar();
+        ForceRedraw();
+    }
     return false;
 }
 
 void HeightmapEditorCtrl::RefreshStatusbar()
 {
     std::string msg = "";
+    std::string swpmsg = "";
     if (m_hovered.first != -1)
     {
         uint8_t z = 0, r = 0, t = 0;
@@ -1159,7 +1205,17 @@ void HeightmapEditorCtrl::RefreshStatusbar()
         }
         msg = StrPrintf("(%04d, %04d) : Z:%02d R:%01X T:%02X", m_hovered.first, m_hovered.second, z, r, t);
     }
+    if (IsSwapSelected() || IsDoorSelected())
+    {
+        int sel = m_selected_region & 0xFF;
+        swpmsg = StrPrintf("Selected %s #%d", IsSwapSelected() ? "tile swap" : "door", sel);
+        if (m_preview_swap)
+        {
+            swpmsg += " [PREVIEW ACTIVE]";
+        }
+    }
     FireUpdateStatusEvent(msg, 0);
+    FireUpdateStatusEvent(swpmsg, 2);
 }
 
 void HeightmapEditorCtrl::RefreshCursor(bool ctrl_down)
@@ -1209,9 +1265,7 @@ void HeightmapEditorCtrl::DrawRoomHeightmapBackground(wxDC& dc)
             {
                 int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
                 int y = (ix + iy) * TILE_HEIGHT / 2;
-                auto restrictions = m_map->GetCellProps({ ix, iy });
-                auto z = m_map->GetHeight({ ix, iy });
-                auto type = m_map->GetCellType({ ix, iy });
+                auto [restrictions, z, type] = GetHeightmapCell(ix, iy);
                 dc.SetBrush(wxBrush(GetCellBackground(restrictions, type, z)));
                 dc.DrawPolygon(lines.size(), lines.data(), x, y);
             }
@@ -1235,9 +1289,7 @@ void HeightmapEditorCtrl::DrawRoomHeightmapForeground(wxDC& dc)
             {
                 int x = (m_map->GetHeightmapHeight() + ix - iy - 1) * TILE_WIDTH / 2;
                 int y = (ix + iy) * TILE_HEIGHT / 2;
-                auto restrictions = m_map->GetCellProps({ ix, iy });
-                auto z = m_map->GetHeight({ ix, iy });
-                auto type = m_map->GetCellType({ ix, iy });
+                auto [restrictions, z, type] = GetHeightmapCell(ix, iy);
                 if (!IsCellHidden(restrictions, type, z))
                 {
                     std::string lbl1 = StrPrintf("%02X", type);
@@ -1295,7 +1347,7 @@ void HeightmapEditorCtrl::DrawDoors(wxDC& dc)
             )
         );
         dc.SetPen(*m_door_pen);
-        if (m_map && m_map->GetCellType({ door.x, door.y }) == static_cast<int>(Tilemap3D::FloorType::DOOR_NW))
+        if (m_map && GetHeightmapCellType(door.x, door.y) == static_cast<int>(Tilemap3D::FloorType::DOOR_NW))
         {
             DrawCellRange(dc, door.x, door.y, 1, Door::SIZES.at(door.size).first, 2);
         }
@@ -1768,6 +1820,88 @@ std::pair<int, bool> HeightmapEditorCtrl::GetFirstSwapRegion(const Coord& c)
         }
     }
     return { -1, false };
+}
+
+std::tuple<uint8_t, uint8_t, uint8_t> HeightmapEditorCtrl::GetHeightmapCell(int x, int y)
+{
+    TileSwap* swap = nullptr;
+    if (m_preview_swap && IsSwapSelected())
+    {
+        swap = &m_swaps.at(GetSelectedSwap() - 1);
+    }
+    if (swap && swap->IsHeightmapPointInSwap(x, y))
+    {
+        HMPoint2D point = { x - swap->heightmap.dst_x + swap->heightmap.src_x,
+                            y - swap->heightmap.dst_y + swap->heightmap.src_y };
+        auto restrictions = m_map->GetCellProps(point);
+        auto z = m_map->GetHeight(point);
+        auto type = m_map->GetCellType(point);
+        return { restrictions, z, type };
+    }
+    else
+    {
+        auto restrictions = m_map->GetCellProps({ x, y });
+        auto z = m_map->GetHeight({ x, y });
+        auto type = m_map->GetCellType({ x, y });
+        return { restrictions, z, type };
+    }
+}
+
+uint8_t HeightmapEditorCtrl::GetHeightmapCellType(int x, int y)
+{
+    TileSwap* swap = nullptr;
+    if (m_preview_swap && IsSwapSelected())
+    {
+        swap = &m_swaps.at(GetSelectedSwap() - 1);
+    }
+    if (swap && swap->IsHeightmapPointInSwap(x, y))
+    {
+        HMPoint2D point = { x - swap->heightmap.dst_x + swap->heightmap.src_x,
+                            y - swap->heightmap.dst_y + swap->heightmap.src_y };
+        return m_map->GetCellType(point);
+    }
+    else
+    {
+        return m_map->GetCellType({ x, y });
+    }
+}
+
+uint8_t HeightmapEditorCtrl::GetHeightmapCellZ(int x, int y)
+{
+    TileSwap* swap = nullptr;
+    if (m_preview_swap && IsSwapSelected())
+    {
+        swap = &m_swaps.at(GetSelectedSwap() - 1);
+    }
+    if (swap && swap->IsHeightmapPointInSwap(x, y))
+    {
+        HMPoint2D point = { x - swap->heightmap.dst_x + swap->heightmap.src_x,
+                            y - swap->heightmap.dst_y + swap->heightmap.src_y };
+        return m_map->GetHeight(point);
+    }
+    else
+    {
+        return m_map->GetHeight({ x, y });
+    }
+}
+
+uint8_t HeightmapEditorCtrl::GetHeightmapCellRestrictions(int x, int y)
+{
+    TileSwap* swap = nullptr;
+    if (m_preview_swap && IsSwapSelected())
+    {
+        swap = &m_swaps.at(GetSelectedSwap() - 1);
+    }
+    if (swap && swap->IsHeightmapPointInSwap(x, y))
+    {
+        HMPoint2D point = { x - swap->heightmap.dst_x + swap->heightmap.src_x,
+                            y - swap->heightmap.dst_y + swap->heightmap.src_y };
+        return m_map->GetCellProps(point);
+    }
+    else
+    {
+        return m_map->GetCellProps({ x, y });
+    }
 }
 
 void HeightmapEditorCtrl::StartDrag()

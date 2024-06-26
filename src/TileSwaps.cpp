@@ -325,6 +325,28 @@ void TileSwap::DrawSwap(Tilemap3D& tilemap, Tilemap3D::Layer layer) const
 	}
 }
 
+void TileSwap::DrawHeightmapSwap(Tilemap3D& tilemap) const
+{
+	for (int y = 0; y < heightmap.height; ++y)
+	{
+		for (int x = 0; x < heightmap.width; ++x)
+		{
+			auto src = HMPoint2D(x + heightmap.src_x, y + heightmap.src_y);
+			auto dst = HMPoint2D(x + heightmap.dst_x, y + heightmap.dst_y);
+			if (tilemap.IsHMPointValid(src) && tilemap.IsHMPointValid(dst))
+			{
+				tilemap.SetHeightmapCell(dst, tilemap.GetHeightmapCell(src));
+			}
+		}
+	}
+}
+
+bool TileSwap::IsHeightmapPointInSwap(int x, int y) const
+{
+	return ((x >= heightmap.dst_x && x < heightmap.dst_x + heightmap.width) &&
+		    (y >= heightmap.dst_y && y < heightmap.dst_y + heightmap.height));
+}
+
 bool TileSwap::operator==(const TileSwap& rhs) const
 {
 	return (this->map.src_x == rhs.map.src_x &&
