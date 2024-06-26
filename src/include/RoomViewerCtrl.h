@@ -69,6 +69,16 @@ public:
 	void AddWarp();
 	void DeleteSelectedWarp();
 
+	void SelectTileSwap(int selection);
+	bool IsTileSwapSelected() const;
+	const TileSwap& GetSelectedTileSwap() const;
+	int GetSelectedTileSwapIndex() const;
+
+	void SelectDoor(int selection);
+	bool IsDoorSelected() const;
+	const Door& GetSelectedDoor() const;
+	int GetSelectedDoorIndex() const;
+
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
 	void SetLayerOpacity(Layer layer, uint8_t opacity);
@@ -154,6 +164,7 @@ private:
 	bool HandleNormalModeKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNEntityKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNWarpKeyDown(unsigned int key, unsigned int modifiers);
+	virtual bool SetCursor(wxStockCursor cursor);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
@@ -187,7 +198,6 @@ private:
 	std::vector<TileSwap> m_preview_swaps;
 	std::vector<std::pair<std::vector<wxPoint2DDouble>, std::vector<wxPoint2DDouble>>> m_swap_regions;
 	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
-	int m_selected_region;
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
@@ -201,11 +211,18 @@ private:
 	static const std::size_t CELL_WIDTH = 16;
 	static const std::size_t CELL_HEIGHT = 16;
 	static const int SCROLL_RATE = 8;
+	static const int NO_SELECTION = -1;
+	static const int ENTITY_IDX_OFFSET = 0;
+	static const int WARP_IDX_OFFSET = 0x100;
+	static const int SWAP_IDX_OFFSET = 0x200;
+	static const int DOOR_IDX_OFFSET = 0x300;
 	int m_scroll_rate;
 	int m_selected;
+	int m_hovered;
 
 	std::string m_status_text;
 	std::vector<std::string> m_errors;
+	wxCursor* m_cursor;
 
 	wxDECLARE_EVENT_TABLE();
 };
