@@ -37,6 +37,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
       m_zoom(1.0),
       m_show_entities(true),
       m_show_warps(true),
+      m_show_swaps(true),
       m_show_entity_hitboxes(true),
       m_is_warp_pending(false),
       m_bmp(std::make_unique<wxBitmap>()),
@@ -54,9 +55,9 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
     m_layers = { {Layer::BACKGROUND1, std::make_unique<wxBitmap>()},              {Layer::BACKGROUND2, std::make_unique<wxBitmap>()},
                  {Layer::BG_SPRITES_WIREFRAME_BG, std::make_unique<wxBitmap>()},  {Layer::BG_SPRITES,  std::make_unique<wxBitmap>()},
                  {Layer::BG_SPRITES_WIREFRAME_FG, std::make_unique<wxBitmap>()},  {Layer::FOREGROUND,  std::make_unique<wxBitmap>()},
-                 {Layer::HEIGHTMAP, std::make_unique<wxBitmap>()},                {Layer::FG_SPRITES_WIREFRAME_BG, std::make_unique<wxBitmap>()},
-                 {Layer::FG_SPRITES, std::make_unique<wxBitmap>()},               {Layer::FG_SPRITES_WIREFRAME_FG,  std::make_unique<wxBitmap>()},
-                 {Layer::WARPS, std::make_unique<wxBitmap>()} };
+                 {Layer::SWAPS, std::make_unique<wxBitmap>()},                    {Layer::HEIGHTMAP, std::make_unique<wxBitmap>()},
+                 {Layer::FG_SPRITES_WIREFRAME_BG, std::make_unique<wxBitmap>()},  {Layer::FG_SPRITES, std::make_unique<wxBitmap>()},
+                 {Layer::FG_SPRITES_WIREFRAME_FG,  std::make_unique<wxBitmap>()}, {Layer::WARPS, std::make_unique<wxBitmap>()} };
 }
 
 RoomViewerCtrl::~RoomViewerCtrl()
@@ -177,6 +178,10 @@ void RoomViewerCtrl::ClearSelection()
         {
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         }
+        if (m_show_swaps)
+        {
+            m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
+        }
         ForceRedraw();
     }
 }
@@ -242,6 +247,13 @@ void RoomViewerCtrl::SelectWarp(int selection)
         if (m_show_warps)
         {
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+        }
+        if (m_show_swaps)
+        {
+            m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
+        }
+        if (m_show_warps || m_show_swaps)
+        {
             ForceRedraw();
         }
     }
@@ -295,6 +307,10 @@ void RoomViewerCtrl::SetZoom(double zoom)
     if (m_show_warps)
     {
         m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+    }
+    if (m_show_swaps)
+    {
+        m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
     }
     DrawSpriteHitboxes(q);
     UpdateScroll();
@@ -363,6 +379,10 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
     {
         UpdateLayer(Layer::HEIGHTMAP, DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]));
+    }
+    if (m_show_swaps)
+    {
+        UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
     }
     if (m_show_warps)
     {
@@ -854,6 +874,100 @@ void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int 
     }
 }
 
+void RoomViewerCtrl::DrawTileSwaps(wxGraphicsContext& gc, uint16_t roomnum)
+{
+    m_swap_regions.clear();
+    if (!m_g)
+    {
+        return;
+    }
+    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+    auto swaps = m_g->GetRoomData()->GetTileSwaps(roomnum);
+    int si = 0;
+    gc.SetBrush(*wxTRANSPARENT_BRUSH);
+    for (const auto& s : swaps)
+    {
+        std::pair<int, int> src, dst;
+        auto lines = s.GetMapRegionPoly(TileSwap::Region::UNDEFINED, CELL_WIDTH, CELL_HEIGHT);
+        std::vector<wxPoint2DDouble> wxpoints = ToWxPoints2DDouble(lines);
+        auto sp = GetScreenPosition(s.GetTileOffset(TileSwap::Region::SOURCE, map, Tilemap3D::Layer::FG), roomnum, Tilemap3D::Layer::FG);
+        auto dp = GetScreenPosition(s.GetTileOffset(TileSwap::Region::DESTINATION, map, Tilemap3D::Layer::FG), roomnum, Tilemap3D::Layer::FG);
+        auto [hx, hy] = wxGetMousePosition();
+        m_swap_regions.emplace_back(
+            ToWxPoints2DDouble(TileSwap::OffsetRegionPoly(lines, sp)),
+            ToWxPoints2DDouble(TileSwap::OffsetRegionPoly(lines, dp)));
+        bool hovered = (m_selected_region == si);
+        gc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, (m_selected_region == si) ? 3 : 1));
+        gc.DrawLines(m_swap_regions.back().first.size(), m_swap_regions.back().first.data());
+        gc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, (m_selected_region == si) ? 3 : 1));
+        gc.DrawLines(m_swap_regions.back().second.size(), m_swap_regions.back().second.data());
+        ++si;
+    }
+}
+
+void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
+{
+    int di = 0x100;
+    m_door_regions.clear();
+    if (!m_g)
+    {
+        return;
+    }
+    auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+    auto doors = m_g->GetRoomData()->GetDoors(roomnum);
+    for (const auto& d : doors)
+    {
+        if (d.x < map->GetHeightmapWidth() && d.y < map->GetHeightmapHeight())
+        {
+            auto lines = d.GetMapRegionPoly(map, CELL_WIDTH, CELL_HEIGHT);
+            auto wxpoints = ToWxPoints2DDouble(lines);
+            auto pos = GetScreenPosition(d.GetTileOffset(map, Tilemap3D::Layer::FG), roomnum, Tilemap3D::Layer::FG);
+            auto [hx, hy] = wxGetMousePosition();
+            m_door_regions.push_back(ToWxPoints2DDouble(Door::OffsetRegionPoly(map, lines, pos)));
+            gc.SetPen(wxPen(Pnpoly(m_door_regions.back(), hx, hy) ? wxColor(255, 128, 255) : wxColor(255, 0, 255),
+                di == m_selected_region ? 3 : 1));
+            gc.DrawLines(m_door_regions.back().size(), m_door_regions.back().data());
+            ++di;
+        }
+    }
+}
+
+std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomSwaps(uint16_t roomnum)
+{
+    wxImage img = wxImage(m_buffer_width, m_buffer_height);
+    img.InitAlpha();
+    SetOpacity(img, 0x00);
+    wxGraphicsContext* gc = wxGraphicsContext::Create(img);
+    gc->Scale(m_zoom, m_zoom);
+    gc->SetPen(*wxWHITE_PEN);
+    gc->SetBrush(*wxBLACK_BRUSH);
+    DrawTileSwaps(*gc, roomnum);
+    DrawDoors(*gc, roomnum);
+    delete gc;
+    return std::make_unique<wxBitmap>(img);
+}
+
+std::vector<wxPoint2DDouble> RoomViewerCtrl::ToWxPoints2DDouble(const std::vector<std::pair<int, int>>& points)
+{
+    std::vector<wxPoint2DDouble> wxpoints;
+    std::transform(points.cbegin(), points.cend(),
+        std::back_inserter(wxpoints),
+        [](const auto& p) {return wxPoint2DDouble(p.first, p.second); });
+    return wxpoints;
+}
+
+std::pair<int, int> RoomViewerCtrl::GetScreenPosition(const std::pair<int, int>& iso_pos, uint16_t roomnum, Tilemap3D::Layer layer) const
+{
+    if (m_g)
+    {
+        auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+        int xp = (map->GetHeight() - 1 + iso_pos.first - iso_pos.second) * CELL_WIDTH + (map->GetLeft()) * CELL_WIDTH / 2 + (layer == Tilemap3D::Layer::BG ? CELL_WIDTH : 0);
+        int yp = (iso_pos.first + iso_pos.second + map->GetTop()) * CELL_HEIGHT / 2;
+        return { xp, yp };
+    }
+    return {0, 0};
+}
+
 const std::vector<std::string>& RoomViewerCtrl::GetErrors() const
 {
     return m_errors;
@@ -1029,6 +1143,10 @@ void RoomViewerCtrl::RefreshHeightmap()
         {
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
         }
+        if (m_show_swaps)
+        {
+            m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
+        }
         ForceRedraw();
     }
 }
@@ -1070,6 +1188,13 @@ void RoomViewerCtrl::DeleteSelectedWarp()
         if (m_show_warps)
         {
             m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+        }
+        if (m_show_swaps)
+        {
+            m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
+        }
+        if (m_show_warps || m_show_swaps)
+        {
             ForceRedraw();
         }
         m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, m_warps);

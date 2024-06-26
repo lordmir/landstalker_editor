@@ -25,6 +25,7 @@ public:
 		FG_SPRITES_WIREFRAME_BG,
 		FG_SPRITES,
 		FG_SPRITES_WIREFRAME_FG,
+		SWAPS,
 		WARPS
 	};
 
@@ -115,6 +116,11 @@ private:
 	std::unique_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
 	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
 		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);
+	void DrawTileSwaps(wxGraphicsContext& dc, uint16_t roomnum);
+	void DrawDoors(wxGraphicsContext& dc, uint16_t roomnum);
+	std::unique_ptr<wxBitmap> DrawRoomSwaps(uint16_t roomnum);
+	std::vector<wxPoint2DDouble> ToWxPoints2DDouble(const std::vector<std::pair<int, int>>& points);
+	std::pair<int, int> GetScreenPosition(const std::pair<int, int>& iso_pos, uint16_t roomnum, Tilemap3D::Layer layer) const;
 	void ForceRepaint();
 	void ForceRedraw();
 	void SetOpacity(wxImage& image, uint8_t opacity);
@@ -163,6 +169,7 @@ private:
 
 	bool m_show_entities;
 	bool m_show_warps;
+	bool m_show_swaps;
 	bool m_show_entity_hitboxes;
 
 	bool m_is_warp_pending;
@@ -176,6 +183,11 @@ private:
 	std::vector<WarpList::Warp> m_warps;
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
+	std::vector<Door> m_preview_doors;
+	std::vector<TileSwap> m_preview_swaps;
+	std::vector<std::pair<std::vector<wxPoint2DDouble>, std::vector<wxPoint2DDouble>>> m_swap_regions;
+	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
+	int m_selected_region;
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
@@ -186,6 +198,8 @@ private:
 	static const std::size_t TILE_HEIGHT = 16;
 	static const std::size_t HM_CELL_WIDTH = 32;
 	static const std::size_t HM_CELL_HEIGHT = 32;
+	static const std::size_t CELL_WIDTH = 16;
+	static const std::size_t CELL_HEIGHT = 16;
 	static const int SCROLL_RATE = 8;
 	int m_scroll_rate;
 	int m_selected;

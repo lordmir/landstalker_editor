@@ -213,6 +213,8 @@ std::vector<std::pair<int, int>> TileSwap::GetMapRegionPoly(TileSwap::Region reg
 			xstep += tile_width;
 			points.push_back({ xstep, ystep });
 		}
+		ystep -= tile_height / 2;
+		points.push_back({ xstep, ystep });
 	}
 	else
 	{
@@ -226,12 +228,12 @@ std::vector<std::pair<int, int>> TileSwap::GetMapRegionPoly(TileSwap::Region reg
 	return points;
 }
 
-std::vector<std::pair<int, int>> TileSwap::OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
+std::vector<std::pair<int, int>> TileSwap::OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset, int tile_width, int tile_height)
 {
 	std::vector<std::pair<int, int>> offsetted;
 	std::transform(points.begin(), points.end(), std::back_inserter(offsetted), [&](const auto& pt)
 		{
-			return std::make_pair<int, int>(pt.first + offset.first, pt.second + offset.second);
+			return std::make_pair<int, int>((pt.first + offset.first) * tile_width, (pt.second + offset.second) * tile_height);
 		});
 	return offsetted;
 }
