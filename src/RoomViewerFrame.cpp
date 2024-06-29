@@ -1895,18 +1895,21 @@ void RoomViewerFrame::TileSwapRefresh()
 	if (m_g != nullptr)
 	{
 		m_swapctrl->SetSwaps(m_g->GetRoomData()->GetTileSwaps(m_roomnum), m_g->GetRoomData()->GetDoors(m_roomnum), m_roomnum);
+		m_roomview->UpdateSwaps();
 		m_fgedit->UpdateSwaps();
 		m_bgedit->UpdateSwaps();
 		m_hmedit->UpdateSwaps();
+		m_roomview->UpdateDoors();
 		m_fgedit->UpdateDoors();
 		m_bgedit->UpdateDoors();
 	}
 }
 
-void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& /*evt*/)
 {
-	OnSwapSelect(evt);
+	//OnSwapSelect(evt);
 	TileSwapRefresh();
+	m_roomview->Refresh();
 	m_fgedit->Refresh();
 	m_bgedit->Refresh();
 	m_hmedit->Refresh();
@@ -1919,12 +1922,14 @@ void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 		m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
 	}
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
+		m_roomview->GetSelectedTileSwapIndex() != evt.GetInt() ||
 		m_fgedit->GetSelectedSwap() != evt.GetInt() ||
 		m_bgedit->GetSelectedSwap() != evt.GetInt() ||
 		m_hmedit->GetSelectedSwap() != evt.GetInt())
 	{
 		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
+		m_roomview->SelectTileSwap(evt.GetInt());
 		m_fgedit->SetSelectedSwap(evt.GetInt());
 		m_bgedit->SetSelectedSwap(evt.GetInt());
 		m_hmedit->SetSelectedSwap(evt.GetInt());
@@ -1946,10 +1951,11 @@ void RoomViewerFrame::OnSwapProperties(wxCommandEvent& evt)
 	ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, evt.GetInt());
 }
 
-void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& /*evt*/)
 {
-	OnDoorSelect(evt);
+	//OnDoorSelect(evt);
 	TileSwapRefresh();
+	m_roomview->Refresh();
 	m_fgedit->Refresh();
 	m_bgedit->Refresh();
 }
@@ -1961,12 +1967,14 @@ void RoomViewerFrame::OnDoorSelect(wxCommandEvent& evt)
 		m_swapctrl->SetPage(TileSwapControlFrame::ID::DOOR);
 	}
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
+		m_roomview->GetSelectedDoorIndex() != evt.GetInt() ||
 		m_fgedit->GetSelectedDoor() != evt.GetInt() ||
 		m_bgedit->GetSelectedDoor() != evt.GetInt() ||
 		m_hmedit->GetSelectedDoor() != evt.GetInt())
 	{
 		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
+		m_roomview->SelectDoor(evt.GetInt());
 		m_fgedit->SetSelectedDoor(evt.GetInt());
 		m_bgedit->SetSelectedDoor(evt.GetInt());
 		m_hmedit->SetSelectedDoor(evt.GetInt());

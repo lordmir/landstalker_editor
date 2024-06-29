@@ -73,11 +73,13 @@ public:
 	bool IsTileSwapSelected() const;
 	const TileSwap& GetSelectedTileSwap() const;
 	int GetSelectedTileSwapIndex() const;
+	void UpdateSwaps();
 
 	void SelectDoor(int selection);
 	bool IsDoorSelected() const;
 	const Door& GetSelectedDoor() const;
 	int GetSelectedDoorIndex() const;
+	void UpdateDoors();
 
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }

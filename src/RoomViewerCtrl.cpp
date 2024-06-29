@@ -175,6 +175,8 @@ void RoomViewerCtrl::ClearSelection()
         m_selected = NO_SELECTION;
         FireEvent(EVT_WARP_UPDATE);
         FireEvent(EVT_ENTITY_UPDATE);
+        FireEvent(EVT_TILESWAP_SELECT, NO_SELECTION);
+        FireEvent(EVT_DOOR_SELECT, NO_SELECTION);
         RefreshStatusbar();
         RedrawAllSprites();
         if (m_show_warps)
@@ -1019,9 +1021,10 @@ void RoomViewerCtrl::DrawTileSwaps(wxGraphicsContext& gc, uint16_t roomnum)
         {
             bool hovered = (m_hovered == index);
             bool selected = (m_selected == index);
-            gc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, selected ? 3 : 1));
+            bool preview = (std::find(m_preview_swaps.cbegin(), m_preview_swaps.cend(), index - SWAP_IDX_OFFSET) != m_preview_swaps.cend());
+            gc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.first.size(), points.first.data());
-            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, selected ? 3 : 1));
+            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.second.size(), points.second.data());
         };
     int hovered_poly = NO_SELECTION;
@@ -1078,7 +1081,8 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
         {
             bool hovered = (m_hovered == index);
             bool selected = (m_selected == index);
-            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 255) : wxColor(255, 0, 255), selected ? 3 : 1));
+            bool preview = (std::find(m_preview_doors.cbegin(), m_preview_doors.cend(), index - DOOR_IDX_OFFSET) != m_preview_doors.cend());
+            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 255) : wxColor(255, 0, 255), selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.size(), points.data());
         };
     int hovered_poly = NO_SELECTION;
@@ -1406,6 +1410,7 @@ void RoomViewerCtrl::SelectTileSwap(int selection)
         {
             m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
             ForceRedraw();
+            FireEvent(EVT_TILESWAP_SELECT, new_sel - SWAP_IDX_OFFSET);
         }
     }
 }
@@ -1436,6 +1441,15 @@ int RoomViewerCtrl::GetSelectedTileSwapIndex() const
     }
 }
 
+void RoomViewerCtrl::UpdateSwaps()
+{
+    if (m_g)
+    {
+        m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+        RefreshRoom(true);
+    }
+}
+
 void RoomViewerCtrl::SelectDoor(int selection)
 {
     bool door_currently_selected = (m_selected > DOOR_IDX_OFFSET && m_selected <= static_cast<int>(m_doors.size() + DOOR_IDX_OFFSET));
@@ -1460,6 +1474,7 @@ void RoomViewerCtrl::SelectDoor(int selection)
         {
             m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
             ForceRedraw();
+            FireEvent(EVT_DOOR_SELECT, new_sel - DOOR_IDX_OFFSET);
         }
     }
 }
@@ -1487,6 +1502,15 @@ int RoomViewerCtrl::GetSelectedDoorIndex() const
     else
     {
         return NO_SELECTION;
+    }
+}
+
+void RoomViewerCtrl::UpdateDoors()
+{
+    if (m_g)
+    {
+        m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+        RefreshRoom(true);
     }
 }
 
@@ -1593,6 +1617,7 @@ void RoomViewerCtrl::FireUpdateStatusEvent(const std::string& data, int pane)
 void RoomViewerCtrl::FireEvent(const wxEventType& e, long userdata)
 {
     wxCommandEvent evt(e);
+    evt.SetInt(userdata);
     evt.SetExtraLong(userdata);
     evt.SetClientData(m_frame);
     wxPostEvent(m_frame, evt);
@@ -1813,7 +1838,7 @@ std::pair<int, int> RoomViewerCtrl::GetAbsoluteCoordinates(int screenx, int scre
     return { x, y };
 }
 
-bool RoomViewerCtrl::HandleKeyUp(unsigned int key, unsigned int modifiers)
+bool RoomViewerCtrl::HandleKeyUp(unsigned int /*key*/, unsigned int /*modifiers*/)
 {
     return true;
 }
@@ -2383,7 +2408,7 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
     {
         if (action == Action::DO_ALT_ACTION)
         {
-            // Implement clear swap preview
+            ClearAllPreviews();
         }
         ClearSelection();
         return true;
@@ -2431,8 +2456,7 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
         }
         if (action == Action::DO_ACTION)
         {
-            // TODO: Add preview toggle here
-            wxMessageBox("Implement swap dialog");
+            FireEvent(EVT_TILESWAP_OPEN_PROPERTIES, new_selection - SWAP_IDX_OFFSET);
         }
         return true;
     }
@@ -2446,8 +2470,7 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
         }
         if (action == Action::DO_ACTION)
         {
-            // TODO: Add preview toggle here
-            wxMessageBox("Implement door dialog");
+            FireEvent(EVT_DOOR_OPEN_PROPERTIES, new_selection - DOOR_IDX_OFFSET);
         }
         return true;
     }
@@ -2460,7 +2483,7 @@ std::vector<TileSwap> RoomViewerCtrl::GetPreviewSwaps()
     std::vector<TileSwap> swaps;
     for (auto idx : m_preview_swaps)
     {
-        if (idx > 0 && idx <= m_swaps.size())
+        if (idx > 0 && idx <= static_cast<int>(m_swaps.size()))
         {
             swaps.push_back(m_swaps.at(idx - 1));
         }
@@ -2473,7 +2496,7 @@ std::vector<Door> RoomViewerCtrl::GetPreviewDoors()
     std::vector<Door> doors;
     for (auto idx : m_preview_doors)
     {
-        if (idx > 0 && idx <= m_doors.size())
+        if (idx > 0 && idx <= static_cast<int>(m_doors.size()))
         {
             doors.push_back(m_doors.at(idx - 1));
         }
