@@ -215,7 +215,7 @@ int RoomViewerCtrl::GetSelectedEntityIndex() const
 
 const Entity& RoomViewerCtrl::GetSelectedEntity() const
 {
-    assert(m_selected > ENTITY_IDX_OFFSET && m_selected <= ENTITY_IDX_OFFSET + m_entities.size());
+    assert(m_selected > static_cast<int>(ENTITY_IDX_OFFSET) && m_selected <= static_cast<int>(ENTITY_IDX_OFFSET + m_entities.size()));
     return m_entities[m_selected - ENTITY_IDX_OFFSET - 1];
 }
 
@@ -1860,6 +1860,10 @@ bool RoomViewerCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers)
         {
             return !HandleNWarpKeyDown(key, modifiers);
         }
+        if (IsTileSwapSelected() || IsDoorSelected())
+        {
+            return !HandleNSwapKeyDown(key, modifiers);
+        }
     }
     else
     {
@@ -1904,26 +1908,88 @@ bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modi
         }
         break;
     case '.':
-        if (IsEntitySelected())
+        if ((modifiers & wxMOD_ALT) > 0)
         {
-            SelectEntity((GetSelectedEntityIndex()) % m_entities.size() + 1);
+            if (!m_swaps.empty() || !m_doors.empty())
+            {
+                int sel = NO_SELECTION;
+                if (IsTileSwapSelected())
+                {
+                    sel = GetSelectedTileSwapIndex() - 1;
+                }
+                else if (IsDoorSelected())
+                {
+                    sel = m_swaps.size() + GetSelectedDoorIndex() - 1;
+                }
+                if (++sel >= static_cast<int>(m_swaps.size() + m_doors.size()))
+                {
+                    sel = 0;
+                }
+                if (sel >= static_cast<int>(m_swaps.size()))
+                {
+                    SelectDoor(sel - m_swaps.size() + 1);
+                }
+                else
+                {
+                    SelectTileSwap(sel + 1);
+                }
+                key_handled = true;
+            }
         }
         else
         {
-            SelectEntity(1);
+            if (IsEntitySelected())
+            {
+                SelectEntity((GetSelectedEntityIndex()) % m_entities.size() + 1);
+            }
+            else
+            {
+                SelectEntity(1);
+            }
+            key_handled = true;
         }
-        key_handled = true;
         break;
     case ',':
-        if (IsEntitySelected())
+        if ((modifiers & wxMOD_ALT) > 0)
         {
-            SelectEntity(GetSelectedEntityIndex() == 1 ? m_entities.size() : GetSelectedEntityIndex() - 1);
+            if (!m_swaps.empty() || !m_doors.empty())
+            {
+                int sel = NO_SELECTION;
+                if (IsTileSwapSelected())
+                {
+                    sel = GetSelectedTileSwapIndex() - 1;
+                }
+                else if (IsDoorSelected())
+                {
+                    sel = m_swaps.size() + GetSelectedDoorIndex() - 1;
+                }
+                if (--sel < 0)
+                {
+                    sel = m_swaps.size() + m_doors.size() - 1;
+                }
+                if (sel >= static_cast<int>(m_swaps.size()))
+                {
+                    SelectDoor(sel - m_swaps.size() + 1);
+                }
+                else
+                {
+                    SelectTileSwap(sel + 1);
+                }
+                key_handled = true;
+            }
         }
         else
         {
-            SelectEntity(m_entities.size());
+            if (IsEntitySelected())
+            {
+                SelectEntity(GetSelectedEntityIndex() == 1 ? m_entities.size() : GetSelectedEntityIndex() - 1);
+            }
+            else
+            {
+                SelectEntity(m_entities.size());
+            }
+            key_handled = true;
         }
-        key_handled = true;
         break;
     case '>':
         if (IsWarpSelected())
@@ -2249,6 +2315,11 @@ bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers
             UpdateWarpProperties(GetSelectedWarpIndex());
             key_handled = true;
             break;
+        case WXK_SPACE:
+            const auto& w = GetSelectedWarp();
+            GoToRoom(w.room1 == m_roomnum ? w.room2 : w.room1);
+            key_handled = true;
+            break;
         }
     }
     if (refresh_warps)
@@ -2260,6 +2331,231 @@ bool RoomViewerCtrl::HandleNWarpKeyDown(unsigned int key, unsigned int modifiers
         ForceRedraw();
     }
     return key_handled;
+}
+
+bool RoomViewerCtrl::HandleNSwapKeyDown(unsigned int key, unsigned int modifiers)
+{
+#define INCR(X) X = std::clamp(X + 1, 0 , 0x3F)
+#define DECR(X) X = std::clamp(X - 1, 0 , 0x3F)
+#define INCSZ(X) X = std::clamp(X + 1, 1 , 0x3F)
+#define DECSZ(X) X = std::clamp(X - 1, 1 , 0x3F)
+#define INCDSZ(X, MAX) X = static_cast<decltype(X)>((static_cast<int>(X) + MAX + 1) % MAX)
+#define DECDSZ(X, MAX) X = static_cast<decltype(X)>((static_cast<int>(X) + MAX - 1) % MAX)
+
+    bool upd = false;
+
+    switch (key)
+    {
+    case WXK_LEFT:
+    case 'a':
+    case 'A':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECDSZ(m_doors[GetSelectedDoorIndex() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_doors[GetSelectedDoorIndex() - 1].x);
+                upd = true;
+            }
+        }
+        else if (IsTileSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                DECR(m_swaps[GetSelectedTileSwapIndex() - 1].map.dst_x);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECSZ(m_swaps[GetSelectedTileSwapIndex() - 1].map.width);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_swaps[GetSelectedTileSwapIndex() - 1].map.src_x);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_RIGHT:
+    case 'd':
+    case 'D':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCDSZ(m_doors[GetSelectedDoorIndex() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_doors[GetSelectedDoorIndex() - 1].x);
+                upd = true;
+            }
+        }
+        else if (IsTileSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                INCR(m_swaps[GetSelectedTileSwapIndex() - 1].map.dst_x);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCSZ(m_swaps[GetSelectedTileSwapIndex() - 1].map.width);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_swaps[GetSelectedTileSwapIndex() - 1].map.src_x);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_UP:
+    case 'w':
+    case 'W':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECDSZ(m_doors[GetSelectedDoorIndex() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_doors[GetSelectedDoorIndex() - 1].y);
+                upd = true;
+            }
+        }
+        else if (IsTileSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                DECR(m_swaps[GetSelectedTileSwapIndex() - 1].map.dst_y);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECSZ(m_swaps[GetSelectedTileSwapIndex() - 1].map.height);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                DECR(m_swaps[GetSelectedTileSwapIndex() - 1].map.src_y);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_DOWN:
+    case 's':
+    case 'S':
+        if (IsDoorSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCDSZ(m_doors[GetSelectedDoorIndex() - 1].size, Door::SIZES.size());
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_doors[GetSelectedDoorIndex() - 1].y);
+                upd = true;
+            }
+        }
+        else if (IsTileSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_ALT))
+            {
+                INCR(m_swaps[GetSelectedTileSwapIndex() - 1].map.dst_y);
+                upd = true;
+            }
+            else if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                INCSZ(m_swaps[GetSelectedTileSwapIndex() - 1].map.height);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCR(m_swaps[GetSelectedTileSwapIndex() - 1].map.src_y);
+                upd = true;
+            }
+        }
+        break;
+    case 'T':
+    case 't':
+        if (IsTileSwapSelected())
+        {
+            if (modifiers == (wxMOD_CONTROL | wxMOD_SHIFT))
+            {
+                DECDSZ(m_swaps[GetSelectedTileSwapIndex() - 1].mode, 3);
+                upd = true;
+            }
+            else if (modifiers == wxMOD_CONTROL)
+            {
+                INCDSZ(m_swaps[GetSelectedTileSwapIndex() - 1].mode, 3);
+                upd = true;
+            }
+        }
+        break;
+    case WXK_RETURN:
+        if (IsTileSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_OPEN_PROPERTIES, GetSelectedTileSwapIndex());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_OPEN_PROPERTIES, GetSelectedDoorIndex());
+        }
+        break;
+    case 'P':
+    case 'p':
+        if (IsDoorSelected())
+        {
+            TogglePreviewDoor(GetSelectedDoorIndex());
+        }
+        else if (IsTileSwapSelected())
+        {
+            TogglePreviewSwap(GetSelectedTileSwapIndex());
+        }
+        else
+        {
+            ClearAllPreviews();
+        }
+        RefreshStatusbar();
+        ForceRedraw();
+        break;
+    }
+
+    if (upd)
+    {
+        if (m_g)
+        {
+            m_g->GetRoomData()->SetDoors(m_roomnum, m_doors);
+            m_g->GetRoomData()->SetTileSwaps(m_roomnum, m_swaps);
+            if (IsDoorSelected())
+            {
+                FireEvent(EVT_DOOR_UPDATE, GetSelectedDoorIndex());
+            }
+            else if (IsTileSwapSelected())
+            {
+                FireEvent(EVT_TILESWAP_UPDATE, GetSelectedTileSwapIndex());
+            }
+        }
+        Refresh();
+    }
+
+    return true;
+#undef DECDSZ
+#undef INCDSZ
+#undef DECSZ
+#undef INCSZ
+#undef DECR
+#undef INCR
 }
 
 bool RoomViewerCtrl::SetCursor(wxStockCursor cursor_id)

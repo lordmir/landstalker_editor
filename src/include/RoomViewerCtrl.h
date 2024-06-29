@@ -181,6 +181,7 @@ private:
 	bool HandleNormalModeKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNEntityKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNWarpKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleNSwapKeyDown(unsigned int key, unsigned int modifiers);
 	virtual bool SetCursor(wxStockCursor cursor);
 
 	std::shared_ptr<GameData> m_g;
