@@ -43,8 +43,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
       m_bmp(std::make_unique<wxBitmap>()),
       m_scroll_rate(SCROLL_RATE),
       m_selected(NO_SELECTION),
-      m_hovered(NO_SELECTION),
-      m_cursor(nullptr)
+      m_hovered(NO_SELECTION)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
@@ -64,7 +63,6 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 
 RoomViewerCtrl::~RoomViewerCtrl()
 {
-    delete m_cursor;
 }
 
 void RoomViewerCtrl::SetGameData(std::shared_ptr<GameData> gd)
@@ -344,6 +342,8 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(roomnum);
     auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
     auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+    m_swaps = m_g->GetRoomData()->GetTileSwaps(roomnum);
+    m_doors = m_g->GetRoomData()->GetDoors(roomnum);
     m_rpalette = PreparePalettes(roomnum);
 
     m_warp_poly.clear();
@@ -816,12 +816,38 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
         for (int x = 0; x < map->GetHeightmapWidth(); ++x)
         {
             // Only display cells that are not completely restricted
-            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)))
+            wxColour wall_colour = *wxWHITE;
+            bool draw_outline = false;
+            for (const auto& door : m_g->GetRoomData()->GetDoors(m_roomnum))
+            {
+                if ((x >= door.x && x < door.x + Door::SIZES.at(door.size).first) &&
+                    (y >= door.y && y < door.y + Door::SIZES.at(door.size).second))
+                {
+                    wall_colour = wxColor(255, 0, 255);
+                    draw_outline = true;
+                }
+            }
+            for (const auto& swap : m_g->GetRoomData()->GetTileSwaps(m_roomnum))
+            {
+                if ((x >= swap.heightmap.src_x && x < swap.heightmap.src_x + swap.heightmap.width) &&
+                    (y >= swap.heightmap.src_y && y < swap.heightmap.src_y + swap.heightmap.height))
+                {
+                    wall_colour = *wxGREEN;
+                    draw_outline = true;
+                }
+                if ((x >= swap.heightmap.dst_x && x < swap.heightmap.dst_x + swap.heightmap.width) &&
+                    (y >= swap.heightmap.dst_y && y < swap.heightmap.dst_y + swap.heightmap.height))
+                {
+                    wall_colour = wxColor(0, 255, 255);
+                    draw_outline = true;
+                }
+            }
+            if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)) || draw_outline)
             {
                 int z = map->GetHeight({ x, y });
                 auto xy(map->Iso3DToPixel({ x + 12, y + 12, z }));
                 DrawHeightmapCell(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT,
-                    map->GetCellProps({ x,y }), map->GetCellType({ x,y }));
+                    map->GetCellProps({ x,y }), map->GetCellType({ x,y }), draw_outline, wall_colour);
             }
         }
     }
@@ -832,13 +858,20 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
 
 void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int zz, int width, int height, int restrictions, int classification, bool draw_walls, wxColor border_colour)
 {
-    int z = draw_walls ? zz : 0;
+    int z = zz;// draw_walls ? zz : 0;
     wxPoint2DDouble tile_points[] = {
         wxPoint2DDouble(x + width / 2, y),
         wxPoint2DDouble(x + width    , y + height / 2),
         wxPoint2DDouble(x + width / 2, y + height),
         wxPoint2DDouble(x            , y + height / 2),
         wxPoint2DDouble(x + width / 2, y)
+    };
+    wxPoint2DDouble tile_highlight[] = {
+        wxPoint2DDouble(x + width / 2, y + 1),
+        wxPoint2DDouble(x + width - 1, y + height / 2),
+        wxPoint2DDouble(x + width / 2, y + height - 1),
+        wxPoint2DDouble(x         + 1, y + height / 2),
+        wxPoint2DDouble(x + width / 2, y + 1)
     };
     wxPoint2DDouble left_wall[] = {
         wxPoint2DDouble(x            , y + height / 2),
@@ -877,9 +910,15 @@ void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int 
         break;
     }
     gc.SetBrush(wxBrush(bg));
-    gc.SetPen(border_colour);
+    gc.SetPen(*wxWHITE);
     //gc.SetTextForeground(*wxWHITE);
     gc.DrawLines(sizeof(tile_points) / sizeof(tile_points[0]), tile_points);
+    if (draw_walls)
+    {
+        gc.SetPen(border_colour);
+        gc.DrawLines(sizeof(tile_highlight) / sizeof(tile_highlight[0]), tile_highlight);
+        gc.SetPen(*wxWHITE);
+    }
     bg = bg.ChangeLightness(70);
     gc.SetBrush(wxBrush(bg));
     gc.DrawLines(sizeof(left_wall) / sizeof(left_wall[0]), left_wall);
@@ -941,14 +980,15 @@ void RoomViewerCtrl::DrawTileSwaps(wxGraphicsContext& gc, uint16_t roomnum)
         if (hovered)
         {
             hovered_poly = si;
-            continue;
         }
         if (selected)
         {
             selected_poly = si;
-            continue;
         }
-        draw_poly(si, r);
+        if (!hovered && !selected)
+        {
+            draw_poly(si, r);
+        }
     }
     if (selected_poly != NO_SELECTION)
     {
@@ -997,14 +1037,15 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
         if (hovered)
         {
             hovered_poly = di;
-            continue;
         }
         if (selected)
         {
             selected_poly = di;
-            continue;
         }
-        draw_poly(di, r);
+        if (!hovered && !selected)
+        {
+            draw_poly(di, r);
+        }
     }
     if (selected_poly != NO_SELECTION)
     {
@@ -1345,7 +1386,7 @@ void RoomViewerCtrl::SelectDoor(int selection)
 {
     bool door_currently_selected = (m_selected > DOOR_IDX_OFFSET && m_selected <= static_cast<int>(m_doors.size() + DOOR_IDX_OFFSET));
     int cur_sel = door_currently_selected ? m_selected : NO_SELECTION;
-    int new_sel = (selection > 0 && selection <= static_cast<int>(m_swaps.size())) ? selection + DOOR_IDX_OFFSET : NO_SELECTION;
+    int new_sel = (selection > 0 && selection <= static_cast<int>(m_doors.size())) ? selection + DOOR_IDX_OFFSET : NO_SELECTION;
 
     if ((door_currently_selected && new_sel == NO_SELECTION) || (cur_sel != new_sel && new_sel != NO_SELECTION))
     {
@@ -1604,109 +1645,14 @@ void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
         {
             auto r = map->PixelToHMPoint({ xy.first, xy.second });
             status_text = StrPrintf("(%d,%d) [%d,%d]", xy.first, xy.second, r.x, r.y);
-            for (const auto& wp : m_warp_poly)
+            if (CheckMousePosForLink(xy, status_text))
             {
-                if (Pnpoly(wp.second, xy.first, xy.second))
-                {
-                    const auto& warp = m_warps.at(wp.first);
-                    uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
-                    uint8_t wx = (warp.room1 == m_roomnum) ? warp.x2 : warp.x1;
-                    uint8_t wy = (warp.room1 == m_roomnum) ? warp.y2 : warp.y1;
-                    status_text += StrPrintf(" - Warp to room %03d (%d,%d)", room, wx, wy);
-                    SetCursor(wxStockCursor::wxCURSOR_HAND);
-                    if (status_text != m_status_text)
-                    {
-                        FireUpdateStatusEvent(status_text, 0);
-                    }
-                    evt.Skip();
-                    return;
-                }
+                Refresh();
+                SetCursor(m_hovered != NO_SELECTION ? wxCURSOR_HAND : wxCURSOR_ARROW);
             }
             if (status_text != m_status_text)
             {
-                FireUpdateStatusEvent(status_text);
-            }
-            for (const auto& lp : m_link_poly)
-            {
-                if (Pnpoly(lp.second, xy.first, xy.second))
-                {
-                    SetCursor(wxStockCursor::wxCURSOR_HAND);
-                    if (m_hovered != WARP_IDX_OFFSET + lp.first)
-                    {
-                        m_hovered = WARP_IDX_OFFSET + lp.first;
-                        Refresh();
-                    }
-                    evt.Skip();
-                    return;
-                }
-            }
-            for (const auto& ep : m_entity_poly)
-            {
-                if (Pnpoly(ep.second, xy.first, xy.second))
-                {
-                    SetCursor(wxStockCursor::wxCURSOR_HAND);
-                    if (m_hovered != ENTITY_IDX_OFFSET + ep.first)
-                    {
-                        m_hovered = ENTITY_IDX_OFFSET + ep.first;
-                        Refresh();
-                    }
-                    status_text += StrPrintf(" - Entity (%d)", ep.first);
-                    if (status_text != m_status_text)
-                    {
-                        FireUpdateStatusEvent(status_text);
-                    }
-                    evt.Skip();
-                    return;
-                }
-            }
-            for (int i = 0; i < static_cast<int>(m_swap_regions.size()); ++i)
-            {
-                const auto& [sp, dp] = m_swap_regions.at(i);
-                if (Pnpoly(sp, xy.first, xy.second) || Pnpoly(dp, xy.first, xy.second))
-                {
-                    SetCursor(wxStockCursor::wxCURSOR_HAND);
-                    if (m_hovered != SWAP_IDX_OFFSET + i + 1)
-                    {
-                        m_hovered = SWAP_IDX_OFFSET + i + 1;
-                        UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
-                        ForceRedraw();
-                    }
-                    status_text += StrPrintf(" - Tile Swap (%d)", i + 1);
-                    if (status_text != m_status_text)
-                    {
-                        FireUpdateStatusEvent(status_text);
-                    }
-                    evt.Skip();
-                    return;
-                }
-            }
-            for (int i = 0; i < static_cast<int>(m_door_regions.size()); ++i)
-            {
-                const auto& dp = m_door_regions.at(i);
-                if (Pnpoly(dp, xy.first, xy.second))
-                {
-                    SetCursor(wxStockCursor::wxCURSOR_HAND);
-                    if (m_hovered != DOOR_IDX_OFFSET + i + 1)
-                    {
-                        m_hovered = DOOR_IDX_OFFSET + i + 1;
-                        UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
-                        ForceRedraw();
-                    }
-                    status_text += StrPrintf(" - Door (%d)", i + 1);
-                    if (status_text != m_status_text)
-                    {
-                        FireUpdateStatusEvent(status_text);
-                    }
-                    evt.Skip();
-                    return;
-                }
-            }
-            if (m_hovered != NO_SELECTION)
-            {
-                m_hovered = NO_SELECTION;
-                SetCursor(wxStockCursor::wxCURSOR_ARROW);
-                UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
-                ForceRedraw();
+                FireUpdateStatusEvent(status_text, 0);
             }
         }
     }
@@ -1788,52 +1734,14 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            for (const auto& wp : m_warp_poly)
+            std::string status_text;
+            if (CheckMousePosForLink(xy, status_text))
             {
-                if (Pnpoly(wp.second, xy.first, xy.second))
-                {
-                    SetCursor(wxCURSOR_ARROW);
-                    if (evt.ControlDown())
-                    {
-                        const auto& warp = m_warps.at(wp.first);
-                        uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
-                        GoToRoom(room);
-                    }
-                    else
-                    {
-                        SelectWarp(wp.first + 1);
-                    }
-                    selection_made = true;
-                    break;
-                }
+                SetCursor(m_hovered != NO_SELECTION ? wxCURSOR_HAND : wxCURSOR_ARROW);
             }
-            for (const auto& lp : m_link_poly)
-            {
-                if (Pnpoly(lp.second, xy.first, xy.second))
-                {
-                    SetCursor(wxCURSOR_ARROW);
-                    GoToRoom(lp.first);
-                    selection_made = true;
-                    break;
-                }
-            }
-            if (!selection_made)
-            {
-                for (const auto& ep : m_entity_poly)
-                {
-                    if (Pnpoly(ep.second, xy.first, xy.second))
-                    {
-                        SelectEntity(ep.first);
-                        selection_made = true;
-                        break;
-                    }
-                }
-            }
+            selection_made = UpdateSelection(m_hovered, evt.ControlDown() ? Action::DO_ACTION : Action::NORMAL);
+            m_selected = m_hovered;
         }
-    }
-    if (!selection_made)
-    {
-        ClearSelection();
     }
     evt.Skip();
 }
@@ -2281,9 +2189,7 @@ bool RoomViewerCtrl::SetCursor(wxStockCursor cursor_id)
     bool result = false;
     if (cursor_id != last_cursor_id)
     {
-        delete m_cursor;
-        m_cursor = new wxCursor(cursor_id);
-        result = wxWindow::SetCursor(*m_cursor);
+        result = wxWindow::SetCursor(cursor_id);
         last_cursor_id = cursor_id;
     }
     return result;
@@ -2335,28 +2241,179 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
     }
 }
 
+bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text)
+{
+    int prev_hover = m_hovered;
+    for (const auto& wp : m_warp_poly)
+    {
+        if (Pnpoly(wp.second, xy.first, xy.second))
+        {
+            const auto& warp = m_warps.at(wp.first);
+            uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
+            uint8_t wx = (warp.room1 == m_roomnum) ? warp.x2 : warp.x1;
+            uint8_t wy = (warp.room1 == m_roomnum) ? warp.y2 : warp.y1;
+            status_text += StrPrintf(" - Right Click: Warp to room %03d (%d,%d)", room, wx, wy);
+            m_hovered = WARP_IDX_OFFSET + wp.first + 1;
+            return m_hovered != prev_hover;
+        }
+    }
+    int i = 0;
+    for (auto it = m_link_poly.cbegin(); it != m_link_poly.cend(); ++i, ++it)
+    {
+        if (Pnpoly(it->second, xy.first, xy.second))
+        {
+            status_text += StrPrintf(" - Right Click: Warp to room %03d", it->first);
+            m_hovered = LINK_IDX_OFFSET + i;
+            return m_hovered != prev_hover;
+        }
+    }
+    for (const auto& ep : m_entity_poly)
+    {
+        if (Pnpoly(ep.second, xy.first, xy.second))
+        {
+            SetCursor(wxStockCursor::wxCURSOR_HAND);
+            m_hovered = ENTITY_IDX_OFFSET + ep.first;
+            status_text += StrPrintf(" - Entity (%d)", ep.first);
+            return m_hovered != prev_hover;
+        }
+    }
+    for (i = 0; i < static_cast<int>(m_swap_regions.size()); ++i)
+    {
+        const auto& [sp, dp] = m_swap_regions.at(i);
+        if (Pnpoly(sp, xy.first, xy.second) || Pnpoly(dp, xy.first, xy.second))
+        {
+            m_hovered = SWAP_IDX_OFFSET + i + 1;
+            if (m_hovered != prev_hover)
+            {
+                UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
+                m_redraw = true;
+                m_repaint = true;
+            }
+            status_text += StrPrintf(" - Tile Swap (%d)", i + 1);
+            return m_hovered != prev_hover;
+        }
+    }
+    for (i = 0; i < static_cast<int>(m_door_regions.size()); ++i)
+    {
+        const auto& dp = m_door_regions.at(i);
+        if (Pnpoly(dp, xy.first, xy.second))
+        {
+            m_hovered = DOOR_IDX_OFFSET + i + 1;
+            if (m_hovered != prev_hover)
+            {
+                UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
+                m_redraw = true;
+                m_repaint = true;
+            }
+            status_text += StrPrintf(" - Door (%d)", i + 1);
+            return m_hovered != prev_hover;
+        }
+    }
+    if (m_hovered != NO_SELECTION)
+    {
+        m_hovered = NO_SELECTION;
+        if (prev_hover >= SWAP_IDX_OFFSET)
+        {
+            UpdateLayer(Layer::SWAPS, DrawRoomSwaps(m_roomnum));
+            m_redraw = true;
+            m_repaint = true;
+        }
+        return m_hovered != prev_hover;
+    }
+    return false;
+}
+
+bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action action)
+{
+    if (new_selection == NO_SELECTION)
+    {
+        if (action == Action::DO_ALT_ACTION)
+        {
+            // Implement clear swap preview
+        }
+        ClearSelection();
+        return true;
+    }
+    else if (new_selection >= LINK_IDX_OFFSET && new_selection < LINK_IDX_OFFSET + static_cast<int>(m_link_poly.size()))
+    {
+        GoToRoom(m_link_poly.at(new_selection - LINK_IDX_OFFSET).first);
+        return true;
+    }
+    else if (new_selection > WARP_IDX_OFFSET && new_selection <= WARP_IDX_OFFSET + static_cast<int>(m_warp_poly.size()))
+    {
+        int warp_idx = new_selection - WARP_IDX_OFFSET;
+        if (action == Action::DO_ALT_ACTION)
+        {
+            const auto& warp = m_warps.at(warp_idx - 1);
+            uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
+            GoToRoom(room);
+        }
+        else if (action == Action::DO_ACTION)
+        {
+            UpdateWarpProperties(warp_idx);
+        }
+        else
+        {
+            SelectWarp(warp_idx);
+        }
+        return true;
+    }
+    else if (new_selection > ENTITY_IDX_OFFSET && new_selection <= ENTITY_IDX_OFFSET + static_cast<int>(m_entity_poly.size()))
+    {
+        SelectEntity(new_selection);
+        if (action != Action::NORMAL)
+        {
+            UpdateEntityProperties(new_selection - ENTITY_IDX_OFFSET);
+        }
+        return true;
+    }
+    else if (new_selection >= SWAP_IDX_OFFSET && new_selection <= SWAP_IDX_OFFSET + static_cast<int>(m_swap_regions.size()))
+    {
+        SelectTileSwap(new_selection - SWAP_IDX_OFFSET);
+        if (action == Action::DO_ALT_ACTION)
+        {
+            // TODO: Add preview toggle here
+            wxMessageBox("Implement swap preview");
+        }
+        if (action == Action::DO_ACTION)
+        {
+            // TODO: Add preview toggle here
+            wxMessageBox("Implement swap dialog");
+        }
+        return true;
+    }
+    else if (new_selection >= DOOR_IDX_OFFSET && new_selection <= DOOR_IDX_OFFSET + static_cast<int>(m_door_regions.size()))
+    {
+        SelectDoor(new_selection - DOOR_IDX_OFFSET);
+        if (action == Action::DO_ALT_ACTION)
+        {
+            // TODO: Add preview toggle here
+            wxMessageBox("Implement door preview");
+        }
+        if (action == Action::DO_ACTION)
+        {
+            // TODO: Add preview toggle here
+            wxMessageBox("Implement door dialog");
+        }
+        return true;
+    }
+
+    return false;
+}
+
 void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
     bool selection_made = false;
-    for (const auto& ep : m_warp_poly)
+    if (m_g != nullptr)
     {
-        if (Pnpoly(ep.second, xy.first, xy.second) && ep.first == GetSelectedWarpIndex() - 1)
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (map)
         {
-            UpdateWarpProperties(GetSelectedWarpIndex());
-            selection_made = true;
-            break;
-        }
-    }
-    if (!selection_made)
-    {
-        for (const auto& ep : m_entity_poly)
-        {
-            if (Pnpoly(ep.second, xy.first, xy.second) && ep.first == m_selected)
-            {
-                UpdateEntityProperties(m_selected);
-                break;
-            }
+            std::string status_text;
+            CheckMousePosForLink(xy, status_text);
+            selection_made = UpdateSelection(m_hovered, Action::DO_ACTION);
+            m_selected = m_hovered;
         }
     }
     evt.Skip();
@@ -2366,33 +2423,19 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
     bool selection_made = false;
-    for (const auto& wp : m_warp_poly)
+    if (m_g != nullptr)
     {
-        if (Pnpoly(wp.second, xy.first, xy.second))
+        auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+        if (map)
         {
-            const auto& warp = m_warps.at(wp.first);
-            uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
-            GoToRoom(room);
-            evt.Skip();
-            return;
-        }
-    }
-    for (const auto& ep : m_entity_poly)
-    {
-        if (Pnpoly(ep.second, xy.first, xy.second))
-        {
-            if (ep.first != GetSelectedEntityIndex())
+            std::string status_text;
+            if (CheckMousePosForLink(xy, status_text))
             {
-                SelectEntity(ep.first);
-                UpdateEntityProperties(ep.first);
+
             }
-            selection_made = true;
-            break;
+            selection_made = UpdateSelection(m_hovered, Action::DO_ALT_ACTION);
+            m_selected = m_hovered;
         }
-    }
-    if (!selection_made)
-    {
-        ClearSelection();
     }
     evt.Skip();
 }

@@ -108,6 +108,12 @@ private:
 		std::shared_ptr<SpriteFrame> frame;
 		Entity entity;
 	};
+	enum class Action
+	{
+		NORMAL,
+		DO_ACTION,
+		DO_ALT_ACTION
+	};
 	void DrawRoom(uint16_t roomnum);
 	std::vector<std::shared_ptr<Palette>> PreparePalettes(uint16_t roomnum);
 	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
@@ -143,6 +149,8 @@ private:
 	void DoDeleteEntity(int entity);
 	void DoMoveEntityUp(int entity);
 	void DoMoveEntityDown(int entity);
+	bool CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text);
+	bool UpdateSelection(int new_selection, Action action);
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
@@ -201,7 +209,7 @@ private:
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
-	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
+	std::vector<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_entity_poly;
 
 	static const std::size_t TILE_WIDTH = 32;
@@ -213,16 +221,16 @@ private:
 	static const int SCROLL_RATE = 8;
 	static const int NO_SELECTION = -1;
 	static const int ENTITY_IDX_OFFSET = 0;
-	static const int WARP_IDX_OFFSET = 0x100;
-	static const int SWAP_IDX_OFFSET = 0x200;
-	static const int DOOR_IDX_OFFSET = 0x300;
+	static const int LINK_IDX_OFFSET = 0x100;
+	static const int WARP_IDX_OFFSET = 0x200;
+	static const int SWAP_IDX_OFFSET = 0x300;
+	static const int DOOR_IDX_OFFSET = 0x400;
 	int m_scroll_rate;
 	int m_selected;
 	int m_hovered;
 
 	std::string m_status_text;
 	std::vector<std::string> m_errors;
-	wxCursor* m_cursor;
 
 	wxDECLARE_EVENT_TABLE();
 };
