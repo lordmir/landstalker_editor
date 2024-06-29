@@ -115,6 +115,7 @@ private:
 		DO_ALT_ACTION
 	};
 	void DrawRoom(uint16_t roomnum);
+	void RefreshRoom(bool redraw_tiles = false);
 	std::vector<std::shared_ptr<Palette>> PreparePalettes(uint16_t roomnum);
 	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
 	void DrawSprites(const std::vector<SpriteQ>& q);
@@ -151,6 +152,12 @@ private:
 	void DoMoveEntityDown(int entity);
 	bool CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text);
 	bool UpdateSelection(int new_selection, Action action);
+
+	std::vector<TileSwap> GetPreviewSwaps();
+	std::vector<Door> GetPreviewDoors();
+	void TogglePreviewSwap(int swap);
+	void TogglePreviewDoor(int door);
+	void ClearAllPreviews();
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
@@ -202,10 +209,10 @@ private:
 	std::vector<WarpList::Warp> m_warps;
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
-	std::vector<Door> m_preview_doors;
-	std::vector<TileSwap> m_preview_swaps;
 	std::vector<std::pair<std::vector<wxPoint2DDouble>, std::vector<wxPoint2DDouble>>> m_swap_regions;
 	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
+	std::list<int> m_preview_swaps;
+	std::list<int> m_preview_doors;
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;

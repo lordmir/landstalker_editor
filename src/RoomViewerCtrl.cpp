@@ -290,28 +290,7 @@ int RoomViewerCtrl::GetSelectedWarpIndex() const
 void RoomViewerCtrl::SetZoom(double zoom)
 {
     m_zoom = zoom;
-    if (m_g == nullptr)
-    {
-        return;
-    }
-    auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
-    UpdateBuffer();
-    auto q = PrepareSprites(m_roomnum);
-    if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
-    {
-        m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
-    }
-    if (m_show_warps)
-    {
-        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
-    }
-    if (m_show_swaps)
-    {
-        m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
-    }
-    DrawSpriteHitboxes(q);
-    UpdateScroll();
-    ForceRedraw();
+    RefreshRoom(m_roomnum);
 }
 
 void RoomViewerCtrl::SetLayerOpacity(Layer layer, uint8_t opacity)
@@ -350,6 +329,8 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     m_link_poly.clear();
     m_entity_poly.clear();
     m_layers.clear();
+    m_preview_swaps.clear();
+    m_preview_doors.clear();
     m_width = map->GetPixelWidth();
     m_height = map->GetPixelHeight();
     UpdateBuffer();
@@ -391,6 +372,68 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
     {
         RedrawAllSprites();
     }
+    auto mp = wxGetMousePosition();
+    std::string s;
+    CheckMousePosForLink({ mp.x, mp.y }, s);
+    SetCursor(m_selected == NO_SELECTION ? wxCURSOR_ARROW : wxCURSOR_HAND);
+}
+
+void RoomViewerCtrl::RefreshRoom(bool redraw_tiles)
+{
+    if (m_g == nullptr)
+    {
+        return;
+    }
+    auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+    UpdateBuffer();
+    auto q = PrepareSprites(m_roomnum);
+    if (redraw_tiles)
+    {
+        auto blocksets = m_g->GetRoomData()->GetBlocksetsForRoom(m_roomnum);
+        auto tileset = m_g->GetRoomData()->GetTilesetForRoom(m_roomnum)->GetData();
+        auto blockset = m_g->GetRoomData()->GetCombinedBlocksetForRoom(m_roomnum);
+        auto pswaps = GetPreviewSwaps();
+        auto pdoors = GetPreviewDoors();
+        if (m_layer_opacity[Layer::BACKGROUND1] > 0)
+        {
+            m_layer_bufs[Layer::BACKGROUND1]->Resize(m_width, m_height);
+            m_layer_bufs[Layer::BACKGROUND1]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset, true,
+                                                               pswaps, pdoors);
+            UpdateLayer(Layer::BACKGROUND1, m_layer_bufs[Layer::BACKGROUND1]->MakeImage(
+                m_rpalette, true, m_layer_opacity[Layer::BACKGROUND1]));
+        }
+        if (m_layer_opacity[Layer::BACKGROUND2] > 0)
+        {
+            m_layer_bufs[Layer::BACKGROUND2]->Resize(m_width, m_height);
+            m_layer_bufs[Layer::BACKGROUND2]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset, true,
+                                                               pswaps, pdoors);
+            UpdateLayer(Layer::BACKGROUND2, m_layer_bufs[Layer::BACKGROUND2]->MakeImage(
+                m_rpalette, true, m_layer_opacity[Layer::BACKGROUND2]));
+        }
+        if (m_layer_opacity[Layer::FOREGROUND] > 0)
+        {
+            m_layer_bufs[Layer::FOREGROUND]->Resize(m_width, m_height);
+            m_layer_bufs[Layer::FOREGROUND]->Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset, true,
+                                                              pswaps, pdoors);
+            UpdateLayer(Layer::FOREGROUND, m_layer_bufs[Layer::FOREGROUND]->MakeImage(
+                m_rpalette, true, m_layer_opacity[Layer::FOREGROUND]));
+        }
+    }
+    if (m_layer_opacity[Layer::HEIGHTMAP] > 0)
+    {
+        m_layers[Layer::HEIGHTMAP] = DrawHeightmapVisualisation(map, m_layer_opacity[Layer::HEIGHTMAP]);
+    }
+    if (m_show_warps)
+    {
+        m_layers[Layer::WARPS] = DrawRoomWarps(m_roomnum);
+    }
+    if (m_show_swaps)
+    {
+        m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
+    }
+    DrawSpriteHitboxes(q);
+    UpdateScroll();
+    ForceRedraw();
 }
 
 void RoomViewerCtrl::RedrawAllSprites()
@@ -811,6 +854,7 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
     hm_gc->Scale(m_zoom, m_zoom);
     hm_gc->SetPen(*wxWHITE_PEN);
     hm_gc->SetBrush(*wxBLACK_BRUSH);
+    auto preview_swaps = GetPreviewSwaps();
     for (int y = 0; y < map->GetHeightmapHeight(); ++y)
     {
         for (int x = 0; x < map->GetHeightmapWidth(); ++x)
@@ -844,10 +888,20 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawHeightmapVisualisation(std::shared
             }
             if ((map->GetHeight({ x, y }) > 0 || (map->GetCellProps({ x, y }) != 0x04)) || draw_outline)
             {
-                int z = map->GetHeight({ x, y });
+                HMPoint2D p = { x, y };
+                for (const auto& s : preview_swaps)
+                {
+                    int rx = x - s.heightmap.dst_x;
+                    int ry = y - s.heightmap.dst_y;
+                    if (rx >= 0 && rx < s.heightmap.width && ry >= 0 && ry < s.heightmap.height)
+                    {
+                        p = { rx + s.heightmap.src_x, ry + s.heightmap.src_y };
+                    }
+                }
+                int z = map->GetHeight(p);
                 auto xy(map->Iso3DToPixel({ x + 12, y + 12, z }));
                 DrawHeightmapCell(*hm_gc, xy.x, xy.y, z, TILE_WIDTH, TILE_HEIGHT,
-                    map->GetCellProps({ x,y }), map->GetCellType({ x,y }), draw_outline, wall_colour);
+                    map->GetCellProps(p), map->GetCellType(p), draw_outline, wall_colour);
             }
         }
     }
@@ -2373,7 +2427,7 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
         if (action == Action::DO_ALT_ACTION)
         {
             // TODO: Add preview toggle here
-            wxMessageBox("Implement swap preview");
+            TogglePreviewSwap(new_selection - SWAP_IDX_OFFSET);
         }
         if (action == Action::DO_ACTION)
         {
@@ -2388,7 +2442,7 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
         if (action == Action::DO_ALT_ACTION)
         {
             // TODO: Add preview toggle here
-            wxMessageBox("Implement door preview");
+            TogglePreviewDoor(new_selection - DOOR_IDX_OFFSET);
         }
         if (action == Action::DO_ACTION)
         {
@@ -2399,6 +2453,67 @@ bool RoomViewerCtrl::UpdateSelection(int new_selection, RoomViewerCtrl::Action a
     }
 
     return false;
+}
+
+std::vector<TileSwap> RoomViewerCtrl::GetPreviewSwaps()
+{
+    std::vector<TileSwap> swaps;
+    for (auto idx : m_preview_swaps)
+    {
+        if (idx > 0 && idx <= m_swaps.size())
+        {
+            swaps.push_back(m_swaps.at(idx - 1));
+        }
+    }
+    return swaps;
+}
+
+std::vector<Door> RoomViewerCtrl::GetPreviewDoors()
+{
+    std::vector<Door> doors;
+    for (auto idx : m_preview_doors)
+    {
+        if (idx > 0 && idx <= m_doors.size())
+        {
+            doors.push_back(m_doors.at(idx - 1));
+        }
+    }
+    return doors;
+}
+
+void RoomViewerCtrl::TogglePreviewSwap(int swap)
+{
+    auto pos = std::find(m_preview_swaps.begin(), m_preview_swaps.end(), swap);
+    if (pos == m_preview_swaps.cend())
+    {
+        m_preview_swaps.push_back(swap);
+    }
+    else
+    {
+        m_preview_swaps.erase(pos);
+    }
+    RefreshRoom(true);
+}
+
+void RoomViewerCtrl::TogglePreviewDoor(int door)
+{
+    auto pos = std::find(m_preview_doors.begin(), m_preview_doors.end(), door);
+    if (pos == m_preview_doors.cend())
+    {
+        m_preview_doors.push_back(door);
+    }
+    else
+    {
+        m_preview_doors.erase(pos);
+    }
+    RefreshRoom(true);
+}
+
+void RoomViewerCtrl::ClearAllPreviews()
+{
+    m_preview_doors.clear();
+    m_preview_swaps.clear();
+    RefreshRoom(true);
 }
 
 void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
