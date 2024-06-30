@@ -1,4 +1,6 @@
 #include "GameData.h"
+#include "RomLabels.h"
+
 #include <algorithm>
 
 GameData::GameData(const filesystem::path& asm_file)
@@ -162,65 +164,65 @@ void GameData::CacheData()
 
 void GameData::SetDefaults()
 {
-	m_tilemaps[RomOffsets::Graphics::HUD_TILEMAP]->SetTileset(RomOffsets::Graphics::HUD_TILESET);
-	m_tilemaps[RomOffsets::Graphics::INV_TILEMAP]->SetTileset(RomOffsets::Graphics::HUD_TILESET);
-	m_tilemaps[RomOffsets::Graphics::TEXTBOX_2LINE_MAP]->SetTileset(RomOffsets::Graphics::HUD_TILESET);
-	m_tilemaps[RomOffsets::Graphics::TEXTBOX_3LINE_MAP]->SetTileset(RomOffsets::Graphics::HUD_TILESET);
-	m_tilemaps[RomOffsets::Graphics::ISLAND_MAP_BG_MAP]->SetTileset(RomOffsets::Graphics::ISLAND_MAP_BG_TILES);
-	m_tilemaps[RomOffsets::Graphics::ISLAND_MAP_FG_MAP]->SetTileset(RomOffsets::Graphics::ISLAND_MAP_FG_TILES);
-	m_tilemaps[RomOffsets::Graphics::LITHOGRAPH_MAP]->SetTileset(RomOffsets::Graphics::LITHOGRAPH_TILES);
-	m_tilemaps[RomOffsets::Graphics::END_CREDITS_MAP]->SetTileset(RomOffsets::Graphics::END_CREDITS_LOGOS);
-	m_tilemaps[RomOffsets::Graphics::CLIMAX_LOGO_MAP]->SetTileset(RomOffsets::Graphics::CLIMAX_LOGO_TILES);
-	m_tilemaps[RomOffsets::Graphics::TITLE_1_MAP]->SetTileset(RomOffsets::Graphics::TITLE_1_TILES);
-	m_tilemaps[RomOffsets::Graphics::TITLE_2_MAP]->SetTileset(RomOffsets::Graphics::TITLE_2_TILES);
-	m_tilemaps[RomOffsets::Graphics::TITLE_3_MAP]->SetTileset(RomOffsets::Graphics::TITLE_3_TILES);
-	m_tilemaps[RomOffsets::Graphics::GAME_LOAD_MAP]->SetTileset(RomOffsets::Graphics::GAME_LOAD_TILES);
+	m_tilemaps[RomLabels::Graphics::HUD_TILEMAP]->SetTileset(RomLabels::Graphics::HUD_TILESET);
+	m_tilemaps[RomLabels::Graphics::INV_TILEMAP]->SetTileset(RomLabels::Graphics::HUD_TILESET);
+	m_tilemaps[RomLabels::Graphics::TEXTBOX_2LINE_MAP]->SetTileset(RomLabels::Graphics::HUD_TILESET);
+	m_tilemaps[RomLabels::Graphics::TEXTBOX_3LINE_MAP]->SetTileset(RomLabels::Graphics::HUD_TILESET);
+	m_tilemaps[RomLabels::Graphics::ISLAND_MAP_BG_MAP]->SetTileset(RomLabels::Graphics::ISLAND_MAP_BG_TILES);
+	m_tilemaps[RomLabels::Graphics::ISLAND_MAP_FG_MAP]->SetTileset(RomLabels::Graphics::ISLAND_MAP_FG_TILES);
+	m_tilemaps[RomLabels::Graphics::LITHOGRAPH_MAP]->SetTileset(RomLabels::Graphics::LITHOGRAPH_TILES);
+	m_tilemaps[RomLabels::Graphics::END_CREDITS_MAP]->SetTileset(RomLabels::Graphics::END_CREDITS_LOGOS);
+	m_tilemaps[RomLabels::Graphics::CLIMAX_LOGO_MAP]->SetTileset(RomLabels::Graphics::CLIMAX_LOGO_TILES);
+	m_tilemaps[RomLabels::Graphics::TITLE_1_MAP]->SetTileset(RomLabels::Graphics::TITLE_1_TILES);
+	m_tilemaps[RomLabels::Graphics::TITLE_2_MAP]->SetTileset(RomLabels::Graphics::TITLE_2_TILES);
+	m_tilemaps[RomLabels::Graphics::TITLE_3_MAP]->SetTileset(RomLabels::Graphics::TITLE_3_TILES);
+	m_tilemaps[RomLabels::Graphics::GAME_LOAD_MAP]->SetTileset(RomLabels::Graphics::GAME_LOAD_TILES);
 
-	m_tilesets[RomOffsets::Graphics::HUD_TILESET]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::MAIN_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::MAIN_FONT]->SetPalIndicies("10,1");
-	m_tilesets[RomOffsets::Graphics::INV_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::INV_FONT]->SetPalIndicies("10,1");
-	m_tilesets[RomOffsets::Tilesets::INTRO_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	if (m_tilesets.find(RomOffsets::Graphics::END_CREDITS_FONT) != m_tilesets.end())
+	m_tilesets[RomLabels::Graphics::HUD_TILESET]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::MAIN_FONT]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::MAIN_FONT]->SetPalIndicies("10,1");
+	m_tilesets[RomLabels::Graphics::INV_FONT]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::INV_FONT]->SetPalIndicies("10,1");
+	m_tilesets[RomLabels::Tilesets::INTRO_FONT]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	if (m_tilesets.find(RomLabels::Graphics::END_CREDITS_FONT) != m_tilesets.end())
 	{
-		m_tilesets[RomOffsets::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+		m_tilesets[RomLabels::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
 	}
-	m_tilesets[RomOffsets::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomOffsets::Graphics::END_CREDITS_PAL);
-	m_tilesets[RomOffsets::Graphics::DOWN_ARROW]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::RIGHT_ARROW]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::INV_ARROW]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
-	m_tilesets[RomOffsets::Graphics::INV_ARROW]->SetPalIndicies("0,11,14,15");
-	m_tilesets[RomOffsets::Graphics::INV_CURSOR]->SetDefaultPalette(RomOffsets::Graphics::INV_ITEM_PAL);
-	m_tilesets[RomOffsets::Graphics::INV_CURSOR]->SetPalIndicies("0,5,10,15");
-	if (m_tilesets.find(RomOffsets::Graphics::INV_UNUSED1) != m_tilesets.cend())
+	m_tilesets[RomLabels::Graphics::END_CREDITS_FONT]->SetDefaultPalette(RomLabels::Graphics::END_CREDITS_PAL);
+	m_tilesets[RomLabels::Graphics::DOWN_ARROW]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::RIGHT_ARROW]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::INV_ARROW]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
+	m_tilesets[RomLabels::Graphics::INV_ARROW]->SetPalIndicies("0,11,14,15");
+	m_tilesets[RomLabels::Graphics::INV_CURSOR]->SetDefaultPalette(RomLabels::Graphics::INV_ITEM_PAL);
+	m_tilesets[RomLabels::Graphics::INV_CURSOR]->SetPalIndicies("0,5,10,15");
+	if (m_tilesets.find(RomLabels::Graphics::INV_UNUSED1) != m_tilesets.cend())
 	{
-		m_tilesets[RomOffsets::Graphics::INV_UNUSED1]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+		m_tilesets[RomLabels::Graphics::INV_UNUSED1]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
 	}
-	if (m_tilesets.find(RomOffsets::Graphics::INV_UNUSED2) != m_tilesets.cend())
+	if (m_tilesets.find(RomLabels::Graphics::INV_UNUSED2) != m_tilesets.cend())
 	{
-		m_tilesets[RomOffsets::Graphics::INV_UNUSED2]->SetDefaultPalette(RomOffsets::Graphics::HUD_PAL);
+		m_tilesets[RomLabels::Graphics::INV_UNUSED2]->SetDefaultPalette(RomLabels::Graphics::HUD_PAL);
 	}
-	m_tilesets[RomOffsets::Graphics::SWORD_MAGIC]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":1");
-	m_tilesets[RomOffsets::Graphics::SWORD_THUNDER]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":2");
-	m_tilesets[RomOffsets::Graphics::SWORD_ICE]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":3");
-	m_tilesets[RomOffsets::Graphics::SWORD_GAIA]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":4");
-	m_tilesets[RomOffsets::Graphics::COINFALL]->SetDefaultPalette(RomOffsets::Graphics::SWORD_PAL_SWAPS + ":5");
-	m_tilesets[RomOffsets::Graphics::ISLAND_MAP_BG_TILES]->SetDefaultPalette(RomOffsets::Graphics::ISLAND_MAP_BG_PAL);
-	m_tilesets[RomOffsets::Graphics::ISLAND_MAP_FG_TILES]->SetDefaultPalette(RomOffsets::Graphics::ISLAND_MAP_FG_PAL);
-	m_tilesets[RomOffsets::Graphics::ISLAND_MAP_DOTS]->SetDefaultPalette(RomOffsets::Graphics::ISLAND_MAP_BG_PAL);
-	m_tilesets[RomOffsets::Graphics::ISLAND_MAP_FRIDAY]->SetDefaultPalette(RomOffsets::Graphics::PLAYER_PAL);
-	m_tilesets[RomOffsets::Graphics::LITHOGRAPH_TILES]->SetDefaultPalette(RomOffsets::Graphics::LITHOGRAPH_PAL);
-	m_tilesets[RomOffsets::Graphics::SEGA_LOGO_TILES]->SetDefaultPalette(RomOffsets::Graphics::SEGA_LOGO_PAL);
-	m_tilesets[RomOffsets::Graphics::CLIMAX_LOGO_TILES]->SetDefaultPalette(RomOffsets::Graphics::CLIMAX_LOGO_PAL);
-	m_tilesets[RomOffsets::Graphics::TITLE_1_TILES]->SetDefaultPalette(RomOffsets::Graphics::TITLE_PALETTE_BLUE);
-	m_tilesets[RomOffsets::Graphics::TITLE_2_TILES]->SetDefaultPalette(RomOffsets::Graphics::TITLE_PALETTE_YELLOW);
-	m_tilesets[RomOffsets::Graphics::TITLE_3_TILES]->SetDefaultPalette(RomOffsets::Graphics::TITLE_3_PAL);
-	m_tilesets[RomOffsets::Graphics::GAME_LOAD_CHARS]->SetDefaultPalette(RomOffsets::Graphics::GAME_LOAD_PALETTE);
-	m_tilesets[RomOffsets::Graphics::GAME_LOAD_TILES]->SetDefaultPalette(RomOffsets::Graphics::GAME_LOAD_PALETTE);
+	m_tilesets[RomLabels::Graphics::SWORD_MAGIC]->SetDefaultPalette(RomLabels::Graphics::SWORD_PAL_SWAPS + ":1");
+	m_tilesets[RomLabels::Graphics::SWORD_THUNDER]->SetDefaultPalette(RomLabels::Graphics::SWORD_PAL_SWAPS + ":2");
+	m_tilesets[RomLabels::Graphics::SWORD_ICE]->SetDefaultPalette(RomLabels::Graphics::SWORD_PAL_SWAPS + ":3");
+	m_tilesets[RomLabels::Graphics::SWORD_GAIA]->SetDefaultPalette(RomLabels::Graphics::SWORD_PAL_SWAPS + ":4");
+	m_tilesets[RomLabels::Graphics::COINFALL]->SetDefaultPalette(RomLabels::Graphics::SWORD_PAL_SWAPS + ":5");
+	m_tilesets[RomLabels::Graphics::ISLAND_MAP_BG_TILES]->SetDefaultPalette(RomLabels::Graphics::ISLAND_MAP_BG_PAL);
+	m_tilesets[RomLabels::Graphics::ISLAND_MAP_FG_TILES]->SetDefaultPalette(RomLabels::Graphics::ISLAND_MAP_FG_PAL);
+	m_tilesets[RomLabels::Graphics::ISLAND_MAP_DOTS]->SetDefaultPalette(RomLabels::Graphics::ISLAND_MAP_BG_PAL);
+	m_tilesets[RomLabels::Graphics::ISLAND_MAP_FRIDAY]->SetDefaultPalette(RomLabels::Graphics::PLAYER_PAL);
+	m_tilesets[RomLabels::Graphics::LITHOGRAPH_TILES]->SetDefaultPalette(RomLabels::Graphics::LITHOGRAPH_PAL);
+	m_tilesets[RomLabels::Graphics::SEGA_LOGO_TILES]->SetDefaultPalette(RomLabels::Graphics::SEGA_LOGO_PAL);
+	m_tilesets[RomLabels::Graphics::CLIMAX_LOGO_TILES]->SetDefaultPalette(RomLabels::Graphics::CLIMAX_LOGO_PAL);
+	m_tilesets[RomLabels::Graphics::TITLE_1_TILES]->SetDefaultPalette(RomLabels::Graphics::TITLE_PALETTE_BLUE);
+	m_tilesets[RomLabels::Graphics::TITLE_2_TILES]->SetDefaultPalette(RomLabels::Graphics::TITLE_PALETTE_YELLOW);
+	m_tilesets[RomLabels::Graphics::TITLE_3_TILES]->SetDefaultPalette(RomLabels::Graphics::TITLE_3_PAL);
+	m_tilesets[RomLabels::Graphics::GAME_LOAD_CHARS]->SetDefaultPalette(RomLabels::Graphics::GAME_LOAD_PALETTE);
+	m_tilesets[RomLabels::Graphics::GAME_LOAD_TILES]->SetDefaultPalette(RomLabels::Graphics::GAME_LOAD_PALETTE);
 
 	for (auto& t : m_gd->GetStatusEffects())
 	{
-		t->SetDefaultPalette(RomOffsets::Graphics::PLAYER_PAL);
+		t->SetDefaultPalette(RomLabels::Graphics::PLAYER_PAL);
 	}
 }

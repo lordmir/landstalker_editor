@@ -9,7 +9,7 @@
 class Tilemap2D
 {
 public:
-	enum Compression
+	enum class Compression
 	{
 		NONE,
 		RLE,
@@ -18,21 +18,21 @@ public:
 
 	Tilemap2D();
 	Tilemap2D(size_t width, size_t height, size_t base = 0);
-	Tilemap2D(const std::string& filename, Compression compression = RLE, size_t base = 0);
-	Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
-	Tilemap2D(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
-	Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
+	Tilemap2D(const std::string& filename, Compression compression = Compression::RLE, size_t base = 0);
+	Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression = Compression::NONE, size_t base = 0);
+	Tilemap2D(const std::vector<uint8_t>& data, Compression compression = Compression::RLE, size_t base = 0);
+	Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = Compression::NONE, size_t base = 0);
 
 	bool operator==(const Tilemap2D& rhs) const;
 	bool operator!=(const Tilemap2D& rhs) const;
 
-	bool Open(const std::string& filename, Compression compression = RLE, size_t base = 0);
-	bool Open(const std::string& filename, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
-	uint32_t Open(const std::vector<uint8_t>& data, Compression compression = RLE, size_t base = 0);
-	uint32_t Open(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = NONE, size_t base = 0);
+	bool Open(const std::string& filename, Compression compression = Compression::RLE, size_t base = 0);
+	bool Open(const std::string& filename, size_t width, size_t height, Compression compression = Compression::NONE, size_t base = 0);
+	uint32_t Open(const std::vector<uint8_t>& data, Compression compression = Compression::RLE, size_t base = 0);
+	uint32_t Open(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression = Compression::NONE, size_t base = 0);
 
-	bool GetBits(std::vector<uint8_t>& data, Compression compression = NONE);
-	bool Save(const std::string& filename, Compression compression = NONE);
+	bool GetBits(std::vector<uint8_t>& data, Compression compression = Compression::NONE);
+	bool Save(const std::string& filename, Compression compression = Compression::NONE);
 	Compression GetCompression() const;
 	void SetCompression(Compression c);
 	static std::string GetFileExtension(Compression c);

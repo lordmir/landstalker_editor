@@ -71,12 +71,12 @@ const MapBlock& Blockmap2D::GetBigTile(const TilePoint& point) const
 	return m_blockset->at(GetTileValue(point));
 }
 
-const std::size_t Blockmap2D::GetBlockWidth() const
+std::size_t Blockmap2D::GetBlockWidth() const
 {
 	return TILE_WIDTH * MapBlock::GetBlockWidth();
 }
 
-const std::size_t Blockmap2D::GetBlockHeight() const
+std::size_t Blockmap2D::GetBlockHeight() const
 {
 	return TILE_HEIGHT * MapBlock::GetBlockHeight();
 }

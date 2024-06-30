@@ -7,9 +7,10 @@
                 "${workspaceFolder}/src/*",
                 "${workspaceFolder}/src/include/*",
                 "${workspaceFolder}/third_party/*",
+                "/usr/local/lib/wx/include/gtk3-unicode-static-3.2",
                 "/usr/local/include/wx-3.2"
             ],
-            "defines": [],
+            "defines": ["__WXGTK__"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",

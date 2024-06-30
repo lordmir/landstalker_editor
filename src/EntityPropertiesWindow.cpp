@@ -51,7 +51,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString entity_types;
-    for (int i = 0; i < Entity::EntityNames.size(); ++i)
+    for (std::size_t i = 0; i < Entity::EntityNames.size(); ++i)
     {
         entity_types.Add(StrPrintf("[%02X] %s", i, Entity::EntityNames.at(i).c_str()));
     }
@@ -211,7 +211,7 @@ EntityPropertiesWindow::~EntityPropertiesWindow()
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
 }
 
-void EntityPropertiesWindow::OnClickOK(wxCommandEvent& evt)
+void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     m_entity->SetType(m_ctrl_entity_type->GetSelection());
     m_entity->SetXDbl(m_ctrl_x->GetValue());
@@ -236,7 +236,7 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& evt)
     EndModal(wxID_OK);
 }
 
-void EntityPropertiesWindow::OnClickCancel(wxCommandEvent& evt)
+void EntityPropertiesWindow::OnClickCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

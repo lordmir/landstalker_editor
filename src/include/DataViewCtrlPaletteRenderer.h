@@ -24,7 +24,7 @@ public:
 
     virtual bool SetValue(const wxVariant& value) override;
 
-    virtual bool GetValue(wxVariant& value) const override { return true; }
+    virtual bool GetValue(wxVariant& /*value*/) const override { return true; }
 
     virtual bool HasEditorCtrl() const override { return false; }
 

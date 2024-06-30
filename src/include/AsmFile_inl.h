@@ -52,14 +52,15 @@ bool AsmFile::Read(T& value)
 	value = 0;
 	try
 	{
-		for (int i = 0; i < sizeof(T); ++i)
+		for (std::size_t i = 0; i < sizeof(T); ++i)
 		{
 			if (m_readptr == m_data.end())
 			{
 				m_good = false;
 				return false;
 			}
-			value <<= 8;
+			value <<= 4;
+			value <<= 4;
 			value |= std::get<uint8_t>(*m_readptr++);
 		}
 	}
@@ -131,7 +132,7 @@ template<typename T>
 bool AsmFile::Write(const T& value)
 {
 	std::size_t w = 4;
-	if (std::is_integral<T>::value && sizeof(T) < 4)
+	if constexpr (std::is_integral<T>::value && sizeof(T) < 4)
 	{
 		w = sizeof(T);
 	}
@@ -161,7 +162,7 @@ template<typename Iter>
 inline bool AsmFile::Write(Iter begin, Iter end)
 {
 	std::size_t w = 4;
-	if (sizeof(decltype(*begin)) < 4)
+	if constexpr (sizeof(decltype(*begin)) < 4)
 	{
 		w = sizeof(decltype(*begin));
 	}
@@ -218,17 +219,17 @@ std::string AsmFile::ToAsmValue(T value, AsmFile::Base base)
 	const char digits[] = "0123456789ABCDEF";
 	std::unordered_map<Base, std::array<int, 5>> places_u =
 	{
-		{BIN, {0, 8, 16, 24, 32}},
-		{OCT, {0, 3,  6,  8, 11}},
-		{DEC, {0, 3,  5,  8, 10}},
-		{HEX, {0, 2,  4,  6,  8}}
+		{Base::BIN, {0, 8, 16, 24, 32}},
+		{Base::OCT, {0, 3,  6,  8, 11}},
+		{Base::DEC, {0, 3,  5,  8, 10}},
+		{Base::HEX, {0, 2,  4,  6,  8}}
 	};
 	std::unordered_map<Base, std::array<int, 5>> places_s =
 	{
-		{BIN, {0, 7, 15, 23, 31}},
-		{OCT, {0, 3,  5,  8, 11}},
-		{DEC, {0, 3,  5,  7, 10}},
-		{HEX, {0, 2,  4,  6,  8}}
+		{Base::BIN, {0, 7, 15, 23, 31}},
+		{Base::OCT, {0, 3,  5,  8, 11}},
+		{Base::DEC, {0, 3,  5,  7, 10}},
+		{Base::HEX, {0, 2,  4,  6,  8}}
 	};
 	std::string num;
 	bool neg = false;
@@ -256,16 +257,16 @@ std::string AsmFile::ToAsmValue(T value, AsmFile::Base base)
 
 	for (int i = 0; i < places; i++)
 	{
-		num += digits[v % base];
-		v /= base;
+		num += digits[v % static_cast<int>(base)];
+		v /= static_cast<int>(base);
 	}
 	if (num.empty())
 	{
 		num = '0';
 	}
-	if (bases[base] != ' ')
+	if (bases[static_cast<int>(base)] != ' ')
 	{
-		num += bases[base];
+		num += bases[static_cast<int>(base)];
 	}
 	if (neg)
 	{

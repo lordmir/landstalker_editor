@@ -2,40 +2,40 @@
 
 AnimatedTileset::AnimatedTileset(uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: m_base(base),
-	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
-	  m_frames(frames)
+	  m_frames(frames),
+	  m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset(const std::vector<uint8_t>& bytes, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(bytes),
 	m_base(base),
-	m_base_tileset(0),
 	m_length(length),
 	m_speed(speed),
-	m_frames(frames)
+	m_frames(frames),
+	m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset(const std::string& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames)
 	: Tileset(filename),
 	  m_base(base),
-	  m_base_tileset(0),
 	  m_length(length),
 	  m_speed(speed),
-	  m_frames(frames)
+	  m_frames(frames),
+	  m_base_tileset(0)
 {
 }
 
 AnimatedTileset::AnimatedTileset()
 	: Tileset(),
 	  m_base(0),
-	  m_base_tileset(0),
-	  m_frames(0),
 	  m_length(0),
-	  m_speed(0)
+	  m_speed(0),
+	  m_frames(0),
+	  m_base_tileset(0)
 {
 }
 
@@ -58,7 +58,7 @@ std::vector<uint8_t> AnimatedTileset::GetTile(const Tile& tile, uint8_t frame) c
 {
 	auto t = tile.GetIndex() - GetStartTile().GetIndex();
 	auto f_offset = frame * GetFrameSizeTiles();
-	return Tileset::GetTile(t + f_offset);
+	return Tileset::GetTile(static_cast<uint16_t>(t + f_offset));
 }
 
 std::vector<uint8_t>& AnimatedTileset::GetTilePixels(int tile_index, uint8_t frame)
@@ -75,7 +75,7 @@ uint16_t AnimatedTileset::GetBaseBytes() const
 
 Tile AnimatedTileset::GetStartTile() const
 {
-	return Tile(m_base / Tileset::GetTileSizeBytes());
+	return Tile(m_base / static_cast<uint16_t>(Tileset::GetTileSizeBytes()));
 }
 
 uint16_t AnimatedTileset::GetFrameSizeBytes() const
@@ -110,7 +110,7 @@ void AnimatedTileset::SetBaseBytes(uint16_t base)
 
 void AnimatedTileset::SetStartTile(Tile tile)
 {
-	m_base = tile.GetIndex() * Tileset::GetTileSizeBytes();
+	m_base = static_cast<uint16_t>(tile.GetIndex() * Tileset::GetTileSizeBytes());
 }
 
 void AnimatedTileset::SetFrameSizeBytes(uint16_t bytes)
@@ -120,7 +120,7 @@ void AnimatedTileset::SetFrameSizeBytes(uint16_t bytes)
 
 void AnimatedTileset::SetFrameSizeTiles(std::size_t count)
 {
-	m_length = count * Tileset::GetTileSizeBytes();
+	m_length = static_cast<uint16_t>(count * Tileset::GetTileSizeBytes());
 }
 
 void AnimatedTileset::SetAnimationSpeed(uint8_t speed)

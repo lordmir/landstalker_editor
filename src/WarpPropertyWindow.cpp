@@ -23,8 +23,8 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     : wxDialog(parent, wxID_ANY, "Edit Warp", wxDefaultPosition, wxSize(500, 250)),
       m_warp(warp),
       m_id(id),
-      m_room_src(src_room),
-      m_unknown_selectable(false)
+      m_unknown_selectable(false),
+      m_room_src(src_room)
 {
 
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
@@ -43,7 +43,7 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Source Room:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString room_names;
-    for (int i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
+    for (std::size_t i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
     {
         room_names.Add(gd.GetRoomData()->GetRoom(i)->name);
     }
@@ -150,7 +150,7 @@ WarpPropertyWindow::~WarpPropertyWindow()
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(WarpPropertyWindow::OnClickCancel), NULL, this);
 }
 
-void WarpPropertyWindow::OnClickOK(wxCommandEvent& evt)
+void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     m_warp->type = static_cast<WarpList::Warp::Type>(m_ctrl_type->GetSelection());
     if (m_ctrl_size->GetSelection() > 2)
@@ -212,7 +212,7 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& evt)
     EndModal(wxID_OK);
 }
 
-void WarpPropertyWindow::OnClickCancel(wxCommandEvent& evt)
+void WarpPropertyWindow::OnClickCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

@@ -110,13 +110,13 @@ void PreferencesDialog::Commit()
     }
 }
 
-void PreferencesDialog::OnOK(wxCommandEvent& evt)
+void PreferencesDialog::OnOK(wxCommandEvent& /*evt*/)
 {
     Commit();
     EndModal(wxID_OK);
 }
 
-void PreferencesDialog::OnCancel(wxCommandEvent& evt)
+void PreferencesDialog::OnCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

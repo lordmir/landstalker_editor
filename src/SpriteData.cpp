@@ -4,13 +4,14 @@
 #include <numeric>
 #include <queue>
 #include "AsmUtils.h"
-
+#include "RomLabels.h"
+#include "Literals.h"
 
 template <std::size_t N>
 std::vector<std::array<uint8_t, N>> DeserialiseFixedWidth(const std::vector<uint8_t>& bytes)
 {
 	std::vector<std::array<uint8_t, N>> result;
-	int i = 0, j = 0;
+	std::size_t i = 0, j = 0;
 	result.push_back(std::array<uint8_t, N>());
 	while (i < bytes.size())
 	{
@@ -61,7 +62,7 @@ template <std::size_t N>
 std::map<uint8_t, std::array<uint8_t, N>> DeserialiseMap(const std::vector<uint8_t>& bytes)
 {
 	std::map<uint8_t, std::array<uint8_t, N>> result;
-	int i = 0, j = 0;
+	std::size_t i = 0, j = 0;
 	uint8_t key = bytes[i++];
 	std::array<uint8_t, N> buf;
 	while (i < bytes.size())
@@ -110,7 +111,7 @@ std::vector<uint8_t> SerialiseMap(const std::map<uint8_t, std::array<uint8_t, N>
 std::map<uint8_t, uint8_t> DeserialiseMap(const std::vector<uint8_t>& bytes, bool reverse_key_value = false)
 {
 	std::map<uint8_t, uint8_t> result;
-	int i = 0, j = 0;
+	std::size_t i = 0;
 	while (i < bytes.size())
 	{
 		uint8_t key = bytes[i++];
@@ -195,7 +196,7 @@ template <typename T>
 void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& dst)
 {
 	std::queue<typename std::vector<T>::iterator> iterators;
-	int count = 0;
+	std::size_t count = 0;
 	// Delete excess
 	for (auto it = dst.begin(); it != dst.end(); )
 	{
@@ -292,7 +293,7 @@ SpriteData::~SpriteData()
 
 bool SpriteData::Save(const filesystem::path& dir)
 {
-	auto directory = dir;
+	filesystem::path directory = dir;
 	if (directory.exists() && directory.is_file())
 	{
 		directory = directory.parent_path();
@@ -328,7 +329,6 @@ bool SpriteData::Save()
 
 bool SpriteData::HasBeenModified() const
 {
-	auto entry_pred = [](const auto& e) {return e != nullptr && e->HasSavedDataChanged(); };
 	auto pair_pred = [](const auto& e) {return e.second != nullptr && e.second->HasSavedDataChanged(); };
 	if (std::any_of(m_frames.begin(), m_frames.end(), pair_pred))
 	{
@@ -489,7 +489,7 @@ std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
 {
 	if (!EntityHasSprite(id))
 	{
-		return { 8, 10 };
+		return { 8_u8, 10_u8 };
 	}
 	uint8_t sprite_id = GetSpriteFromEntity(id);
 	return GetSpriteHitbox(sprite_id);
@@ -701,32 +701,32 @@ void SpriteData::SetOneTimeEventFlagsForRoom(uint16_t room, const std::vector<On
 	SetFlagsForRoom(room, data, m_one_time_event_flags);
 }
 
-std::vector<EntityFlag> SpriteData::GetMultipleEntityHideFlagsForRoom(uint16_t room)
+std::vector<RoomClearFlag> SpriteData::GetMultipleEntityHideFlagsForRoom(uint16_t room)
 {
 	return GetFlagsForRoom(room, m_room_clear_flags);
 }
 
-void SpriteData::SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+void SpriteData::SetMultipleEntityHideFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data)
 {
 	SetFlagsForRoom(room, data, m_room_clear_flags);
 }
 
-std::vector<EntityFlag> SpriteData::GetLockedDoorFlagsForRoom(uint16_t room)
+std::vector<RoomClearFlag> SpriteData::GetLockedDoorFlagsForRoom(uint16_t room)
 {
 	return GetFlagsForRoom(room, m_locked_door_flags);
 }
 
-void SpriteData::SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+void SpriteData::SetLockedDoorFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data)
 {
 	SetFlagsForRoom(room, data, m_locked_door_flags);
 }
 
-std::vector<EntityFlag> SpriteData::GetPermanentSwitchFlagsForRoom(uint16_t room)
+std::vector<RoomClearFlag> SpriteData::GetPermanentSwitchFlagsForRoom(uint16_t room)
 {
 	return GetFlagsForRoom(room, m_permanent_switch_flags);
 }
 
-void SpriteData::SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<EntityFlag>& data)
+void SpriteData::SetPermanentSwitchFlagsForRoom(uint16_t room, const std::vector<RoomClearFlag>& data)
 {
 	SetFlagsForRoom(room, data, m_permanent_switch_flags);
 }
@@ -804,7 +804,7 @@ std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
 
 uint8_t SpriteData::GetLoPaletteCount() const
 {
-	return m_lo_palettes.size();
+	return static_cast<uint8_t>(m_lo_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetLoPalette(uint8_t idx) const
@@ -815,7 +815,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetLoPalette(uint8_t idx) const
 
 uint8_t SpriteData::GetHiPaletteCount() const
 {
-	return m_hi_palettes.size();
+	return static_cast<uint8_t>(m_hi_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetHiPalette(uint8_t idx) const
@@ -826,7 +826,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetHiPalette(uint8_t idx) const
 
 uint8_t SpriteData::GetProjectile1PaletteCount() const
 {
-	return m_projectile1_palettes.size();
+	return static_cast<uint8_t>(m_projectile1_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetProjectile1Palette(uint8_t idx) const
@@ -837,7 +837,7 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile1Palette(uint8_t idx) con
 
 uint8_t SpriteData::GetProjectile2PaletteCount() const
 {
-	return m_projectile2_palettes.size();
+	return static_cast<uint8_t>(m_projectile2_palettes.size());
 }
 
 std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) const
@@ -848,7 +848,6 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) con
 
 void SpriteData::CommitAllChanges()
 {
-	auto entry_commit = [](const auto& e) {return e->Commit(); };
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
 	std::for_each(m_frames.begin(), m_frames.end(), pair_commit);
 	std::for_each(m_palettes_by_name.begin(), m_palettes_by_name.end(), pair_commit);
@@ -885,28 +884,28 @@ bool SpriteData::LoadAsmFilenames()
 	{
 		bool retval = true;
 		AsmFile f(GetAsmFilename().str());
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP, m_unknown_sprite_lookup_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS, m_sprite_visibility_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS, m_one_time_event_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ROOM_CLEAR_FLAGS, m_room_clear_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS, m_locked_door_sprite_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS, m_permanent_switch_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SACRED_TREE_FLAGS, m_sacred_tree_flags_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP, m_sprite_gfx_idx_lookup_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP, m_sprite_dimensions_lookup_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS, m_room_sprite_table_offsets_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ENEMY_STATS, m_enemy_stats_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ROOM_SPRITE_TABLE, m_room_sprite_table_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::ITEM_PROPERTIES, m_item_properties_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSETS, m_sprite_behaviour_offset_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE, m_sprite_behaviour_table_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_FRAMES_DATA, m_sprite_frames_data_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_LUT, m_sprite_lut_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_ANIM_PTR_DATA, m_sprite_anims_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::SPRITE_FRAME_PTR_DATA, m_sprite_anim_frames_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_DATA, m_palette_data_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file);
-		retval = retval && GetFilenameFromAsm(f, RomOffsets::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP, m_unknown_sprite_lookup_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS, m_sprite_visibility_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ONE_TIME_EVENT_FLAGS, m_one_time_event_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ROOM_CLEAR_FLAGS, m_room_clear_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::LOCKED_DOOR_SPRITE_FLAGS, m_locked_door_sprite_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::PERMANENT_SWITCH_FLAGS, m_permanent_switch_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SACRED_TREE_FLAGS, m_sacred_tree_flags_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_GFX_IDX_LOOKUP, m_sprite_gfx_idx_lookup_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_DIMENSIONS_LOOKUP, m_sprite_dimensions_lookup_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ROOM_SPRITE_TABLE_OFFSETS, m_room_sprite_table_offsets_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ENEMY_STATS, m_enemy_stats_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ROOM_SPRITE_TABLE, m_room_sprite_table_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ITEM_PROPERTIES, m_item_properties_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSETS, m_sprite_behaviour_offset_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE, m_sprite_behaviour_table_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_FRAMES_DATA, m_sprite_frames_data_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_LUT, m_sprite_lut_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_ANIM_PTR_DATA, m_sprite_anims_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_FRAME_PTR_DATA, m_sprite_anim_frames_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::PALETTE_DATA, m_palette_data_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file);
 		return retval;
 	}
 	catch (std::exception&)
@@ -918,29 +917,29 @@ bool SpriteData::LoadAsmFilenames()
 
 void SpriteData::SetDefaultFilenames()
 {
-	if (m_unknown_sprite_lookup_file.empty())        m_unknown_sprite_lookup_file     = RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_FILE;
-	if (m_sprite_visibility_flags_file.empty())      m_sprite_visibility_flags_file   = RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS_FILE;
-	if (m_one_time_event_flags_file.empty())         m_one_time_event_flags_file      = RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS_FILE;
-	if (m_room_clear_flags_file.empty())             m_room_clear_flags_file          = RomOffsets::Sprites::ROOM_CLEAR_FLAGS_FILE;
-	if (m_locked_door_sprite_flags_file.empty())     m_locked_door_sprite_flags_file  = RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS_FILE;
-	if (m_permanent_switch_flags_file.empty())       m_permanent_switch_flags_file    = RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS_FILE;
-	if (m_sacred_tree_flags_file.empty())            m_sacred_tree_flags_file         = RomOffsets::Sprites::SACRED_TREE_FLAGS_FILE;
-	if (m_sprite_gfx_idx_lookup_file.empty())        m_sprite_gfx_idx_lookup_file     = RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP_FILE;
-	if (m_sprite_dimensions_lookup_file.empty())     m_sprite_dimensions_lookup_file  = RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP_FILE;
-	if (m_room_sprite_table_offsets_file.empty())    m_room_sprite_table_offsets_file = RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS_FILE;
-	if (m_enemy_stats_file.empty())                  m_enemy_stats_file               = RomOffsets::Sprites::ENEMY_STATS_FILE;
-	if (m_room_sprite_table_file.empty())            m_room_sprite_table_file         = RomOffsets::Sprites::ROOM_SPRITE_TABLE_FILE;
-	if (m_item_properties_file.empty())              m_item_properties_file           = RomOffsets::Sprites::ITEM_PROPERTIES_FILE;
-	if (m_sprite_behaviour_offset_file.empty())      m_sprite_behaviour_offset_file   = RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSET_FILE;
-	if (m_sprite_behaviour_table_file.empty())       m_sprite_behaviour_table_file    = RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE_FILE;
-	if (m_palette_data_file.empty())                 m_palette_data_file              = RomOffsets::Sprites::PALETTE_DATA_FILE;
-	if (m_palette_lut_file.empty())                  m_palette_lut_file               = RomOffsets::Sprites::PALETTE_LUT_FILE;
-	if (m_sprite_lut_file.empty())                   m_sprite_lut_file                = RomOffsets::Sprites::SPRITE_LUT_FILE;
-	if (m_sprite_anims_file.empty())                 m_sprite_anims_file              = RomOffsets::Sprites::SPRITE_ANIMS_FILE;
-	if (m_sprite_anim_frames_file.empty())           m_sprite_anim_frames_file        = RomOffsets::Sprites::SPRITE_ANIM_FRAMES_FILE;
-	if (m_sprite_frames_data_file.empty())           m_sprite_frames_data_file        = RomOffsets::Sprites::SPRITE_FRAME_DATA_FILE;
-	if (m_proj1_pal_file.empty())                    m_proj1_pal_file                 = RomOffsets::Sprites::PALETTE_PROJECTILE_1_FILE;
-	if (m_proj2_pal_file.empty())                    m_proj2_pal_file                 = RomOffsets::Sprites::PALETTE_PROJECTILE_2_FILE;
+	if (m_unknown_sprite_lookup_file.empty())        m_unknown_sprite_lookup_file     = RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_FILE;
+	if (m_sprite_visibility_flags_file.empty())      m_sprite_visibility_flags_file   = RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS_FILE;
+	if (m_one_time_event_flags_file.empty())         m_one_time_event_flags_file      = RomLabels::Sprites::ONE_TIME_EVENT_FLAGS_FILE;
+	if (m_room_clear_flags_file.empty())             m_room_clear_flags_file          = RomLabels::Sprites::ROOM_CLEAR_FLAGS_FILE;
+	if (m_locked_door_sprite_flags_file.empty())     m_locked_door_sprite_flags_file  = RomLabels::Sprites::LOCKED_DOOR_SPRITE_FLAGS_FILE;
+	if (m_permanent_switch_flags_file.empty())       m_permanent_switch_flags_file    = RomLabels::Sprites::PERMANENT_SWITCH_FLAGS_FILE;
+	if (m_sacred_tree_flags_file.empty())            m_sacred_tree_flags_file         = RomLabels::Sprites::SACRED_TREE_FLAGS_FILE;
+	if (m_sprite_gfx_idx_lookup_file.empty())        m_sprite_gfx_idx_lookup_file     = RomLabels::Sprites::SPRITE_GFX_IDX_LOOKUP_FILE;
+	if (m_sprite_dimensions_lookup_file.empty())     m_sprite_dimensions_lookup_file  = RomLabels::Sprites::SPRITE_DIMENSIONS_LOOKUP_FILE;
+	if (m_room_sprite_table_offsets_file.empty())    m_room_sprite_table_offsets_file = RomLabels::Sprites::ROOM_SPRITE_TABLE_OFFSETS_FILE;
+	if (m_enemy_stats_file.empty())                  m_enemy_stats_file               = RomLabels::Sprites::ENEMY_STATS_FILE;
+	if (m_room_sprite_table_file.empty())            m_room_sprite_table_file         = RomLabels::Sprites::ROOM_SPRITE_TABLE_FILE;
+	if (m_item_properties_file.empty())              m_item_properties_file           = RomLabels::Sprites::ITEM_PROPERTIES_FILE;
+	if (m_sprite_behaviour_offset_file.empty())      m_sprite_behaviour_offset_file   = RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSET_FILE;
+	if (m_sprite_behaviour_table_file.empty())       m_sprite_behaviour_table_file    = RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE_FILE;
+	if (m_palette_data_file.empty())                 m_palette_data_file              = RomLabels::Sprites::PALETTE_DATA_FILE;
+	if (m_palette_lut_file.empty())                  m_palette_lut_file               = RomLabels::Sprites::PALETTE_LUT_FILE;
+	if (m_sprite_lut_file.empty())                   m_sprite_lut_file                = RomLabels::Sprites::SPRITE_LUT_FILE;
+	if (m_sprite_anims_file.empty())                 m_sprite_anims_file              = RomLabels::Sprites::SPRITE_ANIMS_FILE;
+	if (m_sprite_anim_frames_file.empty())           m_sprite_anim_frames_file        = RomLabels::Sprites::SPRITE_ANIM_FRAMES_FILE;
+	if (m_sprite_frames_data_file.empty())           m_sprite_frames_data_file        = RomLabels::Sprites::SPRITE_FRAME_DATA_FILE;
+	if (m_proj1_pal_file.empty())                    m_proj1_pal_file                 = RomLabels::Sprites::PALETTE_PROJECTILE_1_FILE;
+	if (m_proj2_pal_file.empty())                    m_proj2_pal_file                 = RomLabels::Sprites::PALETTE_PROJECTILE_2_FILE;
 }
 
 bool SpriteData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -1016,12 +1015,12 @@ ByteVector SpriteData::SerialisePaletteLUT() const
 		if (m_lo_palette_lookup.find(i) != m_lo_palette_lookup.cend())
 		{
 			result.push_back(i);
-			result.push_back(m_lo_palette_lookup.at(i)->GetIndex());
+			result.push_back(static_cast<uint8_t>(m_lo_palette_lookup.at(i)->GetIndex()));
 		}
 		if (m_hi_palette_lookup.find(i) != m_hi_palette_lookup.cend())
 		{
 			result.push_back(i);
-			result.push_back(0x80 | m_hi_palette_lookup.at(i)->GetIndex());
+			result.push_back(static_cast<uint8_t>(0x80 | m_hi_palette_lookup.at(i)->GetIndex()));
 		}
 	}
 	result.push_back(0xFF);
@@ -1031,7 +1030,7 @@ ByteVector SpriteData::SerialisePaletteLUT() const
 
 void SpriteData::DeserialisePaletteLUT(const ByteVector& bytes)
 {
-	for (int i = 0; i < bytes.size(); i += 2)
+	for (std::size_t i = 0; i < bytes.size(); i += 2)
 	{
 		uint8_t sprite = bytes[i];
 		uint8_t pal = bytes[i + 1];
@@ -1105,7 +1104,7 @@ std::vector<std::shared_ptr<PaletteEntry>> SpriteData::DeserialisePalArray(const
 
 void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const ByteVector& bytes)
 {
-	for (int i = 0; (i * 2) < offsets.size(); ++i)
+	for (uint16_t i = 0; (i * 2) < static_cast<uint16_t>(offsets.size()); ++i)
 	{
 		uint16_t offset = (offsets[i * 2] << 8) | offsets[i * 2 + 1];
 		if (offset == 0)
@@ -1116,7 +1115,7 @@ void SpriteData::DeserialiseRoomEntityTable(const ByteVector& offsets, const Byt
 		m_room_entities.insert({ i, std::vector<Entity>() });
 		while (bytes[offset] != 0xFF || bytes[offset + 1] != 0xFF)
 		{
-			std::array<uint8_t, 8> data;
+			std::array<uint8_t, 8> data{};
 			std::copy_n(bytes.cbegin() + offset, 8, data.begin());
 			m_room_entities[i].emplace_back(data);
 			offset += 8;
@@ -1128,7 +1127,7 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 {
 	ByteVector bytes, offsets;
 	offsets.reserve((m_room_entities.rbegin()->first + 1) * sizeof(uint16_t));
-	for (int i = 0; i <= m_room_entities.rbegin()->first; ++i)
+	for (uint16_t i = 0; i <= m_room_entities.rbegin()->first; ++i)
 	{
 		auto res = m_room_entities.find(i);
 		if (res == m_room_entities.cend())
@@ -1137,7 +1136,7 @@ std::pair<ByteVector, ByteVector> SpriteData::SerialiseRoomEntityTable() const
 			offsets.push_back(0);
 			continue;
 		}
-		uint16_t offset = bytes.size() + 1;
+		uint16_t offset = static_cast<uint16_t>(bytes.size() + 1);
 		offsets.push_back((offset >> 8) & 0xFF);
 		offsets.push_back(offset & 0xFF);
 		for (const auto& ent : res->second)
@@ -1180,21 +1179,22 @@ bool SpriteData::AsmLoadSpritePointers()
 	{
 		auto lut_bytes = ReadBytes(GetBasePath() / m_sprite_lut_file);
 		assert(lut_bytes.size() % 4 == 0);
-		for (int i = 0; i < lut_bytes.size(); i += 4)
+		for (std::size_t i = 0; i < lut_bytes.size(); i += 4)
 		{
-			lut.push_back({ (lut_bytes[i] << 8) | lut_bytes[i + 1], (lut_bytes[i + 2] << 8) | lut_bytes[i + 3] });
+			lut.push_back({ static_cast<uint16_t>((lut_bytes[i] << 8) | lut_bytes[i + 1]),
+				            static_cast<uint16_t>((lut_bytes[i + 2] << 8) | lut_bytes[i + 3]) });
 		}
 
 		AsmFile anim_file(GetBasePath() / m_sprite_anims_file);
 		std::string ptrname;
-		for (int spr = 0; spr < lut.size(); ++spr)
+		for (uint8_t spr = 0; spr < static_cast<uint8_t>(lut.size()); ++spr)
 		{
-			std::string sprname = StrPrintf(RomOffsets::Sprites::SPRITE_GFX, spr);
+			std::string sprname = StrPrintf(RomLabels::Sprites::SPRITE_GFX, spr);
 			if (anim_file.IsLabel())
 			{
 				AsmFile::Label lbl;
 				anim_file >> lbl;
-				if (lbl.label != RomOffsets::Sprites::SPRITE_SECTION)
+				if (lbl.label != RomLabels::Sprites::SPRITE_SECTION)
 				{
 					sprname = lbl.label;
 				}
@@ -1255,36 +1255,36 @@ bool SpriteData::AsmLoadSpritePalettes()
 	{
 		AsmFile file(GetBasePath() / m_palette_data_file);
 		AsmFile::IncludeFile inc;
-		file.Goto(RomOffsets::Sprites::PALETTE_LUT);
+		file.Goto(RomLabels::Sprites::PALETTE_LUT);
 		file >> inc;
 		m_palette_lut_file = inc.path;
 		int idx = 0;
-		file.Goto(RomOffsets::Sprites::PALETTE_LO_DATA);
+		file.Goto(RomLabels::Sprites::PALETTE_LO_DATA);
 		do
 		{
 			file >> inc;
-			std::string name = StrPrintf(RomOffsets::Sprites::PALETTE_LO, idx + 1);
+			std::string name = StrPrintf(RomLabels::Sprites::PALETTE_LO, idx + 1);
 			auto e = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, Palette::Type::SPRITE_LOW);
 			e->SetIndex(idx++);
 			m_lo_palettes.push_back(e);
 			m_palettes_by_name.insert({ name, e });
-		} while (file.IsGood() && !file.IsLabel(RomOffsets::Sprites::PALETTE_HI_DATA));
+		} while (file.IsGood() && !file.IsLabel(RomLabels::Sprites::PALETTE_HI_DATA));
 		idx = 0;
-		file.Goto(RomOffsets::Sprites::PALETTE_HI_DATA);
+		file.Goto(RomLabels::Sprites::PALETTE_HI_DATA);
 		do
 		{
 			file >> inc;
-			std::string name = StrPrintf(RomOffsets::Sprites::PALETTE_HI, idx + 1);
+			std::string name = StrPrintf(RomLabels::Sprites::PALETTE_HI, idx + 1);
 			auto e = PaletteEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, Palette::Type::SPRITE_HIGH);
 			e->SetIndex(idx++);
 			m_hi_palettes.push_back(e);
 			m_palettes_by_name.insert({ name, e });
-		} while (file.IsGood() && !file.IsLabel(RomOffsets::Sprites::PALETTE_LO_DATA));
+		} while (file.IsGood() && !file.IsLabel(RomLabels::Sprites::PALETTE_LO_DATA));
 		DeserialisePaletteLUT(ReadBytes(GetBasePath() / m_palette_lut_file));
 		auto proj1_bytes = ReadBytes(GetBasePath() / m_proj1_pal_file);
 		auto proj2_bytes = ReadBytes(GetBasePath() / m_proj2_pal_file);
-		m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file, Palette::Type::PROJECTILE);
-		m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file, Palette::Type::PROJECTILE2);
+		m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomLabels::Sprites::PALETTE_PROJECTILE_1, m_proj1_pal_file, Palette::Type::PROJECTILE);
+		m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomLabels::Sprites::PALETTE_PROJECTILE_2, m_proj2_pal_file, Palette::Type::PROJECTILE2);
 		return true;
 	}
 	catch (const std::exception&)
@@ -1298,9 +1298,9 @@ bool SpriteData::AsmLoadSpriteData()
 
 	m_sprite_visibility_flags  = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sprite_visibility_flags_file)));
 	m_one_time_event_flags     = DecodeFlags<OneTimeEventFlag>(DeserialiseFixedWidth<6>(ReadBytes(GetBasePath() / m_one_time_event_flags_file)));
-	m_room_clear_flags         = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file)));
-	m_locked_door_flags        = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file)));
-	m_permanent_switch_flags   = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_permanent_switch_flags_file)));
+	m_room_clear_flags         = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_room_clear_flags_file)));
+	m_locked_door_flags        = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_locked_door_sprite_flags_file)));
+	m_permanent_switch_flags   = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_permanent_switch_flags_file)));
 	m_sacred_tree_flags        = DecodeFlags<SacredTreeFlag>(DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_sacred_tree_flags_file)));
 	m_item_properties          = DeserialiseFixedWidth<4>(ReadBytes(GetBasePath() / m_item_properties_file));
 	m_enemy_stats              = DeserialiseMap<5>(ReadBytes(GetBasePath() / m_enemy_stats_file));
@@ -1317,8 +1317,8 @@ bool SpriteData::AsmLoadSpriteData()
 
 bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 {
-	const uint32_t sprites_begin = rom.get_address(RomOffsets::Sprites::POINTER);
-	const uint32_t sprites_end = rom.get_section(RomOffsets::Sprites::SPRITE_SECTION).end;
+	const uint32_t sprites_begin = rom.get_address(RomLabels::Sprites::POINTER);
+	const uint32_t sprites_end = rom.get_section(RomLabels::Sprites::SPRITE_SECTION).end;
 	const uint32_t anim_ptrs_begin = rom.read<uint32_t>(sprites_begin);
 
 	// Read offset table
@@ -1355,41 +1355,40 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 
 	// Parse anim and frame pointer list, segregate by sprite/animation as appropriate
 	assert((offset_table.size() & 1) == 0);
-	auto anim_it = anim_idxs.cbegin();
 	std::map<uint32_t, std::string> frames;
 	std::map<uint32_t, std::string> frame_filenames;
 	std::map<uint32_t, uint8_t> frame_sprite;
-	int total_anim_count = 0;
-	for (int i = 0; i < offset_table.size() / 2; ++i)
+	std::size_t total_anim_count = 0;
+	for (uint8_t i = 0; i < static_cast<uint8_t>(offset_table.size() / 2); ++i)
 	{
 		int sprite_frame_count = 0;
-		std::string sprname = StrPrintf(RomOffsets::Sprites::SPRITE_GFX, i);
+		std::string sprname = StrPrintf(RomLabels::Sprites::SPRITE_GFX, i);
 		m_sprite_mystery_data.insert({ i, offset_table[i * 2 + 1] });
 		m_names.insert({ i, sprname });
 		m_ids.insert({ sprname, i });
 		uint16_t anim_count;
-		if ((i * 2 + 2) < offset_table.size())
+		if (static_cast<std::size_t>(i * 2 + 2) < offset_table.size())
 		{
 			anim_count = offset_table[i * 2 + 2] - offset_table[i * 2];
 		}
 		else
 		{
-			anim_count = anim_idxs.size() - offset_table[i * 2];
+			anim_count = static_cast<uint16_t>(anim_idxs.size()) - offset_table[i * 2];
 		}
 		m_animations.insert({ i, std::vector<std::string>() });
 		m_animations[i].reserve(anim_count);
 		for (int j = 0; j < anim_count; ++j)
 		{
-			std::string anim_name = StrPrintf(RomOffsets::Sprites::SPRITE_ANIM, i, j);
+			std::string anim_name = StrPrintf(RomLabels::Sprites::SPRITE_ANIM, i, j);
 			m_animations[i].push_back(anim_name);
 			uint16_t frame_count;
 			if ((total_anim_count + 1) < anim_idxs.size())
 			{
-				frame_count = anim_idxs[total_anim_count + 1] - anim_idxs[total_anim_count];
+				frame_count = static_cast<uint16_t>(anim_idxs[total_anim_count + 1] - anim_idxs[total_anim_count]);
 			}
 			else
 			{
-				frame_count = anim_frame_ptrs.size() - anim_idxs[total_anim_count];
+				frame_count = static_cast<uint16_t>(anim_frame_ptrs.size() - anim_idxs[total_anim_count]);
 			}
 			m_animation_frames.insert({ anim_name, std::vector<std::string>() });
 			m_animation_frames[anim_name].reserve(frame_count);
@@ -1404,9 +1403,9 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 				}
 				else
 				{
-					frame_name = StrPrintf(RomOffsets::Sprites::SPRITE_FRAME, i, sprite_frame_count);
+					frame_name = StrPrintf(RomLabels::Sprites::SPRITE_FRAME, i, sprite_frame_count);
 					frames.insert({ frame_ptr, frame_name });
-					frame_filenames.insert({ frame_ptr, StrPrintf(RomOffsets::Sprites::SPRITE_FRAME_FILE, i, sprite_frame_count++) });
+					frame_filenames.insert({ frame_ptr, StrPrintf(RomLabels::Sprites::SPRITE_FRAME_FILE, i, sprite_frame_count++) });
 					frame_sprite.insert({ frame_ptr, i });
 				}
 				m_animation_frames[anim_name].push_back(frame_name);
@@ -1418,19 +1417,19 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 	// Get begin, end addresses for sprite frame data
 	auto it = frames.cbegin();
 	std::vector<std::pair<uint32_t, uint32_t>> frame_addrs;
-	for (int i = 0; i < (frames.size() - 1); ++i)
+	for (int i = 0; i < static_cast<int>(frames.size()) - 1; ++i)
 	{
 		frame_addrs.push_back({ it->first, (++it)->first});
 	}
 	frame_addrs.push_back({ it->first, sprites_end });
 
 	// Read each frame and store
-	for (const auto& addr : frame_addrs)
+	for (const auto& faddr : frame_addrs)
 	{
-		auto bytes = rom.read_array<uint8_t>(addr.first, addr.second - addr.first);
-		auto e = SpriteFrameEntry::Create(this, bytes, frames[addr.first], frame_filenames[addr.first]);
-		e->SetStartAddress(addr.first);
-		e->SetSprite(frame_sprite[addr.first]);
+		auto bytes = rom.read_array<uint8_t>(faddr.first, faddr.second - faddr.first);
+		auto e = SpriteFrameEntry::Create(this, bytes, frames[faddr.first], frame_filenames[faddr.first]);
+		e->SetStartAddress(faddr.first);
+		e->SetSprite(frame_sprite[faddr.first]);
 		m_frames.insert({ e->GetName(), e });
 		if (m_sprite_frames.find(e->GetSprite()) == m_sprite_frames.cend())
 		{
@@ -1444,14 +1443,14 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 
 bool SpriteData::RomLoadSpritePalettes(const Rom& rom)
 {
-	uint32_t lut_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_LUT);
-	uint32_t lo_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_LO_DATA);
-	uint32_t hi_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PALETTE_HI_DATA);
-	uint32_t hi_end    = rom.get_section(RomOffsets::Sprites::PALETTE_DATA).end;
-	uint32_t proj1_begin = Disasm::ReadOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW1);
-	uint32_t proj1_end = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_1).end;
-	uint32_t proj2_begin = Disasm::ReadOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW1);
-	uint32_t proj2_end = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_2).end;
+	uint32_t lut_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::PALETTE_LUT);
+	uint32_t lo_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::PALETTE_LO_DATA);
+	uint32_t hi_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::PALETTE_HI_DATA);
+	uint32_t hi_end    = rom.get_section(RomLabels::Sprites::PALETTE_DATA).end;
+	uint32_t proj1_begin = Disasm::ReadOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_1_MOVEW1);
+	uint32_t proj1_end = rom.get_section(RomLabels::Sprites::PALETTE_PROJECTILE_1).end;
+	uint32_t proj2_begin = Disasm::ReadOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_2_MOVEW1);
+	uint32_t proj2_end = rom.get_section(RomLabels::Sprites::PALETTE_PROJECTILE_2).end;
 
 	uint32_t lut_size = (lo_begin - lut_begin);
 	uint32_t lo_size = (hi_begin - lo_begin);
@@ -1470,14 +1469,14 @@ bool SpriteData::RomLoadSpritePalettes(const Rom& rom)
 	auto proj1_bytes = rom.read_array<uint8_t>(proj1_begin, proj1_size);
 	auto proj2_bytes = rom.read_array<uint8_t>(proj2_begin, proj2_size);
 
-	m_hi_palettes = DeserialisePalArray(hi_bytes, RomOffsets::Sprites::PALETTE_HI, RomOffsets::Sprites::PALETTE_HI_FILE,
+	m_hi_palettes = DeserialisePalArray(hi_bytes, RomLabels::Sprites::PALETTE_HI, RomLabels::Sprites::PALETTE_HI_FILE,
 		Palette::Type::SPRITE_HIGH, true);
-	m_lo_palettes = DeserialisePalArray(lo_bytes, RomOffsets::Sprites::PALETTE_LO, RomOffsets::Sprites::PALETTE_LO_FILE,
+	m_lo_palettes = DeserialisePalArray(lo_bytes, RomLabels::Sprites::PALETTE_LO, RomLabels::Sprites::PALETTE_LO_FILE,
 		Palette::Type::SPRITE_LOW, true);
-	m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_1,
-		RomOffsets::Sprites::PALETTE_PROJECTILE_1_FILE, Palette::Type::PROJECTILE, false);
-	m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomOffsets::Sprites::PALETTE_PROJECTILE_2,
-		RomOffsets::Sprites::PALETTE_PROJECTILE_2_FILE, Palette::Type::PROJECTILE2, false);
+	m_projectile1_palettes = DeserialisePalArray(proj1_bytes, RomLabels::Sprites::PALETTE_PROJECTILE_1,
+		RomLabels::Sprites::PALETTE_PROJECTILE_1_FILE, Palette::Type::PROJECTILE, false);
+	m_projectile2_palettes = DeserialisePalArray(proj2_bytes, RomLabels::Sprites::PALETTE_PROJECTILE_2,
+		RomLabels::Sprites::PALETTE_PROJECTILE_2_FILE, Palette::Type::PROJECTILE2, false);
 
 	DeserialisePaletteLUT(lut_bytes);
 
@@ -1486,30 +1485,30 @@ bool SpriteData::RomLoadSpritePalettes(const Rom& rom)
 
 bool SpriteData::RomLoadSpriteData(const Rom& rom)
 {
-	const uint32_t items_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ITEM_PROPERTIES);
-	const uint32_t items_size = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).end - items_begin;
-	const uint32_t unk_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP);
-	const uint32_t unk_size = rom.get_section(RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).end - unk_begin;
+	const uint32_t items_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ITEM_PROPERTIES);
+	const uint32_t items_size = rom.get_section(RomLabels::Sprites::ITEM_PROPERTIES_SECTION).end - items_begin;
+	const uint32_t unk_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP);
+	const uint32_t unk_size = rom.get_section(RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).end - unk_begin;
 
-	const uint32_t behav_offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSETS);
-	const uint32_t behav_table_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE);
-	const uint32_t behav_table_end = rom.get_section(RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION).end;
+	const uint32_t behav_offsets_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSETS);
+	const uint32_t behav_table_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE);
+	const uint32_t behav_table_end = rom.get_section(RomLabels::Sprites::SPRITE_BEHAVIOUR_SECTION).end;
 	const uint32_t behav_offsets_size = behav_table_begin - behav_offsets_begin;
 	const uint32_t behav_table_size = behav_table_end - behav_table_begin;
 
 
-	const uint32_t visib_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS);
-	const uint32_t onetime_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS);
-	const uint32_t room_clear_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ROOM_CLEAR_FLAGS);
-	const uint32_t locked_doors_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS);
-	const uint32_t permanent_switch_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS);
-	const uint32_t trees_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SACRED_TREE_FLAGS);
-	const uint32_t sprite_ent_lut_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP);
-	const uint32_t sprite_dims_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP);
-	const uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS);
-	const uint32_t enemy_data_begin = Disasm::ReadOffset16(rom, RomOffsets::Sprites::ENEMY_STATS);
-	const uint32_t entity_table_begin = rom.read<uint32_t>(RomOffsets::Sprites::ROOM_SPRITE_TABLE);
-	const uint32_t entity_table_end = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).end;
+	const uint32_t visib_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS);
+	const uint32_t onetime_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ONE_TIME_EVENT_FLAGS);
+	const uint32_t room_clear_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ROOM_CLEAR_FLAGS);
+	const uint32_t locked_doors_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::LOCKED_DOOR_SPRITE_FLAGS);
+	const uint32_t permanent_switch_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::PERMANENT_SWITCH_FLAGS);
+	const uint32_t trees_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SACRED_TREE_FLAGS);
+	const uint32_t sprite_ent_lut_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_GFX_IDX_LOOKUP);
+	const uint32_t sprite_dims_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_DIMENSIONS_LOOKUP);
+	const uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ROOM_SPRITE_TABLE_OFFSETS);
+	const uint32_t enemy_data_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ENEMY_STATS);
+	const uint32_t entity_table_begin = rom.read<uint32_t>(RomLabels::Sprites::ROOM_SPRITE_TABLE);
+	const uint32_t entity_table_end = rom.get_section(RomLabels::Sprites::SPRITE_DATA_SECTION).end;
 
 	const uint32_t visib_size = onetime_begin - visib_begin;
 	const uint32_t onetime_size = room_clear_begin - onetime_begin;
@@ -1525,9 +1524,9 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 
 	m_sprite_visibility_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(visib_begin, visib_size)));
 	m_one_time_event_flags = DecodeFlags<OneTimeEventFlag>(DeserialiseFixedWidth<6>(rom.read_array<uint8_t>(onetime_begin, onetime_size)));
-	m_room_clear_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size)));
-	m_locked_door_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size)));
-	m_permanent_switch_flags = DecodeFlags<EntityFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(permanent_switch_begin, permanent_switch_size)));
+	m_room_clear_flags = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(room_clear_begin, room_clear_size)));
+	m_locked_door_flags = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(locked_doors_begin, locked_doors_size)));
+	m_permanent_switch_flags = DecodeFlags<RoomClearFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(permanent_switch_begin, permanent_switch_size)));
 	m_sacred_tree_flags = DecodeFlags<SacredTreeFlag>(DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(trees_begin, trees_size)));
 	m_item_properties = DeserialiseFixedWidth<4>(rom.read_array<uint8_t>(items_begin, items_size));
 	m_enemy_stats = DeserialiseMap<5>(rom.read_array<uint8_t>(enemy_data_begin, enemy_data_size));
@@ -1556,7 +1555,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		frm_file.WriteFileHeader(m_sprite_frames_data_file, "Sprite Frame Data");
 		for (const auto& frame : m_frames)
 		{
-			frm_file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::BINARY);
+			frm_file << AsmFile::Label(frame.first) << AsmFile::IncludeFile(frame.second->GetFilename(), AsmFile::FileType::BINARY);
 			frm_file << AsmFile::Align(2);
 		}
 		frm_file.WriteFile(dir / m_sprite_frames_data_file);
@@ -1571,7 +1570,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		}
 		anim_file.WriteFile(dir / m_sprite_anim_frames_file);
 		spr_file.WriteFileHeader(m_sprite_anims_file, "Sprite Animation Pointers");
-		spr_file << AsmFile::Label(RomOffsets::Sprites::SPRITE_SECTION);
+		spr_file << AsmFile::Label(RomLabels::Sprites::SPRITE_SECTION);
 		for (const auto& spr : m_animations)
 		{
 			spr_file << AsmFile::Label(m_names[spr.first]);
@@ -1590,7 +1589,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 			lut.push_back(anim_count & 0xFF);
 			lut.push_back((m_sprite_mystery_data[spr.first] >> 8) & 0xFF);
 			lut.push_back(m_sprite_mystery_data[spr.first] & 0xFF);
-			anim_count += spr.second.size();
+			anim_count += static_cast<uint16_t>(spr.second.size());
 		}
 		WriteBytes(lut, dir / m_sprite_lut_file);
 		return true;
@@ -1614,17 +1613,17 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 
 		AsmFile file;
 		file.WriteFileHeader(m_palette_data_file, "Sprite Palette Data");
-		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LUT) << AsmFile::IncludeFile(m_palette_lut_file, AsmFile::BINARY);
-		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_LO_DATA);
+		file << AsmFile::Label(RomLabels::Sprites::PALETTE_LUT) << AsmFile::IncludeFile(m_palette_lut_file, AsmFile::FileType::BINARY);
+		file << AsmFile::Label(RomLabels::Sprites::PALETTE_LO_DATA);
 		for (const auto& pal : m_lo_palettes)
 		{
-			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::FileType::BINARY);
 			pal->Save(dir);
 		}
-		file << AsmFile::Label(RomOffsets::Sprites::PALETTE_HI_DATA);
+		file << AsmFile::Label(RomLabels::Sprites::PALETTE_HI_DATA);
 		for (const auto& pal : m_hi_palettes)
 		{
-			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::BINARY);
+			file << AsmFile::IncludeFile(pal->GetFilename(), AsmFile::FileType::BINARY);
 			pal->Save(dir);
 		}
 		file.WriteFile(dir / m_palette_data_file);
@@ -1660,7 +1659,7 @@ bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
 
 bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 {
-	uint32_t begin = rom.get_section(RomOffsets::Sprites::SPRITE_SECTION).begin;
+	uint32_t begin = rom.get_section(RomLabels::Sprites::SPRITE_SECTION).begin;
 	uint32_t lut_size = m_animations.size() * 2 * sizeof(uint16_t);
 	uint32_t anim_ptr_table_size = m_animation_frames.size() * sizeof(uint32_t);
 	uint32_t frame_ptr_table_size = std::accumulate(m_animation_frames.cbegin(), m_animation_frames.cend(), 0,
@@ -1692,7 +1691,7 @@ bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 	{
 		it = Insert<uint16_t>(it, anim_count);
 		it = Insert<uint16_t>(it, m_sprite_mystery_data[spr.first]);
-		anim_count += spr.second.size();
+		anim_count += static_cast<uint16_t>(spr.second.size());
 	}
 	uint32_t frame_count = 0;
 	for (const auto& anim : m_animation_frames)
@@ -1708,20 +1707,20 @@ bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 		}
 	}
 
-	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_SECTION, bytes });
+	m_pending_writes.push_back({ RomLabels::Sprites::SPRITE_SECTION, bytes });
 
 	return true;
 }
 
 bool SpriteData::RomPrepareInjectSpritePalettes(const Rom& rom)
 {
-	uint32_t proj1_begin = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_1).begin;
+	uint32_t proj1_begin = rom.get_section(RomLabels::Sprites::PALETTE_PROJECTILE_1).begin;
 	auto proj1_bytes = std::make_shared<ByteVector>(SerialisePalArray(m_projectile1_palettes));
 
-	uint32_t proj2_begin = rom.get_section(RomOffsets::Sprites::PALETTE_PROJECTILE_2).begin;
+	uint32_t proj2_begin = rom.get_section(RomLabels::Sprites::PALETTE_PROJECTILE_2).begin;
 	auto proj2_bytes = std::make_shared<ByteVector>(SerialisePalArray(m_projectile2_palettes));
 
-	uint32_t pal_lut_begin = rom.get_section(RomOffsets::Sprites::PALETTE_DATA).begin;
+	uint32_t pal_lut_begin = rom.get_section(RomLabels::Sprites::PALETTE_DATA).begin;
 	auto bytes = std::make_shared<ByteVector>(SerialisePaletteLUT());
 	uint32_t lo_pals_begin = pal_lut_begin + bytes->size();
 	for (const auto& p : m_lo_palettes)
@@ -1736,20 +1735,20 @@ bool SpriteData::RomPrepareInjectSpritePalettes(const Rom& rom)
 		bytes->insert(bytes->end(), b->cbegin(), b->cend());
 	}
 
-	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_DATA, bytes });
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_LUT, pal_lut_begin));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_LO_DATA, lo_pals_begin));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_HI_DATA, hi_pals_begin));
-	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_PROJECTILE_1, proj1_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW1, proj1_begin));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW2, proj1_begin + 2));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW3, proj1_begin));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_1_MOVEW4, proj1_begin + 2));
-	m_pending_writes.push_back({ RomOffsets::Sprites::PALETTE_PROJECTILE_2, proj2_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW1, proj2_begin));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW2, proj2_begin + 2));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW3, proj2_begin + 4));
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::PALETTE_PROJECTILE_2_MOVEW4, proj2_begin + 6));
+	m_pending_writes.push_back({ RomLabels::Sprites::PALETTE_DATA, bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_LUT, pal_lut_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_LO_DATA, lo_pals_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_HI_DATA, hi_pals_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::PALETTE_PROJECTILE_1, proj1_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_1_MOVEW1, proj1_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_1_MOVEW2, proj1_begin + 2));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_1_MOVEW3, proj1_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_1_MOVEW4, proj1_begin + 2));
+	m_pending_writes.push_back({ RomLabels::Sprites::PALETTE_PROJECTILE_2, proj2_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_2_MOVEW1, proj2_begin));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_2_MOVEW2, proj2_begin + 2));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_2_MOVEW3, proj2_begin + 4));
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::PALETTE_PROJECTILE_2_MOVEW4, proj2_begin + 6));
 
 	return true;
 }
@@ -1758,18 +1757,18 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 {
 	auto room_entities = SerialiseRoomEntityTable();
 
-	uint32_t item_begin = rom.get_section(RomOffsets::Sprites::ITEM_PROPERTIES_SECTION).begin;
+	uint32_t item_begin = rom.get_section(RomLabels::Sprites::ITEM_PROPERTIES_SECTION).begin;
 	auto item_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(m_item_properties, false));
 
-	uint32_t unk_begin = rom.get_section(RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).begin;
+	uint32_t unk_begin = rom.get_section(RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).begin;
 	auto unk_bytes = std::make_shared<ByteVector>(SerialiseMap(m_unknown_entity_lookup));
 
-	uint32_t behavoff_begin = rom.get_section(RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION).begin;
+	uint32_t behavoff_begin = rom.get_section(RomLabels::Sprites::SPRITE_BEHAVIOUR_SECTION).begin;
 	auto behav_bytes = std::make_shared<ByteVector>(m_sprite_behaviour_offsets);
 	uint32_t behavtab_begin = behavoff_begin + behav_bytes->size();
 	behav_bytes->insert(behav_bytes->end(), m_sprite_behaviours.cbegin(), m_sprite_behaviours.cend());
 
-	uint32_t visib_begin = rom.get_section(RomOffsets::Sprites::SPRITE_DATA_SECTION).begin;
+	uint32_t visib_begin = rom.get_section(RomLabels::Sprites::SPRITE_DATA_SECTION).begin;
 	auto data_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(EncodeFlags(m_sprite_visibility_flags)));
 
 	uint32_t onetime_begin = data_bytes->size() + visib_begin;
@@ -1814,25 +1813,25 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 	uint32_t table_begin = data_bytes->size() + visib_begin;
 	data_bytes->insert(data_bytes->end(), room_entities.first.cbegin(), room_entities.first.cend());
 
-	m_pending_writes.push_back({ RomOffsets::Sprites::ITEM_PROPERTIES_SECTION, item_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomOffsets::Sprites::ITEM_PROPERTIES, item_begin));
-	m_pending_writes.push_back({ RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION, unk_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::UNKNOWN_SPRITE_LOOKUP, unk_begin));
-	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_BEHAVIOUR_SECTION, behav_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_OFFSETS, behavoff_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_BEHAVIOUR_TABLE, behavtab_begin));
-	m_pending_writes.push_back({ RomOffsets::Sprites::SPRITE_DATA_SECTION, data_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_VISIBILITY_FLAGS, visib_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ONE_TIME_EVENT_FLAGS, onetime_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ROOM_CLEAR_FLAGS, clear_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::LOCKED_DOOR_SPRITE_FLAGS, door_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::PERMANENT_SWITCH_FLAGS, switch_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SACRED_TREE_FLAGS, tree_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_GFX_IDX_LOOKUP, sprent_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::SPRITE_DIMENSIONS_LOOKUP, hitbox_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ROOM_SPRITE_TABLE_OFFSETS, offsets_begin));
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Sprites::ENEMY_STATS, enemy_begin));
-	m_pending_writes.push_back(Asm::WriteAddress32(RomOffsets::Sprites::ROOM_SPRITE_TABLE, table_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::ITEM_PROPERTIES_SECTION, item_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::ITEM_PROPERTIES, item_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION, unk_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP, unk_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::SPRITE_BEHAVIOUR_SECTION, behav_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSETS, behavoff_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE, behavtab_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::SPRITE_DATA_SECTION, data_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS, visib_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::ONE_TIME_EVENT_FLAGS, onetime_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::ROOM_CLEAR_FLAGS, clear_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::LOCKED_DOOR_SPRITE_FLAGS, door_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::PERMANENT_SWITCH_FLAGS, switch_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SACRED_TREE_FLAGS, tree_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_GFX_IDX_LOOKUP, sprent_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_DIMENSIONS_LOOKUP, hitbox_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::ROOM_SPRITE_TABLE_OFFSETS, offsets_begin));
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::ENEMY_STATS, enemy_begin));
+	m_pending_writes.push_back(Asm::WriteAddress32(RomLabels::Sprites::ROOM_SPRITE_TABLE, table_begin));
 
 	return true;
 }

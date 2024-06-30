@@ -24,32 +24,32 @@ wxDEFINE_EVENT(EVT_BLOCK_ACTIVATE, wxCommandEvent);
 
 BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	: wxVScrolledWindow(parent, wxID_ANY),
-	m_mode(Mode::BLOCK_SELECT),
-	m_columns(0),
-	m_rows(0),
-	m_cellwidth(0),
-	m_cellheight(0),
-	m_ctrlwidth(0),
-	m_ctrlheight(0),
-	m_pixelsize(4),
-	m_selectable(false),
-	m_selectedblock(-1),
-	m_hoveredblock(-1),
-	m_selectedtile(-1),
-	m_hoveredtile(-1),
-	block_width(2),
-	block_height(2),
-	m_blocks(std::make_shared<Blockset>()),
-	m_enableblocknumbers(true),
-	m_enabletilenumbers(false),
-	m_enableborders(true),
-	m_enabletileborders(true),
-	m_enableselection(true),
-	m_enablehover(true),
-	m_enablealpha(false),
-	m_redraw_all(true),
-	m_drawtile(0),
-	m_frame(parent)
+	  m_blocks(std::make_shared<Blockset>()),
+	  m_mode(Mode::BLOCK_SELECT),
+	  m_columns(0),
+	  m_rows(0),
+	  m_pixelsize(4),
+   	  m_selectable(false),
+	  m_selectedblock(-1),
+	  m_hoveredblock(-1),
+	  m_selectedtile(-1),
+	  m_hoveredtile(-1),
+	  block_width(2),
+	  block_height(2),
+	  m_cellwidth(0),
+	  m_cellheight(0),
+	  m_ctrlwidth(0),
+	  m_ctrlheight(0),
+	  m_enableblocknumbers(true),
+	  m_enabletilenumbers(false),
+	  m_enableborders(true),
+	  m_enabletileborders(true),
+	  m_enableselection(true),
+	  m_enablehover(true),
+	  m_enablealpha(false),
+	  m_redraw_all(true),
+	  m_drawtile(0),
+	  m_frame(parent)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -60,12 +60,6 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 
 BlocksetEditorCtrl::~BlocksetEditorCtrl()
 {
-	delete m_border_pen;
-	delete m_tile_border_pen;
-	delete m_selected_border_pen;
-	delete m_highlighted_border_pen;
-	delete m_highlighted_brush;
-	delete m_priority_pen;
 }
 
 void BlocksetEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
@@ -145,7 +139,7 @@ bool BlocksetEditorCtrl::New()
 
 void BlocksetEditorCtrl::RedrawTiles(int index)
 {
-	if ((index < 0) || (index >= m_tileset->GetTileCount()))
+	if ((index < 0) || (index >= static_cast<int>(m_tileset->GetTileCount())))
 	{
 		ForceRedraw();
 	}
@@ -158,7 +152,7 @@ void BlocksetEditorCtrl::RedrawTiles(int index)
 
 void BlocksetEditorCtrl::RedrawBlock(int index)
 {
-	if ((index < 0) || (index >= m_blocks->size()))
+	if ((index < 0) || (index >= static_cast<int>(m_blocks->size())))
 	{
 		ForceRedraw();
 	}
@@ -308,22 +302,22 @@ bool BlocksetEditorCtrl::DeleteBlock(int row)
 
 bool BlocksetEditorCtrl::IsBlockSelectionValid() const
 {
-	return m_selectedblock >= 0 && m_selectedblock < m_blocks->size();
+	return m_selectedblock >= 0 && m_selectedblock < static_cast<int>(m_blocks->size());
 }
 
 bool BlocksetEditorCtrl::IsBlockHoverValid() const
 {
-	return m_hoveredblock >= 0 && m_hoveredblock < m_blocks->size();
+	return m_hoveredblock >= 0 && m_hoveredblock < static_cast<int>(m_blocks->size());
 }
 
 bool BlocksetEditorCtrl::IsTileSelectionValid() const
 {
-	return m_selectedtile >= 0 && m_selectedtile < m_blocks->size() * 4;
+	return m_selectedtile >= 0 && m_selectedtile < static_cast<int>(m_blocks->size()) * 4;
 }
 
 bool BlocksetEditorCtrl::IsTileHoverValid() const
 {
-	return m_hoveredblock >= 0 && m_hoveredblock < m_blocks->size() * 4;
+	return m_hoveredblock >= 0 && m_hoveredblock < static_cast<int>(m_blocks->size()) * 4;
 }
 
 uint16_t BlocksetEditorCtrl::GetBlockSelection() const
@@ -334,7 +328,7 @@ uint16_t BlocksetEditorCtrl::GetBlockSelection() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -346,14 +340,14 @@ uint16_t BlocksetEditorCtrl::GetBlockHover() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
 void BlocksetEditorCtrl::SetBlockSelection(int block)
 {
 	int b = -1;
-	if (block >= 0 && block < m_blocks->size())
+	if (block >= 0 && block < static_cast<int>(m_blocks->size()))
 	{
 		b = block;
 	}
@@ -376,7 +370,7 @@ uint16_t BlocksetEditorCtrl::GetTileSelection() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -388,7 +382,7 @@ uint16_t BlocksetEditorCtrl::GetTileHover() const
 	}
 	else
 	{
-		return -1;
+		return 0xFFFF;
 	}
 }
 
@@ -445,7 +439,7 @@ void BlocksetEditorCtrl::SetHoveredTile(const Tile& tile)
 MapBlock BlocksetEditorCtrl::GetBlockAtPosition(const Position& block) const
 {
 	int idx = ToBlockIndex(block);
-	if (idx >= 0 && idx < m_blocks->size())
+	if (idx >= 0 && idx < static_cast<int>(m_blocks->size()))
 	{
 		return m_blocks->at(idx);
 	}
@@ -460,7 +454,7 @@ Tile BlocksetEditorCtrl::GetTileAtPosition(const Position& block, const Position
 void BlocksetEditorCtrl::SetBlockAtPosition(const Position& block, const MapBlock& new_block)
 {
 	int idx = ToBlockIndex(block);
-	if (idx >= 0 && idx < m_blocks->size())
+	if (idx >= 0 && idx < static_cast<int>(m_blocks->size()))
 	{
 		m_blocks->at(idx) = new_block;
 	}
@@ -473,7 +467,7 @@ void BlocksetEditorCtrl::SetTileAtPosition(const Position& block, const Position
 bool BlocksetEditorCtrl::IsPositionValid(const Position& tp) const
 {
 	int idx = ToBlockIndex(tp);
-	return (idx >= 0 && idx < m_blocks->size());
+	return (idx >= 0 && idx < static_cast<int>(m_blocks->size()));
 }
 
 void BlocksetEditorCtrl::RefreshStatusbar()
@@ -534,7 +528,6 @@ bool BlocksetEditorCtrl::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 	const int tile_height = m_pixelsize * m_tileset->GetTileHeight();
 	const int xx = x * tile_width;
 	const int yy = y * tile_height;
-	const int xcell = x / MapBlock::GetBlockWidth();
 	const int ycell = y / MapBlock::GetBlockHeight();
 
 	dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -575,7 +568,7 @@ void BlocksetEditorCtrl::DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile
 
 	auto tile_pixels = m_tileset->GetTileBGRA(tile, GetSelectedPalette());
 
-	for (int i = 0; i < tile_pixels.size(); ++i)
+	for (std::size_t i = 0; i < tile_pixels.size(); ++i)
 	{
 		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
 		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
@@ -592,7 +585,7 @@ void BlocksetEditorCtrl::DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile
 bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlock& block)
 {
 	bool retval = true;
-	for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
+	for (std::size_t i = 0; i < MapBlock::GetBlockSize(); ++i)
 	{
 		const auto pos = ToTilePosition(i);
 		const int xx = x * MapBlock::GetBlockWidth() + pos.x;
@@ -608,9 +601,9 @@ bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlo
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
 		bool pri = false;
-		for (int i = 0; i < MapBlock::GetBlockSize(); ++i)
+		for (int i = 0; i < static_cast<int>(MapBlock::GetBlockSize()); ++i)
 		{
-			pri = pri || m_blocks->at(x + y * m_columns).GetTile(i).Attributes().getAttribute(TileAttributes::ATTR_PRIORITY);
+			pri = pri || m_blocks->at(x + y * m_columns).GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 		}
 		if (pri)
 		{
@@ -681,10 +674,10 @@ void BlocksetEditorCtrl::PaintBitmap(wxDC& dc)
 
 void BlocksetEditorCtrl::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush();
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>();
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -693,15 +686,13 @@ void BlocksetEditorCtrl::InitialiseBrushesAndPens()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
-	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
-	m_tile_border_pen = new wxPen(wxColour(65, 65, 65));
-	m_selected_border_pen = new wxPen(*wxYELLOW_PEN);
-	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
-	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
-	m_priority_pen = new wxPen(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH);
+	m_alpha_brush->SetStipple(*m_stipple);
+	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	m_tile_border_pen = std::make_unique<wxPen>(wxColour(65, 65, 65));
+	m_selected_border_pen = std::make_unique<wxPen>(*wxYELLOW_PEN);
+	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
+	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
+	m_priority_pen = std::make_unique<wxPen>(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH);
 }
 
 void BlocksetEditorCtrl::ForceRedraw()
@@ -730,7 +721,7 @@ int BlocksetEditorCtrl::ToBlockIndex(const Position& tp) const
 	{
 		return -1;
 	}
-	int idx = tp.x + tp.y * m_columns;
+	std::size_t idx = tp.x + tp.y * m_columns;
 	if (idx >= m_blocks->size())
 	{
 		return -1;
@@ -760,9 +751,9 @@ int BlocksetEditorCtrl::ToTileIndex(const Position& tp)
 		return -1;
 	}
 	auto tidx = bidx * MapBlock::GetBlockSize();
-	bidx += (tp.x % MapBlock::GetBlockWidth());
-	bidx += (tp.y % MapBlock::GetBlockHeight()) * MapBlock::GetBlockWidth();
-	return bidx;
+	tidx += (tp.x % MapBlock::GetBlockWidth());
+	tidx += (tp.y % MapBlock::GetBlockHeight()) * MapBlock::GetBlockWidth();
+	return tidx;
 }
 
 int BlocksetEditorCtrl::ConvertXYToBlockIdx(const wxPoint& point) const
@@ -775,7 +766,7 @@ int BlocksetEditorCtrl::ConvertXYToBlockIdx(const wxPoint& point) const
 	int x = point.x / (m_pixelsize * m_tileset->GetTileWidth() * MapBlock::GetBlockWidth());
 	int y = s + point.y / (m_pixelsize * m_tileset->GetTileHeight() * MapBlock::GetBlockHeight());
 	int sel = x + y * m_columns;
-	if ((sel >= m_blocks->size()) || (x < 0) || (y < 0) || (x >= m_columns))
+	if ((sel >= static_cast<int>(m_blocks->size())) || (x < 0) || (y < 0) || (x >= m_columns))
 	{
 		sel = -1;
 	}
@@ -835,7 +826,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 	if (m_redraw_all == true)
 	{
 		m_redraw_list.clear();
-		for (int i = 0; i < m_blocks->size(); ++i)
+		for (std::size_t i = 0; i < m_blocks->size(); ++i)
 		{
 			const auto pos = ToBlockPosition(i);
 			if (!DrawBlock(m_memdc, pos.x, pos.y, i, m_blocks->at(i)))
@@ -850,7 +841,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 		auto it = m_redraw_list.begin();
 		while (it != m_redraw_list.end())
 		{
-			if ((*it >= 0) && (*it < m_blocks->size()))
+			if ((*it >= 0) && (*it < static_cast<int>(m_blocks->size())))
 			{
 				auto pos = ToBlockPosition(*it);
 				if (DrawBlock(m_memdc, pos.x, pos.y, *it, m_blocks->at(*it)))

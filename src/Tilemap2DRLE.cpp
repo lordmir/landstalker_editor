@@ -11,36 +11,66 @@
 
 
 Tilemap2D::Tilemap2D()
-	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(0), m_compression(NONE)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(0),
+	  m_compression(Compression::NONE)
 {
 }
 
 Tilemap2D::Tilemap2D(size_t width, size_t height, size_t base)
-	: m_width(width), m_height(height), m_top(0), m_left(0), m_base(base), m_compression(NONE)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(Compression::NONE)
 {
 	m_tiles.resize(width * height);
 }
 
 Tilemap2D::Tilemap2D(const std::string& filename, Compression compression, size_t base)
-	: m_width(0), m_height(0), m_top(0), m_left(0), m_base(base), m_compression(compression)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(filename, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::string& filename, size_t width, size_t height, Compression compression, size_t base)
-	: m_width(width), m_height(height), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(filename, width, height, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::vector<uint8_t>& data, Compression compression, size_t base)
-	: m_width(0), m_height(0), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(0),
+	  m_height(0),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(data, compression, base);
 }
 
 Tilemap2D::Tilemap2D(const std::vector<uint8_t>& data, size_t width, size_t height, Compression compression, size_t base)
-	: m_width(width), m_height(height), m_left(0), m_top(0), m_base(base), m_compression(compression)
+	: m_width(width),
+	  m_height(height),
+	  m_left(0),
+	  m_top(0),
+	  m_base(base),
+	  m_compression(compression)
 {
 	Open(data, width, height, compression, base);
 }
@@ -75,7 +105,7 @@ bool Tilemap2D::Open(const std::string& filename, Tilemap2D::Compression compres
 	ifs.seekg(0, std::ios::beg);
 
 	std::vector<uint8_t> bytes;
-	bytes.reserve(filesize);
+	bytes.reserve(static_cast<std::size_t>(filesize));
 	bytes.insert(bytes.begin(),
 		std::istream_iterator<uint8_t>(ifs),
 		std::istream_iterator<uint8_t>());
@@ -105,30 +135,30 @@ uint32_t Tilemap2D::Open(const std::vector<uint8_t>& data, Tilemap2D::Compressio
 
 	switch (m_compression)
 	{
-	case NONE:
+	case Compression::NONE:
 		if ((m_width > 0) && (m_height > 0) && (data.size() >= m_width * m_height * 2))
 		{
 			retval = UnpackBytes(data);
 		}
 		break;
-	case RLE:
+	case Compression::RLE:
 		try
 		{
 			retval = Uncompress(data);
 		}
-		catch (const std::exception& e)
+		catch (const std::exception&)
 		{
 			retval = 0;
 		}
 		break;
-	case LZ77:
-		if (data.size() >= 0)
+	case Compression::LZ77:
+		if (data.size() > 0)
 		{
 			try
 			{
 				retval = UncompressLZ77(data);
 			}
-			catch (const std::exception& e)
+			catch (const std::exception&)
 			{
 				retval = 0;
 			}
@@ -227,7 +257,7 @@ std::string Tilemap2D::GetFileExtension() const
 Tilemap2D::Compression Tilemap2D::FromFileExtension(const std::string& filename)
 {
 	std::string ext = filesystem::path(filename).extension();
-	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return std::tolower(c); });
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return static_cast<char>(std::tolower(c)); });
 	if (ext == "lz77")
 	{
 		return Compression::LZ77;
@@ -551,10 +581,10 @@ std::vector<uint8_t> Tilemap2D::CompressLZ77() const
 {
 	auto bytes = PackBytes();
 	bytes.insert(bytes.begin(), {0,0,0,0});
-	bytes[0] = m_left;
-	bytes[1] = m_top;
-	bytes[2] = m_width;
-	bytes[3] = m_height;
+	bytes[0] = static_cast<uint8_t>(m_left);
+	bytes[1] = static_cast<uint8_t>(m_top);
+	bytes[2] = static_cast<uint8_t>(m_width);
+	bytes[3] = static_cast<uint8_t>(m_height);
 	std::vector<uint8_t> result(65536);
 	auto elen = LZ77::Encode(bytes.data(), bytes.size(), result.data());
 	result.resize(elen);
@@ -582,8 +612,8 @@ uint32_t Tilemap2D::UnpackBytes(const std::vector<uint8_t>& data)
 {
 	m_tiles.clear();
 	m_tiles.reserve(m_width * m_height);
-	uint32_t size = std::min(data.size(), m_width * m_height * 2);
-	for (int i = 0; i < size; i += 2)
+	uint32_t size = std::min<uint32_t>(data.size(), m_width * m_height * 2);
+	for (std::size_t i = 0; i < size; i += 2)
 	{
 		uint16_t val = (data[i] << 8) | data[i + 1];
 		m_tiles.push_back(val);
@@ -595,7 +625,7 @@ std::vector<uint8_t> Tilemap2D::PackBytes() const
 {
 	std::vector<uint8_t> result;
 	result.reserve(m_tiles.size() * 2);
-	for (auto t : m_tiles)
+	for (const auto& t : m_tiles)
 	{
 		result.push_back(t.GetTileValue() >> 8);
 		result.push_back(t.GetTileValue() & 0xFF);
@@ -658,7 +688,7 @@ void Tilemap2D::SetTile(const Tile& tile, size_t x, size_t y)
 {
 	if (IsTileValid(x, y))
 	{
-		auto t = tile;
+		Tile t = tile;
 		t.SetIndex(0x7FF & (t.GetIndex() + m_base));
 		m_tiles[y * m_width + x] = t;
 	}
@@ -667,7 +697,8 @@ void Tilemap2D::SetTile(const Tile& tile, size_t x, size_t y)
 bool Tilemap2D::IsTileValid(int x, int y) const
 {
 	bool retval = false;
-	if ((x >= 0) && (x < m_width) && (y >= 0) && (y < m_height))
+	if ((x >= 0) && (x < static_cast<int>(m_width)) &&
+		(y >= 0) && (y < static_cast<int>(m_height)))
 	{
 		retval = true;
 	}
@@ -677,15 +708,15 @@ bool Tilemap2D::IsTileValid(int x, int y) const
 void Tilemap2D::InsertRow(int position, const Tile& fill)
 {
 	m_height += 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
-	for (int y = 0; y < m_height; ++y)
+	for (std::size_t y = 0; y < m_height; ++y)
 	{
-		for (int x = 0; x < m_width; ++x)
+		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (y == position)
+			if (y == static_cast<std::size_t>(position))
 			{
 				*nit++ = fill;
 			}
@@ -700,15 +731,15 @@ void Tilemap2D::InsertRow(int position, const Tile& fill)
 void Tilemap2D::InsertColumn(int position, const Tile& fill)
 {
 	m_width += 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
-	for (int y = 0; y < m_height; ++y)
+	for (std::size_t y = 0; y < m_height; ++y)
 	{
-		for (int x = 0; x < m_width; ++x)
+		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (x == position)
+			if (x == static_cast<std::size_t>(position))
 			{
 				*nit++ = fill;
 			}
@@ -727,15 +758,15 @@ void Tilemap2D::DeleteRow(int position)
 		return;
 	}
 	m_height -= 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
 	auto oit = old.cbegin();
 	auto nit = m_tiles.begin();
-	for (int y = 0; y < m_height + 1; ++y)
+	for (std::size_t y = 0; y < m_height + 1; ++y)
 	{
-		for (int x = 0; x < m_width; ++x)
+		for (std::size_t x = 0; x < m_width; ++x)
 		{
-			if (y == position)
+			if (y == static_cast<std::size_t>(position))
 			{
 				oit++;
 			}
@@ -754,15 +785,15 @@ void Tilemap2D::DeleteColumn(int position)
 		return;
 	}
 	m_width -= 1;
-	auto old = m_tiles;
+	std::vector<Tile> old = m_tiles;
 	m_tiles.resize(m_width * m_height);
-	auto oit = old.cbegin();
-	auto nit = m_tiles.begin();
-	for (int y = 0; y < m_height; ++y)
+	std::vector<Tile>::const_iterator oit = old.cbegin();
+	std::vector<Tile>::iterator nit = m_tiles.begin();
+	for (std::size_t y = 0; y < m_height; ++y)
 	{
-		for (int x = 0; x < m_width + 1; ++x)
+		for (std::size_t x = 0; x < m_width + 1; ++x)
 		{
-			if (x == position)
+			if (x == static_cast<std::size_t>(position))
 			{
 				oit++;
 			}

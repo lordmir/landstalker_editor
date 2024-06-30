@@ -23,13 +23,16 @@ wxDEFINE_EVENT(EVT_PALETTE_COLOUR_HOVER, wxCommandEvent);
 
 PaletteEditor::PaletteEditor(wxWindow* parent)
 	: wxWindow(parent, wxID_ANY),
-	  m_pri_colour(1),
-	  m_sec_colour(0),
-	  m_hovered_colour(-1),
-	  m_bpp(4),
+	  m_gd(nullptr),
+	  m_selected_palette_entry(nullptr),
+	  m_selected_palette(nullptr),
 	  m_disabled{},
 	  m_locked{},
-	  m_gd(nullptr)
+	  m_indicies{},
+	  m_bpp(4),
+	  m_pri_colour(1),
+	  m_sec_colour(0),
+	  m_hovered_colour(-1)
 {
 	m_disabled.assign(16, false);
 	m_indicies.assign(16, 0);
@@ -39,7 +42,6 @@ PaletteEditor::PaletteEditor(wxWindow* parent)
 
 PaletteEditor::~PaletteEditor()
 {
-	delete m_alpha_brush;
 }
 
 void PaletteEditor::SetGameData(std::shared_ptr<GameData> gd)
@@ -114,7 +116,7 @@ void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 	if ((m_pri_colour >= 0) && (m_disabled[m_pri_colour] == true))
 	{
 		m_pri_colour = -1;
-		for (std::size_t i = entries.size(); i > 0; --i)
+		for (int i = static_cast<int>(entries.size()); i > 0; --i)
 		{
 			if (!entries[i - 1] && m_sec_colour != (i - 1))
 			{
@@ -126,7 +128,7 @@ void PaletteEditor::DisableEntries(const std::vector<bool>& entries)
 	if ((m_sec_colour >= 0) && (m_disabled[m_sec_colour] == true))
 	{
 		m_sec_colour = m_pri_colour;
-		for (std::size_t i = 0; i < entries.size(); ++i)
+		for (int i = 0; i < static_cast<int>(entries.size()); ++i)
 		{
 			if (!entries[i] && m_pri_colour != i)
 			{
@@ -275,7 +277,7 @@ void PaletteEditor::OnDraw(wxDC& dc)
 	}
 }
 
-void PaletteEditor::OnPaint(wxPaintEvent& evt)
+void PaletteEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -328,7 +330,7 @@ void PaletteEditor::OnDoubleClick(wxMouseEvent& evt)
 		wxColourDialog dlg(this, &cd);
 		if (dlg.ShowModal() == wxID_OK)
 		{
-			auto colour = dlg.GetColourData().GetColour();
+			const auto& colour = dlg.GetColourData().GetColour();
 			auto result = Palette::Colour::CreateFromBGRA(colour.GetRGBA());
 			if (result != orig_colour)
 			{
@@ -346,7 +348,7 @@ void PaletteEditor::OnMouseMove(wxMouseEvent& evt)
 	OnHover(ConvertXYToColour(evt.GetPosition()));
 }
 
-void PaletteEditor::OnMouseLeave(wxMouseEvent& evt)
+void PaletteEditor::OnMouseLeave(wxMouseEvent& /*evt*/)
 {
 	OnHover(-1);
 }
@@ -418,10 +420,10 @@ wxBrush PaletteEditor::GetBrush(int index)
 
 void PaletteEditor::InitialiseBrushes()
 {
-	m_alpha_brush = new wxBrush(*wxBLACK);
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -430,9 +432,7 @@ void PaletteEditor::InitialiseBrushes()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
+	m_alpha_brush->SetStipple(*m_stipple);
 }
 
 void PaletteEditor::FireEvent(const wxEventType& e, const std::string& data)
@@ -454,7 +454,7 @@ void PaletteEditor::OnHover(int colour)
 
 int PaletteEditor::GetColour(int index) const
 {
-	if (index < m_indicies.size())
+	if (index < static_cast<int>(m_indicies.size()))
 	{
 		return m_indicies[index];
 	}

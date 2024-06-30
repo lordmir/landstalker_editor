@@ -13,17 +13,17 @@ SelectionControlFrame::SelectionControlFrame(wxWindow* parent, ImageList* imglst
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(vboxsizer);
 
-    wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);
+    m_buttons_boxsizer = new wxBoxSizer(wxHORIZONTAL);
 
-    vboxsizer->Add(hboxsizer, 0, 0);
+    vboxsizer->Add(m_buttons_boxsizer, 0, 0);
     m_ctrl_add = new wxBitmapButton(this, wxID_ADD, imglst->GetBitmap(plus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_add, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_add, 0, 0, 0);
     m_ctrl_delete = new wxBitmapButton(this, wxID_DELETE, imglst->GetBitmap(minus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_delete, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_delete, 0, 0, 0);
     m_ctrl_move_up = new wxBitmapButton(this, wxID_UP, imglst->GetBitmap(up_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_move_up, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_move_up, 0, 0, 0);
     m_ctrl_move_down = new wxBitmapButton(this, wxID_DOWN, imglst->GetBitmap(down_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
-    hboxsizer->Add(m_ctrl_move_down, 0, 0, 0);
+    m_buttons_boxsizer->Add(m_ctrl_move_down, 0, 0, 0);
 
     m_ctrl_list = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxArrayString(), wxWANTS_CHARS);
     vboxsizer->Add(m_ctrl_list, 1, wxALL | wxEXPAND);
@@ -82,28 +82,30 @@ void SelectionControlFrame::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
     evt.SetClientData(reinterpret_cast<void*>(this->GetParent()));
+    evt.SetInt(GetSelected());
     wxPostEvent(this->GetParent(), evt);
 }
 
 void SelectionControlFrame::UpdateUI()
 {
     m_ctrl_list->Freeze();
+    int sel = m_ctrl_list->GetSelection();
     m_ctrl_list->Clear();
-    if (m_ctrl_list->GetCount() > GetMaxSelection())
+    if (m_ctrl_list->GetCount() > static_cast<unsigned int>(GetMaxSelection()))
     {
-        for (int i = m_ctrl_list->GetCount(); i >= GetMaxSelection(); --i)
+        for (unsigned int i = m_ctrl_list->GetCount(); i >= static_cast<unsigned int>(GetMaxSelection()); --i)
         {
             m_ctrl_list->Delete(i);
         }
     }
-    else if (m_ctrl_list->GetCount() < GetMaxSelection())
+    else if (m_ctrl_list->GetCount() < static_cast<unsigned int>(GetMaxSelection()))
     {
-        for (int i = m_ctrl_list->GetCount(); i < GetMaxSelection(); ++i)
+        for (unsigned int i = m_ctrl_list->GetCount(); i < static_cast<unsigned int>(GetMaxSelection()); ++i)
         {
             m_ctrl_list->Insert(MakeLabel(i), i);
         }
     }
-    for (int i = 0; i < GetMaxSelection(); ++i)
+    for (unsigned int i = 0; i < static_cast<unsigned int>(GetMaxSelection()); ++i)
     {
         auto label = MakeLabel(i);
         if (m_ctrl_list->GetString(i) != label)
@@ -111,15 +113,21 @@ void SelectionControlFrame::UpdateUI()
             m_ctrl_list->SetString(i, label);
         }
     }
+    UpdateOtherControls();
+    if (sel > m_ctrl_list->GetCount() || sel <= 0)
+    {
+        sel = -1;
+    }
+    m_ctrl_list->SetSelection(sel);
     m_ctrl_list->Thaw();
 }
 
-void SelectionControlFrame::OnSelect(wxCommandEvent& evt)
+void SelectionControlFrame::OnSelect(wxCommandEvent& /*evt*/)
 {
     Select();
 }
 
-void SelectionControlFrame::OnListDoubleClick(wxCommandEvent& evt)
+void SelectionControlFrame::OnListDoubleClick(wxCommandEvent& /*evt*/)
 {
     OpenElement();
 }
@@ -136,22 +144,22 @@ void SelectionControlFrame::OnKeyDown(wxKeyEvent& evt)
     }
 }
 
-void SelectionControlFrame::OnAdd(wxCommandEvent& evt)
+void SelectionControlFrame::OnAdd(wxCommandEvent& /*evt*/)
 {
     Add();
 }
 
-void SelectionControlFrame::OnDelete(wxCommandEvent& evt)
+void SelectionControlFrame::OnDelete(wxCommandEvent& /*evt*/)
 {
     Delete();
 }
 
-void SelectionControlFrame::OnMoveUp(wxCommandEvent& evt)
+void SelectionControlFrame::OnMoveUp(wxCommandEvent& /*evt*/)
 {
     MoveUp();
 }
 
-void SelectionControlFrame::OnMoveDown(wxCommandEvent& evt)
+void SelectionControlFrame::OnMoveDown(wxCommandEvent& /*evt*/)
 {
     MoveDown();
 }

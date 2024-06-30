@@ -7,11 +7,11 @@ uint16_t Asm::PCRel16(uint32_t pc, uint32_t loc)
 	pc += 2;
 	if (loc > pc)
 	{
-		offset = loc - pc;
+		offset = static_cast<uint16_t>(loc - pc);
 	}
 	else
 	{
-		offset = ~(pc - loc) + 1;
+		offset = static_cast<uint16_t>(~(pc - loc) + 1);
 	}
 	return offset;
 }
@@ -22,11 +22,11 @@ uint8_t Asm::PCRel8(uint32_t pc, uint32_t loc)
 	pc += 2;
 	if (loc > pc)
 	{
-		offset = loc - pc;
+		offset = static_cast<uint8_t>(loc - pc);
 	}
 	else
 	{
-		offset = ~(pc - loc) + 1;
+		offset = static_cast<uint8_t>(~(pc - loc) + 1);
 	}
 	return offset;
 }

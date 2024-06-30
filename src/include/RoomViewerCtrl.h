@@ -25,6 +25,7 @@ public:
 		FG_SPRITES_WIREFRAME_BG,
 		FG_SPRITES,
 		FG_SPRITES_WIREFRAME_FG,
+		SWAPS,
 		WARPS
 	};
 
@@ -36,13 +37,15 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	bool GetEntitiesVisible();
-	bool GetEntitiesHitboxVisible();
-	bool GetWarpsVisible();
+	bool GetEntitiesVisible() const;
+	bool GetEntitiesHitboxVisible() const;
+	bool GetWarpsVisible() const;
+	bool GetTileSwapsVisible() const;
 
 	void SetEntitiesVisible(bool visible);
 	void SetEntitiesHitboxVisible(bool visible);
 	void SetWarpsVisible(bool visible);
+	void SetTileSwapsVisible(bool visible);
 
 	bool EntitiesEnabled() const;
 	void SelectEntity(int selection);
@@ -68,6 +71,17 @@ public:
 	void AddWarp();
 	void DeleteSelectedWarp();
 
+	void SelectTileSwap(int selection);
+	bool IsTileSwapSelected() const;
+	const TileSwap& GetSelectedTileSwap() const;
+	int GetSelectedTileSwapIndex() const;
+	void UpdateSwaps();
+
+	void SelectDoor(int selection);
+	bool IsDoorSelected() const;
+	const Door& GetSelectedDoor() const;
+	int GetSelectedDoorIndex() const;
+	void UpdateDoors();
 
 	void SetZoom(double zoom);
 	double GetZoom() const { return m_zoom; }
@@ -83,6 +97,7 @@ public:
 
 	const std::string& GetStatusText() const;
 
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 private:
 	struct SpriteQ
@@ -97,23 +112,36 @@ private:
 		std::shared_ptr<SpriteFrame> frame;
 		Entity entity;
 	};
+	enum class Action
+	{
+		NORMAL,
+		DO_ACTION,
+		DO_ALT_ACTION
+	};
 	void DrawRoom(uint16_t roomnum);
+	void RefreshRoom(bool redraw_tiles = false);
 	std::vector<std::shared_ptr<Palette>> PreparePalettes(uint16_t roomnum);
 	std::vector<SpriteQ> PrepareSprites(uint16_t roomnum);
 	void DrawSprites(const std::vector<SpriteQ>& q);
 	void DrawSpriteHitboxes(const std::vector<SpriteQ>& q);
 	void AddEntityClickRegions(const std::vector<SpriteQ>& q);
 	void RedrawAllSprites();
-	void UpdateLayer(const Layer& layer, std::shared_ptr<wxBitmap> bmp);
+	void UpdateLayer(const Layer& layer, std::unique_ptr<wxBitmap> bmp);
+	void UpdateLayer(const Layer& layer, const wxImage& image);
 	void RefreshStatusbar();
 
 	void UpdateRoomDescText(uint16_t roomnum);
-	std::shared_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
+	std::unique_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
 	void DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
 	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
-	std::shared_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
+	std::unique_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
 	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
 		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);
+	void DrawTileSwaps(wxGraphicsContext& dc, uint16_t roomnum);
+	void DrawDoors(wxGraphicsContext& dc, uint16_t roomnum);
+	std::unique_ptr<wxBitmap> DrawRoomSwaps(uint16_t roomnum);
+	std::vector<wxPoint2DDouble> ToWxPoints2DDouble(const std::vector<std::pair<int, int>>& points);
+	std::pair<int, int> GetScreenPosition(const std::pair<int, int>& iso_pos, uint16_t roomnum, Tilemap3D::Layer layer) const;
 	void ForceRepaint();
 	void ForceRedraw();
 	void SetOpacity(wxImage& image, uint8_t opacity);
@@ -126,6 +154,14 @@ private:
 	void DoDeleteEntity(int entity);
 	void DoMoveEntityUp(int entity);
 	void DoMoveEntityDown(int entity);
+	bool CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text);
+	bool UpdateSelection(int new_selection, Action action);
+
+	std::vector<TileSwap> GetPreviewSwaps();
+	std::vector<Door> GetPreviewDoors();
+	void TogglePreviewSwap(int swap);
+	void TogglePreviewDoor(int door);
+	void ClearAllPreviews();
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
@@ -147,6 +183,8 @@ private:
 	bool HandleNormalModeKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNEntityKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleNWarpKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleNSwapKeyDown(unsigned int key, unsigned int modifiers);
+	virtual bool SetCursor(wxStockCursor cursor);
 
 	std::shared_ptr<GameData> m_g;
 	uint16_t m_roomnum;
@@ -162,6 +200,7 @@ private:
 
 	bool m_show_entities;
 	bool m_show_warps;
+	bool m_show_swaps;
 	bool m_show_entity_hitboxes;
 
 	bool m_is_warp_pending;
@@ -170,22 +209,37 @@ private:
 	std::map<Layer, std::shared_ptr<ImageBuffer>> m_layer_bufs;
 	std::map<Layer, std::shared_ptr<wxBitmap>> m_layers;
 	std::map<Layer, uint8_t> m_layer_opacity;
-	wxBitmap* m_bmp;
+	std::unique_ptr<wxBitmap> m_bmp;
 	std::vector<Entity> m_entities;
 	std::vector<WarpList::Warp> m_warps;
+	std::vector<Door> m_doors;
+	std::vector<TileSwap> m_swaps;
+	std::vector<std::pair<std::vector<wxPoint2DDouble>, std::vector<wxPoint2DDouble>>> m_swap_regions;
+	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
+	std::list<int> m_preview_swaps;
+	std::list<int> m_preview_doors;
 
-	wxBrush* m_warp_brush;
+	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;
-	std::list<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
+	std::vector<std::pair<uint16_t, std::vector<wxPoint2DDouble>>> m_link_poly;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_entity_poly;
 
 	static const std::size_t TILE_WIDTH = 32;
 	static const std::size_t TILE_HEIGHT = 16;
 	static const std::size_t HM_CELL_WIDTH = 32;
 	static const std::size_t HM_CELL_HEIGHT = 32;
+	static const std::size_t CELL_WIDTH = 16;
+	static const std::size_t CELL_HEIGHT = 16;
 	static const int SCROLL_RATE = 8;
+	static const int NO_SELECTION = -1;
+	static const int ENTITY_IDX_OFFSET = 0;
+	static const int LINK_IDX_OFFSET = 0x100;
+	static const int WARP_IDX_OFFSET = 0x200;
+	static const int SWAP_IDX_OFFSET = 0x300;
+	static const int DOOR_IDX_OFFSET = 0x400;
 	int m_scroll_rate;
 	int m_selected;
+	int m_hovered;
 
 	std::string m_status_text;
 	std::vector<std::string> m_errors;

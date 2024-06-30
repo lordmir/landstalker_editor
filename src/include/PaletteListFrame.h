@@ -50,7 +50,7 @@ private:
 	DataViewCtrlPaletteModel* m_model;
 	DataViewCtrlPaletteRenderer* m_renderer;
 	mutable wxDataViewItem m_prev_itm;
-	mutable int m_prev_colour = -1;
+	mutable int m_prev_colour;
 	std::string m_title;
 };
 

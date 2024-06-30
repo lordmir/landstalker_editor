@@ -21,7 +21,6 @@ public:
 	SpriteEditorCtrl(wxWindow* parent);
 	~SpriteEditorCtrl();
 
-	void SetColour(int c);
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
@@ -123,11 +122,12 @@ private:
 	mutable std::vector<uint8_t> m_clipboard;
 	int m_pendingswap;
 
-	wxBrush* m_alpha_brush = nullptr;
-	wxPen* m_border_pen = nullptr;
-	wxPen* m_selected_border_pen = nullptr;
-	wxPen* m_highlighted_border_pen = nullptr;
-	wxBrush* m_highlighted_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxPen> m_border_pen;
+	std::unique_ptr<wxPen> m_selected_border_pen;
+	std::unique_ptr<wxPen> m_highlighted_border_pen;
+	std::unique_ptr<wxBrush> m_highlighted_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

@@ -2,7 +2,7 @@ CXX	= g++
 LD	= g++
 WXCONFIG	= wx-config
 
-CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++17
+CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++17 -Wall -Wextra
 CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))

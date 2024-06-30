@@ -41,7 +41,7 @@ RoomErrorDialog::~RoomErrorDialog()
     m_ok->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(RoomErrorDialog::OnOK), nullptr, this);
 }
 
-void RoomErrorDialog::OnOK(wxCommandEvent& evt)
+void RoomErrorDialog::OnOK(wxCommandEvent& /*evt*/)
 {
 	EndModal(wxID_OK);
 }

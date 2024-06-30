@@ -5,6 +5,7 @@
 #include <iterator>
 #include "Utils.h"
 #include "LZ77.h"
+#include "Literals.h"
 
 static const std::size_t MAXIMUM_CAPACITY = 0x400;
 
@@ -12,7 +13,7 @@ template<class T>
 void HFlip(std::vector<T>& elems, int width)
 {
     int height = elems.size() / width;
-    for (std::size_t i = 0; i < height; ++i)
+    for (int i = 0; i < height; ++i)
     {
         auto source_it = elems.begin() + width * i;
         std::reverse(source_it, source_it + width);
@@ -23,7 +24,7 @@ template<class T>
 void VFlip(std::vector<T>& elems, int width)
 {
     int height = elems.size() / width;
-    for (std::size_t i = 0; i < height / 2; ++i)
+    for (int i = 0; i < height / 2; ++i)
     {
         auto source_it = elems.begin() + width * i;
         auto dest_it = elems.end() - width * (i + 1);
@@ -52,9 +53,9 @@ const std::unordered_map<Tileset::BlockType, BlockDimensions> BLOCK_DIMENSIONS =
 Tileset::Tileset(std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
     : m_width(width * BLOCK_DIMENSIONS.at(blocktype).width),
       m_height(height * BLOCK_DIMENSIONS.at(blocktype).height),
+      m_bit_depth(bit_depth),
       m_tilewidth(width),
       m_tileheight(height),
-      m_bit_depth(bit_depth),
 	  m_compressed(false),
       m_blocktype(blocktype)
 {
@@ -68,9 +69,9 @@ Tileset::Tileset(const std::string& filename, bool compressed, std::size_t width
 Tileset::Tileset(const std::vector<uint8_t>& src, bool compressed, std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
     : m_width(width * BLOCK_DIMENSIONS.at(blocktype).width),
       m_height(height * BLOCK_DIMENSIONS.at(blocktype).height),
+      m_bit_depth(bit_depth),
       m_tilewidth(width),
       m_tileheight(height),
-      m_bit_depth(bit_depth),
       m_compressed(compressed),
       m_blocktype(blocktype)
 {
@@ -125,14 +126,14 @@ uint32_t Tileset::SetBits(const std::vector<uint8_t>& src, bool compressed)
             {
                 byte = input->at(i + tc);
             }
-            uint8_t shift = 8 - m_bit_depth;
+            uint8_t shift = static_cast<uint8_t>(8 - m_bit_depth);
             uint8_t mask = static_cast<uint8_t>(0xFF << shift);
             const std::size_t pixels_per_byte = 8 / m_bit_depth;
             for (std::size_t p = 0; p < pixels_per_byte; ++p)
             {
                 t[i * pixels_per_byte + p] = (byte & mask) >> shift;
-                mask >>= m_bit_depth;
-                shift -= m_bit_depth;
+                mask >>= static_cast<uint8_t>(m_bit_depth);
+                shift -= static_cast<uint8_t>(m_bit_depth);
             }
         }
         tc += tile_size_bytes;
@@ -150,7 +151,7 @@ void Tileset::SetParams(std::size_t width, std::size_t height, uint8_t bit_depth
     m_tilewidth = width;
     m_tileheight = height;
     m_bit_depth = bit_depth;
-    if (m_colour_indicies.size() < (1 << bit_depth))
+    if (m_colour_indicies.size() < static_cast<std::size_t>(1 << bit_depth))
     {
         m_colour_indicies.clear();
     }
@@ -169,7 +170,7 @@ bool Tileset::Open(const std::string& filename, bool compressed, std::size_t wid
     ifs.seekg(0, std::ios::beg);
 
     std::vector<uint8_t> bytes;
-    bytes.reserve(filesize);
+    bytes.reserve(static_cast<std::size_t>(filesize));
     bytes.insert(bytes.begin(),
         std::istream_iterator<uint8_t>(ifs),
         std::istream_iterator<uint8_t>());
@@ -190,25 +191,27 @@ std::vector<uint8_t> Tileset::GetBits(bool compressed)
     std::vector<uint8_t> buffer;
     std::vector<std::vector<uint8_t>> tilebuf;
     std::vector<uint8_t>* retval = &bits;
-    const std::vector<std::vector<uint8_t>>& tiles = (m_blocktype != NORMAL) ? tilebuf : m_tiles;
+    const std::vector<std::vector<uint8_t>>& tiles = (m_blocktype != BlockType::NORMAL) ? tilebuf : m_tiles;
 
     bits.reserve(m_width * m_height * m_tiles.size() * m_bit_depth / 8);
-    if (m_blocktype != NORMAL)
+    if (m_blocktype != BlockType::NORMAL)
     {
         // Convert back into tiles and reverse transpose
-        for (auto t : m_tiles)
+        for (const auto& t : m_tiles)
         {
             for (int x = 0; x < BLOCK_DIMENSIONS.at(m_blocktype).width; ++x)
+            {
                 for (int y = 0; y < BLOCK_DIMENSIONS.at(m_blocktype).height; ++y)
                 {
                     tilebuf.insert(tilebuf.end(), std::vector<uint8_t>());
-                    for (int i = 0; i < m_tileheight; ++i)
+                    for (std::size_t i = 0; i < m_tileheight; ++i)
                     {
                         auto line = t.begin() + i * m_width + x * m_tilewidth + y * m_width * m_tileheight;
                         tilebuf.back().insert(tilebuf.back().end(), line, line + m_tilewidth);
                     }
                 }
-            if (m_blocktype == BLOCK4X6)
+            }
+            if (m_blocktype == BlockType::BLOCK4X6)
             {
                 // Additional processing for block4x6 special case 
                 // Fix tile ordering
@@ -223,23 +226,23 @@ std::vector<uint8_t> Tileset::GetBits(bool compressed)
                 auto block_end = tilebuf.end();
                 std::vector<std::vector<uint8_t>> blockbuf(block_start, block_end);
                 std::array<uint8_t, 24> UntransposeLUT{ 0,1,2,3,6,7,8,9,12,13,14,15,18,19,20,21,4,5,10,11,16,17,22,23 };
-                for (int i = 0; i < blockbuf.size(); ++i)
+                for (std::size_t i = 0; i < blockbuf.size(); ++i)
                 {
                     block_start[i] = blockbuf[UntransposeLUT[i]];
                 }
             }
         }
     }
-    for (auto t : tiles)
+    for (const auto& t : tiles)
     {
         // Convert to n-bitdepth
         uint8_t byte = 0;
         uint8_t bit = 0;
-        for (auto p : t)
+        for (const auto& p : t)
         {
             byte <<= m_bit_depth;
             byte |= p & (0xFF >> (8 - m_bit_depth));
-            bit += m_bit_depth;
+            bit += static_cast<uint8_t>(m_bit_depth);
             if (bit == 8)
             {
                 bit = 0;
@@ -365,7 +368,7 @@ void Tileset::SetColourIndicies(const std::vector<uint8_t>& colour_indicies)
 	{
 		m_colour_indicies.clear();
 	}
-    else if (colour_indicies.size() >= (1 << m_bit_depth))
+    else if (colour_indicies.size() >= static_cast<std::size_t>(1 << m_bit_depth))
     {
         bool ok = true;
         for (auto c : colour_indicies)
@@ -388,13 +391,13 @@ std::vector<uint8_t> Tileset::GetColourIndicies() const
 std::vector<uint8_t> Tileset::GetDefaultColourIndicies() const
 {
     std::vector<uint8_t> ret(1 << m_bit_depth);
-    std::iota(ret.begin(), ret.end(), 0);
+    std::iota(ret.begin(), ret.end(), 0_u8);
     return ret;
 }
 
 std::array<bool, 16> Tileset::GetLockedColours() const
 {
-    std::array<bool, 16> retval;
+    std::array<bool, 16> retval{0};
     retval.fill(true);
     if (m_colour_indicies.empty())
     {
@@ -452,7 +455,7 @@ bool Tileset::GetCompressed() const
 
 void Tileset::DeleteTile(int tile_number)
 {
-    if ((tile_number >= 0) && (tile_number < m_tiles.size()))
+    if ((tile_number >= 0) && (tile_number < static_cast<int>(m_tiles.size())))
     {
         m_tiles.erase(m_tiles.begin() + tile_number);
     }
@@ -460,7 +463,8 @@ void Tileset::DeleteTile(int tile_number)
 
 void Tileset::InsertTilesBefore(int tile_number, int count)
 {
-    if ((tile_number >= 0) && (tile_number <= m_tiles.size()) && (tile_number + count < MAXIMUM_CAPACITY))
+    if ((tile_number >= 0) && (tile_number <= static_cast<int>(m_tiles.size())) &&
+        (tile_number + count < static_cast<int>(MAXIMUM_CAPACITY)))
     {
         for (int i = 0; i < count; ++i)
         {
@@ -475,8 +479,8 @@ void Tileset::InsertTilesBefore(int tile_number, int count)
 
 void Tileset::DuplicateTile(const Tile& src, const Tile& dst)
 {
-    if ((src.GetIndex() >= 0) && (src.GetIndex() < m_tiles.size()) &&
-        (dst.GetIndex() >= 0) && (dst.GetIndex() < m_tiles.size()) &&
+    if ((src.GetIndex() < m_tiles.size()) &&
+        (dst.GetIndex() < m_tiles.size()) &&
         (src.GetIndex() != dst.GetIndex()))
     {
         m_tiles[src.GetIndex()] = m_tiles[dst.GetIndex()];
@@ -485,8 +489,8 @@ void Tileset::DuplicateTile(const Tile& src, const Tile& dst)
 
 void Tileset::SwapTile(const Tile& lhs, const Tile& rhs)
 {
-    if ((lhs.GetIndex() >= 0) && (lhs.GetIndex() < m_tiles.size()) &&
-        (rhs.GetIndex() >= 0) && (rhs.GetIndex() < m_tiles.size()) &&
+    if ((lhs.GetIndex() < m_tiles.size()) &&
+        (rhs.GetIndex() < m_tiles.size()) &&
         (lhs.GetIndex() != rhs.GetIndex()))
     {
         std::swap(m_tiles[lhs.GetIndex()], m_tiles[rhs.GetIndex()]);
@@ -495,7 +499,7 @@ void Tileset::SwapTile(const Tile& lhs, const Tile& rhs)
 
 void Tileset::SetTile(const Tile& src, const std::vector<uint8_t>& value)
 {
-    if ((src.GetIndex() >= 0) && (src.GetIndex() < m_tiles.size()))
+    if (src.GetIndex() < m_tiles.size())
     {
         if (value.size() == m_height * m_width)
         {
@@ -518,21 +522,22 @@ void Tileset::SetTile(const Tile& src, const std::vector<uint8_t>& value)
 
 void Tileset::TransposeBlock()
 {
-    if (m_blocktype == NORMAL)
+    if (m_blocktype == BlockType::NORMAL)
     {
         return;
     }
-    const auto DIMS = BLOCK_DIMENSIONS.at(m_blocktype);
-    if (m_blocktype != BLOCK4X6)
+    const auto& DIMS = BLOCK_DIMENSIONS.at(m_blocktype);
+    std::vector<uint8_t>::const_iterator src_it;
+    if (m_blocktype != BlockType::BLOCK4X6)
     {
         for (auto& b : m_tiles)
         {
-            auto t = b;
-            auto src_it = t.begin();
+            std::vector<uint8_t> t = b;
+            src_it = t.begin();
             for (int x = 0; x < DIMS.width; ++x)
             {
                 auto dest_it = b.begin();
-                for (int y = 0; y < m_height; ++y)
+                for (std::size_t y = 0; y < m_height; ++y)
                 {
                     std::copy(src_it, src_it + m_tilewidth, dest_it + x * m_tilewidth);
                     src_it += m_tilewidth;
@@ -555,22 +560,21 @@ void Tileset::TransposeBlock()
         //  Here, we store which tiles need to be copied where, and use this lookup table to do
         //  the transform.
         const std::array<int, 24> transpose4x6  { 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,18,20,22,17,19,21,23};
-        const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
 
         for (auto& b : m_tiles)
         {
             std::vector<std::vector<uint8_t>> tilebuf;
-            auto src_it = b.begin();
+            src_it = b.begin();
             for (int i = 0; i < DIMS.Area(); ++i)
             {
                 tilebuf.push_back(std::vector<uint8_t>(src_it, src_it + m_tileheight * m_tilewidth));
                 src_it += m_tileheight * m_tilewidth;
             }
-            for (int i = 0; i < tilebuf.size(); ++i)
+            for (std::size_t i = 0; i < tilebuf.size(); ++i)
             {
-                auto src_it = tilebuf[transpose4x6[i]].begin();
+                src_it = tilebuf[transpose4x6[i]].begin();
                 auto dest_it = b.begin() + (i % DIMS.width) * m_tilewidth + (i / DIMS.width) * m_width * m_tileheight;
-                for (int y = 0; y < m_tileheight; ++y)
+                for (std::size_t y = 0; y < m_tileheight; ++y)
                 {
                     std::copy(src_it, src_it + m_tilewidth, dest_it + y * m_width);
                     src_it += m_tilewidth;
@@ -580,8 +584,9 @@ void Tileset::TransposeBlock()
     }
 }
 
-void Tileset::UntransposeBlock(std::vector<uint8_t>& bits)
+void Tileset::UntransposeBlock(std::vector<uint8_t>& /*bits*/)
 {
+    // const std::array<int, 24> untranspose4x6{ 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15,16,20,17,21,18,22,19,23};
 }
 
 std::vector<uint8_t> Tileset::GetTile(const Tile& tile) const
@@ -595,11 +600,11 @@ std::vector<uint8_t> Tileset::GetTile(const Tile& tile) const
         idx = 0;
     }
     std::vector<uint8_t> ret(m_tiles[idx]);
-    if (tile.Attributes().getAttribute(TileAttributes::ATTR_VFLIP))
+    if (tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP))
     {
         VFlip(ret, m_width);
     }
-    if (tile.Attributes().getAttribute(TileAttributes::ATTR_HFLIP))
+    if (tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP))
     {
         HFlip(ret, m_width);
     }
@@ -608,7 +613,7 @@ std::vector<uint8_t> Tileset::GetTile(const Tile& tile) const
 
 std::vector<uint8_t>& Tileset::GetTilePixels(int tile_index)
 {
-    if ((tile_index < 0) || (tile_index >= m_tiles.size()))
+    if ((tile_index < 0) || (tile_index >= static_cast<int>(m_tiles.size())))
     {
         std::ostringstream ss;
         ss << "Attempt to obtain out-of-range tile " << tile_index;

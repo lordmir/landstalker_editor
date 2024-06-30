@@ -1,25 +1,25 @@
 #include <Rom.h>
 
 Rom::Rom(const std::string filename)
-	: m_initialised(false),
-	m_filename(filename),
-	m_region(RomOffsets::Region::US)
+	: m_filename(filename),
+	  m_initialised(false),
+	  m_region(RomOffsets::Region::US)
 {
 	load_from_file(filename);
 }
 
 Rom::Rom(const std::vector<uint8_t>& arr)
 	: m_initialised(true),
-	  m_region(RomOffsets::Region::US),
-	  m_rom(arr)
+	  m_rom(arr),
+	  m_region(RomOffsets::Region::US)
 {
 }
 
 Rom::Rom(const Rom& rhs)
 	: m_filename(rhs.m_filename),
-	m_rom(rhs.m_rom),
-	m_initialised(rhs.m_initialised),
-	m_region(rhs.m_region)
+	  m_initialised(rhs.m_initialised),
+	  m_rom(rhs.m_rom),
+	  m_region(rhs.m_region)
 {}
 
 Rom::Rom()
@@ -81,8 +81,13 @@ std::string Rom::read_string(uint32_t offset) const
 {
 	std::string s;
 	char c;
-	while (c = inc_read<uint8_t>(offset))
+	while (true)
 	{
+		c = inc_read<uint8_t>(offset);
+		if (c == '\0')
+		{
+			break;
+		}
 		s += c;
 	}
 	return s;
@@ -175,7 +180,6 @@ bool Rom::address_exists(const std::string& name)
 
 uint16_t Rom::calc_checksum()
 {
-	const uint16_t expected_checksum = read<uint16_t>(RomOffsets::CHECKSUM_ADDRESS);
 	uint16_t calculated_checksum = 0x0000;
 	for (size_t i = RomOffsets::CHECKSUM_BEGIN; i < RomOffsets::EXPECTED_SIZE; i += 2)
 	{
@@ -219,7 +223,6 @@ void Rom::ValidateRomChecksum()
 
 void Rom::FixRomChecksum()
 {
-	const uint16_t expected_checksum = read<uint16_t>(RomOffsets::CHECKSUM_ADDRESS);
 	uint16_t calculated_checksum = 0x0000;
 	for (size_t i = RomOffsets::CHECKSUM_BEGIN; i < RomOffsets::EXPECTED_SIZE; i += 2)
 	{

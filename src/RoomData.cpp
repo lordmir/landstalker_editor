@@ -2,8 +2,128 @@
 #include <Utils.h>
 #include <AsmUtils.h>
 #include <GameData.h>
+#include <RomLabels.h>
+#include <Literals.h>
+
 #include <set>
 #include <cassert>
+#include <algorithm>
+
+std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
+{
+    std::vector<TileSwapFlag> flags;
+    assert(data.size() % (sizeof(uint16_t) * 2) == 2);
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    {
+        flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
+    }
+    std::sort(flags.begin(), flags.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+        });
+    return flags;
+}
+
+ByteVector EncodeGfxSwap(const std::vector<TileSwapFlag>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * 4 + 2);
+    for (const auto& e : data)
+    {
+        auto bytes = e.GetData();
+        ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::vector<TreeWarpFlag> DecodeTreeWarp(const ByteVector& data)
+{
+    std::vector<TreeWarpFlag> flags;
+    assert(data.size() % TreeWarpFlag::SIZE == 2);
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 8)
+    {
+        std::array<uint8_t, TreeWarpFlag::SIZE> bytes{ 0 };
+        std::copy_n(data.begin() + i, TreeWarpFlag::SIZE, bytes.begin());
+        flags.push_back(TreeWarpFlag(bytes));
+    }
+    return flags;
+}
+
+ByteVector EncodeTreeWarp(const std::vector<TreeWarpFlag>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * TreeWarpFlag::SIZE + 2);
+    for (const auto& e : data)
+    {
+        auto bytes = e.GetData();
+        ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::map<uint16_t, uint16_t> DecodeToMap(const ByteVector& data)
+{
+    std::map<uint16_t, uint16_t> map;
+    assert(data.size() % (sizeof(uint16_t) * 2) == 2);
+    for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
+    {
+        uint16_t room = (data[i] << 8) | data[i + 1];
+        uint16_t flag = (data[i + 2] << 3) | (data[i + 3] & 0x07);
+        map.insert({ room, flag });
+    }
+    return map;
+}
+
+ByteVector EncodeFromMap(const std::map<uint16_t, uint16_t>& data)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * 4 + 2);
+    for (const auto& e : data)
+    {
+        ret.push_back(e.first >> 8);
+        ret.push_back(e.first & 0xFF);
+        ret.push_back((e.second >> 3) & 0xFF);
+        ret.push_back(e.second & 0x07);
+    }
+    ret.push_back(0xFF);
+    ret.push_back(0xFF);
+    return ret;
+}
+
+std::set<uint16_t> DecodeToSet(const ByteVector& data, bool terminate = true)
+{
+    std::set<uint16_t> set;
+    assert(data.size() % sizeof(uint16_t) == 0);
+    for (std::size_t i = 0; i < data.size(); i += 2)
+    {
+        if (terminate && data[i] == 0xFF)
+        {
+            break;
+        }
+        set.insert((data[i] << 8) | data[i + 1]);
+    }
+    return set;
+}
+
+ByteVector EncodeFromSet(const std::set<uint16_t>& data, bool terminate = true)
+{
+    ByteVector ret;
+    ret.reserve(data.size() * 2 + 2);
+    for (const auto& e : data)
+    {
+        ret.push_back(e >> 8);
+        ret.push_back(e & 0xFF);
+    }
+    if (terminate)
+    {
+        ret.push_back(0xFF);
+        ret.push_back(0xFF);
+    }
+    return ret;
+}
 
 RoomData::RoomData(const filesystem::path& asm_file)
     : DataManager(asm_file)
@@ -52,6 +172,18 @@ RoomData::RoomData(const filesystem::path& asm_file)
     {
         throw std::runtime_error(std::string("Unable to load chest data from \'") + m_chest_data_filename.str() + '\'');
     }
+    if (!AsmLoadDoorData())
+    {
+        throw std::runtime_error(std::string("Unable to load door data from \'") + m_door_table_data_filename.str() + '\'');
+    }
+    if (!AsmLoadGfxSwapData())
+    {
+        throw std::runtime_error(std::string("Unable to load tile swap data from \'") + m_gfxswap_table_data_filename.str() + '\'');
+    }
+    if (!AsmLoadMiscData())
+    {
+        throw std::runtime_error(std::string("Unable to load miscellaneous room data from \'") + asm_file.str() + '\'');
+    }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
 }
@@ -88,13 +220,25 @@ RoomData::RoomData(const Rom& rom)
     {
         throw std::runtime_error(std::string("Unable to load chest data from ROM"));
     }
+    if (!RomLoadDoorData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load door data from ROM"));
+    }
+    if (!RomLoadGfxSwapData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load graphic swap data from ROM"));
+    }
+    if (!RomLoadMiscData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to load miscellaneous room data from ROM"));
+    }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
 }
 
 bool RoomData::Save(const filesystem::path& dir)
 {
-    auto directory = dir;
+    filesystem::path directory = dir;
     if (directory.exists() && directory.is_file())
     {
         directory = directory.parent_path();
@@ -146,6 +290,18 @@ bool RoomData::Save(const filesystem::path& dir)
     if (!AsmSaveChestData(dir))
     {
         throw std::runtime_error(std::string("Unable to save chest data to \'") + m_chest_data_filename.str() + '\'');
+    }
+    if (!AsmSaveDoorData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save door data to \'") + m_door_table_data_filename.str() + '\'');
+    }
+    if (!AsmSaveGfxSwapData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save tile swap data to \'") + m_gfxswap_table_data_filename.str() + '\'');
+    }
+    if (!AsmSaveMiscData(dir))
+    {
+        throw std::runtime_error(std::string("Unable to save miscellaneous room data to \'") + directory.str() + '\'');
     }
     CommitAllChanges();
     return true;
@@ -243,6 +399,42 @@ bool RoomData::HasBeenModified() const
     {
         return true;
     }
+    if (m_doors != m_doors_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_flags != m_gfxswap_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_locked_door_flags != m_gfxswap_locked_door_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswap_big_tree_flags != m_gfxswap_big_tree_flags_orig)
+    {
+        return true;
+    }
+    if (m_gfxswaps != m_gfxswaps_orig)
+    {
+        return true;
+    }
+    if (m_shop_list != m_shop_list_orig)
+    {
+        return true;
+    }
+    if (m_lifestock_sold_flags != m_lifestock_sold_flags_orig)
+    {
+        return true;
+    }
+    if (m_big_tree_list != m_big_tree_list_orig)
+    {
+        return true;
+    }
+    if (m_lantern_flag_list != m_lantern_flag_list_orig)
+    {
+        return true;
+    }
     
     return false;
 }
@@ -278,6 +470,18 @@ void RoomData::RefreshPendingWrites(const Rom& rom)
     {
         throw std::runtime_error(std::string("Unable to prepare chest data for ROM injection"));
     }
+    if (!RomPrepareInjectDoorData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare door data for ROM injection"));
+    }
+    if (!RomPrepareInjectGfxSwapData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare tile swap data for ROM injection"));
+    }
+    if (!RomPrepareInjectMiscData(rom))
+    {
+        throw std::runtime_error(std::string("Unable to prepare miscellaneous room data for ROM injection"));
+    }
 }
 
 std::vector<std::shared_ptr<TilesetEntry>> RoomData::GetTilesets() const
@@ -296,7 +500,7 @@ std::vector<std::shared_ptr<AnimatedTilesetEntry>> RoomData::GetAnimatedTilesets
     auto it = m_tilesets_by_name.find(tileset);
     if (it != m_tilesets_by_name.cend())
     {
-        uint8_t idx = it->second->GetIndex();
+        uint8_t idx = static_cast<uint8_t>(it->second->GetIndex());
         for (const auto& ts : m_animated_ts)
         {
             if (ts.first.first == idx)
@@ -313,7 +517,7 @@ bool RoomData::HasAnimatedTilesets(const std::string& tileset) const
     auto it = m_tilesets_by_name.find(tileset);
     if (it != m_tilesets_by_name.cend())
     {
-        uint8_t idx = it->second->GetIndex();
+        uint8_t idx = static_cast<uint8_t>(it->second->GetIndex());
         for (const auto& ts : m_animated_ts)
         {
             if (ts.first.first == idx)
@@ -507,7 +711,7 @@ std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(uint8_t tileset, uint8_t pr
 
 std::shared_ptr<BlocksetEntry> RoomData::GetBlockset(const std::string& tileset, uint8_t pri, uint8_t sec) const
 {
-    return GetBlockset(pri << 5 | GetTileset(tileset)->GetIndex(), sec);
+    return GetBlockset(static_cast<uint8_t>(pri << 5 | GetTileset(tileset)->GetIndex()), sec);
 }
 
 const std::vector<std::shared_ptr<Room>>& RoomData::GetRoomlist() const
@@ -711,6 +915,246 @@ void RoomData::SetSrcTransitions(uint16_t room, const std::vector<WarpList::Tran
     m_warps.SetSrcTransitionsForRoom(room, data);
 }
 
+bool RoomData::IsShop(uint16_t room) const
+{
+    return m_shop_list.count(room) > 0;
+}
+
+void RoomData::SetShop(uint16_t room, bool is_shop)
+{
+    if (is_shop && !IsShop(room))
+    {
+        m_shop_list.insert(room);
+    }
+    else if (!is_shop && IsShop(room))
+    {
+        m_shop_list.erase(room);
+    }
+}
+
+bool RoomData::IsTree(uint16_t room) const
+{
+    return m_big_tree_list.count(room) > 0;
+}
+
+void RoomData::SetTree(uint16_t room, bool is_tree)
+{
+    if (is_tree && !IsTree(room))
+    {
+        m_big_tree_list.insert(room);
+    }
+    else if (!is_tree && IsTree(room))
+    {
+        m_big_tree_list.erase(room);
+    }
+}
+
+bool RoomData::HasLifestockSaleFlag(uint16_t room) const
+{
+    return m_lifestock_sold_flags.count(room) > 0;
+}
+
+uint16_t RoomData::GetLifestockSaleFlag(uint16_t room) const
+{
+    if (HasLifestockSaleFlag(room))
+    {
+        return m_lifestock_sold_flags.at(room);
+    }
+    else
+    {
+        return 0xFFFF;
+    }
+}
+
+void RoomData::SetLifestockSaleFlag(uint16_t room, uint16_t flag)
+{
+    if (flag != 0xFFFF && !HasLifestockSaleFlag(room))
+    {
+        m_lifestock_sold_flags.insert({ room, flag });
+    }
+    else if (flag == 0xFFFF && HasLifestockSaleFlag(room))
+    {
+        m_lifestock_sold_flags.erase(room);
+    }
+}
+
+void RoomData::ClearLifestockSaleFlag(uint16_t room)
+{
+    SetLifestockSaleFlag(room, 0xFFFF);
+}
+
+bool RoomData::HasLanternFlag(uint16_t room) const
+{
+    return m_lantern_flag_list.count(room) > 0;
+}
+
+uint16_t RoomData::GetLanternFlag(uint16_t room) const
+{
+    if (HasLanternFlag(room))
+    {
+        return m_lantern_flag_list.at(room);
+    }
+    else
+    {
+        return 0xFFFF;
+    }
+}
+
+void RoomData::SetLanternFlag(uint16_t room, uint16_t flag)
+{
+    if (flag != 0xFFFF && !HasLanternFlag(room))
+    {
+        m_lantern_flag_list.insert({ room, flag });
+    }
+    else if (flag == 0xFFFF && HasLanternFlag(room))
+    {
+        m_lantern_flag_list.erase(room);
+    }
+}
+
+void RoomData::ClearLanternFlag(uint16_t room)
+{
+    SetLanternFlag(room, 0xFFFF);
+}
+
+bool RoomData::HasTreeWarpFlag(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_big_tree_flags.cbegin(), m_gfxswap_big_tree_flags.cend(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        });
+}
+
+TreeWarpFlag RoomData::GetTreeWarp(uint16_t room) const
+{
+    auto result = std::find_if(m_gfxswap_big_tree_flags.cbegin(), m_gfxswap_big_tree_flags.cend(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        });
+    if (result == m_gfxswap_big_tree_flags.cend())
+    {
+        return { 0_u16, 0_u16, 0_u16 };
+    }
+    return {room, result->room1 == room ? result->room2 : result->room1, result->flag};
+}
+
+void RoomData::SetTreeWarp(const TreeWarpFlag& flags)
+{
+    auto new_flags = flags;
+    if (flags.room2 < flags.room1)
+    {
+        new_flags = { flags.room2, flags.room1, flags.flag };
+    }
+    auto result = std::find_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
+        return w.room1 == new_flags.room1 || w.room2 == new_flags.room1 || w.room1 == new_flags.room2 || w.room2 == new_flags.room2;
+        });
+    if (result == m_gfxswap_big_tree_flags.cend())
+    {
+        m_gfxswap_big_tree_flags.push_back(new_flags);
+    }
+    else
+    {
+        *result = new_flags;
+    }
+}
+
+void RoomData::ClearTreeWarp(uint16_t room)
+{
+    m_gfxswap_big_tree_flags.erase(std::remove_if(m_gfxswap_big_tree_flags.begin(), m_gfxswap_big_tree_flags.end(), [&](const auto& w) {
+        return w.room1 == room || w.room2 == room;
+        }), m_gfxswap_big_tree_flags.end());
+}
+
+bool RoomData::HasNormalTileSwaps(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(), [&](const auto& f) {
+        return f.room == room;
+    });
+}
+
+std::vector<TileSwapFlag> RoomData::GetNormalTileSwaps(uint16_t room) const
+{
+    std::vector<TileSwapFlag> ret;
+    std::copy_if(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(),
+        std::back_inserter(ret), [&](const auto& f) {
+        return f.room == room;
+        });
+    return ret;
+}
+
+void RoomData::SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
+{
+    m_gfxswap_flags.erase(std::remove_if(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [&](const auto& f) {
+        return f.room == room;
+        }), m_gfxswap_flags.end());
+    if (swaps.empty() == false)
+    {
+        m_gfxswap_flags.insert(m_gfxswap_flags.end(), swaps.cbegin(), swaps.cend());
+        std::sort(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [](const auto& lhs, const auto& rhs) {
+            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+            });
+    }
+}
+
+bool RoomData::HasLockedDoorTileSwaps(uint16_t room) const
+{
+    return std::any_of(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(), [&](const auto& f) {
+        return f.room == room;
+        });
+}
+
+std::vector<TileSwapFlag> RoomData::GetLockedDoorTileSwaps(uint16_t room) const
+{
+    std::vector<TileSwapFlag> ret;
+    std::copy_if(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(),
+        std::back_inserter(ret), [&](const auto& f) {
+        return f.room == room;
+    });
+    return ret;
+}
+
+void RoomData::SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
+{
+    m_gfxswap_locked_door_flags.erase(std::remove_if(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [&](const auto& f) {
+        return f.room == room;
+        }), m_gfxswap_locked_door_flags.end());
+    if (swaps.empty() == false)
+    {
+        m_gfxswap_locked_door_flags.insert(m_gfxswap_locked_door_flags.end(), swaps.cbegin(), swaps.cend());
+        std::sort(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [](const auto& lhs, const auto& rhs) {
+            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
+            });
+    }
+}
+
+bool RoomData::HasTileSwaps(uint16_t room) const
+{
+    return m_gfxswaps.RoomHasSwaps(room);
+}
+
+std::vector<TileSwap> RoomData::GetTileSwaps(uint16_t room) const
+{
+    return m_gfxswaps.GetSwapsForRoom(room);
+}
+
+void RoomData::SetTileSwaps(uint16_t room, const std::vector<TileSwap>& swaps)
+{
+    m_gfxswaps.SetRoomSwaps(room, swaps);
+}
+
+bool RoomData::HasDoors(uint16_t room) const
+{
+    return m_doors.RoomHasDoors(room);
+}
+
+std::vector<Door> RoomData::GetDoors(uint16_t room) const
+{
+    return m_doors.GetDoorsForRoom(room);
+}
+
+void RoomData::SetDoors(uint16_t room, const std::vector<Door>& doors)
+{
+    m_doors.SetRoomDoors(room, doors);
+}
+
 void RoomData::CommitAllChanges()
 {
     auto entry_commit = [](const auto& e) {return e->Commit(); };
@@ -739,6 +1183,15 @@ void RoomData::CommitAllChanges()
     m_tilesets_orig = m_tilesets;
     m_warp_palette_orig = m_warp_palette;
     m_chests_orig = m_chests;
+    m_doors_orig = m_doors;
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswaps_orig = m_gfxswaps;
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     m_pending_writes.clear();
 }
 
@@ -748,24 +1201,34 @@ bool RoomData::LoadAsmFilenames()
     {
         bool retval = true;
         AsmFile f(GetAsmFilename().str());
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_DATA, m_room_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::MAP_DATA, m_map_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_EXITS, m_warp_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_FALL_DEST, m_fall_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_CLIMB_DEST, m_climb_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_TRANSITIONS, m_transition_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::ROOM_PALS, m_palette_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::PALETTE_WARP, m_warp_pal_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::PALETTE_LAVA, m_lava_pal_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::PALETTE_LANTERN, m_lantern_pal_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Tilesets::DATA_LOC, m_tileset_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Tilesets::PTRTAB_LOC, m_tileset_ptrtab_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Tilesets::ANIM_DATA_LOC, m_tileset_anim_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::PRI_PTRS, m_blockset_pri_ptr_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::SEC_PTRS, m_blockset_sec_ptr_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Blocksets::DATA, m_blockset_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_OFFSETS, m_chest_offset_data_filename);
-        retval = retval && GetFilenameFromAsm(f, RomOffsets::Rooms::CHEST_CONTENTS, m_chest_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_DATA, m_room_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::MAP_DATA, m_map_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_EXITS, m_warp_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_FALL_DEST, m_fall_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_CLIMB_DEST, m_climb_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_TRANSITIONS, m_transition_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_PALS, m_palette_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::PALETTE_WARP, m_warp_pal_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::PALETTE_LAVA, m_lava_pal_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::PALETTE_LANTERN, m_lantern_pal_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Tilesets::DATA_LOC, m_tileset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Tilesets::PTRTAB_LOC, m_tileset_ptrtab_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Tilesets::ANIM_DATA_LOC, m_tileset_anim_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Blocksets::PRI_PTRS, m_blockset_pri_ptr_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Blocksets::SEC_PTRS, m_blockset_sec_ptr_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Blocksets::DATA, m_blockset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::CHEST_OFFSETS, m_chest_offset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::CHEST_CONTENTS, m_chest_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::DOOR_OFFSET_TABLE, m_door_offset_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::DOOR_TABLE, m_door_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::GFX_SWAP_FLAGS, m_gfxswap_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1, m_gfxswap_locked_door_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::GFX_SWAP_TREE_FLAGS, m_gfxswap_big_tree_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::GFX_SWAP_TABLE, m_gfxswap_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::SHOP_LIST_LEA1, m_shop_table_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS, m_lifestock_sold_flag_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::BIG_TREE_LOCATIONS, m_bigtree_data_filename);
+        retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::LANTERN_ROOM_FLAGS, m_lantern_flag_data_filename);
         return retval;
     }
     catch (...)
@@ -776,24 +1239,34 @@ bool RoomData::LoadAsmFilenames()
 
 void RoomData::SetDefaultFilenames()
 {
-    if (m_room_data_filename.empty())          m_room_data_filename         = RomOffsets::Rooms::ROOM_DATA_FILE;
-    if (m_map_data_filename.empty())           m_map_data_filename          = RomOffsets::Rooms::MAP_DATA_FILE;
-    if (m_warp_data_filename.empty())          m_warp_data_filename         = RomOffsets::Rooms::WARP_FILENAME;
-    if (m_fall_data_filename.empty())          m_fall_data_filename         = RomOffsets::Rooms::FALL_DEST_FILENAME;
-    if (m_climb_data_filename.empty())         m_climb_data_filename        = RomOffsets::Rooms::CLIMB_DEST_FILENAME;
-    if (m_transition_data_filename.empty())    m_transition_data_filename   = RomOffsets::Rooms::TRANSITION_FILENAME;
-    if (m_palette_data_filename.empty())       m_palette_data_filename      = RomOffsets::Rooms::PALETTE_DATA_FILE;
-    if (m_lava_pal_data_filename.empty())      m_lava_pal_data_filename     = RomOffsets::Rooms::PALETTE_LAVA_FILENAME;
-    if (m_warp_pal_data_filename.empty())      m_warp_pal_data_filename     = RomOffsets::Rooms::PALETTE_WARP_FILENAME;
-    if (m_lantern_pal_data_filename.empty())   m_lantern_pal_data_filename  = RomOffsets::Rooms::PALETTE_LANTERN_FILENAME;
-    if (m_tileset_data_filename.empty())       m_tileset_data_filename      = RomOffsets::Tilesets::INCLUDE_FILE;
-    if (m_tileset_ptrtab_filename.empty())     m_tileset_ptrtab_filename    = RomOffsets::Tilesets::PTRTAB_FILE;
-    if (m_tileset_anim_filename.empty())       m_tileset_anim_filename      = RomOffsets::Tilesets::ANIM_FILE;
-    if (m_blockset_pri_ptr_filename.empty())   m_blockset_pri_ptr_filename  = RomOffsets::Blocksets::PRI_PTR_FILE;
-    if (m_blockset_sec_ptr_filename.empty())   m_blockset_sec_ptr_filename  = RomOffsets::Blocksets::SEC_PTR_FILE;
-    if (m_blockset_data_filename.empty())      m_blockset_data_filename     = RomOffsets::Blocksets::DATA_FILE;
-    if (m_chest_data_filename.empty())         m_chest_data_filename        = RomOffsets::Rooms::CHEST_CONTENTS_FILENAME;
-    if (m_chest_offset_data_filename.empty())  m_chest_offset_data_filename = RomOffsets::Rooms::CHEST_OFFSETS_FILENAME;
+    if (m_room_data_filename.empty())                     m_room_data_filename                     = RomLabels::Rooms::ROOM_DATA_FILE;
+    if (m_map_data_filename.empty())                      m_map_data_filename                      = RomLabels::Rooms::MAP_DATA_FILE;
+    if (m_warp_data_filename.empty())                     m_warp_data_filename                     = RomLabels::Rooms::WARP_FILENAME;
+    if (m_fall_data_filename.empty())                     m_fall_data_filename                     = RomLabels::Rooms::FALL_DEST_FILENAME;
+    if (m_climb_data_filename.empty())                    m_climb_data_filename                    = RomLabels::Rooms::CLIMB_DEST_FILENAME;
+    if (m_transition_data_filename.empty())               m_transition_data_filename               = RomLabels::Rooms::TRANSITION_FILENAME;
+    if (m_palette_data_filename.empty())                  m_palette_data_filename                  = RomLabels::Rooms::PALETTE_DATA_FILE;
+    if (m_lava_pal_data_filename.empty())                 m_lava_pal_data_filename                 = RomLabels::Rooms::PALETTE_LAVA_FILENAME;
+    if (m_warp_pal_data_filename.empty())                 m_warp_pal_data_filename                 = RomLabels::Rooms::PALETTE_WARP_FILENAME;
+    if (m_lantern_pal_data_filename.empty())              m_lantern_pal_data_filename              = RomLabels::Rooms::PALETTE_LANTERN_FILENAME;
+    if (m_tileset_data_filename.empty())                  m_tileset_data_filename                  = RomLabels::Tilesets::INCLUDE_FILE;
+    if (m_tileset_ptrtab_filename.empty())                m_tileset_ptrtab_filename                = RomLabels::Tilesets::PTRTAB_FILE;
+    if (m_tileset_anim_filename.empty())                  m_tileset_anim_filename                  = RomLabels::Tilesets::ANIM_FILE;
+    if (m_blockset_pri_ptr_filename.empty())              m_blockset_pri_ptr_filename              = RomLabels::Blocksets::PRI_PTR_FILE;
+    if (m_blockset_sec_ptr_filename.empty())              m_blockset_sec_ptr_filename              = RomLabels::Blocksets::SEC_PTR_FILE;
+    if (m_blockset_data_filename.empty())                 m_blockset_data_filename                 = RomLabels::Blocksets::DATA_FILE;
+    if (m_chest_data_filename.empty())                    m_chest_data_filename                    = RomLabels::Rooms::CHEST_CONTENTS_FILENAME;
+    if (m_chest_offset_data_filename.empty())             m_chest_offset_data_filename             = RomLabels::Rooms::CHEST_OFFSETS_FILENAME;
+    if (m_door_offset_data_filename.empty())              m_door_offset_data_filename              = RomLabels::Rooms::DOOR_OFFSET_TABLE_FILE;
+    if (m_door_table_data_filename.empty())               m_door_table_data_filename               = RomLabels::Rooms::DOOR_TABLE_FILE;
+    if (m_gfxswap_flag_data_filename.empty())             m_gfxswap_flag_data_filename             = RomLabels::Rooms::GFX_SWAP_FLAGS_FILE;
+    if (m_gfxswap_locked_door_flag_data_filename.empty()) m_gfxswap_locked_door_flag_data_filename = RomLabels::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_FILE;
+    if (m_gfxswap_big_tree_flag_data_filename.empty())    m_gfxswap_big_tree_flag_data_filename    = RomLabels::Rooms::GFX_SWAP_TREE_FLAGS_FILE;
+    if (m_gfxswap_table_data_filename.empty())            m_gfxswap_table_data_filename            = RomLabels::Rooms::GFX_SWAP_TABLE_FILE;
+    if (m_shop_table_data_filename.empty())               m_shop_table_data_filename               = RomLabels::Rooms::SHOP_LIST_FILE;
+    if (m_lifestock_sold_flag_data_filename.empty())      m_lifestock_sold_flag_data_filename      = RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS_FILE;
+    if (m_bigtree_data_filename.empty())                  m_bigtree_data_filename                  = RomLabels::Rooms::BIG_TREE_LOCATIONS_FILE;
+    if (m_lantern_flag_data_filename.empty())             m_lantern_flag_data_filename             = RomLabels::Rooms::LANTERN_ROOM_FILE;
 }
 
 bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
@@ -818,6 +1291,16 @@ bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
     retval = retval && CreateDirectoryTree(dir / m_blockset_data_filename);
     retval = retval && CreateDirectoryTree(dir / m_chest_data_filename);
     retval = retval && CreateDirectoryTree(dir / m_chest_offset_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_door_offset_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_door_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_locked_door_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_big_tree_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_gfxswap_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_shop_table_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_lifestock_sold_flag_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_bigtree_data_filename);
+    retval = retval && CreateDirectoryTree(dir / m_lantern_flag_data_filename);
 
     for (const auto& m : m_maps)
     {
@@ -891,7 +1374,7 @@ bool RoomData::AsmLoadRoomPalettes()
         unsigned int i = 0;
         while (file.IsGood())
         {
-            std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
+            std::string name = StrPrintf(RomLabels::Rooms::ROOM_PAL_NAME, i + 1);
             if (file.IsLabel())
             {
                 AsmFile::Label l;
@@ -944,9 +1427,9 @@ bool RoomData::AsmLoadMiscPaletteData()
         return ret;
     };
 
-    m_lava_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LAVA, m_lava_pal_data_filename, Palette::Type::LAVA);
-    m_warp_palette = load_pal_array(RomOffsets::Rooms::PALETTE_WARP, m_warp_pal_data_filename, Palette::Type::WARP);
-    m_labrynth_lit_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LANTERN, m_lantern_pal_data_filename, Palette::Type::ROOM).front();
+    m_lava_palette = load_pal_array(RomLabels::Rooms::PALETTE_LAVA, m_lava_pal_data_filename, Palette::Type::LAVA);
+    m_warp_palette = load_pal_array(RomLabels::Rooms::PALETTE_WARP, m_warp_pal_data_filename, Palette::Type::WARP);
+    m_labrynth_lit_palette = load_pal_array(RomLabels::Rooms::PALETTE_LANTERN, m_lantern_pal_data_filename, Palette::Type::ROOM).front();
     
     m_lava_palette_orig = m_lava_palette;
     m_warp_palette_orig = m_warp_palette;
@@ -990,7 +1473,7 @@ bool RoomData::AsmLoadBlocksetPtrData()
         AsmFile pri_file(GetBasePath() / m_blockset_pri_ptr_filename);
         AsmFile sec_file(GetBasePath() / m_blockset_sec_ptr_filename);
 
-        pri_file.Goto(RomOffsets::Blocksets::POINTER);
+        pri_file.Goto(RomLabels::Blocksets::POINTER);
         // First item is always a pointer to the start of the regular tileset list.
         // We can safely ignore this
         std::string name;
@@ -1062,7 +1545,7 @@ bool RoomData::AsmLoadAnimatedTilesetData()
 
         std::vector<uint8_t> ts_idxs;
         std::map<uint8_t, uint8_t> ts_counts;
-        animfile.Goto(RomOffsets::Tilesets::ANIM_IDX_LOC);
+        animfile.Goto(RomLabels::Tilesets::ANIM_IDX_LOC);
         uint8_t cur_byte = 0;
         do
         {
@@ -1074,7 +1557,7 @@ bool RoomData::AsmLoadAnimatedTilesetData()
         } while (cur_byte != 0xFF);
 
         auto ts_idx_it = ts_idxs.begin();
-        animfile.Goto(RomOffsets::Tilesets::ANIM_LIST_LOC);
+        animfile.Goto(RomLabels::Tilesets::ANIM_LIST_LOC);
         while (animfile.IsGood())
         {
             animfile >> base >> length >> speed >> frames >> ptrname;
@@ -1108,7 +1591,7 @@ bool RoomData::AsmLoadTilesetData()
     {
         AsmFile ptrfile(GetBasePath() / m_tileset_ptrtab_filename);
         AsmFile datafile(GetBasePath() / m_tileset_data_filename);
-        ptrfile.Goto(RomOffsets::Tilesets::PTR_LOC);
+        ptrfile.Goto(RomLabels::Tilesets::PTR_LOC);
         // First item is a pointer to the start of the regular tileset list.
         std::string tileset_begin_label;
         ptrfile >> tileset_begin_label;
@@ -1143,8 +1626,8 @@ bool RoomData::AsmLoadTilesetData()
                     datafile >> inc;
                     auto e = TilesetEntry::Create(this, ReadBytes(GetBasePath() / inc.path), name, inc.path, true);
                     m_tilesets_by_name.insert({ name, e });
-                    e->SetIndex(i++);
-                    m_tilesets.insert({ e->GetIndex(), e});
+                    e->SetIndex(static_cast<int>(i++));
+                    m_tilesets.insert({ static_cast<uint8_t>(e->GetIndex()), e});
                 }
                 else
                 {
@@ -1170,10 +1653,47 @@ bool RoomData::AsmLoadChestData()
     auto offsets = ReadBytes(GetBasePath() / m_chest_offset_data_filename);
     while (contents.back() == 0xFF)
     {
-        contents.resize(contents.size() - 1);
+        contents.pop_back();
     }
     m_chests = Chests(offsets, contents);
     m_chests_orig = m_chests;
+    return true;
+}
+
+bool RoomData::AsmLoadDoorData()
+{
+    auto door_offsets = ReadBytes(GetBasePath() / m_door_offset_data_filename);
+    auto door_table = ReadBytes(GetBasePath() / m_door_table_data_filename);
+    m_doors = Doors(door_offsets, door_table);
+    m_doors_orig = m_doors;
+    return true;
+}
+
+bool RoomData::AsmLoadGfxSwapData()
+{
+    m_gfxswap_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_flag_data_filename));
+    m_gfxswap_locked_door_flags = DecodeGfxSwap(ReadBytes(GetBasePath() / m_gfxswap_locked_door_flag_data_filename));
+    m_gfxswap_big_tree_flags = DecodeTreeWarp(ReadBytes(GetBasePath() / m_gfxswap_big_tree_flag_data_filename));
+    m_gfxswaps = TileSwaps(ReadBytes(GetBasePath() / m_gfxswap_table_data_filename));
+
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswaps_orig = m_gfxswaps;
+    return true;
+}
+
+bool RoomData::AsmLoadMiscData()
+{
+    m_shop_list = DecodeToSet(ReadBytes(GetBasePath() / m_shop_table_data_filename), true);
+    m_lifestock_sold_flags = DecodeToMap(ReadBytes(GetBasePath() / m_lifestock_sold_flag_data_filename));
+    m_big_tree_list = DecodeToSet(ReadBytes(GetBasePath() / m_bigtree_data_filename), false);
+    m_lantern_flag_list = DecodeToMap(ReadBytes(GetBasePath() / m_lantern_flag_data_filename));
+
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     return true;
 }
 
@@ -1181,8 +1701,8 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
 {
     try
     {
-        uint32_t addr = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_DATA_PTR));
-        const uint32_t map_end_addr = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_PALS_PTR));
+        uint32_t addr = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_DATA_PTR));
+        const uint32_t map_end_addr = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_PALS_PTR));
 
         uint32_t table_end_addr = map_end_addr;
         uint32_t map_addr = map_end_addr;
@@ -1213,10 +1733,10 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
             {
                 end = *std::next(it);
             }
-            std::string name = StrPrintf(RomOffsets::Rooms::MAP_FORMAT_STRING, ++count);
+            std::string name = StrPrintf(RomLabels::Rooms::MAP_FORMAT_STRING, ++count);
             map_names[Hex(begin)] = name;
-            auto fname = StrPrintf(RomOffsets::Rooms::MAP_FILENAME_FORMAT_STRING, name.c_str());
-            std::transform(fname.begin(), fname.end(), fname.begin(), [](const unsigned char i) { return std::tolower(i); });
+            auto fname = StrPrintf(RomLabels::Rooms::MAP_FILENAME_FORMAT_STRING, name.c_str());
+            std::transform(fname.begin(), fname.end(), fname.begin(), [](const unsigned char i) { return static_cast<unsigned char>(std::tolower(i)); });
             auto map_entry = Tilemap3DEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, fname);
             map_entry->SetStartAddress(begin);
             m_maps.insert(std::make_pair(name, map_entry));
@@ -1237,20 +1757,19 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
 
 bool RoomData::RomLoadRoomPalettes(const Rom& rom)
 {
-    uint32_t palettes_begin = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_PALS_PTR));
-    uint32_t palettes_end = rom.read<uint32_t>(rom.get_address(RomOffsets::Rooms::ROOM_EXITS_PTR));
+    uint32_t palettes_begin = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_PALS_PTR));
+    uint32_t palettes_end = rom.read<uint32_t>(rom.get_address(RomLabels::Rooms::ROOM_EXITS_PTR));
     assert(palettes_end > palettes_begin);
-    uint32_t palettes_size = palettes_end - palettes_begin;
     uint32_t size = Palette::GetSizeBytes(Palette::Type::ROOM);
-    assert(palettes_size % size == 0);
+    assert((palettes_end - palettes_begin) % size == 0);
     unsigned int i = 0;
     unsigned int addr = palettes_begin;
     while (addr < palettes_end)
     {
-        std::string name = StrPrintf(RomOffsets::Rooms::ROOM_PAL_NAME, i + 1);
-        auto fname = StrPrintf(RomOffsets::Rooms::PALETTE_FORMAT_STRING, i + 1);
-        auto fpath = StrPrintf(RomOffsets::Rooms::PALETTE_FILENAME_FORMAT_STRING, fname.c_str());
-        std::transform(fpath.begin(), fpath.end(), fpath.begin(), [](const unsigned char i) { return std::tolower(i); });
+        std::string name = StrPrintf(RomLabels::Rooms::ROOM_PAL_NAME, i + 1);
+        auto fname = StrPrintf(RomLabels::Rooms::PALETTE_FORMAT_STRING, i + 1);
+        auto fpath = StrPrintf(RomLabels::Rooms::PALETTE_FILENAME_FORMAT_STRING, fname.c_str());
+        std::transform(fpath.begin(), fpath.end(), fpath.begin(), [](const unsigned char i) { return static_cast<unsigned char>(std::tolower(i)); });
         auto e = PaletteEntry::Create(this, rom.read_array<uint8_t>(addr, size), name, fpath, Palette::Type::ROOM);
         e->SetStartAddress(addr);
         m_room_pals.push_back(e);
@@ -1276,7 +1795,6 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
         uint32_t addr = rom.get_section(name).begin;
         uint32_t end = rom.get_section(name).end;
         uint32_t size = Palette::GetSizeBytes(ptype);
-        unsigned int i = 0;
         std::vector<std::shared_ptr<PaletteEntry>> ret;
         int idx = 0;
         for (; addr < end; addr += size)
@@ -1288,9 +1806,9 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
         }
         return ret;
     };
-    m_lava_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LAVA, RomOffsets::Rooms::PALETTE_LAVA_FILENAME, Palette::Type::LAVA);
-    m_warp_palette = load_pal_array(RomOffsets::Rooms::PALETTE_WARP, RomOffsets::Rooms::PALETTE_WARP_FILENAME, Palette::Type::WARP);
-    m_labrynth_lit_palette = load_pal_array(RomOffsets::Rooms::PALETTE_LANTERN, RomOffsets::Rooms::PALETTE_LANTERN_FILENAME, Palette::Type::ROOM).front();
+    m_lava_palette = load_pal_array(RomLabels::Rooms::PALETTE_LAVA, RomLabels::Rooms::PALETTE_LAVA_FILENAME, Palette::Type::LAVA);
+    m_warp_palette = load_pal_array(RomLabels::Rooms::PALETTE_WARP, RomLabels::Rooms::PALETTE_WARP_FILENAME, Palette::Type::WARP);
+    m_labrynth_lit_palette = load_pal_array(RomLabels::Rooms::PALETTE_LANTERN, RomLabels::Rooms::PALETTE_LANTERN_FILENAME, Palette::Type::ROOM).front();
     
     m_lava_palette_orig = m_lava_palette;
     m_warp_palette_orig = m_warp_palette;
@@ -1300,7 +1818,7 @@ bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
 
 bool RoomData::RomLoadBlocksetData(const Rom& rom)
 {
-    uint32_t blockset_begin = rom.read<uint32_t>(RomOffsets::Blocksets::POINTER);
+    uint32_t blockset_begin = rom.read<uint32_t>(RomLabels::Blocksets::POINTER);
     std::map<uint32_t, uint8_t> pri_ptrs;
     std::map<uint32_t, std::pair<uint8_t, uint8_t>> sec_ptrs;
     std::set<uint32_t> b_ptrs;
@@ -1332,7 +1850,7 @@ bool RoomData::RomLoadBlocksetData(const Rom& rom)
         }
         else
         {
-            end = rom.get_section(RomOffsets::Blocksets::SECTION).end;
+            end = rom.get_section(RomLabels::Blocksets::SECTION).end;
         }
         if (!RomLoadBlockset(rom, s_it->second.first, s_it->second.second, begin, end))
         {
@@ -1346,8 +1864,8 @@ bool RoomData::RomLoadBlocksetData(const Rom& rom)
 
 bool RoomData::RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end)
 {
-    std::string name = StrPrintf(RomOffsets::Blocksets::BLOCKSET_LABEL, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
-    filesystem::path filename = StrPrintf(RomOffsets::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
+    std::string name = StrPrintf(RomLabels::Blocksets::BLOCKSET_LABEL, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
+    filesystem::path filename = StrPrintf(RomLabels::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
     auto e = BlocksetEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, filename);
     e->SetStartAddress(begin);
     e->SetIndex({ pri, sec });
@@ -1358,11 +1876,11 @@ bool RoomData::RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_
 
 bool RoomData::RomLoadAllTilesetData(const Rom& rom)
 {
-    uint32_t anim_addr = rom.get_section(RomOffsets::Tilesets::ANIM_DATA_LOC).begin;
-    uint32_t data_addr = rom.get_section(RomOffsets::Tilesets::DATA_LOC).begin;
-    uint32_t introfont_ptr = rom.read<uint32_t>(rom.get_address(RomOffsets::Tilesets::INTRO_FONT_PTR));
+    uint32_t anim_addr = rom.get_section(RomLabels::Tilesets::ANIM_DATA_LOC).begin;
+    uint32_t data_addr = rom.get_section(RomLabels::Tilesets::DATA_LOC).begin;
+    uint32_t introfont_ptr = rom.read<uint32_t>(rom.get_address(RomLabels::Tilesets::INTRO_FONT_PTR));
     uint32_t introfont_begin = rom.read<uint32_t>(introfont_ptr);
-    uint32_t introfont_size = rom.get_section(RomOffsets::Tilesets::INTRO_FONT).size();
+    uint32_t introfont_size = rom.get_section(RomLabels::Tilesets::INTRO_FONT).size();
     std::map<uint32_t, uint32_t> anim_tileset_ptr_list;
     std::map<uint32_t, uint32_t> room_tileset_ptr_list;
     std::set<uint32_t> ts_ptrs;
@@ -1403,23 +1921,23 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         tilesets.insert({ start_addr, bytes });
     }
     auto introfont_bytes = rom.read_array<uint8_t>(introfont_begin, introfont_size);
-    m_intro_font = TilesetEntry::Create(this, introfont_bytes, RomOffsets::Tilesets::INTRO_FONT,
-        RomOffsets::Tilesets::INTRO_FONT_FILENAME, false, 8, 16);
+    m_intro_font = TilesetEntry::Create(this, introfont_bytes, RomLabels::Tilesets::INTRO_FONT,
+        RomLabels::Tilesets::INTRO_FONT_FILENAME, false, 8, 16);
     m_intro_font->SetStartAddress(introfont_begin);
-    m_intro_font->SetPointerName(RomOffsets::Tilesets::INTRO_FONT_PTR);
+    m_intro_font->SetPointerName(RomLabels::Tilesets::INTRO_FONT_PTR);
 
     std::map<uint32_t, std::string> ptr_names;
     std::map<uint32_t, std::string> tileset_names;
 
-    for (unsigned int i = 0; i < room_tileset_ptrs.size(); ++i)
+    for (uint8_t i = 0; i < static_cast<uint8_t>(room_tileset_ptrs.size()); ++i)
     {
         uint32_t addr = room_tileset_ptrs[i];
         if (addr == 0)
         {
             continue;
         }
-        std::string name = StrPrintf(RomOffsets::Tilesets::LABEL_FORMAT_STRING, i + 1);
-        std::string fname = StrPrintf(RomOffsets::Tilesets::FILENAME_FORMAT_STRING, i + 1);
+        std::string name = StrPrintf(RomLabels::Tilesets::LABEL_FORMAT_STRING, i + 1);
+        std::string fname = StrPrintf(RomLabels::Tilesets::FILENAME_FORMAT_STRING, i + 1);
         auto e = TilesetEntry::Create(this, tilesets[addr], name, fname);
         e->SetStartAddress(addr);
         e->SetIndex(i);
@@ -1454,14 +1972,14 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
         }
         animts_ptr_list[*idx].insert(start_address);
         std::size_t subts = animts_ptr_list[*idx].size();
-        auto name = StrPrintf(RomOffsets::Tilesets::ANIM_LABEL_FORMAT_STRING, *idx + 1, subts);
-        auto ptrname = StrPrintf(RomOffsets::Tilesets::ANIM_PTR_LABEL_FORMAT_STRING, *idx + 1, subts);
-        auto filename = StrPrintf(RomOffsets::Tilesets::ANIM_FILENAME_FORMAT_STRING, *idx + 1, subts);
+        auto name = StrPrintf(RomLabels::Tilesets::ANIM_LABEL_FORMAT_STRING, *idx + 1, subts);
+        auto ptrname = StrPrintf(RomLabels::Tilesets::ANIM_PTR_LABEL_FORMAT_STRING, *idx + 1, subts);
+        auto filename = StrPrintf(RomLabels::Tilesets::ANIM_FILENAME_FORMAT_STRING, *idx + 1, subts);
         uint32_t addr = rom.read<uint32_t>(ts_addr);
         auto e = AnimatedTilesetEntry::Create(this, tilesets[addr], name, filename, base, length, speed, frames, *idx);
         e->SetStartAddress(addr);
         e->SetPointerName(ptrname);
-        e->SetIndex(*idx, subts - 1);
+        e->SetIndex(*idx, static_cast<uint8_t>(subts - 1));
         m_animated_ts.insert({ e->GetIndex(), e });
         m_animated_ts_by_name.insert({ name, e });
         m_animated_ts_by_ptr.insert({ ptrname, e });
@@ -1476,18 +1994,79 @@ bool RoomData::RomLoadAllTilesetData(const Rom& rom)
 
 bool RoomData::RomLoadChestData(const Rom& rom)
 {
-    uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS);
-    uint32_t chests_begin = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS);
+    uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::CHEST_OFFSETS);
+    uint32_t chests_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::CHEST_CONTENTS);
     uint32_t offsets_end = chests_begin;
-    uint32_t chests_end = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).end;
+    uint32_t chests_end = rom.get_section(RomLabels::Rooms::CHEST_SECTION).end;
     auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
     auto chest_bytes = rom.read_array<uint8_t>(chests_begin, chests_end - chests_begin);
     while (chest_bytes.back() == 0xFF)
     {
-        chest_bytes.resize(chest_bytes.size() - 1);
+        chest_bytes.pop_back();
     }
     m_chests = Chests(offset_bytes, chest_bytes);
     m_chests_orig = m_chests;
+    return true;
+}
+
+bool RoomData::RomLoadDoorData(const Rom& rom)
+{
+    uint32_t offsets_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::DOOR_OFFSET_TABLE);
+    uint32_t doors_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::DOOR_TABLE);
+    uint32_t offsets_end = doors_begin;
+    uint32_t doors_end = rom.get_section(RomLabels::Rooms::DOOR_TABLE_SECTION).end;
+    auto offset_bytes = rom.read_array<uint8_t>(offsets_begin, offsets_end - offsets_begin);
+    auto door_bytes = rom.read_array<uint8_t>(doors_begin, doors_end - doors_begin);
+    m_doors = Doors(offset_bytes, door_bytes);
+    m_doors_orig = m_doors;
+    return true;
+}
+
+bool RoomData::RomLoadGfxSwapData(const Rom& rom)
+{
+    uint32_t flags_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::GFX_SWAP_FLAGS);
+    uint32_t locked_door_flags_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1);
+    uint32_t tree_flags_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::GFX_SWAP_TREE_FLAGS);
+    uint32_t swap_table_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::GFX_SWAP_TABLE);
+    uint32_t swap_table_end = rom.get_section(RomLabels::Rooms::GFX_SWAP_SECTION).end;
+    auto flag_bytes = rom.read_array<uint8_t>(flags_begin, locked_door_flags_begin - flags_begin);
+    auto door_bytes = rom.read_array<uint8_t>(locked_door_flags_begin, tree_flags_begin - locked_door_flags_begin);
+    auto tree_bytes = rom.read_array<uint8_t>(tree_flags_begin, swap_table_begin - tree_flags_begin);
+    m_gfxswaps = TileSwaps(rom.read_array<uint8_t>(swap_table_begin, swap_table_end - swap_table_begin));
+    m_gfxswap_flags = DecodeGfxSwap(flag_bytes);
+    m_gfxswap_locked_door_flags = DecodeGfxSwap(door_bytes);
+    m_gfxswap_big_tree_flags = DecodeTreeWarp(tree_bytes);
+    m_gfxswap_flags_orig = m_gfxswap_flags;
+    m_gfxswap_locked_door_flags_orig = m_gfxswap_locked_door_flags;
+    m_gfxswap_big_tree_flags_orig = m_gfxswap_big_tree_flags;
+    m_gfxswaps_orig = m_gfxswaps;
+    return true;
+}
+
+bool RoomData::RomLoadMiscData(const Rom& rom)
+{
+    uint32_t shops_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::SHOP_LIST_LEA1);
+    uint32_t shops_end = rom.get_section(RomLabels::Rooms::SHOP_LIST_SECTION).end;
+    uint32_t lifestock_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS);
+    uint32_t lifestock_end = rom.get_section(RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION).end;
+    uint32_t trees_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::BIG_TREE_LOCATIONS);
+    uint32_t trees_end = rom.get_section(RomLabels::Rooms::BIG_TREE_LOCATIONS_SECTION).end;
+    uint32_t lantern_begin = Disasm::ReadOffset16(rom, RomLabels::Rooms::LANTERN_ROOM_FLAGS);
+    uint32_t lantern_end = rom.get_section(RomLabels::Rooms::LANTERN_ROOM_FLAGS_SECTION).end;
+
+    auto shops_bytes = rom.read_array<uint8_t>(shops_begin, shops_end - shops_begin);
+    auto lifestock_bytes = rom.read_array<uint8_t>(lifestock_begin, lifestock_end - lifestock_begin);
+    auto trees_bytes = rom.read_array<uint8_t>(trees_begin, trees_end - trees_begin);
+    auto lantern_bytes = rom.read_array<uint8_t>(lantern_begin, lantern_end - lantern_begin);
+    m_shop_list = DecodeToSet(shops_bytes, true);
+    m_lifestock_sold_flags = DecodeToMap(lifestock_bytes);
+    m_big_tree_list = DecodeToSet(trees_bytes, false);
+    m_lantern_flag_list = DecodeToMap(lantern_bytes);
+    
+    m_shop_list_orig = m_shop_list;
+    m_lifestock_sold_flags_orig = m_lifestock_sold_flags;
+    m_big_tree_list_orig = m_big_tree_list;
+    m_lantern_flag_list_orig = m_lantern_flag_list;
     return true;
 }
 
@@ -1499,7 +2078,7 @@ bool RoomData::AsmSaveMaps(const filesystem::path& dir)
         file.WriteFileHeader(m_map_data_filename, "Map data include file");
         for (auto& map : m_maps)
         {
-            file << AsmFile::Label(map.first) << AsmFile::IncludeFile(map.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(map.first) << AsmFile::IncludeFile(map.second->GetFilename(), AsmFile::FileType::BINARY);
             if (!map.second->Save(dir))
             {
                 return false;
@@ -1562,7 +2141,7 @@ bool RoomData::AsmSaveRoomPalettes(const filesystem::path& dir)
             {
                 return false;
             }
-            file << AsmFile::Label(palette->GetName()) << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(palette->GetName()) << AsmFile::IncludeFile(palette->GetFilename(), AsmFile::FileType::BINARY);
         }
         file.WriteFile(dir / m_palette_data_filename);
         return true;
@@ -1604,8 +2183,8 @@ bool RoomData::AsmSaveBlocksetPointerData(const filesystem::path& dir)
         pri_file.WriteFileHeader(m_blockset_pri_ptr_filename, "Blockset primary pointer file");
         sec_file.WriteFileHeader(m_blockset_sec_ptr_filename, "Blockset secondary pointer file");
 
-        pri_file << AsmFile::Label(RomOffsets::Blocksets::POINTER) << RomOffsets::Blocksets::PRI_LABEL;
-        pri_file << AsmFile::Label(RomOffsets::Blocksets::PRI_LABEL);
+        pri_file << AsmFile::Label(RomLabels::Blocksets::POINTER) << RomLabels::Blocksets::PRI_LABEL;
+        pri_file << AsmFile::Label(RomLabels::Blocksets::PRI_LABEL);
 
         int pri_ptr_count = 0;
         int pri = -1;
@@ -1614,7 +2193,7 @@ bool RoomData::AsmSaveBlocksetPointerData(const filesystem::path& dir)
             if (bs.first.first != pri)
             {
                 pri = bs.first.first;
-                auto name = StrPrintf(RomOffsets::Blocksets::SEC_LABEL, (pri & 0x1F) + 1);
+                auto name = StrPrintf(RomLabels::Blocksets::SEC_LABEL, (pri & 0x1F) + 1);
                 if (pri > 0x1F)
                 {
                     name += "A";
@@ -1652,7 +2231,7 @@ bool RoomData::AsmSaveBlocksetData(const filesystem::path& dir)
         file.WriteFileHeader(m_blockset_data_filename, "Blockset data include file");
         for (const auto& bs : m_blocksets)
         {
-            file << AsmFile::Label(bs.second->GetName()) << AsmFile::IncludeFile(bs.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(bs.second->GetName()) << AsmFile::IncludeFile(bs.second->GetFilename(), AsmFile::FileType::BINARY);
             bs.second->Save(dir);
         }
         auto incfname = dir / m_blockset_data_filename;
@@ -1673,16 +2252,16 @@ bool RoomData::AsmSaveTilesetData(const filesystem::path& dir)
         file.WriteFileHeader(m_tileset_data_filename, "Tileset data include file");
         for (const auto& ts : m_tilesets)
         {
-            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::FileType::BINARY);
             ts.second->Save(dir);
         }
         file << AsmFile::Align(2);
         for (const auto& ts : m_animated_ts)
         {
-            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::BINARY);
+            file << AsmFile::Label(ts.second->GetName()) << AsmFile::IncludeFile(ts.second->GetFilename(), AsmFile::FileType::BINARY);
             ts.second->Save(dir);
         }
-        file << AsmFile::Label(m_intro_font->GetName()) << AsmFile::IncludeFile(m_intro_font->GetFilename(), AsmFile::BINARY);
+        file << AsmFile::Label(m_intro_font->GetName()) << AsmFile::IncludeFile(m_intro_font->GetFilename(), AsmFile::FileType::BINARY);
         m_intro_font->Save(dir);
         auto incfname = dir / m_tileset_data_filename;
         file.WriteFile(incfname);
@@ -1701,15 +2280,15 @@ bool RoomData::AsmSaveTilesetPointerData(const filesystem::path& dir)
         AsmFile file;
         file.WriteFileHeader(m_tileset_ptrtab_filename, "Tileset pointer table file");
         
-        file << AsmFile::Label(RomOffsets::Tilesets::PTR_LOC);
-        file << RomOffsets::Tilesets::PTRTAB_BEGIN_LOC;
+        file << AsmFile::Label(RomLabels::Tilesets::PTR_LOC);
+        file << RomLabels::Tilesets::PTRTAB_BEGIN_LOC;
 
         for (const auto& ts : m_animated_ts)
         {
             file << AsmFile::Label(ts.second->GetPointerName()) << ts.second->GetName();
         }
         file << AsmFile::Label(m_intro_font->GetPointerName()) << m_intro_font->GetName();
-        file << AsmFile::Label(RomOffsets::Tilesets::PTRTAB_BEGIN_LOC);
+        file << AsmFile::Label(RomLabels::Tilesets::PTRTAB_BEGIN_LOC);
         unsigned int i = 0;
         for (const auto& ts : m_tilesets)
         {
@@ -1745,9 +2324,9 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
         {
             idxs.push_back(ts.second->GetData()->GetBaseTileset());
         }
-        idxs.push_back(-1);
-        file << AsmFile::Label(RomOffsets::Tilesets::ANIM_IDX_LOC) << idxs;
-        file << AsmFile::Align(2) << AsmFile::Label(RomOffsets::Tilesets::ANIM_LIST_LOC);
+        idxs.push_back(0xFF);
+        file << AsmFile::Label(RomLabels::Tilesets::ANIM_IDX_LOC) << idxs;
+        file << AsmFile::Align(2) << AsmFile::Label(RomLabels::Tilesets::ANIM_LIST_LOC);
 
         for (const auto& ts : m_animated_ts)
         {
@@ -1774,6 +2353,32 @@ bool RoomData::AsmSaveChestData(const filesystem::path& dir)
     return true;
 }
 
+bool RoomData::AsmSaveDoorData(const filesystem::path& dir)
+{
+    auto result = m_doors.GetData(GetRoomCount());
+    WriteBytes(result.first, dir / m_door_offset_data_filename);
+    WriteBytes(result.second, dir / m_door_table_data_filename);
+    return true;
+}
+
+bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
+{
+    WriteBytes(EncodeGfxSwap(m_gfxswap_flags), dir / m_gfxswap_flag_data_filename);
+    WriteBytes(EncodeGfxSwap(m_gfxswap_locked_door_flags), dir / m_gfxswap_locked_door_flag_data_filename);
+    WriteBytes(EncodeTreeWarp(m_gfxswap_big_tree_flags), dir / m_gfxswap_big_tree_flag_data_filename);
+    WriteBytes(m_gfxswaps.GetData(), dir / m_gfxswap_table_data_filename);
+    return true;
+}
+
+bool RoomData::AsmSaveMiscData(const filesystem::path& dir)
+{
+    WriteBytes(EncodeFromSet(m_shop_list, true), dir / m_shop_table_data_filename);
+    WriteBytes(EncodeFromMap(m_lifestock_sold_flags), dir / m_lifestock_sold_flag_data_filename);
+    WriteBytes(EncodeFromSet(m_big_tree_list, false), dir / m_bigtree_data_filename);
+    WriteBytes(EncodeFromMap(m_lantern_flag_list), dir / m_lantern_flag_data_filename);
+    return true;
+}
+
 bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
 {
     auto fall_bytes = m_warps.GetFallBytes();
@@ -1782,16 +2387,16 @@ bool RoomData::RomPrepareInjectMiscWarp(const Rom& rom)
     ByteVectorPtr pend_write = std::make_shared<ByteVector>(fall_bytes);
     pend_write->insert(pend_write->end(), climb_bytes.begin(), climb_bytes.end());
     pend_write->insert(pend_write->end(), transition_bytes.begin(), transition_bytes.end());
-    m_pending_writes.push_back({ RomOffsets::Rooms::MISC_WARP_SECTION, pend_write });
+    m_pending_writes.push_back({ RomLabels::Rooms::MISC_WARP_SECTION, pend_write });
 
-    uint32_t fall_addr = rom.get_section(RomOffsets::Rooms::MISC_WARP_SECTION).begin;
+    uint32_t fall_addr = rom.get_section(RomLabels::Rooms::MISC_WARP_SECTION).begin;
     uint32_t climb_addr = fall_addr + fall_bytes.size();
     uint32_t transition_addr = climb_addr + climb_bytes.size();
 
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::FALL_TABLE_LEA_LOC, fall_addr));
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC, climb_addr));
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1, transition_addr));
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC2, transition_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::FALL_TABLE_LEA_LOC, fall_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::CLIMB_TABLE_LEA_LOC, climb_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::TRANSITION_TABLE_LEA_LOC1, transition_addr));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::TRANSITION_TABLE_LEA_LOC2, transition_addr));
 
     return true;
 }
@@ -1803,8 +2408,7 @@ bool RoomData::RomPrepareInjectRoomData(const Rom& rom)
     std::vector<uint8_t> pal_bytes;
     auto bytes = std::make_shared<std::vector<uint8_t>>();
     uint32_t roomlist_size = m_roomlist.size() * 8;
-    uint32_t data_begin = rom.get_section(RomOffsets::Rooms::ROOM_DATA_SECTION).begin;
-    uint32_t addr = 0;
+    uint32_t data_begin = rom.get_section(RomLabels::Rooms::ROOM_DATA_SECTION).begin;
     auto warp_bytes = m_warps.GetWarpBytes();
     for (auto& map : m_maps)
     {
@@ -1833,14 +2437,14 @@ bool RoomData::RomPrepareInjectRoomData(const Rom& rom)
     }
     uint32_t warp_begin = data_begin + bytes->size();
     bytes->insert(bytes->end(), warp_bytes.begin(), warp_bytes.end());
-    m_pending_writes.push_back({ RomOffsets::Rooms::ROOM_DATA_SECTION, bytes });
-    m_pending_writes.push_back({ RomOffsets::Rooms::ROOM_DATA_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(data_begin)) });
-    m_pending_writes.push_back({ RomOffsets::Rooms::ROOM_PALS_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal_begin)) });
-    m_pending_writes.push_back({ RomOffsets::Rooms::ROOM_EXITS_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(warp_begin)) });
+    m_pending_writes.push_back({ RomLabels::Rooms::ROOM_DATA_SECTION, bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::ROOM_DATA_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(data_begin)) });
+    m_pending_writes.push_back({ RomLabels::Rooms::ROOM_PALS_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(pal_begin)) });
+    m_pending_writes.push_back({ RomLabels::Rooms::ROOM_EXITS_PTR, std::make_shared<std::vector<uint8_t>>(Split<uint8_t>(warp_begin)) });
     return true;
 }
 
-bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& rom)
+bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& /*rom*/)
 {
     auto combine_palette_array = [](std::vector<std::shared_ptr<PaletteEntry>>& pals)
     {
@@ -1856,9 +2460,9 @@ bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& rom)
     auto lava_pal_bytes = combine_palette_array(m_lava_palette);
     auto warp_pal_bytes = combine_palette_array(m_warp_palette);
 
-    m_pending_writes.push_back({ RomOffsets::Rooms::PALETTE_LANTERN, lantern_pal_bytes });
-    m_pending_writes.push_back({ RomOffsets::Rooms::PALETTE_LAVA, lava_pal_bytes });
-    m_pending_writes.push_back({ RomOffsets::Rooms::PALETTE_WARP, warp_pal_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::PALETTE_LANTERN, lantern_pal_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::PALETTE_LAVA, lava_pal_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::PALETTE_WARP, warp_pal_bytes });
 
     return true;
 }
@@ -1866,7 +2470,7 @@ bool RoomData::RomPrepareInjectMiscPaletteData(const Rom& rom)
 bool RoomData::RomPrepareInjectBlocksetData(const Rom& rom)
 {
     std::map<std::string, uint32_t> blockset_addrs;
-    uint32_t base = rom.get_section(RomOffsets::Blocksets::SECTION).begin;
+    uint32_t base = rom.get_section(RomLabels::Blocksets::SECTION).begin;
     uint32_t pri_size = (64 + 1) * 4;
     uint32_t sec_size = m_blocksets.size() * 4;
     uint32_t blockset_data_offset = base + pri_size + sec_size;
@@ -1906,13 +2510,13 @@ bool RoomData::RomPrepareInjectBlocksetData(const Rom& rom)
     }
     bytes->insert(bytes->end(), sec.begin(), sec.end());
     bytes->insert(bytes->end(), blocks.begin(), blocks.end());
-    m_pending_writes.push_back({ RomOffsets::Blocksets::SECTION, bytes });
+    m_pending_writes.push_back({ RomLabels::Blocksets::SECTION, bytes });
     return true;
 }
 
 bool RoomData::RomPrepareInjectTilesetData(const Rom& rom)
 {
-    const std::size_t tilesets_begin = rom.get_section(RomOffsets::Tilesets::SECTION).begin;
+    const std::size_t tilesets_begin = rom.get_section(RomLabels::Tilesets::SECTION).begin;
     auto bytes = std::make_shared<ByteVector>();
     ByteVector tilesets;
     const uint32_t misc_pointer_space = (2 + m_animated_ts.size()) * sizeof(uint32_t);
@@ -1968,14 +2572,14 @@ bool RoomData::RomPrepareInjectTilesetData(const Rom& rom)
 
     bytes->insert(bytes->end(), tilesets.cbegin(), tilesets.cend());
 
-    m_pending_writes.push_back({ RomOffsets::Tilesets::SECTION, bytes });
+    m_pending_writes.push_back({ RomLabels::Tilesets::SECTION, bytes });
 
     return true;
 }
 
 bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
 {
-    const std::size_t tilesets_begin = rom.get_section(RomOffsets::Tilesets::SECTION).begin;
+    const std::size_t tilesets_begin = rom.get_section(RomLabels::Tilesets::SECTION).begin;
 
     ByteVectorPtr bytes = std::make_shared<ByteVector>();
     for (const auto& ts : m_animated_ts)
@@ -2003,7 +2607,7 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
         i++;
     }
 
-    m_pending_writes.push_back({ RomOffsets::Tilesets::ANIM_DATA_LOC, bytes });
+    m_pending_writes.push_back({ RomLabels::Tilesets::ANIM_DATA_LOC, bytes });
 
     return true;
 }
@@ -2011,13 +2615,72 @@ bool RoomData::RomPrepareInjectAnimatedTilesetData(const Rom& rom)
 bool RoomData::RomPrepareInjectChestData(const Rom& rom)
 {
     auto results = m_chests.GetData(GetRoomCount());
-    uint32_t offsets_begin = rom.get_section(RomOffsets::Rooms::CHEST_SECTION).begin;
+    uint32_t offsets_begin = rom.get_section(RomLabels::Rooms::CHEST_SECTION).begin;
     uint32_t chests_begin = offsets_begin + results.first.size();
     auto data = std::make_shared<ByteVector>(results.first);
     data->insert(data->end(), results.second.begin(), results.second.end());
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_OFFSETS, offsets_begin));
-    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomOffsets::Rooms::CHEST_CONTENTS, chests_begin));
-    m_pending_writes.push_back({ RomOffsets::Rooms::CHEST_SECTION, data });
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::CHEST_OFFSETS, offsets_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::CHEST_CONTENTS, chests_begin));
+    m_pending_writes.push_back({ RomLabels::Rooms::CHEST_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectDoorData(const Rom& rom)
+{
+    auto result = m_doors.GetData(GetRoomCount());
+    uint32_t offsets_begin = rom.get_section(RomLabels::Rooms::DOOR_TABLE_SECTION).begin;
+    uint32_t doors_begin = offsets_begin + result.first.size();
+    auto data = std::make_shared<ByteVector>(result.first);
+    data->insert(data->end(), result.second.begin(), result.second.end());
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::DOOR_OFFSET_TABLE, offsets_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::DOOR_TABLE, doors_begin));
+    m_pending_writes.push_back({ RomLabels::Rooms::DOOR_TABLE_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectGfxSwapData(const Rom& rom)
+{
+    auto flag_bytes = EncodeGfxSwap(m_gfxswap_flags);
+    auto door_bytes = EncodeGfxSwap(m_gfxswap_locked_door_flags);
+    auto tree_bytes = EncodeTreeWarp(m_gfxswap_big_tree_flags);
+    auto table_bytes = m_gfxswaps.GetData();
+    uint32_t flags_begin = rom.get_section(RomLabels::Rooms::GFX_SWAP_SECTION).begin;
+    uint32_t doors_begin = flags_begin + flag_bytes.size();
+    uint32_t trees_begin = doors_begin + door_bytes.size();
+    uint32_t table_begin = trees_begin + tree_bytes.size();
+    auto data = std::make_shared<ByteVector>(flag_bytes);
+    data->insert(data->end(), door_bytes.begin(), door_bytes.end());
+    data->insert(data->end(), tree_bytes.begin(), tree_bytes.end());
+    data->insert(data->end(), table_bytes.begin(), table_bytes.end());
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::GFX_SWAP_FLAGS, flags_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA1, doors_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::GFX_SWAP_LOCKED_DOOR_FLAGS_LEA2, doors_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::GFX_SWAP_TREE_FLAGS, trees_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::GFX_SWAP_TABLE, table_begin));
+    m_pending_writes.push_back({ RomLabels::Rooms::GFX_SWAP_SECTION, data });
+    return true;
+}
+
+bool RoomData::RomPrepareInjectMiscData(const Rom& rom)
+{
+    auto shop_bytes = std::make_shared<ByteVector>(EncodeFromSet(m_shop_list, true));
+    auto lifestock_bytes = std::make_shared<ByteVector>(EncodeFromMap(m_lifestock_sold_flags));
+    auto tree_bytes = std::make_shared<ByteVector>(EncodeFromSet(m_big_tree_list, false));
+    auto lantern_bytes = std::make_shared<ByteVector>(EncodeFromMap(m_lantern_flag_list));
+    uint32_t shops_begin = rom.get_section(RomLabels::Rooms::SHOP_LIST_SECTION).begin;
+    uint32_t lifestock_begin = rom.get_section(RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION).begin;
+    uint32_t trees_begin = rom.get_section(RomLabels::Rooms::BIG_TREE_LOCATIONS_SECTION).begin;
+    uint32_t lantern_begin = rom.get_section(RomLabels::Rooms::LANTERN_ROOM_FLAGS_SECTION).begin;
+
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::SHOP_LIST_LEA1, shops_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::SHOP_LIST_LEA2, shops_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS, lifestock_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::BIG_TREE_LOCATIONS, trees_begin));
+    m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Rooms::LANTERN_ROOM_FLAGS, lantern_begin));
+    m_pending_writes.push_back({ RomLabels::Rooms::SHOP_LIST_SECTION, shop_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::LIFESTOCK_SOLD_FLAGS_SECTION, lifestock_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::BIG_TREE_LOCATIONS_SECTION, tree_bytes });
+    m_pending_writes.push_back({ RomLabels::Rooms::LANTERN_ROOM_FLAGS_SECTION, lantern_bytes });
     return true;
 }
 

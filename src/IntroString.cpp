@@ -1,14 +1,15 @@
 #include "IntroString.h"
+#include "Literals.h"
 #include <stdexcept>
 #include <sstream>
 #include <algorithm>
 #include <cstring>
 
 const LSString::CharacterSet INTRO_CHARSET = {
-	{ 0, L" "}, { 1, L"A"}, { 2, L"B"}, { 3, L"C"}, { 4, L"D"}, { 5, L"E"}, { 6, L"F"}, { 7, L"G"},
-	{ 8, L"H"}, { 9, L"I"}, {10, L"J"}, {11, L"K"}, {12, L"L"}, {13, L"M"}, {14, L"N"}, {15, L"O"},
-	{16, L"P"}, {17, L"Q"}, {18, L"R"}, {19, L"S"}, {20, L"T"}, {21, L"U"}, {22, L"V"}, {23, L"W"},
-	{24, L"X"}, {25, L"Y"}, {26, L"Z"}, {27, L"1"}, {28, L"2"}, {29, L"3"}
+	{ 0_u8, L" "}, { 1_u8, L"A"}, { 2_u8, L"B"}, { 3_u8, L"C"}, { 4_u8, L"D"}, { 5_u8, L"E"}, { 6_u8, L"F"}, { 7_u8, L"G"},
+	{ 8_u8, L"H"}, { 9_u8, L"I"}, {10_u8, L"J"}, {11_u8, L"K"}, {12_u8, L"L"}, {13_u8, L"M"}, {14_u8, L"N"}, {15_u8, L"O"},
+	{16_u8, L"P"}, {17_u8, L"Q"}, {18_u8, L"R"}, {19_u8, L"S"}, {20_u8, L"T"}, {21_u8, L"U"}, {22_u8, L"V"}, {23_u8, L"W"},
+	{24_u8, L"X"}, {25_u8, L"Y"}, {26_u8, L"Z"}, {27_u8, L"1"}, {28_u8, L"2"}, {29_u8, L"3"}
 };
 
 IntroString::IntroString()
@@ -27,8 +28,8 @@ IntroString::IntroString(uint16_t line1_y, uint16_t line1_x, uint16_t line2_y, u
 	m_line1X(line1_x),
 	m_line2Y(line2_y),
 	m_line2X(line2_x),
-	m_line2(line2),
-	m_displayTime(display_time)
+	m_displayTime(display_time),
+	m_line2(line2)
 {
 }
 
@@ -38,7 +39,8 @@ IntroString::IntroString(const IntroString::StringType& serialised)
 	  m_line1X(0),
 	  m_line2Y(0),
 	  m_line2X(0),
-	  m_displayTime(0)
+	  m_displayTime(0),
+	  m_line2()
 {
 	Deserialise(serialised);
 }
@@ -77,15 +79,15 @@ void IntroString::Deserialise(const IntroString::StringType& in)
 	std::basic_istringstream<IntroString::StringType::value_type> liness(in);
 	IntroString::StringType cell;
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line1X = std::stoi(cell);
+	m_line1X = static_cast<uint16_t>(std::stoi(cell));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line1Y = std::stoi(cell.c_str());
+	m_line1Y = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line2X = std::stoi(cell.c_str());
+	m_line2X = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_line2Y = std::stoi(cell.c_str());
+	m_line2Y = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, cell, '\t');
-	m_displayTime = std::stoi(cell.c_str());
+	m_displayTime = static_cast<uint16_t>(std::stoi(cell.c_str()));
 	std::getline<IntroString::StringType::value_type>(liness, m_str, '\t');
 	std::getline<IntroString::StringType::value_type>(liness, m_line2, '\t');
 }

@@ -38,14 +38,7 @@ private:
 		{}
 	};
 
-	void AddPage(FlagType type, const std::string& name, const FlagDialog::PageProperties& props);
-	void InitRoomTransitionFlags();
-	void InitEntityVisibleFlags();
-	void InitOneTimeFlags();
-	void InitRoomClearFlags();
-	void InitLockedDoorFlags();
-	void InitPermanentSwitchFlags();
-	void InitSacredTreeFlags();
+	void AddPage(FlagType type, const std::string& name, BaseDataViewModel* model, const FlagDialog::PageProperties& props);
 	void UpdateUI();
 
 	FlagType GetSelectedTab();
@@ -74,7 +67,7 @@ private:
 	wxBitmapButton* m_ctrl_delete;
 	wxBitmapButton* m_ctrl_move_up;
 	wxBitmapButton* m_ctrl_move_down;
-	std::map<FlagType, BaseFlagDataViewModel*> m_models;
+	std::map<FlagType, BaseDataViewModel*> m_models;
 };
 
 #endif // _FLAG_DIALOG_H_

@@ -384,6 +384,33 @@
     <ClCompile Include="..\src\MapToTmx.cpp">
       <Filter>src\Data\3D Maps</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\TileSwapDataViewModel.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DoorDataViewModel.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileSwapControlFrame.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RomOffsets.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RomLabels.cpp">
+      <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileSwapDialog.cpp">
+      <Filter>src\UI\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Doors.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TileSwaps.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\BaseDataViewModel.cpp">
+      <Filter>src\UI\Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -654,6 +681,30 @@
     </ClInclude>
     <ClInclude Include="..\src\include\MapToTmx.h">
       <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\DoorDataViewModel.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwapDataViewModel.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwapControlFrame.h">
+      <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\RomLabels.h">
+      <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Literals.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwaps.h">
+      <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\Doors.h">
+      <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\TileSwapDialog.h">
+      <Filter>include\UI\Rooms</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

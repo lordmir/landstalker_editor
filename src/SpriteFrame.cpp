@@ -6,15 +6,13 @@
 #include "Utils.h"
 
 SpriteFrame::SpriteFrame(const std::vector<uint8_t>& src)
-	: m_compressed(false),
-	  m_sprite_gfx()
+	: m_compressed(false)
 {
 	SetBits(src);
 }
 
 SpriteFrame::SpriteFrame(const std::string& filename)
-	: m_compressed(false),
-	  m_sprite_gfx()
+	: m_compressed(false)
 {
 	Open(filename);
 }
@@ -64,7 +62,7 @@ bool SpriteFrame::Open(const std::string& filename)
 	ifs.seekg(0, std::ios::beg);
 
 	std::vector<uint8_t> bytes;
-	bytes.reserve(filesize);
+	bytes.reserve(static_cast<std::size_t>(filesize));
 	bytes.insert(bytes.begin(),
 		std::istream_iterator<uint8_t>(ifs),
 		std::istream_iterator<uint8_t>());
@@ -79,6 +77,11 @@ bool SpriteFrame::Open(const std::string& filename)
 }
 
 std::vector<uint8_t> SpriteFrame::GetBits()
+{
+	return GetBits(m_compressed);
+}
+
+std::vector<uint8_t> SpriteFrame::GetBits(bool compressed)
 {
 	std::vector<uint8_t> bits;
 	std::size_t expected_tiles = 0;
@@ -102,9 +105,9 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	}
 
 	int last_cmd = bits.size();
-	if (m_compressed) // compression
+	if (compressed) // compression
 	{
-		uint16_t word_count = std::min(actual_tiles, expected_tiles) * 16;
+		uint16_t word_count = static_cast<uint16_t>(std::min<std::size_t>(actual_tiles, expected_tiles) * 16);
 		bits.push_back(0x20 | word_count >> 8);
 		bits.push_back(word_count & 0xFF);
 		auto tiles = m_sprite_gfx->GetBits();
@@ -114,13 +117,13 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	}
 	else
 	{
-		uint16_t total_words = std::min(actual_tiles, expected_tiles) * 16;
-		int blanks = 0;
+		uint16_t total_words = static_cast<uint16_t>(std::min<std::size_t>(actual_tiles, expected_tiles) * 16);
+		uint16_t blanks = 0;
 		auto tiles = m_sprite_gfx->GetBits();
 		uint16_t src_idx = 0;
 		uint16_t copy_start_idx = 0;
 		uint16_t copy_len = 0;
-		const int THRESHOLD = 4;
+		const uint16_t THRESHOLD = 4;
 		while (src_idx < total_words * 2)
 		{
 			uint16_t word = (tiles[src_idx] << 8) | tiles[src_idx + 1];
@@ -136,7 +139,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 				blanks++;
 				if ((blanks >= THRESHOLD) && (copy_len > 0))
 				{
-					// Encountered a run of at least four blanks.
+					// Encountered a run of at least THRESHOLD blanks.
 					// We also have data pending. write out what we have so far.
 					last_cmd = bits.size();
 					bits.push_back(0x00 | (copy_len >> 8));
@@ -156,8 +159,8 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 				else
 				{
 					last_cmd = bits.size();
-					bits.push_back(0x80 | (blanks >> 8));
-					bits.push_back(blanks & 0xFF);
+					bits.push_back(static_cast<uint8_t>(0x80 | (blanks >> 8)));
+					bits.push_back(static_cast<uint8_t>(blanks & 0xFF));
 					copy_start_idx += blanks * 2;
 				}
 				blanks = 0;
@@ -168,8 +171,8 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 				if (blanks >= THRESHOLD)
 				{
 					last_cmd = bits.size();
-					bits.push_back(0x80 | (blanks >> 8));
-					bits.push_back(blanks & 0xFF);
+					bits.push_back(static_cast<uint8_t>(0x80 | (blanks >> 8)));
+					bits.push_back(static_cast<uint8_t>(blanks & 0xFF));
 				}
 				else
 				{
@@ -187,7 +190,7 @@ std::vector<uint8_t> SpriteFrame::GetBits()
 	if (actual_tiles < expected_tiles)
 	{
 		last_cmd = bits.size();
-		uint16_t word_count = (expected_tiles - actual_tiles) * 32;
+		uint16_t word_count = static_cast<uint16_t>((expected_tiles - actual_tiles) * 32);
 		bits.push_back(0x80 | (word_count >> 8));
 		bits.push_back(word_count & 0xFF);
 	}
@@ -244,27 +247,36 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 
 		if ((ctrl & 0x08) > 0)
 		{
-			std::ostringstream ss;
+#ifndef NDEBUG
+			ss.str(std::string());
+			ss.clear();
 			ss << "Insert " << count << " zero words." << std::endl;
 			Debug(ss.str().c_str());
+#endif
 			dest_it += count * 2;
 		}
 		else if ((ctrl & 0x02) > 0)
 		{
-			std::ostringstream ss;
 			std::size_t elen = 0;
 			std::size_t dlen = LZ77::Decode(&(*it), src.end() - it, &(*dest_it), elen);
 			dest_it += dlen;
+#ifndef NDEBUG
+			ss.str(std::string());
+			ss.clear();
 			ss << "Copy " << elen << " compressed bytes, " << dlen << " bytes decompressed.";
 			Debug(ss.str().c_str());
+#endif
 			it += elen;
 			m_compressed = true;
 		}
 		else
 		{
-			std::ostringstream ss;
+#ifndef NDEBUG
+			ss.str(std::string());
+			ss.clear();
 			ss << "Copy " << count << " words directly.";
 			Debug(ss.str().c_str());
+#endif
 			std::copy(it, it + count * 2, dest_it);
 			dest_it += count * 2;
 			it += count * 2;
@@ -277,10 +289,15 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 	return std::distance(src.begin(), it);
 }
 
-bool SpriteFrame::Save(const std::string& filename, bool use_compression)
+bool SpriteFrame::Save(const std::string& filename)
+{
+	return Save(filename, m_compressed);
+}
+
+bool SpriteFrame::Save(const std::string& filename, bool compressed)
 {
 	bool retval = false;
-	auto bits = GetBits();
+	auto bits = GetBits(compressed);
 	std::ofstream ofs(filename, std::ios::out | std::ios::binary);
 	if (ofs)
 	{

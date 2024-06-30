@@ -37,7 +37,7 @@ size_t HuffmanTree::EncodeTree(std::vector<uint8_t>& tree)
 	return offset;
 }
 
-size_t HuffmanTree::DecodeTree(const uint8_t* tree_data, size_t offset, size_t buffer_size)
+size_t HuffmanTree::DecodeTree(const uint8_t* tree_data, size_t offset, size_t /*buffer_size*/)
 {
 	tree_data += offset;
 	BitBarrel leaves(tree_data);
@@ -55,7 +55,7 @@ size_t HuffmanTree::DecodeTree(const uint8_t* tree_data, size_t offset, size_t b
 			else
 			{
 				// We should never get here
-				std::runtime_error("Huffman tree corruption detected.");
+				throw std::runtime_error("Huffman tree corruption detected.");
 			}
 		}
 		else // leaf
@@ -90,7 +90,7 @@ void HuffmanTree::RecalculateTree(const CharFrequencies& frequencies)
 	auto node_comparator = [](Node* lhs, Node* rhs) {return lhs->weight > rhs->weight;};
 	std::priority_queue< Node*, std::vector<Node*>, decltype(node_comparator)> nodes(node_comparator);
 	// First, create all empty nodes with the identified chrs and weights
-	for (const auto fc : frequencies)
+	for (const auto& fc : frequencies)
 	{
 		nodes.push(new Node(fc.first, fc.second));
 	}

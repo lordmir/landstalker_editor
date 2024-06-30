@@ -22,10 +22,10 @@ Current State of progress:
 | Room Warp Placement         | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Chest Contents              | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Room Flags                  | :heavy_minus_sign: | :heavy_minus_sign: | Most flags understood. Some still to be added.             |
-| Room Graphic Transitions    | :x:                | :x:                | ROM format reverse engineered.                             |
+| Room Flags                  | :heavy_check_mark: | :heavy_check_mark: |                                                            |
+| Room Graphic Transitions    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
-| Entity Behaviours           | :x:                | :x:                | ROM format reverse engineered.                             |
+| Entity Behaviours           | :x:                | :x:                | ROM format partially reverse engineered.                   |
 | Sprite Frames               | :heavy_check_mark: | :heavy_minus_sign: | Editor UI could do with improvements.                      |
 | Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
 
@@ -93,11 +93,11 @@ $ make DEBUG=yes
 
 ##### WxWidgets
 
-You will need to download and build the WxWidgets 3.1.3 library (https://www.wxwidgets.org/). Download the Windows ZIP version and extract somewhere convenient (e.g. the root of the C: drive). Note that the final extracted path cannot contain spaces.
+You will need to download and build the WxWidgets 3.2.2+ library (https://www.wxwidgets.org/). Download the Windows ZIP version and extract somewhere convenient (e.g. the root of the C: drive). Note that the final extracted path cannot contain spaces.
 
 Navigate to the extracted WxWidgets sources and go to the build\msw directory. Open the wx_vc16.sln solution file. Go to the "Build" menu and select "Batch Build...". In the batch build window, click the "Select All" button and then click "Build" (note that this will take some time). Once all files have been built, exit out of Visual Studio.
 
-Finally, we need to add an environment variable to tell Visual Studio where to find the WxWidgets files. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named WX_WIN, and set its value equal to the full path to the WxWidgets directory (e.g. "C:\libraries\WxWidgets-3.1.3"). Click OK and exit out of the system properties windows.
+Finally, we need to add an environment variable to tell Visual Studio where to find the WxWidgets files. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named WX_WIN, and set its value equal to the full path to the WxWidgets directory (e.g. "C:\libraries\WxWidgets-3.2.2"). Click OK and exit out of the system properties windows.
 
 Make sure that Visual Studio has been restarted so that it picks up the new environment variable.
 

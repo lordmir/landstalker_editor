@@ -11,9 +11,13 @@ wxDEFINE_EVENT(EVT_OPACITY_CHANGE, wxCommandEvent);
 
 LayerControlFrame::LayerControlFrame(wxWindow* parent)
     : wxWindow(parent, wxID_ANY, wxDefaultPosition, { 220, 200 }),
-    m_visibilities{ true, true, true, true, false },
-    m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
-    m_zoom(1.0)
+      m_zoom_label(nullptr),
+      m_zoom_slider(nullptr),
+      m_zoom(1.0),
+      m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
+      m_visibilities{ true, true, true, true, false },
+      m_zoom_enabled(true),
+      m_layers_enabled{ true, true, true, true, true }
 {
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);
@@ -39,7 +43,7 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
     vboxsizer->Add(sizer, 0, wxALL | wxEXPAND);
 
 
-    for (int i = 0; i < LABELS.size(); ++i)
+    for (int i = 0; i < static_cast<int>(LABELS.size()); ++i)
     {
         auto label = new wxStaticText(this, wxID_ANY, LABELS[i]);
         m_visible_ctrls.push_back(new wxCheckBox(this, i + 1000, ""));
@@ -110,7 +114,7 @@ void LayerControlFrame::EnableZoom(bool enabled)
 
 void LayerControlFrame::EnableLayers(bool enabled)
 {
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         m_visible_ctrls[i]->Enable(enabled);
         if (m_visible_ctrls[i]->IsChecked())
@@ -140,7 +144,7 @@ void LayerControlFrame::EnableLayer(Layer layer, bool enabled)
 void LayerControlFrame::UpdateUI()
 {
     m_zoom = ZOOM_LEVELS[std::clamp<int>(m_zoom_slider->GetValue(), 0, ZOOM_LEVELS.size() - 1)];
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         if (m_visible_ctrls[i]->IsChecked())
         {
@@ -156,18 +160,18 @@ void LayerControlFrame::UpdateUI()
 
 void LayerControlFrame::SetUI()
 {
-    int i = 0;
+    int level_index = 0;
     for (const auto& level : ZOOM_LEVELS)
     {
         if (m_zoom < level)
         {
-            i++;
+            level_index++;
         }
     }
-    m_zoom_slider->SetValue(std::clamp<int>(i, 0, ZOOM_LEVELS.size() - 1));
+    m_zoom_slider->SetValue(std::clamp<int>(level_index, 0, ZOOM_LEVELS.size() - 1));
     m_zoom_label->SetLabelText(StrPrintf("%d%%", static_cast<int>(m_zoom * 100.0)));
 
-    for (int i = 0; i < m_opacity_ctrls.size(); ++i)
+    for (std::size_t i = 0; i < m_opacity_ctrls.size(); ++i)
     {
         m_opacity_ctrls[i]->SetValue(m_opacities[i]);
         m_opacity_ctrls[i]->Enable(m_visibilities[i]);
@@ -176,7 +180,7 @@ void LayerControlFrame::SetUI()
     Refresh();
 }
 
-void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& evt)
+void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& /*evt*/)
 {
     double new_zoom = ZOOM_LEVELS[std::clamp<int>(m_zoom_slider->GetValue(), 0, ZOOM_LEVELS.size() - 1)];
     if (new_zoom != m_zoom)
@@ -190,7 +194,7 @@ void LayerControlFrame::OnZoomValueChanged(wxCommandEvent& evt)
 void LayerControlFrame::OnVisibilityChecked(wxCommandEvent& evt)
 {
     int id = evt.GetId() - 1000;
-    if ((id >= 0) && (id < m_visible_ctrls.size()))
+    if ((id >= 0) && (id < static_cast<int>(m_visible_ctrls.size())))
     {
         bool new_visibility = m_visible_ctrls[id]->GetValue();
         if (m_visibilities[id] != new_visibility)
@@ -205,7 +209,7 @@ void LayerControlFrame::OnVisibilityChecked(wxCommandEvent& evt)
 void LayerControlFrame::OnOpacityChanged(wxCommandEvent& evt)
 {
     int id = evt.GetId() - 2000;
-    if ((id >= 0) && (id < m_opacity_ctrls.size()))
+    if ((id >= 0) && (id < static_cast<int>(m_opacity_ctrls.size())))
     {
         if (m_visible_ctrls[id]->GetValue() == true)
         {

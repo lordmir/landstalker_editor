@@ -70,6 +70,21 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "codecvt": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "*.tcc": "cpp",
+        "bitset": "cpp",
+        "unordered_set": "cpp",
+        "functional": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp",
+        "cinttypes": "cpp",
+        "valarray": "cpp"
     }
 }

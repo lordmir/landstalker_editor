@@ -26,7 +26,7 @@ EditorFrame::~EditorFrame()
 {
 }
 
-void EditorFrame::InitStatusBar(wxStatusBar& status) const
+void EditorFrame::InitStatusBar(wxStatusBar& /*status*/) const
 {
 }
 
@@ -54,7 +54,7 @@ void EditorFrame::InitProperties(wxPropertyGridManager& props) const
 	}
 }
 
-void EditorFrame::UpdateProperties(wxPropertyGridManager& props) const
+void EditorFrame::UpdateProperties(wxPropertyGridManager& /*props*/) const
 {
 }
 
@@ -67,16 +67,16 @@ void EditorFrame::ClearProperties(wxPropertyGridManager& props) const
 	}
 }
 
-void EditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
+void EditorFrame::OnPropertyChange(wxPropertyGridEvent& /*evt*/)
 {
 }
 
-void EditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void EditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
 	ClearMenu(menu);
 }
 
-void EditorFrame::ClearMenu(wxMenuBar& menu) const
+void EditorFrame::ClearMenu(wxMenuBar& /*menu*/) const
 {
 	for (const auto& itm : m_menuitems)
 	{
@@ -88,8 +88,8 @@ void EditorFrame::ClearMenu(wxMenuBar& menu) const
 	for (const auto& mnu : m_menus)
 	{
 		auto* parent = mnu.second.first;
-		auto* menu = mnu.second.second;
-		auto pos = parent->FindMenu(menu->GetTitle());
+		auto* pmenu = mnu.second.second;
+		auto pos = parent->FindMenu(pmenu->GetTitle());
 		delete parent->Remove(pos);
 	}
 	m_menus.clear();
@@ -110,7 +110,7 @@ void EditorFrame::ClearMenu(wxMenuBar& menu) const
 	this->GetParent()->Refresh(true);
 }
 
-void EditorFrame::OnMenuClick(wxMenuEvent& evt)
+void EditorFrame::OnMenuClick(wxMenuEvent&)
 {
 }
 

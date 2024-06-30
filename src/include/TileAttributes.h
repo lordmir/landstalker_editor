@@ -7,7 +7,7 @@ public:
     TileAttributes();
     TileAttributes(bool hflip, bool vflip, bool priority);
     
-    enum Attribute {ATTR_HFLIP, ATTR_VFLIP, ATTR_PRIORITY};
+    enum class Attribute {ATTR_HFLIP, ATTR_VFLIP, ATTR_PRIORITY};
 
     void setAttribute(const Attribute& attr);
     void clearAttribute(const Attribute& attr);

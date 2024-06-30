@@ -48,7 +48,6 @@ void HuffmanTrees::DecodeTrees(const uint8_t* huffman_char_offsets, size_t huffm
 void HuffmanTrees::EncodeTrees(std::vector<uint8_t>& huffman_char_offsets, std::vector<uint8_t>& huffman_trees)
 {
 	huffman_trees.clear();
-	size_t offset = 0;
 	// Initialise tree offset table to all null trees
 	huffman_char_offsets.clear();
 	huffman_char_offsets.assign(std::max<size_t>(m_num_chars, m_trees.rbegin()->first + 1) * 2, 0xFF);

@@ -6,10 +6,10 @@
 DataViewCtrlPaletteRenderer::DataViewCtrlPaletteRenderer(wxWindow* owner, wxDataViewCellMode mode)
     : wxDataViewCustomRenderer("void*", mode, wxALIGN_LEFT),
     m_pal(nullptr),
+    m_owner(owner),
     m_sel_id(nullptr),
     m_cursor(0),
     m_cursor_limit(0),
-    m_owner(owner),
     m_been_activated(false)
 {
 }
@@ -37,9 +37,9 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
         r.y += SWATCH_SEPARATION / 2;
         wxRect sel_r = wxRect(r).Deflate(1);
 
-        for (int i = 0; i < palette_size; ++i)
+        for (std::size_t i = 0; i < palette_size; ++i)
         {
-            bool selected = active && i == sel;
+            bool selected = active && static_cast<int>(i) == sel;
             dc->SetPen(selected ? *wxRED_PEN : *wxBLACK_PEN);
             dc->SetBrush(wxColor(palette->GetNthUnlockedColour(i).GetBGR(false)));
             dc->DrawRectangle(r);
@@ -56,7 +56,7 @@ bool DataViewCtrlPaletteRenderer::Render(wxRect rect, wxDC* dc, int state)
     return true;
 }
 
-bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& cell, wxDataViewModel* model, const wxDataViewItem& item, unsigned int col, const wxMouseEvent* evt)
+bool DataViewCtrlPaletteRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewModel* model, const wxDataViewItem& item, unsigned int col, const wxMouseEvent* evt)
 {
     if (item.GetID() != m_sel_id)
     {
@@ -111,7 +111,7 @@ int DataViewCtrlPaletteRenderer::HitColour(const wxPoint& point, bool range_chec
     {
         int col_idx = point.x / (SWATCH_WIDTH + SWATCH_SEPARATION);
         const auto& palette = m_pal->GetData();
-        std::size_t palette_size = palette->GetSize();
+        int palette_size = static_cast<int>(palette->GetSize());
         if (!range_check || col_idx < palette_size)
         {
             return col_idx;
@@ -129,12 +129,12 @@ bool DataViewCtrlPaletteRenderer::SetValue(const wxVariant& value)
     return true;
 }
 
-wxWindow* DataViewCtrlPaletteRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
+wxWindow* DataViewCtrlPaletteRenderer::CreateEditorCtrl(wxWindow* /*parent*/, wxRect /*labelRect*/, const wxVariant& /*value*/)
 {
     return nullptr;
 }
 
-bool DataViewCtrlPaletteRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value)
+bool DataViewCtrlPaletteRenderer::GetValueFromEditorCtrl(wxWindow* /*ctrl*/, wxVariant& /*value*/)
 {
     return false;
 }
@@ -208,7 +208,7 @@ Palette::Colour DataViewCtrlPaletteRenderer::GetCursorColour()
     {
         return m_pal->GetData()->GetNthUnlockedColour(m_cursor);
     }
-    return -1;
+    return Palette::Colour();
 }
 
 bool DataViewCtrlPaletteRenderer::SetColour()

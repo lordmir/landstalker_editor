@@ -71,6 +71,8 @@ ImageList::ImageList(bool img32x32)
 		m_images["map_bg_active"] = wxBITMAP_PNG_FROM_DATA(map_bg_active_16x16);
 		m_images["map_delete_nesw"] = wxBITMAP_PNG_FROM_DATA(map_delete_nesw_16x16);
 		m_images["map_delete_nwse"] = wxBITMAP_PNG_FROM_DATA(map_delete_nwse_16x16);
+		m_images["map_edit_doors"] = wxBITMAP_PNG_FROM_DATA(map_edit_doors_16x16);
+		m_images["map_edit_tileswaps"] = wxBITMAP_PNG_FROM_DATA(map_edit_tileswaps_16x16);
 		m_images["map_fg_active"] = wxBITMAP_PNG_FROM_DATA(map_fg_active_16x16);
 		m_images["map_grid"] = wxBITMAP_PNG_FROM_DATA(map_grid_16x16);
 		m_images["map_highlight_fg"] = wxBITMAP_PNG_FROM_DATA(map_highlight_fg_16x16);
@@ -95,6 +97,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["save"] = wxBITMAP_PNG_FROM_DATA(SAVE_16x16);
 		m_images["sprite"] = wxBITMAP_PNG_FROM_DATA(sprite_16x16);
 		m_images["string"] = wxBITMAP_PNG_FROM_DATA(string_16x16);
+		m_images["spanel"] = wxBITMAP_PNG_FROM_DATA(spanel_16x16);
 		m_images["swap"] = wxBITMAP_PNG_FROM_DATA(swap_16x16);
 		m_images["tile_nums"] = wxBITMAP_PNG_FROM_DATA(tilenums_16x16);
 		m_images["tileset"] = wxBITMAP_PNG_FROM_DATA(ts_16x16);

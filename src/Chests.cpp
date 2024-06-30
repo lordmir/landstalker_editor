@@ -3,18 +3,18 @@
 
 Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& contents)
 {
-	int max_offset = offsets[0];
-	int last_room = 0;
+	uint8_t max_offset = offsets[0];
+	uint16_t last_room = 0;
 	std::map<uint16_t, uint8_t> chests;
-	for (int i = 0; i < offsets.size() - 1; ++i)
+	for (uint16_t i = 0; i < static_cast<uint16_t>(offsets.size() - 1); ++i)
 	{
 		if (offsets[i] == 0 && max_offset > 0)
 		{
-			m_enabled.insert(i);
+			m_enabled.insert(static_cast<uint16_t>(i));
 		}
 		else if (offsets[i] > max_offset)
 		{
-			chests.insert({ last_room, offsets[i] - max_offset });
+			chests.insert({ last_room, static_cast<uint8_t>(offsets[i] - max_offset) });
 			max_offset = offsets[i];
 			last_room = i;
 		}
@@ -23,9 +23,10 @@ Chests::Chests(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& 
 			last_room = i;
 		}
 	}
-	if (max_offset < contents.size())
+	if (max_offset < static_cast<int>(contents.size()))
 	{
-		chests.insert({ offsets.size() - 1, contents.size() - max_offset });
+		chests.insert({ static_cast<uint16_t>(offsets.size() - 1),
+			            static_cast<uint8_t>(contents.size() - max_offset) });
 	}
 	int cur_offset = 0;
 	for (const auto& c : chests)
@@ -57,7 +58,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomco
 	std::vector<uint8_t> contents;
 	contents.reserve(256);
 	int offset = 0;
-	for (int i = 0; i < roomcount; ++i)
+	for (uint16_t i = 0; i < static_cast<uint16_t>(roomcount); ++i)
 	{
 		if (m_enabled.count(i) > 0)
 		{
@@ -65,7 +66,7 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Chests::GetData(int roomco
 		}
 		else
 		{
-			offsets.push_back(offset);
+			offsets.push_back(static_cast<uint8_t>(offset));
 			if (m_chests.count(i) > 0)
 			{
 				contents.insert(contents.end(), m_chests.at(i).begin(), m_chests.at(i).end());
@@ -132,10 +133,10 @@ void Chests::ClearRoomNoChestsFlag(uint16_t room)
 bool Chests::CleanupRoomChests(const GameData& gd)
 {
 	int chest_count = 0;
-	for (int r = 0; r < gd.GetRoomData()->GetRoomCount(); ++r)
+	for (uint16_t r = 0; r < static_cast<uint16_t>(gd.GetRoomData()->GetRoomCount()); ++r)
 	{
 		auto ents = gd.GetSpriteData()->GetRoomEntities(r);
-		int chests = 0;
+		std::size_t chests = 0;
 		for (const auto& e : ents)
 		{
 			if (e.GetType() == 0x12)

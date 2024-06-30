@@ -2,9 +2,9 @@
 
 ChestDialog::ChestDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Chests", wxDefaultPosition, { 640, 480 }),
+	  m_gd(gd),
 	  m_imglst(imglst),
-	  m_roomnum(room),
-	  m_gd(gd)
+	  m_roomnum(room)
 {
 	wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
 	this->SetSizer(szr1);
@@ -19,11 +19,7 @@ ChestDialog::ChestDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std
     m_model->Initialise();
     m_ctrl_chest_list->AssociateModel(m_model);
     m_model->DecRef();
-
-    m_ctrl_chest_list->InsertColumn(0, new wxDataViewColumn(m_model->GetColumnHeader(0),
-        new wxDataViewTextRenderer(), 0, 400, wxALIGN_LEFT));
-    m_ctrl_chest_list->InsertColumn(1, new wxDataViewColumn(m_model->GetColumnHeader(1),
-        new wxDataViewChoiceByIndexRenderer(m_model->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
+    m_model->InitControl(m_ctrl_chest_list);
 
     m_button_sizer = new wxStdDialogButtonSizer();
     szr1->Add(m_button_sizer, 0, wxALL, 5);
@@ -72,13 +68,13 @@ void ChestDialog::OnCheck(wxCommandEvent& evt)
     evt.Skip();
 }
 
-void ChestDialog::OnOK(wxCommandEvent& evt)
+void ChestDialog::OnOK(wxCommandEvent&)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void ChestDialog::OnCancel(wxCommandEvent& evt)
+void ChestDialog::OnCancel(wxCommandEvent&)
 {
     EndModal(wxID_CANCEL);
 }

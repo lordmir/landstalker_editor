@@ -34,11 +34,10 @@ public:
 	Map2DEditor(wxWindow* parent);
 	~Map2DEditor();
 
-	void SetColour(int c);
-	bool Save(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::NONE, int base = 0);
-	bool Open(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::NONE, int base = 0);
+	bool Save(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
+	bool Open(const wxString& filename, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int base = 0);
 	bool Open(const std::vector<Tile>& map, int width = 0, int height = 0, int base = 0);
-	bool Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression = Tilemap2D::NONE, int width = 0, int height = 0, int base = 0);
+	bool Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression = Tilemap2D::Compression::NONE, int width = 0, int height = 0, int base = 0);
 	bool Open(std::shared_ptr<Tilemap2DEntry> map);
 	bool New(int width, int height, int base = 0);
 	void RedrawTiles(int index = -1);
@@ -104,7 +103,7 @@ private:
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
 	void ForceRedraw();
-	Palette& GetSelectedPalette();
+	std::shared_ptr<Palette> GetSelectedPalette();
 	TilePosition ToPosition(int index) const;
 	int ToIndex(const TilePosition& tp) const;
 	int ConvertXYToTileIdx(const wxPoint& point) const;
@@ -148,11 +147,12 @@ private:
 	std::set<int> m_redraw_list;
 	Tile m_drawtile;
 
-	wxBrush* m_alpha_brush = nullptr;
-	wxPen* m_border_pen = nullptr;
-	wxPen* m_selected_border_pen = nullptr;
-	wxPen* m_highlighted_border_pen = nullptr;
-	wxBrush* m_highlighted_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxPen> m_border_pen;
+	std::unique_ptr<wxPen> m_selected_border_pen;
+	std::unique_ptr<wxPen> m_highlighted_border_pen;
+	std::unique_ptr<wxBrush> m_highlighted_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

@@ -24,19 +24,24 @@ wxDEFINE_EVENT(EVT_TILE_PIXEL_HOVER, wxCommandEvent);
 
 TileEditor::TileEditor(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY),
-	  m_tileset(nullptr),
-	  m_tile(0),
+	  m_ctrlwidth(1),
+	  m_ctrlheight(1),
 	  m_pixelsize(16),
 	  m_primary_colour(1),
 	  m_secondary_colour(0),
 	  m_selectedpixel{ -1, -1 },
 	  m_hoveredpixel{ -1, -1 },
+	  m_secondary_active(false),
+	  m_drawing(false),
 	  m_enableborders(true),
 	  m_enableedit(true),
 	  m_enablealpha(true),
-	  m_secondary_active(false),
-	  m_drawing(false),
-	  m_gd(nullptr)
+	  m_gd(nullptr),
+	  m_tileset(nullptr),
+	  m_selected_palette_name(),
+	  m_selected_palette_entry(nullptr),
+	  m_selected_palette(nullptr),
+	  m_tile(0)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 
@@ -47,11 +52,6 @@ TileEditor::TileEditor(wxWindow* parent)
 
 TileEditor::~TileEditor()
 {
-	delete m_alpha_brush;
-	delete m_border_pen;
-	delete m_selected_border_pen;
-	delete m_highlighted_border_pen;
-	delete m_highlighted_brush;
 }
 
 void TileEditor::SetGameData(std::shared_ptr<GameData> gd)
@@ -209,8 +209,8 @@ void TileEditor::SetBordersEnabled(bool enabled)
 bool TileEditor::IsPointValid(const Point& point) const
 {
 	if (!m_tileset) return false;
-	return ((point.x >= 0) && (point.x < m_tileset->GetTileWidth()) &&
-	        (point.y >= 0) && (point.y < m_tileset->GetTileHeight()));
+	return ((point.x >= 0) && (point.x < static_cast<int>(m_tileset->GetTileWidth())) &&
+	        (point.y >= 0) && (point.y < static_cast<int>(m_tileset->GetTileHeight())));
 }
 
 bool TileEditor::IsSelectionValid() const
@@ -257,12 +257,12 @@ void TileEditor::Clear()
 	}
 }
 
-wxCoord TileEditor::OnGetRowHeight(size_t row) const
+wxCoord TileEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	return wxCoord(m_pixelsize);
 }
 
-wxCoord TileEditor::OnGetColumnWidth(size_t column) const
+wxCoord TileEditor::OnGetColumnWidth(size_t /*column*/) const
 {
 	return wxCoord(m_pixelsize);
 }
@@ -285,7 +285,7 @@ void TileEditor::OnDraw(wxDC& dc)
 		{
 			m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 		}
-		for (int i = 0; i < m_pixels.size(); ++i)
+		for (std::size_t i = 0; i < m_pixels.size(); ++i)
 		{
 			Point p = ConvertPixelToXY(i);
 			if ((p.x >= s.GetCol()) && (p.x < e.GetCol()) &&
@@ -315,7 +315,7 @@ void TileEditor::OnDraw(wxDC& dc)
 	}
 }
 
-void TileEditor::OnPaint(wxPaintEvent& evt)
+void TileEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -503,7 +503,7 @@ int TileEditor::ConvertXYToPixel(const Point& point)
 
 TileEditor::Point TileEditor::ConvertPixelToXY(int pixel)
 {
-	if (m_pixels.empty() || (pixel < 0) || (pixel > m_pixels.size()))
+	if (m_pixels.empty() || (pixel < 0) || (pixel > static_cast<int>(m_pixels.size())))
 	{
 		return { -1, -1 };
 	}
@@ -552,7 +552,7 @@ int TileEditor::ValidateColour(int colour) const
 int TileEditor::GetColour(int index) const
 {
 	auto cmap = m_tileset->GetColourIndicies();
-	if (index >= cmap.size())
+	if (index >= static_cast<int>(cmap.size()))
 	{
 		if (index < (1 << m_tileset->GetTileBitDepth()))
 		{
@@ -568,10 +568,10 @@ int TileEditor::GetColour(int index) const
 
 void TileEditor::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush(*wxBLACK);
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -580,13 +580,11 @@ void TileEditor::InitialiseBrushesAndPens()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
-	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
-	m_selected_border_pen = new wxPen(*wxRED_PEN);
-	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
-	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
+	m_alpha_brush->SetStipple(*m_stipple);
+	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	m_selected_border_pen = std::make_unique<wxPen>(*wxRED_PEN);
+	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
+	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
 }
 
 wxBrush TileEditor::GetBrush(int index)

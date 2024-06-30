@@ -22,7 +22,6 @@ public:
 	TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset>);
 	~TilesetEditor();
 
-	void SetColour(int c);
 	void SetGameData(std::shared_ptr<GameData> gd);
 	std::shared_ptr<Tileset> GetTileset();
 	bool Save(wxString filename, bool compressed = false);
@@ -129,15 +128,16 @@ private:
 	mutable std::vector<uint8_t> m_clipboard;
 	int m_pendingswap;
 
-	wxBrush* m_alpha_brush = nullptr;
-	wxPen* m_border_pen = nullptr;
-	wxPen* m_selected_border_pen = nullptr;
-	wxPen* m_highlighted_border_pen = nullptr;
-	wxBrush* m_highlighted_brush = nullptr;
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxPen> m_border_pen;
+	std::unique_ptr<wxPen> m_selected_border_pen;
+	std::unique_ptr<wxPen> m_highlighted_border_pen;
+	std::unique_ptr<wxBrush> m_highlighted_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
+	std::unique_ptr<wxBitmap> m_tiles_bmp;
 
 	ImageBuffer m_buf;
 	wxBitmap m_bmp;
-	wxBitmap* m_tiles_bmp = nullptr;
 	wxBitmap m_bg_bmp;
 
 	wxDECLARE_EVENT_TABLE();

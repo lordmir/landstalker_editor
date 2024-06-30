@@ -91,10 +91,8 @@ void BlocksetEditorFrame::RedrawTiles(int index) const
 	m_editor->RedrawTiles(index);
 }
 
-void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList&) const
 {
-	auto* parent = m_mgr.GetManagedWindow();
-
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_CBS, "Export Blockset as Binary...");
@@ -153,7 +151,7 @@ void BlocksetEditorFrame::ExportPng(const std::string& filename) const
 	int pixelwidth = blockwidth * width;
 	int pixelheight = blockheight * height;
 	ImageBuffer buf(pixelwidth, pixelheight);
-	int i = 0;
+	std::size_t i = 0;
 	for (int y = 0; y < pixelheight; y += blockheight)
 	{
 		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
@@ -172,9 +170,9 @@ void BlocksetEditorFrame::ExportCsv(const std::string& filename) const
 {
 	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
 
-	for (int y = 0; y < m_blocks->GetData()->size(); ++y)
+	for (std::size_t y = 0; y < m_blocks->GetData()->size(); ++y)
 	{
-		for (int x = 0; x < 4; ++x)
+		for (std::size_t x = 0; x < 4; ++x)
 		{
 			fs << StrPrintf("0x%04X", m_blocks->GetData()->at(y).GetTile(x).GetTileValue());
 			if (x == 3)
@@ -193,7 +191,7 @@ void BlocksetEditorFrame::ImportBin(const std::string& filename)
 {
 	ByteVector bytes = ReadBytes(filename);
 	m_blocks->GetData()->clear();
-	auto sz = BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
+	BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
 	m_editor->RedrawTiles();
 	UpdateStatus();
 }
@@ -261,7 +259,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_HFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;
@@ -269,7 +267,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_VFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;
@@ -277,7 +275,7 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		if (m_editor->IsTileSelectionValid())
 		{
 			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_PRIORITY);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 			m_editor->SetSelectedTile(tile);
 		}
 		break;

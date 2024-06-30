@@ -9,8 +9,12 @@ enum MENU_IDS
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
-	  m_title(""),
-	  m_mode(Mode::ROOM)
+	  m_mode(Mode::ROOM),
+      m_list(nullptr),
+      m_model(nullptr),
+      m_renderer(nullptr),
+      m_prev_colour(-1),
+	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
 	m_list = new wxDataViewCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_NO_HEADER | wxDV_VARIABLE_LINE_HEIGHT | wxWANTS_CHARS);
@@ -189,7 +193,7 @@ bool PaletteListFrame::ImportPalettes(const filesystem::path& filename)
                 retval = false;
                 errorss << "Palette with name \"" << name << "\" does not exist!" << std::endl;
             }
-            else if(pal->GetData()->GetSize() != colours.size())
+            else if(pal->GetData()->GetSize() != static_cast<int>(colours.size()))
             {
                 retval = false;
                 errorss <<  name << ": Bad palette size! Expected " << pal->GetData()->GetSize()
@@ -228,7 +232,7 @@ bool PaletteListFrame::ImportPalettes(const filesystem::path& filename)
     return retval;
 }
 
-void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
     int sel_colour = m_renderer->GetCursorPosition();
     auto sel_item = m_list->GetSelection();
@@ -256,10 +260,8 @@ void PaletteListFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt)
     }
 }
 
-void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-    auto* parent = m_mgr.GetManagedWindow();
-
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export All Palettes...");

@@ -57,11 +57,17 @@ wxEND_EVENT_TABLE()
 Map2DEditorFrame::Map2DEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_title(""),
-	  m_zoom(6),
+	  m_tileset(nullptr),
+	  m_mapedit(nullptr),
 	  m_zoomslider(nullptr),
 	  m_tileset_zoomslider(nullptr),
 	  m_tileset_select(nullptr),
-	  m_palette_select(nullptr)
+	  m_palette_select(nullptr),
+	  m_map(nullptr),
+	  m_tiles(nullptr),
+	  m_palette(nullptr),
+	  m_tile(0),
+	  m_zoom(6)
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -201,12 +207,12 @@ bool Map2DEditorFrame::ExportCsv(const std::string& filename) const
 {
 	std::ofstream fs(filename, std::ios::out | std::ios::trunc);
 
-	fs << m_map->GetData()->GetCompression() << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
+	fs << static_cast<int>(m_map->GetData()->GetCompression()) << "," << m_map->GetData()->GetBase() << "," << m_map->GetData()->GetLeft()
 	   << "," << m_map->GetData()->GetTop() << std::endl;
 
-	for (int y = 0; y < m_map->GetData()->GetHeight(); ++y)
+	for (std::size_t y = 0; y < m_map->GetData()->GetHeight(); ++y)
 	{
-		for (int x = 0; x < m_map->GetData()->GetWidth(); ++x)
+		for (std::size_t x = 0; x < m_map->GetData()->GetWidth(); ++x)
 		{
 			fs << StrPrintf("0x%04X", m_map->GetData()->GetTile(x, y).GetTileValue());
 			if ((x + 1) == m_map->GetData()->GetWidth())
@@ -333,7 +339,7 @@ void Map2DEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& evt)
+void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& /*evt*/)
 {
 	if (m_gd == nullptr)
 	{
@@ -343,7 +349,7 @@ void Map2DEditorFrame::OnTilesetSelect(wxCommandEvent& evt)
 	m_tileset_select->SetStringSelection(m_map->GetTileset());
 }
 
-void Map2DEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
+void Map2DEditorFrame::OnPaletteSelect(wxCommandEvent& /*evt*/)
 {
 	if (m_gd == nullptr)
 	{
@@ -419,7 +425,7 @@ std::string Map2DEditorFrame::PrettyPrintMode() const
 	return ss.str();
 }
 
-void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void Map2DEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
 	std::ostringstream ss;
 	if (m_mapedit->IsSelectionValid())
@@ -685,7 +691,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_HFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;
@@ -693,7 +699,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_VFLIP);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;
@@ -701,7 +707,7 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::ATTR_PRIORITY);
+			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
 			m_mapedit->SetSelectedTile(tile);
 		}
 		break;

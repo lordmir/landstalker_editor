@@ -11,8 +11,8 @@ const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
 AsmFile::AsmFile(const filesystem::path& filename, FileType type)
-	: m_filename(filename),
-	m_type(type)
+	: m_type(type),
+	  m_filename(filename)
 {
 	if (!ReadFile(m_filename, m_type))
 	{
@@ -179,7 +179,7 @@ bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
 		{
 			PushNextLine();
 		}
-		if (type == BINARY)
+		if (type == FileType::BINARY)
 		{
 			WriteBytes(ToBinary(), filename.str());
 			return true;
@@ -208,7 +208,7 @@ std::ostream& AsmFile::PrintFile(std::ostream& stream)
 	{
 		PushNextLine();
 	}
-	if (m_type == ASSEMBLER)
+	if (m_type == FileType::ASSEMBLER)
 	{
 		for (const auto& line : m_asm)
 		{
@@ -265,7 +265,7 @@ void AsmFile::WriteFileHeader(const filesystem::path& p, const std::string& shor
 	*this << AsmFile::Comment(PrintCentered(short_description));
 	*this << AsmFile::Comment(PrintCentered(p.str()));
 	*this << AsmFile::Comment(PrintCentered(""));
-	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor:"));
+	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor v0.3:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_editor"));
 	*this << AsmFile::Comment(PrintCentered("For use with the Landstalker disassembly:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_disasm"));
@@ -406,7 +406,7 @@ bool AsmFile::Write(const IncludeFile& file)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == FileType::ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
 	m_nextline.operand = "\"";
 	m_nextline.operand += file.path.str();
 	m_nextline.operand += "\"";
@@ -586,14 +586,20 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DCB>(const AsmFile::AsmLine& line)
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::INCLUDE>(const AsmFile::AsmLine& line)
 {
-	m_data.push_back(IncludeFile(line.operand, ASSEMBLER));
+	m_data.push_back(IncludeFile(line.operand, FileType::ASSEMBLER));
 	return true;
 }
 
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::INCBIN>(const AsmFile::AsmLine& line)
 {
-	m_data.push_back(IncludeFile(line.operand, BINARY));
+	m_data.push_back(IncludeFile(line.operand, FileType::BINARY));
+	return true;
+}
+
+template<>
+bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& /*line*/)
+{
 	return true;
 }
 
@@ -610,8 +616,9 @@ bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 	case Inst::DCB:     return ProcessInst<Inst::DCB>(line);
 	case Inst::INCLUDE: return ProcessInst<Inst::INCLUDE>(line);
 	case Inst::INCBIN:  return ProcessInst<Inst::INCBIN>(line);
+	case Inst::ALIGN:   return ProcessInst<Inst::ALIGN>(line);
+	default:            return false;
 	}
-	return false;
 }
 
 std::string AsmFile::ToAsmLine(const AsmFile::AsmLine& line)
@@ -670,42 +677,42 @@ std::string AsmFile::ToAsmValue(const std::string& value)
 
 std::string AsmFile::ToAsmValue(uint64_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int64_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint32_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int32_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint16_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int16_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint8_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(int8_t value)
 {
-	return 	ToAsmValue(value, HEX);
+	return 	ToAsmValue(value, Base::HEX);
 }
 
 void AsmFile::PushNextLine()

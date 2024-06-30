@@ -3,6 +3,7 @@
 #include <cassert>
 #include <queue>
 #include "AsmUtils.h"
+#include "RomLabels.h"
 
 WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
 {
@@ -30,11 +31,11 @@ uint32_t FindMarker(const Rom& rom, uint32_t start_addr)
 
 WarpList::WarpList(const Rom& rom)
 {
-	uint32_t fall_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::FALL_TABLE_LEA_LOC);
-	uint32_t climb_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::CLIMB_TABLE_LEA_LOC);
-	uint32_t transition_start_addr = Disasm::ReadOffset16(rom, RomOffsets::Rooms::TRANSITION_TABLE_LEA_LOC1);
+	uint32_t fall_start_addr = Disasm::ReadOffset16(rom, RomLabels::Rooms::FALL_TABLE_LEA_LOC);
+	uint32_t climb_start_addr = Disasm::ReadOffset16(rom, RomLabels::Rooms::CLIMB_TABLE_LEA_LOC);
+	uint32_t transition_start_addr = Disasm::ReadOffset16(rom, RomLabels::Rooms::TRANSITION_TABLE_LEA_LOC1);
 
-	uint32_t start = rom.read<uint32_t>(RomOffsets::Rooms::ROOM_EXITS_PTR);
+	uint32_t start = rom.read<uint32_t>(RomLabels::Rooms::ROOM_EXITS_PTR);
 	auto warp_bytes = rom.read_array<uint8_t>(start, FindMarker(rom, start) - start);
 	auto fall_bytes = rom.read_array<uint8_t>(fall_start_addr, FindMarker(rom, fall_start_addr) - fall_start_addr);
 	auto climb_bytes = rom.read_array<uint8_t>(climb_start_addr, FindMarker(rom, climb_start_addr) - climb_start_addr);
@@ -168,7 +169,7 @@ std::vector<WarpList::Transition> WarpList::GetSrcTransitionsForRoom(uint16_t ro
 void WarpList::SetSrcTransitionsForRoom(uint16_t room, const std::vector<WarpList::Transition>& data)
 {
 	std::queue<std::vector<Transition>::iterator> iterators;
-	int count = 0;
+	std::size_t count = 0;
 	// Delete excess
 	for (auto it = m_transitions.begin(); it != m_transitions.end(); )
 	{
@@ -436,12 +437,12 @@ bool WarpList::Warp::operator==(const Warp& rhs) const
 {
 	return ((this->type == rhs.type) && (this->x_size == rhs.x_size) &&
 		    (this->y_size == rhs.y_size) &&
-		    ((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
-			 (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
-			 (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
-		    ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
-		  	 (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
-			 (this->x2 == rhs.x1) && (this->y2 == rhs.y1)));
+		    (((this->room1 == rhs.room1) && (this->room2 == rhs.room2) &&
+			  (this->x1 == rhs.x1) && (this->y1 == rhs.y1) &&
+			  (this->x2 == rhs.x2) && (this->y2 == rhs.y2)) ||
+		     ((this->room1 == rhs.room2) && (this->room2 == rhs.room1) &&
+		  	  (this->x1 == rhs.x2) && (this->y1 == rhs.y2) &&
+			  (this->x2 == rhs.x1) && (this->y2 == rhs.y1))));
 }
 
 bool WarpList::Warp::operator!=(const Warp& rhs) const

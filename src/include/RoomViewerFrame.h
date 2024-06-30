@@ -5,17 +5,18 @@
 #include "LayerControlFrame.h"
 #include "EntityControlFrame.h"
 #include "WarpControlFrame.h"
+#include "TileSwapControlFrame.h"
 #include "HeightmapEditorCtrl.h"
 #include "BlocksetEditorCtrl.h"
 #include "Map3DEditor.h"
 #include "GameData.h"
+#include "TileSwapDialog.h"
 #include <memory>
 
 class RoomViewerCtrl;
 
-class RoomViewerFrame : public EditorFrame
+namespace RoomEdit
 {
-public:
 	enum class Mode : uint8_t
 	{
 		NORMAL,
@@ -23,12 +24,17 @@ public:
 		BACKGROUND,
 		FOREGROUND
 	};
+}
+
+class RoomViewerFrame : public EditorFrame
+{
+public:
 
 	RoomViewerFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~RoomViewerFrame();
 
-	Mode GetMode() const { return m_mode; }
-	void SetMode(Mode mode);
+	RoomEdit::Mode GetMode() const { return m_mode; }
+	void SetMode(RoomEdit::Mode mode);
 	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
@@ -48,10 +54,12 @@ public:
 	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
+	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 
 	void ShowFlagDialog();
 	void ShowChestsDialog();
 	void ShowCharDialog();
+	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
@@ -75,6 +83,7 @@ private:
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
+	void OnKeyUp(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
 
@@ -92,6 +101,22 @@ private:
 	void OnWarpAdd(wxCommandEvent& evt);
 	void OnWarpDelete(wxCommandEvent& evt);
 
+	void TileSwapRefresh();
+	void OnSwapUpdate(wxCommandEvent& evt);
+	void OnSwapSelect(wxCommandEvent& evt);
+	void OnSwapAdd(wxCommandEvent& evt);
+	void OnSwapDelete(wxCommandEvent& evt);
+	void OnSwapMoveUp(wxCommandEvent& evt);
+	void OnSwapMoveDown(wxCommandEvent& evt);
+	void OnSwapProperties(wxCommandEvent& evt);
+	void OnDoorUpdate(wxCommandEvent& evt);
+	void OnDoorSelect(wxCommandEvent& evt);
+	void OnDoorAdd(wxCommandEvent& evt);
+	void OnDoorDelete(wxCommandEvent& evt);
+	void OnDoorMoveUp(wxCommandEvent& evt);
+	void OnDoorMoveDown(wxCommandEvent& evt);
+	void OnDoorProperties(wxCommandEvent& evt);
+
 	void OnHeightmapUpdate(wxCommandEvent& evt);
 	void OnHeightmapMove(wxCommandEvent& evt);
 	void OnHeightmapSelect(wxCommandEvent& evt);
@@ -107,10 +132,11 @@ private:
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e, int userdata);
 
 	void SetPaneSizes();
 
-	Mode m_mode;
+	RoomEdit::Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
@@ -121,6 +147,7 @@ private:
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
+	TileSwapControlFrame* m_swapctrl;
 	BlocksetEditorCtrl* m_blkctrl;
 
 	std::shared_ptr<GameData> m_g;
@@ -130,6 +157,8 @@ private:
 	bool m_layerctrl_visible;
 	bool m_entityctrl_visible;
 	bool m_warpctrl_visible;
+	bool m_swapctrl_visible;
+	bool m_blkctrl_visible;
 
 	mutable bool m_sizes_set;
 	mutable bool m_reset_props;

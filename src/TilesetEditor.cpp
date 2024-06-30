@@ -32,19 +32,23 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	m_selectable(false),
 	m_selectedtile(-1),
 	m_hoveredtile(-1),
-	m_pendingswap(-1),
 	m_tilebase(0),
-	m_tilewidth(0),
-	m_tileheight(0),
 	m_columns(0),
 	m_rows(0),
-	m_redraw_all(true),
-	m_enablealpha(true),
-	m_enableborders(true),
+	m_tilewidth(0),
+	m_tileheight(0),
+	m_cellwidth(0),
+	m_cellheight(0),
 	m_enabletilenumbers(false),
+	m_enableborders(true),
 	m_enableselection(true),
 	m_enablehover(true),
-	m_gd(nullptr)
+	m_enablealpha(true),
+	m_gd(nullptr),
+	m_ctrlwidth(1),
+	m_ctrlheight(1),
+	m_redraw_all(true),
+	m_pendingswap(-1)
 {
 	SetRowCount(m_rows);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -59,15 +63,6 @@ TilesetEditor::TilesetEditor(wxWindow* parent, std::shared_ptr<Tileset> tileset)
 }
 
 TilesetEditor::~TilesetEditor()
-{
-	delete m_alpha_brush;
-	delete m_border_pen;
-	delete m_selected_border_pen;
-	delete m_highlighted_border_pen;
-	delete m_highlighted_brush;
-}
-
-void TilesetEditor::SetColour(int c)
 {
 }
 
@@ -122,12 +117,13 @@ bool TilesetEditor::Open(std::vector<uint8_t>& pixels, bool uses_compression, in
 
 bool TilesetEditor::New(int r, int c)
 {
-	return false;
+	m_tileset = std::make_shared<Tileset>(r, c);
+	return true;
 }
 
 void TilesetEditor::RedrawTiles(int index)
 {
-	if ((index < 0) || (index >= m_tileset->GetTileCount()))
+	if ((index < 0) || (index >= static_cast<int>(m_tileset->GetTileCount())))
 	{
 		ForceRedraw();
 	}
@@ -138,7 +134,7 @@ void TilesetEditor::RedrawTiles(int index)
 	}
 }
 
-wxCoord TilesetEditor::OnGetRowHeight(size_t row) const
+wxCoord TilesetEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	return wxCoord(m_pixelsize * m_tileset->GetTileHeight());
 }
@@ -185,7 +181,7 @@ void TilesetEditor::OnDraw(wxDC& dc)
 	memdc.SelectObject(wxNullBitmap);
 }
 
-void TilesetEditor::OnPaint(wxPaintEvent& evt)
+void TilesetEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -263,7 +259,7 @@ int TilesetEditor::ConvertXYToTile(const wxPoint& point)
 	int x = point.x / (m_pixelsize * m_tileset->GetTileWidth());
 	int y = s + point.y / (m_pixelsize * m_tileset->GetTileHeight());
 	int sel = x + y * m_columns;
-	if ((sel >= m_tileset->GetTileCount()) || (x < 0) || (y < 0) || (x >= m_columns))
+	if ((sel >= static_cast<int>(m_tileset->GetTileCount())) || (x < 0) || (y < 0) || (x >= m_columns))
 	{
 		sel = -1;
 	}
@@ -308,7 +304,7 @@ void TilesetEditor::DrawAllTiles(wxDC& dest)
 	dest.SetBrush(*wxTRANSPARENT_BRUSH);
 	dest.SetPen(*wxTRANSPARENT_PEN);
 	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
 	{
 		dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
 		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset);
@@ -320,11 +316,7 @@ void TilesetEditor::DrawAllTiles(wxDC& dest)
 		}
 	}
 	auto img = m_buf.MakeImage( { m_selected_palette }, true);
-	if (m_tiles_bmp)
-	{
-		delete m_tiles_bmp;
-	}
-	m_tiles_bmp = new wxBitmap(img);
+	m_tiles_bmp = std::make_unique<wxBitmap>(img);
 	wxMemoryDC tiles(*m_tiles_bmp);
 	dest.StretchBlit({ 0,0 },
 		{ img.GetWidth() * m_pixelsize, img.GetHeight() * m_pixelsize },
@@ -343,7 +335,7 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 	auto it = m_redraw_list.begin();
 	while (it != m_redraw_list.end())
 	{
-		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
 		{
 			const int x = *it % m_columns;
 			const int y = *it / m_columns;
@@ -355,17 +347,13 @@ void TilesetEditor::DrawTileList(wxDC& dest)
 		it++;
 	}
 	auto img = m_buf.MakeImage({ m_selected_palette }, true);
-	if (m_tiles_bmp)
-	{
-		delete m_tiles_bmp;
-	}
-	m_tiles_bmp = new wxBitmap(img);
+	m_tiles_bmp = std::make_unique<wxBitmap>(img);
 	wxMemoryDC tiles(*m_tiles_bmp);
 
 	it = m_redraw_list.begin();
 	while (it != m_redraw_list.end())
 	{
-		if ((*it >= 0) && (*it < m_tileset->GetTileCount()))
+		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
 		{
 			const int x = *it % m_columns;
 			const int y = *it / m_columns;
@@ -411,7 +399,7 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	for (int i = 0; i < m_tileset->GetTileCount(); ++i)
+	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
 	{
 		int s = GetVisibleRowsBegin();
 		int e = GetVisibleRowsEnd();
@@ -423,7 +411,7 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 			}
 			if (m_enabletilenumbers)
 			{
-				auto label = (wxString::Format("%03d", i));
+				auto label = (wxString::Format("%03u", i));
 				auto extent = dest.GetTextExtent(label);
 				if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
 				{
@@ -489,10 +477,10 @@ void TilesetEditor::PaintBitmap(wxDC& src, wxDC& dst)
 
 void TilesetEditor::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush(*wxBLACK);
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -501,13 +489,11 @@ void TilesetEditor::InitialiseBrushesAndPens()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
-	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
-	m_selected_border_pen = new wxPen(*wxRED_PEN);
-	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
-	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
+	m_alpha_brush->SetStipple(*m_stipple);
+	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	m_selected_border_pen = std::make_unique<wxPen>(*wxRED_PEN);
+	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
+	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
 }
 
 void TilesetEditor::ForceRedraw()
@@ -650,7 +636,7 @@ void TilesetEditor::SetBordersEnabled(bool enabled)
 
 bool TilesetEditor::IsSelectionValid() const
 {
-	return ((m_selectedtile != -1) && (m_selectedtile < m_tileset->GetTileCount()));
+	return ((m_selectedtile != -1) && (m_selectedtile < static_cast<int>(m_tileset->GetTileCount())));
 }
 
 Tile TilesetEditor::GetSelectedTile() const
@@ -693,7 +679,7 @@ void TilesetEditor::InsertTileBefore(const Tile& tile)
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
 		m_tileset->InsertTilesBefore(tile.GetIndex());
-		for (int i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
+		for (int i = tile.GetIndex(); i < static_cast<int>(m_tileset->GetTileCount()); ++i)
 		{
 			m_redraw_list.insert(i);
 		}
@@ -709,7 +695,7 @@ void TilesetEditor::InsertTileAfter(const Tile& tile)
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
 		m_tileset->InsertTilesBefore(tile.GetIndex() + 1);
-		for (int i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
+		for (std::size_t i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
 		{
 			m_redraw_list.insert(i);
 		}

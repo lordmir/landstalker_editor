@@ -2,7 +2,7 @@
 
 RoomDialogueTable::RoomDialogueTable(const std::vector<uint16_t>& data)
 {
-	int i = 0;
+	std::size_t i = 0;
 	while(i < data.size())
 	{
 		if (data[i] == 0xFFFF)
@@ -15,8 +15,8 @@ RoomDialogueTable::RoomDialogueTable(const std::vector<uint16_t>& data)
 		for (int j = 0; j < count; ++j, ++i)
 		{
 			uint16_t chr = data[i] & 0x7FF;
-			int run_length = data[i] >> 11;
-			for (int k = 0; k < run_length; ++k)
+			const uint16_t run_length = data[i] >> 11;
+			for (uint16_t k = 0; k < run_length; ++k)
 			{
 				chars.push_back(chr + k);
 			}

@@ -22,10 +22,12 @@ protected:
 	virtual void MoveDown() = 0;
 	virtual void OpenElement() = 0;
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers) = 0;
+	virtual void UpdateOtherControls() {}
 	void FireEvent(const wxEventType& e);
 	void UpdateUI();
 	virtual std::string MakeLabel(int index) const = 0;
 
+	wxBoxSizer* m_buttons_boxsizer;
 	wxListBox* m_ctrl_list;
 	wxBitmapButton* m_ctrl_add;
 	wxBitmapButton* m_ctrl_delete;

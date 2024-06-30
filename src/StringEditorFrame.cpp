@@ -23,8 +23,10 @@ static const std::string MODE_DESCRIPTORS[] =
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
-	  m_title(""),
-      m_type(StringData::Type::MAIN)
+      m_type(StringData::Type::MAIN),
+      m_stringView(nullptr),
+      m_model(nullptr),
+	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
 
@@ -177,7 +179,7 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
     {
     case StringData::Type::INTRO:
         fs << utf8_conv.to_bytes(sd->GetIntroString(0).GetHeaderRow()) << std::endl;
-        for (int i = 0; i < sd->GetIntroStringCount(); ++i)
+        for (std::size_t i = 0; i < sd->GetIntroStringCount(); ++i)
         {
             const auto& str = sd->GetIntroString(i);
             fs << utf8_conv.to_bytes(str.Serialise()) << std::endl;
@@ -185,14 +187,14 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
         break;
     case StringData::Type::END_CREDITS:
         fs << utf8_conv.to_bytes(sd->GetEndCreditString(0).GetHeaderRow()) << std::endl;
-        for (int i = 0; i < sd->GetEndCreditStringCount(); ++i)
+        for (std::size_t i = 0; i < sd->GetEndCreditStringCount(); ++i)
         {
             const auto& str = sd->GetEndCreditString(i);
             fs << utf8_conv.to_bytes(str.Serialise()) << std::endl;
         }
         break;
     default:
-        for (int i = 0; i < sd->GetStringCount(m_type); ++i)
+        for (std::size_t i = 0; i < sd->GetStringCount(m_type); ++i)
         {
             fs << sd->GetString(m_type, i) << std::endl;
         }
@@ -257,10 +259,8 @@ bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringDa
     return retval;
 }
 
-void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-    auto* parent = m_mgr.GetManagedWindow();
-
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export Strings...");

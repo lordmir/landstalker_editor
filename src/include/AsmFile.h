@@ -15,13 +15,13 @@
 class AsmFile
 {
 public:
-	enum FileType
+	enum class FileType
 	{
 		ASSEMBLER,
 		BINARY
 	};
 
-	enum Base
+	enum class Base
 	{
 		BIN = 2,
 		OCT = 8,
@@ -37,7 +37,7 @@ public:
 		IncludeFile(const filesystem::path& ppath, FileType ptype)
 			: path(ppath), type(ptype)
 		{}
-		IncludeFile() : type(ASSEMBLER) {}
+		IncludeFile() : type(FileType::ASSEMBLER) {}
 		operator std::string() { return path.str(); }
 		operator const filesystem::path&() { return path; }
 
@@ -98,7 +98,7 @@ public:
 	bool Goto(const Label& label);
 
 	bool IsGood() const;
-	bool ReadFile(const filesystem::path& filename, FileType type = ASSEMBLER);
+	bool ReadFile(const filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	bool WriteFile(const filesystem::path& filename, FileType type);
 	bool WriteFile(const filesystem::path& filename);
 	std::ostream& PrintFile(std::ostream& stream);

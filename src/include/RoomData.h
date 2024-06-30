@@ -10,6 +10,9 @@
 #include <Room.h>
 #include <WarpList.h>
 #include <Chests.h>
+#include <Doors.h>
+#include <TileSwaps.h>
+#include <Flags.h>
 
 class GameData;
 
@@ -98,6 +101,37 @@ public:
     std::vector<WarpList::Transition> GetSrcTransitions(uint16_t room) const;
     void SetSrcTransitions(uint16_t room, const std::vector<WarpList::Transition>& data);
 
+    bool IsShop(uint16_t room) const;
+    void SetShop(uint16_t room, bool is_shop);
+    bool IsTree(uint16_t room) const;
+    void SetTree(uint16_t room, bool is_tree);
+    bool HasLifestockSaleFlag(uint16_t room) const;
+    uint16_t GetLifestockSaleFlag(uint16_t room) const;
+    void SetLifestockSaleFlag(uint16_t room, uint16_t flag);
+    void ClearLifestockSaleFlag(uint16_t room);
+    bool HasLanternFlag(uint16_t room) const;
+    uint16_t GetLanternFlag(uint16_t room) const;
+    void SetLanternFlag(uint16_t room, uint16_t flag);
+    void ClearLanternFlag(uint16_t room);
+    bool HasTreeWarpFlag(uint16_t room) const;
+    TreeWarpFlag GetTreeWarp(uint16_t room) const;
+    void SetTreeWarp(const TreeWarpFlag& flag);
+    void ClearTreeWarp(uint16_t room);
+
+    bool HasNormalTileSwaps(uint16_t room) const;
+    std::vector<TileSwapFlag> GetNormalTileSwaps(uint16_t room) const;
+    void SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps);
+    bool HasLockedDoorTileSwaps(uint16_t room) const;
+    std::vector<TileSwapFlag> GetLockedDoorTileSwaps(uint16_t room) const;
+    void SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps);
+    bool HasTileSwaps(uint16_t room) const;
+    std::vector<TileSwap> GetTileSwaps(uint16_t room) const;
+    void SetTileSwaps(uint16_t room, const std::vector<TileSwap>& swaps);
+    bool HasDoors(uint16_t room) const;
+    std::vector<Door> GetDoors(uint16_t room) const;
+    void SetDoors(uint16_t room, const std::vector<Door>& swaps);
+
+
 protected:
     virtual void CommitAllChanges();
 private:
@@ -115,6 +149,9 @@ private:
     bool AsmLoadAnimatedTilesetData();
     bool AsmLoadTilesetData();
     bool AsmLoadChestData();
+    bool AsmLoadDoorData();
+    bool AsmLoadGfxSwapData();
+    bool AsmLoadMiscData();
 
     bool RomLoadRoomData(const Rom& rom);
     bool RomLoadRoomPalettes(const Rom& rom);
@@ -124,6 +161,9 @@ private:
     bool RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end);
     bool RomLoadAllTilesetData(const Rom& rom);
     bool RomLoadChestData(const Rom& rom);
+    bool RomLoadDoorData(const Rom& rom);
+    bool RomLoadGfxSwapData(const Rom& rom);
+    bool RomLoadMiscData(const Rom& rom);
 
     bool AsmSaveMaps(const filesystem::path& dir);
     bool AsmSaveRoomData(const filesystem::path& dir);
@@ -136,6 +176,9 @@ private:
     bool AsmSaveTilesetPointerData(const filesystem::path& dir);
     bool AsmSaveAnimatedTilesetData(const filesystem::path& dir);
     bool AsmSaveChestData(const filesystem::path& dir);
+    bool AsmSaveDoorData(const filesystem::path& dir);
+    bool AsmSaveGfxSwapData(const filesystem::path& dir);
+    bool AsmSaveMiscData(const filesystem::path& dir);
 
     bool RomPrepareInjectMiscWarp(const Rom& rom);
     bool RomPrepareInjectRoomData(const Rom& rom);
@@ -144,6 +187,9 @@ private:
     bool RomPrepareInjectTilesetData(const Rom& rom);
     bool RomPrepareInjectAnimatedTilesetData(const Rom& rom);
     bool RomPrepareInjectChestData(const Rom& rom);
+    bool RomPrepareInjectDoorData(const Rom& rom);
+    bool RomPrepareInjectGfxSwapData(const Rom& rom);
+    bool RomPrepareInjectMiscData(const Rom& rom);
 
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
@@ -166,6 +212,16 @@ private:
     filesystem::path m_blockset_data_filename;
     filesystem::path m_chest_offset_data_filename;
     filesystem::path m_chest_data_filename;
+    filesystem::path m_door_offset_data_filename;
+    filesystem::path m_door_table_data_filename;
+    filesystem::path m_gfxswap_flag_data_filename;
+    filesystem::path m_gfxswap_locked_door_flag_data_filename;
+    filesystem::path m_gfxswap_big_tree_flag_data_filename;
+    filesystem::path m_gfxswap_table_data_filename;
+    filesystem::path m_shop_table_data_filename;
+    filesystem::path m_lifestock_sold_flag_data_filename;
+    filesystem::path m_bigtree_data_filename;
+    filesystem::path m_lantern_flag_data_filename;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name_orig;
@@ -210,6 +266,25 @@ private:
 
     Chests m_chests;
     Chests m_chests_orig;
+    Doors m_doors;
+    Doors m_doors_orig;
+    TileSwaps m_gfxswaps;
+    TileSwaps m_gfxswaps_orig;
+
+    std::vector<TileSwapFlag> m_gfxswap_flags;
+    std::vector<TileSwapFlag> m_gfxswap_flags_orig;
+    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags;
+    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags_orig;
+    std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags;
+    std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags_orig;
+    std::set<uint16_t> m_shop_list;
+    std::set<uint16_t> m_shop_list_orig;
+    std::map<uint16_t, uint16_t> m_lifestock_sold_flags;
+    std::map<uint16_t, uint16_t> m_lifestock_sold_flags_orig;
+    std::set<uint16_t> m_big_tree_list;
+    std::set<uint16_t> m_big_tree_list_orig;
+    std::map<uint16_t, uint16_t> m_lantern_flag_list;
+    std::map<uint16_t, uint16_t> m_lantern_flag_list_orig;
 };
 
 #endif // _ROOM_DATA_H_

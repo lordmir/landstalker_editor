@@ -15,6 +15,7 @@
     <ClCompile Include="..\src\AsmFile.cpp" />
     <ClCompile Include="..\src\AsmUtils.cpp" />
     <ClCompile Include="..\src\AssemblyBuilderDialog.cpp" />
+    <ClCompile Include="..\src\BaseDataViewModel.cpp" />
     <ClCompile Include="..\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
@@ -29,6 +30,8 @@
     <ClCompile Include="..\src\DataManager.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
+    <ClCompile Include="..\src\DoorDataViewModel.cpp" />
+    <ClCompile Include="..\src\Doors.cpp" />
     <ClCompile Include="..\src\EditorFrame.cpp" />
     <ClCompile Include="..\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\Entity.cpp" />
@@ -53,6 +56,8 @@
     <ClCompile Include="..\src\Map3DEditor.cpp" />
     <ClCompile Include="..\src\MapToTmx.cpp" />
     <ClCompile Include="..\src\PreferencesDialog.cpp" />
+    <ClCompile Include="..\src\RomLabels.cpp" />
+    <ClCompile Include="..\src\RomOffsets.cpp" />
     <ClCompile Include="..\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\RoomErrorDialog.cpp" />
     <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
@@ -87,6 +92,10 @@
     <ClCompile Include="..\src\Tileset.cpp" />
     <ClCompile Include="..\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\TileSwapControlFrame.cpp" />
+    <ClCompile Include="..\src\TileSwapDataViewModel.cpp" />
+    <ClCompile Include="..\src\TileSwapDialog.cpp" />
+    <ClCompile Include="..\src\TileSwaps.cpp" />
     <ClCompile Include="..\src\Utils.cpp" />
     <ClCompile Include="..\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\WarpList.cpp" />
@@ -120,6 +129,8 @@
     <ClInclude Include="..\src\include\DataManager.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
     <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
+    <ClInclude Include="..\src\include\DoorDataViewModel.h" />
+    <ClInclude Include="..\src\include\Doors.h" />
     <ClInclude Include="..\src\include\EditorFrame.h" />
     <ClInclude Include="..\src\include\EndCreditString.h" />
     <ClInclude Include="..\src\include\Entity.h" />
@@ -142,6 +153,7 @@
     <ClInclude Include="..\src\include\Images.h" />
     <ClInclude Include="..\src\include\IntroString.h" />
     <ClInclude Include="..\src\include\LayerControlFrame.h" />
+    <ClInclude Include="..\src\include\Literals.h" />
     <ClInclude Include="..\src\include\LSString.h" />
     <ClInclude Include="..\src\include\LZ77.h" />
     <ClInclude Include="..\src\include\MainFrame.h" />
@@ -150,6 +162,7 @@
     <ClInclude Include="..\src\include\Map3DEditor.h" />
     <ClInclude Include="..\src\include\MapToTmx.h" />
     <ClInclude Include="..\src\include\PreferencesDialog.h" />
+    <ClInclude Include="..\src\include\RomLabels.h" />
     <ClInclude Include="..\src\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\include\RoomErrorDialog.h" />
     <ClInclude Include="..\src\include\RoomViewerCtrl.h" />
@@ -181,6 +194,10 @@
     <ClInclude Include="..\src\include\Tileset.h" />
     <ClInclude Include="..\src\include\TilesetEditor.h" />
     <ClInclude Include="..\src\include\TilesetEditorFrame.h" />
+    <ClInclude Include="..\src\include\TileSwapControlFrame.h" />
+    <ClInclude Include="..\src\include\TileSwapDataViewModel.h" />
+    <ClInclude Include="..\src\include\TileSwapDialog.h" />
+    <ClInclude Include="..\src\include\TileSwaps.h" />
     <ClInclude Include="..\src\include\Utils.h" />
     <ClInclude Include="..\src\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\include\WarpList.h" />
@@ -226,7 +243,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -234,34 +251,36 @@
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;%(AdditionalLibraryDirectories);$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>

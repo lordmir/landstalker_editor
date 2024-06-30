@@ -2,9 +2,9 @@
 
 CharacterDialog::CharacterDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Characters", wxDefaultPosition, { 640, 480 }),
+	  m_gd(gd),
 	  m_imglst(imglst),
-	  m_roomnum(room),
-	  m_gd(gd)
+	  m_roomnum(room)
 {
 	const int plus_img = m_imglst->GetIdx("plus");
 	const int minus_img = m_imglst->GetIdx("minus");
@@ -19,20 +19,12 @@ CharacterDialog::CharacterDialog(wxWindow* parent, ImageList* imglst, uint16_t r
     m_model->Initialise();
     m_ctrl_list->AssociateModel(m_model);
     m_model->DecRef();
-
-    m_ctrl_list->InsertColumn(0, new wxDataViewColumn(m_model->GetColumnHeader(0),
-        new wxDataViewTextRenderer("long"), 0, 80, wxALIGN_LEFT));
-    m_ctrl_list->InsertColumn(1, new wxDataViewColumn(m_model->GetColumnHeader(1),
-        new wxDataViewTextRenderer(), 1, 320, wxALIGN_LEFT));
-    m_ctrl_list->InsertColumn(2, new wxDataViewColumn(m_model->GetColumnHeader(2),
-        new wxDataViewChoiceByIndexRenderer(m_model->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
-
+    m_model->InitControl(m_ctrl_list);
 
     wxBoxSizer* szr2 = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2, 0, wxEXPAND, 5);
     wxBoxSizer* szr3 = new wxBoxSizer(wxHORIZONTAL);
     szr2->Add(szr3, 1, wxALL | wxEXPAND, 5);
-
 
     m_add = new wxBitmapButton(this, wxID_ADD, imglst->GetBitmap(plus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
     m_delete = new wxBitmapButton(this, wxID_DELETE, imglst->GetBitmap(minus_img), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxBU_AUTODRAW);
@@ -91,7 +83,7 @@ void CharacterDialog::DeleteRow()
 {
     if (m_ctrl_list->HasSelection())
     {
-        int sel = reinterpret_cast<intptr_t>(m_ctrl_list->GetSelection().GetID()) - 1;
+        unsigned int sel = reinterpret_cast<intptr_t>(m_ctrl_list->GetSelection().GetID()) - 1;
         m_model->DeleteRow(sel);
         if (m_model->GetRowCount() > sel)
         {
@@ -104,15 +96,14 @@ void CharacterDialog::DeleteRow()
     }
 }
 
-void CharacterDialog::OnOK(wxCommandEvent& evt)
+void CharacterDialog::OnOK(wxCommandEvent&)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void CharacterDialog::OnCancel(wxCommandEvent& evt)
+void CharacterDialog::OnCancel(wxCommandEvent&)
 {
-    CommitAll();
     EndModal(wxID_OK);
 }
 

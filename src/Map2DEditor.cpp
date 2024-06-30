@@ -22,15 +22,25 @@ wxDEFINE_EVENT(EVT_MAP_ACTIVATE, wxCommandEvent);
 
 Map2DEditor::Map2DEditor(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY),
-	m_pixelsize(8),
-	m_mode(Map2DEditor::Mode::SELECT),
-	m_drawtile(Tile(0)),
-	m_redraw_all(true),
-	m_enablealpha(true),
-	m_enableborders(true),
-	m_enabletilenumbers(true),
-	m_enableselection(true),
-	m_enablehover(true)
+	  m_map(nullptr),
+	  m_map_entry(nullptr),
+	  m_tileset(nullptr),
+	  m_tileset_entry(nullptr),
+	  m_g(nullptr),
+	  m_active_palette(nullptr),
+	  m_mode(Map2DEditor::Mode::SELECT),
+	  m_pixelsize(8),
+	  m_selectable(true),
+	  m_selectedtile(-1),
+	  m_hoveredtile(-1),
+	  m_tilebase(0),
+	  m_enabletilenumbers(true),
+	  m_enableborders(true),
+	  m_enableselection(true),
+	  m_enablehover(true),
+	  m_enablealpha(true),
+	  m_redraw_all(true),
+      m_drawtile(Tile(0))
 {
 	SetRowColumnCount(1, 1);
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -40,20 +50,14 @@ Map2DEditor::Map2DEditor(wxWindow* parent)
 
 Map2DEditor::~Map2DEditor()
 {
-	delete m_alpha_brush;
-	delete m_border_pen;
-	delete m_selected_border_pen;
-	delete m_highlighted_border_pen;
-	delete m_highlighted_brush;
-}
-
-void Map2DEditor::SetColour(int c)
-{
 }
 
 bool Map2DEditor::Save(const wxString& filename, Tilemap2D::Compression compression, int base)
 {
+	auto orig_base = m_map->GetBase();
+	m_map->SetBase(base);
 	m_map->Save(filename.ToStdString(), compression);
+	m_map->SetBase(orig_base);
 	return true;
 }
 
@@ -72,7 +76,7 @@ bool Map2DEditor::Open(const std::vector<Tile>& map, int width, int height, int 
 		data.push_back(t.GetIndex() >> 8);
 		data.push_back(t.GetIndex() & 0xFF);
 	}
-	return Open(data, Tilemap2D::NONE, width, height, base);
+	return Open(data, Tilemap2D::Compression::NONE, width, height, base);
 }
 
 bool Map2DEditor::Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression, int width, int height, int base)
@@ -127,8 +131,8 @@ void Map2DEditor::RedrawTiles(int index)
 	}
 	else
 	{
-		for (int x = 0; x < m_map->GetWidth(); ++x)
-			for (int y = 0; y < m_map->GetHeight(); ++y)
+		for (std::size_t x = 0; x < m_map->GetWidth(); ++x)
+			for (std::size_t y = 0; y < m_map->GetHeight(); ++y)
 			{
 				if (m_map->GetTile(x, y).GetIndex() == index)
 				{
@@ -221,7 +225,7 @@ std::shared_ptr<Tileset> Map2DEditor::GetTileset()
 
 std::shared_ptr<Palette> Map2DEditor::GetPalette()
 {
-	return std::shared_ptr<Palette>(&GetSelectedPalette());
+	return GetSelectedPalette();
 }
 
 std::shared_ptr<Tilemap2D> Map2DEditor::GetMap()
@@ -382,7 +386,7 @@ Tile Map2DEditor::GetTileAtPosition(const TilePosition& tp) const
 	}
 	else
 	{
-		return Tile(-1);
+		return Tile(0xFFFF);
 	}
 }
 
@@ -400,7 +404,7 @@ bool Map2DEditor::IsPositionValid(const TilePosition& tp) const
 	return valid;
 }
 
-wxCoord Map2DEditor::OnGetRowHeight(size_t row) const
+wxCoord Map2DEditor::OnGetRowHeight(size_t /*row*/) const
 {
 	if (m_tileset)
 	{
@@ -412,7 +416,7 @@ wxCoord Map2DEditor::OnGetRowHeight(size_t row) const
 	}
 }
 
-wxCoord Map2DEditor::OnGetColumnWidth(size_t column) const
+wxCoord Map2DEditor::OnGetColumnWidth(size_t /*column*/) const
 {
 	if (m_tileset)
 	{
@@ -438,9 +442,9 @@ void Map2DEditor::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 	brush.SetStyle(wxBRUSHSTYLE_SOLID);
 	dc.SetPen(pen);
 
-	auto tile_pixels = m_tileset->GetTileBGRA(tile, GetSelectedPalette());
+	auto tile_pixels = m_tileset->GetTileBGRA(tile, *GetSelectedPalette());
 
-	for (int i = 0; i < tile_pixels.size(); ++i)
+	for (std::size_t i = 0; i < tile_pixels.size(); ++i)
 	{
 		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
 		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
@@ -485,9 +489,9 @@ bool Map2DEditor::DrawTileAtPosition(wxDC& dc, int x, int y)
 		}
 		if (m_enabletilenumbers)
 		{
-			auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::ATTR_HFLIP) ? 'H' : ' ',
-				t.Attributes().getAttribute(TileAttributes::ATTR_VFLIP) ? 'V' : ' ',
-				t.Attributes().getAttribute(TileAttributes::ATTR_PRIORITY) ? 'P' : ' ');
+			auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? 'H' : ' ',
+				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? 'V' : ' ',
+				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? '!' : ' ');
 			auto extent = dc.GetTextExtent(label);
 			if ((extent.GetWidth() < cellwidth - 2) && (extent.GetHeight() < cellheight - 2))
 			{
@@ -551,10 +555,10 @@ void Map2DEditor::PaintBitmap(wxDC& dc)
 
 void Map2DEditor::InitialiseBrushesAndPens()
 {
-	m_alpha_brush = new wxBrush();
-	wxBitmap* stipple = new wxBitmap(6, 6);
-	wxMemoryDC* imagememDC = new wxMemoryDC();
-	imagememDC->SelectObject(*stipple);
+	m_alpha_brush = std::make_unique<wxBrush>();
+	m_stipple = std::make_unique<wxBitmap>(6, 6);
+	std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+	imagememDC->SelectObject(*m_stipple);
 	imagememDC->SetBackground(*wxGREY_BRUSH);
 	imagememDC->Clear();
 	imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -563,13 +567,11 @@ void Map2DEditor::InitialiseBrushesAndPens()
 	imagememDC->DrawRectangle(3, 3, 5, 5);
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
-	m_alpha_brush->SetStipple(*stipple);
-	delete stipple;
-	delete imagememDC;
-	m_border_pen = new wxPen(*wxMEDIUM_GREY_PEN);
-	m_selected_border_pen = new wxPen(*wxRED_PEN);
-	m_highlighted_border_pen = new wxPen(*wxBLUE_PEN);
-	m_highlighted_brush = new wxBrush(*wxTRANSPARENT_BRUSH);
+	m_alpha_brush->SetStipple(*m_stipple);
+	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	m_selected_border_pen =std::make_unique<wxPen>(*wxRED_PEN);
+	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
+	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
 }
 
 void Map2DEditor::ForceRedraw()
@@ -580,9 +582,9 @@ void Map2DEditor::ForceRedraw()
 	Refresh();
 }
 
-Palette& Map2DEditor::GetSelectedPalette()
+std::shared_ptr<Palette> Map2DEditor::GetSelectedPalette()
 {
-	return *m_active_palette->GetData();
+	return m_active_palette->GetData();
 }
 
 Map2DEditor::TilePosition Map2DEditor::ToPosition(int index) const
@@ -680,8 +682,8 @@ void Map2DEditor::OnDraw(wxDC& dc)
 	if (m_redraw_all == true)
 	{
 		m_redraw_list.clear();
-		for (int x = 0; x < m_map->GetWidth(); ++x)
-			for (int y = 0; y < m_map->GetHeight(); ++y)
+		for (std::size_t x = 0; x < m_map->GetWidth(); ++x)
+			for (std::size_t y = 0; y < m_map->GetHeight(); ++y)
 			{
 				int i = x + y * m_map->GetWidth();
 				if (!DrawTileAtPosition(m_memdc, x, y))
@@ -696,7 +698,7 @@ void Map2DEditor::OnDraw(wxDC& dc)
 		auto it = m_redraw_list.begin();
 		while (it != m_redraw_list.end())
 		{
-			if ((*it >= 0) && (*it < (m_map->GetWidth() * m_map->GetHeight())))
+			if ((*it >= 0) && (*it < static_cast<int>(m_map->GetWidth() * m_map->GetHeight())))
 			{
 				int x = *it % m_map->GetWidth();
 				int y = *it / m_map->GetWidth();
@@ -717,7 +719,7 @@ void Map2DEditor::OnDraw(wxDC& dc)
 	m_memdc.SelectObject(wxNullBitmap);
 }
 
-void Map2DEditor::OnPaint(wxPaintEvent& evt)
+void Map2DEditor::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -805,7 +807,7 @@ void Map2DEditor::FireTilesetEvent(const wxEventType& e, const std::string& data
 
 bool Map2DEditor::InsertRow(int row)
 {
-	if (row > m_map->GetHeight())
+	if (row > static_cast<int>(m_map->GetHeight()))
 	{
 		return false;
 	}
@@ -819,7 +821,7 @@ bool Map2DEditor::InsertRow(int row)
 
 bool Map2DEditor::DeleteRow(int row)
 {
-	if (row >= m_map->GetHeight())
+	if (row >= static_cast<int>(m_map->GetHeight()))
 	{
 		return false;
 	}
@@ -833,7 +835,7 @@ bool Map2DEditor::DeleteRow(int row)
 
 bool Map2DEditor::InsertColumn(int column)
 {
-	if (column > m_map->GetWidth())
+	if (column > static_cast<int>(m_map->GetWidth()))
 	{
 		return false;
 	}
@@ -847,7 +849,7 @@ bool Map2DEditor::InsertColumn(int column)
 
 bool Map2DEditor::DeleteColumn(int column)
 {
-	if (column >= m_map->GetWidth())
+	if (column >= static_cast<int>(m_map->GetWidth()))
 	{
 		return false;
 	}

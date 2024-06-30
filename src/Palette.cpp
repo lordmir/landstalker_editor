@@ -73,14 +73,14 @@ std::unordered_map<Palette::Type, int> PALETTE_SIZES =
 };
 
 Palette::Palette(const std::string& name, const Type& type)
-	: m_name(name),
-	  m_type(type)
+	: m_type(type),
+	  m_name(name)
 {
 	m_pal.resize(16);
 	std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 	m_owner.resize(m_pal.size(), "");
 	m_locked = LOCKED_ENTRIES.at(type);
-	for (int i = 0; i < m_pal.size(); ++i)
+	for (std::size_t i = 0; i < m_pal.size(); ++i)
 	{
 		if (!m_locked[i])
 		{
@@ -91,67 +91,11 @@ Palette::Palette(const std::string& name, const Type& type)
 	LoadDebugPal();
 }
 
-void Palette::Clear()
-{
-	if (m_pal.size() > 0)
-	{
-		m_pal[0]->FromGenesis(0x0000, true);
-	}
-	if (m_pal.size() > 1)
-	{
-		m_pal[1]->FromGenesis(0x0CCC);
-	}
-	for (size_t i = 2; i < m_pal.size(); ++i)
-	{
-		m_pal[i]->FromGenesis(0x0000);
-	}
-}
-
-void Palette::LoadDebugPal()
-{
-	m_pal[0]->FromGenesis(0x0C0C);
-	m_pal[1]->FromGenesis(0x0CCC);
-	m_pal[2]->FromGenesis(0x000E);
-	m_pal[3]->FromGenesis(0x00E0);
-	m_pal[4]->FromGenesis(0x00EE);
-	m_pal[5]->FromGenesis(0x0E00);
-	m_pal[6]->FromGenesis(0x0EE0);
-	m_pal[7]->FromGenesis(0x0EEE);
-	m_pal[8]->FromGenesis(0x0888);
-	m_pal[9]->FromGenesis(0x0008);
-	m_pal[10]->FromGenesis(0x0080);
-	m_pal[11]->FromGenesis(0x0088);
-	m_pal[12]->FromGenesis(0x0800);
-	m_pal[13]->FromGenesis(0x0808);
-	m_pal[14]->FromGenesis(0x0880);
-	m_pal[15]->FromGenesis(0x0000);
-}
-
-bool Palette::operator==(const Palette& rhs) const
-{
-	bool retval = (this->m_type == rhs.m_type);
-	retval = retval && (this->m_pal.size() == rhs.m_pal.size());
-	if (retval)
-	{
-		for (int i = 0; i < m_pal.size(); ++i)
-		{
-			retval = retval && (*this->m_pal[i] == *rhs.m_pal[i]);
-		}
-	}
-	return retval;
-}
-
-bool Palette::operator!=(const Palette& rhs) const
-{
-	return !(*this == rhs);
-}
-
 Palette::Palette(const std::string& name, const std::vector<Colour>& colours, const Type& type)
-	: m_name(name),
-	  m_type(type)
+	: m_type(type),
+	  m_name(name)
 {
-	int size = GetSize();
-	assert(colours.size() == size);
+	assert(colours.size() == GetSize());
 	if (IsVarWidth())
 	{
 		auto it = colours.cbegin();
@@ -166,7 +110,7 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
 		auto it = colours.begin();
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
@@ -176,7 +120,7 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 		m_pal[0]->SetTransparent(true);
 		m_owner.resize(m_pal.size(), "");
 		m_locked = LOCKED_ENTRIES.at(type);
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!m_locked[i])
 			{
@@ -187,8 +131,8 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 }
 
 Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, const Type& type)
-	: m_name(name),
-	  m_type(type)
+	: m_type(type),
+	  m_name(name)
 {	// Input must contain the right number of colours
 	int size = PALETTE_SIZES[m_type];
 	auto it = bytes.begin();
@@ -203,22 +147,21 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 		assert(bytes.size() == (size * 2));
 	}
 
-	size_t i = 0;
 	std::vector<Colour> colours;
 	colours.reserve(size);
 	for (; it != bytes.end(); it += 2)
 	{
-		colours.emplace_back((*it << 8) | *(it + 1));
-		if (colours.size() == size)
+		colours.emplace_back(static_cast<uint16_t>((*it << 8) | *(it + 1)));
+		if (static_cast<int>(colours.size()) == size)
 		{
 			break;
 		}
 	}
 	if (IsVarWidth())
 	{
-		auto it = colours.cbegin();
+		auto cit = colours.cbegin();
 		m_pal.resize(colours.size());
-		std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*it++); });
+		std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*cit++); });
 		m_owner.resize(m_pal.size(), m_name);
 		m_locked.resize(m_pal.size(), false);
 	}
@@ -227,18 +170,18 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 		m_pal.resize(16);
 		std::for_each(m_pal.begin(), m_pal.end(), [](auto& e) { e = std::make_shared<Colour>(); });
 		Clear();
-		auto it = colours.begin();
-		for (int i = 0; i < m_pal.size(); ++i)
+		auto cit = colours.begin();
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!LOCKED_ENTRIES.at(m_type).at(i))
 			{
-				*m_pal[i] = *it++;
+				*m_pal[i] = *cit++;
 			}
 		}
 		m_pal[0]->SetTransparent(true);
 		m_owner.resize(m_pal.size(), "");
 		m_locked = LOCKED_ENTRIES.at(type);
-		for (int i = 0; i < m_pal.size(); ++i)
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
 		{
 			if (!m_locked[i])
 			{
@@ -249,10 +192,10 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 }
 
 Palette::Palette(const Palette& pal)
-	: m_name(pal.m_name),
-	  m_type(pal.m_type),
-	  m_locked(pal.m_locked),
-	  m_owner(pal.m_owner)
+	: m_type(pal.m_type),
+	  m_name(pal.m_name),
+	  m_owner(pal.m_owner),
+	  m_locked(pal.m_locked)
 {
 	m_pal.resize(pal.m_pal.size());
 	auto it = pal.m_pal.cbegin();
@@ -272,7 +215,7 @@ Palette::Palette(const std::vector<std::shared_ptr<Palette>>& pals)
 		Clear();
 		for (const auto& pal : pals)
 		{
-			for (int i = 0; i < m_pal.size(); ++i)
+			for (std::size_t i = 0; i < m_pal.size(); ++i)
 			{
 				if (pal->m_locked[i] == false)
 				{
@@ -294,6 +237,73 @@ Palette::Palette(const std::vector<std::shared_ptr<Palette>>& pals)
 		m_locked.resize(m_pal.size(), true);
 		Clear();
 	}
+}
+
+void Palette::Clear()
+{
+	if (m_pal.size() > 0)
+	{
+		m_pal[0]->FromGenesis(0x0000, true);
+	}
+	if (m_pal.size() > 1)
+	{
+		m_pal[1]->FromGenesis(0x0CCC);
+	}
+	for (size_t i = 2; i < m_pal.size(); ++i)
+	{
+		m_pal[i]->FromGenesis(0x0000);
+	}
+}
+
+void Palette::LoadDebugPal()
+{
+	m_pal[0]->FromGenesis(0x0C0C, true);
+	m_pal[1]->FromGenesis(0x0CCC);
+	m_pal[2]->FromGenesis(0x000E);
+	m_pal[3]->FromGenesis(0x00E0);
+	m_pal[4]->FromGenesis(0x00EE);
+	m_pal[5]->FromGenesis(0x0E00);
+	m_pal[6]->FromGenesis(0x0EE0);
+	m_pal[7]->FromGenesis(0x0EEE);
+	m_pal[8]->FromGenesis(0x0888);
+	m_pal[9]->FromGenesis(0x0008);
+	m_pal[10]->FromGenesis(0x0080);
+	m_pal[11]->FromGenesis(0x0088);
+	m_pal[12]->FromGenesis(0x0800);
+	m_pal[13]->FromGenesis(0x0808);
+	m_pal[14]->FromGenesis(0x0880);
+	m_pal[15]->FromGenesis(0x0000);
+}
+
+Palette& Palette::operator=(const Palette& rhs)
+{
+	m_type = rhs.m_type;
+	m_name = rhs.m_name;
+	m_owner = rhs.m_owner;
+	m_locked = rhs.m_locked;
+	m_pal.resize(rhs.m_pal.size());
+	auto it = rhs.m_pal.cbegin();
+	std::for_each(m_pal.begin(), m_pal.end(), [&](auto& e) { e = std::make_shared<Colour>(*(*it++)); });
+	return *this;
+}
+
+bool Palette::operator==(const Palette& rhs) const
+{
+	bool retval = (this->m_type == rhs.m_type);
+	retval = retval && (this->m_pal.size() == rhs.m_pal.size());
+	if (retval)
+	{
+		for (std::size_t i = 0; i < m_pal.size(); ++i)
+		{
+			retval = retval && (*this->m_pal[i] == *rhs.m_pal[i]);
+		}
+	}
+	return retval;
+}
+
+bool Palette::operator!=(const Palette& rhs) const
+{
+	return !(*this == rhs);
 }
 
 std::vector<uint8_t> Palette::GetBytes() const
@@ -381,7 +391,7 @@ Palette::Colour Palette::GetColour(uint8_t index) const
 uint8_t Palette::GetNthUnlockedIndex(uint8_t n) const
 {
 	assert(n < GetSize());
-	for (int i = 0; i < m_pal.size(); ++i)
+	for (uint8_t i = 0; i < static_cast<uint8_t>(m_pal.size()); ++i)
 	{
 		if (m_locked[i] == true)
 		{
@@ -393,7 +403,7 @@ uint8_t Palette::GetNthUnlockedIndex(uint8_t n) const
 		}
 		n--;
 	}
-	return m_pal.size();
+	return static_cast<uint8_t>(m_pal.size());
 }
 
 Palette::Colour Palette::GetNthUnlockedColour(uint8_t n) const
@@ -403,7 +413,7 @@ Palette::Colour Palette::GetNthUnlockedColour(uint8_t n) const
 
 void Palette::SetNthUnlockedGenesisColour(uint8_t n, uint16_t colour)
 {
-	int index = GetNthUnlockedIndex(n);
+	uint8_t index = GetNthUnlockedIndex(n);
 	setGenesisColour(index, colour);
 }
 
