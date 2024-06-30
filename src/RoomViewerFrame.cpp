@@ -40,6 +40,7 @@ enum MENU_IDS
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
+	ID_VIEW_SWAPS,
 	ID_VIEW_SEP1,
 	ID_VIEW_ERRORS
 };
@@ -49,6 +50,7 @@ enum TOOL_IDS
 	TOOL_TOGGLE_ENTITIES = 30000,
 	TOOL_TOGGLE_ENTITY_HITBOX,
 	TOOL_TOGGLE_WARPS,
+	TOOL_TOGGLE_SWAPS,
 	TOOL_SHOW_LAYERS_PANE,
 	TOOL_SHOW_ENTITIES_PANE,
 	TOOL_SHOW_WARPS_PANE,
@@ -105,11 +107,15 @@ EVT_COMMAND(wxID_ANY, EVT_TILESWAP_UPDATE, RoomViewerFrame::OnSwapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_SELECT, RoomViewerFrame::OnSwapSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_ADD, RoomViewerFrame::OnSwapAdd)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_DELETE, RoomViewerFrame::OnSwapDelete)
+EVT_COMMAND(wxID_ANY, EVT_TILESWAP_MOVE_UP, RoomViewerFrame::OnSwapMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_TILESWAP_MOVE_DOWN, RoomViewerFrame::OnSwapMoveDown)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_OPEN_PROPERTIES, RoomViewerFrame::OnSwapProperties)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_UPDATE, RoomViewerFrame::OnDoorUpdate)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_SELECT, RoomViewerFrame::OnDoorSelect)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_ADD, RoomViewerFrame::OnDoorAdd)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_DELETE, RoomViewerFrame::OnDoorDelete)
+EVT_COMMAND(wxID_ANY, EVT_DOOR_MOVE_UP, RoomViewerFrame::OnDoorMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_DOOR_MOVE_DOWN, RoomViewerFrame::OnDoorMoveDown)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_OPEN_PROPERTIES, RoomViewerFrame::OnDoorProperties)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
@@ -1233,7 +1239,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Entity Properties...");
+	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
 	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
 	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
 	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
@@ -1243,8 +1249,9 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 3, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(viewMenu, 4, ID_VIEW_ERRORS, "Errors...");
+	AddMenuItem(viewMenu, 3, ID_VIEW_SWAPS, "Show Tile Swaps / Doors", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 4, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 5, ID_VIEW_ERRORS, "Errors...");
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
@@ -1258,6 +1265,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_TOGGLE_ENTITIES, "Entities Visible", ilist.GetImage("entity"), "Entities Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_TOGGLE_SWAPS, "Tile Swaps / Doors Visible", ilist.GetImage("map_edit_tileswaps"), "Tile Swaps / Doors Visible", wxITEM_CHECK);
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_FLAGS, "Flags", ilist.GetImage("flags"), "Flag Editor");
 	main_tb->AddTool(TOOL_SHOW_CHESTS, "Chests", ilist.GetImage("chest16"), "Chest Editor");
@@ -1268,7 +1276,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane", wxITEM_CHECK);
-	main_tb->AddTool(TOOL_SHOW_TILESWAP_PANE, "Tile Swap / Doors Pane", ilist.GetImage("map_edit_tileswaps"), "Tile Swap / Doors Pane", wxITEM_CHECK);
+	main_tb->AddTool(TOOL_SHOW_TILESWAP_PANE, "Tile Swap / Doors Pane", ilist.GetImage("spanel"), "Tile Swap / Doors Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_BLOCKS_PANE, "Blocks Pane", ilist.GetImage("big_tiles"), "Blocks Pane", wxITEM_CHECK);
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
@@ -1402,6 +1410,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case TOOL_TOGGLE_WARPS:
 			m_roomview->SetWarpsVisible(!m_roomview->GetWarpsVisible());
 			break;
+		case ID_VIEW_SWAPS:
+		case TOOL_TOGGLE_SWAPS:
+			m_roomview->SetTileSwapsVisible(!m_roomview->GetTileSwapsVisible());
+			break;
 		case ID_TOOLS_LAYERS:
 		case TOOL_SHOW_LAYERS_PANE:
 			SetPaneVisibility(m_layerctrl, !IsPaneVisible(m_layerctrl));
@@ -1431,6 +1443,14 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			else if (m_roomview->IsWarpSelected())
 			{
 				m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+			}
+			else if (m_roomview->IsTileSwapSelected())
+			{
+				ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, m_roomview->GetSelectedTileSwapIndex());
+			}
+			else if (m_roomview->IsDoorSelected())
+			{
+				ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS, m_roomview->GetSelectedDoorIndex());
 			}
 			break;
 		case ID_EDIT_FLAGS:
@@ -1688,8 +1708,14 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_TOGGLE_WARPS, true);
 		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
 
-		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
-		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected());
+		EnableMenuItem(ID_VIEW_SWAPS, true);
+		CheckMenuItem(ID_VIEW_SWAPS, m_roomview->GetTileSwapsVisible());
+		EnableToolbarItem("Main", TOOL_TOGGLE_SWAPS, true);
+		CheckToolbarItem("Main", TOOL_TOGGLE_SWAPS, m_roomview->GetTileSwapsVisible());
+		
+		bool object_selected = m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected() || m_roomview->IsDoorSelected() || m_roomview->IsTileSwapSelected();
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, object_selected);
+		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, object_selected);
 
 		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
 		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
@@ -1726,9 +1752,14 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
 
 		CheckMenuItem(ID_VIEW_WARPS, false);
-		CheckToolbarItem("Main", ID_VIEW_WARPS, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, false);
 		EnableMenuItem(ID_VIEW_WARPS, false);
-		EnableToolbarItem("Main", ID_VIEW_WARPS, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_WARPS, false);
+
+		CheckMenuItem(ID_VIEW_SWAPS, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_SWAPS, false);
+		EnableMenuItem(ID_VIEW_SWAPS, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_SWAPS, false);
 
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
@@ -1865,29 +1896,34 @@ void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& /*evt*/ )
 	m_hmedit->UpdateWarps(m_roomview->GetWarps());
 	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpSelect(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpAdd(wxCommandEvent& /*evt*/)
 {
 	m_roomview->AddWarp();
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpDelete(wxCommandEvent& /*evt*/)
 {
 	m_roomview->SelectWarp(m_warpctrl->GetSelected());
 	m_roomview->DeleteSelectedWarp();
+	UpdateUI();
 }
 
 void RoomViewerFrame::TileSwapRefresh()
@@ -1900,8 +1936,10 @@ void RoomViewerFrame::TileSwapRefresh()
 		m_bgedit->UpdateSwaps();
 		m_hmedit->UpdateSwaps();
 		m_roomview->UpdateDoors();
+		m_hmedit->UpdateDoors();
 		m_fgedit->UpdateDoors();
 		m_bgedit->UpdateDoors();
+		UpdateUI();
 	}
 }
 
@@ -1913,6 +1951,7 @@ void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& /*evt*/)
 	m_fgedit->Refresh();
 	m_bgedit->Refresh();
 	m_hmedit->Refresh();
+	UpdateUI();
 }
 
 void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
@@ -1933,17 +1972,68 @@ void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 		m_fgedit->SetSelectedSwap(evt.GetInt());
 		m_bgedit->SetSelectedSwap(evt.GetInt());
 		m_hmedit->SetSelectedSwap(evt.GetInt());
+		UpdateUI();
 	}
 }
 
 void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
 {
-	TileSwapRefresh();
+	if (m_g)
+	{
+		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+		if (swaps.size() < 64UL)
+		{
+			swaps.push_back(TileSwap({20,20,22,22,1,1}, {10,10,12,12,1,1}, TileSwap::Mode::FLOOR));
+			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
+			TileSwapRefresh();
+			FireEvent(EVT_TILESWAP_SELECT, swaps.size());
+		}
+	}
 }
 
-void RoomViewerFrame::OnSwapDelete(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnSwapDelete(wxCommandEvent& evt)
 {
-	TileSwapRefresh();
+	if (m_g)
+	{
+		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+		if (!swaps.empty() && evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(swaps.size()))
+		{
+			swaps.erase(swaps.begin() + evt.GetInt() - 1);
+			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
+			TileSwapRefresh();
+			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() - 1);
+		}
+	}
+}
+
+void RoomViewerFrame::OnSwapMoveUp(wxCommandEvent& evt)
+{
+	if (m_g)
+	{
+		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+		if (swaps.size() > 1 && evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(swaps.size()))
+		{
+			std::iter_swap(swaps.begin() + evt.GetInt() - 2, swaps.begin() + evt.GetInt() - 1);
+			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
+			TileSwapRefresh();
+			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() - 1);
+		}
+	}
+}
+
+void RoomViewerFrame::OnSwapMoveDown(wxCommandEvent& evt)
+{
+	if (m_g)
+	{
+		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+		if (swaps.size() > 1 && evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(swaps.size()))
+		{
+			std::iter_swap(swaps.begin() + evt.GetInt() - 1, swaps.begin() + evt.GetInt());
+			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
+			TileSwapRefresh();
+			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() + 1);
+		}
+	}
 }
 
 void RoomViewerFrame::OnSwapProperties(wxCommandEvent& evt)
@@ -1983,12 +2073,62 @@ void RoomViewerFrame::OnDoorSelect(wxCommandEvent& evt)
 
 void RoomViewerFrame::OnDoorAdd(wxCommandEvent& /*evt*/)
 {
-	TileSwapRefresh();
+	if (m_g)
+	{
+		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+		if (doors.size() < 64UL)
+		{
+			doors.push_back(Door(20_u8, 20_u8, Door::Size::DOOR_1X4));
+			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
+			TileSwapRefresh();
+			FireEvent(EVT_DOOR_SELECT, doors.size());
+		}
+	}
 }
 
-void RoomViewerFrame::OnDoorDelete(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnDoorDelete(wxCommandEvent& evt)
 {
-	TileSwapRefresh();
+	if (m_g)
+	{
+		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+		if (!doors.empty() && evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(doors.size()))
+		{
+			doors.erase(doors.begin() + evt.GetInt() - 1);
+			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
+			TileSwapRefresh();
+			FireEvent(EVT_DOOR_SELECT, evt.GetInt() - 1);
+		}
+	}
+}
+
+void RoomViewerFrame::OnDoorMoveUp(wxCommandEvent& evt)
+{
+	if (m_g)
+	{
+		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+		if (doors.size() > 1 && evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(doors.size()))
+		{
+			std::iter_swap(doors.begin() + evt.GetInt() - 2, doors.begin() + evt.GetInt() - 1);
+			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
+			TileSwapRefresh();
+			FireEvent(EVT_DOOR_SELECT, evt.GetInt() - 1);
+		}
+	}
+}
+
+void RoomViewerFrame::OnDoorMoveDown(wxCommandEvent& evt)
+{
+	if (m_g)
+	{
+		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+		if (doors.size() > 1 && evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(doors.size()))
+		{
+			std::iter_swap(doors.begin() + evt.GetInt() - 1, doors.begin() + evt.GetInt());
+			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
+			TileSwapRefresh();
+			FireEvent(EVT_DOOR_SELECT, evt.GetInt() + 1);
+		}
+	}
 }
 
 void RoomViewerFrame::OnDoorProperties(wxCommandEvent& evt)

@@ -35,6 +35,7 @@ struct TileSwap
 
 	TileSwap(const std::vector<uint8_t>& in);
 	TileSwap() : map({ 0,0,0,0,1,1 }), heightmap({ 0,0,0,0,1,1 }), mode(Mode::FLOOR), active(false) {}
+	TileSwap(CopyOp p_map, CopyOp p_heightmap, Mode p_mode) : map(p_map), heightmap(p_heightmap), mode(p_mode), active(false) {}
 	std::vector<uint8_t> GetBytes(uint16_t room, uint8_t idx) const;
 
 	std::vector<std::pair<int, int>> GetMapRegionPoly(Region region = Region::UNDEFINED, int tile_width = 8, int tile_height = 8) const;

@@ -109,7 +109,12 @@ void HeightmapEditorCtrl::UpdateSwaps()
 {
     if (m_g)
     {
+        auto old_swap_count = m_swaps.size();
         m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+        if (m_swaps.size() != old_swap_count)
+        {
+            m_preview_swap = false;
+        }
     }
 }
 
@@ -317,6 +322,48 @@ bool HeightmapEditorCtrl::HandleRegionKeyDown(unsigned int key, unsigned int mod
                 }
                 Refresh();
             }
+        }
+        break;
+    case WXK_INSERT:
+        if ((modifiers & wxMOD_SHIFT) > 0)
+        {
+            FireEvent(EVT_DOOR_ADD);
+        }
+        else
+        {
+            FireEvent(EVT_TILESWAP_ADD);
+        }
+        break;
+    case WXK_DELETE:
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_DELETE, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_DELETE, GetSelectedDoor());
+        }
+        break;
+    case '[':
+    case '{':
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_UP, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_UP, GetSelectedDoor());
+        }
+        break;
+    case ']':
+    case '}':
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_DOWN, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_DOWN, GetSelectedDoor());
         }
         break;
     case WXK_LEFT:

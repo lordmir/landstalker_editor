@@ -38,6 +38,7 @@ struct Door
 
 	Door(uint8_t b1, uint8_t b2);
 	Door() : x(0), y(0), size(Size::DOOR_1X4) {}
+	Door(uint8_t p_x, uint8_t p_y, Size p_size) : x(p_x), y(p_y), size(p_size) {}
 
 	std::pair<uint8_t, uint8_t> GetBytes() const;
 

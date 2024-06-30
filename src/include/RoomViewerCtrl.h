@@ -37,13 +37,15 @@ public:
 
 	void SetRoomNum(uint16_t roomnum);
 	uint16_t GetRoomNum() const { return m_roomnum; }
-	bool GetEntitiesVisible();
-	bool GetEntitiesHitboxVisible();
-	bool GetWarpsVisible();
+	bool GetEntitiesVisible() const;
+	bool GetEntitiesHitboxVisible() const;
+	bool GetWarpsVisible() const;
+	bool GetTileSwapsVisible() const;
 
 	void SetEntitiesVisible(bool visible);
 	void SetEntitiesHitboxVisible(bool visible);
 	void SetWarpsVisible(bool visible);
+	void SetTileSwapsVisible(bool visible);
 
 	bool EntitiesEnabled() const;
 	void SelectEntity(int selection);

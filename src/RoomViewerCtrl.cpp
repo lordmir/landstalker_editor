@@ -107,19 +107,24 @@ void RoomViewerCtrl::SetRoomNum(uint16_t roomnum)
     RefreshGraphics();
 }
 
-bool RoomViewerCtrl::GetEntitiesVisible()
+bool RoomViewerCtrl::GetEntitiesVisible() const
 {
     return m_show_entities;
 }
 
-bool RoomViewerCtrl::GetEntitiesHitboxVisible()
+bool RoomViewerCtrl::GetEntitiesHitboxVisible() const
 {
     return m_show_entity_hitboxes;
 }
 
-bool RoomViewerCtrl::GetWarpsVisible()
+bool RoomViewerCtrl::GetWarpsVisible() const
 {
     return m_show_warps;
+}
+
+bool RoomViewerCtrl::GetTileSwapsVisible() const
+{
+    return m_show_swaps;
 }
 
 void RoomViewerCtrl::SetEntitiesVisible(bool visible)
@@ -137,6 +142,12 @@ void RoomViewerCtrl::SetEntitiesHitboxVisible(bool visible)
 void RoomViewerCtrl::SetWarpsVisible(bool visible)
 {
     m_show_warps = visible;
+    RefreshGraphics();
+}
+
+void RoomViewerCtrl::SetTileSwapsVisible(bool visible)
+{
+    m_show_swaps = visible;
     RefreshGraphics();
 }
 
@@ -924,9 +935,9 @@ void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int 
     };
     wxPoint2DDouble tile_highlight[] = {
         wxPoint2DDouble(x + width / 2, y + 1),
-        wxPoint2DDouble(x + width - 1, y + height / 2),
+        wxPoint2DDouble(x + width - 2, y + height / 2),
         wxPoint2DDouble(x + width / 2, y + height - 1),
-        wxPoint2DDouble(x         + 1, y + height / 2),
+        wxPoint2DDouble(x         + 2, y + height / 2),
         wxPoint2DDouble(x + width / 2, y + 1)
     };
     wxPoint2DDouble left_wall[] = {
@@ -965,13 +976,13 @@ void RoomViewerCtrl::DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int 
         bg.Set(48 + zz * 8, 48 + zz * 8, zz * 3);
         break;
     }
-    gc.SetBrush(wxBrush(bg));
     gc.SetPen(*wxWHITE);
+    gc.SetBrush(wxBrush(bg));
     //gc.SetTextForeground(*wxWHITE);
     gc.DrawLines(sizeof(tile_points) / sizeof(tile_points[0]), tile_points);
     if (draw_walls)
     {
-        gc.SetPen(border_colour);
+        gc.SetPen(wxPen(border_colour, 2));
         gc.DrawLines(sizeof(tile_highlight) / sizeof(tile_highlight[0]), tile_highlight);
         gc.SetPen(*wxWHITE);
     }
@@ -1022,9 +1033,9 @@ void RoomViewerCtrl::DrawTileSwaps(wxGraphicsContext& gc, uint16_t roomnum)
             bool hovered = (m_hovered == index);
             bool selected = (m_selected == index);
             bool preview = (std::find(m_preview_swaps.cbegin(), m_preview_swaps.cend(), index - SWAP_IDX_OFFSET) != m_preview_swaps.cend());
-            gc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            gc.SetPen(wxPen(hovered ? wxColor(128, 128, 255) : *wxBLUE, selected ? 3 : 2, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.first.size(), points.first.data());
-            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 128) : *wxRED, selected ? 3 : 2, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.second.size(), points.second.data());
         };
     int hovered_poly = NO_SELECTION;
@@ -1082,7 +1093,7 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
             bool hovered = (m_hovered == index);
             bool selected = (m_selected == index);
             bool preview = (std::find(m_preview_doors.cbegin(), m_preview_doors.cend(), index - DOOR_IDX_OFFSET) != m_preview_doors.cend());
-            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 255) : wxColor(255, 0, 255), selected ? 3 : 1, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 255) : wxColor(255, 0, 255), selected ? 3 : 2, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.size(), points.data());
         };
     int hovered_poly = NO_SELECTION;
@@ -1445,7 +1456,12 @@ void RoomViewerCtrl::UpdateSwaps()
 {
     if (m_g)
     {
+        auto old_swap_size = m_swaps.size();
         m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
+        if (m_swaps.size() != old_swap_size)
+        {
+            ClearAllPreviews();
+        }
         RefreshRoom(true);
     }
 }
@@ -1509,7 +1525,12 @@ void RoomViewerCtrl::UpdateDoors()
 {
     if (m_g)
     {
+        auto old_swap_size = m_doors.size();
         m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
+        if (m_doors.size() != old_swap_size)
+        {
+            ClearAllPreviews();
+        }
         RefreshRoom(true);
     }
 }
@@ -2018,6 +2039,14 @@ bool RoomViewerCtrl::HandleNormalModeKeyDown(unsigned int key, unsigned int modi
         {
             AddWarp();
         }
+        else if (modifiers == wxMOD_CONTROL)
+        {
+            FireEvent(EVT_TILESWAP_ADD);
+        }
+        else if (modifiers == wxMOD_ALT)
+        {
+            FireEvent(EVT_DOOR_ADD);
+        }
         else
         {
             AddEntity();
@@ -2346,6 +2375,38 @@ bool RoomViewerCtrl::HandleNSwapKeyDown(unsigned int key, unsigned int modifiers
 
     switch (key)
     {
+    case WXK_DELETE:
+        if (IsTileSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_DELETE, GetSelectedTileSwapIndex());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_DELETE, GetSelectedDoorIndex());
+        }
+        break;
+    case '[':
+    case '{':
+        if (IsTileSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_UP, GetSelectedTileSwapIndex());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_UP, GetSelectedDoorIndex());
+        }
+        break;
+    case ']':
+    case '}':
+        if (IsTileSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_DOWN, GetSelectedTileSwapIndex());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_DOWN, GetSelectedDoorIndex());
+        }
+        break;
     case WXK_LEFT:
     case 'a':
     case 'A':

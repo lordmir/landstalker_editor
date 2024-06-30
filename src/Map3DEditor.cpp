@@ -293,8 +293,13 @@ void Map3DEditor::UpdateSwaps()
 {
     if (m_g)
     {
+        auto old_swap_count = m_swaps.size();
         m_swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
         m_swap_regions.clear();
+        if (m_swaps.size() != old_swap_count)
+        {
+            ResetPreview();
+        }
     }
 }
 
@@ -302,8 +307,13 @@ void Map3DEditor::UpdateDoors()
 {
     if (m_g)
     {
+        auto old_door_count = m_doors.size();
         m_doors = m_g->GetRoomData()->GetDoors(m_roomnum);
         m_door_regions.clear();
+        if (m_doors.size() != old_door_count)
+        {
+            ResetPreview();
+        }
     }
 }
 
@@ -328,7 +338,7 @@ bool Map3DEditor::HandleKeyDown(unsigned int key, unsigned int modifiers)
     return false;
 }
 
-bool Map3DEditor::HandleDrawKeyDown(unsigned int key, unsigned int /*modifiers*/)
+bool Map3DEditor::HandleDrawKeyDown(unsigned int key, unsigned int modifiers)
 {
     switch (key)
     {
@@ -450,6 +460,48 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
                 }
                 Refresh();
             }
+        }
+        break;
+    case WXK_INSERT:
+        if ((modifiers & wxMOD_SHIFT) > 0)
+        {
+            FireEvent(EVT_DOOR_ADD);
+        }
+        else
+        {
+            FireEvent(EVT_TILESWAP_ADD);
+        }
+        break;
+    case WXK_DELETE:
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_DELETE, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_DELETE, GetSelectedDoor());
+        }
+        break;
+    case '[':
+    case '{':
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_UP, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_UP, GetSelectedDoor());
+        }
+        break;
+    case ']':
+    case '}':
+        if (IsSwapSelected())
+        {
+            FireEvent(EVT_TILESWAP_MOVE_DOWN, GetSelectedSwap());
+        }
+        else if (IsDoorSelected())
+        {
+            FireEvent(EVT_DOOR_MOVE_DOWN, GetSelectedDoor());
         }
         break;
     case WXK_LEFT:

@@ -106,11 +106,15 @@ private:
 	void OnSwapSelect(wxCommandEvent& evt);
 	void OnSwapAdd(wxCommandEvent& evt);
 	void OnSwapDelete(wxCommandEvent& evt);
+	void OnSwapMoveUp(wxCommandEvent& evt);
+	void OnSwapMoveDown(wxCommandEvent& evt);
 	void OnSwapProperties(wxCommandEvent& evt);
 	void OnDoorUpdate(wxCommandEvent& evt);
 	void OnDoorSelect(wxCommandEvent& evt);
 	void OnDoorAdd(wxCommandEvent& evt);
 	void OnDoorDelete(wxCommandEvent& evt);
+	void OnDoorMoveUp(wxCommandEvent& evt);
+	void OnDoorMoveDown(wxCommandEvent& evt);
 	void OnDoorProperties(wxCommandEvent& evt);
 
 	void OnHeightmapUpdate(wxCommandEvent& evt);
