@@ -489,18 +489,18 @@ std::pair<uint8_t, uint8_t> SpriteData::GetEntityHitbox(uint8_t id) const
 {
 	if (!EntityHasSprite(id))
 	{
-		return { 8_u8, 10_u8 };
+		return { 8_u8, 16_u8 };
 	}
 	uint8_t sprite_id = GetSpriteFromEntity(id);
 	return GetSpriteHitbox(sprite_id);
 }
 
-void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base)
+void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t base, uint8_t height)
 {
 	assert(m_sprite_dimensions.find(id) != m_sprite_dimensions.cend());
 	auto& result = m_sprite_dimensions.find(id)->second;
-	result[0] = height;
-	result[1] = base;
+	result[0] = base;
+	result[1] = height;
 }
 
 bool SpriteData::IsEntity(uint8_t id) const

@@ -397,7 +397,7 @@ int PaletteEditor::ConvertXYToColour(const wxPoint& p) const
 		}
 		colour_selected = y * 8 + x;
 	}
-	if (colour_selected < (1 << m_bpp))
+	if (colour_selected >= 0 && colour_selected < (1 << m_bpp))
 	{
 		return GetColour(colour_selected);
 	}
@@ -454,7 +454,7 @@ void PaletteEditor::OnHover(int colour)
 
 int PaletteEditor::GetColour(int index) const
 {
-	if (index < static_cast<int>(m_indicies.size()))
+	if (index >= 0 && index < static_cast<int>(m_indicies.size()))
 	{
 		return m_indicies[index];
 	}

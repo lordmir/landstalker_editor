@@ -1,6 +1,7 @@
 #include "SpriteEditorFrame.h"
 #include "MainFrame.h"
 
+#include <wx/propgrid/advprops.h>
 #include <fstream>
 #include "Utils.h"
 
@@ -93,6 +94,8 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_tileedit->SetTile(Tile(0));
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
 	m_spriteeditor->SelectTile(0);
+	m_reset_props = true;
+	FireEvent(EVT_PROPERTIES_UPDATE);
 	return true;
 }
 
@@ -121,10 +124,27 @@ void SpriteEditorFrame::SetActivePalette(const std::string& name)
 		auto pal = m_gd->GetPalette(name);
 		if (pal != nullptr)
 		{
-			m_spriteeditor->SetActivePalette(pal->GetData());
-			m_paledit->SelectPalette(pal->GetData());
-			m_tileedit->SetActivePalette(pal->GetData());
+			m_palette = std::make_shared<Palette>(*pal->GetData());
+			m_spriteeditor->SetActivePalette(m_palette);
+			m_paledit->SelectPalette(m_palette);
+			m_tileedit->SetActivePalette(m_palette);
 		}
+	}
+}
+
+void SpriteEditorFrame::SetActivePalette(const std::vector<std::string>& names)
+{
+	if (m_gd != nullptr)
+	{
+		std::vector<std::shared_ptr<Palette>> pals;
+		std::transform(names.cbegin(), names.cend(), std::back_inserter<std::vector<std::shared_ptr<Palette>>>(pals), [this](const auto& name)
+			{
+				return m_gd->GetPalette(name)->GetData();
+			});
+		m_palette = std::make_shared<Palette>(pals);
+		m_spriteeditor->SetActivePalette(m_palette);
+		m_paledit->SelectPalette(m_palette);
+		m_tileedit->SetActivePalette(m_palette);
 	}
 }
 
@@ -259,6 +279,7 @@ void SpriteEditorFrame::ImportFrm(const std::string& filename)
 	auto bytes = ReadBytes(filename);
 	m_sprite->GetData()->SetBits(bytes);
 	RedrawTiles();
+	m_reset_props = true;
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
@@ -267,6 +288,7 @@ void SpriteEditorFrame::ImportTiles(const std::string& filename)
 	auto bytes = ReadBytes(filename);
 	m_sprite->GetData()->GetTileset()->SetBits(bytes, false);
 	RedrawTiles();
+	m_reset_props = true;
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
@@ -300,7 +322,204 @@ void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
 	m_sprite->GetData()->SetSubSprites(subs);
 
 	RedrawTiles();
+	m_reset_props = true;
 	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
+{
+	if (m_gd && m_sprite && ArePropsInitialised() == false)
+	{
+		RefreshLists();
+		props.GetGrid()->Clear();
+		auto sd = m_gd->GetSpriteData();
+		int sprite_index = m_sprite->GetSprite();
+
+		props.Append(new wxPropertyCategory("Main", "Main"));
+		props.Append(new wxStringProperty("Name", "Name", _(m_sprite->GetName())));
+		props.Append(new wxIntProperty("ID", "ID", sprite_index))->Enable(false);
+		props.Append(new wxStringProperty("Start Address", "Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress()))))->Enable(false);
+		props.Append(new wxStringProperty("End Address", "End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress()))))->Enable(false);
+		props.Append(new wxIntProperty("Size (bytes)", "Size", m_sprite->GetDataLength()))->Enable(false);
+		props.Append(new wxEnumProperty("Low Palette", "Low Palette", m_lo_palettes));
+		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
+		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
+		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
+		props.Append(new wxPropertyCategory("Animation", "Animation"));
+		props.Append(new wxPropertyCategory("Hitbox", "Hitbox"));
+		wxPGProperty* base_prop = new wxFloatProperty("Width/Length", "Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
+		base_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
+		base_prop->SetAttribute(wxPG_ATTR_MAX, 31.875);
+		base_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.125);
+		base_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(base_prop);
+		wxPGProperty* height_prop = new wxFloatProperty("Height", "Height", sd->GetSpriteHitbox(sprite_index).second / 16.0);
+		height_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
+		height_prop->SetAttribute(wxPG_ATTR_MAX, 15.9375);
+		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
+		height_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(height_prop);
+		EditorFrame::InitProperties(props);
+		RefreshProperties(props);
+	}
+}
+
+void SpriteEditorFrame::RefreshLists() const
+{
+	if (m_gd && m_sprite)
+	{
+		auto entities = m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite());
+		std::set<int> hi_pals, lo_pals;
+		for (const auto& e : entities)
+		{
+			auto epals = m_gd->GetSpriteData()->GetSpritePaletteIdxs(e);
+			lo_pals.insert(epals.first);
+			hi_pals.insert(epals.second);
+		}
+		m_lo_palettes.Clear();
+		m_lo_palettes.Add("<None>");
+		for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
+		{
+			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetLoPalette(i)->GetName()));
+		}
+		for (int i = 0; i < static_cast<int>(m_lo_palettes.GetCount()); ++i)
+		{
+			if (lo_pals.count(i - 1) > 0)
+			{
+				auto font = m_lo_palettes.Item(i).GetFont();
+				font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
+				m_lo_palettes.Item(i).SetFont(font);
+			}
+		}
+		m_hi_palettes.Clear();
+		m_hi_palettes.Add("<None>");
+		for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
+		{
+			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetHiPalette(i)->GetName()));
+		}
+		for (int i = 0; i < static_cast<int>(m_hi_palettes.GetCount()); ++i)
+		{
+			if (hi_pals.count(i - 1) > 0)
+			{
+				auto font = m_hi_palettes.Item(i).GetFont();
+				font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
+				m_hi_palettes.Item(i).SetFont(font);
+			}
+		}
+		m_misc_palettes.Clear();
+		m_misc_palettes.Add("<None>");
+		for (const auto& p: m_gd->GetAllPalettes())
+		{
+			if (m_lo_palettes.Index(p.first) == -1 && m_hi_palettes.Index(p.first) == -1)
+			{
+				m_misc_palettes.Add(_(p.first));
+			}
+		}
+	}
+}
+
+void SpriteEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
+{
+	EditorFrame::UpdateProperties(props);
+	if (ArePropsInitialised() == true)
+	{
+		if (m_reset_props)
+		{
+			props.GetGrid()->ClearModifiedStatus();
+			m_reset_props = false;
+		}
+		RefreshProperties(props);
+	}
+}
+
+void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
+{
+	if (m_gd != nullptr)
+	{
+		RefreshLists();
+		props.GetGrid()->Freeze();
+
+		auto sd = m_gd->GetSpriteData();
+		int sprite_index = m_sprite->GetSprite();
+		int entity_index = sd->GetEntitiesFromSprite(sprite_index)[0];
+
+		props.GetGrid()->SetPropertyValue("Name", _(sd->GetSpriteName(sprite_index)));
+		props.GetGrid()->SetPropertyValue("ID", static_cast<int>(sprite_index));
+		props.GetGrid()->SetPropertyValue("Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("Size", static_cast<int>(m_sprite->GetDataLength()));
+		props.GetGrid()->GetProperty("Low Palette")->SetChoices(m_lo_palettes);
+		props.GetGrid()->GetProperty("High Palette")->SetChoices(m_hi_palettes);
+		props.GetGrid()->GetProperty("Low Palette")->SetChoiceSelection(sd->GetSpritePaletteIdxs(entity_index).first + 1);
+		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetSpritePaletteIdxs(entity_index).second + 1);
+		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
+		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
+		props.GetGrid()->SetPropertyValue("Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
+		props.GetGrid()->SetPropertyValue("Height", sd->GetSpriteHitbox(sprite_index).second / 16.0);
+		props.GetGrid()->Thaw();
+	}
+}
+
+void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
+{
+	auto* ctrl = static_cast<wxPropertyGridManager*>(evt.GetEventObject());
+	wxPGProperty* property = evt.GetProperty();
+	if (property == nullptr || m_gd == nullptr || m_sprite == nullptr)
+	{
+		return;
+	}
+	ctrl->GetGrid()->Freeze();
+	auto sd = m_gd->GetSpriteData();
+	int sprite_index = m_sprite->GetSprite();
+	const wxString& name = property->GetName();
+	if (name == "Width/Length")
+	{
+		auto hitbox = sd->GetSpriteHitbox(sprite_index);
+		int value = static_cast<int>(property->GetValuePlain().GetDouble() * 8.0);
+		if (value != hitbox.first)
+		{
+			hitbox.first = std::clamp<uint8_t>(value, 0, 255);
+			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Height")
+	{
+		auto hitbox = sd->GetSpriteHitbox(sprite_index);
+		int value = static_cast<int>(property->GetValuePlain().GetDouble() * 16.0);
+		if (value != hitbox.second)
+		{
+			hitbox.second = std::clamp<uint8_t>(value, 0, 255);
+			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Low Palette" || name == "High Palette" || name == "Projectile/Misc Palette 1" || name == "Projectile/Misc Palette 2")
+	{
+		std::vector<std::string> palettes;
+		int lo_pal = ctrl->GetGrid()->GetPropertyByName("Low Palette")->GetValue().GetLong();
+		int hi_pal = ctrl->GetGrid()->GetPropertyByName("High Palette")->GetValue().GetLong();
+		int misc_pal1 = ctrl->GetGrid()->GetPropertyByName("Projectile/Misc Palette 1")->GetValue().GetLong();
+		int misc_pal2 = ctrl->GetGrid()->GetPropertyByName("Projectile/Misc Palette 2")->GetValue().GetLong();
+		if (lo_pal != 0)
+		{
+			palettes.push_back(m_lo_palettes.Item(lo_pal).GetText().ToStdString());
+		}
+		if (hi_pal != 0)
+		{
+			palettes.push_back(m_hi_palettes.Item(hi_pal).GetText().ToStdString());
+		}
+		if (misc_pal1 != 0)
+		{
+			palettes.push_back(m_misc_palettes.Item(misc_pal1).GetText().ToStdString());
+		}
+		if (misc_pal2 != 0)
+		{
+			palettes.push_back(m_misc_palettes.Item(misc_pal2).GetText().ToStdString());
+		}
+		SetActivePalette(palettes);
+	}
+	ctrl->GetGrid()->Thaw();
 }
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)

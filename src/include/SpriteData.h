@@ -38,7 +38,7 @@ public:
 
 	std::pair<uint8_t, uint8_t> GetSpriteHitbox(uint8_t id) const;
 	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
-	void SetSpriteHitbox(uint8_t id, uint8_t height, uint8_t base);
+	void SetSpriteHitbox(uint8_t id, uint8_t base, uint8_t height);
 
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
