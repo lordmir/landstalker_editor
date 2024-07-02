@@ -952,6 +952,42 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) con
 	return m_projectile2_palettes[idx];
 }
 
+SpriteData::ItemProperties SpriteData::GetItemProperties(uint8_t entity_index) const
+{
+	if (IsEntityItem(entity_index))
+	{
+		return ItemProperties(m_item_properties[entity_index & 0x3F]);
+	}
+	return ItemProperties();
+}
+
+void SpriteData::SetItemProperties(uint8_t entity_index, const SpriteData::ItemProperties& props)
+{
+	if (IsEntityItem(entity_index))
+	{
+		m_item_properties[entity_index & 0x3F] = props.Pack();
+	}
+}
+
+SpriteData::EnemyStats SpriteData::GetEnemyStats(uint8_t entity_index) const
+{
+	if (IsEntityEnemy(entity_index))
+	{
+		return EnemyStats(m_enemy_stats.at(entity_index));
+	}
+	return EnemyStats();
+}
+
+void SpriteData::SetEnemyStats(uint8_t entity_index, const EnemyStats& stats)
+{
+	m_enemy_stats[entity_index] = stats.Pack();
+}
+
+void SpriteData::ClearEnemyStats(uint8_t entity_index)
+{
+	m_enemy_stats.erase(entity_index);
+}
+
 void SpriteData::CommitAllChanges()
 {
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
@@ -2021,4 +2057,46 @@ bool SpriteData::AnimationFlags::operator==(const AnimationFlags& rhs) const
 bool SpriteData::AnimationFlags::operator!=(const AnimationFlags& rhs) const
 {
 	return !(*this == rhs);
+}
+
+SpriteData::ItemProperties::ItemProperties(const std::array<uint8_t, 4>& elems)
+{
+	verb = (elems[0] >> 4) + 12;
+	max_quantity = elems[0] & 0x0F;
+	equipment_index = elems[1];
+	price = (elems[2] << 8) | elems[3];
+}
+
+std::array<uint8_t, 4> SpriteData::ItemProperties::Pack() const
+{
+	return std::array<uint8_t, 4>
+	{
+		static_cast<uint8_t>(((verb - 12) << 4) | (max_quantity & 0x0F)),
+		equipment_index,
+		static_cast<uint8_t>(price >> 8),
+		static_cast<uint8_t>(price & 0xFF)
+	};
+}
+
+SpriteData::EnemyStats::EnemyStats(const std::array<uint8_t, 5>& elems)
+{
+	health = elems[0];
+	defence = elems[1];
+	gold_drop = elems[2];
+	attack = elems[3] & 0x7F;
+	item_drop = elems[4] & 0x3F;
+	drop_probability = static_cast<SpriteData::EnemyStats::DropProbability>((elems[4] >> 6) | ((elems[3] & 0x80) >> 5));
+}
+
+std::array<uint8_t, 5> SpriteData::EnemyStats::Pack() const
+{
+	uint8_t prob = static_cast<uint8_t>(drop_probability);
+	return std::array<uint8_t, 5>
+	{
+		health,
+		defence,
+		gold_drop,
+		static_cast<uint8_t>((attack & 0x7F) | ((prob & 0x04) << 5)),
+		static_cast<uint8_t>((item_drop & 0x3F) | (prob << 6))
+	};
 }

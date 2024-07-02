@@ -6,6 +6,7 @@
 #include <set>
 #include <Entity.h>
 #include <Flags.h>
+#include <cstdint>
 
 class SpriteData : public DataManager
 {
@@ -51,6 +52,40 @@ public:
 			DEDICATED = 1,
 		} take_damage_animation_source;
 		bool has_full_animations;
+	};
+
+	struct ItemProperties
+	{
+		uint8_t max_quantity;
+		uint8_t verb;
+		uint8_t equipment_index;
+		uint16_t price;
+		ItemProperties() : max_quantity(0), verb(12), equipment_index(0), price(0) {}
+		ItemProperties(const std::array<uint8_t, 4>& elems);
+		std::array<uint8_t, 4> Pack() const;
+	};
+
+	struct EnemyStats
+	{
+		uint8_t health;
+		uint8_t defence;
+		uint8_t attack;
+		uint8_t gold_drop;
+		uint8_t item_drop;
+		enum class DropProbability : uint8_t
+		{
+			ONE_IN_64,
+			ONE_IN_128,
+			ONE_IN_256,
+			ONE_IN_512,
+			ONE_IN_1024,
+			ONE_IN_2048,
+			NO_DROP,
+			GUARANTEED_DROP
+		} drop_probability;
+		EnemyStats() : health(0), defence(0), attack(0), gold_drop(0), item_drop(0), drop_probability(DropProbability::NO_DROP) {}
+		EnemyStats(const std::array<uint8_t, 5>& elems);
+		std::array<uint8_t, 5> Pack() const;
 	};
 
 	SpriteData(const filesystem::path& asm_file);
@@ -132,6 +167,12 @@ public:
 	std::shared_ptr<PaletteEntry> GetProjectile1Palette(uint8_t idx) const;
 	uint8_t GetProjectile2PaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetProjectile2Palette(uint8_t idx) const;
+
+	ItemProperties GetItemProperties(uint8_t entity_index) const;
+	void SetItemProperties(uint8_t entity_index, const ItemProperties& props);
+	EnemyStats GetEnemyStats(uint8_t entity_index) const;
+	void SetEnemyStats(uint8_t entity_index, const EnemyStats& stats);
+	void ClearEnemyStats(uint8_t entity_index);
 
 protected:
 	virtual void CommitAllChanges();

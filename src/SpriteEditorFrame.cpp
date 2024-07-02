@@ -786,7 +786,7 @@ void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 2);
 }
 
-void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
 	std::ostringstream ss;
 	int colour = m_paledit->GetHoveredColour();

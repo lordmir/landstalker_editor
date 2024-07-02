@@ -29,6 +29,10 @@ private:
 	mutable wxPGChoices m_lo_palettes;
 	mutable wxPGChoices m_sprites;
 	mutable wxPGChoices m_sounds;
+	mutable wxPGChoices m_items;
+	mutable wxPGChoices m_verbs;
+	mutable wxPGChoices m_probabilities;
+	mutable wxPGChoices m_empty_choices;
 	mutable bool m_reset_props = false;
 
 	mutable wxAuiManager m_mgr;
