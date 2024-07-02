@@ -114,7 +114,7 @@ void SelectionControlFrame::UpdateUI()
         }
     }
     UpdateOtherControls();
-    if (sel > m_ctrl_list->GetCount() || sel <= 0)
+    if (sel > static_cast<int>(m_ctrl_list->GetCount()) || sel <= 0)
     {
         sel = -1;
     }

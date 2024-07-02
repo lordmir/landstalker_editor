@@ -346,6 +346,18 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
 		props.Append(new wxPropertyCategory("Animation", "Animation"));
+		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
+		props.Append(new wxEnumProperty("Idle Animation Frame Count", "Idle Animation Frame Count", m_idle_frame_count_options));
+		props.Append(new wxEnumProperty("Idle Animation Source", "Idle Animation Source", m_idle_frame_source_options));
+		props.Append(new wxEnumProperty("Jump Animation Source", "Jump Animation Source", m_jump_frame_source_options));
+		props.Append(new wxEnumProperty("Walk Cycle Frame Count", "Walk Cycle Frame Count", m_walk_frame_count_options));
+		props.Append(new wxEnumProperty("Take Damage Animation Source", "Take Damage Animation Source", m_take_damage_frame_source_options));
+		auto prop_dnr = new wxBoolProperty("Do Not Rotate", "Do Not Rotate", flags.do_not_rotate);
+		prop_dnr->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+		props.Append(prop_dnr);
+		auto prop_fa = new wxBoolProperty("Full Animations", "Full Animations", flags.has_full_animations);
+		prop_fa->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+		props.Append(prop_fa);
 		props.Append(new wxPropertyCategory("Hitbox", "Hitbox"));
 		wxPGProperty* base_prop = new wxFloatProperty("Width/Length", "Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
 		base_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
@@ -415,6 +427,21 @@ void SpriteEditorFrame::RefreshLists() const
 				m_misc_palettes.Add(_(p.first));
 			}
 		}
+		m_idle_frame_count_options.Clear();
+		m_idle_frame_count_options.Add("1");
+		m_idle_frame_count_options.Add("2");
+		m_idle_frame_source_options.Clear();
+		m_idle_frame_source_options.Add("Use Walk Frames");
+		m_idle_frame_source_options.Add("Dedicated");
+		m_jump_frame_source_options.Clear();
+		m_jump_frame_source_options.Add("Use Idle Frames");
+		m_jump_frame_source_options.Add("Dedicated");
+		m_walk_frame_count_options.Clear();
+		m_walk_frame_count_options.Add("2");
+		m_walk_frame_count_options.Add("4");
+		m_take_damage_frame_source_options.Clear();
+		m_take_damage_frame_source_options.Add("Use Idle Frames");
+		m_take_damage_frame_source_options.Add("Dedicated");
 	}
 }
 
@@ -454,6 +481,19 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetSpritePaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
+		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
+		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoices(m_idle_frame_count_options);
+		props.GetGrid()->GetProperty("Idle Animation Source")->SetChoices(m_idle_frame_source_options);
+		props.GetGrid()->GetProperty("Jump Animation Source")->SetChoices(m_jump_frame_source_options);
+		props.GetGrid()->GetProperty("Walk Cycle Frame Count")->SetChoices(m_walk_frame_count_options);
+		props.GetGrid()->GetProperty("Take Damage Animation Source")->SetChoices(m_take_damage_frame_source_options);
+		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoiceSelection(1 - static_cast<int>(flags.idle_animation_frames));
+		props.GetGrid()->GetProperty("Walk Cycle Frame Count")->SetChoiceSelection(1 - static_cast<int>(flags.walk_animation_frame_count));
+		props.GetGrid()->GetProperty("Idle Animation Source")->SetChoiceSelection(static_cast<int>(flags.idle_animation_source));
+		props.GetGrid()->GetProperty("Jump Animation Source")->SetChoiceSelection(static_cast<int>(flags.jump_animation_source));
+		props.GetGrid()->GetProperty("Take Damage Animation Source")->SetChoiceSelection(static_cast<int>(flags.take_damage_animation_source));
+		props.GetGrid()->SetPropertyValue("Do Not Rotate", flags.do_not_rotate);
+		props.GetGrid()->SetPropertyValue("Full Animations", flags.has_full_animations);
 		props.GetGrid()->SetPropertyValue("Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
 		props.GetGrid()->SetPropertyValue("Height", sd->GetSpriteHitbox(sprite_index).second / 16.0);
 		props.GetGrid()->Thaw();

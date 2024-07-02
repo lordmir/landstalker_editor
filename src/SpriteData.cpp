@@ -430,7 +430,7 @@ bool SpriteData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_unknown_entity_lookup_orig != m_unknown_entity_lookup)
+	if (m_sprite_animation_flags_orig != m_sprite_animation_flags)
 	{
 		return true;
 	}
@@ -663,6 +663,30 @@ std::vector<std::string> SpriteData::GetSpriteAnimationFrames(const std::string&
 	return GetSpriteAnimationFrames(id, anim_id);
 }
 
+SpriteData::AnimationFlags SpriteData::GetSpriteAnimationFlags(uint8_t id) const
+{
+	if (m_sprite_animation_flags.count(id) > 0)
+	{
+		return m_sprite_animation_flags.at(id);
+	}
+	return AnimationFlags();
+}
+
+void SpriteData::SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags)
+{
+	if (flags.IsDefault())
+	{
+		if (m_sprite_animation_flags.count(id) > 0)
+		{
+			m_sprite_animation_flags.erase(id);
+		}
+	}
+	else
+	{
+		m_sprite_animation_flags[id] = flags;
+	}
+}
+
 std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
 {
 	auto it = m_room_entities.find(room);
@@ -874,7 +898,7 @@ void SpriteData::CommitAllChanges()
 	m_item_properties_orig = m_item_properties;
 	m_sprite_behaviours_orig = m_sprite_behaviours;
 	m_sprite_behaviour_offsets_orig = m_sprite_behaviour_offsets;
-	m_unknown_entity_lookup_orig = m_unknown_entity_lookup;
+	m_sprite_animation_flags_orig = m_sprite_animation_flags;
 	m_pending_writes.clear();
 }
 
@@ -884,7 +908,7 @@ bool SpriteData::LoadAsmFilenames()
 	{
 		bool retval = true;
 		AsmFile f(GetAsmFilename().str());
-		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP, m_unknown_sprite_lookup_file);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP, m_sprite_anim_flags_lookup_file);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS, m_sprite_visibility_flags_file);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ONE_TIME_EVENT_FLAGS, m_one_time_event_flags_file);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ROOM_CLEAR_FLAGS, m_room_clear_flags_file);
@@ -917,7 +941,7 @@ bool SpriteData::LoadAsmFilenames()
 
 void SpriteData::SetDefaultFilenames()
 {
-	if (m_unknown_sprite_lookup_file.empty())        m_unknown_sprite_lookup_file     = RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_FILE;
+	if (m_sprite_anim_flags_lookup_file.empty())     m_sprite_anim_flags_lookup_file  = RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP_FILE;
 	if (m_sprite_visibility_flags_file.empty())      m_sprite_visibility_flags_file   = RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS_FILE;
 	if (m_one_time_event_flags_file.empty())         m_one_time_event_flags_file      = RomLabels::Sprites::ONE_TIME_EVENT_FLAGS_FILE;
 	if (m_room_clear_flags_file.empty())             m_room_clear_flags_file          = RomLabels::Sprites::ROOM_CLEAR_FLAGS_FILE;
@@ -945,7 +969,7 @@ void SpriteData::SetDefaultFilenames()
 bool SpriteData::CreateDirectoryStructure(const filesystem::path& dir)
 {
 	bool retval = true;
-	retval = retval && CreateDirectoryTree(dir / m_unknown_sprite_lookup_file);
+	retval = retval && CreateDirectoryTree(dir / m_sprite_anim_flags_lookup_file);
 	retval = retval && CreateDirectoryTree(dir / m_sprite_visibility_flags_file);
 	retval = retval && CreateDirectoryTree(dir / m_one_time_event_flags_file);
 	retval = retval && CreateDirectoryTree(dir / m_room_clear_flags_file);
@@ -1004,7 +1028,7 @@ void SpriteData::InitCache()
 	m_item_properties_orig = m_item_properties;
 	m_sprite_behaviours_orig = m_sprite_behaviours;
 	m_sprite_behaviour_offsets_orig = m_sprite_behaviour_offsets;
-	m_unknown_entity_lookup_orig = m_unknown_entity_lookup;
+	m_sprite_animation_flags_orig = m_sprite_animation_flags;
 }
 
 ByteVector SpriteData::SerialisePaletteLUT() const
@@ -1306,12 +1330,17 @@ bool SpriteData::AsmLoadSpriteData()
 	m_enemy_stats              = DeserialiseMap<5>(ReadBytes(GetBasePath() / m_enemy_stats_file));
 	m_sprite_dimensions        = DeserialiseMap<2>(ReadBytes(GetBasePath() / m_sprite_dimensions_lookup_file));
 	m_sprite_to_entity_lookup  = DeserialiseMap(ReadBytes(GetBasePath() / m_sprite_gfx_idx_lookup_file), true);
-	m_unknown_entity_lookup    = DeserialiseMap(ReadBytes(GetBasePath() / m_unknown_sprite_lookup_file));
+	auto anim_flags            = DeserialiseMap(ReadBytes(GetBasePath() / m_sprite_anim_flags_lookup_file));
 	m_sprite_behaviour_offsets = ReadBytes(GetBasePath() / m_sprite_behaviour_offset_file);
 	m_sprite_behaviours        = ReadBytes(GetBasePath() / m_sprite_behaviour_table_file);
 	DeserialiseRoomEntityTable(ReadBytes(GetBasePath() / m_room_sprite_table_offsets_file),
 		ReadBytes(GetBasePath() / m_room_sprite_table_file));
 
+	m_sprite_animation_flags.clear();
+	std::transform(anim_flags.cbegin(), anim_flags.cend(), std::inserter(m_sprite_animation_flags, m_sprite_animation_flags.end()), [](const auto& elem)
+		{
+			return std::pair<uint8_t, AnimationFlags>(elem.first, AnimationFlags(elem.second));
+		});
 	return true;
 }
 
@@ -1487,8 +1516,8 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 {
 	const uint32_t items_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::ITEM_PROPERTIES);
 	const uint32_t items_size = rom.get_section(RomLabels::Sprites::ITEM_PROPERTIES_SECTION).end - items_begin;
-	const uint32_t unk_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP);
-	const uint32_t unk_size = rom.get_section(RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).end - unk_begin;
+	const uint32_t anim_flags_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP);
+	const uint32_t anim_flags_size = rom.get_section(RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP_SECTION).end - anim_flags_begin;
 
 	const uint32_t behav_offsets_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSETS);
 	const uint32_t behav_table_begin = Disasm::ReadOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE);
@@ -1532,7 +1561,11 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 	m_enemy_stats = DeserialiseMap<5>(rom.read_array<uint8_t>(enemy_data_begin, enemy_data_size));
 	m_sprite_dimensions = DeserialiseMap<2>(rom.read_array<uint8_t>(sprite_dims_begin, sprite_dims_size));
 	m_sprite_to_entity_lookup = DeserialiseMap(rom.read_array<uint8_t>(sprite_ent_lut_begin, sprite_ent_lut_size), true);
-	m_unknown_entity_lookup = DeserialiseMap(rom.read_array<uint8_t>(unk_begin, unk_size));
+	auto anim_flags = DeserialiseMap(rom.read_array<uint8_t>(anim_flags_begin, anim_flags_size));
+	std::transform(anim_flags.cbegin(), anim_flags.cend(), std::inserter(m_sprite_animation_flags, m_sprite_animation_flags.end()), [](const auto& elem)
+		{
+			return std::pair<uint8_t, AnimationFlags>(elem.first, AnimationFlags(elem.second));
+		});
 	m_sprite_behaviour_offsets = rom.read_array<uint8_t>(behav_offsets_begin, behav_offsets_size);
 	m_sprite_behaviours = rom.read_array<uint8_t>(behav_table_begin, behav_table_size);
 	DeserialiseRoomEntityTable(rom.read_array<uint8_t>(offsets_begin, offsets_size),
@@ -1638,6 +1671,11 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 
 bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
 {
+	std::vector<std::array<uint8_t, 2>> anim_flags;
+	std::transform(m_sprite_animation_flags.cbegin(), m_sprite_animation_flags.cend(), std::back_inserter<std::vector<std::array<uint8_t, 2>>>(anim_flags), [](const auto& elem)
+		{
+			return std::array<uint8_t, 2>({ elem.first, elem.second.Pack() });
+		});
 	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_sprite_visibility_flags)), dir / m_sprite_visibility_flags_file);
 	WriteBytes(SerialiseFixedWidth<6>(EncodeFlags(m_one_time_event_flags)), dir / m_one_time_event_flags_file);
 	WriteBytes(SerialiseFixedWidth<4>(EncodeFlags(m_room_clear_flags)), dir / m_room_clear_flags_file);
@@ -1648,7 +1686,7 @@ bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
 	WriteBytes(SerialiseMap<5>(m_enemy_stats), dir / m_enemy_stats_file);
 	WriteBytes(SerialiseMap<2>(m_sprite_dimensions), dir / m_sprite_dimensions_lookup_file);
 	WriteBytes(SerialiseMap(m_sprite_to_entity_lookup, true), dir / m_sprite_gfx_idx_lookup_file);
-	WriteBytes(SerialiseMap(m_unknown_entity_lookup), dir / m_unknown_sprite_lookup_file);
+	WriteBytes(SerialiseFixedWidth<2>(anim_flags), dir / m_sprite_anim_flags_lookup_file);
 	WriteBytes(m_sprite_behaviour_offsets, dir / m_sprite_behaviour_offset_file);
 	WriteBytes(m_sprite_behaviours, dir / m_sprite_behaviour_table_file);
 	auto result = SerialiseRoomEntityTable();
@@ -1760,8 +1798,13 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 	uint32_t item_begin = rom.get_section(RomLabels::Sprites::ITEM_PROPERTIES_SECTION).begin;
 	auto item_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<4>(m_item_properties, false));
 
-	uint32_t unk_begin = rom.get_section(RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION).begin;
-	auto unk_bytes = std::make_shared<ByteVector>(SerialiseMap(m_unknown_entity_lookup));
+	std::vector<std::array<uint8_t, 2>> anim_flags;
+	std::transform(m_sprite_animation_flags.cbegin(), m_sprite_animation_flags.cend(), std::back_inserter<std::vector<std::array<uint8_t, 2>>>(anim_flags), [](const auto& elem)
+		{
+			return std::array<uint8_t, 2>({ elem.first, elem.second.Pack() });
+		});
+	uint32_t unk_begin = rom.get_section(RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP_SECTION).begin;
+	auto unk_bytes = std::make_shared<ByteVector>(SerialiseFixedWidth<2>(anim_flags));
 
 	uint32_t behavoff_begin = rom.get_section(RomLabels::Sprites::SPRITE_BEHAVIOUR_SECTION).begin;
 	auto behav_bytes = std::make_shared<ByteVector>(m_sprite_behaviour_offsets);
@@ -1815,8 +1858,8 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 
 	m_pending_writes.push_back({ RomLabels::Sprites::ITEM_PROPERTIES_SECTION, item_bytes });
 	m_pending_writes.push_back(Asm::WriteOffset8(rom, RomLabels::Sprites::ITEM_PROPERTIES, item_begin));
-	m_pending_writes.push_back({ RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP_SECTION, unk_bytes });
-	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::UNKNOWN_SPRITE_LOOKUP, unk_begin));
+	m_pending_writes.push_back({ RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP_SECTION, unk_bytes });
+	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP, unk_begin));
 	m_pending_writes.push_back({ RomLabels::Sprites::SPRITE_BEHAVIOUR_SECTION, behav_bytes });
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_OFFSETS, behavoff_begin));
 	m_pending_writes.push_back(Asm::WriteOffset16(rom, RomLabels::Sprites::SPRITE_BEHAVIOUR_TABLE, behavtab_begin));
@@ -1834,4 +1877,66 @@ bool SpriteData::RomPrepareInjectSpriteData(const Rom& rom)
 	m_pending_writes.push_back(Asm::WriteAddress32(RomLabels::Sprites::ROOM_SPRITE_TABLE, table_begin));
 
 	return true;
+}
+
+SpriteData::AnimationFlags::AnimationFlags()
+  : idle_animation_frames(IdleAnimationFrameCount::ONE_FRAME),
+	idle_animation_source(IdleAnimationSource::USE_WALK_FRAMES),
+	jump_animation_source(JumpAnimationSource::USE_IDLE_FRAMES),
+	walk_animation_frame_count(WalkAnimationFrameCount::FOUR_FRAMES),
+	do_not_rotate(false),
+	take_damage_animation_source(TakeDamageAnimationSource::USE_IDLE_FRAMES),
+	has_full_animations(false)
+{
+}
+
+SpriteData::AnimationFlags::AnimationFlags(uint8_t packed)
+  : idle_animation_frames((packed & (1 << 0)) > 0 ? IdleAnimationFrameCount::ONE_FRAME : IdleAnimationFrameCount::TWO_FRAMES),
+	idle_animation_source((packed & (1 << 1)) > 0 ? IdleAnimationSource::DEDICATED : IdleAnimationSource::USE_WALK_FRAMES),
+	jump_animation_source((packed & (1 << 2)) > 0 ? JumpAnimationSource::DEDICATED : JumpAnimationSource::USE_IDLE_FRAMES),
+	walk_animation_frame_count((packed & (1 << 3)) > 0 ? WalkAnimationFrameCount::TWO_FRAMES : WalkAnimationFrameCount::FOUR_FRAMES),
+	do_not_rotate((packed & (1 << 4)) > 0),
+	take_damage_animation_source((packed & (1 << 5)) > 0 ? TakeDamageAnimationSource::DEDICATED : TakeDamageAnimationSource::USE_IDLE_FRAMES),
+	has_full_animations((packed & (1 << 6)) > 0)
+{
+}
+
+uint8_t SpriteData::AnimationFlags::Pack() const
+{
+	return uint8_t(
+		(idle_animation_frames == IdleAnimationFrameCount::ONE_FRAME ? (1 << 0) : 0) |
+		(idle_animation_source == IdleAnimationSource::DEDICATED ? (1 << 1) : 0) |
+		(jump_animation_source == JumpAnimationSource::DEDICATED ? (1 << 2) : 0) |
+		(walk_animation_frame_count == WalkAnimationFrameCount::TWO_FRAMES ? (1 << 3) : 0) |
+		(do_not_rotate ? (1 << 4) : 0) |
+		(take_damage_animation_source == TakeDamageAnimationSource::DEDICATED ? (1 << 5) : 0) |
+		(has_full_animations ? (1 << 6) : 0)
+	);
+}
+
+bool SpriteData::AnimationFlags::IsDefault() const
+{
+	return (idle_animation_frames == IdleAnimationFrameCount::ONE_FRAME) &&
+		   (idle_animation_source == IdleAnimationSource::USE_WALK_FRAMES) &&
+		   (jump_animation_source == JumpAnimationSource::USE_IDLE_FRAMES) &&
+		   (walk_animation_frame_count == WalkAnimationFrameCount::FOUR_FRAMES) &&
+		   !do_not_rotate &&
+		   (take_damage_animation_source == TakeDamageAnimationSource::USE_IDLE_FRAMES) &&
+		   !has_full_animations;
+}
+
+bool SpriteData::AnimationFlags::operator==(const AnimationFlags& rhs) const
+{
+	return (this->idle_animation_frames == rhs.idle_animation_frames) &&
+		   (this->idle_animation_source == rhs.idle_animation_source) &&
+		   (this->jump_animation_source == rhs.jump_animation_source) &&
+		   (this->walk_animation_frame_count == rhs.walk_animation_frame_count) &&
+	       (this->do_not_rotate == rhs.do_not_rotate) &&
+		   (this->take_damage_animation_source == rhs.take_damage_animation_source) &&
+		   (this->has_full_animations == rhs.has_full_animations);
+}
+
+bool SpriteData::AnimationFlags::operator!=(const AnimationFlags& rhs) const
+{
+	return !(*this == rhs);
 }

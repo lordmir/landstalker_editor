@@ -85,6 +85,11 @@ private:
 	mutable wxPGChoices m_hi_palettes;
 	mutable wxPGChoices m_lo_palettes;
 	mutable wxPGChoices m_misc_palettes;
+	mutable wxPGChoices m_idle_frame_count_options;
+	mutable wxPGChoices m_idle_frame_source_options;
+	mutable wxPGChoices m_jump_frame_source_options;
+	mutable wxPGChoices m_walk_frame_count_options;
+	mutable wxPGChoices m_take_damage_frame_source_options;
 
 	std::shared_ptr<SpriteFrameEntry> m_sprite;
 	std::shared_ptr<Palette> m_palette;

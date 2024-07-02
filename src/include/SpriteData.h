@@ -15,6 +15,44 @@ public:
 		SPRITE_VISIBILITY
 	};
 
+	struct AnimationFlags
+	{
+		AnimationFlags();
+		AnimationFlags(uint8_t packed);
+		uint8_t Pack() const;
+		bool IsDefault() const;
+		bool operator==(const AnimationFlags& rhs) const;
+		bool operator!=(const AnimationFlags& rhs) const;
+
+		enum class IdleAnimationFrameCount
+		{
+			TWO_FRAMES = 0,
+			ONE_FRAME = 1
+		} idle_animation_frames;
+		enum class IdleAnimationSource
+		{
+			USE_WALK_FRAMES = 0,
+			DEDICATED = 1,
+		} idle_animation_source;
+		enum class JumpAnimationSource
+		{
+			USE_IDLE_FRAMES = 0,
+			DEDICATED = 1,
+		} jump_animation_source;
+		enum class WalkAnimationFrameCount
+		{
+			FOUR_FRAMES = 0,
+			TWO_FRAMES = 1,
+		} walk_animation_frame_count;
+		bool do_not_rotate;
+		enum class TakeDamageAnimationSource
+		{
+			USE_IDLE_FRAMES = 0,
+			DEDICATED = 1,
+		} take_damage_animation_source;
+		bool has_full_animations;
+	};
+
 	SpriteData(const filesystem::path& asm_file);
 	SpriteData(const Rom& rom);
 
@@ -56,6 +94,8 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(uint8_t id, uint8_t anim_id) const;
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& anim) const;
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
+	AnimationFlags GetSpriteAnimationFlags(uint8_t id) const;
+	void SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags);
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
@@ -131,7 +171,7 @@ private:
 	filesystem::path m_item_properties_file;
 	filesystem::path m_sprite_behaviour_offset_file;
 	filesystem::path m_sprite_behaviour_table_file;
-	filesystem::path m_unknown_sprite_lookup_file;
+	filesystem::path m_sprite_anim_flags_lookup_file;
 	filesystem::path m_sprite_visibility_flags_file;
 	filesystem::path m_one_time_event_flags_file;
 	filesystem::path m_room_clear_flags_file;
@@ -193,8 +233,8 @@ private:
 	std::map<uint8_t, std::array<uint8_t, 5>> m_enemy_stats_orig;
 	std::vector<std::array<uint8_t, 4>> m_item_properties;
 	std::vector<std::array<uint8_t, 4>> m_item_properties_orig;
-	std::map<uint8_t, uint8_t> m_unknown_entity_lookup;
-	std::map<uint8_t, uint8_t> m_unknown_entity_lookup_orig;
+	std::map<uint8_t, AnimationFlags> m_sprite_animation_flags;
+	std::map<uint8_t, AnimationFlags> m_sprite_animation_flags_orig;
 
 	std::map<uint16_t, std::vector<Entity>> m_room_entities;
 	std::map<uint16_t, std::vector<Entity>> m_room_entities_orig;
