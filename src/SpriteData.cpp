@@ -673,17 +673,29 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t
 	{
 		return nullptr;
 	}
-	assert(m_animations.find(id)->second.size() > anim);
+	if (anim >= m_animations.find(id)->second.size())
+	{
+		return nullptr;
+	}
 	const auto& name = m_animations.find(id)->second[anim];
 	return GetSpriteFrame(name, frame);
 }
 
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(const std::string& anim_name, uint8_t frame) const
 {
-	assert(m_animation_frames.find(anim_name) != m_animation_frames.cend());
-	assert(m_animation_frames.find(anim_name)->second.size() > frame);
+	if (m_animation_frames.find(anim_name) == m_animation_frames.cend())
+	{
+		return nullptr;
+	}
+	if (frame >= m_animation_frames.find(anim_name)->second.size())
+	{
+		return nullptr;
+	}
 	const auto& name = m_animation_frames.find(anim_name)->second[frame];
-	assert(m_frames.find(name) != m_frames.cend());
+	if (m_frames.find(name) == m_frames.cend())
+	{
+		return nullptr;
+	}
 	return m_frames.find(name)->second;
 }
 

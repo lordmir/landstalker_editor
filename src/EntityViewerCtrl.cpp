@@ -63,10 +63,22 @@ void EntityViewerCtrl::Open(uint8_t entity, std::shared_ptr<Palette> pal)
 	m_animation = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
 	m_frame = m_gd->GetSpriteData()->GetDefaultEntityFrameId(entity);
 	m_palette = pal;
-	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame)->GetData();
-	m_freeze = m_gd->GetSpriteData()->IsEntityItem(entity);
-	m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
-	m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
+	auto sd = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame);
+	if (sd)
+	{
+		m_sprite = sd->GetData();
+		m_freeze = m_gd->GetSpriteData()->IsEntityItem(entity);
+		m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
+		m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
+	}
+	else
+	{
+		m_sprite = nullptr;
+		m_palette = nullptr;
+		m_freeze = true;
+		m_cellwidth = m_pixelsize;
+		m_cellheight = m_pixelsize;
+	}
 	Refresh(true);
 }
 
@@ -75,6 +87,7 @@ void EntityViewerCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<
 	m_entity_id = 0;
 	m_animation = 0;
 	m_frame = 0;
+	m_freeze = true;
 	if (frame && pal)
 	{
 		m_sprite = frame;
