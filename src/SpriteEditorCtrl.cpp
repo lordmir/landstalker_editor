@@ -488,7 +488,7 @@ void SpriteEditorCtrl::InitialiseBrushesAndPens()
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
 	m_alpha_brush->SetStipple(*m_stipple);
 	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
-	m_selected_border_pen = std::make_unique<wxPen>(*wxRED_PEN);
+	m_selected_border_pen = std::make_unique<wxPen>(wxColour(255,0,255));
 	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
 	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
 }

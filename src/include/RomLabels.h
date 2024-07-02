@@ -57,8 +57,8 @@ namespace RomLabels
 		extern const std::string ENEMY_STATS;
 		extern const std::string ROOM_SPRITE_TABLE;
 
-		extern const std::string UNKNOWN_SPRITE_LOOKUP;
-		extern const std::string UNKNOWN_SPRITE_LOOKUP_SECTION;
+		extern const std::string SPRITE_ANIM_FLAGS_LOOKUP;
+		extern const std::string SPRITE_ANIM_FLAGS_LOOKUP_SECTION;
 
 		extern const std::string PALETTE_DATA_FILE;
 		extern const std::string PALETTE_LUT_FILE;
@@ -74,7 +74,7 @@ namespace RomLabels
 		extern const std::string ITEM_PROPERTIES_FILE;
 		extern const std::string SPRITE_BEHAVIOUR_OFFSET_FILE;
 		extern const std::string SPRITE_BEHAVIOUR_TABLE_FILE;
-		extern const std::string UNKNOWN_SPRITE_LOOKUP_FILE;
+		extern const std::string SPRITE_ANIM_FLAGS_LOOKUP_FILE;
 		extern const std::string SPRITE_VISIBILITY_FLAGS_FILE;
 		extern const std::string ONE_TIME_EVENT_FLAGS_FILE;
 		extern const std::string ROOM_CLEAR_FLAGS_FILE;

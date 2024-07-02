@@ -173,7 +173,7 @@ void TileSwapDialog::SelectRow(int row)
 {
     auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
     auto* model = m_models[GetSelectedTab()];
-    if (row > 0 && row <= model->GetRowCount())
+    if (row > 0 && row <= static_cast<int>(model->GetRowCount()))
     {
         ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(row)));
     }
@@ -208,13 +208,13 @@ void TileSwapDialog::OnTabChange(wxBookCtrlEvent& e)
     e.Skip();
 }
 
-void TileSwapDialog::OnOK(wxCommandEvent& evt)
+void TileSwapDialog::OnOK(wxCommandEvent& /*evt*/)
 {
     CommitAll();
     EndModal(wxID_OK);
 }
 
-void TileSwapDialog::OnCancel(wxCommandEvent& evt)
+void TileSwapDialog::OnCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_OK);
 }

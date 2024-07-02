@@ -46,7 +46,7 @@ public:
 		void SetFilename(const filesystem::path& val) const;
 		uint32_t GetStartAddress() const;
 		uint32_t GetDataLength();
-		uint32_t GetEndAddress() const;
+		uint32_t GetEndAddress();
 		uint32_t GetOrigDataLength() const;
 		uint32_t GetOrigEndAddress() const;
 		void SetStartAddress(uint32_t addr);
@@ -218,7 +218,7 @@ inline uint32_t DataManager::Entry<T>::GetDataLength()
 }
 
 template<class T>
-inline uint32_t DataManager::Entry<T>::GetEndAddress() const
+inline uint32_t DataManager::Entry<T>::GetEndAddress()
 {
 	return m_begin_address + GetDataLength();
 }

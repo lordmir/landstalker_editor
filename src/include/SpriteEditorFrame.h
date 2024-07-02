@@ -27,6 +27,7 @@ public:
 
 	void SetColour(int c);
 	void SetActivePalette(const std::string& name);
+	void SetActivePalette(const std::vector<std::string>& names);
 	void Redraw() const;
 	void RedrawTiles(int index = -1) const;
 
@@ -48,6 +49,12 @@ public:
 	void ImportTiles(const std::string& filename);
 	void ImportVdpSpritemap(const std::string& filename);
 private:
+	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshLists() const;
+	virtual void UpdateProperties(wxPropertyGridManager& props) const;
+	void RefreshProperties(wxPropertyGridManager& props) const;
+	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelected(wxCommandEvent& evt);
@@ -74,12 +81,23 @@ private:
 	TileEditor* m_tileedit = nullptr;
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
+
+	mutable wxPGChoices m_hi_palettes;
+	mutable wxPGChoices m_lo_palettes;
+	mutable wxPGChoices m_misc_palettes;
+	mutable wxPGChoices m_idle_frame_count_options;
+	mutable wxPGChoices m_idle_frame_source_options;
+	mutable wxPGChoices m_jump_frame_source_options;
+	mutable wxPGChoices m_walk_frame_count_options;
+	mutable wxPGChoices m_take_damage_frame_source_options;
+
 	std::shared_ptr<SpriteFrameEntry> m_sprite;
 	std::shared_ptr<Palette> m_palette;
 
 	wxStatusBar* m_statusbar = nullptr;
 	wxSlider* m_zoomslider = nullptr;
 	wxToolBar* m_toolbar = nullptr;
+	mutable bool m_reset_props = false;
 	std::string m_filename;
 
 	std::string m_name;
