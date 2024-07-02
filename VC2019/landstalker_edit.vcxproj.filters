@@ -411,6 +411,12 @@
     <ClCompile Include="..\src\BaseDataViewModel.cpp">
       <Filter>src\UI\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\EntityViewerFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\EntityViewerCtrl.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -705,6 +711,12 @@
     </ClInclude>
     <ClInclude Include="..\src\include\TileSwapDialog.h">
       <Filter>include\UI\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EntityViewerFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\EntityViewerCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
