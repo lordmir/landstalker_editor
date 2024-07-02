@@ -41,6 +41,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::MAP_2D, new Map2DEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::ENTITY, new EntityViewerFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -839,6 +840,11 @@ void MainFrame::Refresh()
         GetMap2DEditor()->Open(m_selname);
         ShowEditor(EditorType::MAP_2D);
         break;
+    case Mode::ENTITY:
+        // Display entity
+        GetEntityViewer()->Open(m_seldata);
+        ShowEditor(EditorType::ENTITY);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -888,6 +894,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     case TreeNodeData::Node::IMAGE:
         SetMode(Mode::IMAGE);
         break;
+    case TreeNodeData::Node::ENTITY:
+        SetMode(Mode::ENTITY);
+        break;
     default:
         // do nothing
         break;
@@ -927,6 +936,11 @@ BlocksetEditorFrame* MainFrame::GetBlocksetEditor()
 SpriteEditorFrame* MainFrame::GetSpriteEditor()
 {
     return static_cast<SpriteEditorFrame*>(m_editors.at(EditorType::SPRITE));
+}
+
+EntityViewerFrame* MainFrame::GetEntityViewer()
+{
+    return static_cast<EntityViewerFrame*>(m_editors.at(EditorType::ENTITY));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

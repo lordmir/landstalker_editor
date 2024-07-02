@@ -338,7 +338,7 @@ bool Map3DEditor::HandleKeyDown(unsigned int key, unsigned int modifiers)
     return false;
 }
 
-bool Map3DEditor::HandleDrawKeyDown(unsigned int key, unsigned int modifiers)
+bool Map3DEditor::HandleDrawKeyDown(unsigned int key, unsigned int /*modifiers*/)
 {
     switch (key)
     {
@@ -718,7 +718,7 @@ bool Map3DEditor::HandleRegionKeyDown(unsigned int key, unsigned int modifiers)
 #undef INCR
 }
 
-bool Map3DEditor::HandleKeyUp(unsigned int key, unsigned int modifiers)
+bool Map3DEditor::HandleKeyUp(unsigned int key, unsigned int /*modifiers*/)
 {
     switch (key)
     {
@@ -819,7 +819,7 @@ bool Map3DEditor::HandleLeftDown(unsigned int modifiers)
     return false;
 }
 
-bool Map3DEditor::HandleLeftDClick(unsigned int modifiers)
+bool Map3DEditor::HandleLeftDClick(unsigned int /*modifiers*/)
 {
     auto sw = GetFirstSwapRegion(m_hovered);
     auto dw = GetFirstDoorRegion(m_hovered);

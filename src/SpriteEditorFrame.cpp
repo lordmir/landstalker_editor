@@ -87,7 +87,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	{
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, anim, frame);
 	}
-	m_palette = m_gd->GetSpriteData()->GetSpritePalette(entity);
+	m_palette = m_gd->GetSpriteData()->GetEntityPalette(entity);
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette);
 	m_paledit->SelectPalette(m_palette);
 	m_tileedit->SetActivePalette(m_palette);
@@ -111,10 +111,6 @@ void SpriteEditorFrame::ClearGameData()
 	m_gd = nullptr;
 	m_tileedit->SetGameData(nullptr);
 	m_paledit->SetGameData(nullptr);
-}
-
-void SpriteEditorFrame::SetColour(int c)
-{
 }
 
 void SpriteEditorFrame::SetActivePalette(const std::string& name)
@@ -171,27 +167,12 @@ bool SpriteEditorFrame::SaveAs(wxString filename, bool compressed)
 	return m_spriteeditor->Save(filename, compressed);
 }
 
-bool SpriteEditorFrame::Open(wxString filename)
-{
-	return false;
-}
-
-bool SpriteEditorFrame::Open(std::vector<uint8_t>& pixels)
-{
-	return false;
-}
-
-bool SpriteEditorFrame::New(int r, int c)
-{
-	return false;
-}
-
 const std::string& SpriteEditorFrame::GetFilename() const
 {
 	return m_filename;
 }
 
-void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
@@ -384,7 +365,7 @@ void SpriteEditorFrame::RefreshLists() const
 		std::set<int> hi_pals, lo_pals;
 		for (const auto& e : entities)
 		{
-			auto epals = m_gd->GetSpriteData()->GetSpritePaletteIdxs(e);
+			auto epals = m_gd->GetSpriteData()->GetEntityPaletteIdxs(e);
 			lo_pals.insert(epals.first);
 			hi_pals.insert(epals.second);
 		}
@@ -477,8 +458,8 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Size", static_cast<int>(m_sprite->GetDataLength()));
 		props.GetGrid()->GetProperty("Low Palette")->SetChoices(m_lo_palettes);
 		props.GetGrid()->GetProperty("High Palette")->SetChoices(m_hi_palettes);
-		props.GetGrid()->GetProperty("Low Palette")->SetChoiceSelection(sd->GetSpritePaletteIdxs(entity_index).first + 1);
-		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetSpritePaletteIdxs(entity_index).second + 1);
+		props.GetGrid()->GetProperty("Low Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).first + 1);
+		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
@@ -786,7 +767,7 @@ void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 2);
 }
 
-void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
+void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
 	std::ostringstream ss;
 	int colour = m_paledit->GetHoveredColour();

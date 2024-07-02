@@ -16,6 +16,7 @@
 #include "Map2DEditorFrame.h"
 #include "BlocksetEditorFrame.h"
 #include "SpriteEditorFrame.h"
+#include "EntityViewerFrame.h"
 #include "GameData.h"
 
 #ifdef _WIN32
@@ -85,7 +86,8 @@ private:
         BLOCKSET,
         PALETTE,
         ROOMMAP,
-        SPRITE
+        SPRITE,
+        ENTITY
     };
 
     enum class EditorType
@@ -98,6 +100,7 @@ private:
         MAP_3D,
         BLOCKSET,
         SPRITE,
+        ENTITY,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -136,6 +139,7 @@ private:
     Map2DEditorFrame* GetMap2DEditor();
     BlocksetEditorFrame* GetBlocksetEditor();
     SpriteEditorFrame* GetSpriteEditor();
+    EntityViewerFrame* GetEntityViewer();
     
     Mode m_mode;
     ImageList* m_imgs;

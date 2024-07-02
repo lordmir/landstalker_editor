@@ -460,6 +460,12 @@ uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
 	return m_sprite_to_entity_lookup.find(id)->second;
 }
 
+void SpriteData::SetEntitySprite(uint8_t entity, uint8_t sprite)
+{
+	assert(m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+	m_sprite_to_entity_lookup[entity] = sprite;
+}
+
 bool SpriteData::EntityHasSprite(uint8_t id) const
 {
 	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
@@ -516,13 +522,35 @@ bool SpriteData::IsSprite(uint8_t id) const
 bool SpriteData::IsItem(uint8_t sprite_id) const
 {
 	auto entities = GetEntitiesFromSprite(sprite_id);
-	return std::all_of(entities.cbegin(), entities.cend(), [](uint8_t v) { return v >= 0xC0; });
+	return std::all_of(entities.cbegin(), entities.cend(), [this](const auto& e) { return IsEntityItem(e); });
+}
+
+bool SpriteData::IsEntityItem(uint8_t entity_id) const
+{
+	return entity_id >= 0xC0;
+}
+
+bool SpriteData::IsEntityEnemy(uint8_t entity_id) const
+{
+	return m_enemy_stats.count(entity_id) > 0;
 }
 
 bool SpriteData::HasFrontAndBack(uint8_t entity_id) const
 {
 	auto sprite_id = GetSpriteFromEntity(entity_id);
 	return !IsItem(sprite_id) && GetSpriteAnimationCount(sprite_id) > 1;
+}
+
+bool SpriteData::CanRotate(uint8_t id) const
+{
+	if (m_sprite_animation_flags.count(id) > 0)
+	{
+		return !m_sprite_animation_flags.at(id).do_not_rotate;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 std::string SpriteData::GetSpriteName(uint8_t id) const
@@ -574,6 +602,33 @@ std::vector<std::string> SpriteData::GetSpriteFrames(const std::string& name) co
 	return GetSpriteFrames(GetSpriteId(name));
 }
 
+int SpriteData::GetDefaultEntityAnimationId(uint8_t id) const
+{
+	if (IsEntityItem(id))
+	{
+		// Item
+		return (id >> 3) & 7;
+	}
+	else
+	{
+		uint8_t spr_id = GetSpriteFromEntity(id);
+		return GetSpriteAnimationCount(spr_id) > 1 ? 1 : 0;
+	}
+}
+
+int SpriteData::GetDefaultEntityFrameId(uint8_t id) const
+{
+	if (IsEntityItem(id))
+	{
+		// Item
+		return id & 7;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetDefaultEntityFrame(uint8_t id) const
 {
 	uint8_t spr_id = GetSpriteFromEntity(id);
@@ -618,23 +673,42 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(uint8_t id, uint8_t
 	{
 		return nullptr;
 	}
-	assert(m_animations.find(id)->second.size() > anim);
+	if (anim >= m_animations.find(id)->second.size())
+	{
+		return nullptr;
+	}
 	const auto& name = m_animations.find(id)->second[anim];
 	return GetSpriteFrame(name, frame);
 }
 
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(const std::string& anim_name, uint8_t frame) const
 {
-	assert(m_animation_frames.find(anim_name) != m_animation_frames.cend());
-	assert(m_animation_frames.find(anim_name)->second.size() > frame);
+	if (m_animation_frames.find(anim_name) == m_animation_frames.cend())
+	{
+		return nullptr;
+	}
+	if (frame >= m_animation_frames.find(anim_name)->second.size())
+	{
+		return nullptr;
+	}
 	const auto& name = m_animation_frames.find(anim_name)->second[frame];
-	assert(m_frames.find(name) != m_frames.cend());
+	if (m_frames.find(name) == m_frames.cend())
+	{
+		return nullptr;
+	}
 	return m_frames.find(name)->second;
 }
 
 uint32_t SpriteData::GetSpriteAnimationFrameCount(uint8_t id, uint8_t anim_id) const
 {
-	return GetSpriteAnimationFrames(id, anim_id).size();
+	if (IsItem(id))
+	{
+		return 1;
+	}
+	else
+	{
+		return GetSpriteAnimationFrames(id, anim_id).size();
+	}
 }
 
 uint32_t SpriteData::GetSpriteAnimationFrameCount(const std::string& name) const
@@ -792,7 +866,7 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(int lo, int hi) const
 	return std::make_shared<Palette>(pals);
 }
 
-std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
+std::shared_ptr<Palette> SpriteData::GetEntityPalette(uint8_t idx) const
 {
 	int lo = -1;
 	int hi = -1;
@@ -809,7 +883,27 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
 	return GetSpritePalette(lo, hi);
 }
 
-std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
+void SpriteData::SetEntityPalette(uint8_t entity, int lo, int hi)
+{
+	if (lo == -1)
+	{
+		m_lo_palette_lookup.erase(entity);
+	}
+	else if (lo < static_cast<int>(m_lo_palettes.size()))
+	{
+		m_lo_palette_lookup[entity] = m_lo_palettes[lo];
+	}
+	if (hi == -1)
+	{
+		m_hi_palette_lookup.erase(entity);
+	}
+	else if (hi < static_cast<int>(m_hi_palettes.size()))
+	{
+		m_hi_palette_lookup[entity] = m_hi_palettes[hi];
+	}
+}
+
+std::pair<int, int> SpriteData::GetEntityPaletteIdxs(uint8_t idx) const
 {
 	int lo = -1;
 	int hi = -1;
@@ -868,6 +962,42 @@ std::shared_ptr<PaletteEntry> SpriteData::GetProjectile2Palette(uint8_t idx) con
 {
 	assert(idx < m_projectile2_palettes.size());
 	return m_projectile2_palettes[idx];
+}
+
+SpriteData::ItemProperties SpriteData::GetItemProperties(uint8_t entity_index) const
+{
+	if (IsEntityItem(entity_index))
+	{
+		return ItemProperties(m_item_properties[entity_index & 0x3F]);
+	}
+	return ItemProperties();
+}
+
+void SpriteData::SetItemProperties(uint8_t entity_index, const SpriteData::ItemProperties& props)
+{
+	if (IsEntityItem(entity_index))
+	{
+		m_item_properties[entity_index & 0x3F] = props.Pack();
+	}
+}
+
+SpriteData::EnemyStats SpriteData::GetEnemyStats(uint8_t entity_index) const
+{
+	if (IsEntityEnemy(entity_index))
+	{
+		return EnemyStats(m_enemy_stats.at(entity_index));
+	}
+	return EnemyStats();
+}
+
+void SpriteData::SetEnemyStats(uint8_t entity_index, const EnemyStats& stats)
+{
+	m_enemy_stats[entity_index] = stats.Pack();
+}
+
+void SpriteData::ClearEnemyStats(uint8_t entity_index)
+{
+	m_enemy_stats.erase(entity_index);
 }
 
 void SpriteData::CommitAllChanges()
@@ -1939,4 +2069,46 @@ bool SpriteData::AnimationFlags::operator==(const AnimationFlags& rhs) const
 bool SpriteData::AnimationFlags::operator!=(const AnimationFlags& rhs) const
 {
 	return !(*this == rhs);
+}
+
+SpriteData::ItemProperties::ItemProperties(const std::array<uint8_t, 4>& elems)
+{
+	verb = (elems[0] >> 4) + 12;
+	max_quantity = elems[0] & 0x0F;
+	equipment_index = elems[1];
+	price = (elems[2] << 8) | elems[3];
+}
+
+std::array<uint8_t, 4> SpriteData::ItemProperties::Pack() const
+{
+	return std::array<uint8_t, 4>
+	{
+		static_cast<uint8_t>(((verb - 12) << 4) | (max_quantity & 0x0F)),
+		equipment_index,
+		static_cast<uint8_t>(price >> 8),
+		static_cast<uint8_t>(price & 0xFF)
+	};
+}
+
+SpriteData::EnemyStats::EnemyStats(const std::array<uint8_t, 5>& elems)
+{
+	health = elems[0];
+	defence = elems[1];
+	gold_drop = elems[2];
+	attack = elems[3] & 0x7F;
+	item_drop = elems[4] & 0x3F;
+	drop_probability = static_cast<SpriteData::EnemyStats::DropProbability>((elems[4] >> 6) | ((elems[3] & 0x80) >> 5));
+}
+
+std::array<uint8_t, 5> SpriteData::EnemyStats::Pack() const
+{
+	uint8_t prob = static_cast<uint8_t>(drop_probability);
+	return std::array<uint8_t, 5>
+	{
+		health,
+		defence,
+		gold_drop,
+		static_cast<uint8_t>((attack & 0x7F) | ((prob & 0x04) << 5)),
+		static_cast<uint8_t>((item_drop & 0x3F) | (prob << 6))
+	};
 }

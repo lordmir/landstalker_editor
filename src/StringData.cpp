@@ -830,6 +830,53 @@ void StringData::SetMapLocation(uint16_t room, uint8_t name, uint8_t position)
 	}
 }
 
+uint8_t StringData::GetEntityTalkSound(uint8_t entity_id) const
+{
+	if (m_sprite_talk_sfx.count(entity_id) > 0)
+	{
+		return m_sprite_talk_sfx.at(entity_id);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void StringData::SetEntityTalkSound(uint8_t entity_id, uint8_t sound)
+{
+	if (sound == 0)
+	{
+		if (m_sprite_talk_sfx.count(entity_id) > 0)
+		{
+			m_sprite_talk_sfx.erase(entity_id);
+		}
+	}
+	else
+	{
+		m_sprite_talk_sfx[entity_id] = sound;
+	}
+}
+
+uint8_t StringData::GetCharacterTalkSound(uint8_t character_id) const
+{
+	if (character_id < static_cast<int>(m_char_talk_sfx.size()))
+	{
+		return m_char_talk_sfx.at(character_id);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void StringData::SetCharacterTalkSound(uint8_t character_id, uint8_t sound)
+{
+	if (character_id < static_cast<int>(m_char_talk_sfx.size()))
+	{
+		m_char_talk_sfx.at(character_id) = sound;
+	}
+}
+
 void StringData::CommitAllChanges()
 {
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };

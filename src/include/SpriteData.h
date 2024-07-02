@@ -6,6 +6,7 @@
 #include <set>
 #include <Entity.h>
 #include <Flags.h>
+#include <cstdint>
 
 class SpriteData : public DataManager
 {
@@ -53,6 +54,40 @@ public:
 		bool has_full_animations;
 	};
 
+	struct ItemProperties
+	{
+		uint8_t max_quantity;
+		uint8_t verb;
+		uint8_t equipment_index;
+		uint16_t price;
+		ItemProperties() : max_quantity(0), verb(12), equipment_index(0), price(0) {}
+		ItemProperties(const std::array<uint8_t, 4>& elems);
+		std::array<uint8_t, 4> Pack() const;
+	};
+
+	struct EnemyStats
+	{
+		uint8_t health;
+		uint8_t defence;
+		uint8_t attack;
+		uint8_t gold_drop;
+		uint8_t item_drop;
+		enum class DropProbability : uint8_t
+		{
+			ONE_IN_64,
+			ONE_IN_128,
+			ONE_IN_256,
+			ONE_IN_512,
+			ONE_IN_1024,
+			ONE_IN_2048,
+			NO_DROP,
+			GUARANTEED_DROP
+		} drop_probability;
+		EnemyStats() : health(0), defence(0), attack(0), gold_drop(0), item_drop(0), drop_probability(DropProbability::NO_DROP) {}
+		EnemyStats(const std::array<uint8_t, 5>& elems);
+		std::array<uint8_t, 5> Pack() const;
+	};
+
 	SpriteData(const filesystem::path& asm_file);
 	SpriteData(const Rom& rom);
 
@@ -67,10 +102,14 @@ public:
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;
 	bool IsItem(uint8_t sprite_id) const;
+	bool IsEntityItem(uint8_t entity_id) const;
+	bool IsEntityEnemy(uint8_t entity_id) const;
 	bool HasFrontAndBack(uint8_t id) const;
+	bool CanRotate(uint8_t id) const;
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
 	uint8_t GetSpriteFromEntity(uint8_t id) const;
+	void SetEntitySprite(uint8_t entity, uint8_t sprite);
 	bool EntityHasSprite(uint8_t id) const;
 	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
 
@@ -84,6 +123,8 @@ public:
 	uint32_t GetSpriteFrameCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
+	int GetDefaultEntityAnimationId(uint8_t id) const;
+	int GetDefaultEntityFrameId(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetDefaultEntityFrame(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& name) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t frame) const;
@@ -115,8 +156,9 @@ public:
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
 	std::shared_ptr<Palette> GetSpritePalette(int lo, int hi = -1) const;
-	std::shared_ptr<Palette> GetSpritePalette(uint8_t idx) const;
-	std::pair<int, int> GetSpritePaletteIdxs(uint8_t idx) const;
+	std::shared_ptr<Palette> GetEntityPalette(uint8_t idx) const;
+	void SetEntityPalette(uint8_t entity, int lo, int hi);
+	std::pair<int, int> GetEntityPaletteIdxs(uint8_t idx) const;
 	uint8_t GetLoPaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetLoPalette(uint8_t idx) const;
 	uint8_t GetHiPaletteCount() const;
@@ -125,6 +167,12 @@ public:
 	std::shared_ptr<PaletteEntry> GetProjectile1Palette(uint8_t idx) const;
 	uint8_t GetProjectile2PaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetProjectile2Palette(uint8_t idx) const;
+
+	ItemProperties GetItemProperties(uint8_t entity_index) const;
+	void SetItemProperties(uint8_t entity_index, const ItemProperties& props);
+	EnemyStats GetEnemyStats(uint8_t entity_index) const;
+	void SetEnemyStats(uint8_t entity_index, const EnemyStats& stats);
+	void ClearEnemyStats(uint8_t entity_index);
 
 protected:
 	virtual void CommitAllChanges();

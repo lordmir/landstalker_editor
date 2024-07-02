@@ -25,7 +25,6 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void SetColour(int c);
 	void SetActivePalette(const std::string& name);
 	void SetActivePalette(const std::vector<std::string>& names);
 	void Redraw() const;
@@ -33,9 +32,6 @@ public:
 
 	bool Save();
 	bool SaveAs(wxString filename, bool compressed = false);
-	bool Open(wxString filename);
-	bool Open(std::vector<uint8_t>& pixels);
-	bool New(int r, int c);
 	const std::string& GetFilename() const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;

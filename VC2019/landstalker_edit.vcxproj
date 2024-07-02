@@ -37,6 +37,8 @@
     <ClCompile Include="..\src\Entity.cpp" />
     <ClCompile Include="..\src\EntityControlFrame.cpp" />
     <ClCompile Include="..\src\EntityPropertiesWindow.cpp" />
+    <ClCompile Include="..\src\EntityViewerCtrl.cpp" />
+    <ClCompile Include="..\src\EntityViewerFrame.cpp" />
     <ClCompile Include="..\src\EntryPreferences.cpp" />
     <ClCompile Include="..\src\ExecutorThread.cpp" />
     <ClCompile Include="..\src\FlagDataViewModel.cpp" />
@@ -136,6 +138,8 @@
     <ClInclude Include="..\src\include\Entity.h" />
     <ClInclude Include="..\src\include\EntityControlFrame.h" />
     <ClInclude Include="..\src\include\EntityPropertiesWindow.h" />
+    <ClInclude Include="..\src\include\EntityViewerCtrl.h" />
+    <ClInclude Include="..\src\include\EntityViewerFrame.h" />
     <ClInclude Include="..\src\include\EntryPreferences.h" />
     <ClInclude Include="..\src\include\ExecutorThread.h" />
     <ClInclude Include="..\src\include\FlagDataViewModel.h" />

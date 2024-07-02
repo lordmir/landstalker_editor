@@ -24,7 +24,7 @@ Current State of progress:
 | Room Character Scripts      | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Room Flags                  | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Room Graphic Transitions    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Entity Properties           | :x:                | :x:                | ROM format reverse engineered.                             |
+| Entity Properties           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Behaviours           | :x:                | :x:                | ROM format partially reverse engineered.                   |
 | Sprite Frames               | :heavy_check_mark: | :heavy_minus_sign: | Editor UI could do with improvements.                      |
 | Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
