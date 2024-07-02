@@ -18,7 +18,28 @@ EntityViewerFrame::~EntityViewerFrame()
 {
 }
 
-bool EntityViewerFrame::Open(const std::string& entity)
+bool EntityViewerFrame::Open(int entity)
 {
+	if (m_gd && entity >= 0 && entity < 256)
+	{
+		auto frame = m_gd->GetSpriteData()->GetDefaultEntityFrame(entity);
+		auto palette_idxs = m_gd->GetSpriteData()->GetSpritePaletteIdxs(entity);
+		m_palette = m_gd->GetSpriteData()->GetSpritePalette(palette_idxs.first, palette_idxs.second);
+
+		m_entity_ctrl->Open(frame->GetData(), m_palette);
+		return true;
+	}
 	return false;
+}
+
+void EntityViewerFrame::SetGameData(std::shared_ptr<GameData> gd)
+{
+	m_gd = gd;
+	m_entity_ctrl->SetGameData(gd);
+}
+
+void EntityViewerFrame::ClearGameData()
+{
+	m_entity_ctrl->ClearGameData();
+	m_gd.reset();
 }

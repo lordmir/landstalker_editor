@@ -842,7 +842,7 @@ void MainFrame::Refresh()
         break;
     case Mode::ENTITY:
         // Display entity
-        GetEntityViewer()->Open(m_selname);
+        GetEntityViewer()->Open(m_seldata);
         ShowEditor(EditorType::ENTITY);
         break;
     case Mode::NONE:
