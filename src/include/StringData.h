@@ -114,6 +114,11 @@ public:
     uint8_t GetMapPosition(uint16_t room);
     void SetMapLocation(uint16_t room, uint8_t name, uint8_t position);
 
+    uint8_t GetEntityTalkSound(uint8_t entity_id) const;
+    void SetEntityTalkSound(uint8_t entity_id, uint8_t sound);
+    uint8_t GetCharacterTalkSound(uint8_t character_id) const;
+    void SetCharacterTalkSound(uint8_t character_id, uint8_t sound);
+
 protected:
     virtual void CommitAllChanges();
 private:

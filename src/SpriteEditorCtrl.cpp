@@ -69,7 +69,7 @@ bool SpriteEditorCtrl::Save(wxString filename, bool compressed)
 	return m_sprite->Save(filename.ToStdString(), compressed);
 }
 
-bool SpriteEditorCtrl::Open(wxString filename, int tile_width, int tile_height, int tile_bitdepth)
+bool SpriteEditorCtrl::Open(wxString filename)
 {
 	return m_sprite->Open(filename.ToStdString());
 }

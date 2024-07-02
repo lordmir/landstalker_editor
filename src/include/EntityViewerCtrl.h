@@ -37,6 +37,7 @@ private:
 	int m_animation = 0;
 	int m_frame = 0;
 	int m_pixelsize = 4;
+	bool m_freeze = true;
 
 	int m_columns = 1;
 	int m_rows = 1;

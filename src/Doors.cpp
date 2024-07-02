@@ -206,8 +206,8 @@ void Door::DrawDoor(Tilemap3D& tilemap, Tilemap3D::Layer layer) const
 	TileSwap ts;
 	ts.map.src_x = 255;
 	ts.map.src_y = 255;
-	ts.map.dst_x = 12 + x - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0);
-	ts.map.dst_y = 12 + y - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0);
+	ts.map.dst_x = static_cast<uint8_t>(12 + x - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0));
+	ts.map.dst_y = static_cast<uint8_t>(12 + y - z - Door::SIZES.at(size).second + (type == Tilemap3D::FloorType::DOOR_NW ? 1 : 0));
 	ts.map.width = SIZES.at(size).first;
 	ts.map.height = SIZES.at(size).second;
 	if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)

@@ -68,10 +68,13 @@ public:
 	bool IsSprite(uint8_t id) const;
 	bool IsItem(uint8_t sprite_id) const;
 	bool IsEntityItem(uint8_t entity_id) const;
+	bool IsEntityEnemy(uint8_t entity_id) const;
 	bool HasFrontAndBack(uint8_t id) const;
+	bool CanRotate(uint8_t id) const;
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
 	uint8_t GetSpriteFromEntity(uint8_t id) const;
+	void SetEntitySprite(uint8_t entity, uint8_t sprite);
 	bool EntityHasSprite(uint8_t id) const;
 	std::vector<uint8_t> GetEntitiesFromSprite(uint8_t id) const;
 
@@ -118,8 +121,9 @@ public:
 	const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
 	std::shared_ptr<PaletteEntry> GetPalette(const std::string& name) const;
 	std::shared_ptr<Palette> GetSpritePalette(int lo, int hi = -1) const;
-	std::shared_ptr<Palette> GetSpritePalette(uint8_t idx) const;
-	std::pair<int, int> GetSpritePaletteIdxs(uint8_t idx) const;
+	std::shared_ptr<Palette> GetEntityPalette(uint8_t idx) const;
+	void SetEntityPalette(uint8_t entity, int lo, int hi);
+	std::pair<int, int> GetEntityPaletteIdxs(uint8_t idx) const;
 	uint8_t GetLoPaletteCount() const;
 	std::shared_ptr<PaletteEntry> GetLoPalette(uint8_t idx) const;
 	uint8_t GetHiPaletteCount() const;

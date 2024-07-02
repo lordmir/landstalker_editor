@@ -460,6 +460,12 @@ uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
 	return m_sprite_to_entity_lookup.find(id)->second;
 }
 
+void SpriteData::SetEntitySprite(uint8_t entity, uint8_t sprite)
+{
+	assert(m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+	m_sprite_to_entity_lookup[entity] = sprite;
+}
+
 bool SpriteData::EntityHasSprite(uint8_t id) const
 {
 	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
@@ -524,10 +530,27 @@ bool SpriteData::IsEntityItem(uint8_t entity_id) const
 	return entity_id >= 0xC0;
 }
 
+bool SpriteData::IsEntityEnemy(uint8_t entity_id) const
+{
+	return m_enemy_stats.count(entity_id) > 0;
+}
+
 bool SpriteData::HasFrontAndBack(uint8_t entity_id) const
 {
 	auto sprite_id = GetSpriteFromEntity(entity_id);
 	return !IsItem(sprite_id) && GetSpriteAnimationCount(sprite_id) > 1;
+}
+
+bool SpriteData::CanRotate(uint8_t id) const
+{
+	if (m_sprite_animation_flags.count(id) > 0)
+	{
+		return !m_sprite_animation_flags.at(id).do_not_rotate;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 std::string SpriteData::GetSpriteName(uint8_t id) const
@@ -831,7 +854,7 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(int lo, int hi) const
 	return std::make_shared<Palette>(pals);
 }
 
-std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
+std::shared_ptr<Palette> SpriteData::GetEntityPalette(uint8_t idx) const
 {
 	int lo = -1;
 	int hi = -1;
@@ -848,7 +871,27 @@ std::shared_ptr<Palette> SpriteData::GetSpritePalette(uint8_t idx) const
 	return GetSpritePalette(lo, hi);
 }
 
-std::pair<int, int> SpriteData::GetSpritePaletteIdxs(uint8_t idx) const
+void SpriteData::SetEntityPalette(uint8_t entity, int lo, int hi)
+{
+	if (lo == -1)
+	{
+		m_lo_palette_lookup.erase(entity);
+	}
+	else if (lo < static_cast<int>(m_lo_palettes.size()))
+	{
+		m_lo_palette_lookup[entity] = m_lo_palettes[lo];
+	}
+	if (hi == -1)
+	{
+		m_hi_palette_lookup.erase(entity);
+	}
+	else if (hi < static_cast<int>(m_hi_palettes.size()))
+	{
+		m_hi_palette_lookup[entity] = m_hi_palettes[hi];
+	}
+}
+
+std::pair<int, int> SpriteData::GetEntityPaletteIdxs(uint8_t idx) const
 {
 	int lo = -1;
 	int hi = -1;

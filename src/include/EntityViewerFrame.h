@@ -17,6 +17,7 @@ public:
 	bool Open(int entity_id);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
+	void Update();
 private:
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	void RefreshLists() const;
@@ -27,6 +28,7 @@ private:
 	mutable wxPGChoices m_hi_palettes;
 	mutable wxPGChoices m_lo_palettes;
 	mutable wxPGChoices m_sprites;
+	mutable wxPGChoices m_sounds;
 	mutable bool m_reset_props = false;
 
 	mutable wxAuiManager m_mgr;

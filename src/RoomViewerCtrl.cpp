@@ -571,7 +571,7 @@ std::vector<std::shared_ptr<Palette>> RoomViewerCtrl::PreparePalettes(uint16_t r
     m_layer_bufs[Layer::FG_SPRITES]->Resize(m_width, m_height);
     for (const auto& entity : m_entities)
     {
-        auto s_pal = m_g->GetSpriteData()->GetSpritePaletteIdxs(entity.GetType());
+        auto s_pal = m_g->GetSpriteData()->GetEntityPaletteIdxs(entity.GetType());
         const uint8_t pal_slot = entity.GetPalette();
         if (pal_slot == 1 || pal_slot == 3)
         {
