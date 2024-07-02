@@ -67,6 +67,7 @@ public:
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;
 	bool IsItem(uint8_t sprite_id) const;
+	bool IsEntityItem(uint8_t entity_id) const;
 	bool HasFrontAndBack(uint8_t id) const;
 	std::string GetSpriteName(uint8_t id) const;
 	uint8_t GetSpriteId(const std::string& name) const;
@@ -84,6 +85,8 @@ public:
 	uint32_t GetSpriteFrameCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
+	int GetDefaultEntityAnimationId(uint8_t id) const;
+	int GetDefaultEntityFrameId(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetDefaultEntityFrame(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& name) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t frame) const;

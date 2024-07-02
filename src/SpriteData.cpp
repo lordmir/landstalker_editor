@@ -516,7 +516,12 @@ bool SpriteData::IsSprite(uint8_t id) const
 bool SpriteData::IsItem(uint8_t sprite_id) const
 {
 	auto entities = GetEntitiesFromSprite(sprite_id);
-	return std::all_of(entities.cbegin(), entities.cend(), [](uint8_t v) { return v >= 0xC0; });
+	return std::all_of(entities.cbegin(), entities.cend(), [this](const auto& e) { return IsEntityItem(e); });
+}
+
+bool SpriteData::IsEntityItem(uint8_t entity_id) const
+{
+	return entity_id >= 0xC0;
 }
 
 bool SpriteData::HasFrontAndBack(uint8_t entity_id) const
@@ -572,6 +577,33 @@ std::vector<std::string> SpriteData::GetSpriteFrames(uint8_t id) const
 std::vector<std::string> SpriteData::GetSpriteFrames(const std::string& name) const
 {
 	return GetSpriteFrames(GetSpriteId(name));
+}
+
+int SpriteData::GetDefaultEntityAnimationId(uint8_t id) const
+{
+	if (IsEntityItem(id))
+	{
+		// Item
+		return (id >> 3) & 7;
+	}
+	else
+	{
+		uint8_t spr_id = GetSpriteFromEntity(id);
+		return GetSpriteAnimationCount(spr_id) > 1 ? 1 : 0;
+	}
+}
+
+int SpriteData::GetDefaultEntityFrameId(uint8_t id) const
+{
+	if (IsEntityItem(id))
+	{
+		// Item
+		return id & 7;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetDefaultEntityFrame(uint8_t id) const
@@ -634,7 +666,14 @@ std::shared_ptr<SpriteFrameEntry> SpriteData::GetSpriteFrame(const std::string& 
 
 uint32_t SpriteData::GetSpriteAnimationFrameCount(uint8_t id, uint8_t anim_id) const
 {
-	return GetSpriteAnimationFrames(id, anim_id).size();
+	if (IsItem(id))
+	{
+		return 1;
+	}
+	else
+	{
+		return GetSpriteAnimationFrames(id, anim_id).size();
+	}
 }
 
 uint32_t SpriteData::GetSpriteAnimationFrameCount(const std::string& name) const

@@ -7,14 +7,24 @@ EVT_SIZE(EntityViewerCtrl::OnSize)
 wxEND_EVENT_TABLE()
 
 EntityViewerCtrl::EntityViewerCtrl(wxWindow* parent)
-	: wxHVScrolledWindow(parent)
+	: wxHVScrolledWindow(parent),
+	  m_rows(36),
+	  m_columns(36),
+	  m_timer(new wxTimer(this))
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
-	SetRowColumnCount(36, 36);
+	SetRowColumnCount(m_rows, m_columns);
+	this->Bind(wxEVT_TIMER, &EntityViewerCtrl::OnTimer, this);
+	m_timer->Start(150);
 }
 
 EntityViewerCtrl::~EntityViewerCtrl()
 {
+	if (m_timer->IsRunning())
+	{
+		m_timer->Stop();
+	}
+	this->Unbind(wxEVT_TIMER, &EntityViewerCtrl::OnTimer, this);
 }
 
 void EntityViewerCtrl::SetGameData(std::shared_ptr<GameData> gd)
@@ -29,6 +39,32 @@ void EntityViewerCtrl::ClearGameData()
 	m_entity_id = -1;
 	m_sprite.reset();
 	m_palette.reset();
+	Refresh(true);
+}
+
+void EntityViewerCtrl::Open(uint8_t entity, uint8_t animation, std::shared_ptr<Palette> pal)
+{
+	m_entity_id = entity;
+	m_sprite_id = m_gd->GetSpriteData()->GetSpriteFromEntity(entity);
+	m_animation = animation;
+	m_frame = 0;
+	m_palette = pal;
+	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame)->GetData();
+	m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
+	m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
+	Refresh(true);
+}
+
+void EntityViewerCtrl::Open(uint8_t entity, std::shared_ptr<Palette> pal)
+{
+	m_entity_id = entity;
+	m_sprite_id = m_gd->GetSpriteData()->GetSpriteFromEntity(entity);
+	m_animation = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
+	m_frame = m_gd->GetSpriteData()->GetDefaultEntityFrameId(entity);
+	m_palette = pal;
+	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame)->GetData();
+	m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
+	m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
 	Refresh(true);
 }
 
@@ -106,7 +142,23 @@ void EntityViewerCtrl::OnSize(wxSizeEvent& evt)
 {
 	wxVarHScrollHelper::HandleOnSize(evt);
 	wxVarVScrollHelper::HandleOnSize(evt);
-	evt.Skip();
+	ScrollToRow(std::max<int>(0U, (m_rows - GetVisibleRowsEnd() + GetVisibleRowsBegin()) / 2 - 4));
+	ScrollToColumn(1 + std::max<int>(0U, (m_columns - GetVisibleColumnsEnd() + GetVisibleColumnsBegin()) / 2 - 2));
+	Refresh(false);
+}
+
+void EntityViewerCtrl::OnTimer(wxTimerEvent& evt)
+{
+	if (m_gd && m_sprite)
+	{
+		m_frame++;
+		if (m_frame >= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(m_sprite_id, m_animation)))
+		{
+			m_frame = 0;
+		}
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame)->GetData();
+		Refresh(true);
+	}
 }
 
 bool EntityViewerCtrl::DrawTileAtPosition(wxDC& dc, int pos)

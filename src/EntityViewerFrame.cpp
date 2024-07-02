@@ -22,11 +22,10 @@ bool EntityViewerFrame::Open(int entity)
 {
 	if (m_gd && entity >= 0 && entity < 256)
 	{
-		auto frame = m_gd->GetSpriteData()->GetDefaultEntityFrame(entity);
 		auto palette_idxs = m_gd->GetSpriteData()->GetSpritePaletteIdxs(entity);
 		m_palette = m_gd->GetSpriteData()->GetSpritePalette(palette_idxs.first, palette_idxs.second);
 
-		m_entity_ctrl->Open(frame->GetData(), m_palette);
+		m_entity_ctrl->Open(entity, m_palette);
 		return true;
 	}
 	return false;
