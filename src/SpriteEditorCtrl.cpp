@@ -74,7 +74,7 @@ bool SpriteEditorCtrl::Open(wxString filename)
 	return m_sprite->Open(filename.ToStdString());
 }
 
-bool SpriteEditorCtrl::Open(std::vector<uint8_t>& pixels, bool uses_compression, int tile_width, int tile_height, int tile_bitdepth)
+bool SpriteEditorCtrl::Open(std::vector<uint8_t>& pixels)
 {
 	m_sprite->SetBits(pixels);
 	return true;
@@ -85,11 +85,6 @@ bool SpriteEditorCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<
 	m_sprite = frame;
 	m_pal = pal;
 	ForceRedraw();
-	return false;
-}
-
-bool SpriteEditorCtrl::New(int r, int c)
-{
 	return false;
 }
 

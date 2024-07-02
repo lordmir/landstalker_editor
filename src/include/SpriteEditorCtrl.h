@@ -23,9 +23,8 @@ public:
 
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename);
-	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
+	bool Open(std::vector<uint8_t>& pixels);
 	bool Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal);
-	bool New(int r, int c);
 	void RedrawTiles(int index = -1);
 
 	void SetPixelSize(int n);

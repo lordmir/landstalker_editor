@@ -1,4 +1,5 @@
 #include <EntityViewerFrame.h>
+#include <wx/propgrid/advprops.h>
 
 EntityViewerFrame::EntityViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst)
@@ -70,7 +71,12 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxStringProperty("Name", "Name", _(Entity::EntityNames.at(m_entity_id))))->Enable(false);
 		props.Append(new wxIntProperty("ID", "ID", m_entity_id))->Enable(false);
 		props.Append(new wxEnumProperty("Sprite", "Sprite", m_sprites));
-		props.Append(new wxIntProperty("Sprite ID", "Sprite ID", sprite_index));
+		auto sprite_id = new wxIntProperty("Sprite ID", "Sprite ID", sprite_index);
+		sprite_id->SetAttribute(wxPG_ATTR_MIN, 0);
+		sprite_id->SetAttribute(wxPG_ATTR_MAX, 255);
+		sprite_id->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		sprite_id->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(sprite_id);
 		props.Append(new wxEnumProperty("Low Palette", "Low Palette", m_lo_palettes));
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
 		props.Append(new wxEnumProperty("Talk Sound FX", "Talk Sound FX", m_sounds));
@@ -79,17 +85,53 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		is_item->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
 		props.Append(is_item)->Enable(false);
 		props.Append(new wxEnumProperty("Use Text", "Use Text", m_verbs))->Enable(false);
-		props.Append(new wxIntProperty("Maximum Quantity", "Maximum Quantity", 0))->Enable(false);
-		props.Append(new wxIntProperty("Equipment Index", "Equipment Index", 0))->Enable(false);
-		props.Append(new wxIntProperty("Normal Buy Price", "Normal Buy Price", 0))->Enable(false);
+		auto max_qty = new wxIntProperty("Maximum Quantity", "Maximum Quantity", 0);
+		max_qty->SetAttribute(wxPG_ATTR_MIN, 0);
+		max_qty->SetAttribute(wxPG_ATTR_MAX, 15);
+		max_qty->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		max_qty->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(max_qty)->Enable(false);
+		auto equip_idx = new wxIntProperty("Equipment Index", "Equipment Index", 0);
+		equip_idx->SetAttribute(wxPG_ATTR_MIN, 0);
+		equip_idx->SetAttribute(wxPG_ATTR_MAX, 255);
+		equip_idx->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		equip_idx->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(equip_idx)->Enable(false);
+		auto price = new wxIntProperty("Normal Buy Price", "Normal Buy Price", 0);
+		price->SetAttribute(wxPG_ATTR_MIN, 0);
+		price->SetAttribute(wxPG_ATTR_MAX, 65535);
+		price->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		price->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(price)->Enable(false);
 		props.Append(new wxPropertyCategory("Enemy", "Enemy"));
 		auto is_enemy = new wxBoolProperty("Is Enemy", "Is Enemy", sd->IsEntityEnemy(m_entity_id));
 		is_enemy->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
 		props.Append(is_enemy);
-		props.Append(new wxIntProperty("Health", "Health", 0))->Enable(false);
-		props.Append(new wxIntProperty("Defence", "Defence", 0))->Enable(false);
-		props.Append(new wxIntProperty("Attack", "Attack", 0))->Enable(false);
+		auto health = new wxIntProperty("Health", "Health", 0);
+		health->SetAttribute(wxPG_ATTR_MIN, 0);
+		health->SetAttribute(wxPG_ATTR_MAX, 255);
+		health->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		health->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(health)->Enable(false);
+		auto def = new wxIntProperty("Defence", "Defence", 0);
+		def->SetAttribute(wxPG_ATTR_MIN, 0);
+		def->SetAttribute(wxPG_ATTR_MAX, 255);
+		def->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		def->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(def)->Enable(false);
+		auto atk = new wxIntProperty("Attack", "Attack", 0);
+		atk->SetAttribute(wxPG_ATTR_MIN, 0);
+		atk->SetAttribute(wxPG_ATTR_MAX, 127);
+		atk->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		atk->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(atk)->Enable(false);
 		props.Append(new wxIntProperty("Gold Drop", "Gold Drop", 0))->Enable(false);
+		auto gold = new wxIntProperty("Gold Drop", "Gold Drop", 0);
+		gold->SetAttribute(wxPG_ATTR_MIN, 0);
+		gold->SetAttribute(wxPG_ATTR_MAX, 255);
+		gold->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		gold->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(gold)->Enable(false);
 		props.Append(new wxEnumProperty("Item Drop", "Item Drop", m_verbs))->Enable(false);
 		props.Append(new wxEnumProperty("Drop Probability", "Drop Probability", m_probabilities))->Enable(false);
 		EditorFrame::InitProperties(props);
@@ -341,13 +383,11 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	if (name == "Sprite" || name == "Sprite ID")
 	{
 		int value = property->GetValuePlain().GetLong();
-		wxMessageBox(std::to_string(value));
 		if (value != sprite_index)
 		{
 			sprite_index = std::clamp<uint8_t>(value, 0, 255);
 			if (sd->IsSprite(sprite_index))
 			{
-				wxMessageBox(std::to_string(value));
 				sd->SetEntitySprite(m_entity_id, sprite_index);
 				Update();
 			}
@@ -366,6 +406,129 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		int value = property->GetValuePlain().GetLong();
 		m_gd->GetStringData()->SetEntityTalkSound(m_entity_id, value);
 		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	else if (name == "Is Enemy")
+	{
+		int value = property->GetValuePlain().GetBool();
+		if (value)
+		{
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, SpriteData::EnemyStats());
+		}
+		else
+		{
+			m_gd->GetSpriteData()->ClearEnemyStats(m_entity_id);
+		}
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+	else if (name == "Use Text")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto item_props = m_gd->GetSpriteData()->GetItemProperties(m_entity_id);
+		if (value != item_props.verb)
+		{
+			item_props.verb = std::clamp<uint8_t>(value, 12, 19);
+			m_gd->GetSpriteData()->SetItemProperties(m_entity_id, item_props);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Maximum Quantity")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto item_props = m_gd->GetSpriteData()->GetItemProperties(m_entity_id);
+		if (value != item_props.max_quantity)
+		{
+			item_props.max_quantity = std::clamp<uint8_t>(value, 0, 15);
+			m_gd->GetSpriteData()->SetItemProperties(m_entity_id, item_props);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Equipment Index")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto item_props = m_gd->GetSpriteData()->GetItemProperties(m_entity_id);
+		if (value != item_props.equipment_index)
+		{
+			item_props.equipment_index = std::clamp<uint8_t>(value, 0, 255);
+			m_gd->GetSpriteData()->SetItemProperties(m_entity_id, item_props);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Normal Buy Price")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto item_props = m_gd->GetSpriteData()->GetItemProperties(m_entity_id);
+		if (value != item_props.price)
+		{
+			item_props.price = std::clamp<uint16_t>(value, 0, 65535);
+			m_gd->GetSpriteData()->SetItemProperties(m_entity_id, item_props);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Health")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != enemy_stats.health)
+		{
+			enemy_stats.health = std::clamp<uint8_t>(value, 0, 255);
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Defence")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != enemy_stats.defence)
+		{
+			enemy_stats.defence = std::clamp<uint8_t>(value, 0, 255);
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Attack")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != enemy_stats.attack)
+		{
+			enemy_stats.attack = std::clamp<uint8_t>(value, 0, 127);
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Gold Drop")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != enemy_stats.gold_drop)
+		{
+			enemy_stats.gold_drop = std::clamp<uint8_t>(value, 0, 255);
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Item Drop")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != enemy_stats.item_drop)
+		{
+			enemy_stats.item_drop = std::clamp<uint8_t>(value, 0, 63);
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Drop Probability")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		if (value != static_cast<int>(enemy_stats.drop_probability))
+		{
+			enemy_stats.drop_probability = static_cast<SpriteData::EnemyStats::DropProbability>(std::clamp<uint8_t>(value, 0, 7));
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
 	}
 	ctrl->GetGrid()->Thaw();
 }

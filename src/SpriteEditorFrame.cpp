@@ -113,10 +113,6 @@ void SpriteEditorFrame::ClearGameData()
 	m_paledit->SetGameData(nullptr);
 }
 
-void SpriteEditorFrame::SetColour(int c)
-{
-}
-
 void SpriteEditorFrame::SetActivePalette(const std::string& name)
 {
 	if (m_gd != nullptr)
@@ -171,27 +167,12 @@ bool SpriteEditorFrame::SaveAs(wxString filename, bool compressed)
 	return m_spriteeditor->Save(filename, compressed);
 }
 
-bool SpriteEditorFrame::Open(wxString filename)
-{
-	return false;
-}
-
-bool SpriteEditorFrame::Open(std::vector<uint8_t>& pixels)
-{
-	return false;
-}
-
-bool SpriteEditorFrame::New(int r, int c)
-{
-	return false;
-}
-
 const std::string& SpriteEditorFrame::GetFilename() const
 {
 	return m_filename;
 }
 
-void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
