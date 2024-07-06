@@ -160,6 +160,8 @@ private:
 	const int block_height;
 	int m_cellwidth;
 	int m_cellheight;
+	int m_tilewidth;
+	int m_tileheight;
 	int m_ctrlwidth;
 	int m_ctrlheight;
 

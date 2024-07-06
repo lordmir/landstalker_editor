@@ -105,7 +105,7 @@ void EntityViewerCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<
 	Refresh(true);
 }
 
-wxCoord EntityViewerCtrl::OnGetRowHeight(size_t row) const
+wxCoord EntityViewerCtrl::OnGetRowHeight(size_t /*row*/) const
 {
 	if (m_sprite)
 	{
@@ -146,7 +146,7 @@ void EntityViewerCtrl::OnDraw(wxDC& dc)
 	}
 }
 
-void EntityViewerCtrl::OnPaint(wxPaintEvent& evt)
+void EntityViewerCtrl::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -162,7 +162,7 @@ void EntityViewerCtrl::OnSize(wxSizeEvent& evt)
 	Refresh(false);
 }
 
-void EntityViewerCtrl::OnTimer(wxTimerEvent& evt)
+void EntityViewerCtrl::OnTimer(wxTimerEvent& /*evt*/)
 {
 	if (m_gd && m_sprite && !m_freeze)
 	{

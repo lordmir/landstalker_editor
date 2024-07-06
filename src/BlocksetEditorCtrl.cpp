@@ -38,6 +38,8 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	  block_height(2),
 	  m_cellwidth(0),
 	  m_cellheight(0),
+	  m_tilewidth(0),
+	  m_tileheight(0),
 	  m_ctrlwidth(0),
 	  m_ctrlheight(0),
 	  m_enableblocknumbers(true),
@@ -472,11 +474,12 @@ bool BlocksetEditorCtrl::IsPositionValid(const Position& tp) const
 
 void BlocksetEditorCtrl::RefreshStatusbar()
 {
-	if (m_mode == Mode::BLOCK_SELECT)
+	switch (m_mode)
 	{
+	case Mode::BLOCK_SELECT:
 		if (IsBlockHoverValid())
 		{
-			FireUpdateStatusEvent(StrPrintf("Hovered: %03X", GetBlockHover()), 0);
+			FireUpdateStatusEvent(StrPrintf("Hovered: %04d", GetBlockHover()), 0);
 		}
 		else
 		{
@@ -484,7 +487,24 @@ void BlocksetEditorCtrl::RefreshStatusbar()
 		}
 		if (IsBlockSelectionValid())
 		{
-			FireUpdateStatusEvent(StrPrintf("Selected: %03X", GetBlockSelection()), 1);
+			FireUpdateStatusEvent(StrPrintf("Selected: %04d", GetBlockSelection()), 1);
+		}
+		else
+		{
+			FireUpdateStatusEvent("", 1);
+		}
+	case Mode::TILE_SELECT:
+		if (IsBlockHoverValid())
+		{
+			FireUpdateStatusEvent(StrPrintf("Hovered: %04d:%01d", GetBlockHover(), GetTileHover()), 0);
+		}
+		else
+		{
+			FireUpdateStatusEvent("", 0);
+		}
+		if (IsBlockSelectionValid())
+		{
+			FireUpdateStatusEvent(StrPrintf("Selected: %04d:%01d", GetBlockSelection(), GetTileSelection()), 1);
 		}
 		else
 		{
@@ -504,8 +524,10 @@ bool BlocksetEditorCtrl::UpdateRowCount()
 	{
 		return false;
 	}
-	m_cellwidth = m_pixelsize * m_tileset->GetTileWidth() * GetBlockWidth();
-	m_cellheight = m_pixelsize * m_tileset->GetTileHeight() * GetBlockHeight();
+	m_tilewidth = m_pixelsize * m_tileset->GetTileWidth();
+	m_tileheight = m_pixelsize * m_tileset->GetTileHeight();
+	m_cellwidth = m_tilewidth * GetBlockWidth();
+	m_cellheight = m_tileheight * GetBlockHeight();
 	int columns = std::max<int>(1, m_ctrlwidth / m_cellwidth);
 	int rows = std::max<int>(1, (m_blocks->size() + columns - 1) / columns);
 	if ((columns != m_columns) || (rows != m_rows))
@@ -625,28 +647,52 @@ bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlo
 
 void BlocksetEditorCtrl::DrawSelectionBorders(wxDC& dc)
 {
-	if (m_mode == Mode::BLOCK_SELECT)
+	int hbx = (m_hoveredblock % m_columns) * m_cellwidth;
+	int hby = (m_hoveredblock / m_columns) * m_cellheight;
+	int sbx = (m_selectedblock % m_columns) * m_cellwidth;
+	int sby = (m_selectedblock / m_columns) * m_cellheight;
+	int htx = (m_hoveredtile % MapBlock::GetBlockWidth()) * m_tilewidth;
+	int hty = (m_hoveredtile / MapBlock::GetBlockWidth()) * m_tileheight;
+	int stx = (m_selectedtile % MapBlock::GetBlockWidth()) * m_tilewidth;
+	int sty = (m_selectedtile / MapBlock::GetBlockWidth()) * m_tileheight;
+	switch (m_mode)
 	{
-		auto hx = (m_hoveredblock % m_columns) * m_cellwidth;
-		auto hy = (m_hoveredblock / m_columns) * m_cellheight;
-		auto sx = (m_selectedblock % m_columns) * m_cellwidth;
-		auto sy = (m_selectedblock / m_columns) * m_cellheight;
+	case Mode::BLOCK_SELECT:
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		if (m_hoveredblock != -1 && m_hoveredblock != m_selectedblock)
 		{
 			dc.SetPen(*wxWHITE_PEN);
-			dc.DrawRectangle({ hx, hy, m_cellwidth, m_cellheight });
+			dc.DrawRectangle({ hbx, hby, m_cellwidth, m_cellheight });
 		}
 		if (m_selectedblock != -1 && m_hoveredblock != m_selectedblock)
 		{
 			dc.SetPen(*wxYELLOW_PEN);
-			dc.DrawRectangle({ sx, sy, m_cellwidth, m_cellheight });
+			dc.DrawRectangle({ sbx, sby, m_cellwidth, m_cellheight });
 		}
 		if (m_selectedblock != -1 && m_hoveredblock == m_selectedblock)
 		{
 			dc.SetPen(wxPen(wxColor(255, 255, 128)));
-			dc.DrawRectangle({ sx, sy, m_cellwidth, m_cellheight });
+			dc.DrawRectangle({ sbx, sby, m_cellwidth, m_cellheight });
 		}
+		break;
+	case Mode::TILE_SELECT:
+		dc.SetBrush(*wxTRANSPARENT_BRUSH);
+		if (m_hoveredblock != -1 && m_hoveredtile != -1 && (m_hoveredblock != m_selectedblock || m_hoveredtile != m_selectedtile))
+		{
+			dc.SetPen(*wxWHITE_PEN);
+			dc.DrawRectangle({ hbx + htx, hby + hty, m_tilewidth, m_tileheight });
+		}
+		if (m_selectedblock != -1 && m_selectedtile != -1 && (m_hoveredblock != m_selectedblock || m_hoveredtile != m_selectedtile)) 
+		{
+			dc.SetPen(*wxYELLOW_PEN);
+			dc.DrawRectangle({ sbx + stx, sby + sty, m_tilewidth, m_tileheight });
+		}
+		if (m_selectedblock != -1 && m_selectedtile != -1 && (m_hoveredblock == m_selectedblock && m_hoveredtile == m_selectedtile))
+		{
+			dc.SetPen(wxPen(wxColor(255, 255, 128)));
+			dc.DrawRectangle({ sbx + stx, sby + sty, m_tilewidth, m_tileheight });
+		}
+		break;
 	}
 }
 
@@ -780,7 +826,22 @@ BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToBlockPos(const wxPoi
 
 int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 {
-	return -1;
+	if (m_tileset == nullptr)
+	{
+		return -1;
+	}
+	int s = GetVisibleRowsBegin();
+	int xx = point.x % (m_pixelsize * m_tileset->GetTileWidth() * MapBlock::GetBlockWidth());
+	int yy = s + point.y % (m_pixelsize * m_tileset->GetTileHeight() * MapBlock::GetBlockHeight());
+	int x = xx / (m_pixelsize * m_tileset->GetTileWidth());
+	int y = yy / (m_pixelsize * m_tileset->GetTileHeight());
+	int sel = x + y * MapBlock::GetBlockWidth();
+	if ((sel >= static_cast<int>(MapBlock::GetBlockSize()) || (x < 0) || (y < 0) ||
+		(x >= static_cast<int>(MapBlock::GetBlockWidth()))) || (y >= static_cast<int>(MapBlock::GetBlockHeight())))
+	{
+		sel = -1;
+	}
+	return sel;
 }
 
 BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToTilePos(const wxPoint& point) const
@@ -865,7 +926,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 	m_memdc.SelectObject(wxNullBitmap);
 }
 
-void BlocksetEditorCtrl::OnPaint(wxPaintEvent& evt)
+void BlocksetEditorCtrl::OnPaint(wxPaintEvent& /*evt*/)
 {
 	wxBufferedPaintDC dc(this);
 	this->PrepareDC(dc);
@@ -887,20 +948,37 @@ void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
 	if (m_enablehover)
 	{
-		if (m_mode == Mode::BLOCK_SELECT)
+		auto block_idx = ConvertXYToBlockIdx(evt.GetPosition());
+		auto tile_idx = ConvertXYToTileIdx(evt.GetPosition());
+		switch (m_mode)
 		{
-			auto idx = ConvertXYToBlockIdx(evt.GetPosition());
-			if (m_hoveredblock != idx)
+		case Mode::BLOCK_SELECT:
+			if (m_hoveredblock != block_idx)
 			{
 				if (m_hoveredblock != -1)
 				{
 					m_redraw_list.insert(m_hoveredblock);
 				}
-				m_hoveredblock = idx;
+				m_hoveredblock = block_idx;
 				FireBlockEvent(EVT_BLOCK_HOVER, "");
 				RefreshStatusbar();
 				Refresh();
 			}
+			break;
+		case Mode::TILE_SELECT:
+			if (m_hoveredblock != block_idx || m_hoveredtile != tile_idx)
+			{
+				if (m_hoveredblock != -1)
+				{
+					m_redraw_list.insert(m_hoveredblock);
+				}
+				m_hoveredblock = block_idx;
+				m_hoveredtile = tile_idx;
+				FireBlockEvent(EVT_BLOCK_HOVER, "");
+				RefreshStatusbar();
+				Refresh();
+			}
+			break;
 		}
 	}
 	evt.Skip();
@@ -910,16 +988,14 @@ void BlocksetEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
 	if (m_enablehover)
 	{
-		if (m_mode == Mode::BLOCK_SELECT)
+		if (m_hoveredblock != -1)
 		{
-			if (m_hoveredblock != -1)
-			{
-				m_redraw_list.insert(m_hoveredblock);
-				m_hoveredblock = -1;
-				FireBlockEvent(EVT_BLOCK_HOVER, "");
-				RefreshStatusbar();
-				Refresh();
-			}
+			m_redraw_list.insert(m_hoveredblock);
+			m_hoveredblock = -1;
+			m_hoveredtile = -1;
+			FireBlockEvent(EVT_BLOCK_HOVER, "");
+			RefreshStatusbar();
+			Refresh();
 		}
 	}
 	evt.Skip();
@@ -927,35 +1003,62 @@ void BlocksetEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 
 void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 {
-	if (m_mode == Mode::BLOCK_SELECT)
+	int block_idx = ConvertXYToBlockIdx(evt.GetPosition());
+	int tile_idx = ConvertXYToTileIdx(evt.GetPosition());
+	bool refresh = false;
+	switch (m_mode)
 	{
-		auto idx = ConvertXYToBlockIdx(evt.GetPosition());
-		bool refresh = false;
-		if (m_enablehover && m_hoveredblock != idx)
+	case Mode::BLOCK_SELECT:
+		if (m_enablehover && m_hoveredblock != block_idx)
 		{
 			if (m_hoveredblock != -1)
 			{
 				m_redraw_list.insert(m_hoveredblock);
 			}
-			m_hoveredblock = idx;
+			m_hoveredblock = block_idx;
 			FireBlockEvent(EVT_BLOCK_HOVER, "");
 			refresh = true;
 		}
-		if (m_enableselection && m_selectedblock != idx)
+		if (m_enableselection && m_selectedblock != block_idx)
 		{
 			if (m_selectedblock != -1)
 			{
 				m_redraw_list.insert(m_selectedblock);
 			}
-			m_selectedblock = idx;
+			m_selectedblock = block_idx;
 			FireBlockEvent(EVT_BLOCK_SELECT, "");
 			refresh = true;
 		}
-		if (refresh)
+		break;
+	case Mode::TILE_SELECT:
+		if (m_enablehover && (m_hoveredblock != block_idx || m_hoveredtile != tile_idx))
 		{
-			RefreshStatusbar();
-			Refresh();
+			if (m_hoveredblock != -1)
+			{
+				m_redraw_list.insert(m_hoveredblock);
+			}
+			m_hoveredblock = block_idx;
+			m_hoveredtile = tile_idx;
+			FireBlockEvent(EVT_BLOCK_HOVER, "");
+			refresh = true;
 		}
+		if (m_enableselection && (m_selectedblock != block_idx || m_selectedtile != tile_idx))
+		{
+			if (m_selectedblock != -1)
+			{
+				m_redraw_list.insert(m_selectedblock);
+			}
+			m_selectedblock = block_idx;
+			m_selectedtile = tile_idx;
+			FireBlockEvent(EVT_BLOCK_SELECT, "");
+			refresh = true;
+		}
+		break;
+	}
+	if (refresh)
+	{
+		RefreshStatusbar();
+		Refresh();
 	}
 	evt.Skip();
 }
@@ -986,6 +1089,8 @@ void BlocksetEditorCtrl::FireTilesetEvent(const wxEventType& e, const std::strin
 {
 	wxCommandEvent evt(e);
 	evt.SetInt(m_selectedtile);
+	evt.SetExtraLong(m_selectedblock);
+	evt.SetString(data);
 	evt.SetClientData(GetParent());
 	wxPostEvent(m_frame, evt);
 }
@@ -994,6 +1099,8 @@ void BlocksetEditorCtrl::FireBlockEvent(const wxEventType& e, const std::string&
 {
 	wxCommandEvent evt(e);
 	evt.SetInt(m_selectedblock);
+	evt.SetExtraLong(m_selectedtile);
+	evt.SetString(data);
 	evt.SetClientData(GetParent());
 	wxPostEvent(m_frame, evt);
 }

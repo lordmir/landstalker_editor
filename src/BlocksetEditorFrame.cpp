@@ -1,10 +1,5 @@
 #include "BlocksetEditorFrame.h"
 
-wxBEGIN_EVENT_TABLE(BlocksetEditorFrame, wxWindow)
-EVT_SLIDER(wxID_ANY, BlocksetEditorFrame::OnZoomChange)
-EVT_TOOL(wxID_ANY, BlocksetEditorFrame::OnButtonClicked)
-wxEND_EVENT_TABLE()
-
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_CBS = 20000,
@@ -12,6 +7,16 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_CBS,
 	ID_FILE_IMPORT_CSV,
+	ID_VIEW,
+	ID_VIEW_TOGGLE_GRIDLINES,
+	ID_VIEW_TOGGLE_TILE_NOS,
+	ID_VIEW_TOGGLE_ALPHA,
+	ID_TOOLS,
+	ID_TOOLS_TILES,
+	ID_TOOLS_TOOLBAR,
+	ID_TOOLS_BLOCK_SELECT,
+	ID_TOOLS_TILE_SELECT,
+	ID_TOOLS_TILE_DRAW,
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_TILE_NUMBERS,
 	ID_TOGGLE_ALPHA,
@@ -23,8 +28,16 @@ enum MENU_IDS
 	ID_TOGGLE_TILE_PRIORITY,
 	ID_BLOCK_SELECT,
 	ID_TILE_SELECT,
-	ID_PENCIL
+	ID_PENCIL,
+	ID_ZOOM,
+	ID_PALETTE_SELECT
 };
+
+wxBEGIN_EVENT_TABLE(BlocksetEditorFrame, wxWindow)
+EVT_SLIDER(wxID_ANY, BlocksetEditorFrame::OnZoomChange)
+EVT_TOOL(wxID_ANY, BlocksetEditorFrame::OnButtonClicked)
+EVT_COMBOBOX(ID_PALETTE_SELECT, BlocksetEditorFrame::OnPaletteSelect)
+wxEND_EVENT_TABLE()
 
 BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst)
@@ -91,8 +104,10 @@ void BlocksetEditorFrame::RedrawTiles(int index) const
 	m_editor->RedrawTiles(index);
 }
 
-void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList&) const
+void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
+	auto* parent = m_mgr.GetManagedWindow();
+
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_CBS, "Export Blockset as Binary...");
@@ -100,7 +115,66 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList&) const
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Blockset as PNG...");
 	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_CBS, "Import Blockset from Binary...");
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_CSV, "Import Blockset from CSV...");
+	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
+	auto& toolsMenu = AddMenu(menu, 2, ID_TOOLS, "Tools");
+	AddMenuItem(toolsMenu, 0, ID_TOOLS_TILES, "Tiles Pane", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 1, ID_TOOLS_TOOLBAR, "Blockset Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_BLOCK_SELECT, "Block Select Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 4, ID_TOOLS_TILE_SELECT, "Tile Select Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 5, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
 
+	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+
+
+	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
+	toolbar->AddTool(ID_TOGGLE_TILE_NUMBERS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
+	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_INSERT_BLOCK_BEFORE, "Insert Block Before", ilist.GetImage("insert_before"), "Insert Block Before");
+	toolbar->AddTool(ID_INSERT_BLOCK_AFTER, "Insert Block After", ilist.GetImage("insert_after"), "Insert Block After");
+	toolbar->AddTool(ID_DELETE_BLOCK, "Delete Block", ilist.GetImage("delete_tile"), "Delete Block");
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_HFLIP_TILE, "Horizontally Flip Tile", ilist.GetImage("hflip"), "Horizontally Flip Tile");
+	toolbar->AddTool(ID_VFLIP_TILE, "Vertically Flip Tile", ilist.GetImage("vflip"), "Vertically Flip Tile");
+	toolbar->AddTool(ID_TOGGLE_TILE_PRIORITY, "Toggle Tile Priority", ilist.GetImage("priority"), "Toggle Tile Priority");
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("big_tiles"), "Block Select", wxITEM_RADIO);
+	toolbar->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("tileset"), "Tile Select", wxITEM_RADIO);
+	toolbar->AddTool(ID_PENCIL, "Draw Tiles", ilist.GetImage("pencil"), "Draw Tiles", wxITEM_RADIO);
+	toolbar->AddSeparator();
+	toolbar->AddLabel(wxID_ANY, "Zoom:");
+	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	toolbar->AddControl(m_zoomslider, "Zoom");
+	m_palette_select = new wxComboBox(toolbar, ID_PALETTE_SELECT, "", wxDefaultPosition, wxDefaultSize, {}, wxCB_DROPDOWN | wxCB_READONLY);
+	toolbar->SetToolBitmapSize(wxSize(16, 16));
+	toolbar->AddLabel(wxID_ANY, "Palette:");
+	toolbar->AddControl(m_palette_select, "Palette");
+
+	AddToolbar(m_mgr, *toolbar, "Blockset", "Blockset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+
+	std::vector<wxString> palette_list;
+	const auto& palettes = m_gd->GetAllPalettes();
+	palette_list.reserve(palettes.size());
+	m_palette_list.Clear();
+	for (const auto& p : palettes)
+	{
+		palette_list.push_back(p.first);
+		m_palette_list.Add(p.first);
+	}
+	if (m_palette_select != nullptr)
+	{
+		m_palette_select->Clear();
+		m_palette_select->Append(palette_list);
+	}
+
+	if (m_palette != nullptr && m_palette != nullptr)
+	{
+		m_palette_select->SetStringSelection(m_palette->GetName());
+	}
 	UpdateUI();
 
 	m_mgr.Update();
@@ -132,6 +206,13 @@ void BlocksetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	UpdateStatus();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	evt.Skip();
+}
+
+void BlocksetEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+	// The toolbar destructor deletes these, but doesn't clear the pointer
+	m_palette_select = nullptr;
 }
 
 void BlocksetEditorFrame::ExportBin(const std::string& filename) const
@@ -280,15 +361,15 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 		}
 		break;
 	case ID_BLOCK_SELECT:
-		m_toolbar->ToggleTool(ID_BLOCK_SELECT, true);
+		//m_toolbar->ToggleTool(ID_BLOCK_SELECT, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::BLOCK_SELECT);
 		break;
 	case ID_TILE_SELECT:
-		m_toolbar->ToggleTool(ID_TILE_SELECT, true);
+		//m_toolbar->ToggleTool(ID_TILE_SELECT, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::TILE_SELECT);
 		break;
 	case ID_PENCIL:
-		m_toolbar->ToggleTool(ID_PENCIL, true);
+		//m_toolbar->ToggleTool(ID_PENCIL, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
 		break;
 	default:
@@ -298,14 +379,12 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void BlocksetEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
+{
+}
+
 void BlocksetEditorFrame::UpdateStatus()
 {
-	if (m_zoomslider)
-	{
-		std::ostringstream ss;
-		m_statusbar->SetStatusText(wxString::Format("Zoom: %d%s", m_zoomslider->GetValue(), ss.str()), 1);
-		m_editor->SetPixelSize(m_zoomslider->GetValue());
-	}
 }
 
 void BlocksetEditorFrame::OnExportBin()
