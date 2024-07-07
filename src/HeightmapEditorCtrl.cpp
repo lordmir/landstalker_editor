@@ -558,7 +558,7 @@ bool HeightmapEditorCtrl::HandleRegionKeyDown(unsigned int key, unsigned int mod
 #undef INCR
 }
 
-bool HeightmapEditorCtrl::HandleKeyUp(unsigned int key, unsigned int modifiers)
+bool HeightmapEditorCtrl::HandleKeyUp(unsigned int /*key*/, unsigned int /*modifiers*/)
 {
     return false;
 }
@@ -1187,7 +1187,7 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
     return false;
 }
 
-bool HeightmapEditorCtrl::HandleLeftDClick(unsigned int modifiers)
+bool HeightmapEditorCtrl::HandleLeftDClick(unsigned int /*modifiers*/)
 {
     return false;
 }
@@ -1837,7 +1837,7 @@ void HeightmapEditorCtrl::OnRightDblClick(wxMouseEvent& evt)
 
 int HeightmapEditorCtrl::GetFirstDoorRegion(const Coord& c)
 {
-    auto [x, y] = c;
+    auto& [x, y] = c;
     for (std::size_t i = 0; i < m_doors.size(); ++i)
     {
         const Door& door = m_doors.at(i);
@@ -1851,7 +1851,7 @@ int HeightmapEditorCtrl::GetFirstDoorRegion(const Coord& c)
 
 std::pair<int, bool> HeightmapEditorCtrl::GetFirstSwapRegion(const Coord& c)
 {
-    auto [x, y] = c;
+    const auto& [x, y] = c;
     for (std::size_t i = 0; i < m_swaps.size(); ++i)
     {
         const TileSwap& swap = m_swaps.at(i);

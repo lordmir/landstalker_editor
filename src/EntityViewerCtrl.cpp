@@ -117,7 +117,7 @@ wxCoord EntityViewerCtrl::OnGetRowHeight(size_t /*row*/) const
 	}
 }
 
-wxCoord EntityViewerCtrl::OnGetColumnWidth(size_t column) const
+wxCoord EntityViewerCtrl::OnGetColumnWidth(size_t /*column*/) const
 {
 	if (m_sprite)
 	{
@@ -206,7 +206,7 @@ void EntityViewerCtrl::DrawTile(wxDC& dc, int x, int y, int tile)
 	dc.SetPen(pen);
 
 	auto tile_bytes = m_sprite->GetTile(tile);
-	std::array<uint32_t, 64> tile_pixels;
+	std::array<uint32_t, 64> tile_pixels = {0};
 	auto it = tile_pixels.begin();
 	for (const auto& b : tile_bytes)
 	{

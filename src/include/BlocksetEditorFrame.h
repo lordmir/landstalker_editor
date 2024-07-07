@@ -37,7 +37,11 @@ private:
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
 	void OnPaletteSelect(wxCommandEvent& evt);
-	void UpdateStatus();
+	void OnBlockSelect(wxCommandEvent& evt);
+	void OnTileSelect(wxCommandEvent& evt);
+	virtual void UpdateUI() const override;
+
+	virtual void InitStatusBar(wxStatusBar& status) const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);

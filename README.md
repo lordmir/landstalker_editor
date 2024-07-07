@@ -15,7 +15,7 @@ Current State of progress:
 | 2D Maps                     | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Misc Graphics (Fonts, etc.) | :heavy_minus_sign: | :heavy_minus_sign: | 90% complete. Still need to understand end credit font.    |
 | Palettes                    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Blocksets                   | :heavy_check_mark: | :x:                | Editor UI still needs to be made.                          |
+| Blocksets                   | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | 3D Maps                     | :heavy_check_mark: | :heavy_check_mark: | Editor UI could be better optimised.                       |
 | Heightmaps                  | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Room Entity Placement       | :heavy_check_mark: | :heavy_check_mark: |                                                            |

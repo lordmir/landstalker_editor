@@ -95,6 +95,8 @@ ImageList::ImageList(bool img32x32)
 		m_images["redo"] = wxBITMAP_PNG_FROM_DATA(REDO_16x16);
 		m_images["room"] = wxBITMAP_PNG_FROM_DATA(room_16x16);
 		m_images["save"] = wxBITMAP_PNG_FROM_DATA(SAVE_16x16);
+		m_images["sel_block"] = wxBITMAP_PNG_FROM_DATA(selblock_16x16);
+		m_images["sel_tile"] = wxBITMAP_PNG_FROM_DATA(seltile_16x16);
 		m_images["sprite"] = wxBITMAP_PNG_FROM_DATA(sprite_16x16);
 		m_images["string"] = wxBITMAP_PNG_FROM_DATA(string_16x16);
 		m_images["spanel"] = wxBITMAP_PNG_FROM_DATA(spanel_16x16);

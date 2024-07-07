@@ -10,7 +10,7 @@ wxBEGIN_EVENT_TABLE(BlocksetEditorCtrl, wxVScrolledWindow)
 EVT_PAINT(BlocksetEditorCtrl::OnPaint)
 EVT_SIZE(BlocksetEditorCtrl::OnSize)
 EVT_LEFT_DOWN(BlocksetEditorCtrl::OnMouseDown)
-EVT_LEFT_DCLICK(BlocksetEditorCtrl::OnDoubleClick)
+EVT_RIGHT_DOWN(BlocksetEditorCtrl::OnMouseDown)
 EVT_MOTION(BlocksetEditorCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(BlocksetEditorCtrl::OnMouseLeave)
 wxEND_EVENT_TABLE()
@@ -21,6 +21,7 @@ wxDEFINE_EVENT(EVT_BLOCK_EDIT_REQUEST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BLOCK_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BLOCK_TILE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_BLOCK_ACTIVATE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_TILE_SELECT, wxCommandEvent);
 
 BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	: wxVScrolledWindow(parent, wxID_ANY),
@@ -42,13 +43,13 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	  m_tileheight(0),
 	  m_ctrlwidth(0),
 	  m_ctrlheight(0),
-	  m_enableblocknumbers(true),
+	  m_enableblocknumbers(false),
 	  m_enabletilenumbers(false),
 	  m_enableborders(true),
 	  m_enabletileborders(true),
 	  m_enableselection(true),
 	  m_enablehover(true),
-	  m_enablealpha(false),
+	  m_enablealpha(true),
 	  m_redraw_all(true),
 	  m_drawtile(0),
 	  m_frame(parent)
@@ -72,25 +73,6 @@ void BlocksetEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
 void BlocksetEditorCtrl::ClearGameData()
 {
 	m_gd = nullptr;
-}
-
-void BlocksetEditorCtrl::SetColour(int c)
-{
-}
-
-bool BlocksetEditorCtrl::Save(const wxString& filename)
-{
-	return false;
-}
-
-bool BlocksetEditorCtrl::Open(const wxString& filename)
-{
-	return false;
-}
-
-bool BlocksetEditorCtrl::Open(const std::vector<uint8_t>& data)
-{
-	return false;
 }
 
 bool BlocksetEditorCtrl::Open(const std::string& name)
@@ -132,11 +114,6 @@ bool BlocksetEditorCtrl::OpenRoom(uint16_t roomnum)
 	UpdateRowCount();
 	ForceRedraw();
 	return true;
-}
-
-bool BlocksetEditorCtrl::New()
-{
-	return false;
 }
 
 void BlocksetEditorCtrl::RedrawTiles(int index)
@@ -194,7 +171,7 @@ std::string BlocksetEditorCtrl::GetActivePalette() const
 
 int BlocksetEditorCtrl::GetBlockmapSize() const
 {
-	return 0;
+	return m_blocks ? 0 : m_blocks->size();
 }
 
 int BlocksetEditorCtrl::GetBlockWidth() const
@@ -225,6 +202,10 @@ std::shared_ptr<std::vector<MapBlock>> BlocksetEditorCtrl::GetBlocks()
 void BlocksetEditorCtrl::SetMode(const Mode& mode)
 {
 	m_mode = mode;
+	m_redraw_list.insert(m_selectedblock);
+	m_selectedblock = -1;
+	m_selectedtile = -1;
+	Refresh();
 }
 
 BlocksetEditorCtrl::Mode BlocksetEditorCtrl::GetMode() const
@@ -235,6 +216,7 @@ BlocksetEditorCtrl::Mode BlocksetEditorCtrl::GetMode() const
 void BlocksetEditorCtrl::SetDrawTile(const Tile& tile)
 {
 	m_drawtile = tile;
+	RefreshStatusbar();
 }
 
 Tile BlocksetEditorCtrl::GetDrawTile()
@@ -242,14 +224,123 @@ Tile BlocksetEditorCtrl::GetDrawTile()
 	return m_drawtile;
 }
 
+void BlocksetEditorCtrl::ToggleSelectedHFlip()
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+		SetSelectedTile(tile);
+	}
+}
+
+void BlocksetEditorCtrl::ToggleSelectedVFlip()
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+		SetSelectedTile(tile);
+	}
+}
+
+void BlocksetEditorCtrl::ToggleSelectedPriority()
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+		SetSelectedTile(tile);
+	}
+}
+
+void BlocksetEditorCtrl::SetSelectedHFlip(bool hflip)
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		if (hflip)
+		{
+			tile.Attributes().setAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+		}
+		else
+		{
+			tile.Attributes().clearAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+		}
+		SetSelectedTile(tile);
+	}
+}
+
+void BlocksetEditorCtrl::SetSelectedVFlip(bool vflip)
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		if (vflip)
+		{
+			tile.Attributes().setAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+		}
+		else
+		{
+			tile.Attributes().clearAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+		}
+		SetSelectedTile(tile);
+	}
+}
+
+void BlocksetEditorCtrl::SetSelectedPriority(bool priority)
+{
+	if (IsTileSelectionValid())
+	{
+		auto tile = GetSelectedTile();
+		if (priority)
+		{
+			tile.Attributes().setAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+		}
+		else
+		{
+			tile.Attributes().clearAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+		}
+		SetSelectedTile(tile);
+	}
+}
+
+bool BlocksetEditorCtrl::GetSelectedHFlip() const
+{
+	if (IsTileSelectionValid())
+	{
+		return GetSelectedTile().Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+	}
+	return false;
+}
+
+bool BlocksetEditorCtrl::GetSelectedVFlip() const
+{
+	if (IsTileSelectionValid())
+	{
+		return GetSelectedTile().Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+	}
+	return false;
+}
+
+bool BlocksetEditorCtrl::GetSelectedPriority() const
+{
+	if (IsTileSelectionValid())
+	{
+		return GetSelectedTile().Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+	}
+	return false;
+}
+
 bool BlocksetEditorCtrl::GetTileNumbersEnabled() const
 {
-	return m_enabletilenumbers;
+	return m_enableblocknumbers;
 }
 
 void BlocksetEditorCtrl::SetTileNumbersEnabled(bool enabled)
 {
-	m_enabletilenumbers = enabled;
+	m_enableblocknumbers = enabled;
+	ForceRedraw();
 }
 
 bool BlocksetEditorCtrl::GetSelectionEnabled() const
@@ -260,6 +351,12 @@ bool BlocksetEditorCtrl::GetSelectionEnabled() const
 void BlocksetEditorCtrl::SetSelectionEnabled(bool enabled)
 {
 	m_enableselection = enabled;
+	if (m_enableselection == false)
+	{
+		m_selectedblock = -1;
+		m_selectedtile = -1;
+	}
+	ForceRedraw();
 }
 
 bool BlocksetEditorCtrl::GetHoverEnabled() const
@@ -270,6 +367,12 @@ bool BlocksetEditorCtrl::GetHoverEnabled() const
 void BlocksetEditorCtrl::SetHoverEnabled(bool enabled)
 {
 	m_enablehover = enabled;
+	if (m_enablehover == false)
+	{
+		m_hoveredblock = -1;
+		m_hoveredtile = -1;
+	}
+	ForceRedraw();
 }
 
 bool BlocksetEditorCtrl::GetAlphaEnabled() const
@@ -280,6 +383,7 @@ bool BlocksetEditorCtrl::GetAlphaEnabled() const
 void BlocksetEditorCtrl::SetAlphaEnabled(bool enabled)
 {
 	m_enablealpha = enabled;
+	ForceRedraw();
 }
 
 bool BlocksetEditorCtrl::GetBordersEnabled() const
@@ -290,36 +394,57 @@ bool BlocksetEditorCtrl::GetBordersEnabled() const
 void BlocksetEditorCtrl::SetBordersEnabled(bool enabled)
 {
 	m_enableborders = enabled;
+	ForceRedraw();
 }
 
 bool BlocksetEditorCtrl::InsertBlock(int row)
 {
+	if (m_blocks && row >= 0 && row <= static_cast<int>(m_blocks->size()))
+	{
+		m_blocks->insert(m_blocks->cbegin() + row, MapBlock());
+		for (int i = row; i < static_cast<int>(m_blocks->size()); ++i)
+		{
+			m_redraw_list.insert(i);
+			Refresh(true);
+		}
+		return true;
+	}
 	return false;
 }
 
 bool BlocksetEditorCtrl::DeleteBlock(int row)
 {
+	if (m_blocks && row >= 0 && row < static_cast<int>(m_blocks->size()))
+	{
+		m_blocks->erase(m_blocks->cbegin() + row);
+		for (int i = row; i < static_cast<int>(m_blocks->size()); ++i)
+		{
+			m_redraw_list.insert(i);
+			Refresh(true);
+		}
+		return true;
+	}
 	return false;
 }
 
 bool BlocksetEditorCtrl::IsBlockSelectionValid() const
 {
-	return m_selectedblock >= 0 && m_selectedblock < static_cast<int>(m_blocks->size());
+	return IsBlockIndexValid(m_selectedblock);
 }
 
 bool BlocksetEditorCtrl::IsBlockHoverValid() const
 {
-	return m_hoveredblock >= 0 && m_hoveredblock < static_cast<int>(m_blocks->size());
+	return IsBlockIndexValid(m_hoveredblock);
 }
 
 bool BlocksetEditorCtrl::IsTileSelectionValid() const
 {
-	return m_selectedtile >= 0 && m_selectedtile < static_cast<int>(m_blocks->size()) * 4;
+	return IsBlockIndexValid(m_selectedblock) && IsTileIndexValid(m_selectedtile);
 }
 
 bool BlocksetEditorCtrl::IsTileHoverValid() const
 {
-	return m_hoveredblock >= 0 && m_hoveredblock < static_cast<int>(m_blocks->size()) * 4;
+	return IsBlockIndexValid(m_hoveredblock) && IsTileIndexValid(m_hoveredtile);
 }
 
 uint16_t BlocksetEditorCtrl::GetBlockSelection() const
@@ -349,7 +474,7 @@ uint16_t BlocksetEditorCtrl::GetBlockHover() const
 void BlocksetEditorCtrl::SetBlockSelection(int block)
 {
 	int b = -1;
-	if (block >= 0 && block < static_cast<int>(m_blocks->size()))
+	if (IsBlockIndexValid(block))
 	{
 		b = block;
 	}
@@ -402,15 +527,27 @@ MapBlock BlocksetEditorCtrl::GetSelectedBlock() const
 
 Tile BlocksetEditorCtrl::GetSelectedTile() const
 {
+	if (m_blocks && IsTileSelectionValid())
+	{
+		return GetTile(m_selectedblock, m_selectedtile);
+	}
 	return Tile();
 }
 
 void BlocksetEditorCtrl::SetSelectedBlock(const MapBlock& block)
 {
+	if (IsBlockSelectionValid())
+	{
+		SetBlock(m_selectedblock, block);
+	}
 }
 
 void BlocksetEditorCtrl::SetSelectedTile(const Tile& tile)
 {
+	if (IsTileSelectionValid() && tile != GetSelectedTile())
+	{
+		SetTile(m_selectedblock, m_selectedtile, tile);
+	}
 }
 
 MapBlock BlocksetEditorCtrl::GetHoveredBlock() const
@@ -425,51 +562,72 @@ MapBlock BlocksetEditorCtrl::GetHoveredBlock() const
 	}
 }
 
-void BlocksetEditorCtrl::SetHoveredBlock(const MapBlock& tile)
-{
-}
-
 Tile BlocksetEditorCtrl::GetHoveredTile() const
 {
-	return Tile();
+	if (IsTileHoverValid())
+	{
+		return GetTile(m_hoveredblock, m_hoveredtile);
+	}
+	else
+	{
+		return Tile();
+	}
 }
 
 void BlocksetEditorCtrl::SetHoveredTile(const Tile& tile)
 {
+	if (IsTileHoverValid() && tile != GetHoveredTile())
+	{
+		SetTile(m_hoveredblock, m_hoveredtile, tile);
+	}
 }
 
-MapBlock BlocksetEditorCtrl::GetBlockAtPosition(const Position& block) const
+MapBlock BlocksetEditorCtrl::GetBlock(int index) const
 {
-	int idx = ToBlockIndex(block);
-	if (idx >= 0 && idx < static_cast<int>(m_blocks->size()))
+	if (m_blocks && IsBlockIndexValid(index))
 	{
-		return m_blocks->at(idx);
+		return m_blocks->at(index);
 	}
 	return MapBlock();
 }
 
-Tile BlocksetEditorCtrl::GetTileAtPosition(const Position& block, const Position& tile) const
+Tile BlocksetEditorCtrl::GetTile(int block_idx, int tile_idx) const
 {
+	if (m_blocks && IsBlockIndexValid(block_idx) && IsTileIndexValid(tile_idx))
+	{
+		return m_blocks->at(block_idx).GetTile(tile_idx);
+	}
 	return Tile();
 }
 
-void BlocksetEditorCtrl::SetBlockAtPosition(const Position& block, const MapBlock& new_block)
+void BlocksetEditorCtrl::SetBlock(int block, const MapBlock& new_block)
 {
-	int idx = ToBlockIndex(block);
-	if (idx >= 0 && idx < static_cast<int>(m_blocks->size()))
+	if (m_blocks && IsBlockIndexValid(block))
 	{
-		m_blocks->at(idx) = new_block;
+		m_blocks->at(block) = new_block;
+		m_redraw_list.insert(block);
+		Refresh();
 	}
 }
 
-void BlocksetEditorCtrl::SetTileAtPosition(const Position& block, const Position& tile, const Tile& new_tile)
+void BlocksetEditorCtrl::SetTile(int block_idx, int tile_idx, const Tile& new_tile)
 {
+	if (m_blocks && IsBlockIndexValid(block_idx) && IsTileIndexValid(tile_idx))
+	{
+		m_blocks->at(block_idx).SetTile(tile_idx, new_tile);
+		m_redraw_list.insert(block_idx);
+		Refresh();
+	}
 }
 
-bool BlocksetEditorCtrl::IsPositionValid(const Position& tp) const
+bool BlocksetEditorCtrl::IsBlockIndexValid(int block_index) const
 {
-	int idx = ToBlockIndex(tp);
-	return (idx >= 0 && idx < static_cast<int>(m_blocks->size()));
+	return (m_blocks && (block_index >= 0) && (block_index < static_cast<int>(m_blocks->size())));
+}
+
+bool BlocksetEditorCtrl::IsTileIndexValid(int tile_index) const
+{
+	return (tile_index >= 0 && tile_index < static_cast<int>(MapBlock::GetBlockSize()));
 }
 
 void BlocksetEditorCtrl::RefreshStatusbar()
@@ -493,27 +651,42 @@ void BlocksetEditorCtrl::RefreshStatusbar()
 		{
 			FireUpdateStatusEvent("", 1);
 		}
+		break;
 	case Mode::TILE_SELECT:
+	case Mode::PENCIL:
 		if (IsBlockHoverValid())
 		{
-			FireUpdateStatusEvent(StrPrintf("Hovered: %04d:%01d", GetBlockHover(), GetTileHover()), 0);
+			const auto& tile = GetHoveredTile();
+			FireUpdateStatusEvent(StrPrintf("Hovered: %04d:%01d (%03d%s%s%s)", GetBlockHover(), GetTileHover(),
+				tile.GetIndex(), tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? "H" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? "V" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? "P" : ""), 0);
 		}
 		else
 		{
 			FireUpdateStatusEvent("", 0);
 		}
-		if (IsBlockSelectionValid())
+		if (m_mode == Mode::TILE_SELECT && IsTileSelectionValid())
 		{
-			FireUpdateStatusEvent(StrPrintf("Selected: %04d:%01d", GetBlockSelection(), GetTileSelection()), 1);
+			const auto& tile = GetSelectedTile();
+			FireUpdateStatusEvent(StrPrintf("Selected: %04d:%01d (%03d%s%s%s)", GetBlockSelection(), GetTileSelection(),
+				tile.GetIndex(), tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? "H" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? "V" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? "P" : ""), 1);
+		}
+		else if (m_mode == Mode::PENCIL && m_drawtile >= 0)
+		{
+			FireUpdateStatusEvent(StrPrintf("Selected Tile: %03d", m_drawtile.GetIndex()), 1);
 		}
 		else
 		{
 			FireUpdateStatusEvent("", 1);
 		}
+		break;
 	}
 }
 
-wxCoord BlocksetEditorCtrl::OnGetRowHeight(size_t row) const
+wxCoord BlocksetEditorCtrl::OnGetRowHeight(size_t /*row*/) const
 {
 	return wxCoord(m_pixelsize * m_tileset->GetTileHeight() * GetBlockHeight());
 }
@@ -559,20 +732,11 @@ bool BlocksetEditorCtrl::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 		dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
 		dc.DrawRectangle({ xx, yy, tile_width, tile_height });
 		DrawTilePixels(dc, xx, yy, tile);
-		if (m_enabletileborders)
+		if (m_enableborders)
 		{
 			dc.SetPen(*m_tile_border_pen);
 			dc.SetBrush(*wxTRANSPARENT_BRUSH);
 			dc.DrawRectangle({ xx, yy, tile_width + 1, tile_height + 1 });
-		}
-		if (m_enabletilenumbers)
-		{
-			auto label = (wxString::Format("%03d", tile.GetIndex()));
-			auto extent = dc.GetTextExtent(label);
-			if ((extent.GetWidth() < tile_width - 2) && (extent.GetHeight() < tile_height - 2))
-			{
-				dc.DrawText(label, { x * tile_width + 2, y * tile_height + 2 });
-			}
 		}
 		retval = true;
 	}
@@ -604,12 +768,12 @@ void BlocksetEditorCtrl::DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile
 	}
 }
 
-bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlock& block)
+bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, const MapBlock& block)
 {
 	bool retval = true;
-	for (std::size_t i = 0; i < MapBlock::GetBlockSize(); ++i)
+	for (int i = 0; i < static_cast<int>(MapBlock::GetBlockSize()); ++i)
 	{
-		const auto pos = ToTilePosition(i);
+		Position pos = {i % static_cast<int>(MapBlock::GetBlockWidth()), i / static_cast<int>(MapBlock::GetBlockWidth())};
 		const int xx = x * MapBlock::GetBlockWidth() + pos.x;
 		const int yy = y * MapBlock::GetBlockHeight() + pos.y;
 		if (!DrawTile(dc, xx, yy, block.GetTile(pos.x, pos.y)))
@@ -622,27 +786,116 @@ bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlo
 		dc.SetPen(*m_border_pen);
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
-		bool pri = false;
-		for (int i = 0; i < static_cast<int>(MapBlock::GetBlockSize()); ++i)
-		{
-			pri = pri || m_blocks->at(x + y * m_columns).GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
-		}
-		if (pri)
-		{
-			dc.SetPen(*m_priority_pen);
-			dc.DrawRectangle({ x * m_cellwidth + 1, y * m_cellheight + 1, m_cellwidth - 2, m_cellheight - 2 });
-		}
+		DrawBlockPriority(dc, x, y, block);
 	}
 	if (m_enableblocknumbers)
 	{
-		auto label = (wxString::Format("%03X", idx));
-		auto extent = dc.GetTextExtent(label);
-		if ((extent.GetWidth() < GetBlockWidth() - 2) && (extent.GetHeight() < GetBlockHeight() - 2))
+		for (int i = 0; i < static_cast<int>(MapBlock::GetBlockSize()); ++i)
 		{
-			dc.DrawText(label, { x * GetBlockWidth() + 2, y * GetBlockHeight() + 2});
+			const auto& tile = block.GetTile(i);
+			auto label = StrPrintf("%03d%s%s%s", tile.GetIndex(),
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? "H" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? "V" : "",
+				tile.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? "P" : "");
+			auto extent = dc.GetTextExtent(label);
+			if ((extent.GetWidth() < m_tilewidth - 2) && (extent.GetHeight() <m_tileheight - 2))
+			{
+				dc.DrawText(label, {
+					(x * GetBlockWidth() + (i % static_cast<int>(MapBlock::GetBlockWidth()))) * m_tilewidth + 2,
+					(y * GetBlockHeight() + (i / static_cast<int>(MapBlock::GetBlockHeight()))) * m_tileheight + 2
+				});
+			}
 		}
 	}
 	return retval;
+}
+
+bool BlocksetEditorCtrl::DrawBlockPriority(wxDC& dc, int x, int y, const MapBlock& block)
+{
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.SetPen(*m_priority_pen);
+
+	int pri_tile_count = 0;
+	std::array<bool, MapBlock::GetBlockSize()> tile_priorities = {false, false, false, false};
+	for (int i = 0; i < static_cast<int>(block.GetBlockSize()); ++i)
+	{
+		if (block.GetTile(i).Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY))
+		{
+			++pri_tile_count;
+			tile_priorities[i] = true;
+		}
+	}
+	if (pri_tile_count == 4)
+	{
+		dc.DrawRectangle({
+			x * m_cellwidth + 1,
+			y * m_cellheight + 1,
+			m_cellwidth - 2,
+			m_cellheight - 2
+		});
+	}
+	else if (pri_tile_count == 3)
+	{
+		int empty_cell = std::distance(tile_priorities.cbegin(),
+			std::find_if(tile_priorities.cbegin(), tile_priorities.cend(), [](const bool cell)
+				{
+					return !cell;
+				}
+		));
+		std::array<wxPoint, 7> shape_L = { { {0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}, {0, 0} } };
+		std::transform(shape_L.cbegin(), shape_L.cend(), shape_L.begin(), [empty_cell](const wxPoint& point)
+			{
+				return wxPoint{
+					(empty_cell % 2 == 0) ? 2 - point.x : point.x,
+					(empty_cell < 2) ? 2 - point.y : point.y
+				};
+			});
+		std::transform(shape_L.cbegin(), shape_L.cend(), shape_L.begin(), [this](const wxPoint& point)
+			{
+				return wxPoint{
+					point.x == 0 ? 0 : point.x * m_tilewidth - 2,
+					point.y == 0 ? 0 : point.y * m_tileheight - 2
+				};
+			});
+		dc.DrawPolygon(shape_L.size(), shape_L.data(), x * m_cellwidth + 1, y * m_cellheight + 1);
+	}
+	else if ((pri_tile_count == 2) && (tile_priorities[0] != tile_priorities[3]))
+	{
+		if (tile_priorities[0] == tile_priorities[1])
+		{
+			dc.DrawRectangle({
+				x * m_cellwidth + 1,
+				y * m_cellheight + 1 + (tile_priorities[2] ? m_tileheight : 0),
+				m_cellwidth - 2,
+				m_tileheight - 2
+			});
+		}
+		else
+		{
+			dc.DrawRectangle({
+				x * m_cellwidth + 1 + (tile_priorities[1] ? m_tilewidth : 0),
+				y * m_cellheight + 1,
+				m_tilewidth - 2,
+				m_cellheight - 2
+			});
+		}
+	}
+	else if (pri_tile_count > 0)
+	{
+		for (int i = 0; i < static_cast<int>(block.GetBlockSize()); ++i)
+		{
+			if (tile_priorities.at(i))
+			{
+				dc.DrawRectangle({
+					x * m_cellwidth + 1 + ((i % static_cast<int>(MapBlock::GetBlockWidth())) * m_tilewidth),
+					y * m_cellheight + 1 + ((i / static_cast<int>(MapBlock::GetBlockWidth())) * m_tileheight),
+					m_tilewidth - 2,
+					m_tileheight - 2
+				});
+			}
+		}
+	}
+	return true;
 }
 
 void BlocksetEditorCtrl::DrawSelectionBorders(wxDC& dc)
@@ -693,6 +946,13 @@ void BlocksetEditorCtrl::DrawSelectionBorders(wxDC& dc)
 			dc.DrawRectangle({ sbx + stx, sby + sty, m_tilewidth, m_tileheight });
 		}
 		break;
+	case Mode::PENCIL:
+		dc.SetBrush(*wxTRANSPARENT_BRUSH);
+		if (m_hoveredblock != -1 && m_hoveredtile != -1)
+		{
+			dc.SetPen(*wxWHITE_PEN);
+			dc.DrawRectangle({ hbx + htx, hby + hty, m_tilewidth, m_tileheight });
+		}
 	}
 }
 
@@ -819,11 +1079,6 @@ int BlocksetEditorCtrl::ConvertXYToBlockIdx(const wxPoint& point) const
 	return sel;
 }
 
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToBlockPos(const wxPoint& point) const
-{
-	return Position();
-}
-
 int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 {
 	if (m_tileset == nullptr)
@@ -842,20 +1097,6 @@ int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 		sel = -1;
 	}
 	return sel;
-}
-
-BlocksetEditorCtrl::Position BlocksetEditorCtrl::ConvertXYToTilePos(const wxPoint& point) const
-{
-	return Position();
-}
-
-void BlocksetEditorCtrl::SelectBlock(const BlocksetEditorCtrl::Position& tp)
-{
-	
-}
-
-void BlocksetEditorCtrl::SelectTile(const BlocksetEditorCtrl::Position& tp)
-{
 }
 
 void BlocksetEditorCtrl::OnDraw(wxDC& dc)
@@ -890,7 +1131,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 		for (std::size_t i = 0; i < m_blocks->size(); ++i)
 		{
 			const auto pos = ToBlockPosition(i);
-			if (!DrawBlock(m_memdc, pos.x, pos.y, i, m_blocks->at(i)))
+			if (!DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(i)))
 			{
 				m_redraw_list.insert(i);
 			}
@@ -905,7 +1146,7 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 			if ((*it >= 0) && (*it < static_cast<int>(m_blocks->size())))
 			{
 				auto pos = ToBlockPosition(*it);
-				if (DrawBlock(m_memdc, pos.x, pos.y, *it, m_blocks->at(*it)))
+				if (DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(*it)))
 				{
 					it = m_redraw_list.erase(it);
 				}
@@ -966,6 +1207,7 @@ void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 			}
 			break;
 		case Mode::TILE_SELECT:
+		case Mode::PENCIL:
 			if (m_hoveredblock != block_idx || m_hoveredtile != tile_idx)
 			{
 				if (m_hoveredblock != -1)
@@ -1054,17 +1296,23 @@ void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 			refresh = true;
 		}
 		break;
+	case Mode::PENCIL:
+		if (evt.LeftDown())
+		{
+			SetHoveredTile(m_drawtile);
+		}
+		else if (evt.RightDown())
+		{
+			m_drawtile = GetHoveredTile();
+			FireEvent(EVT_TILE_SELECT, std::to_string(m_drawtile.GetIndex()));
+		}
+		break;
 	}
 	if (refresh)
 	{
 		RefreshStatusbar();
 		Refresh();
 	}
-	evt.Skip();
-}
-
-void BlocksetEditorCtrl::OnDoubleClick(wxMouseEvent& evt)
-{
 	evt.Skip();
 }
 

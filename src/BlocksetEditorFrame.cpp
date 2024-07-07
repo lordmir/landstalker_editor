@@ -37,6 +37,9 @@ wxBEGIN_EVENT_TABLE(BlocksetEditorFrame, wxWindow)
 EVT_SLIDER(wxID_ANY, BlocksetEditorFrame::OnZoomChange)
 EVT_TOOL(wxID_ANY, BlocksetEditorFrame::OnButtonClicked)
 EVT_COMBOBOX(ID_PALETTE_SELECT, BlocksetEditorFrame::OnPaletteSelect)
+EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, BlocksetEditorFrame::OnBlockSelect)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, BlocksetEditorFrame::OnTileSelect)
+EVT_COMMAND(wxID_ANY, EVT_TILE_SELECT, BlocksetEditorFrame::OnTileSelect)
 wxEND_EVENT_TABLE()
 
 BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -129,7 +132,6 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 
-
 	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_TILE_NUMBERS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
@@ -142,8 +144,8 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_VFLIP_TILE, "Vertically Flip Tile", ilist.GetImage("vflip"), "Vertically Flip Tile");
 	toolbar->AddTool(ID_TOGGLE_TILE_PRIORITY, "Toggle Tile Priority", ilist.GetImage("priority"), "Toggle Tile Priority");
 	toolbar->AddSeparator();
-	toolbar->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("big_tiles"), "Block Select", wxITEM_RADIO);
-	toolbar->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("tileset"), "Tile Select", wxITEM_RADIO);
+	toolbar->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("sel_block"), "Block Select", wxITEM_RADIO);
+	toolbar->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("sel_tile"), "Tile Select", wxITEM_RADIO);
 	toolbar->AddTool(ID_PENCIL, "Draw Tiles", ilist.GetImage("pencil"), "Draw Tiles", wxITEM_RADIO);
 	toolbar->AddSeparator();
 	toolbar->AddLabel(wxID_ANY, "Zoom:");
@@ -203,7 +205,6 @@ void BlocksetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	}
 	UpdateUI();
-	UpdateStatus();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	evt.Skip();
 }
@@ -274,7 +275,6 @@ void BlocksetEditorFrame::ImportBin(const std::string& filename)
 	m_blocks->GetData()->clear();
 	BlocksetCmp::Decode(bytes.data(), bytes.size(), *m_blocks->GetData());
 	m_editor->RedrawTiles();
-	UpdateStatus();
 }
 
 void BlocksetEditorFrame::ImportCsv(const std::string& filename)
@@ -299,12 +299,14 @@ void BlocksetEditorFrame::ImportCsv(const std::string& filename)
 	}
 	*m_blocks->GetData() = blocks;
 	m_editor->RedrawTiles();
-	UpdateStatus();
+	UpdateUI();
 }
 
 void BlocksetEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
-	UpdateStatus();
+	m_zoom = m_zoomslider->GetValue();
+	m_editor->SetPixelSize(m_zoomslider->GetValue());
+	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
 }
 
@@ -314,77 +316,149 @@ void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 	{
 	case ID_TOGGLE_GRIDLINES:
 		m_editor->SetBordersEnabled(!m_editor->GetBordersEnabled());
+		m_editor->ForceRedraw();
 		break;
 	case ID_TOGGLE_TILE_NUMBERS:
 		m_editor->SetTileNumbersEnabled(!m_editor->GetTileNumbersEnabled());
+		m_editor->ForceRedraw();
 		break;
 	case ID_TOGGLE_ALPHA:
 		m_editor->SetAlphaEnabled(!m_editor->GetAlphaEnabled());
+		m_editor->ForceRedraw();
 		break;
 	case ID_INSERT_BLOCK_BEFORE:
 		if (m_editor->IsBlockSelectionValid())
 		{
+			m_editor->InsertBlock(m_editor->GetBlockSelection());
+			m_editor->SetBlockSelection(m_editor->GetBlockSelection() + 1);
 		}
 		break;
 	case ID_INSERT_BLOCK_AFTER:
 		if (m_editor->IsBlockSelectionValid())
 		{
+			m_editor->InsertBlock(m_editor->GetBlockSelection() + 1);
 		}
 		break;
 	case ID_DELETE_BLOCK:
-		if (m_editor->IsBlockSelectionValid())
-		{
-		}
+		m_editor->DeleteBlock(m_editor->GetBlockSelection());
 		break;
 	case ID_HFLIP_TILE:
-		if (m_editor->IsTileSelectionValid())
-		{
-			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
-			m_editor->SetSelectedTile(tile);
-		}
+		m_editor->ToggleSelectedHFlip();
 		break;
 	case ID_VFLIP_TILE:
-		if (m_editor->IsTileSelectionValid())
-		{
-			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
-			m_editor->SetSelectedTile(tile);
-		}
+		m_editor->ToggleSelectedVFlip();
 		break;
 	case ID_TOGGLE_TILE_PRIORITY:
-		if (m_editor->IsTileSelectionValid())
-		{
-			auto tile = m_editor->GetSelectedTile();
-			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
-			m_editor->SetSelectedTile(tile);
-		}
+		m_editor->ToggleSelectedPriority();
 		break;
 	case ID_BLOCK_SELECT:
-		//m_toolbar->ToggleTool(ID_BLOCK_SELECT, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::BLOCK_SELECT);
 		break;
 	case ID_TILE_SELECT:
-		//m_toolbar->ToggleTool(ID_TILE_SELECT, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::TILE_SELECT);
 		break;
 	case ID_PENCIL:
-		//m_toolbar->ToggleTool(ID_PENCIL, true);
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
 		break;
 	default:
 		break;
 	}
-	UpdateStatus();
+	UpdateUI();
 	evt.Skip();
 }
 
 void BlocksetEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
 {
+	if (m_gd == nullptr)
+	{
+		return;
+	}
+	SetActivePalette(m_palette_select->GetValue().ToStdString());
+	m_palette_select->SetStringSelection(m_editor->GetActivePalette());
+	evt.Skip();
 }
 
-void BlocksetEditorFrame::UpdateStatus()
+void BlocksetEditorFrame::OnBlockSelect(wxCommandEvent& evt)
 {
+	UpdateUI();
+	evt.Skip();
+}
+
+void BlocksetEditorFrame::OnTileSelect(wxCommandEvent& evt)
+{
+	int tile_id = std::stoi(evt.GetString().ToStdString());
+	if (tile_id >= 0)
+	{
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+		m_editor->SetDrawTile(tile_id);
+		m_tileset->SelectTile(tile_id);
+	}
+	UpdateUI();
+	evt.Skip();
+}
+
+void BlocksetEditorFrame::UpdateUI() const
+{
+	CheckMenuItem(ID_TOOLS_TILES, IsPaneVisible(m_tileset));
+	CheckMenuItem(ID_TOOLS_TOOLBAR, IsToolbarVisible("Blockset"));
+	if (m_editor != nullptr)
+	{
+		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
+		CheckToolbarItem("Blockset", ID_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
+		CheckMenuItem(ID_VIEW_TOGGLE_GRIDLINES, m_editor->GetBordersEnabled());
+		CheckToolbarItem("Blockset", ID_TOGGLE_GRIDLINES, m_editor->GetBordersEnabled());
+		CheckMenuItem(ID_VIEW_TOGGLE_TILE_NOS, m_editor->GetTileNumbersEnabled());
+		CheckToolbarItem("Tilemap", ID_TOGGLE_TILE_NUMBERS, m_editor->GetTileNumbersEnabled());
+		switch (m_editor->GetMode())
+		{
+		case BlocksetEditorCtrl::Mode::BLOCK_SELECT:
+			CheckMenuItem(ID_TOOLS_BLOCK_SELECT, true);
+			CheckToolbarItem("Blockset", ID_BLOCK_SELECT, true);
+			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_VFLIP_TILE, false);
+			EnableToolbarItem("Blockset", ID_HFLIP_TILE, false);
+			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, false);
+			break;
+		case BlocksetEditorCtrl::Mode::TILE_SELECT:
+			CheckMenuItem(ID_TOOLS_TILE_SELECT, true);
+			CheckToolbarItem("Blockset", ID_TILE_SELECT, true);
+			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
+			EnableToolbarItem("Blockset", ID_VFLIP_TILE, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_HFLIP_TILE, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, m_editor->IsTileSelectionValid());
+			break;
+		case BlocksetEditorCtrl::Mode::PENCIL:
+			CheckMenuItem(ID_TOOLS_TILE_DRAW, true);
+			CheckToolbarItem("Blockset", ID_PENCIL, true);
+			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
+			EnableToolbarItem("Blockset", ID_VFLIP_TILE, false);
+			EnableToolbarItem("Blockset", ID_HFLIP_TILE, false);
+			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, false);
+			break;
+		}
+		if (m_editor != nullptr && m_palette_select != nullptr)
+		{
+			m_palette_select->SetStringSelection(m_editor->GetActivePalette());
+		}
+		if (m_zoomslider != nullptr)
+		{
+			m_zoomslider->SetValue(m_editor->GetPixelSize());
+		}
+	}
+}
+
+void BlocksetEditorFrame::InitStatusBar(wxStatusBar& status) const
+{
+	status.SetFieldsCount(3);
+	status.SetStatusText("", 0);
+	status.SetStatusText("", 1);
+	status.SetStatusText("", 2);
 }
 
 void BlocksetEditorFrame::OnExportBin()

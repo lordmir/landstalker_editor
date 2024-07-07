@@ -42,7 +42,7 @@ std::string Block<N,M>::Print() const
 }
 
 template<std::size_t N, std::size_t M>
-const Tile& Block<N,M>::GetTile(size_t tileIndex) const
+const Tile& Block<N, M>::GetTile(size_t tileIndex) const
 {
     return tiles[tileIndex];
 }
@@ -53,6 +53,20 @@ const Tile& Block<N, M>::GetTile(std::size_t x, std::size_t y) const
     assert(x < N);
     assert(y < M);
     return GetTile(x + y * N);
+}
+
+template<std::size_t N, std::size_t M>
+void Block<N, M>::SetTile(std::size_t tileIndex, const Tile& tile)
+{
+    tiles[tileIndex] = tile;
+}
+
+template<std::size_t N, std::size_t M>
+void Block<N, M>::SetTile(std::size_t x, std::size_t y, const Tile& tile)
+{
+    assert(x < N);
+    assert(y < M);
+    SetTile(x + y * N, tile);
 }
 
 template class Block<2,2>;
