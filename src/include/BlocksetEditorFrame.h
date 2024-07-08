@@ -34,6 +34,11 @@ public:
 	void ImportBin(const std::string& filename);
 	void ImportCsv(const std::string& filename);
 private:
+	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshProperties(wxPropertyGridManager& props) const;
+	virtual void UpdateProperties(wxPropertyGridManager& props) const;
+	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	void InitPaletteList() const;
 
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
@@ -75,6 +80,7 @@ private:
 	mutable wxSlider* m_zoomslider = nullptr;
 	mutable wxComboBox* m_palette_select = nullptr;
 	mutable wxPGChoices m_palette_list;
+	mutable std::vector<wxString> m_palette_vec;
 
 	wxDECLARE_EVENT_TABLE();
 };

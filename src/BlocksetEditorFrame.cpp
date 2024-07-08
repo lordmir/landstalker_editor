@@ -82,6 +82,7 @@ BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent, ImageList* imglst)
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 
 	this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
 	m_editor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
@@ -102,7 +103,9 @@ void BlocksetEditorFrame::Open(const std::string& blockset_name)
 	m_editor->Open(blockset_name);
 	m_tileset->Open(m_tiles->GetData());
 	m_tileset->SetActivePalette(m_tiles->GetDefaultPalette());
+	m_palette = m_gd->GetRoomData()->GetRoomPalette(m_tileset->GetActivePalette());
 	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -110,6 +113,8 @@ void BlocksetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 	m_editor->SetGameData(gd);
 	m_tileset->SetGameData(gd);
 	m_gd = gd;
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::ClearGameData()
@@ -121,6 +126,7 @@ void BlocksetEditorFrame::SetActivePalette(const std::string& name)
 {
 	m_editor->SetActivePalette(name);
 	m_tileset->SetActivePalette(name);
+	m_palette = m_gd->GetRoomData()->GetRoomPalette(name);
 }
 
 void BlocksetEditorFrame::SetDrawTile(const Tile& tile)
@@ -201,20 +207,11 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddControl(m_palette_select, "Palette");
 
 	AddToolbar(m_mgr, *toolbar, "Blockset", "Blockset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
-
-	std::vector<wxString> palette_list;
-	const auto& palettes = m_gd->GetAllPalettes();
-	palette_list.reserve(palettes.size());
-	m_palette_list.Clear();
-	for (const auto& p : palettes)
-	{
-		palette_list.push_back(p.first);
-		m_palette_list.Add(p.first);
-	}
+	InitPaletteList();
 	if (m_palette_select != nullptr)
 	{
 		m_palette_select->Clear();
-		m_palette_select->Append(palette_list);
+		m_palette_select->Append(m_palette_vec);
 	}
 
 	if (m_palette_select != nullptr && m_palette != nullptr)
@@ -222,7 +219,6 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 		m_palette_select->SetStringSelection(m_palette->GetName());
 	}
 	UpdateUI();
-
 	m_mgr.Update();
 }
 
@@ -326,6 +322,92 @@ void BlocksetEditorFrame::ImportCsv(const std::string& filename)
 	UpdateUI();
 }
 
+void BlocksetEditorFrame::InitProperties(wxPropertyGridManager& props) const
+{
+	if (ArePropsInitialised() == false)
+	{
+		props.GetGrid()->Clear();
+		props.Append(new wxPropertyCategory("Main", "M"));
+		props.Append(new wxStringProperty("Name", "Name", ""))->Enable(false);
+		props.Append(new wxStringProperty("Tileset", "Tileset", ""))->Enable(false);
+		props.Append(new wxStringProperty("Primary Blockset", "Primary Blockset", ""))->Enable(false);// m_gd->GetRoomData()->GetTileset(m_blocks->GetTileset())))->Enable(false);
+		props.Append(new wxEnumProperty("Palette", "Palette", m_palette_list));
+		props.Append(new wxIntProperty("Block Count", "Block Count", 0))->Enable(false);
+		props.Append(new wxStringProperty("Start Address", "Start Address", "0x000000"))->Enable(false);
+		props.Append(new wxStringProperty("End Address", "End Address", "0x000000"))->Enable(false);
+		props.Append(new wxFileProperty("Filename", "Filename", "untitled.cbs"))->Enable(false);
+		props.Append(new wxStringProperty("Original Size", "Original Size", "0 bytes"))->Enable(false);
+		props.Append(new wxStringProperty("Uncompressed Size", "Uncompressed Size", "0 bytes"))->Enable(false);
+		RefreshProperties(props);
+	}
+	EditorFrame::InitProperties(props);
+}
+
+void BlocksetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
+{
+	if (m_gd && m_blocks && m_palette)
+	{
+		InitPaletteList();
+		props.GetGrid()->SetPropertyValue("Name", _(m_blocks->GetName()));
+		props.GetGrid()->SetPropertyValue("Tileset", _(m_gd->GetRoomData()->GetTileset(m_blocks->GetTileset())->GetName()));
+		props.GetGrid()->SetPropertyValue("Primary Blockset", _(m_gd->GetRoomData()->GetBlockset(m_blocks->GetTileset(), m_blocks->GetPrimary(), 0)->GetName()));
+		props.GetGrid()->GetProperty("Palette")->SetChoices(m_palette_list);
+		props.GetGrid()->GetProperty("Palette")->SetValue(m_palette->GetName());
+		props.GetGrid()->SetPropertyValue("Block Count", static_cast<int>(m_blocks->GetData()->size()));
+		props.GetGrid()->SetPropertyValue("Start Address", _(Hex(m_blocks->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("End Address", _(Hex(m_blocks->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("Filename", _(m_blocks->GetFilename().str()));
+		props.GetGrid()->SetPropertyValue("Original Size", wxString::Format("%lu bytes", m_blocks->GetOrigBytes()->size()));
+		props.GetGrid()->SetPropertyValue("Uncompressed Size", wxString::Format("%lu bytes", m_blocks->GetData()->size() * 8));
+	}
+}
+
+void BlocksetEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
+{
+	EditorFrame::UpdateProperties(props);
+	if (ArePropsInitialised() == true)
+	{
+		RefreshProperties(props);
+	}
+}
+
+void BlocksetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
+{
+	wxPGProperty* property = evt.GetProperty();
+	if (property == nullptr)
+	{
+		return;
+	}
+	if (m_gd == nullptr)
+	{
+		return;
+	}
+
+	const wxString& name = property->GetName();
+	if (name == "Palette")
+	{
+		SetActivePalette(property->GetValueAsString().ToStdString());
+		m_palette_select->SetStringSelection(m_editor->GetActivePalette());
+	}
+
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void BlocksetEditorFrame::InitPaletteList() const
+{
+	if (m_gd && m_palette_list.GetCount() == 0)
+	{
+		const auto& palettes = m_gd->GetAllPalettes();
+		m_palette_vec.reserve(palettes.size());
+		m_palette_list.Clear();
+		for (const auto& p : palettes)
+		{
+			m_palette_vec.push_back(p.first);
+			m_palette_list.Add(p.first);
+		}
+	}
+}
+
 void BlocksetEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	m_zoom = m_zoomslider->GetValue();
@@ -348,6 +430,8 @@ void BlocksetEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
 	}
 	SetActivePalette(m_palette_select->GetValue().ToStdString());
 	m_palette_select->SetStringSelection(m_editor->GetActivePalette());
+
+	FireEvent(EVT_PROPERTIES_UPDATE);
 	evt.Skip();
 }
 
@@ -684,6 +768,7 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 			m_editor->InsertBlock(m_editor->GetBlockSelection());
 			m_editor->SetBlockSelection(m_editor->GetBlockSelection() + 1);
 			UpdateUI();
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		break;
 	case ID_INSERT_BLOCK_AFTER:
@@ -691,11 +776,13 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 		{
 			m_editor->InsertBlock(m_editor->GetBlockSelection() + 1);
 			UpdateUI();
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		break;
 	case ID_DELETE_BLOCK:
 		m_editor->DeleteBlock(m_editor->GetBlockSelection());
 		UpdateUI();
+		FireEvent(EVT_PROPERTIES_UPDATE);
 		break;
 	case ID_HFLIP_TILE:
 	{

@@ -558,7 +558,7 @@ wxPGChoices UpdatePalList(std::shared_ptr<T> entry, wxPropertyGridManager& /*pro
 	for (const auto& pal : rec)
 	{
 		wxPGChoiceEntry e(pal);
-		auto f = e.GetFont();
+		wxFont f = e.GetFont();
 		f.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
 		e.SetFont(f);
 		list.Add(e);
@@ -583,6 +583,7 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("N", _(m_animated_tileset_entry->GetName()));
 		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
 		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_animated_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("EA", _(Hex(m_animated_tileset_entry->GetEndAddress())));
 		props.GetGrid()->SetPropertyValue("FN", _(m_animated_tileset_entry->GetFilename().str()));
 	}
 	else if (m_tileset_entry)
@@ -591,6 +592,7 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("N", _(m_tileset_entry->GetName()));
 		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_tileset_entry->GetOrigBytes()->size()));
 		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("EA", _(Hex(m_tileset_entry->GetEndAddress())));
 		props.GetGrid()->SetPropertyValue("FN", _(m_tileset_entry->GetFilename().str()));
 	}
 	if (m_tileset)
