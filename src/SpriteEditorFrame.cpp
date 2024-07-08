@@ -44,17 +44,31 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_mgr.SetManagedWindow(this);
 
 	m_spriteeditor = new SpriteFrameEditorCtrl(this);
+	m_spriteanimeditor = new SpriteAnimationEditorCtrl(this);
 	m_paledit = new PaletteEditor(this);
 	m_tileedit = new TileEditor(this);
+	m_framectrl = new FrameControlFrame(this, imglst);
+	m_subspritectrl = new SubspriteControlFrame(this, imglst);
+	m_animctrl = new AnimationControlFrame(this, imglst);
+	m_animframectrl = new AnimationFrameControlFrame(this, imglst);
 
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
 	m_mgr.AddPane(m_tileedit, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).FloatingSize(450, 450).Caption("Editor"));
 	m_mgr.AddPane(m_paledit, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700, 100).Caption("Palette"));
+	m_mgr.AddPane(m_framectrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Frames"));
+	m_mgr.AddPane(m_subspritectrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Subsprites"));
+	m_mgr.AddPane(m_animctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Animations"));
+	m_mgr.AddPane(m_animframectrl, wxAuiPaneInfo().Right().Layer(2).Movable(true).Resizable(true).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Animation Frames"));
 
 	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
 	m_nb->Freeze();
 	m_nb->AddPage(m_spriteeditor, "Sprite Frames");
+	m_nb->AddPage(m_spriteanimeditor, "Sprite Animations");
 	m_nb->Thaw();
 	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 	// tell the manager to "commit" all the changes just made
@@ -383,7 +397,7 @@ void SpriteEditorFrame::RefreshLists() const
 		{
 			if (lo_pals.count(i - 1) > 0)
 			{
-				auto font = m_lo_palettes.Item(i).GetFont();
+				wxFont font = m_lo_palettes.Item(i).GetFont();
 				font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
 				m_lo_palettes.Item(i).SetFont(font);
 			}
@@ -398,7 +412,7 @@ void SpriteEditorFrame::RefreshLists() const
 		{
 			if (hi_pals.count(i - 1) > 0)
 			{
-				auto font = m_hi_palettes.Item(i).GetFont();
+				wxFont font = m_hi_palettes.Item(i).GetFont();
 				font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
 				m_hi_palettes.Item(i).SetFont(font);
 			}

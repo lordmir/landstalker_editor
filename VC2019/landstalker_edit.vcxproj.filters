@@ -417,6 +417,21 @@
     <ClCompile Include="..\src\EntityViewerCtrl.cpp">
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\SubspriteControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FrameControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AnimationControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AnimationFrameControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteAnimationEditorCtrl.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -716,6 +731,21 @@
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntityViewerCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteAnimationEditorCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AnimationControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AnimationFrameControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\FrameControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SubspriteControlFrame.h">
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
   </ItemGroup>

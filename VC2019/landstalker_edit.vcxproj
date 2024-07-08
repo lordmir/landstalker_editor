@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\AnimatedTileset.cpp" />
+    <ClCompile Include="..\src\AnimationControlFrame.cpp" />
+    <ClCompile Include="..\src\AnimationFrameControlFrame.cpp" />
     <ClCompile Include="..\src\AsmFile.cpp" />
     <ClCompile Include="..\src\AsmUtils.cpp" />
     <ClCompile Include="..\src\AssemblyBuilderDialog.cpp" />
@@ -44,6 +46,7 @@
     <ClCompile Include="..\src\FlagDataViewModel.cpp" />
     <ClCompile Include="..\src\FlagDialog.cpp" />
     <ClCompile Include="..\src\Flags.cpp" />
+    <ClCompile Include="..\src\FrameControlFrame.cpp" />
     <ClCompile Include="..\src\GameData.cpp" />
     <ClCompile Include="..\src\GraphicsData.cpp" />
     <ClCompile Include="..\src\HeightmapEditorCtrl.cpp" />
@@ -78,6 +81,7 @@
     <ClCompile Include="..\src\DataTypes.cpp" />
     <ClCompile Include="..\src\RoomData.cpp" />
     <ClCompile Include="..\src\SelectionControlFrame.cpp" />
+    <ClCompile Include="..\src\SpriteAnimationEditorCtrl.cpp" />
     <ClCompile Include="..\src\SpriteData.cpp" />
     <ClCompile Include="..\src\SpriteFrameEditorCtrl.cpp" />
     <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
@@ -85,6 +89,7 @@
     <ClCompile Include="..\src\StringData.cpp" />
     <ClCompile Include="..\src\StringDataViewModel.cpp" />
     <ClCompile Include="..\src\StringEditorFrame.cpp" />
+    <ClCompile Include="..\src\SubspriteControlFrame.cpp" />
     <ClCompile Include="..\src\Tile.cpp" />
     <ClCompile Include="..\src\TileAttributes.cpp" />
     <ClCompile Include="..\src\TileEditor.cpp" />
@@ -112,6 +117,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\include\AnimatedTileset.h" />
+    <ClInclude Include="..\src\include\AnimationControlFrame.h" />
+    <ClInclude Include="..\src\include\AnimationFrameControlFrame.h" />
     <ClInclude Include="..\src\include\AsmFile.h" />
     <ClInclude Include="..\src\include\AsmFile_inl.h" />
     <ClInclude Include="..\src\include\AsmUtils.h" />
@@ -145,6 +152,7 @@
     <ClInclude Include="..\src\include\FlagDataViewModel.h" />
     <ClInclude Include="..\src\include\FlagDialog.h" />
     <ClInclude Include="..\src\include\Flags.h" />
+    <ClInclude Include="..\src\include\FrameControlFrame.h" />
     <ClInclude Include="..\src\include\GameData.h" />
     <ClInclude Include="..\src\include\GraphicsData.h" />
     <ClInclude Include="..\src\include\HeightmapEditorCtrl.h" />
@@ -182,6 +190,7 @@
     <ClInclude Include="..\src\include\DataTypes.h" />
     <ClInclude Include="..\src\include\RoomData.h" />
     <ClInclude Include="..\src\include\SelectionControlFrame.h" />
+    <ClInclude Include="..\src\include\SpriteAnimationEditorCtrl.h" />
     <ClInclude Include="..\src\include\SpriteData.h" />
     <ClInclude Include="..\src\include\SpriteFrameEditorCtrl.h" />
     <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
@@ -189,6 +198,7 @@
     <ClInclude Include="..\src\include\StringData.h" />
     <ClInclude Include="..\src\include\StringDataViewModel.h" />
     <ClInclude Include="..\src\include\StringEditorFrame.h" />
+    <ClInclude Include="..\src\include\SubspriteControlFrame.h" />
     <ClInclude Include="..\src\include\Tile.h" />
     <ClInclude Include="..\src\include\TileAttributes.h" />
     <ClInclude Include="..\src\include\TileEditor.h" />

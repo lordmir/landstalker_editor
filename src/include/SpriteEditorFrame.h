@@ -10,10 +10,15 @@
 #include <map>
 
 #include "SpriteFrameEditorCtrl.h"
+#include "SpriteAnimationEditorCtrl.h"
 #include "EditorFrame.h"
 #include "Palette.h"
 #include "PaletteEditor.h"
 #include "TileEditor.h"
+#include "SubspriteControlFrame.h"
+#include "FrameControlFrame.h"
+#include "AnimationControlFrame.h"
+#include "AnimationFrameControlFrame.h"
 
 class SpriteEditorFrame : public EditorFrame
 {
@@ -73,8 +78,13 @@ private:
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
 	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
+	SpriteAnimationEditorCtrl* m_spriteanimeditor = nullptr;
 	PaletteEditor* m_paledit = nullptr;
 	TileEditor* m_tileedit = nullptr;
+	FrameControlFrame* m_framectrl = nullptr;
+	SubspriteControlFrame* m_subspritectrl = nullptr;
+	AnimationControlFrame* m_animctrl = nullptr;
+	AnimationFrameControlFrame* m_animframectrl = nullptr;
 	mutable wxAuiManager m_mgr;
 	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
