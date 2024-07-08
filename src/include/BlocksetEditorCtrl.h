@@ -40,13 +40,8 @@ public:
 	void SetGameData(std::shared_ptr<GameData> gd);
 	void ClearGameData();
 
-	void SetColour(int c);
-	bool Save(const wxString& filename);
-	bool Open(const wxString& filename);
-	bool Open(const std::vector<uint8_t>& data);
 	bool Open(const std::string& name);
 	bool OpenRoom(uint16_t num);
-	bool New();
 	void RedrawTiles(int index = -1);
 	void RedrawBlock(int index = -1);
 
@@ -64,6 +59,19 @@ public:
 	Mode GetMode() const;
 	void SetDrawTile(const Tile& tile);
 	Tile GetDrawTile();
+
+	void ToggleHFlip(int block, int tile);
+	void ToggleVFlip(int block, int tile);
+	void TogglePriority(int block, int tile);
+	void ToggleSelectedHFlip();
+	void ToggleSelectedVFlip();
+	void ToggleSelectedPriority();
+	void SetSelectedHFlip(bool hflip);
+	void SetSelectedVFlip(bool vflip);
+	void SetSelectedPriority(bool priority);
+	bool GetSelectedHFlip() const;
+	bool GetSelectedVFlip() const;
+	bool GetSelectedPriority() const;
 
 	bool GetTileNumbersEnabled() const;
 	void SetTileNumbersEnabled(bool enabled);
@@ -86,6 +94,8 @@ public:
 	uint16_t GetBlockSelection() const;
 	uint16_t GetBlockHover() const;
 	void SetBlockSelection(int block);
+	void SetTileHover(int block, int tile);
+	void SetTileSelection(int block, int tile);
 	uint16_t GetTileSelection() const;
 	uint16_t GetTileHover() const;
 	MapBlock GetSelectedBlock() const;
@@ -93,14 +103,17 @@ public:
 	void SetSelectedBlock(const MapBlock& block);
 	void SetSelectedTile(const Tile& tile);
 	MapBlock GetHoveredBlock() const;
-	void SetHoveredBlock(const MapBlock& tile);
 	Tile GetHoveredTile() const;
 	void SetHoveredTile(const Tile& tile);
-	MapBlock GetBlockAtPosition(const Position& block) const;
-	Tile GetTileAtPosition(const Position& block, const Position& tile) const;
-	void SetBlockAtPosition(const Position& block, const MapBlock& new_block);
-	void SetTileAtPosition(const Position& block, const Position& tile, const Tile& new_tile);
-	bool IsPositionValid(const Position& tp) const;
+	MapBlock GetBlock(int index) const;
+	Tile GetTile(int block_idx, int tile_idx) const;
+	void SetBlock(int block, const MapBlock& new_block);
+	void SetTile(int block_idx, int tile_idx, const Tile& new_tile);
+	bool IsBlockIndexValid(int block_index) const;
+	bool IsTileIndexValid(int tile_index) const;
+	int GetControlBlockWidth() const;
+	void ForceRedraw();
+
 private:
 	void RefreshStatusbar();
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
@@ -108,22 +121,18 @@ private:
 	bool UpdateRowCount();
 	bool DrawTile(wxDC& dc, int x, int y, const Tile& tile);
 	void DrawTilePixels(wxDC& dc, int x, int y, const Tile& tile);
-	bool DrawBlock(wxDC& dc, int x, int y, int idx, const MapBlock& block);
+	bool DrawBlock(wxDC& dc, int x, int y, const MapBlock& block);
+	bool DrawBlockPriority(wxDC& dc, int x, int y, const MapBlock& block);
 	void DrawSelectionBorders(wxDC& dc);
 	void PaintBitmap(wxDC& dc);
 	void InitialiseBrushesAndPens();
-	void ForceRedraw();
 	Palette& GetSelectedPalette();
 	Position ToBlockPosition(int index) const;
 	int ToBlockIndex(const Position& tp) const;
 	Position ToTilePosition(int index);
 	int ToTileIndex(const Position& tp);
 	int ConvertXYToBlockIdx(const wxPoint& point) const;
-	Position ConvertXYToBlockPos(const wxPoint& point) const;
 	int ConvertXYToTileIdx(const wxPoint& point) const;
-	Position ConvertXYToTilePos(const wxPoint& point) const;
-	void SelectBlock(const Position& tp);
-	void SelectTile(const Position& tp);
 
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);
@@ -131,7 +140,6 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnMouseDown(wxMouseEvent& evt);
-	void OnDoubleClick(wxMouseEvent& evt);
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, const std::string& data);
@@ -160,6 +168,8 @@ private:
 	const int block_height;
 	int m_cellwidth;
 	int m_cellheight;
+	int m_tilewidth;
+	int m_tileheight;
 	int m_ctrlwidth;
 	int m_ctrlheight;
 
@@ -197,5 +207,6 @@ wxDECLARE_EVENT(EVT_BLOCK_EDIT_REQUEST, wxCommandEvent);
 wxDECLARE_EVENT(EVT_BLOCK_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_BLOCK_TILE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_BLOCK_ACTIVATE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_TILE_SELECT, wxCommandEvent);
 
 #endif // _BLOCKSET_EDITOR_CTRL_H_

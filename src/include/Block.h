@@ -21,6 +21,8 @@ public:
     
     const Tile& GetTile(std::size_t tileIndex) const;
     const Tile& GetTile(std::size_t x, std::size_t y) const;
+    void SetTile(std::size_t tileIndex, const Tile& tile);
+    void SetTile(std::size_t x, std::size_t y, const Tile& tile);
     static constexpr std::size_t GetBlockWidth() { return N; }
     static constexpr std::size_t GetBlockHeight() { return M; }
     static constexpr std::size_t GetBlockSize() { return N*M; }
