@@ -7,6 +7,12 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_CBS,
 	ID_FILE_IMPORT_CSV,
+	ID_EDIT,
+	ID_EDIT_CUT,
+	ID_EDIT_COPY,
+	ID_EDIT_PASTE,
+	ID_EDIT_SWAP,
+	ID_EDIT_CLEAR,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
 	ID_VIEW_TOGGLE_TILE_NOS,
@@ -14,12 +20,18 @@ enum MENU_IDS
 	ID_TOOLS,
 	ID_TOOLS_TILES,
 	ID_TOOLS_TOOLBAR,
+	ID_TOOLS_SEP,
 	ID_TOOLS_BLOCK_SELECT,
 	ID_TOOLS_TILE_SELECT,
 	ID_TOOLS_TILE_DRAW,
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_TILE_NUMBERS,
 	ID_TOGGLE_ALPHA,
+	ID_CUT,
+	ID_COPY,
+	ID_PASTE,
+	ID_SWAP,
+	ID_CLEAR,
 	ID_INSERT_BLOCK_BEFORE,
 	ID_INSERT_BLOCK_AFTER,
 	ID_DELETE_BLOCK,
@@ -30,10 +42,22 @@ enum MENU_IDS
 	ID_TILE_SELECT,
 	ID_PENCIL,
 	ID_ZOOM,
-	ID_PALETTE_SELECT
+	ID_PALETTE_SELECT,
+	ID_TILE_UP,
+	ID_TILE_DOWN,
+	ID_TILE_LEFT,
+	ID_TILE_RIGHT,
+	ID_BLOCK_UP,
+	ID_BLOCK_DOWN,
+	ID_BLOCK_LEFT,
+	ID_BLOCK_RIGHT,
+	ID_CLEAR_SELECTION,
+	ID_SELECT_TILE,
+	ID_DRAW_TILE
 };
 
 wxBEGIN_EVENT_TABLE(BlocksetEditorFrame, wxWindow)
+EVT_KEY_DOWN(BlocksetEditorFrame::OnKeyPress)
 EVT_SLIDER(wxID_ANY, BlocksetEditorFrame::OnZoomChange)
 EVT_TOOL(wxID_ANY, BlocksetEditorFrame::OnButtonClicked)
 EVT_COMBOBOX(ID_PALETTE_SELECT, BlocksetEditorFrame::OnPaletteSelect)
@@ -58,10 +82,17 @@ BlocksetEditorFrame::BlocksetEditorFrame(wxWindow* parent, ImageList* imglst)
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();
+
+	this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
+	m_editor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
+	m_tileset->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
 }
 
 BlocksetEditorFrame::~BlocksetEditorFrame()
 {
+	this->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
+	m_editor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
+	m_tileset->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(BlocksetEditorFrame::OnKeyPress), nullptr, this);
 }
 
 void BlocksetEditorFrame::Open(const std::string& blockset_name)
@@ -71,6 +102,7 @@ void BlocksetEditorFrame::Open(const std::string& blockset_name)
 	m_editor->Open(blockset_name);
 	m_tileset->Open(m_tiles->GetData());
 	m_tileset->SetActivePalette(m_tiles->GetDefaultPalette());
+	UpdateUI();
 }
 
 void BlocksetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -122,10 +154,16 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
+	auto& editMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	AddMenuItem(editMenu, 0, ID_EDIT_CUT, "Cut");
+	AddMenuItem(editMenu, 1, ID_EDIT_COPY, "Copy");
+	AddMenuItem(editMenu, 2, ID_EDIT_PASTE, "Paste");
+	AddMenuItem(editMenu, 3, ID_EDIT_SWAP, "Swap");
+	AddMenuItem(editMenu, 4, ID_EDIT_CLEAR, "Clear");
 	auto& toolsMenu = AddMenu(menu, 2, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_TILES, "Tiles Pane", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_TOOLBAR, "Blockset Toolbar", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 2, wxID_ANY, "", wxITEM_SEPARATOR);
+	AddMenuItem(toolsMenu, 2, ID_TOOLS_SEP, "", wxITEM_SEPARATOR);
 	AddMenuItem(toolsMenu, 3, ID_TOOLS_BLOCK_SELECT, "Block Select Mode", wxITEM_RADIO);
 	AddMenuItem(toolsMenu, 4, ID_TOOLS_TILE_SELECT, "Tile Select Mode", wxITEM_RADIO);
 	AddMenuItem(toolsMenu, 5, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
@@ -135,6 +173,12 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_TILE_NUMBERS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_CUT, "Cut", ilist.GetImage("cut"), "Cut");
+	toolbar->AddTool(ID_COPY, "Copy", ilist.GetImage("copy"), "Copy");
+	toolbar->AddTool(ID_PASTE, "Paste", ilist.GetImage("paste"), "Paste");
+	toolbar->AddTool(ID_SWAP, "Swap", ilist.GetImage("swap"), "Swap");
+	toolbar->AddTool(ID_CLEAR, "Clear", ilist.GetImage("delete"), "Clear");
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_INSERT_BLOCK_BEFORE, "Insert Block Before", ilist.GetImage("insert_before"), "Insert Block Before");
 	toolbar->AddTool(ID_INSERT_BLOCK_AFTER, "Insert Block After", ilist.GetImage("insert_after"), "Insert Block After");
@@ -173,7 +217,7 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 		m_palette_select->Append(palette_list);
 	}
 
-	if (m_palette != nullptr && m_palette != nullptr)
+	if (m_palette_select != nullptr && m_palette != nullptr)
 	{
 		m_palette_select->SetStringSelection(m_palette->GetName());
 	}
@@ -184,26 +228,6 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 void BlocksetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
-	switch (evt.GetId())
-	{
-	case ID_FILE_EXPORT_CBS:
-		OnExportBin();
-		break;
-	case ID_FILE_EXPORT_CSV:
-		OnExportCsv();
-		break;
-	case ID_FILE_EXPORT_PNG:
-		OnExportPng();
-		break;
-	case ID_FILE_IMPORT_CBS:
-		OnImportBin();
-		break;
-	case ID_FILE_IMPORT_CSV:
-		OnImportCsv();
-		break;
-	default:
-		break;
-	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	evt.Skip();
@@ -312,58 +336,7 @@ void BlocksetEditorFrame::OnZoomChange(wxCommandEvent& evt)
 
 void BlocksetEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 {
-	switch (evt.GetId())
-	{
-	case ID_TOGGLE_GRIDLINES:
-		m_editor->SetBordersEnabled(!m_editor->GetBordersEnabled());
-		m_editor->ForceRedraw();
-		break;
-	case ID_TOGGLE_TILE_NUMBERS:
-		m_editor->SetTileNumbersEnabled(!m_editor->GetTileNumbersEnabled());
-		m_editor->ForceRedraw();
-		break;
-	case ID_TOGGLE_ALPHA:
-		m_editor->SetAlphaEnabled(!m_editor->GetAlphaEnabled());
-		m_editor->ForceRedraw();
-		break;
-	case ID_INSERT_BLOCK_BEFORE:
-		if (m_editor->IsBlockSelectionValid())
-		{
-			m_editor->InsertBlock(m_editor->GetBlockSelection());
-			m_editor->SetBlockSelection(m_editor->GetBlockSelection() + 1);
-		}
-		break;
-	case ID_INSERT_BLOCK_AFTER:
-		if (m_editor->IsBlockSelectionValid())
-		{
-			m_editor->InsertBlock(m_editor->GetBlockSelection() + 1);
-		}
-		break;
-	case ID_DELETE_BLOCK:
-		m_editor->DeleteBlock(m_editor->GetBlockSelection());
-		break;
-	case ID_HFLIP_TILE:
-		m_editor->ToggleSelectedHFlip();
-		break;
-	case ID_VFLIP_TILE:
-		m_editor->ToggleSelectedVFlip();
-		break;
-	case ID_TOGGLE_TILE_PRIORITY:
-		m_editor->ToggleSelectedPriority();
-		break;
-	case ID_BLOCK_SELECT:
-		m_editor->SetMode(BlocksetEditorCtrl::Mode::BLOCK_SELECT);
-		break;
-	case ID_TILE_SELECT:
-		m_editor->SetMode(BlocksetEditorCtrl::Mode::TILE_SELECT);
-		break;
-	case ID_PENCIL:
-		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
-		break;
-	default:
-		break;
-	}
-	UpdateUI();
+	ProcessEvent(evt.GetId());
 	evt.Skip();
 }
 
@@ -397,6 +370,552 @@ void BlocksetEditorFrame::OnTileSelect(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void BlocksetEditorFrame::OnKeyPress(wxKeyEvent& evt)
+{
+	switch (evt.GetKeyCode())
+	{
+	case WXK_LEFT:
+	case 'a':
+	case 'A':
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT)
+		{
+			ProcessEvent(ID_BLOCK_LEFT);
+		}
+		else
+		{
+			ProcessEvent(ID_TILE_LEFT);
+		}
+		break;
+	case WXK_RIGHT:
+	case 'd':
+	case 'D':
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT)
+		{
+			ProcessEvent(ID_BLOCK_RIGHT);
+		}
+		else
+		{
+			ProcessEvent(ID_TILE_RIGHT);
+		}
+		break;
+	case WXK_UP:
+	case 'w':
+	case 'W':
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT)
+		{
+			ProcessEvent(ID_BLOCK_UP);
+		}
+		else
+		{
+			ProcessEvent(ID_TILE_UP);
+		}
+		break;
+	case WXK_DOWN:
+	case 's':
+	case 'S':
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT)
+		{
+			ProcessEvent(ID_BLOCK_DOWN);
+		}
+		else
+		{
+			ProcessEvent(ID_TILE_DOWN);
+		}
+		break;
+	case WXK_ESCAPE:
+		ProcessEvent(ID_CLEAR_SELECTION);
+		break;
+	case WXK_DELETE:
+		if (evt.GetModifiers() == wxMOD_SHIFT)
+		{
+			if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
+			{
+				ProcessEvent(ID_DELETE_BLOCK);
+			}
+		}
+		else
+		{
+			ProcessEvent(ID_CLEAR);
+		}
+		break;
+	case WXK_INSERT:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT)
+		{
+			if (evt.GetModifiers() == 0 && m_editor->IsBlockSelectionValid())
+			{
+				ProcessEvent(ID_INSERT_BLOCK_BEFORE);
+			}
+			else if (evt.GetModifiers() == wxMOD_SHIFT && m_editor->IsBlockSelectionValid())
+			{
+				ProcessEvent(ID_INSERT_BLOCK_AFTER);
+			}
+		}
+		break;
+	case 'p':
+	case 'P':
+		if (evt.GetModifiers() == wxMOD_CONTROL)
+		{
+			ProcessEvent(ID_SWAP);
+		}
+		else
+		{
+			ProcessEvent(ID_TOGGLE_TILE_PRIORITY);
+		}
+		break;
+	case 'v':
+	case 'V':
+		if (evt.GetModifiers() == wxMOD_CONTROL)
+		{
+			ProcessEvent(ID_PASTE);
+		}
+		else
+		{
+			ProcessEvent(ID_VFLIP_TILE);
+		}
+		break;
+	case 'h':
+	case 'H':
+		ProcessEvent(ID_HFLIP_TILE);
+		break;
+	case WXK_SPACE:
+		ProcessEvent(ID_DRAW_TILE);
+		break;
+	case 'c':
+	case 'C':
+		if (evt.GetModifiers() == wxMOD_CONTROL)
+		{
+			ProcessEvent(ID_COPY);
+		}
+		else
+		{
+			ProcessEvent(ID_SELECT_TILE);
+		}
+		break;
+	case 'x':
+	case 'X':
+		if (evt.GetModifiers() == wxMOD_CONTROL)
+		{
+			ProcessEvent(ID_CUT);
+		}
+		break;
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+	case WXK_NUMPAD0:
+	case WXK_NUMPAD1:
+	case WXK_NUMPAD2:
+	case WXK_NUMPAD3:
+	case WXK_NUMPAD4:
+	case WXK_NUMPAD5:
+	case WXK_NUMPAD6:
+	case WXK_NUMPAD7:
+	case WXK_NUMPAD8:
+	case WXK_NUMPAD9:
+	{
+		int digit = evt.GetKeyCode() >= '0' && evt.GetKeyCode() <= '9' ? evt.GetKeyCode() - '0' : evt.GetKeyCode() - WXK_NUMPAD0;
+		int tile = m_tileset->IsSelectionValid() ? m_tileset->GetSelectedTile().GetIndex() * 10 + digit : digit;
+		while (tile >= m_tileset->GetTilemapSize() && tile > 0)
+		{
+			tile %= static_cast<int>(pow(10.0, floor(log10(tile))));
+		}
+		m_editor->SetDrawTile(tile);
+		m_tileset->SelectTile(tile);
+		break;
+	}
+	case 'b':
+	case 'B':
+		ProcessEvent(ID_BLOCK_SELECT);
+		break;
+	case 't':
+	case 'T':
+		ProcessEvent(ID_TILE_SELECT);
+		break;
+	case 'r':
+	case 'R':
+		ProcessEvent(ID_PENCIL);
+		break;
+	}
+	evt.Skip();
+}
+
+void BlocksetEditorFrame::ProcessEvent(int id)
+{
+	int t = -1;
+	int b = -1;
+	if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::TILE_SELECT)
+	{
+		b = m_editor->GetBlockSelection();
+		t = m_editor->GetTileSelection();
+	}
+	else if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::PENCIL)
+	{
+		b = m_editor->GetBlockHover();
+		t = m_editor->GetTileHover();
+	}
+	switch (id)
+	{
+	case ID_TOOLS_TILES:
+		SetPaneVisibility(m_tileset, !IsPaneVisible(m_tileset));
+		break;
+	case ID_TOOLS_TOOLBAR:
+		SetToolbarVisibility("Blockset", !IsToolbarVisible("Blockset"));
+		break;
+	case ID_FILE_EXPORT_CBS:
+		OnExportBin();
+		break;
+	case ID_FILE_EXPORT_CSV:
+		OnExportCsv();
+		break;
+	case ID_FILE_EXPORT_PNG:
+		OnExportPng();
+		break;
+	case ID_FILE_IMPORT_CBS:
+		OnImportBin();
+		break;
+	case ID_FILE_IMPORT_CSV:
+		OnImportCsv();
+		break;
+	case ID_TOGGLE_GRIDLINES:
+	case ID_VIEW_TOGGLE_GRIDLINES:
+		m_editor->SetBordersEnabled(!m_editor->GetBordersEnabled());
+		m_editor->ForceRedraw();
+		break;
+	case ID_TOGGLE_TILE_NUMBERS:
+	case ID_VIEW_TOGGLE_TILE_NOS:
+		m_editor->SetTileNumbersEnabled(!m_editor->GetTileNumbersEnabled());
+		m_editor->ForceRedraw();
+		break;
+	case ID_TOGGLE_ALPHA:
+	case ID_VIEW_TOGGLE_ALPHA:
+		m_editor->SetAlphaEnabled(!m_editor->GetAlphaEnabled());
+		m_editor->ForceRedraw();
+		break;
+	case ID_CUT:
+	case ID_EDIT_CUT:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
+		{
+			m_blockclipboard = m_editor->GetSelectedBlock();
+			m_editor->SetSelectedBlock(MapBlock());
+		}
+		else if (t != -1 && b != -1)
+		{
+			m_tileclipboard = m_editor->GetTile(b, t);
+			m_editor->SetTile(b, t, Tile());
+		}
+		break;
+	case ID_COPY:
+	case ID_EDIT_COPY:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
+		{
+			m_blockclipboard = m_editor->GetSelectedBlock();
+		}
+		else if (t != -1 && b != -1)
+		{
+			m_tileclipboard = m_editor->GetTile(b, t);
+		}
+		break;
+	case ID_PASTE:
+	case ID_EDIT_PASTE:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid() && m_blockclipboard.has_value())
+		{
+			m_editor->SetSelectedBlock(*m_blockclipboard);
+		}
+		else if (t != -1 && b != -1 && m_tileclipboard.has_value())
+		{
+			m_editor->SetTile(b, t, *m_tileclipboard);
+		}
+		break;
+	case ID_SWAP:
+	case ID_EDIT_SWAP:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
+		{
+			if (m_blockswap == -1)
+			{
+				m_blockswap = m_editor->GetBlockSelection();
+				m_tileswap = -1;
+			}
+			else
+			{
+				auto temp = m_editor->GetBlock(m_blockswap);
+				m_editor->SetBlock(m_blockswap, m_editor->GetSelectedBlock());
+				m_editor->SetSelectedBlock(temp);
+				m_blockswap = -1;
+				m_tileswap = -1;
+			}
+		}
+		else if (t != -1 && b != -1)
+		{
+			if (m_tileswap == -1 || m_blockswap == -1)
+			{
+				m_blockswap = b;
+				m_tileswap = t;
+			}
+			else
+			{
+				auto temp = m_editor->GetTile(m_blockswap, m_tileswap);
+				m_editor->SetTile(m_blockswap, m_tileswap, m_editor->GetTile(b, t));
+				m_editor->SetTile(b, t, temp);
+				m_blockswap = -1;
+				m_tileswap = -1;
+			}
+		}
+		break;
+	case ID_CLEAR:
+	case ID_EDIT_CLEAR:
+		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
+		{
+			m_editor->SetSelectedBlock(MapBlock());
+		}
+		else if (t != -1 && b != -1)
+		{
+			m_editor->SetTile(b, t, Tile());
+		}
+		break;
+	case ID_INSERT_BLOCK_BEFORE:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->InsertBlock(m_editor->GetBlockSelection());
+			m_editor->SetBlockSelection(m_editor->GetBlockSelection() + 1);
+			UpdateUI();
+		}
+		break;
+	case ID_INSERT_BLOCK_AFTER:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->InsertBlock(m_editor->GetBlockSelection() + 1);
+			UpdateUI();
+		}
+		break;
+	case ID_DELETE_BLOCK:
+		m_editor->DeleteBlock(m_editor->GetBlockSelection());
+		UpdateUI();
+		break;
+	case ID_HFLIP_TILE:
+	{
+		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		{
+			m_editor->ToggleHFlip(b, t);
+		}
+		break;
+	}
+	case ID_VFLIP_TILE:
+	{
+		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		{
+			m_editor->ToggleVFlip(b, t);
+		}
+		break;
+	}
+	case ID_TOGGLE_TILE_PRIORITY:
+	{
+		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		{
+			m_editor->TogglePriority(b, t);
+		}
+		break;
+	}
+	case ID_BLOCK_SELECT:
+	case ID_TOOLS_BLOCK_SELECT:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::BLOCK_SELECT);
+		UpdateUI();
+		break;
+	case ID_TILE_SELECT:
+	case ID_TOOLS_TILE_SELECT:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::TILE_SELECT);
+		UpdateUI();
+		break;
+	case ID_PENCIL:
+	case ID_TOOLS_TILE_DRAW:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+		UpdateUI();
+		break;
+	case ID_BLOCK_UP:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->SetBlockSelection(std::clamp<int16_t>(m_editor->GetBlockSelection() - m_editor->GetControlBlockWidth(), 0, m_editor->GetBlockmapSize() - 1));
+		}
+		else
+		{
+			m_editor->SetBlockSelection(0);
+		}
+		break;
+	case ID_BLOCK_DOWN:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->SetBlockSelection(std::clamp<int16_t>(m_editor->GetBlockSelection() + m_editor->GetControlBlockWidth(), 0, m_editor->GetBlockmapSize() - 1));
+		}
+		else
+		{
+			m_editor->SetBlockSelection(0);
+		}
+		break;
+	case ID_BLOCK_LEFT:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->SetBlockSelection(std::clamp<int16_t>(m_editor->GetBlockSelection() - 1, 0, m_editor->GetBlockmapSize() - 1));
+		}
+		else
+		{
+			m_editor->SetBlockSelection(0);
+		}
+		break;
+	case ID_BLOCK_RIGHT:
+		if (m_editor->IsBlockSelectionValid())
+		{
+			m_editor->SetBlockSelection(std::clamp<int16_t>(m_editor->GetBlockSelection() + 1, 0, m_editor->GetBlockmapSize() - 1));
+		}
+		else
+		{
+			m_editor->SetBlockSelection(0);
+		}
+		break;
+	case ID_TILE_UP:
+		if (m_editor->IsTileHoverValid())
+		{
+			int block = m_editor->GetBlockHover();
+			int tile = m_editor->GetTileHover();
+			if (tile < 2)
+			{
+				tile += 2;
+				block -= m_editor->GetControlBlockWidth();
+			}
+			else
+			{
+				tile -= 2;
+			}
+			if (block < 0)
+			{
+				block = 0;
+				tile = tile % 2;
+			}
+			m_editor->SetTileHover(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+			m_editor->SetTileSelection(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+		}
+		else
+		{
+			m_editor->SetTileHover(0, 0);
+			m_editor->SetTileSelection(0, 0);
+		}
+		break;
+	case ID_TILE_DOWN:
+		if (m_editor->IsTileHoverValid())
+		{
+			int block = m_editor->GetBlockHover();
+			int tile = m_editor->GetTileHover();
+			if (tile > 1)
+			{
+				tile -= 2;
+				block += m_editor->GetControlBlockWidth();
+			}
+			else
+			{
+				tile += 2;
+			}
+			if (block > static_cast<int>(m_editor->GetBlockmapSize()))
+			{
+				block = m_editor->GetBlockmapSize() - 1;
+				tile = tile % 2 + 2;
+			}
+			m_editor->SetTileHover(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+			m_editor->SetTileSelection(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+		}
+		else
+		{
+			m_editor->SetTileHover(0, 0);
+			m_editor->SetTileSelection(0, 0);
+		}
+		break;
+	case ID_TILE_LEFT:
+		if (m_editor->IsTileHoverValid())
+		{
+			int block = m_editor->GetBlockHover();
+			int tile = m_editor->GetTileHover();
+			if (tile % 2)
+			{
+				--tile;
+			}
+			else
+			{
+				++tile;
+				--block;
+			}
+			if (block < 0)
+			{
+				block = 0;
+				tile = tile % 2;
+			}
+			m_editor->SetTileHover(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+			m_editor->SetTileSelection(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+		}
+		else
+		{
+			m_editor->SetTileHover(0, 0);
+			m_editor->SetTileSelection(0, 0);
+		}
+		break;
+	case ID_TILE_RIGHT:
+		if (m_editor->IsTileHoverValid())
+		{
+			int block = m_editor->GetBlockHover();
+			int tile = m_editor->GetTileHover();
+			if ((tile % 2) > 0)
+			{
+				tile -= 1;
+				++block;
+			}
+			else
+			{
+				tile += 1;
+			}
+			if (block > static_cast<int>(m_editor->GetBlockmapSize()))
+			{
+				block = m_editor->GetBlockmapSize() - 1;
+				tile = tile % 2 + 2;
+			}
+			m_editor->SetTileHover(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+			m_editor->SetTileSelection(std::clamp<int16_t>(block, 0, m_editor->GetBlockmapSize() - 1), tile);
+		}
+		else
+		{
+			m_editor->SetTileHover(0, 0);
+			m_editor->SetTileSelection(0, 0);
+		}
+		break;
+	case ID_SELECT_TILE:
+		if (m_editor->IsTileHoverValid())
+		{
+			m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			m_editor->SetDrawTile(m_editor->GetHoveredTile().GetIndex());
+			m_tileset->SelectTile(m_editor->GetHoveredTile().GetIndex());
+			UpdateUI();
+		}
+		break;
+	case ID_DRAW_TILE:
+		if (m_editor->IsTileHoverValid())
+		{
+			m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			m_editor->SetHoveredTile(m_editor->GetDrawTile());
+			UpdateUI();
+		}
+		break;
+	case ID_CLEAR_SELECTION:
+		m_editor->SetBlockSelection(-1);
+		m_editor->SetTileHover(-1, -1);
+		m_editor->SetTileSelection(-1, -1);
+		UpdateUI();
+		break;
+	default:
+		break;
+	}
+}
+
 void BlocksetEditorFrame::UpdateUI() const
 {
 	CheckMenuItem(ID_TOOLS_TILES, IsPaneVisible(m_tileset));
@@ -420,6 +939,16 @@ void BlocksetEditorFrame::UpdateUI() const
 			EnableToolbarItem("Blockset", ID_VFLIP_TILE, false);
 			EnableToolbarItem("Blockset", ID_HFLIP_TILE, false);
 			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, false);
+			EnableToolbarItem("Blockset", ID_CUT, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_COPY, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_PASTE, m_editor->IsBlockSelectionValid() && m_blockclipboard.has_value());
+			EnableToolbarItem("Blockset", ID_SWAP, m_editor->IsBlockSelectionValid());
+			EnableToolbarItem("Blockset", ID_CLEAR, m_editor->IsBlockSelectionValid());
+			EnableMenuItem(ID_EDIT_CUT, m_editor->IsBlockSelectionValid());
+			EnableMenuItem(ID_EDIT_COPY, m_editor->IsBlockSelectionValid());
+			EnableMenuItem(ID_EDIT_PASTE, m_editor->IsBlockSelectionValid() && m_blockclipboard.has_value());
+			EnableMenuItem(ID_EDIT_SWAP, m_editor->IsBlockSelectionValid());
+			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsBlockSelectionValid());
 			break;
 		case BlocksetEditorCtrl::Mode::TILE_SELECT:
 			CheckMenuItem(ID_TOOLS_TILE_SELECT, true);
@@ -430,6 +959,16 @@ void BlocksetEditorFrame::UpdateUI() const
 			EnableToolbarItem("Blockset", ID_VFLIP_TILE, m_editor->IsTileSelectionValid());
 			EnableToolbarItem("Blockset", ID_HFLIP_TILE, m_editor->IsTileSelectionValid());
 			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_CUT, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_COPY, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_PASTE, m_editor->IsTileSelectionValid() && m_tileclipboard.has_value());
+			EnableToolbarItem("Blockset", ID_SWAP, m_editor->IsTileSelectionValid());
+			EnableToolbarItem("Blockset", ID_CLEAR, m_editor->IsTileSelectionValid());
+			EnableMenuItem(ID_EDIT_CUT, m_editor->IsTileSelectionValid());
+			EnableMenuItem(ID_EDIT_COPY, m_editor->IsTileSelectionValid());
+			EnableMenuItem(ID_EDIT_PASTE, m_editor->IsTileSelectionValid() && m_tileclipboard.has_value());
+			EnableMenuItem(ID_EDIT_SWAP, m_editor->IsTileSelectionValid());
+			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsTileSelectionValid());
 			break;
 		case BlocksetEditorCtrl::Mode::PENCIL:
 			CheckMenuItem(ID_TOOLS_TILE_DRAW, true);
@@ -437,9 +976,19 @@ void BlocksetEditorFrame::UpdateUI() const
 			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
-			EnableToolbarItem("Blockset", ID_VFLIP_TILE, false);
-			EnableToolbarItem("Blockset", ID_HFLIP_TILE, false);
-			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, false);
+			EnableToolbarItem("Blockset", ID_VFLIP_TILE, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_HFLIP_TILE, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_CUT, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_COPY, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_PASTE, m_editor->IsTileHoverValid() && m_tileclipboard.has_value());
+			EnableToolbarItem("Blockset", ID_SWAP, m_editor->IsTileHoverValid());
+			EnableToolbarItem("Blockset", ID_CLEAR, m_editor->IsTileHoverValid());
+			EnableMenuItem(ID_EDIT_CUT, m_editor->IsTileHoverValid());
+			EnableMenuItem(ID_EDIT_COPY, m_editor->IsTileHoverValid());
+			EnableMenuItem(ID_EDIT_PASTE, m_editor->IsTileHoverValid() && m_tileclipboard.has_value());
+			EnableMenuItem(ID_EDIT_SWAP, m_editor->IsTileHoverValid());
+			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsTileHoverValid());                                                   
 			break;
 		}
 		if (m_editor != nullptr && m_palette_select != nullptr)
@@ -500,6 +1049,8 @@ void BlocksetEditorFrame::OnImportBin()
 		std::string path = fd.GetPath().ToStdString();
 		ImportBin(path);
 	}
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::OnImportCsv()
@@ -511,6 +1062,8 @@ void BlocksetEditorFrame::OnImportCsv()
 		std::string path = fd.GetPath().ToStdString();
 		ImportCsv(path);
 	}
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::FireUpdateStatusEvent(const std::string& data, int pane)

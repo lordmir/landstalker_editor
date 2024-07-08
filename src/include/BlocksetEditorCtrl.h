@@ -60,6 +60,9 @@ public:
 	void SetDrawTile(const Tile& tile);
 	Tile GetDrawTile();
 
+	void ToggleHFlip(int block, int tile);
+	void ToggleVFlip(int block, int tile);
+	void TogglePriority(int block, int tile);
 	void ToggleSelectedHFlip();
 	void ToggleSelectedVFlip();
 	void ToggleSelectedPriority();
@@ -91,6 +94,8 @@ public:
 	uint16_t GetBlockSelection() const;
 	uint16_t GetBlockHover() const;
 	void SetBlockSelection(int block);
+	void SetTileHover(int block, int tile);
+	void SetTileSelection(int block, int tile);
 	uint16_t GetTileSelection() const;
 	uint16_t GetTileHover() const;
 	MapBlock GetSelectedBlock() const;
@@ -106,7 +111,9 @@ public:
 	void SetTile(int block_idx, int tile_idx, const Tile& new_tile);
 	bool IsBlockIndexValid(int block_index) const;
 	bool IsTileIndexValid(int tile_index) const;
+	int GetControlBlockWidth() const;
 	void ForceRedraw();
+
 private:
 	void RefreshStatusbar();
 	virtual wxCoord OnGetRowHeight(size_t row) const override;

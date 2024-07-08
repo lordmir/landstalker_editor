@@ -175,7 +175,7 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
     std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
     std::ofstream fs(filename.str(), std::ios::out | std::ios::trunc);
 
-    switch (m_type)
+    switch (mode)
     {
     case StringData::Type::INTRO:
         fs << utf8_conv.to_bytes(sd->GetIntroString(0).GetHeaderRow()) << std::endl;

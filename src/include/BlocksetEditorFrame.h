@@ -34,11 +34,14 @@ public:
 	void ImportBin(const std::string& filename);
 	void ImportCsv(const std::string& filename);
 private:
+
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnButtonClicked(wxCommandEvent& evt);
 	void OnPaletteSelect(wxCommandEvent& evt);
 	void OnBlockSelect(wxCommandEvent& evt);
 	void OnTileSelect(wxCommandEvent& evt);
+	void OnKeyPress(wxKeyEvent& evt);
+	void ProcessEvent(int id);
 	virtual void UpdateUI() const override;
 
 	virtual void InitStatusBar(wxStatusBar& status) const;
@@ -63,6 +66,11 @@ private:
 	std::shared_ptr<TilesetEntry> m_tiles = nullptr;
 	std::shared_ptr<PaletteEntry> m_palette = nullptr;
 	int m_zoom = 1;
+
+	std::optional<Tile> m_tileclipboard;
+	std::optional<MapBlock> m_blockclipboard;
+	int m_tileswap = -1;
+	int m_blockswap = -1;
 
 	mutable wxSlider* m_zoomslider = nullptr;
 	mutable wxComboBox* m_palette_select = nullptr;

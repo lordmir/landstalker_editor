@@ -1168,7 +1168,7 @@ wxString FlagDataViewModel<TreeWarpFlag>::GetColumnHeader(unsigned int col) cons
 }
 
 template <>
-wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int col) const
+wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int /*col*/) const
 {
 	return m_list[0];
 }

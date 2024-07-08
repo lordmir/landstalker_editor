@@ -125,7 +125,6 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		atk->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
 		atk->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(atk)->Enable(false);
-		props.Append(new wxIntProperty("Gold Drop", "Gold Drop", 0))->Enable(false);
 		auto gold = new wxIntProperty("Gold Drop", "Gold Drop", 0);
 		gold->SetAttribute(wxPG_ATTR_MIN, 0);
 		gold->SetAttribute(wxPG_ATTR_MAX, 255);
@@ -342,7 +341,10 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Is Item", is_item);
 		props.GetGrid()->GetProperty("Use Text")->Enable(is_item);
 		props.GetGrid()->GetProperty("Use Text")->SetChoices(is_item ? m_verbs : m_empty_choices);
-		props.GetGrid()->GetProperty("Use Text")->SetChoiceSelection(is_item ? m_verbs.Index(item_props.verb) : 0);
+		if (is_item)
+		{
+			props.GetGrid()->GetProperty("Use Text")->SetChoiceSelection(m_verbs.Index(item_props.verb));
+		}
 		props.GetGrid()->GetProperty("Maximum Quantity")->Enable(is_item);
 		props.GetGrid()->SetPropertyValue("Maximum Quantity", is_item ? item_props.max_quantity : 0);
 		props.GetGrid()->GetProperty("Equipment Index")->Enable(is_item);
@@ -360,10 +362,16 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Gold Drop", is_enemy ? enemy_stats.gold_drop : 0);
 		props.GetGrid()->GetProperty("Item Drop")->Enable(is_enemy);
 		props.GetGrid()->GetProperty("Item Drop")->SetChoices(is_enemy ? m_items : m_empty_choices);
-		props.GetGrid()->GetProperty("Item Drop")->SetChoiceSelection(is_enemy ? enemy_stats.item_drop : 0);
+		if (is_enemy)
+		{
+			props.GetGrid()->GetProperty("Item Drop")->SetChoiceSelection(enemy_stats.item_drop);
+		}
 		props.GetGrid()->GetProperty("Drop Probability")->Enable(is_enemy);
 		props.GetGrid()->GetProperty("Drop Probability")->SetChoices(is_enemy ? m_probabilities : m_empty_choices);
-		props.GetGrid()->GetProperty("Drop Probability")->SetChoiceSelection(is_enemy ? static_cast<uint8_t>(enemy_stats.drop_probability) : 0);
+		if (is_enemy)
+		{
+			props.GetGrid()->GetProperty("Drop Probability")->SetChoiceSelection(static_cast<uint8_t>(enemy_stats.drop_probability));
+		}
 		props.GetGrid()->Thaw();
 	}
 }

@@ -95,7 +95,7 @@ Palette::Palette(const std::string& name, const std::vector<Colour>& colours, co
 	: m_type(type),
 	  m_name(name)
 {
-	assert(colours.size() == GetSize());
+	assert(colours.size() == static_cast<std::size_t>(GetSize()));
 	if (IsVarWidth())
 	{
 		auto it = colours.cbegin();
@@ -140,11 +140,11 @@ Palette::Palette(const std::string& name, const std::vector<uint8_t>& bytes, con
 	{
 		size = (*it << 8) | *(it + 1);
 		it += 2;
-		assert(bytes.size() == ((size + 2) * 2));
+		assert(static_cast<int>(bytes.size()) == ((size + 2) * 2));
 	}
 	else
 	{
-		assert(bytes.size() == (size * 2));
+		assert(static_cast<int>(bytes.size()) == (size * 2));
 	}
 
 	std::vector<Colour> colours;

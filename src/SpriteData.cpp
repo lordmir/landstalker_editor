@@ -462,7 +462,7 @@ uint8_t SpriteData::GetSpriteFromEntity(uint8_t id) const
 
 void SpriteData::SetEntitySprite(uint8_t entity, uint8_t sprite)
 {
-	assert(m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
+	assert(m_sprite_to_entity_lookup.find(entity) != m_sprite_to_entity_lookup.cend());
 	m_sprite_to_entity_lookup[entity] = sprite;
 }
 

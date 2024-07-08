@@ -87,6 +87,12 @@ bool BlocksetEditorCtrl::Open(const std::string& name)
 	m_tileset = tse->GetData();
 	m_pal_name = tse->GetDefaultPalette();
 	m_pal = m_gd->GetPalette(m_pal_name)->GetData();
+	m_mode = Mode::BLOCK_SELECT;
+	m_selectedtile = -1;
+	m_selectedblock = -1;
+	m_hoveredtile = -1;
+	m_hoveredblock = -1;
+	m_drawtile = Tile();
 	UpdateRowCount();
 	ForceRedraw();
 	return true;
@@ -102,6 +108,8 @@ bool BlocksetEditorCtrl::OpenRoom(uint16_t roomnum)
 	m_hoveredblock = -1;
 	m_selectedtile = -1;
 	m_hoveredtile = -1;
+	m_mode = Mode::BLOCK_SELECT;
+	m_drawtile = Tile();
 	m_blocks = m_gd->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
 	auto tse = m_gd->GetRoomData()->GetTilesetForRoom(roomnum);
 	m_tileset = tse->GetData();
@@ -171,7 +179,7 @@ std::string BlocksetEditorCtrl::GetActivePalette() const
 
 int BlocksetEditorCtrl::GetBlockmapSize() const
 {
-	return m_blocks ? 0 : m_blocks->size();
+	return m_blocks ? m_blocks->size() : 0;
 }
 
 int BlocksetEditorCtrl::GetBlockWidth() const
@@ -201,11 +209,14 @@ std::shared_ptr<std::vector<MapBlock>> BlocksetEditorCtrl::GetBlocks()
 
 void BlocksetEditorCtrl::SetMode(const Mode& mode)
 {
-	m_mode = mode;
-	m_redraw_list.insert(m_selectedblock);
-	m_selectedblock = -1;
-	m_selectedtile = -1;
-	Refresh();
+	if (m_mode != mode)
+	{
+		m_mode = mode;
+		m_redraw_list.insert(m_selectedblock);
+		m_selectedtile = IsBlockSelectionValid() ? 0 : -1;
+		m_selectedblock = IsBlockSelectionValid() ? m_selectedblock : -1;
+		Refresh();
+	}
 }
 
 BlocksetEditorCtrl::Mode BlocksetEditorCtrl::GetMode() const
@@ -222,6 +233,36 @@ void BlocksetEditorCtrl::SetDrawTile(const Tile& tile)
 Tile BlocksetEditorCtrl::GetDrawTile()
 {
 	return m_drawtile;
+}
+
+void BlocksetEditorCtrl::ToggleHFlip(int block_idx, int tile_idx)
+{
+	if (IsTileIndexValid(tile_idx) && IsBlockIndexValid(block_idx))
+	{
+		auto tile = GetTile(block_idx, tile_idx);
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+		SetTile(block_idx, tile_idx, tile);
+	}
+}
+
+void BlocksetEditorCtrl::ToggleVFlip(int block_idx, int tile_idx)
+{
+	if (IsTileIndexValid(tile_idx) && IsBlockIndexValid(block_idx))
+	{
+		auto tile = GetTile(block_idx, tile_idx);
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+		SetTile(block_idx, tile_idx, tile);
+	}
+}
+
+void BlocksetEditorCtrl::TogglePriority(int block_idx, int tile_idx)
+{
+	if (IsTileIndexValid(tile_idx) && IsBlockIndexValid(block_idx))
+	{
+		auto tile = GetTile(block_idx, tile_idx);
+		tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+		SetTile(block_idx, tile_idx, tile);
+	}
 }
 
 void BlocksetEditorCtrl::ToggleSelectedHFlip()
@@ -474,6 +515,10 @@ uint16_t BlocksetEditorCtrl::GetBlockHover() const
 void BlocksetEditorCtrl::SetBlockSelection(int block)
 {
 	int b = -1;
+	if (m_mode != Mode::BLOCK_SELECT)
+	{
+		return;
+	}
 	if (IsBlockIndexValid(block))
 	{
 		b = block;
@@ -485,6 +530,88 @@ void BlocksetEditorCtrl::SetBlockSelection(int block)
 			m_redraw_list.insert(m_selectedblock);
 		}
 		m_selectedblock = b;
+		if (m_selectedblock != -1)
+		{
+			m_redraw_list.insert(m_selectedblock);
+			std::size_t row = m_selectedblock / m_columns;
+			if (row >= (GetVisibleRowsEnd() - 1) || row < GetVisibleRowsBegin())
+			{
+				ScrollToRow(row);
+			}
+		}
+		FireEvent(EVT_BLOCK_SELECT, "");
+		RefreshStatusbar();
+		Refresh();
+	}
+}
+
+void BlocksetEditorCtrl::SetTileHover(int block, int tile)
+{
+	int b = -1;
+	int t = -1;
+	if (m_mode == Mode::BLOCK_SELECT)
+	{
+		return;
+	}
+	if (IsBlockIndexValid(block) && IsTileIndexValid(tile))
+	{
+		b = block;
+		t = tile;
+	}
+	if (b != m_hoveredblock || t != m_hoveredtile)
+	{
+		if (m_hoveredblock != -1)
+		{
+			m_redraw_list.insert(m_hoveredblock);
+		}
+		m_hoveredblock = b;
+		m_hoveredtile = t;
+		if (m_hoveredblock != -1)
+		{
+			m_redraw_list.insert(m_hoveredblock);
+			std::size_t row = m_hoveredblock / m_columns;
+			if (row >= (GetVisibleRowsEnd() - 1) || row < GetVisibleRowsBegin())
+			{
+				ScrollToRow(row);
+			}
+		}
+		RefreshStatusbar();
+		Refresh();
+	}
+}
+
+void BlocksetEditorCtrl::SetTileSelection(int block, int tile)
+{
+	int b = -1;
+	int t = -1;
+	if (m_mode != Mode::TILE_SELECT)
+	{
+		return;
+	}
+	if (IsBlockIndexValid(block) && IsTileIndexValid(tile))
+	{
+		b = block;
+		t = tile;
+	}
+	if (b != m_selectedblock || t != m_selectedtile)
+	{
+		if (m_selectedblock != -1)
+		{
+			m_redraw_list.insert(m_selectedblock);
+		}
+		m_selectedblock = b;
+		m_selectedtile = t;
+		if (m_selectedblock != -1)
+		{
+			m_redraw_list.insert(m_selectedblock);
+			std::size_t row = m_selectedblock / m_columns;
+			if (row >= (GetVisibleRowsEnd() - 1) || row < GetVisibleRowsBegin())
+			{
+				ScrollToRow(row);
+			}
+		}
+		FireEvent(EVT_BLOCK_SELECT, "");
+		RefreshStatusbar();
 		Refresh();
 	}
 }
@@ -628,6 +755,11 @@ bool BlocksetEditorCtrl::IsBlockIndexValid(int block_index) const
 bool BlocksetEditorCtrl::IsTileIndexValid(int tile_index) const
 {
 	return (tile_index >= 0 && tile_index < static_cast<int>(MapBlock::GetBlockSize()));
+}
+
+int BlocksetEditorCtrl::GetControlBlockWidth() const
+{
+	return m_columns;
 }
 
 void BlocksetEditorCtrl::RefreshStatusbar()
@@ -1085,9 +1217,8 @@ int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 	{
 		return -1;
 	}
-	int s = GetVisibleRowsBegin();
 	int xx = point.x % (m_pixelsize * m_tileset->GetTileWidth() * MapBlock::GetBlockWidth());
-	int yy = s + point.y % (m_pixelsize * m_tileset->GetTileHeight() * MapBlock::GetBlockHeight());
+	int yy = point.y % (m_pixelsize * m_tileset->GetTileHeight() * MapBlock::GetBlockHeight());
 	int x = xx / (m_pixelsize * m_tileset->GetTileWidth());
 	int y = yy / (m_pixelsize * m_tileset->GetTileHeight());
 	int sel = x + y * MapBlock::GetBlockWidth();

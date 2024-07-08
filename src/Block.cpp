@@ -13,7 +13,7 @@ Block<N,M>::Block()
 template<std::size_t N, std::size_t M>
 Block<N,M>::Block(const std::vector<Tile>::const_iterator& begin, const std::vector<Tile>::const_iterator& end)
 {
-    assert(std::distance(begin, end) == GetBlockSize());
+    assert(std::distance(begin, end) == static_cast<std::ptrdiff_t>(GetBlockSize()));
     std::copy(begin, end, tiles.begin());
 }
 

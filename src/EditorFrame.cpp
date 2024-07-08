@@ -15,7 +15,7 @@ std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> EditorFrame::m_menus;
 std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> EditorFrame::m_menuitems;
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst)
-	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize()),
+	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize(), wxWANTS_CHARS),
 	  m_props_init(false),
 	  m_imglst(imglst)
 {
