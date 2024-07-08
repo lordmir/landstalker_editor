@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 
-#include "SpriteEditorCtrl.h"
+#include "SpriteFrameEditorCtrl.h"
 #include "EditorFrame.h"
 #include "Palette.h"
 #include "PaletteEditor.h"
@@ -72,10 +72,11 @@ private:
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
-	SpriteEditorCtrl* m_spriteeditor = nullptr;
+	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
 	PaletteEditor* m_paledit = nullptr;
 	TileEditor* m_tileedit = nullptr;
 	mutable wxAuiManager m_mgr;
+	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
 
 	mutable wxPGChoices m_hi_palettes;

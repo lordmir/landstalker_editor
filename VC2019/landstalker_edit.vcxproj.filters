@@ -273,7 +273,7 @@
     <ClCompile Include="..\src\RoomViewerCtrl.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\SpriteEditorCtrl.cpp">
+    <ClCompile Include="..\src\SpriteFrameEditorCtrl.cpp">
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
     <ClCompile Include="..\src\SpriteEditorFrame.cpp">
@@ -583,7 +583,7 @@
     <ClInclude Include="..\src\include\SpriteData.h">
       <Filter>include\Data\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\SpriteEditorCtrl.h">
+    <ClInclude Include="..\src\include\SpriteFrameEditorCtrl.h">
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\SpriteEditorFrame.h">

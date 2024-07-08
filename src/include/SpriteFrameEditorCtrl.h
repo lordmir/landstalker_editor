@@ -1,5 +1,5 @@
-#ifndef _SPRITE_EDITOR_CTRL_H_
-#define _SPRITE_EDITOR_CTRL_H_
+#ifndef _SPRITE_FRAME_EDITOR_CTRL_H_
+#define _SPRITE_FRAME_EDITOR_CTRL_H_
 
 #include <wx/wx.h>
 #include <wx/vscroll.h>
@@ -15,11 +15,11 @@
 #include "ImageBuffer.h"
 #include "GameData.h"
 
-class SpriteEditorCtrl : public wxHVScrolledWindow
+class SpriteFrameEditorCtrl : public wxHVScrolledWindow
 {
 public:
-	SpriteEditorCtrl(wxWindow* parent);
-	~SpriteEditorCtrl();
+	SpriteFrameEditorCtrl(wxWindow* parent);
+	~SpriteFrameEditorCtrl();
 
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename);
@@ -141,4 +141,4 @@ wxDECLARE_EVENT(EVT_SPRITE_FRAME_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SPRITE_FRAME_TILE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SPRITE_FRAME_ACTIVATE, wxCommandEvent);
 
-#endif // _SPRITE_EDITOR_CTRL_H_
+#endif // _SPRITE_FRAME_EDITOR_CTRL_H_

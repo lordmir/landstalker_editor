@@ -43,7 +43,7 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 {
 	m_mgr.SetManagedWindow(this);
 
-	m_spriteeditor = new SpriteEditorCtrl(this);
+	m_spriteeditor = new SpriteFrameEditorCtrl(this);
 	m_paledit = new PaletteEditor(this);
 	m_tileedit = new TileEditor(this);
 
@@ -51,8 +51,12 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
 	m_mgr.AddPane(m_tileedit, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).FloatingSize(450, 450).Caption("Editor"));
 	m_mgr.AddPane(m_paledit, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700, 100).Caption("Palette"));
-	m_mgr.AddPane(m_spriteeditor, wxAuiPaneInfo().CenterPane());
 
+	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
+	m_nb->Freeze();
+	m_nb->AddPage(m_spriteeditor, "Sprite Frames");
+	m_nb->Thaw();
+	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();

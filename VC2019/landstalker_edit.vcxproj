@@ -79,7 +79,7 @@
     <ClCompile Include="..\src\RoomData.cpp" />
     <ClCompile Include="..\src\SelectionControlFrame.cpp" />
     <ClCompile Include="..\src\SpriteData.cpp" />
-    <ClCompile Include="..\src\SpriteEditorCtrl.cpp" />
+    <ClCompile Include="..\src\SpriteFrameEditorCtrl.cpp" />
     <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
     <ClCompile Include="..\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\StringData.cpp" />
@@ -183,7 +183,7 @@
     <ClInclude Include="..\src\include\RoomData.h" />
     <ClInclude Include="..\src\include\SelectionControlFrame.h" />
     <ClInclude Include="..\src\include\SpriteData.h" />
-    <ClInclude Include="..\src\include\SpriteEditorCtrl.h" />
+    <ClInclude Include="..\src\include\SpriteFrameEditorCtrl.h" />
     <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
     <ClInclude Include="..\src\include\SpriteFrame.h" />
     <ClInclude Include="..\src\include\StringData.h" />
