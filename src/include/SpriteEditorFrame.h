@@ -34,6 +34,7 @@ public:
 	void SetActivePalette(const std::vector<std::string>& names);
 	void Redraw() const;
 	void RedrawTiles(int index = -1) const;
+	void Update();
 
 	bool Save();
 	bool SaveAs(wxString filename, bool compressed = false);

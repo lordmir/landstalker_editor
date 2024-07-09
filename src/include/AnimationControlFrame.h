@@ -17,8 +17,8 @@ public:
 	AnimationControlFrame(SpriteEditorFrame* parent, ImageList* imglst);
 	virtual ~AnimationControlFrame();
 
-	void SetAnimations(const std::vector<std::string>& frames);
-	void ResetAnimations();
+	void SetSprite(uint8_t sprite);
+	void ResetSprite();
 	virtual int GetMaxSelection() const;
 
 	void SetGameData(std::shared_ptr<GameData> gd);
@@ -33,7 +33,7 @@ protected:
 	virtual std::string MakeLabel(int index) const;
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 private:
-	std::vector<std::string> m_frames;
+	std::vector<std::string> m_anims;
 	std::shared_ptr<GameData> m_gd;
 
 	SpriteEditorFrame* m_sef;

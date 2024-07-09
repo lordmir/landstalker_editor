@@ -17,8 +17,8 @@ public:
 	FrameControlFrame(SpriteEditorFrame* parent, ImageList* imglst);
 	virtual ~FrameControlFrame();
 
-	void SetFrames(const std::vector<std::string>& frames);
-	void ResetFrames();
+	void SetSprite(uint8_t sprite);
+	void ResetSprite();
 	virtual int GetMaxSelection() const;
 
 	void SetGameData(std::shared_ptr<GameData> gd);

@@ -489,6 +489,11 @@ SpriteFrame::SubSprite SpriteFrame::GetSubSprite(std::size_t idx) const
 	return m_subsprites[idx];
 }
 
+std::vector<SpriteFrame::SubSprite> SpriteFrame::GetSubSprites() const
+{
+	return m_subsprites;
+}
+
 SpriteFrame::SubSprite& SpriteFrame::AddSubSpriteBefore(std::size_t idx)
 {
 	return *m_subsprites.insert(m_subsprites.begin() + idx, 1, SubSprite());

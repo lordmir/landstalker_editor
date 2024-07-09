@@ -54,11 +54,11 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
-	m_mgr.AddPane(m_tileedit, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).FloatingSize(450, 450).Caption("Editor"));
+	m_mgr.AddPane(m_tileedit, wxAuiPaneInfo().Left().Layer(2).MinSize(100, 100).BestSize(450, 450).FloatingSize(450, 450).Caption("Editor"));
 	m_mgr.AddPane(m_paledit, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700, 100).Caption("Palette"));
-	m_mgr.AddPane(m_framectrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+	m_mgr.AddPane(m_framectrl, wxAuiPaneInfo().Left().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Frames"));
-	m_mgr.AddPane(m_subspritectrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+	m_mgr.AddPane(m_subspritectrl, wxAuiPaneInfo().Left().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Subsprites"));
 	m_mgr.AddPane(m_animctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Animations"));
@@ -113,7 +113,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
 	m_spriteeditor->SelectTile(0);
 	m_reset_props = true;
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	Update();
 	return true;
 }
 
@@ -122,6 +122,10 @@ void SpriteEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 	m_gd = gd;
 	m_tileedit->SetGameData(gd);
 	m_paledit->SetGameData(gd);
+	m_animctrl->SetGameData(gd);
+	m_spriteanimeditor->SetGameData(gd);
+	m_framectrl->SetGameData(gd);
+	m_animframectrl->SetGameData(gd);
 }
 
 void SpriteEditorFrame::ClearGameData()
@@ -129,6 +133,10 @@ void SpriteEditorFrame::ClearGameData()
 	m_gd = nullptr;
 	m_tileedit->SetGameData(nullptr);
 	m_paledit->SetGameData(nullptr);
+	m_animctrl->ClearGameData();
+	m_spriteanimeditor->ClearGameData();
+	m_framectrl->ClearGameData();
+	m_animframectrl->ClearGameData();
 }
 
 void SpriteEditorFrame::SetActivePalette(const std::string& name)
@@ -140,6 +148,7 @@ void SpriteEditorFrame::SetActivePalette(const std::string& name)
 		{
 			m_palette = std::make_shared<Palette>(*pal->GetData());
 			m_spriteeditor->SetActivePalette(m_palette);
+			m_spriteanimeditor->SetActivePalette(m_palette);
 			m_paledit->SelectPalette(m_palette);
 			m_tileedit->SetActivePalette(m_palette);
 		}
@@ -157,6 +166,7 @@ void SpriteEditorFrame::SetActivePalette(const std::vector<std::string>& names)
 			});
 		m_palette = std::make_shared<Palette>(pals);
 		m_spriteeditor->SetActivePalette(m_palette);
+		m_spriteanimeditor->SetActivePalette(m_palette);
 		m_paledit->SelectPalette(m_palette);
 		m_tileedit->SetActivePalette(m_palette);
 	}
@@ -173,6 +183,18 @@ void SpriteEditorFrame::RedrawTiles(int index) const
 {
 	m_spriteeditor->RedrawTiles(index);
 	m_tileedit->Redraw();
+	m_spriteanimeditor->Refresh(true);
+}
+
+void SpriteEditorFrame::Update()
+{
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	m_framectrl->SetSprite(m_sprite->GetSprite());
+	m_animctrl->SetSprite(m_sprite->GetSprite());
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), 0);
+	Redraw();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 bool SpriteEditorFrame::Save()
@@ -279,7 +301,7 @@ void SpriteEditorFrame::ImportFrm(const std::string& filename)
 	m_sprite->GetData()->SetBits(bytes);
 	RedrawTiles();
 	m_reset_props = true;
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::ImportTiles(const std::string& filename)
@@ -288,7 +310,7 @@ void SpriteEditorFrame::ImportTiles(const std::string& filename)
 	m_sprite->GetData()->GetTileset()->SetBits(bytes, false);
 	RedrawTiles();
 	m_reset_props = true;
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
@@ -320,9 +342,8 @@ void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
 	m_sprite->GetData()->SetCompressed(compressed);
 	m_sprite->GetData()->SetSubSprites(subs);
 
-	RedrawTiles();
 	m_reset_props = true;
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
@@ -738,9 +759,7 @@ void SpriteEditorFrame::OnImportFrm()
 	m_spriteeditor->SelectTile(0);
 	m_tileedit->SetTile(Tile(0));
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
-	RedrawTiles();
-	FireEvent(EVT_PROPERTIES_UPDATE);
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::OnImportTiles()
@@ -755,9 +774,7 @@ void SpriteEditorFrame::OnImportTiles()
 	m_spriteeditor->SelectTile(0);
 	m_tileedit->SetTile(Tile(0));
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
-	RedrawTiles();
-	FireEvent(EVT_PROPERTIES_UPDATE);
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::OnImportVdpSpritemap()
@@ -772,9 +789,7 @@ void SpriteEditorFrame::OnImportVdpSpritemap()
 	m_spriteeditor->SelectTile(0);
 	m_tileedit->SetTile(Tile(0));
 	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
-	RedrawTiles();
-	FireEvent(EVT_PROPERTIES_UPDATE);
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	Update();
 }
 
 void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const

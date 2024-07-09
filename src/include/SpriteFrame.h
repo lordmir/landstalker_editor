@@ -77,6 +77,7 @@ public:
 
 	SubSprite& GetSubSprite(std::size_t idx);
 	SubSprite  GetSubSprite(std::size_t idx) const;
+	std::vector<SubSprite> GetSubSprites() const;
 	SubSprite& AddSubSpriteBefore(std::size_t idx);
 	void       DeleteSubSprite(std::size_t idx);
 	void       SwapSubSprite(std::size_t src1, std::size_t src2);

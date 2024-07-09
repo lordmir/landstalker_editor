@@ -2,6 +2,12 @@
 
 #include <SpriteEditorFrame.h>
 
+wxDEFINE_EVENT(EVT_FRAME_SELECT, wxCommandEvent);
+wxDEFINE_EVENT(EVT_FRAME_ADD, wxCommandEvent);
+wxDEFINE_EVENT(EVT_FRAME_DELETE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_FRAME_MOVE_UP, wxCommandEvent);
+wxDEFINE_EVENT(EVT_FRAME_MOVE_DOWN, wxCommandEvent);
+
 FrameControlFrame::FrameControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
 	: SelectionControlFrame(parent, imglst)
 {
@@ -11,45 +17,60 @@ FrameControlFrame::~FrameControlFrame()
 {
 }
 
-void FrameControlFrame::SetFrames(const std::vector<std::string>& frames)
+void FrameControlFrame::SetSprite(uint8_t sprite_id)
 {
+	m_frames.clear();
+	if (m_gd)
+	{
+		m_frames = m_gd->GetSpriteData()->GetSpriteFrames(sprite_id);
+	}
+	UpdateUI();
 }
 
-void FrameControlFrame::ResetFrames()
+void FrameControlFrame::ResetSprite()
 {
+	m_frames.clear();
+	UpdateUI();
 }
 
 int FrameControlFrame::GetMaxSelection() const
 {
-	return 0;
+	return m_frames.size();
 }
 
 void FrameControlFrame::SetGameData(std::shared_ptr<GameData> gd)
 {
+	m_gd = gd;
 }
 
 void FrameControlFrame::ClearGameData()
 {
+	m_gd = nullptr;
 }
 
 void FrameControlFrame::Select()
 {
+	FireEvent(EVT_FRAME_SELECT);
 }
 
 void FrameControlFrame::Add()
 {
+	FireEvent(EVT_FRAME_ADD);
 }
 
 void FrameControlFrame::Delete()
 {
+	FireEvent(EVT_FRAME_DELETE);
 }
 
 void FrameControlFrame::MoveUp()
 {
+	FireEvent(EVT_FRAME_MOVE_UP);
 }
 
 void FrameControlFrame::MoveDown()
 {
+	FireEvent(EVT_FRAME_MOVE_DOWN);
 }
 
 void FrameControlFrame::OpenElement()
@@ -58,7 +79,7 @@ void FrameControlFrame::OpenElement()
 
 std::string FrameControlFrame::MakeLabel(int index) const
 {
-	return std::string();
+	return m_frames[index];
 }
 
 bool FrameControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)
