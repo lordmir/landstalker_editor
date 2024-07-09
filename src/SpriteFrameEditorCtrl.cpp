@@ -90,6 +90,7 @@ bool SpriteFrameEditorCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared
 
 void SpriteFrameEditorCtrl::RedrawTiles(int index)
 {
+	SelectSubSprite(GetSelectedSubSprite());
 	if ((index < 0) || (index >= static_cast<int>(m_sprite->GetTileCount())))
 	{
 		ForceRedraw();
@@ -195,6 +196,7 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 		for (std::size_t i = 0; i < m_sprite->GetSubSpriteCount(); ++i)
 		{
 			const auto& s = m_sprite->GetSubSprite(i);
+			m_memdc.SetPen(wxPen(*wxRED, m_selected_subsprite == static_cast<int>(i) ? 3 : 1));
 			m_memdc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * m_sprite->GetTileWidth() * m_pixelsize), static_cast<int>(s.h * m_sprite->GetTileHeight() * m_pixelsize) });
 		}
 		m_memdc.SetPen(*wxGREEN_PEN);
@@ -526,6 +528,32 @@ void SpriteFrameEditorCtrl::SetActivePalette(const std::shared_ptr<Palette> pal)
 {
 	m_pal = pal;
 	ForceRedraw();
+}
+
+void SpriteFrameEditorCtrl::SelectSubSprite(int sel)
+{
+	if (sel > 0 && sel <= static_cast<int>(m_sprite->GetSubSpriteCount()))
+	{
+		m_selected_subsprite = sel - 1;
+	}
+	else
+	{
+		m_selected_subsprite = -1;
+	}
+	m_redraw_all = true;
+	Refresh();
+}
+
+int SpriteFrameEditorCtrl::GetSelectedSubSprite() const
+{
+	return m_selected_subsprite;
+}
+
+void SpriteFrameEditorCtrl::ClearSubSpriteSelection()
+{
+	m_selected_subsprite = -1;
+	m_redraw_all = true;
+	Refresh();
 }
 
 bool SpriteFrameEditorCtrl::GetTileNumbersEnabled() const

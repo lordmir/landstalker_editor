@@ -57,6 +57,27 @@ private:
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 
+	void OnFrameSelect(wxCommandEvent& evt);
+	void OnFrameAdd(wxCommandEvent& evt);
+	void OnFrameDelete(wxCommandEvent& evt);
+	void OnFrameMoveUp(wxCommandEvent& evt);
+	void OnFrameMoveDown(wxCommandEvent& evt);
+	void OnSubSpriteSelect(wxCommandEvent& evt);
+	void OnSubSpriteAdd(wxCommandEvent& evt);
+	void OnSubSpriteDelete(wxCommandEvent& evt);
+	void OnSubSpriteMoveUp(wxCommandEvent& evt);
+	void OnSubSpriteMoveDown(wxCommandEvent& evt);
+	void OnAnimationSelect(wxCommandEvent& evt);
+	void OnAnimationAdd(wxCommandEvent& evt);
+	void OnAnimationDelete(wxCommandEvent& evt);
+	void OnAnimationMoveUp(wxCommandEvent& evt);
+	void OnAnimationMoveDown(wxCommandEvent& evt);
+	void OnAnimationFrameSelect(wxCommandEvent& evt);
+	void OnAnimationFrameAdd(wxCommandEvent& evt);
+	void OnAnimationFrameDelete(wxCommandEvent& evt);
+	void OnAnimationFrameMoveUp(wxCommandEvent& evt);
+	void OnAnimationFrameMoveDown(wxCommandEvent& evt);
+
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelected(wxCommandEvent& evt);
@@ -107,6 +128,8 @@ private:
 	wxToolBar* m_toolbar = nullptr;
 	mutable bool m_reset_props = false;
 	std::string m_filename;
+	int m_frame = -1;
+	int m_anim = -1;
 
 	std::string m_name;
 

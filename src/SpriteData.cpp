@@ -629,6 +629,23 @@ int SpriteData::GetDefaultEntityFrameId(uint8_t id) const
 	}
 }
 
+int SpriteData::GetDefaultAbsFrameId(uint8_t ent_id) const
+{
+	if (IsEntityItem(ent_id))
+	{
+		// Item
+		return ent_id & 0x3F;
+	}
+	else
+	{
+		uint8_t spr_id = GetSpriteFromEntity(ent_id);
+		const auto& anim_ids = m_animations.at(spr_id);
+		const std::string& frame_name = (anim_ids.size() > 1UL) ? m_animation_frames.at(anim_ids[1])[0] : m_animation_frames.at(anim_ids[0])[0];
+		const auto& frames = m_sprite_frames.at(spr_id);
+		return static_cast<int>(std::distance(frames.cbegin(), frames.find(frame_name)));
+	}
+}
+
 std::shared_ptr<SpriteFrameEntry> SpriteData::GetDefaultEntityFrame(uint8_t id) const
 {
 	uint8_t spr_id = GetSpriteFromEntity(id);

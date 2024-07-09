@@ -83,6 +83,7 @@ void SelectionControlFrame::FireEvent(const wxEventType& e)
     wxCommandEvent evt(e);
     evt.SetClientData(reinterpret_cast<void*>(this->GetParent()));
     evt.SetInt(GetSelected());
+    evt.SetString(m_ctrl_list->GetStringSelection());
     wxPostEvent(this->GetParent(), evt);
 }
 
@@ -114,7 +115,7 @@ void SelectionControlFrame::UpdateUI()
         }
     }
     UpdateOtherControls();
-    if (sel > static_cast<int>(m_ctrl_list->GetCount()) || sel <= 0)
+    if (sel >= static_cast<int>(m_ctrl_list->GetCount()) || sel < 0)
     {
         sel = -1;
     }

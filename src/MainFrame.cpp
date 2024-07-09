@@ -248,22 +248,7 @@ void MainFrame::InitUI()
             continue;
         }
         auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
-        const auto& anims = m_g->GetSpriteData()->GetSpriteAnimations(i);
-        wxTreeItemId spr_node;
-        spr_node = m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, i));
-        int j = 0;
-        for (const auto& anim : anims)
-        {
-            int k = 0;
-            j++;
-            auto anim_node = m_browser->AppendItem(spr_node, anim, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, (j << 8) | i));
-            const auto& frames = m_g->GetSpriteData()->GetSpriteAnimationFrames(anim);
-            for (const auto& frame : frames)
-            {
-                k++;
-                m_browser->AppendItem(anim_node, frame, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, (k << 16) | (j << 8) | i));
-            }
-        }
+        m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, i));
     }
     for (int i = 0; i < 255; ++i)
     {

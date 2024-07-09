@@ -83,5 +83,5 @@ std::string AnimationControlFrame::MakeLabel(int index) const
 
 bool AnimationControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)
 {
-	return false;
+	return true;
 }

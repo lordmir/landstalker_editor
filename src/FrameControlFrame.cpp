@@ -84,5 +84,5 @@ std::string FrameControlFrame::MakeLabel(int index) const
 
 bool FrameControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)
 {
-	return false;
+	return true;
 }

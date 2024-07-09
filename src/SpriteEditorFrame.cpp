@@ -13,6 +13,26 @@ EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileHovered)
 EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, SpriteEditorFrame::OnTilePixelHover)
 EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, SpriteEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEditRequested)
+EVT_COMMAND(wxID_ANY, EVT_FRAME_SELECT, SpriteEditorFrame::OnFrameSelect)
+EVT_COMMAND(wxID_ANY, EVT_FRAME_ADD, SpriteEditorFrame::OnFrameAdd)
+EVT_COMMAND(wxID_ANY, EVT_FRAME_DELETE, SpriteEditorFrame::OnFrameDelete)
+EVT_COMMAND(wxID_ANY, EVT_FRAME_MOVE_UP, SpriteEditorFrame::OnFrameMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_FRAME_MOVE_DOWN, SpriteEditorFrame::OnFrameMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_SELECT, SpriteEditorFrame::OnSubSpriteSelect)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_ADD, SpriteEditorFrame::OnSubSpriteAdd)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_DELETE, SpriteEditorFrame::OnSubSpriteDelete)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_MOVE_UP, SpriteEditorFrame::OnSubSpriteMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_MOVE_DOWN, SpriteEditorFrame::OnSubSpriteMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_SELECT, SpriteEditorFrame::OnAnimationSelect)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_ADD, SpriteEditorFrame::OnAnimationAdd)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_DELETE, SpriteEditorFrame::OnAnimationDelete)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_MOVE_UP, SpriteEditorFrame::OnAnimationMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_MOVE_DOWN, SpriteEditorFrame::OnAnimationMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_SELECT, SpriteEditorFrame::OnAnimationFrameSelect)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_ADD, SpriteEditorFrame::OnAnimationFrameAdd)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_DELETE, SpriteEditorFrame::OnAnimationFrameDelete)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_UP, SpriteEditorFrame::OnAnimationFrameMoveUp)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_DOWN, SpriteEditorFrame::OnAnimationFrameMoveDown)
 wxEND_EVENT_TABLE()
 
 enum MENU_IDS
@@ -89,13 +109,18 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 		return false;
 	}
 	uint8_t entity = ent == -1 ? m_gd->GetSpriteData()->GetEntitiesFromSprite(spr)[0] : ent;
+	m_frame = frame;
+	m_anim = anim;
 	if (frame == -1 && anim == -1)
 	{
 		m_sprite = m_gd->GetSpriteData()->GetDefaultEntityFrame(entity);
+		m_frame = m_gd->GetSpriteData()->GetDefaultAbsFrameId(entity);
+		m_anim = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
 	}
 	else if (anim == -1)
 	{
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, frame);
+		m_anim = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
 	}
 	else if (frame == -1)
 	{
@@ -114,6 +139,10 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_spriteeditor->SelectTile(0);
 	m_reset_props = true;
 	Update();
+	m_framectrl->SetSelected(m_frame + 1);
+	m_animctrl->SetSelected(m_anim + 1);
+	m_animframectrl->SetSelected(1);
+	m_subspritectrl->SetSelected(0);
 	return true;
 }
 
@@ -580,6 +609,106 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		SetActivePalette(palettes);
 	}
 	ctrl->GetGrid()->Thaw();
+}
+
+void SpriteEditorFrame::OnFrameSelect(wxCommandEvent& evt)
+{
+	Open(m_sprite->GetSprite(), evt.GetInt() - 1);
+}
+
+void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& evt)
+{
+	wxMessageBox("Frame Add", evt.GetString());
+}
+
+void SpriteEditorFrame::OnFrameDelete(wxCommandEvent& evt)
+{
+	wxMessageBox("Frame Delete", evt.GetString());
+}
+
+void SpriteEditorFrame::OnFrameMoveUp(wxCommandEvent& evt)
+{
+	wxMessageBox("Frame Move Up", evt.GetString());
+}
+
+void SpriteEditorFrame::OnFrameMoveDown(wxCommandEvent& evt)
+{
+	wxMessageBox("Frame Move Down", evt.GetString());
+}
+
+void SpriteEditorFrame::OnSubSpriteSelect(wxCommandEvent& evt)
+{
+	m_spriteeditor->SelectSubSprite(evt.GetInt());
+}
+
+void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
+{
+	wxMessageBox("SubSprite Add", evt.GetString());
+}
+
+void SpriteEditorFrame::OnSubSpriteDelete(wxCommandEvent& evt)
+{
+	wxMessageBox("SubSprite Delete", evt.GetString());
+}
+
+void SpriteEditorFrame::OnSubSpriteMoveUp(wxCommandEvent& evt)
+{
+	wxMessageBox("SubSprite Move Up", evt.GetString());
+}
+
+void SpriteEditorFrame::OnSubSpriteMoveDown(wxCommandEvent& evt)
+{
+	wxMessageBox("SubSprite Move Down", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Select", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Add", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationDelete(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Delete", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationMoveUp(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Move Up", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationMoveDown(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Move Down", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationFrameSelect(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Frame Select", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Frame Add", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Frame Delete", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationFrameMoveUp(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Frame Move Up", evt.GetString());
+}
+
+void SpriteEditorFrame::OnAnimationFrameMoveDown(wxCommandEvent& evt)
+{
+	wxMessageBox("Animation Frame Move Down", evt.GetString());
 }
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)

@@ -71,5 +71,5 @@ std::string SubspriteControlFrame::MakeLabel(int index) const
 
 bool SubspriteControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)
 {
-	return false;
+	return true;
 }

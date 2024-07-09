@@ -32,6 +32,9 @@ public:
 	int GetTilemapSize() const;
 	bool GetCompressed() const;
 	void SetActivePalette(std::shared_ptr<Palette> pal);
+	void SelectSubSprite(int sel);
+	int GetSelectedSubSprite() const;
+	void ClearSubSpriteSelection();
 
 	bool GetTileNumbersEnabled() const;
 	void SetTileNumbersEnabled(bool enabled);
@@ -127,6 +130,8 @@ private:
 	std::unique_ptr<wxPen> m_highlighted_border_pen;
 	std::unique_ptr<wxBrush> m_highlighted_brush;
 	std::unique_ptr<wxBitmap> m_stipple;
+
+	int m_selected_subsprite = -1;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

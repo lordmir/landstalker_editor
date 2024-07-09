@@ -125,6 +125,7 @@ public:
 	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
 	int GetDefaultEntityAnimationId(uint8_t id) const;
 	int GetDefaultEntityFrameId(uint8_t id) const;
+	int GetDefaultAbsFrameId(uint8_t sprite_id) const;
 	std::shared_ptr<SpriteFrameEntry> GetDefaultEntityFrame(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& name) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t frame) const;
