@@ -135,8 +135,9 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_paledit->SelectPalette(m_palette);
 	m_tileedit->SetActivePalette(m_palette);
 	m_tileedit->SetTile(Tile(0));
-	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
-	m_spriteeditor->SelectTile(0);
+	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
+	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
+	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
 	Update();
 	m_framectrl->SetSelected(m_frame + 1);
@@ -885,9 +886,10 @@ void SpriteEditorFrame::OnImportFrm()
 		std::string path = fd.GetPath().ToStdString();
 		ImportFrm(path);
 	}
-	m_spriteeditor->SelectTile(0);
 	m_tileedit->SetTile(Tile(0));
-	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
+	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
+	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	Update();
 }
 
@@ -900,9 +902,10 @@ void SpriteEditorFrame::OnImportTiles()
 		std::string path = fd.GetPath().ToStdString();
 		ImportTiles(path);
 	}
-	m_spriteeditor->SelectTile(0);
 	m_tileedit->SetTile(Tile(0));
-	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
+	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
+	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
+	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	Update();
 }
 
@@ -958,7 +961,8 @@ void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*e
 	}
 	else if (m_spriteeditor->IsHoverValid())
 	{
-		ss << "Cursor at tile " << m_spriteeditor->GetHoveredTile().GetIndex();
+		auto pos = m_spriteeditor->GetHoveredTilePosition();
+		ss << "Cursor at (" << pos.first << "," << pos.second << ")";
 	}
 	status.SetStatusText(ss.str(), 1);
 }

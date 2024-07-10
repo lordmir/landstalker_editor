@@ -35,6 +35,7 @@ public:
 	void SelectSubSprite(int sel);
 	int GetSelectedSubSprite() const;
 	void ClearSubSpriteSelection();
+	std::shared_ptr<Tileset> GetTileset();
 
 	bool GetTileNumbersEnabled() const;
 	void SetTileNumbersEnabled(bool enabled);
@@ -47,10 +48,14 @@ public:
 	bool GetBordersEnabled() const;
 	void SetBordersEnabled(bool enabled);
 
+	std::pair<int, int> GetTilePosition(int tile) const;
 	bool IsSelectionValid() const;
 	Tile GetSelectedTile() const;
+	std::pair<int, int> GetSelectedTilePosition() const;
 	bool IsHoverValid() const;
 	Tile GetHoveredTile() const;
+	std::pair<int, int> GetHoveredTilePosition() const;
+	int GetFirstTile() const;
 
 	void SelectTile(int tile);
 	void InsertTileBefore(const Tile& tile);
@@ -81,6 +86,13 @@ private:
 
 	wxPoint SpriteToScreenXY(wxPoint sprite);
 	wxPoint ScreenToSpriteXY(wxPoint screen);
+
+	bool IsTileInSprite(int tile) const;
+	int GetSpriteTileNum(int tile);
+
+	void UpdateTileBuffer();
+	void UpdateSpriteTile(int tile);
+	void UpdateAllSpriteTiles();
 
 	bool UpdateRowCount();
 	void DrawTile(wxDC& dc, int x, int y, int tile);
@@ -116,6 +128,7 @@ private:
 	std::shared_ptr<Palette> m_pal;
 	std::shared_ptr<SpriteFrame> m_sprite;
 	std::shared_ptr<GameData> m_gd;
+	std::shared_ptr<Tileset> m_tiles;
 
 	int m_ctrlwidth;
 	int m_ctrlheight;
@@ -125,13 +138,21 @@ private:
 	int m_pendingswap;
 
 	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxBrush> m_dark_alpha_brush;
 	std::unique_ptr<wxPen> m_border_pen;
 	std::unique_ptr<wxPen> m_selected_border_pen;
 	std::unique_ptr<wxPen> m_highlighted_border_pen;
 	std::unique_ptr<wxBrush> m_highlighted_brush;
 	std::unique_ptr<wxBitmap> m_stipple;
+	std::unique_ptr<wxBitmap> m_dark_stipple;
 
 	int m_selected_subsprite = -1;
+
+	static const int MAX_WIDTH = 32;
+	static const int MAX_HEIGHT = 32;
+	static const int ORIGIN_X = 16;
+	static const int ORIGIN_Y = 16;
+	static const int MAX_SIZE = 1024;
 
 	wxMemoryDC m_memdc;
 	wxBitmap m_bmp;

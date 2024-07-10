@@ -82,7 +82,7 @@ std::string FrameControlFrame::MakeLabel(int index) const
 	return m_frames[index];
 }
 
-bool FrameControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)
+bool FrameControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)
 {
 	return true;
 }

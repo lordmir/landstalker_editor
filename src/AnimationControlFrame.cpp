@@ -81,7 +81,7 @@ std::string AnimationControlFrame::MakeLabel(int index) const
 	return m_anims.at(index);
 }
 
-bool AnimationControlFrame::HandleKeyPress(unsigned int key, unsigned int modifiers)
+bool AnimationControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)
 {
 	return true;
 }
