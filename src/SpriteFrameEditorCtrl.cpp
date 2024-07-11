@@ -171,6 +171,114 @@ wxCoord SpriteFrameEditorCtrl::OnGetColumnWidth(size_t /*column*/) const
 	}
 }
 
+void SpriteFrameEditorCtrl::ClearSelections()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSelectionUp()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSelectionDown()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSelectionLeft()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSelectionRight()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSubSpriteUp()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSubSpriteDown()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSubSpriteLeft()
+{
+}
+
+void SpriteFrameEditorCtrl::MoveSubSpriteRight()
+{
+}
+
+void SpriteFrameEditorCtrl::ExpandSubSpriteWidth()
+{
+}
+
+void SpriteFrameEditorCtrl::ContractSubSpriteWidth()
+{
+}
+
+void SpriteFrameEditorCtrl::ExpandSubSpriteHeight()
+{
+}
+
+void SpriteFrameEditorCtrl::ContractSubSpriteHeight()
+{
+}
+
+bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionUp()
+{
+	return false;
+}
+
+bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionDown()
+{
+	return false;
+}
+
+bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionLeft()
+{
+	return false;
+}
+
+bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionRight()
+{
+	return false;
+}
+
+void SpriteFrameEditorCtrl::InsertSubSprite()
+{
+}
+
+void SpriteFrameEditorCtrl::DeleteSubSprite()
+{
+}
+
+void SpriteFrameEditorCtrl::IncreaseSubSpritePriority()
+{
+}
+
+void SpriteFrameEditorCtrl::DecreaseSubSpritePriority()
+{
+}
+
+void SpriteFrameEditorCtrl::ClearCell()
+{
+}
+
+void SpriteFrameEditorCtrl::CutCell()
+{
+}
+
+void SpriteFrameEditorCtrl::CopyCell()
+{
+}
+
+void SpriteFrameEditorCtrl::PasteCell()
+{
+}
+
+void SpriteFrameEditorCtrl::SwapCell()
+{
+}
+
 void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 {
 	if (m_redraw_all == true)
@@ -410,7 +518,137 @@ void SpriteFrameEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 
 void SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 {
-	wxMessageBox(StrPrintf("%lu %lu", key, modifiers));
+	switch (key)
+	{
+	case WXK_ESCAPE:
+		ClearSelections();
+		break;
+	case WXK_UP:
+	case 'w':
+	case 'W':
+		if (modifiers == 0)
+		{
+			MoveSelectionUp();
+		}
+		else if (modifiers == wxMOD_CONTROL)
+		{
+			MoveSubSpriteUp();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			ContractSubSpriteHeight();
+		}
+		break;
+	case WXK_DOWN:
+	case 's':
+	case 'S':
+		if (modifiers == 0)
+		{
+			MoveSelectionDown();
+		}
+		else if (modifiers == wxMOD_CONTROL)
+		{
+			MoveSubSpriteDown();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			ExpandSubSpriteHeight();
+		}
+		break;
+	case WXK_LEFT:
+	case 'a':
+	case 'A':
+		if (modifiers == 0)
+		{
+			MoveSelectionLeft();
+		}
+		else if (modifiers == wxMOD_CONTROL)
+		{
+			MoveSubSpriteLeft();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			ContractSubSpriteWidth();
+		}
+		break;
+	case WXK_RIGHT:
+	case 'd':
+	case 'D':
+		if (modifiers == 0)
+		{
+			MoveSelectionRight();
+		}
+		else if (modifiers == wxMOD_CONTROL)
+		{
+			MoveSubSpriteRight();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			ExpandSubSpriteWidth();
+		}
+		break;
+	case WXK_TAB:
+		if (modifiers == 0)
+		{
+			SelectNextSubSprite();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			SelectPrevSubSprite();
+		}
+		break;
+	case WXK_DELETE:
+		if (modifiers == 0)
+		{
+			ClearCell();
+		}
+		else if (modifiers == wxMOD_SHIFT)
+		{
+			DeleteSubSprite();
+		}
+		break;
+	case WXK_INSERT:
+		InsertSubSprite();
+		break;
+	case '[':
+	case '{':
+		IncreaseSubSpritePriority();
+		break;
+	case ']':
+	case '}':
+		DecreaseSubSpritePriority();
+		break;
+	case 'x':
+	case 'X':
+		if (modifiers == wxMOD_CONTROL)
+		{
+			CutCell();
+		}
+		break;
+	case 'c':
+	case 'C':
+		if (modifiers == wxMOD_CONTROL)
+		{
+			CopyCell();
+		}
+		break;
+	case 'v':
+	case 'V':
+		if (modifiers == wxMOD_CONTROL)
+		{
+			PasteCell();
+		}
+		break;
+	case 'p':
+	case 'P':
+		if (modifiers == wxMOD_CONTROL)
+		{
+			SwapCell();
+		}
+		break;
+	default:
+		break;
+	}
 }
 
 int SpriteFrameEditorCtrl::ConvertXYToTile(const wxPoint& point)

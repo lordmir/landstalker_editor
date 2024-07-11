@@ -80,6 +80,35 @@ private:
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
 	virtual wxCoord OnGetColumnWidth(size_t column) const override;
 
+	void ClearSelections();
+	void MoveSelectionUp();
+	void MoveSelectionDown();
+	void MoveSelectionLeft();
+	void MoveSelectionRight();
+	void MoveSubSpriteUp();
+	void MoveSubSpriteDown();
+	void MoveSubSpriteLeft();
+	void MoveSubSpriteRight();
+	void ExpandSubSpriteWidth();
+	void ContractSubSpriteWidth();
+	void ExpandSubSpriteHeight();
+	void ContractSubSpriteHeight();
+	bool CheckSubSpriteCollisionUp();
+	bool CheckSubSpriteCollisionDown();
+	bool CheckSubSpriteCollisionLeft();
+	bool CheckSubSpriteCollisionRight();
+	void InsertSubSprite();
+	void DeleteSubSprite();
+	void IncreaseSubSpritePriority();
+	void DecreaseSubSpritePriority();
+	void SelectNextSubSprite();
+	void SelectPrevSubSprite();
+	void ClearCell();
+	void CutCell();
+	void CopyCell();
+	void PasteCell();
+	void SwapCell();
+
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);
 	void OnSize(wxSizeEvent& evt);
