@@ -6,6 +6,7 @@
 #include "Utils.h"
 
 wxBEGIN_EVENT_TABLE(SpriteEditorFrame, wxWindow)
+EVT_CHAR(SpriteEditorFrame::OnKeyDown)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_SELECT, SpriteEditorFrame::OnTileSelected)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, SpriteEditorFrame::OnPaletteColourSelect)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColourHover)
@@ -131,7 +132,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, anim, frame);
 	}
 	m_palette = m_gd->GetSpriteData()->GetEntityPalette(entity);
-	m_spriteeditor->Open(m_sprite->GetData(), m_palette);
+	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_paledit->SelectPalette(m_palette);
 	m_tileedit->SetActivePalette(m_palette);
 	m_tileedit->SetTile(Tile(0));
@@ -144,6 +145,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_animctrl->SetSelected(m_anim + 1);
 	m_animframectrl->SetSelected(1);
 	m_subspritectrl->SetSelected(0);
+	m_spriteeditor->SelectSubSprite(-1);
 	return true;
 }
 
@@ -153,6 +155,7 @@ void SpriteEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 	m_tileedit->SetGameData(gd);
 	m_paledit->SetGameData(gd);
 	m_animctrl->SetGameData(gd);
+	m_spriteeditor->SetGameData(gd);
 	m_spriteanimeditor->SetGameData(gd);
 	m_framectrl->SetGameData(gd);
 	m_animframectrl->SetGameData(gd);
@@ -612,6 +615,12 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	ctrl->GetGrid()->Thaw();
 }
 
+void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
+{
+	m_spriteeditor->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers());
+	evt.Skip();
+}
+
 void SpriteEditorFrame::OnFrameSelect(wxCommandEvent& evt)
 {
 	Open(m_sprite->GetSprite(), evt.GetInt() - 1);
@@ -640,6 +649,7 @@ void SpriteEditorFrame::OnFrameMoveDown(wxCommandEvent& evt)
 void SpriteEditorFrame::OnSubSpriteSelect(wxCommandEvent& evt)
 {
 	m_spriteeditor->SelectSubSprite(evt.GetInt());
+	m_subspritectrl->SetSelected(evt.GetInt());
 }
 
 void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)

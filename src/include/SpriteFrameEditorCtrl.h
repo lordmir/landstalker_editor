@@ -22,10 +22,13 @@ public:
 	~SpriteFrameEditorCtrl();
 
 	bool Save(wxString filename, bool compressed = false);
-	bool Open(wxString filename);
-	bool Open(std::vector<uint8_t>& pixels);
-	bool Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal);
+	bool Open(wxString filename, int sprite_id);
+	bool Open(std::vector<uint8_t>& pixels, int sprite_id);
+	bool Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal, int sprite_id);
 	void RedrawTiles(int index = -1);
+
+	void SetGameData(std::shared_ptr<GameData> gd);
+	void ClearGameData();
 
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
@@ -34,6 +37,7 @@ public:
 	void SetActivePalette(std::shared_ptr<Palette> pal);
 	void SelectSubSprite(int sel);
 	int GetSelectedSubSprite() const;
+	int GetHoveredSubSprite() const;
 	void ClearSubSpriteSelection();
 	std::shared_ptr<Tileset> GetTileset();
 
@@ -56,6 +60,7 @@ public:
 	Tile GetHoveredTile() const;
 	std::pair<int, int> GetHoveredTilePosition() const;
 	int GetFirstTile() const;
+	int GetSubspriteAt(int tile) const;
 
 	void SelectTile(int tile);
 	void InsertTileBefore(const Tile& tile);
@@ -68,6 +73,8 @@ public:
 	void SwapTile(const Tile& tile);
 	void EditTile(const Tile& tile);
 	bool IsClipboardEmpty() const;
+
+	void HandleKeyDown(int key, int modifiers);
 
 private:
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
@@ -102,10 +109,12 @@ private:
 	void InitialiseBrushesAndPens();
 	void ForceRedraw();
 	const Palette& GetSelectedPalette();
+	void SetMouseCursor(wxStockCursor cursor);
 
 	void FireEvent(const wxEventType& e, const std::string& data);
+	void FireEvent(const wxEventType& e, int data);
 
-
+	int m_sprite_id = -1;
 	int m_pixelsize;
 	bool m_selectable;
 	int m_selectedtile;
@@ -122,6 +131,8 @@ private:
 	bool m_enableselection;
 	bool m_enablehover;
 	bool m_enablealpha;
+	bool m_enablesubsprites;
+	bool m_enablehitbox;
 
 	std::string m_name;
 
@@ -147,6 +158,9 @@ private:
 	std::unique_ptr<wxBitmap> m_dark_stipple;
 
 	int m_selected_subsprite = -1;
+	int m_hovered_subsprite = -1;
+
+	wxStockCursor m_cursor = wxStockCursor::wxCURSOR_ARROW;
 
 	static const int MAX_WIDTH = 32;
 	static const int MAX_HEIGHT = 32;

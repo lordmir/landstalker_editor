@@ -57,6 +57,8 @@ private:
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 
+	void OnKeyDown(wxKeyEvent& evt);
+
 	void OnFrameSelect(wxCommandEvent& evt);
 	void OnFrameAdd(wxCommandEvent& evt);
 	void OnFrameDelete(wxCommandEvent& evt);

@@ -7,6 +7,8 @@
 
 #include <fstream>
 #include "LZ77.h"
+#include "SpriteFrameEditorCtrl.h"
+#include "SubspriteControlFrame.h"
 
 wxBEGIN_EVENT_TABLE(SpriteFrameEditorCtrl, wxHVScrolledWindow)
 EVT_PAINT(SpriteFrameEditorCtrl::OnPaint)
@@ -45,6 +47,8 @@ SpriteFrameEditorCtrl::SpriteFrameEditorCtrl(wxWindow* parent)
 	m_enableselection(true),
 	m_enablehover(true),
 	m_enablealpha(true),
+	m_enablesubsprites(true),
+	m_enablehitbox(true),
 	m_pal(nullptr),
 	m_sprite(nullptr),
 	m_gd(nullptr),
@@ -71,8 +75,9 @@ bool SpriteFrameEditorCtrl::Save(wxString filename, bool compressed)
 	return m_sprite->Save(filename.ToStdString(), compressed);
 }
 
-bool SpriteFrameEditorCtrl::Open(wxString filename)
+bool SpriteFrameEditorCtrl::Open(wxString filename, int sprite_id)
 {
+	m_sprite_id = sprite_id;
 	bool result = m_sprite->Open(filename.ToStdString());
 	if (result)
 	{
@@ -82,18 +87,20 @@ bool SpriteFrameEditorCtrl::Open(wxString filename)
 	return result;
 }
 
-bool SpriteFrameEditorCtrl::Open(std::vector<uint8_t>& pixels)
+bool SpriteFrameEditorCtrl::Open(std::vector<uint8_t>& pixels, int sprite_id)
 {
+	m_sprite_id = sprite_id;
 	m_sprite->SetBits(pixels);
 	UpdateTileBuffer();
 	ForceRedraw();
 	return true;
 }
 
-bool SpriteFrameEditorCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal)
+bool SpriteFrameEditorCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal, int sprite_id)
 {
 	m_sprite = frame;
 	m_pal = pal;
+	m_sprite_id = sprite_id;
 	UpdateTileBuffer();
 	ForceRedraw();
 	return true;
@@ -101,7 +108,22 @@ bool SpriteFrameEditorCtrl::Open(std::shared_ptr<SpriteFrame> frame, std::shared
 
 void SpriteFrameEditorCtrl::RedrawTiles(int index)
 {
-	SelectSubSprite(GetSelectedSubSprite());
+	int subsprite = m_selected_subsprite;
+	if (subsprite > 0 && subsprite <= static_cast<int>(m_sprite->GetSubSpriteCount()))
+	{
+		if (subsprite != m_selected_subsprite)
+		{
+			index = -1;
+		}
+	}
+	else
+	{
+		m_selected_subsprite = -1;
+		if (subsprite != -1)
+		{
+			index = -1;
+		}
+	}
 	if ((index < 0) || (index >= static_cast<int>(m_sprite->GetTileCount())))
 	{
 		UpdateAllSpriteTiles();
@@ -113,6 +135,16 @@ void SpriteFrameEditorCtrl::RedrawTiles(int index)
 		UpdateSpriteTile(index);
 		Refresh(false);
 	}
+}
+
+void SpriteFrameEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
+{
+	m_gd = gd;
+}
+
+void SpriteFrameEditorCtrl::ClearGameData()
+{
+	m_gd = nullptr;
 }
 
 wxCoord SpriteFrameEditorCtrl::OnGetRowHeight(size_t /*row*/) const
@@ -150,6 +182,11 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 	{
 		m_memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
 		m_memdc.Clear();
+	}
+	if (!m_gd)
+	{
+		m_memdc.SelectObject(wxNullBitmap);
+		return;
 	}
 
 	m_memdc.SetTextForeground(wxColour(255, 255, 255));
@@ -208,16 +245,44 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 		DrawSelectionBorders(m_memdc);
 
 		m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-		m_memdc.SetPen(*wxRED_PEN);
-		for (std::size_t i = 0; i < m_sprite->GetSubSpriteCount(); ++i)
+		if (m_enablesubsprites)
 		{
-			const auto& s = m_sprite->GetSubSprite(i);
-			m_memdc.SetPen(wxPen(*wxRED, m_selected_subsprite == static_cast<int>(i) ? 3 : 1));
-			m_memdc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * m_sprite->GetTileWidth() * m_pixelsize), static_cast<int>(s.h * m_sprite->GetTileHeight() * m_pixelsize) });
+			for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
+			{
+				const auto& s = m_sprite->GetSubSprite(i);
+				m_memdc.SetPen(wxPen(i + 1 == m_hovered_subsprite ? wxColor(255, 128, 128) : *wxRED, i + 1 == m_selected_subsprite ? 3 : 1));
+				m_memdc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * m_sprite->GetTileWidth() * m_pixelsize), static_cast<int>(s.h * m_sprite->GetTileHeight() * m_pixelsize) });
+			}
 		}
-		m_memdc.SetPen(*wxGREEN_PEN);
-		m_memdc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
-		m_memdc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
+		if (m_enableborders)
+		{
+			m_memdc.SetPen(wxPen(*wxGREEN, 2));
+			m_memdc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
+			m_memdc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
+		}
+		if (m_enablehitbox)
+		{
+			auto hitbox = m_gd->GetSpriteData()->GetSpriteHitbox(m_sprite_id);
+			m_memdc.SetPen(wxPen(*wxYELLOW, 1));
+			wxPoint hitbox_fg_points[] = {
+				SpriteToScreenXY({ hitbox.first * 2, 0}),
+				SpriteToScreenXY({ 0, hitbox.first}),
+				SpriteToScreenXY({ -hitbox.first * 2, 0}),
+				SpriteToScreenXY({ -hitbox.first * 2, -hitbox.second}),
+				SpriteToScreenXY({ 0, hitbox.first - hitbox.second}),
+				SpriteToScreenXY({ 0, hitbox.first}),
+				SpriteToScreenXY({ 0, hitbox.first - hitbox.second}),
+				SpriteToScreenXY({ hitbox.first * 2, 0 - hitbox.second}),
+				SpriteToScreenXY({ hitbox.first * 2, 0}),
+				SpriteToScreenXY({ hitbox.first * 2, 0 - hitbox.second}),
+				SpriteToScreenXY({ 0, -hitbox.first - hitbox.second}),
+				SpriteToScreenXY({ -hitbox.first * 2, -hitbox.second}),
+				SpriteToScreenXY({ -hitbox.first * 2, 0}),
+				SpriteToScreenXY({ 0, hitbox.first}),
+				SpriteToScreenXY({ hitbox.first * 2, 0}),
+			};
+			m_memdc.DrawPolygon(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), &hitbox_fg_points[0]);
+		}
 	}
 
 	PaintBitmap(dc);
@@ -249,9 +314,28 @@ void SpriteFrameEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 {
 	if (!m_enableselection) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
-	if (IsTileInSprite(sel))
+	int selected_subsprite = GetSubspriteAt(sel);
+	if (evt.GetModifiers() == 0)
 	{
-		SelectTile(sel);
+		if (IsTileInSprite(sel))
+		{
+			SelectTile(sel);
+		}
+	}
+	else if (evt.GetModifiers() & wxMOD_CONTROL)
+	{
+		if (selected_subsprite != m_selected_subsprite)
+		{
+			FireEvent(EVT_SUBSPRITE_SELECT, selected_subsprite);
+		}
+	}
+	if (selected_subsprite > 0 && (evt.GetModifiers() & wxMOD_CONTROL))
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_HAND);
+	}
+	else
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
 	}
 	evt.Skip();
 }
@@ -271,21 +355,37 @@ void SpriteFrameEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 	if (!m_enablehover) return;
 	if (m_sprite == nullptr) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
-	if ((m_hoveredtile != -1) && (sel != m_hoveredtile))
+	int hovered_tile = (evt.GetModifiers() & wxMOD_CONTROL) ? -1 : sel;
+	if ((m_hoveredtile != -1) && (hovered_tile != m_hoveredtile))
 	{
 		m_redraw_list.insert(m_hoveredtile);
 	}
-	if (sel != m_hoveredtile)
+	if (hovered_tile != m_hoveredtile)
 	{
-		m_hoveredtile = sel;
+		m_hoveredtile = hovered_tile;
 		FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
 		Refresh();
+	}
+	int hovered_subsprite = GetSubspriteAt(sel);
+	if (hovered_subsprite != m_hovered_subsprite)
+	{
+		m_hovered_subsprite = hovered_subsprite;
+		RedrawTiles();
+	}
+	if (hovered_subsprite > 0 && (evt.GetModifiers() & wxMOD_CONTROL) > 0)
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_HAND);
+	}
+	else
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
 	}
 	evt.Skip();
 }
 
 void SpriteFrameEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
+	SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
 	if (!m_enablehover) return;
 	if (m_hoveredtile != -1)
 	{
@@ -294,6 +394,11 @@ void SpriteFrameEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 		FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
 		Refresh();
 	}
+	if (m_hovered_subsprite != -1)
+	{
+		m_hovered_subsprite = -1;
+		RedrawTiles();
+	}
 	evt.Skip();
 }
 
@@ -301,6 +406,11 @@ void SpriteFrameEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 {
 	FireEvent(EVT_SPRITE_FRAME_ACTIVATE, "");
 	evt.Skip();
+}
+
+void SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
+{
+	wxMessageBox(StrPrintf("%lu %lu", key, modifiers));
 }
 
 int SpriteFrameEditorCtrl::ConvertXYToTile(const wxPoint& point)
@@ -481,7 +591,14 @@ void SpriteFrameEditorCtrl::DrawTile(wxDC& dc, int x, int y, int tile)
 	{
 		int xx = x + (i % m_tiles->GetTileWidth()) * m_pixelsize;
 		int yy = y + (i / m_tiles->GetTileWidth()) * m_pixelsize;
-		brush.SetColour(wxColour(tile_pixels[i]));
+		if (IsTileInSprite(tile))
+		{
+			brush.SetColour(wxColour(tile_pixels[i]));
+		}
+		else
+		{
+			brush.SetColour(wxColour(tile_pixels[i]).ChangeLightness(50));
+		}
 		dc.SetBrush(brush);
 		// Has alpha
 		if ((tile_pixels[i] & 0xFF000000) > 0)
@@ -634,6 +751,15 @@ const Palette& SpriteFrameEditorCtrl::GetSelectedPalette()
 	return *m_pal;
 }
 
+void SpriteFrameEditorCtrl::SetMouseCursor(wxStockCursor cursor)
+{
+	if (cursor != m_cursor)
+	{
+		SetCursor(cursor);
+		m_cursor = cursor;
+	}
+}
+
 void SpriteFrameEditorCtrl::SetPixelSize(int n)
 {
 	m_pixelsize = n;
@@ -666,7 +792,7 @@ void SpriteFrameEditorCtrl::SelectSubSprite(int sel)
 {
 	if (sel > 0 && sel <= static_cast<int>(m_sprite->GetSubSpriteCount()))
 	{
-		m_selected_subsprite = sel - 1;
+		m_selected_subsprite = sel;
 	}
 	else
 	{
@@ -679,6 +805,11 @@ void SpriteFrameEditorCtrl::SelectSubSprite(int sel)
 int SpriteFrameEditorCtrl::GetSelectedSubSprite() const
 {
 	return m_selected_subsprite;
+}
+
+int SpriteFrameEditorCtrl::GetHoveredSubSprite() const
+{
+	return m_hovered_subsprite;
 }
 
 void SpriteFrameEditorCtrl::ClearSubSpriteSelection()
@@ -830,6 +961,30 @@ int SpriteFrameEditorCtrl::GetFirstTile() const
 	}
 }
 
+int SpriteFrameEditorCtrl::GetSubspriteAt(int tile) const
+{
+	for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
+	{
+		const auto& s = m_sprite->GetSubSprite(i);
+		int sxb = s.x / static_cast<int>(m_tiles->GetTileWidth()) + ORIGIN_X;
+		int syb = s.y / static_cast<int>(m_tiles->GetTileHeight()) + ORIGIN_Y;
+		int sxe = sxb + static_cast<int>(s.w);
+		int sye = syb + static_cast<int>(s.h);
+		for (int x = sxb; x < sxe; ++x)
+		{
+			for (int y = syb; y < sye; ++y)
+			{
+				int tpos = y * MAX_WIDTH + x;
+				if (tile == tpos)
+				{
+					return i + 1;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 void SpriteFrameEditorCtrl::SelectTile(int tile)
 {
 	if ((m_selectedtile != -1) && (tile != m_selectedtile))
@@ -958,6 +1113,15 @@ void SpriteFrameEditorCtrl::FireEvent(const wxEventType& e, const std::string& d
 {
 	wxCommandEvent evt(e);
 	evt.SetString(data);
+	evt.SetClientData(&m_sprite);
+	wxPostEvent(this->GetParent(), evt);
+}
+
+void SpriteFrameEditorCtrl::FireEvent(const wxEventType& e, int data)
+{
+	wxCommandEvent evt(e);
+	evt.SetInt(data);
+	evt.SetExtraLong(data);
 	evt.SetClientData(&m_sprite);
 	wxPostEvent(this->GetParent(), evt);
 }
