@@ -47,7 +47,8 @@ public:
     std::vector<uint8_t> GetBits(bool compressed = false);
     bool Save(const std::string& filename, bool compressed = false);
     void Clear();
-    void Reset();
+    void Reset(int size = -1);
+    void Resize(int size);
     std::vector<uint8_t> GetTile(const Tile& tile) const;
     std::vector<uint8_t>& GetTilePixels(int tile_index);
     std::vector<uint8_t> GetTileRGB(const Tile& tile, const Palette& palette) const;

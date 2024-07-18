@@ -279,12 +279,21 @@ void Tileset::Clear()
     m_tiles.clear();
 }
 
-void Tileset::Reset()
+void Tileset::Reset(int size)
 {
+    if (size != -1)
+    {
+        m_tiles.resize(size);
+    }
     for (auto& elem : m_tiles)
     {
         std::fill(elem.begin(), elem.end(), 0_u8);
     }
+}
+
+void Tileset::Resize(int size)
+{
+    m_tiles.resize(size);
 }
 
 std::vector<uint8_t> Tileset::GetTileRGB(const Tile& tile, const Palette& palette) const

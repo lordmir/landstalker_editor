@@ -190,7 +190,7 @@ std::vector<uint8_t> SpriteFrame::GetBits(bool compressed)
 	if (actual_tiles < expected_tiles)
 	{
 		last_cmd = bits.size();
-		uint16_t word_count = static_cast<uint16_t>((expected_tiles - actual_tiles) * 32);
+		uint16_t word_count = static_cast<uint16_t>((expected_tiles - actual_tiles) * 16);
 		bits.push_back(0x80 | (word_count >> 8));
 		bits.push_back(word_count & 0xFF);
 	}
@@ -496,7 +496,40 @@ std::vector<SpriteFrame::SubSprite> SpriteFrame::GetSubSprites() const
 
 SpriteFrame::SubSprite& SpriteFrame::AddSubSpriteBefore(std::size_t idx)
 {
-	return *m_subsprites.insert(m_subsprites.begin() + idx, 1, SubSprite());
+	SubSprite ss;
+	if (m_subsprites.size() >= MAX_SUBSPRITES)
+	{
+		return m_subsprites.front();
+	}
+	if (idx >= m_subsprites.size())
+	{
+		idx = 0;
+	}
+	if (!m_subsprites.empty())
+	{
+		ss = m_subsprites.front();
+		ss.w = 1;
+		ss.h = 1;
+		while (ss.x < 248 && ss.y < 248)
+		{
+			if (std::none_of(m_subsprites.cbegin(), m_subsprites.cend(), [&](const auto& cs) {
+				return cs.Collides(ss);
+				}))
+			{
+				break;
+			}
+			ss.x += SubSprite::TILE_WIDTH;
+			if (std::none_of(m_subsprites.cbegin(), m_subsprites.cend(), [&](const auto& cs) {
+				return cs.Collides(ss);
+				}))
+			{
+				break;
+			}
+			ss.y += SubSprite::TILE_HEIGHT;
+		}
+	}
+
+	return *m_subsprites.insert(m_subsprites.begin() + idx, 1, ss);
 }
 
 void SpriteFrame::DeleteSubSprite(std::size_t idx)
@@ -512,10 +545,28 @@ void SpriteFrame::SwapSubSprite(std::size_t src1, std::size_t src2)
 void SpriteFrame::SetSubSprites(const std::vector<SubSprite>& subs)
 {
 	m_subsprites = subs;
+	PrepareSubSprites();
+}
+
+void SpriteFrame::PrepareSubSprites()
+{
 	int c = 0;
 	for (auto& s : m_subsprites)
 	{
-		s.tile_idx += c;
+		s.tile_idx = c;
 		c += s.w * s.h;
 	}
+	m_sprite_gfx->Resize(c);
+}
+
+bool SpriteFrame::SubSprite::Collides(const SubSprite& rhs) const
+{
+	if (this == &rhs)
+	{
+		return false;
+	}
+	return this->x < static_cast<int>(rhs.x + rhs.w * TILE_WIDTH) &&
+		static_cast<int>(this->x + this->w * TILE_WIDTH) > rhs.x &&
+		this->y < static_cast<int>(rhs.y + rhs.h * TILE_HEIGHT) &&
+		static_cast<int>(this->y + this->h * TILE_HEIGHT) > rhs.y;
 }

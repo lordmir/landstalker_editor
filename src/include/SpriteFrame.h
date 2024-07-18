@@ -16,11 +16,15 @@ public:
 		std::size_t w;
 		std::size_t h;
 		std::size_t tile_idx;
+		static const int TILE_WIDTH = 8;
+		static const int TILE_HEIGHT = 8;
 
 		SubSprite(int xp, int yp, int wp, int hp, int tidx = 0)
 			: x(xp), y(yp), w(wp), h(hp), tile_idx(tidx) {}
 		SubSprite()
-			: x(0), y(0), w(0), h(0), tile_idx(0) {}
+			: x(0), y(0), w(1), h(1), tile_idx(0) {}
+		bool Collides(const SubSprite& rhs) const;
+		std::size_t Area() const { return w * h; }
 
 		bool operator==(const SubSprite& rhs) const
 		{
@@ -82,6 +86,9 @@ public:
 	void       DeleteSubSprite(std::size_t idx);
 	void       SwapSubSprite(std::size_t src1, std::size_t src2);
 	void       SetSubSprites(const std::vector<SubSprite>& subs);
+	void       PrepareSubSprites();
+
+	static const std::size_t MAX_SUBSPRITES = 16;
 
 private:
 	std::vector<SubSprite> m_subsprites;

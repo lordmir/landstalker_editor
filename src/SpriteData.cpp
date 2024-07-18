@@ -1083,7 +1083,6 @@ bool SpriteData::LoadAsmFilenames()
 	{
 		throw;
 	}
-	return false;
 }
 
 void SpriteData::SetDefaultFilenames()

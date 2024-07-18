@@ -26,6 +26,7 @@ public:
 	bool Open(std::vector<uint8_t>& pixels, int sprite_id);
 	bool Open(std::shared_ptr<SpriteFrame> frame, std::shared_ptr<Palette> pal, int sprite_id);
 	void RedrawTiles(int index = -1);
+	void UpdateSubSprites();
 
 	void SetGameData(std::shared_ptr<GameData> gd);
 	void ClearGameData();
@@ -74,7 +75,7 @@ public:
 	void EditTile(const Tile& tile);
 	bool IsClipboardEmpty() const;
 
-	void HandleKeyDown(int key, int modifiers);
+	bool HandleKeyDown(int key, int modifiers);
 
 private:
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
@@ -93,10 +94,7 @@ private:
 	void ContractSubSpriteWidth();
 	void ExpandSubSpriteHeight();
 	void ContractSubSpriteHeight();
-	bool CheckSubSpriteCollisionUp();
-	bool CheckSubSpriteCollisionDown();
-	bool CheckSubSpriteCollisionLeft();
-	bool CheckSubSpriteCollisionRight();
+	bool CheckSubSpriteCollision(const SpriteFrame::SubSprite& s, int index);
 	void InsertSubSprite();
 	void DeleteSubSprite();
 	void IncreaseSubSpritePriority();
@@ -141,7 +139,7 @@ private:
 	void SetMouseCursor(wxStockCursor cursor);
 
 	void FireEvent(const wxEventType& e, const std::string& data);
-	void FireEvent(const wxEventType& e, int data);
+	void FireEvent(const wxEventType& e, int data = 0);
 
 	int m_sprite_id = -1;
 	int m_pixelsize;
@@ -175,6 +173,7 @@ private:
 	std::set<int> m_redraw_list;
 	bool m_redraw_all;
 	mutable std::vector<uint8_t> m_clipboard;
+	mutable std::vector<uint8_t> m_swapbuffer;
 	int m_pendingswap;
 
 	std::unique_ptr<wxBrush> m_alpha_brush;

@@ -13,6 +13,7 @@ EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColo
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileHovered)
 EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, SpriteEditorFrame::OnTilePixelHover)
 EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, SpriteEditorFrame::OnTileChanged)
+EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_CHANGE, SpriteEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEditRequested)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_SELECT, SpriteEditorFrame::OnFrameSelect)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_ADD, SpriteEditorFrame::OnFrameAdd)
@@ -24,6 +25,7 @@ EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_ADD, SpriteEditorFrame::OnSubSpriteAdd)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_DELETE, SpriteEditorFrame::OnSubSpriteDelete)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_MOVE_UP, SpriteEditorFrame::OnSubSpriteMoveUp)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_MOVE_DOWN, SpriteEditorFrame::OnSubSpriteMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_UPDATE, SpriteEditorFrame::OnSubSpriteUpdate)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_SELECT, SpriteEditorFrame::OnAnimationSelect)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_ADD, SpriteEditorFrame::OnAnimationAdd)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_DELETE, SpriteEditorFrame::OnAnimationDelete)
@@ -96,11 +98,47 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_mgr.Update();
 	UpdateUI();
 
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	this->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteeditor->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteanimeditor->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_paledit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_tileedit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_framectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_subspritectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animframectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteeditor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteanimeditor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_paledit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_tileedit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_framectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_subspritectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animctrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animframectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 }
 
 SpriteEditorFrame::~SpriteEditorFrame()
 {
+
+	this->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteeditor->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteanimeditor->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_paledit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_tileedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_framectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_subspritectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animframectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	this->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteeditor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_spriteanimeditor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_paledit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_tileedit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_framectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_subspritectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animctrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_animframectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 }
 
 bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
@@ -207,7 +245,7 @@ void SpriteEditorFrame::SetActivePalette(const std::vector<std::string>& names)
 
 void SpriteEditorFrame::Redraw() const
 {
-	m_spriteeditor->RedrawTiles();
+	m_spriteeditor->UpdateSubSprites();
 	m_paledit->Refresh(true);
 	m_tileedit->Redraw();
 }
@@ -617,8 +655,10 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 
 void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
 {
-	m_spriteeditor->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers());
-	evt.Skip();
+	if (!m_spriteeditor->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()))
+	{
+		evt.Skip();
+	}
 }
 
 void SpriteEditorFrame::OnFrameSelect(wxCommandEvent& evt)
@@ -654,22 +694,68 @@ void SpriteEditorFrame::OnSubSpriteSelect(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
 {
-	wxMessageBox("SubSprite Add", evt.GetString());
+	if (m_sprite->GetData()->GetSubSpriteCount() < SpriteFrame::MAX_SUBSPRITES)
+	{
+		int pos = evt.GetInt();
+		if (pos < 1)
+		{
+			pos = 1;
+		}
+		m_sprite->GetData()->AddSubSpriteBefore(pos - 1);
+		m_spriteeditor->UpdateSubSprites();
+		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+		m_spriteeditor->SelectSubSprite(pos);
+		m_subspritectrl->SetSelected(pos);
+	}
 }
 
 void SpriteEditorFrame::OnSubSpriteDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("SubSprite Delete", evt.GetString());
+	if (m_sprite->GetData()->GetSubSpriteCount() > 0)
+	{
+		int pos = evt.GetInt();
+		m_sprite->GetData()->DeleteSubSprite(pos - 1);
+		m_spriteeditor->UpdateSubSprites();
+		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	}
 }
 
 void SpriteEditorFrame::OnSubSpriteMoveUp(wxCommandEvent& evt)
 {
-	wxMessageBox("SubSprite Move Up", evt.GetString());
+	if (m_sprite->GetData()->GetSubSpriteCount() > 0)
+	{
+		std::size_t pos = evt.GetInt();
+		if (pos > 1 && pos <= m_sprite->GetData()->GetSubSpriteCount())
+		{
+			m_sprite->GetData()->SwapSubSprite(pos - 1, pos - 2);
+			m_spriteeditor->UpdateSubSprites();
+			m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+			m_spriteeditor->SelectSubSprite(pos - 1);
+			m_subspritectrl->SetSelected(pos - 1);
+		}
+	}
 }
 
 void SpriteEditorFrame::OnSubSpriteMoveDown(wxCommandEvent& evt)
 {
-	wxMessageBox("SubSprite Move Down", evt.GetString());
+	if (m_sprite->GetData()->GetSubSpriteCount() > 0)
+	{
+		std::size_t pos = evt.GetInt();
+		if (pos > 0 && pos < m_sprite->GetData()->GetSubSpriteCount())
+		{
+			m_sprite->GetData()->SwapSubSprite(pos - 1, pos);
+			m_spriteeditor->UpdateSubSprites();
+			m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+			m_spriteeditor->SelectSubSprite(pos + 1);
+			m_subspritectrl->SetSelected(pos + 1);
+		}
+	}
+}
+
+void SpriteEditorFrame::OnSubSpriteUpdate(wxCommandEvent& /*evt*/)
+{
+	m_spriteeditor->UpdateSubSprites();
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
 }
 
 void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
@@ -736,7 +822,7 @@ void SpriteEditorFrame::OnTileHovered(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnTileSelected(wxCommandEvent& evt)
 {
-	auto tile = std::stoi(evt.GetString().ToStdString());
+	int tile = std::stoi(evt.GetString().ToStdString());
 	if (tile != -1)
 	{
 		m_tileedit->SetTile(tile);
@@ -747,8 +833,12 @@ void SpriteEditorFrame::OnTileSelected(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnTileChanged(wxCommandEvent& evt)
 {
-	auto tile = std::stoi(evt.GetString().ToStdString());
+	int tile = std::stoi(evt.GetString().ToStdString());
 	m_spriteeditor->RedrawTiles(tile);
+	if (m_tileedit->GetTile() == tile)
+	{
+		m_tileedit->SetTile(tile);
+	}
 	evt.Skip();
 }
 

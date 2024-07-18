@@ -7,6 +7,7 @@ wxDEFINE_EVENT(EVT_SUBSPRITE_ADD, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SUBSPRITE_DELETE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SUBSPRITE_MOVE_UP, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SUBSPRITE_MOVE_DOWN, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SUBSPRITE_UPDATE, wxCommandEvent);
 
 SubspriteControlFrame::SubspriteControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
 	: SelectionControlFrame(parent, imglst)

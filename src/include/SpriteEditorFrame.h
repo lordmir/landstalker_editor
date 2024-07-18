@@ -69,6 +69,7 @@ private:
 	void OnSubSpriteDelete(wxCommandEvent& evt);
 	void OnSubSpriteMoveUp(wxCommandEvent& evt);
 	void OnSubSpriteMoveDown(wxCommandEvent& evt);
+	void OnSubSpriteUpdate(wxCommandEvent& evt);
 	void OnAnimationSelect(wxCommandEvent& evt);
 	void OnAnimationAdd(wxCommandEvent& evt);
 	void OnAnimationDelete(wxCommandEvent& evt);

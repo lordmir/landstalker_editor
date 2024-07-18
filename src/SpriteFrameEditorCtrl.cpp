@@ -32,7 +32,7 @@ static const uint8_t UNKNOWN_TILE[32] = {
 	0x11, 0x1F, 0xF1, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1F, 0xF1, 0x11, 0x11, 0x11, 0x11, 0x11 };
 
 SpriteFrameEditorCtrl::SpriteFrameEditorCtrl(wxWindow* parent)
-	: wxHVScrolledWindow(parent, wxID_ANY),
+	: wxHVScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
 	m_pixelsize(8),
 	m_selectable(false),
 	m_selectedtile(-1),
@@ -137,6 +137,16 @@ void SpriteFrameEditorCtrl::RedrawTiles(int index)
 	}
 }
 
+void SpriteFrameEditorCtrl::UpdateSubSprites()
+{
+	UpdateAllSpriteTiles();
+	if (m_selected_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount()))
+	{
+		SelectSubSprite(-1);
+	}
+	RedrawTiles();
+}
+
 void SpriteFrameEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
 {
 	m_gd = gd;
@@ -173,110 +183,345 @@ wxCoord SpriteFrameEditorCtrl::OnGetColumnWidth(size_t /*column*/) const
 
 void SpriteFrameEditorCtrl::ClearSelections()
 {
+	SelectSubSprite(-1);
+	FireEvent(EVT_SUBSPRITE_SELECT, -1);
 }
 
 void SpriteFrameEditorCtrl::MoveSelectionUp()
 {
+	if (m_selectedtile == -1)
+	{
+		return;
+	}
+	int x = m_selectedtile % MAX_WIDTH;
+	int y = m_selectedtile / MAX_WIDTH;
+	do
+	{
+		--y;
+	} while (y >= 0 && !IsTileInSprite(x + y * MAX_WIDTH));
+	if (y >= 0)
+	{
+		SelectTile(x + y * MAX_WIDTH);
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSelectionDown()
 {
+	if (m_selectedtile == -1)
+	{
+		return;
+	}
+	int x = m_selectedtile % MAX_WIDTH;
+	int y = m_selectedtile / MAX_WIDTH;
+	do
+	{
+		++y;
+	} while (y <= MAX_HEIGHT && !IsTileInSprite(x + y * MAX_WIDTH));
+	if (y < MAX_HEIGHT)
+	{
+		SelectTile(x + y * MAX_WIDTH);
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSelectionLeft()
 {
+	if (m_selectedtile == -1)
+	{
+		return;
+	}
+	int x = m_selectedtile % MAX_WIDTH;
+	int y = m_selectedtile / MAX_WIDTH;
+	do
+	{
+		--x;
+	} while (x >= 0 && !IsTileInSprite(x + y * MAX_WIDTH));
+	if(x >= 0)
+	{
+		SelectTile(x + y * MAX_WIDTH);
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSelectionRight()
 {
+	if (m_selectedtile == -1)
+	{
+		return;
+	}
+	int x = m_selectedtile % MAX_WIDTH;
+	int y = m_selectedtile / MAX_WIDTH;
+	do
+	{
+		++x;
+	} while (x < MAX_WIDTH && !IsTileInSprite(x + y * MAX_WIDTH));
+	if (x < MAX_WIDTH)
+	{
+		SelectTile(x + y * MAX_WIDTH);
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSubSpriteUp()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	SpriteFrame::SubSprite new_s = orig_s;
+	new_s.y -= static_cast<int>(m_tiles->GetTileHeight());
+
+	if (new_s.y >= -ORIGIN_Y * static_cast<int>(m_tiles->GetTileHeight()))
+	{
+		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+		{
+			orig_s = new_s;
+			FireEvent(EVT_SUBSPRITE_UPDATE);
+		}
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSubSpriteDown()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	SpriteFrame::SubSprite new_s = orig_s;
+	new_s.y += static_cast<int>(m_tiles->GetTileHeight());
+
+	if (new_s.y < ORIGIN_Y * static_cast<int>(m_tiles->GetTileHeight()))
+	{
+		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+		{
+			orig_s = new_s;
+			FireEvent(EVT_SUBSPRITE_UPDATE);
+		}
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSubSpriteLeft()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	SpriteFrame::SubSprite new_s = orig_s;
+	new_s.x -= static_cast<int>(m_tiles->GetTileWidth());
+
+	if (new_s.x >= -ORIGIN_X * static_cast<int>(m_tiles->GetTileWidth()))
+	{
+		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+		{
+			orig_s = new_s;
+			FireEvent(EVT_SUBSPRITE_UPDATE);
+		}
+	}
 }
 
 void SpriteFrameEditorCtrl::MoveSubSpriteRight()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	SpriteFrame::SubSprite new_s = orig_s;
+	new_s.x += static_cast<int>(m_tiles->GetTileWidth());
+
+	if (new_s.x < ORIGIN_X * static_cast<int>(m_tiles->GetTileWidth()))
+	{
+		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+		{
+			orig_s = new_s;
+			FireEvent(EVT_SUBSPRITE_UPDATE);
+		}
+	}
 }
 
 void SpriteFrameEditorCtrl::ExpandSubSpriteWidth()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	if (orig_s.w > 3)
+	{
+		return;
+	}
+	SpriteFrame::SubSprite new_s = orig_s;
+	++new_s.w;
+	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+	{
+		orig_s = new_s;
+		FireEvent(EVT_SUBSPRITE_UPDATE);
+	}
 }
 
 void SpriteFrameEditorCtrl::ContractSubSpriteWidth()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	if (orig_s.w < 2)
+	{
+		return;
+	}
+	SpriteFrame::SubSprite new_s = orig_s;
+	--new_s.w;
+	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+	{
+		orig_s = new_s;
+		FireEvent(EVT_SUBSPRITE_UPDATE);
+	}
 }
 
 void SpriteFrameEditorCtrl::ExpandSubSpriteHeight()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	if (orig_s.h > 3)
+	{
+		return;
+	}
+	SpriteFrame::SubSprite new_s = orig_s;
+	++new_s.h;
+	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+	{
+		orig_s = new_s;
+		FireEvent(EVT_SUBSPRITE_UPDATE);
+	}
 }
 
 void SpriteFrameEditorCtrl::ContractSubSpriteHeight()
 {
+	if (GetSelectedSubSprite() <= 0)
+	{
+		return;
+	}
+	auto& orig_s = m_sprite->GetSubSprite(GetSelectedSubSprite() - 1);
+	if (orig_s.h < 2)
+	{
+		return;
+	}
+	SpriteFrame::SubSprite new_s = orig_s;
+	--new_s.h;
+	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
+	{
+		orig_s = new_s;
+		FireEvent(EVT_SUBSPRITE_UPDATE);
+	}
 }
 
-bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionUp()
+bool SpriteFrameEditorCtrl::CheckSubSpriteCollision(const SpriteFrame::SubSprite& s, int index)
 {
-	return false;
-}
-
-bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionDown()
-{
-	return false;
-}
-
-bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionLeft()
-{
-	return false;
-}
-
-bool SpriteFrameEditorCtrl::CheckSubSpriteCollisionRight()
-{
+	for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
+	{
+		if (index == i)
+		{
+			continue;
+		}
+		if (m_sprite->GetSubSprite(i).Collides(s))
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
 void SpriteFrameEditorCtrl::InsertSubSprite()
 {
+	FireEvent(EVT_SUBSPRITE_ADD, m_selected_subsprite);
 }
 
 void SpriteFrameEditorCtrl::DeleteSubSprite()
 {
+	FireEvent(EVT_SUBSPRITE_DELETE, m_selected_subsprite);
 }
 
 void SpriteFrameEditorCtrl::IncreaseSubSpritePriority()
 {
+	FireEvent(EVT_SUBSPRITE_MOVE_UP, m_selected_subsprite);
 }
 
 void SpriteFrameEditorCtrl::DecreaseSubSpritePriority()
 {
+	FireEvent(EVT_SUBSPRITE_MOVE_DOWN, m_selected_subsprite);
+}
+
+void SpriteFrameEditorCtrl::SelectNextSubSprite()
+{
+	if (m_selected_subsprite < static_cast<int>(m_sprite->GetSubSpriteCount()) && m_selected_subsprite > 0)
+	{
+		FireEvent(EVT_SUBSPRITE_SELECT, m_selected_subsprite + 1);
+	}
+	else
+	{
+		FireEvent(EVT_SUBSPRITE_SELECT, 1);
+	}
+}
+
+void SpriteFrameEditorCtrl::SelectPrevSubSprite()
+{
+	if (m_selected_subsprite > 1)
+	{
+		FireEvent(EVT_SUBSPRITE_SELECT, m_selected_subsprite - 1);
+	}
+	else
+	{
+		FireEvent(EVT_SUBSPRITE_SELECT, m_sprite->GetSubSpriteCount());
+	}
 }
 
 void SpriteFrameEditorCtrl::ClearCell()
 {
+	m_tiles->SetTile(GetSelectedTile(), ByteVector(m_tiles->GetTileWidth() * m_tiles->GetTileHeight()));
+	FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
+	RedrawTiles(GetSelectedTile().GetIndex());
 }
 
 void SpriteFrameEditorCtrl::CutCell()
 {
+	CopyCell();
+	ClearCell();
 }
 
 void SpriteFrameEditorCtrl::CopyCell()
 {
+	m_clipboard = m_tiles->GetTile(GetSelectedTile());
 }
 
 void SpriteFrameEditorCtrl::PasteCell()
 {
+	if (m_clipboard.size() == m_tiles->GetTileWidth() * m_tiles->GetTileHeight())
+	{
+		m_tiles->SetTile(GetSelectedTile(), m_clipboard);
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
+		RedrawTiles(GetSelectedTile().GetIndex());
+	}
 }
 
 void SpriteFrameEditorCtrl::SwapCell()
 {
+	if (m_pendingswap == -1)
+	{
+		m_pendingswap = m_selectedtile;
+	}
+	else
+	{
+		m_swapbuffer = m_tiles->GetTilePixels(m_pendingswap);
+		m_tiles->SetTile(m_pendingswap, m_tiles->GetTilePixels(m_selectedtile));
+		m_tiles->SetTile(m_selectedtile, m_swapbuffer);
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_pendingswap));
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
+		m_pendingswap = -1;
+	}
 }
 
 void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
@@ -516,7 +761,7 @@ void SpriteFrameEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 	evt.Skip();
 }
 
-void SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
+bool SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 {
 	switch (key)
 	{
@@ -647,8 +892,9 @@ void SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 		}
 		break;
 	default:
-		break;
+		return false;
 	}
+	return true;
 }
 
 int SpriteFrameEditorCtrl::ConvertXYToTile(const wxPoint& point)
@@ -780,6 +1026,7 @@ void SpriteFrameEditorCtrl::UpdateSpriteTile(int tile)
 void SpriteFrameEditorCtrl::UpdateAllSpriteTiles()
 {
 	int cur_tile = 0;
+	m_sprite->PrepareSubSprites();
 	for (const auto& s : m_sprite->GetSubSprites())
 	{
 		int sxb = s.x / static_cast<int>(m_tiles->GetTileWidth()) + ORIGIN_X;
