@@ -117,12 +117,17 @@ public:
 	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
 	void SetSpriteHitbox(uint8_t id, uint8_t base, uint8_t height);
 
+	bool SpriteFrameExists(const std::string& name) const;
+	void DeleteSpriteFrame(const std::string& name);
+	void AddSpriteFrame(uint8_t sprite_id, const std::string& name);
+
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
 	uint32_t GetSpriteFrameCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
+	int GetSpriteFrameId(uint8_t sprite_id, const std::string& name) const;
 	int GetDefaultEntityAnimationId(uint8_t id) const;
 	int GetDefaultEntityFrameId(uint8_t id) const;
 	int GetDefaultAbsFrameId(uint8_t sprite_id) const;

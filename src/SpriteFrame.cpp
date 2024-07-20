@@ -18,7 +18,8 @@ SpriteFrame::SpriteFrame(const std::string& filename)
 }
 
 SpriteFrame::SpriteFrame()
-	: m_compressed(false)
+	: m_compressed(false),
+	  m_sprite_gfx(std::make_shared<Tileset>())
 {
 }
 
@@ -236,7 +237,7 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 	auto dest_it = sprite_gfx.begin();
 
 	uint16_t command;
-	uint8_t ctrl;
+	uint8_t ctrl = 0;
 	uint16_t count;
 	do
 	{

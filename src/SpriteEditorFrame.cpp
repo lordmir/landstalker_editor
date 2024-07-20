@@ -276,6 +276,7 @@ void SpriteEditorFrame::Update()
 	m_animctrl->SetSprite(m_sprite->GetSprite());
 	m_animframectrl->SetAnimation(m_sprite->GetSprite(), 0);
 	Redraw();
+	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	FireEvent(EVT_STATUSBAR_UPDATE);
 }
@@ -910,17 +911,49 @@ void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
 
 void SpriteEditorFrame::OnFrameSelect(wxCommandEvent& evt)
 {
+	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(evt.GetString().ToStdString());
 	Open(m_sprite->GetSprite(), evt.GetInt() - 1);
 }
 
-void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& evt)
+void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& /*evt*/)
 {
-	wxMessageBox("Frame Add", evt.GetString());
+	std::string name = "";
+	auto dlg = wxTextEntryDialog(this, "Enter a unique name for the new frame", "New frame");
+	do
+	{
+		dlg.ShowModal();
+		name = dlg.GetValue().ToStdString();
+	} while (m_gd->GetSpriteData()->SpriteFrameExists(name));
+	m_gd->GetSpriteData()->AddSpriteFrame(m_sprite->GetSprite(), name);
+	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(name);
+	m_framectrl->SetSprite(m_sprite->GetSprite());
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	int sel = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), name);
+	m_framectrl->SetSelected(sel + 1);
+	Open(m_sprite->GetSprite(), sel);
 }
 
 void SpriteEditorFrame::OnFrameDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("Frame Delete", evt.GetString());
+	if (evt.GetString().IsEmpty())
+	{
+		return;
+	}
+	int response = wxMessageBox("Are you sure you want to delete the frame \"" + evt.GetString() + "\"?", "Delete frame", wxYES_NO | wxICON_EXCLAMATION);
+	if (response == wxYES)
+	{
+		m_gd->GetSpriteData()->DeleteSpriteFrame(evt.GetString().ToStdString());
+		std::string next_frame = m_gd->GetSpriteData()->GetSpriteFrames(m_sprite->GetSprite()).at(0);
+		if(evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteFrameCount(m_sprite->GetSprite())))
+		{
+			next_frame = m_gd->GetSpriteData()->GetSpriteFrames(m_sprite->GetSprite()).at(evt.GetInt() - 1);
+		}
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(next_frame);
+		m_framectrl->SetSprite(m_sprite->GetSprite());
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_framectrl->SetSelected(m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), next_frame));
+		Open(m_sprite->GetSprite(), m_framectrl->GetSelected() - 1);
+	}
 }
 
 void SpriteEditorFrame::OnSubSpriteSelect(wxCommandEvent& evt)

@@ -139,6 +139,11 @@ std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, c
 	return o;
 }
 
+std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const std::string& name, const filesystem::path& filename)
+{
+	return std::make_shared<SpriteFrameEntry>(owner, name, filename);
+}
+
 bool SpriteFrameEntry::Serialise(const std::shared_ptr<SpriteFrame> in, ByteVectorPtr out)
 {
 	*out = in->GetBits();
