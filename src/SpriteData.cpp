@@ -778,6 +778,23 @@ void SpriteData::SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags
 	}
 }
 
+uint16_t SpriteData::GetSpriteMysteryData(uint8_t id) const
+{
+	if (m_sprite_mystery_data.count(id) > 0)
+	{
+		return m_sprite_mystery_data.at(id);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void SpriteData::SetSpriteMysteryData(uint8_t id, uint16_t val)
+{
+	m_sprite_mystery_data[id] = val;
+}
+
 std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
 {
 	auto it = m_room_entities.find(room);

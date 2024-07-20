@@ -31,6 +31,28 @@ void SpriteAnimationEditorCtrl::SetActivePalette(std::shared_ptr<Palette> pal)
 {
 }
 
+int SpriteAnimationEditorCtrl::GetAnimSpeed() const
+{
+	return 0;
+}
+
+void SpriteAnimationEditorCtrl::SetAnimSpeed(int speed)
+{
+}
+
+bool SpriteAnimationEditorCtrl::IsPlaying() const
+{
+	return false;
+}
+
+void SpriteAnimationEditorCtrl::Play()
+{
+}
+
+void SpriteAnimationEditorCtrl::Pause()
+{
+}
+
 bool SpriteAnimationEditorCtrl::IsSelectionValid() const
 {
 	return false;

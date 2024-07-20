@@ -22,6 +22,11 @@ public:
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
 	void SetActivePalette(std::shared_ptr<Palette> pal);
+	int GetAnimSpeed() const;
+	void SetAnimSpeed(int speed);
+	bool IsPlaying() const;
+	void Play();
+	void Pause();
 
 	bool IsSelectionValid() const;
 	std::shared_ptr<SpriteFrame> GetSelectedFrame() const;

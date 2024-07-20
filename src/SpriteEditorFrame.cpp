@@ -5,8 +5,45 @@
 #include <fstream>
 #include "Utils.h"
 
+enum MENU_IDS
+{
+	ID_FILE_EXPORT_FRM = 20000,
+	ID_FILE_EXPORT_TILES,
+	ID_FILE_EXPORT_VDPMAP,
+	ID_FILE_EXPORT_PNG,
+	ID_FILE_IMPORT_FRM,
+	ID_FILE_IMPORT_TILES,
+	ID_FILE_IMPORT_VDPMAP,
+	ID_VIEW,
+	ID_VIEW_TOGGLE_GRIDLINES,
+	ID_VIEW_TOGGLE_ALPHA,
+	ID_VIEW_TOGGLE_HITBOX,
+	ID_VIEW_SEP1,
+	ID_VIEW_TOOLBAR,
+	ID_VIEW_FRAMES,
+	ID_VIEW_SUBSPRITES,
+	ID_VIEW_ANIMATIONS,
+	ID_VIEW_ANIM_FRAMES,
+	ID_VIEW_EDITOR,
+	ID_VIEW_PALETTE,
+	ID_TOGGLE_GRIDLINES = 30000,
+	ID_TOGGLE_ALPHA,
+	ID_TOGGLE_HITBOX,
+	ID_COMPRESS_FRAME,
+	ID_SWAP_TILES,
+	ID_CUT_TILE,
+	ID_COPY_TILE,
+	ID_PASTE_TILE,
+	ID_CLEAR_TILE,
+	ID_ZOOM,
+	ID_PLAY_PAUSE,
+	ID_PLAY_SPEED
+};
+
 wxBEGIN_EVENT_TABLE(SpriteEditorFrame, wxWindow)
 EVT_CHAR(SpriteEditorFrame::OnKeyDown)
+EVT_SLIDER(ID_ZOOM, SpriteEditorFrame::OnZoomChange)
+EVT_SLIDER(ID_PLAY_SPEED, SpriteEditorFrame::OnSpeedChange)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_SELECT, SpriteEditorFrame::OnTileSelected)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, SpriteEditorFrame::OnPaletteColourSelect)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColourHover)
@@ -18,8 +55,6 @@ EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEd
 EVT_COMMAND(wxID_ANY, EVT_FRAME_SELECT, SpriteEditorFrame::OnFrameSelect)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_ADD, SpriteEditorFrame::OnFrameAdd)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_DELETE, SpriteEditorFrame::OnFrameDelete)
-EVT_COMMAND(wxID_ANY, EVT_FRAME_MOVE_UP, SpriteEditorFrame::OnFrameMoveUp)
-EVT_COMMAND(wxID_ANY, EVT_FRAME_MOVE_DOWN, SpriteEditorFrame::OnFrameMoveDown)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_SELECT, SpriteEditorFrame::OnSubSpriteSelect)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_ADD, SpriteEditorFrame::OnSubSpriteAdd)
 EVT_COMMAND(wxID_ANY, EVT_SUBSPRITE_DELETE, SpriteEditorFrame::OnSubSpriteDelete)
@@ -37,29 +72,6 @@ EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_DELETE, SpriteEditorFrame::OnAnimation
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_UP, SpriteEditorFrame::OnAnimationFrameMoveUp)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_DOWN, SpriteEditorFrame::OnAnimationFrameMoveDown)
 wxEND_EVENT_TABLE()
-
-enum MENU_IDS
-{
-	ID_FILE_EXPORT_FRM = 20000,
-	ID_FILE_EXPORT_TILES,
-	ID_FILE_EXPORT_VDPMAP,
-	ID_FILE_EXPORT_PNG,
-	ID_FILE_IMPORT_FRM,
-	ID_FILE_IMPORT_TILES,
-	ID_FILE_IMPORT_VDPMAP,
-	ID_TOGGLE_GRIDLINES = 30000,
-	ID_TOGGLE_TILE_NOS,
-	ID_TOGGLE_ALPHA,
-	ID_ADD_TILE_AFTER_SEL,
-	ID_ADD_TILE_BEFORE_SEL,
-	ID_EXTEND_TILESET,
-	ID_DELETE_TILE,
-	ID_SWAP_TILES,
-	ID_CUT_TILE,
-	ID_COPY_TILE,
-	ID_PASTE_TILE,
-	ID_EDIT_TILE
-};
 
 SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst)
@@ -283,7 +295,7 @@ const std::string& SpriteEditorFrame::GetFilename() const
 	return m_filename;
 }
 
-void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
+void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 {
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
@@ -294,6 +306,45 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
 	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
 	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_HITBOX, "Hitbox", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 3, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 4, ID_VIEW_TOOLBAR, "Toolbar", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 5, ID_VIEW_EDITOR, "Tile Editor", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 6, ID_VIEW_PALETTE, "Palette", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 7, ID_VIEW_FRAMES, "Frames", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 8, ID_VIEW_SUBSPRITES, "Subsprites", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 9, ID_VIEW_ANIMATIONS, "Animations", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 10, ID_VIEW_ANIM_FRAMES, "Animation Frames", wxITEM_CHECK);
+
+	auto* parent = m_mgr.GetManagedWindow();
+	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
+	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
+	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("alpha"), "Toggle Hitbox", wxITEM_CHECK);
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_COMPRESS_FRAME, "Compress Frame", ilist.GetImage("cut"), "Compress Frame", wxITEM_CHECK);
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_CUT_TILE, "Cut", ilist.GetImage("cut"), "Cut");
+	toolbar->AddTool(ID_COPY_TILE, "Copy", ilist.GetImage("copy"), "Copy");
+	toolbar->AddTool(ID_PASTE_TILE, "Paste", ilist.GetImage("paste"), "Paste");
+	toolbar->AddTool(ID_SWAP_TILES, "Swap", ilist.GetImage("swap"), "Swap");
+	toolbar->AddTool(ID_CLEAR_TILE, "Clear", ilist.GetImage("delete"), "Clear");
+	toolbar->AddSeparator();
+	toolbar->AddLabel(wxID_ANY, "Zoom:");
+	toolbar->AddControl(m_zoomslider, "Zoom");
+	toolbar->AddSeparator();
+	toolbar->AddTool(ID_PLAY_PAUSE, "Play/Pause", ilist.GetImage("delete"), "Play/Pause", wxITEM_CHECK);
+	toolbar->AddSeparator();
+	toolbar->AddLabel(wxID_ANY, "Speed:");
+	toolbar->AddControl(m_speedslider, "Play Speed");
+
+	AddToolbar(m_mgr, *toolbar, "Sprite", "Sprite Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+
 
 	UpdateUI();
 
@@ -302,7 +353,13 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 
 void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
-	switch (evt.GetId())
+	ProcessEvent(evt.GetId());
+	evt.Skip();
+}
+
+void SpriteEditorFrame::ProcessEvent(int id)
+{
+	switch (id)
 	{
 	case ID_FILE_EXPORT_FRM:
 		OnExportFrm();
@@ -325,13 +382,88 @@ void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	case ID_FILE_IMPORT_VDPMAP:
 		OnImportVdpSpritemap();
 		break;
+	case ID_VIEW_TOGGLE_GRIDLINES:
+	case ID_TOGGLE_GRIDLINES:
+		m_spriteeditor->SetBordersEnabled(!m_spriteeditor->GetBordersEnabled());
+		break;
+	case ID_VIEW_TOGGLE_ALPHA:
+	case ID_TOGGLE_ALPHA:
+		m_spriteeditor->SetAlphaEnabled(!m_spriteeditor->GetAlphaEnabled());
+		break;
+	case ID_VIEW_TOGGLE_HITBOX:
+	case ID_TOGGLE_HITBOX:
+		m_spriteeditor->SetHitboxEnabled(!m_spriteeditor->GetHitboxEnabled());
+		break;
+	case ID_COMPRESS_FRAME:
+		m_sprite->GetData()->SetCompressed(!m_sprite->GetData()->GetCompressed());
+		break;
+	case ID_CUT_TILE:
+		if (m_spriteeditor->IsSelectionValid())
+		{
+			m_spriteeditor->CutCell();
+		}
+		break;
+	case ID_COPY_TILE:
+		if (m_spriteeditor->IsSelectionValid())
+		{
+			m_spriteeditor->CopyCell();
+		}
+		break;
+	case ID_PASTE_TILE:
+		if (m_spriteeditor->IsSelectionValid())
+		{
+			m_spriteeditor->PasteCell();
+		}
+		break;
+	case ID_SWAP_TILES:
+		if (m_spriteeditor->IsSelectionValid())
+		{
+			m_spriteeditor->SwapCell();
+		}
+		break;
+	case ID_CLEAR_TILE:
+		if (m_spriteeditor->IsSelectionValid())
+		{
+			m_spriteeditor->ClearCell();
+		}
+		break;
+	case ID_PLAY_PAUSE:
+		if (m_spriteanimeditor->IsPlaying())
+		{
+			m_spriteanimeditor->Pause();
+		}
+		else
+		{
+			m_spriteanimeditor->Play();
+		}
+		break;
+	case ID_VIEW_TOOLBAR:
+		SetToolbarVisibility("Sprite", !IsToolbarVisible("Sprite"));
+		break;
+	case ID_VIEW_EDITOR:
+		SetPaneVisibility(m_tileedit, !IsPaneVisible(m_tileedit));
+		break;
+	case ID_VIEW_PALETTE:
+		SetPaneVisibility(m_paledit, !IsPaneVisible(m_paledit));
+		break;
+	case ID_VIEW_FRAMES:
+		SetPaneVisibility(m_framectrl, !IsPaneVisible(m_framectrl));
+		break;
+	case ID_VIEW_SUBSPRITES:
+		SetPaneVisibility(m_subspritectrl, !IsPaneVisible(m_subspritectrl));
+		break;
+	case ID_VIEW_ANIMATIONS:
+		SetPaneVisibility(m_animctrl, !IsPaneVisible(m_animctrl));
+		break;
+	case ID_VIEW_ANIM_FRAMES:
+		SetPaneVisibility(m_animframectrl, !IsPaneVisible(m_animframectrl));
+		break;
 	default:
 		break;
 	}
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
-	evt.Skip();
 }
 
 void SpriteEditorFrame::ExportFrm(const std::string& filename) const
@@ -436,6 +568,11 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
+		props.Append(new wxIntProperty("Additional Value", "Additional Value", sd->GetSpriteMysteryData(sprite_index)));
+		props.Append(new wxPropertyCategory("Frame", "Frame"));
+		auto prop_cmp = new wxBoolProperty("Compressed", "Compressed", m_sprite->GetData()->GetCompressed());
+		prop_cmp->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+		props.Append(prop_cmp);
 		props.Append(new wxPropertyCategory("Animation", "Animation"));
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
 		props.Append(new wxEnumProperty("Idle Animation Frame Count", "Idle Animation Frame Count", m_idle_frame_count_options));
@@ -572,6 +709,8 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
+		props.GetGrid()->SetPropertyValue("Additional Value", static_cast<int>(sd->GetSpriteMysteryData(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Compressed", m_sprite->GetData()->GetCompressed());
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
 		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoices(m_idle_frame_count_options);
 		props.GetGrid()->GetProperty("Idle Animation Source")->SetChoices(m_idle_frame_source_options);
@@ -612,6 +751,10 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			hitbox.first = std::clamp<uint8_t>(value, 0, 255);
 			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
 			FireEvent(EVT_PROPERTIES_UPDATE);
+			if (m_spriteeditor->GetHitboxEnabled())
+			{
+				m_spriteeditor->RedrawTiles();
+			}
 		}
 	}
 	else if (name == "Height")
@@ -623,7 +766,16 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			hitbox.second = std::clamp<uint8_t>(value, 0, 255);
 			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
 			FireEvent(EVT_PROPERTIES_UPDATE);
+			if (m_spriteeditor->GetHitboxEnabled())
+			{
+				m_spriteeditor->RedrawTiles();
+			}
 		}
+	}
+	else if (name == "Additional Value")
+	{
+		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetInteger());
+		sd->SetSpriteMysteryData(sprite_index, value);
 	}
 	else if (name == "Low Palette" || name == "High Palette" || name == "Projectile/Misc Palette 1" || name == "Projectile/Misc Palette 2")
 	{
@@ -650,7 +802,102 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		}
 		SetActivePalette(palettes);
 	}
+	else if (name == "Compressed")
+	{
+		bool value = property->GetValuePlain().GetBool();
+		if (value != m_sprite->GetData()->GetCompressed())
+		{
+			m_sprite->GetData()->SetCompressed(value);
+			UpdateUI();
+		}
+	}
+	else if (name == "Idle Animation Frame Count" || name == "Idle Animation Source" || name == "Jump Animation Source" || name == "Walk Cycle Frame Count" ||
+		     name == "Take Damage Animation Source" || name == "Do Not Rotate" || name == "Full Animations")
+	{
+		SpriteData::AnimationFlags flags;
+		flags.idle_animation_frames = ctrl->GetGrid()->GetPropertyByName("Idle Animation Frame Count")->GetValue().GetLong() == 0 ?
+			SpriteData::AnimationFlags::IdleAnimationFrameCount::ONE_FRAME : SpriteData::AnimationFlags::IdleAnimationFrameCount::TWO_FRAMES;
+		flags.idle_animation_source = ctrl->GetGrid()->GetPropertyByName("Idle Animation Source")->GetValue().GetLong() == 0 ?
+			SpriteData::AnimationFlags::IdleAnimationSource::USE_WALK_FRAMES : SpriteData::AnimationFlags::IdleAnimationSource::DEDICATED;
+		flags.jump_animation_source = ctrl->GetGrid()->GetPropertyByName("Jump Animation Source")->GetValue().GetLong() == 0 ?
+			SpriteData::AnimationFlags::JumpAnimationSource::USE_IDLE_FRAMES : SpriteData::AnimationFlags::JumpAnimationSource::DEDICATED;
+		flags.walk_animation_frame_count = ctrl->GetGrid()->GetPropertyByName("Walk Cycle Frame Count")->GetValue().GetLong() == 0 ?
+			SpriteData::AnimationFlags::WalkAnimationFrameCount::TWO_FRAMES : SpriteData::AnimationFlags::WalkAnimationFrameCount::FOUR_FRAMES;
+		flags.take_damage_animation_source = ctrl->GetGrid()->GetPropertyByName("Take Damage Animation Source")->GetValue().GetLong() == 0 ?
+			SpriteData::AnimationFlags::TakeDamageAnimationSource::USE_IDLE_FRAMES : SpriteData::AnimationFlags::TakeDamageAnimationSource::DEDICATED;
+		flags.do_not_rotate = ctrl->GetGrid()->GetPropertyByName("Do Not Rotate")->GetValue().GetBool();
+		flags.has_full_animations = ctrl->GetGrid()->GetPropertyByName("Full Animations")->GetValue().GetBool();
+		sd->SetSpriteAnimationFlags(m_sprite->GetSprite(), flags);
+	}
 	ctrl->GetGrid()->Thaw();
+}
+
+void SpriteEditorFrame::UpdateUI() const
+{
+	CheckMenuItem(ID_VIEW_TOOLBAR, IsToolbarVisible("Sprite"));
+	CheckMenuItem(ID_VIEW_EDITOR, IsPaneVisible(m_tileedit));
+	CheckMenuItem(ID_VIEW_PALETTE, IsPaneVisible(m_paledit));
+	CheckMenuItem(ID_VIEW_FRAMES, IsPaneVisible(m_framectrl));
+	CheckMenuItem(ID_VIEW_SUBSPRITES, IsPaneVisible(m_subspritectrl));
+	CheckMenuItem(ID_VIEW_ANIMATIONS, IsPaneVisible(m_animctrl));
+	CheckMenuItem(ID_VIEW_ANIM_FRAMES, IsPaneVisible(m_animframectrl));
+	if (m_spriteeditor != nullptr && m_sprite != nullptr)
+	{
+		EnableMenuItem(ID_VIEW_TOGGLE_ALPHA, true);
+		EnableToolbarItem("Sprite", ID_TOGGLE_ALPHA, true);
+		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_spriteeditor->GetAlphaEnabled());
+		CheckToolbarItem("Sprite", ID_TOGGLE_ALPHA, !m_spriteeditor->GetAlphaEnabled());
+		EnableMenuItem(ID_VIEW_TOGGLE_GRIDLINES, true);
+		EnableToolbarItem("Sprite", ID_TOGGLE_GRIDLINES, true);
+		CheckMenuItem(ID_VIEW_TOGGLE_GRIDLINES, m_spriteeditor->GetBordersEnabled());
+		CheckToolbarItem("Sprite", ID_TOGGLE_GRIDLINES, m_spriteeditor->GetBordersEnabled());
+		EnableMenuItem(ID_VIEW_TOGGLE_HITBOX, true);
+		EnableToolbarItem("Sprite", ID_TOGGLE_HITBOX, true);
+		CheckMenuItem(ID_VIEW_TOGGLE_HITBOX, m_spriteeditor->GetHitboxEnabled());
+		CheckToolbarItem("Sprite", ID_TOGGLE_HITBOX, m_spriteeditor->GetHitboxEnabled());
+		CheckToolbarItem("Sprite", ID_COMPRESS_FRAME, m_sprite->GetData()->GetCompressed());
+		EnableToolbarItem("Sprite", ID_CUT_TILE, m_spriteeditor->IsSelectionValid());
+		EnableToolbarItem("Sprite", ID_COPY_TILE, m_spriteeditor->IsSelectionValid());
+		EnableToolbarItem("Sprite", ID_PASTE_TILE, m_spriteeditor->IsSelectionValid() && !m_spriteeditor->IsClipboardEmpty());
+		EnableToolbarItem("Sprite", ID_SWAP_TILES, m_spriteeditor->IsSelectionValid());
+		EnableToolbarItem("Sprite", ID_CLEAR_TILE, m_spriteeditor->IsSelectionValid());
+		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, true);
+		CheckToolbarItem("Sprite", ID_PLAY_PAUSE, m_spriteanimeditor->IsPlaying());
+		if (m_zoomslider != nullptr)
+		{
+			EnableToolbarItem("Sprite", ID_ZOOM, true);
+			m_zoomslider->SetValue(m_spriteeditor->GetPixelSize());
+		}
+		if (m_speedslider != nullptr)
+		{
+			EnableToolbarItem("Sprite", ID_PLAY_SPEED, true);
+			m_speedslider->SetValue(m_spriteanimeditor->GetAnimSpeed());
+		}
+	}
+	else
+	{
+		EnableMenuItem(ID_VIEW_TOGGLE_ALPHA, false);
+		EnableMenuItem(ID_VIEW_TOGGLE_GRIDLINES, false);
+		EnableMenuItem(ID_VIEW_TOGGLE_HITBOX, false);
+		EnableToolbarItem("Sprite", ID_TOGGLE_ALPHA, false);
+		EnableToolbarItem("Sprite", ID_TOGGLE_GRIDLINES, false);
+		EnableToolbarItem("Sprite", ID_TOGGLE_HITBOX, false);
+		EnableToolbarItem("Sprite", ID_COMPRESS_FRAME, false);
+		EnableToolbarItem("Sprite", ID_CUT_TILE, false);
+		EnableToolbarItem("Sprite", ID_COPY_TILE, false);
+		EnableToolbarItem("Sprite", ID_PASTE_TILE, false);
+		EnableToolbarItem("Sprite", ID_SWAP_TILES, false);
+		EnableToolbarItem("Sprite", ID_CLEAR_TILE, false);
+		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, false);
+		if (m_zoomslider != nullptr)
+		{
+			EnableToolbarItem("Sprite", ID_ZOOM, false);
+		}
+		if (m_speedslider != nullptr)
+		{
+			EnableToolbarItem("Sprite", ID_PLAY_SPEED, false);
+		}
+	}
 }
 
 void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
@@ -674,16 +921,6 @@ void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& evt)
 void SpriteEditorFrame::OnFrameDelete(wxCommandEvent& evt)
 {
 	wxMessageBox("Frame Delete", evt.GetString());
-}
-
-void SpriteEditorFrame::OnFrameMoveUp(wxCommandEvent& evt)
-{
-	wxMessageBox("Frame Move Up", evt.GetString());
-}
-
-void SpriteEditorFrame::OnFrameMoveDown(wxCommandEvent& evt)
-{
-	wxMessageBox("Frame Move Down", evt.GetString());
 }
 
 void SpriteEditorFrame::OnSubSpriteSelect(wxCommandEvent& evt)
@@ -810,7 +1047,17 @@ void SpriteEditorFrame::OnAnimationFrameMoveDown(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
+	m_zoom = m_zoomslider->GetValue();
+	m_spriteanimeditor->SetPixelSize(m_zoomslider->GetValue());
+	m_spriteeditor->SetPixelSize(m_zoomslider->GetValue());
 	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void SpriteEditorFrame::OnSpeedChange(wxCommandEvent& evt)
+{
+	m_speed = m_speedslider->GetValue();
+	m_spriteanimeditor->SetAnimSpeed(m_speedslider->GetValue());
 	evt.Skip();
 }
 
@@ -849,71 +1096,7 @@ void SpriteEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 {
-	switch (evt.GetId())
-	{
-	case ID_TOGGLE_GRIDLINES:
-		m_spriteeditor->SetBordersEnabled(!m_spriteeditor->GetBordersEnabled());
-		break;
-	case ID_TOGGLE_TILE_NOS:
-		m_spriteeditor->SetTileNumbersEnabled(!m_spriteeditor->GetTileNumbersEnabled());
-		break;
-	case ID_TOGGLE_ALPHA:
-		m_spriteeditor->SetAlphaEnabled(!m_spriteeditor->GetAlphaEnabled());
-		break;
-	case ID_ADD_TILE_AFTER_SEL:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->InsertTileAfter(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_ADD_TILE_BEFORE_SEL:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->InsertTileBefore(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_EXTEND_TILESET:
-		m_spriteeditor->InsertTileAfter(m_spriteeditor->GetTilemapSize() - 1);
-		break;
-	case ID_DELETE_TILE:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->DeleteTileAt(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_SWAP_TILES:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->SwapTile(m_spriteeditor->GetSelectedTile());
-		}
-		break;
-	case ID_CUT_TILE:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->CutTile(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_COPY_TILE:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->CopyTile(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_PASTE_TILE:
-		if (m_spriteeditor->IsSelectionValid() && !m_spriteeditor->IsClipboardEmpty())
-		{
-			m_spriteeditor->PasteTile(m_spriteeditor->GetSelectedTile().GetIndex());
-		}
-		break;
-	case ID_EDIT_TILE:
-		if (m_spriteeditor->IsSelectionValid())
-		{
-			m_spriteeditor->EditTile(m_spriteeditor->GetSelectedTile());
-		}
-		break;
-	default:
-		break;
-	}
+	ProcessEvent(evt.GetId());
 	evt.Skip();
 }
 
@@ -1030,10 +1213,15 @@ void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 0);
 	status.SetStatusText("", 1);
 	status.SetStatusText("", 2);
+	m_status_init = true;
 }
 
 void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
 {
+	if (!m_status_init)
+	{
+		return;
+	}
 	std::ostringstream ss;
 	int colour = m_paledit->GetHoveredColour();
 	if (m_spriteeditor->IsSelectionValid())

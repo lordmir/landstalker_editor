@@ -42,8 +42,6 @@ public:
 	void ClearSubSpriteSelection();
 	std::shared_ptr<Tileset> GetTileset();
 
-	bool GetTileNumbersEnabled() const;
-	void SetTileNumbersEnabled(bool enabled);
 	bool GetSelectionEnabled() const;
 	void SetSelectionEnabled(bool enabled);
 	bool GetHoverEnabled() const;
@@ -52,6 +50,8 @@ public:
 	void SetAlphaEnabled(bool enabled);
 	bool GetBordersEnabled() const;
 	void SetBordersEnabled(bool enabled);
+	bool GetHitboxEnabled() const;
+	void SetHitboxEnabled(bool enabled);
 
 	std::pair<int, int> GetTilePosition(int tile) const;
 	bool IsSelectionValid() const;
@@ -64,15 +64,11 @@ public:
 	int GetSubspriteAt(int tile) const;
 
 	void SelectTile(int tile);
-	void InsertTileBefore(const Tile& tile);
-	void InsertTileAfter(const Tile& tile);
-	void InsertTileAtEnd();
-	void DeleteTileAt(const Tile& tile);
-	void CutTile(const Tile& tile);
-	void CopyTile(const Tile& tile) const;
-	void PasteTile(const Tile& tile);
-	void SwapTile(const Tile& tile);
-	void EditTile(const Tile& tile);
+	void ClearCell();
+	void CutCell();
+	void CopyCell();
+	void PasteCell();
+	void SwapCell();
 	bool IsClipboardEmpty() const;
 
 	bool HandleKeyDown(int key, int modifiers);
@@ -101,11 +97,6 @@ private:
 	void DecreaseSubSpritePriority();
 	void SelectNextSubSprite();
 	void SelectPrevSubSprite();
-	void ClearCell();
-	void CutCell();
-	void CopyCell();
-	void PasteCell();
-	void SwapCell();
 
 	void OnDraw(wxDC& dc);
 	void OnPaint(wxPaintEvent& evt);

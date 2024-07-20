@@ -138,6 +138,8 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
 	AnimationFlags GetSpriteAnimationFlags(uint8_t id) const;
 	void SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags);
+	uint16_t GetSpriteMysteryData(uint8_t id) const;
+	void SetSpriteMysteryData(uint8_t id, uint16_t val);
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);

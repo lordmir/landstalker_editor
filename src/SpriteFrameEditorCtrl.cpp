@@ -598,7 +598,7 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 		DrawSelectionBorders(m_memdc);
 
 		m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-		if (m_enablesubsprites)
+		if (m_enableborders)
 		{
 			for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
 			{
@@ -695,11 +695,6 @@ void SpriteFrameEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 
 void SpriteFrameEditorCtrl::OnDoubleClick(wxMouseEvent& evt)
 {
-	int sel = ConvertXYToTile(evt.GetPosition());
-	if (sel != -1)
-	{
-		EditTile(sel);
-	}
 	evt.Skip();
 }
 
@@ -1227,6 +1222,7 @@ void SpriteFrameEditorCtrl::InitialiseBrushesAndPens()
 void SpriteFrameEditorCtrl::ForceRedraw()
 {
 	m_redraw_all = true;
+	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
 	Refresh();
 }
@@ -1309,20 +1305,6 @@ std::shared_ptr<Tileset> SpriteFrameEditorCtrl::GetTileset()
 	return m_tiles;
 }
 
-bool SpriteFrameEditorCtrl::GetTileNumbersEnabled() const
-{
-	return m_enabletilenumbers;
-}
-
-void SpriteFrameEditorCtrl::SetTileNumbersEnabled(bool enabled)
-{
-	if (enabled != m_enabletilenumbers)
-	{
-		m_enabletilenumbers = enabled;
-		ForceRedraw();
-	}
-}
-
 bool SpriteFrameEditorCtrl::GetSelectionEnabled() const
 {
 	return m_enableselection;
@@ -1385,6 +1367,20 @@ void SpriteFrameEditorCtrl::SetBordersEnabled(bool enabled)
 	if (m_enableborders != enabled)
 	{
 		m_enableborders = enabled;
+		ForceRedraw();
+	}
+}
+
+bool SpriteFrameEditorCtrl::GetHitboxEnabled() const
+{
+	return m_enablehitbox;
+}
+
+void SpriteFrameEditorCtrl::SetHitboxEnabled(bool enabled)
+{
+	if (m_enablehitbox != enabled)
+	{
+		m_enablehitbox = enabled;
 		ForceRedraw();
 	}
 }
@@ -1474,12 +1470,6 @@ void SpriteFrameEditorCtrl::SelectTile(int tile)
 {
 	if ((m_selectedtile != -1) && (tile != m_selectedtile))
 	{
-		if (m_pendingswap)
-		{
-			m_redraw_list.insert(tile);
-			m_sprite->GetTileset()->SwapTile(m_pendingswap, tile);
-			m_pendingswap = -1;
-		}
 		m_redraw_list.insert(m_selectedtile);
 	}
 	if (tile != m_selectedtile)
@@ -1487,104 +1477,6 @@ void SpriteFrameEditorCtrl::SelectTile(int tile)
 		FireEvent(EVT_SPRITE_FRAME_SELECT, std::to_string(tile));
 		m_selectedtile = tile;
 		Refresh();
-	}
-}
-
-void SpriteFrameEditorCtrl::InsertTileBefore(const Tile& tile)
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_sprite->GetTileset()->InsertTilesBefore(tile.GetIndex());
-		for (int i = tile.GetIndex(); i < static_cast<int>(m_sprite->GetTileCount()); ++i)
-		{
-			m_redraw_list.insert(i);
-		}
-		SelectTile(m_selectedtile + 1);
-		UpdateRowCount();
-		Refresh();
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(tile.GetTileValue()));
-	}
-}
-
-void SpriteFrameEditorCtrl::InsertTileAfter(const Tile& tile)
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_sprite->GetTileset()->InsertTilesBefore(tile.GetIndex() + 1);
-		for (int i = tile.GetIndex(); i < static_cast<int>(m_sprite->GetTileCount()); ++i)
-		{
-			m_redraw_list.insert(i);
-		}
-		UpdateRowCount();
-		Refresh();
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(tile.GetTileValue()));
-	}
-}
-
-void SpriteFrameEditorCtrl::InsertTileAtEnd()
-{
-	m_sprite->GetTileset()->InsertTilesBefore(m_sprite->GetTileCount());
-	m_redraw_list.insert(m_sprite->GetTileCount() - 1);
-	UpdateRowCount();
-	Refresh();
-	FireEvent(EVT_SPRITE_FRAME_CHANGE, "");
-}
-
-void SpriteFrameEditorCtrl::DeleteTileAt(const Tile& tile)
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_sprite->GetTileset()->DeleteTile(tile.GetIndex());
-		if (!IsSelectionValid())
-		{
-			SelectTile(m_sprite->GetTileCount() - 1);
-		}
-		ForceRedraw();
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(tile.GetTileValue()));
-	}
-}
-
-void SpriteFrameEditorCtrl::CutTile(const Tile& tile)
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_clipboard = m_sprite->GetTile(tile);
-		DeleteTileAt(tile);
-	}
-}
-
-void SpriteFrameEditorCtrl::CopyTile(const Tile& tile) const
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_clipboard = m_sprite->GetTile(tile);
-	}
-}
-
-void SpriteFrameEditorCtrl::PasteTile(const Tile& tile)
-{
-	if ((tile.GetIndex() <= m_sprite->GetTileCount()) && !IsClipboardEmpty())
-	{
-		m_sprite->GetTilePixels(tile.GetTileValue()) = m_clipboard;
-		m_redraw_list.insert(tile.GetTileValue());
-		Refresh();
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(tile.GetTileValue()));
-	}
-}
-
-void SpriteFrameEditorCtrl::SwapTile(const Tile& tile)
-{
-	if (tile.GetIndex() <= m_sprite->GetTileCount())
-	{
-		m_pendingswap = tile.GetIndex();
-	}
-}
-
-void SpriteFrameEditorCtrl::EditTile(const Tile& tile)
-{
-	if (tile.GetIndex() < m_sprite->GetTileCount())
-	{
-		FireEvent(EVT_SPRITE_FRAME_EDIT_REQUEST, std::to_string(tile.GetIndex()));
 	}
 }
 

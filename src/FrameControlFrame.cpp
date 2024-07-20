@@ -5,12 +5,12 @@
 wxDEFINE_EVENT(EVT_FRAME_SELECT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_FRAME_ADD, wxCommandEvent);
 wxDEFINE_EVENT(EVT_FRAME_DELETE, wxCommandEvent);
-wxDEFINE_EVENT(EVT_FRAME_MOVE_UP, wxCommandEvent);
-wxDEFINE_EVENT(EVT_FRAME_MOVE_DOWN, wxCommandEvent);
 
 FrameControlFrame::FrameControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
 	: SelectionControlFrame(parent, imglst)
 {
+	m_ctrl_move_up->Hide();
+	m_ctrl_move_down->Hide();
 }
 
 FrameControlFrame::~FrameControlFrame()
@@ -65,12 +65,10 @@ void FrameControlFrame::Delete()
 
 void FrameControlFrame::MoveUp()
 {
-	FireEvent(EVT_FRAME_MOVE_UP);
 }
 
 void FrameControlFrame::MoveDown()
 {
-	FireEvent(EVT_FRAME_MOVE_DOWN);
 }
 
 void FrameControlFrame::OpenElement()

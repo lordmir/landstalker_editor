@@ -41,7 +41,6 @@ public:
 	const std::string& GetFilename() const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
-	virtual void OnMenuClick(wxMenuEvent& evt);
 
 	void ExportFrm(const std::string& filename) const;
 	void ExportTiles(const std::string& filename) const;
@@ -56,14 +55,15 @@ private:
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	void ProcessEvent(int id);
 
 	void OnFrameSelect(wxCommandEvent& evt);
 	void OnFrameAdd(wxCommandEvent& evt);
 	void OnFrameDelete(wxCommandEvent& evt);
-	void OnFrameMoveUp(wxCommandEvent& evt);
-	void OnFrameMoveDown(wxCommandEvent& evt);
 	void OnSubSpriteSelect(wxCommandEvent& evt);
 	void OnSubSpriteAdd(wxCommandEvent& evt);
 	void OnSubSpriteDelete(wxCommandEvent& evt);
@@ -82,6 +82,7 @@ private:
 	void OnAnimationFrameMoveDown(wxCommandEvent& evt);
 
 	void OnZoomChange(wxCommandEvent& evt);
+	void OnSpeedChange(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelected(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
@@ -127,12 +128,16 @@ private:
 	std::shared_ptr<Palette> m_palette;
 
 	wxStatusBar* m_statusbar = nullptr;
-	wxSlider* m_zoomslider = nullptr;
+	mutable wxSlider* m_zoomslider = nullptr;
+	mutable wxSlider* m_speedslider = nullptr;
 	wxToolBar* m_toolbar = nullptr;
 	mutable bool m_reset_props = false;
 	std::string m_filename;
 	int m_frame = -1;
 	int m_anim = -1;
+	int m_zoom = 1;
+	int m_speed = 1;
+	mutable bool m_status_init = false;
 
 	std::string m_name;
 
