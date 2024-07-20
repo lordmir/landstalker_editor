@@ -174,8 +174,13 @@ public:
 		: Entry(owner, b, name, filename),
 		  m_sprite(0)
 	{}
+	SpriteFrameEntry(DataManager * owner, const std::string & name, const filesystem::path & filename)
+		: Entry(owner, name, filename),
+		  m_sprite(0)
+	{}
 
 	static std::shared_ptr<SpriteFrameEntry> Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
+	static std::shared_ptr<SpriteFrameEntry> Create(DataManager* owner, const std::string& name, const filesystem::path& filename);
 
 	virtual bool Serialise(const std::shared_ptr<SpriteFrame> in, ByteVectorPtr out);
 	virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<SpriteFrame>& out);

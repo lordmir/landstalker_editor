@@ -279,6 +279,23 @@ void Tileset::Clear()
     m_tiles.clear();
 }
 
+void Tileset::Reset(int size)
+{
+    if (size != -1)
+    {
+        m_tiles.resize(size);
+    }
+    for (auto& elem : m_tiles)
+    {
+        std::fill(elem.begin(), elem.end(), 0_u8);
+    }
+}
+
+void Tileset::Resize(int size)
+{
+    m_tiles.resize(size);
+}
+
 std::vector<uint8_t> Tileset::GetTileRGB(const Tile& tile, const Palette& palette) const
 {
     auto t = GetTile(tile);
@@ -464,7 +481,7 @@ void Tileset::DeleteTile(int tile_number)
 void Tileset::InsertTilesBefore(int tile_number, int count)
 {
     if ((tile_number >= 0) && (tile_number <= static_cast<int>(m_tiles.size())) &&
-        (tile_number + count < static_cast<int>(MAXIMUM_CAPACITY)))
+        (tile_number + count <= static_cast<int>(MAXIMUM_CAPACITY)))
     {
         for (int i = 0; i < count; ++i)
         {

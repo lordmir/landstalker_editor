@@ -9,11 +9,16 @@
 #include <string>
 #include <map>
 
-#include "SpriteEditorCtrl.h"
+#include "SpriteFrameEditorCtrl.h"
+#include "SpriteAnimationEditorCtrl.h"
 #include "EditorFrame.h"
 #include "Palette.h"
 #include "PaletteEditor.h"
 #include "TileEditor.h"
+#include "SubspriteControlFrame.h"
+#include "FrameControlFrame.h"
+#include "AnimationControlFrame.h"
+#include "AnimationFrameControlFrame.h"
 
 class SpriteEditorFrame : public EditorFrame
 {
@@ -29,13 +34,13 @@ public:
 	void SetActivePalette(const std::vector<std::string>& names);
 	void Redraw() const;
 	void RedrawTiles(int index = -1) const;
+	void Update();
 
 	bool Save();
 	bool SaveAs(wxString filename, bool compressed = false);
 	const std::string& GetFilename() const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
-	virtual void OnMenuClick(wxMenuEvent& evt);
 
 	void ExportFrm(const std::string& filename) const;
 	void ExportTiles(const std::string& filename) const;
@@ -50,8 +55,34 @@ private:
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	void UpdateUI() const;
+
+	void OnKeyDown(wxKeyEvent& evt);
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	void ProcessEvent(int id);
+
+	void OnFrameSelect(wxCommandEvent& evt);
+	void OnFrameAdd(wxCommandEvent& evt);
+	void OnFrameDelete(wxCommandEvent& evt);
+	void OnSubSpriteSelect(wxCommandEvent& evt);
+	void OnSubSpriteAdd(wxCommandEvent& evt);
+	void OnSubSpriteDelete(wxCommandEvent& evt);
+	void OnSubSpriteMoveUp(wxCommandEvent& evt);
+	void OnSubSpriteMoveDown(wxCommandEvent& evt);
+	void OnSubSpriteUpdate(wxCommandEvent& evt);
+	void OnAnimationSelect(wxCommandEvent& evt);
+	void OnAnimationAdd(wxCommandEvent& evt);
+	void OnAnimationDelete(wxCommandEvent& evt);
+	void OnAnimationMoveUp(wxCommandEvent& evt);
+	void OnAnimationMoveDown(wxCommandEvent& evt);
+	void OnAnimationFrameSelect(wxCommandEvent& evt);
+	void OnAnimationFrameAdd(wxCommandEvent& evt);
+	void OnAnimationFrameDelete(wxCommandEvent& evt);
+	void OnAnimationFrameMoveUp(wxCommandEvent& evt);
+	void OnAnimationFrameMoveDown(wxCommandEvent& evt);
 
 	void OnZoomChange(wxCommandEvent& evt);
+	void OnSpeedChange(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelected(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
@@ -72,10 +103,16 @@ private:
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
-	SpriteEditorCtrl* m_spriteeditor = nullptr;
+	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
+	SpriteAnimationEditorCtrl* m_spriteanimeditor = nullptr;
 	PaletteEditor* m_paledit = nullptr;
 	TileEditor* m_tileedit = nullptr;
+	FrameControlFrame* m_framectrl = nullptr;
+	SubspriteControlFrame* m_subspritectrl = nullptr;
+	AnimationControlFrame* m_animctrl = nullptr;
+	AnimationFrameControlFrame* m_animframectrl = nullptr;
 	mutable wxAuiManager m_mgr;
+	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
 
 	mutable wxPGChoices m_hi_palettes;
@@ -91,10 +128,16 @@ private:
 	std::shared_ptr<Palette> m_palette;
 
 	wxStatusBar* m_statusbar = nullptr;
-	wxSlider* m_zoomslider = nullptr;
+	mutable wxSlider* m_zoomslider = nullptr;
+	mutable wxSlider* m_speedslider = nullptr;
 	wxToolBar* m_toolbar = nullptr;
 	mutable bool m_reset_props = false;
 	std::string m_filename;
+	int m_frame = -1;
+	int m_anim = -1;
+	int m_zoom = 1;
+	int m_speed = 1;
+	mutable bool m_status_init = false;
 
 	std::string m_name;
 

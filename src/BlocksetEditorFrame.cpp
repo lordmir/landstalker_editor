@@ -104,8 +104,6 @@ void BlocksetEditorFrame::Open(const std::string& blockset_name)
 	m_tileset->Open(m_tiles->GetData());
 	m_tileset->SetActivePalette(m_tiles->GetDefaultPalette());
 	m_palette = m_gd->GetRoomData()->GetRoomPalette(m_tileset->GetActivePalette());
-	UpdateUI();
-	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)

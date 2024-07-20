@@ -273,7 +273,7 @@
     <ClCompile Include="..\src\RoomViewerCtrl.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\SpriteEditorCtrl.cpp">
+    <ClCompile Include="..\src\SpriteFrameEditorCtrl.cpp">
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
     <ClCompile Include="..\src\SpriteEditorFrame.cpp">
@@ -415,6 +415,21 @@
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
     <ClCompile Include="..\src\EntityViewerCtrl.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SubspriteControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\FrameControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AnimationControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AnimationFrameControlFrame.cpp">
+      <Filter>src\UI\Sprites</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\SpriteAnimationEditorCtrl.cpp">
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
   </ItemGroup>
@@ -583,7 +598,7 @@
     <ClInclude Include="..\src\include\SpriteData.h">
       <Filter>include\Data\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\include\SpriteEditorCtrl.h">
+    <ClInclude Include="..\src\include\SpriteFrameEditorCtrl.h">
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\SpriteEditorFrame.h">
@@ -716,6 +731,21 @@
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntityViewerCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SpriteAnimationEditorCtrl.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AnimationControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\AnimationFrameControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\FrameControlFrame.h">
+      <Filter>include\UI\Sprites</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\include\SubspriteControlFrame.h">
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
   </ItemGroup>

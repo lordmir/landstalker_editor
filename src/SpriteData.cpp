@@ -509,6 +509,50 @@ void SpriteData::SetSpriteHitbox(uint8_t id, uint8_t base, uint8_t height)
 	result[1] = height;
 }
 
+bool SpriteData::SpriteFrameExists(const std::string& name) const
+{
+	return m_frames.count(name) > 0;
+}
+
+void SpriteData::DeleteSpriteFrame(const std::string& name)
+{
+	if (SpriteFrameExists(name))
+	{
+		std::shared_ptr<SpriteFrameEntry> entry = m_frames.at(name);
+		m_frames.erase(name);
+		m_sprite_frames.at(entry->GetSprite()).erase(name);
+		for (auto& a : m_animation_frames)
+		{
+			auto it = a.second.begin();
+			while (it != a.second.end())
+			{
+				if (*it == name)
+				{
+					it = a.second.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+	}
+}
+
+void SpriteData::AddSpriteFrame(uint8_t sprite_id, const std::string& name)
+{
+	if (!SpriteFrameExists(name))
+	{
+		std::shared_ptr<SpriteFrameEntry> entry = SpriteFrameEntry::Create(this, name, filesystem::path(RomLabels::Sprites::SPRITE_FRAME_FILE).parent_path() / (name + ".frm"));
+		entry->SetSprite(sprite_id);
+		entry->GetData()->AddSubSpriteBefore(0);
+		entry->GetData()->PrepareSubSprites();
+
+		m_frames[name] = entry;
+		m_sprite_frames.at(sprite_id).insert(name);
+	}
+}
+
 bool SpriteData::IsEntity(uint8_t id) const
 {
 	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());
@@ -602,6 +646,19 @@ std::vector<std::string> SpriteData::GetSpriteFrames(const std::string& name) co
 	return GetSpriteFrames(GetSpriteId(name));
 }
 
+int SpriteData::GetSpriteFrameId(uint8_t sprite_id, const std::string& name) const
+{
+	auto frames = GetSpriteFrames(sprite_id);
+	for (int i = 0; i < static_cast<int>(frames.size()); ++i)
+	{
+		if (frames[i] == name)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
 int SpriteData::GetDefaultEntityAnimationId(uint8_t id) const
 {
 	if (IsEntityItem(id))
@@ -626,6 +683,23 @@ int SpriteData::GetDefaultEntityFrameId(uint8_t id) const
 	else
 	{
 		return 0;
+	}
+}
+
+int SpriteData::GetDefaultAbsFrameId(uint8_t ent_id) const
+{
+	if (IsEntityItem(ent_id))
+	{
+		// Item
+		return ent_id & 0x3F;
+	}
+	else
+	{
+		uint8_t spr_id = GetSpriteFromEntity(ent_id);
+		const auto& anim_ids = m_animations.at(spr_id);
+		const std::string& frame_name = (anim_ids.size() > 1UL) ? m_animation_frames.at(anim_ids[1])[0] : m_animation_frames.at(anim_ids[0])[0];
+		const auto& frames = m_sprite_frames.at(spr_id);
+		return static_cast<int>(std::distance(frames.cbegin(), frames.find(frame_name)));
 	}
 }
 
@@ -759,6 +833,23 @@ void SpriteData::SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags
 	{
 		m_sprite_animation_flags[id] = flags;
 	}
+}
+
+uint16_t SpriteData::GetSpriteMysteryData(uint8_t id) const
+{
+	if (m_sprite_mystery_data.count(id) > 0)
+	{
+		return m_sprite_mystery_data.at(id);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void SpriteData::SetSpriteMysteryData(uint8_t id, uint16_t val)
+{
+	m_sprite_mystery_data[id] = val;
 }
 
 std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
@@ -1066,7 +1157,6 @@ bool SpriteData::LoadAsmFilenames()
 	{
 		throw;
 	}
-	return false;
 }
 
 void SpriteData::SetDefaultFilenames()

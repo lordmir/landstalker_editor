@@ -117,14 +117,20 @@ public:
 	std::pair<uint8_t, uint8_t> GetEntityHitbox(uint8_t id) const;
 	void SetSpriteHitbox(uint8_t id, uint8_t base, uint8_t height);
 
+	bool SpriteFrameExists(const std::string& name) const;
+	void DeleteSpriteFrame(const std::string& name);
+	void AddSpriteFrame(uint8_t sprite_id, const std::string& name);
+
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
 	uint32_t GetSpriteFrameCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(uint8_t id) const;
 	std::vector<std::string> GetSpriteFrames(const std::string& name) const;
+	int GetSpriteFrameId(uint8_t sprite_id, const std::string& name) const;
 	int GetDefaultEntityAnimationId(uint8_t id) const;
 	int GetDefaultEntityFrameId(uint8_t id) const;
+	int GetDefaultAbsFrameId(uint8_t sprite_id) const;
 	std::shared_ptr<SpriteFrameEntry> GetDefaultEntityFrame(uint8_t id) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(const std::string& name) const;
 	std::shared_ptr<SpriteFrameEntry> GetSpriteFrame(uint8_t id, uint8_t frame) const;
@@ -137,6 +143,8 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
 	AnimationFlags GetSpriteAnimationFlags(uint8_t id) const;
 	void SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags);
+	uint16_t GetSpriteMysteryData(uint8_t id) const;
+	void SetSpriteMysteryData(uint8_t id, uint16_t val);
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);

@@ -79,7 +79,7 @@ SacredTreeFlag::SacredTreeFlag(const std::array<uint8_t, SacredTreeFlag::SIZE>& 
 
 std::array<uint8_t, SacredTreeFlag::SIZE> SacredTreeFlag::GetData() const
 {
-	std::array<uint8_t, SIZE> data;
+	std::array<uint8_t, SIZE> data{};
 	data[0] = room >> 8;
 	data[1] = room & 0xFF;
 	data[2] = (flag >> 3) & 0xFF;
@@ -145,7 +145,7 @@ TreeWarpFlag::TreeWarpFlag(const std::array<uint8_t, SIZE>& data)
 
 std::array<uint8_t, TreeWarpFlag::SIZE> TreeWarpFlag::GetData() const
 {
-	std::array<uint8_t, SIZE> data;
+	std::array<uint8_t, SIZE> data{};
 	data[0] = room1 >> 8;
 	data[1] = room1 & 0xFF;
 	data[4] = room2 >> 8;
@@ -179,8 +179,8 @@ std::array<uint8_t, RoomClearFlag::SIZE> RoomClearFlag::GetData() const
 	std::array<uint8_t, SIZE> data;
 	data[0] = room >> 8;
 	data[1] = room & 0xFF;
-	data[2] = (flag >> 3);
-	data[3] = (entity & 0x1F) | ((flag & 0x07) << 5);
+	data[2] = static_cast<uint8_t>(flag >> 3);
+	data[3] = static_cast<uint8_t>((entity & 0x1F) | ((flag & 0x07) << 5));
 	return data;
 }
 

@@ -22,6 +22,7 @@ public:
 	{
 	public:
 		Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
+		Entry(DataManager* owner, const std::string& name, const filesystem::path& filename);
 
 		virtual bool Serialise(const std::shared_ptr<T> in, ByteVectorPtr out) = 0;
 		virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<T>& out) = 0;
@@ -104,6 +105,20 @@ inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, con
 }
 
 template<class T>
+inline DataManager::Entry<T>::Entry(DataManager* owner, const std::string& name, const filesystem::path& filename)
+  : m_data(std::make_shared<T>()),
+	m_orig_data(std::make_shared<T>()),
+	m_saved_data(std::make_shared<T>()),
+	m_begin_address(0),
+	m_name(name),
+	m_filename(filename),
+	m_raw_data(std::make_shared<ByteVector>()),
+	m_cached_raw_data(std::make_shared<ByteVector>()),
+	m_owner(owner)
+{
+}
+
+template<class T>
 inline void DataManager::Entry<T>::Initialise()
 {
 	Deserialise(m_raw_data, m_orig_data);
@@ -138,7 +153,7 @@ inline bool DataManager::Entry<T>::HasDataChanged() const
 template<class T>
 inline bool DataManager::Entry<T>::HasSavedDataChanged() const
 {
-	return *m_saved_data != *m_data;
+	return m_saved_data != nullptr && *m_saved_data != *m_data;
 }
 
 template<class T>
