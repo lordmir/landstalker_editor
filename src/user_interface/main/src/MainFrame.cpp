@@ -108,7 +108,7 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     icn.CopyFromBitmap(m_imgs32->GetImage("msword"));
     info.SetIcon(icn);
     info.SetName(_("Landstalker Editor"));
-    info.SetVersion(_("0.2"));
+    info.SetVersion(_("0.3"));
     info.SetCopyright(_("Copyright 2023. All Rights Reserved."));
     info.SetWebSite(_("https://github.com/lordmir/landstalker_editor"), _("GitHub"));
     info.AddDeveloper(_("LordMir <hase@redfern.xyz>"));

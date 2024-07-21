@@ -54,8 +54,8 @@ namespace RomLabels
 		const std::string ENEMY_STATS("EnemyStats");
 		const std::string ROOM_SPRITE_TABLE("RoomSpriteTable");
 
-		const std::string SPRITE_ANIM_FLAGS_LOOKUP("UnknownSpriteLookup_1");
-		const std::string SPRITE_ANIM_FLAGS_LOOKUP_SECTION("UnknownSpriteLookup_1Section");
+		const std::string SPRITE_ANIM_FLAGS_LOOKUP("SpriteAnimFlags");
+		const std::string SPRITE_ANIM_FLAGS_LOOKUP_SECTION("SpriteAnimFlagsSection");
 
 		const std::string PALETTE_DATA_FILE("code/sprites/spritepalettes.asm");
 		const std::string PALETTE_LUT_FILE("assets_packed/spritedata/spritepallookup.bin");
@@ -71,7 +71,7 @@ namespace RomLabels
 		const std::string ITEM_PROPERTIES_FILE("assets_packed/script/items.bin");
 		const std::string SPRITE_BEHAVIOUR_OFFSET_FILE("assets_packed/spritedata/behaviouroffsets.bin");
 		const std::string SPRITE_BEHAVIOUR_TABLE_FILE("assets_packed/spritedata/behaviourtable.bin");
-		const std::string SPRITE_ANIM_FLAGS_LOOKUP_FILE("assets_packed/spritedata/spritetable6F.bin");
+		const std::string SPRITE_ANIM_FLAGS_LOOKUP_FILE("assets_packed/spritedata/spriteanimflags.bin");
 		const std::string SPRITE_VISIBILITY_FLAGS_FILE("assets_packed/roomdata/flagactions/spritevisibility.bin");
 		const std::string ONE_TIME_EVENT_FLAGS_FILE("assets_packed/roomdata/flagactions/onetime.bin");
 		const std::string ROOM_CLEAR_FLAGS_FILE("assets_packed/roomdata/flagactions/roomcleared.bin");

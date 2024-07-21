@@ -448,7 +448,7 @@ bool RoomViewerFrame::ExportPng(const std::string& path)
 
 	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
 	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-	return buf.WritePNG(path, palette, false);
+	return buf.WritePNG(path, palette, m_roomview->GetAlpha());
 }
 
 bool RoomViewerFrame::ImportBin(const std::string& path)
