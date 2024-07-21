@@ -3,7 +3,7 @@
 
 static wxString init_clonecmd = "git clone {URL} --branch {TAG} --single-branch .";
 static wxString init_cloneurl = "https://github.com/lordmir/landstalker_disasm.git";
-static wxString init_clonetag = "0.2";
+static wxString init_clonetag = "0.3";
 static wxString init_asmargs = "/p /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_ /e EXPANDED=0";
 #ifdef __WXMSW__
 static wxString init_assembler = ".\\tools\\build\\asm68k.exe";
