@@ -878,6 +878,142 @@ void Tilemap3D::DeleteHeightmapColumn(uint8_t row)
     }
 }
 
+void Tilemap3D::ClearTilemap()
+{
+    std::fill(foreground.begin(), foreground.end(), 0_u16);
+    std::fill(background.begin(), background.end(), 0_u16);
+}
+
+void Tilemap3D::InsertTilemapRow(int row)
+{
+    if (row < width && width < 64)
+    {
+        const std::vector<uint16_t> orig_fg = foreground;
+        const std::vector<uint16_t> orig_bg = background;
+        width += 1;
+        foreground.resize(width * height);
+        background.resize(width * height);
+        auto fg_src = orig_fg.data();
+        auto fg_dst = foreground.data();
+        auto bg_src = orig_bg.data();
+        auto bg_dst = background.data();
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                if (x <= row)
+                {
+                    fg_dst[y * width + x] = fg_src[y * (width - 1) + x];
+                    bg_dst[y * width + x] = bg_src[y * (width - 1) + x];
+                }
+                else
+                {
+                    fg_dst[y * width + x] = fg_src[y * (width - 1) + x - 1];
+                    bg_dst[y * width + x] = bg_src[y * (width - 1) + x - 1];
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::InsertTilemapColumn(int col)
+{
+    if (col < height && height < 64)
+    {
+        const std::vector<uint16_t> orig_fg = foreground;
+        const std::vector<uint16_t> orig_bg = background;
+        height += 1;
+        foreground.resize(width * height);
+        background.resize(width * height);
+        auto fg_src = orig_fg.data();
+        auto fg_dst = foreground.data();
+        auto bg_src = orig_bg.data();
+        auto bg_dst = background.data();
+        int idx = 0;
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                if (y <= col)
+                {
+                    fg_dst[idx] = fg_src[idx];
+                    bg_dst[idx] = bg_src[idx];
+                    ++idx;
+                }
+                else
+                {
+                    fg_dst[idx] = fg_src[idx - width];
+                    bg_dst[idx] = bg_src[idx - width];
+                    ++idx;
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::DeleteTilemapRow(int row)
+{
+    if (row < width && width > 1)
+    {
+        std::vector<uint16_t> orig_fg = foreground;
+        std::vector<uint16_t> orig_bg = background;
+        width -= 1;
+        foreground.resize(width * height);
+        const uint16_t* fg_src = orig_fg.data();
+        uint16_t* fg_dst = foreground.data();
+        const uint16_t* bg_src = orig_bg.data();
+        uint16_t* bg_dst = background.data();
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                if (x < row)
+                {
+                    fg_dst[y * width + x] = fg_src[y * (width + 1) + x];
+                    bg_dst[y * width + x] = bg_src[y * (width + 1) + x];
+                }
+                else
+                {
+                    fg_dst[y * width + x] = fg_src[y * (width + 1) + x + 1];
+                    bg_dst[y * width + x] = bg_src[y * (width + 1) + x + 1];
+                }
+            }
+        }
+    }
+}
+
+void Tilemap3D::DeleteTilemapColumn(int col)
+{
+    if (col < height && height > 1)
+    {
+        std::vector<uint16_t> orig_fg = foreground;
+        std::vector<uint16_t> orig_bg = background;
+        height -= 1;
+        foreground.resize(width * height);
+        background.resize(width * height);
+        auto fg_src = orig_fg.data();
+        auto fg_dst = foreground.data();
+        auto bg_src = orig_bg.data();
+        auto bg_dst = background.data();
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                if (y < col)
+                {
+                    fg_dst[y * width + x] = fg_src[y * width + x];
+                    bg_dst[y * width + x] = bg_src[y * width + x];
+                }
+                else
+                {
+                    fg_dst[y * width + x] = fg_src[(y + 1) * width + x];
+                    bg_dst[y * width + x] = bg_src[(y + 1) * width + x];
+                }
+            }
+        }
+    }
+}
+
 void Tilemap3D::DeleteHeightmapRow(uint8_t col)
 {
     if (col < hmwidth && hmwidth > 1)
@@ -989,7 +1125,7 @@ bool Tilemap3D::IsHMPointValid(const HMPoint2D& p) const
             (p.y >= 0 && p.y <= hmheight));
 }
 
-Point2D Tilemap3D::IsoToCartesian(const IsoPoint2D& iso, Layer layer) const
+Point2D Tilemap3D::IsoToCartesian(const IsoPoint2D& iso, Layer /*layer*/) const
 {
     if (IsIsoPointValid(iso) == false) return { -1, -1 };
     return Point2D{-1, -1};
@@ -1031,7 +1167,7 @@ PixelPoint2D Tilemap3D::IsoToPixel(const IsoPoint2D& iso, Layer layer, bool offs
     };
 }
 
-PixelPoint2D Tilemap3D::ToPixel(const Point2D& iso, Layer layer) const
+PixelPoint2D Tilemap3D::ToPixel(const Point2D& iso, Layer /*layer*/) const
 {
     if (IsIsoPointValid(iso) == false) return { -1, -1 };
     return PixelPoint2D{ -1, -1 };

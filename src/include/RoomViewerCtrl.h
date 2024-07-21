@@ -42,6 +42,8 @@ public:
 	bool GetWarpsVisible() const;
 	bool GetTileSwapsVisible() const;
 
+	void SetAlpha(bool visible);
+	bool GetAlpha() const;
 	void SetEntitiesVisible(bool visible);
 	void SetEntitiesHitboxVisible(bool visible);
 	void SetWarpsVisible(bool visible);
@@ -163,6 +165,8 @@ private:
 	void TogglePreviewDoor(int door);
 	void ClearAllPreviews();
 
+	void InitialiseBrushesAndPens();
+
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
@@ -198,6 +202,7 @@ private:
 	bool m_repaint;
 	double m_zoom;
 
+	bool m_alpha;
 	bool m_show_entities;
 	bool m_show_warps;
 	bool m_show_swaps;
@@ -218,6 +223,9 @@ private:
 	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
 	std::list<int> m_preview_swaps;
 	std::list<int> m_preview_doors;
+
+	std::unique_ptr<wxBrush> m_alpha_brush;
+	std::unique_ptr<wxBitmap> m_stipple;
 
 	std::unique_ptr<wxBrush> m_warp_brush;
 	std::list<std::pair<int, std::vector<wxPoint2DDouble>>> m_warp_poly;

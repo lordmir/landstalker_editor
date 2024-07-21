@@ -41,6 +41,9 @@ public:
 	void SetSelectedBlock(int block);
 	int GetSelectedBlock() const;
 	bool IsBlockSelected() const;
+	void SetSelectedCell(Coord cell);
+	Coord GetSelectedCell() const;
+	bool IsCellSelected() const;
 
 	void SetHovered(Coord sel);
 	Coord GetHovered() const;
@@ -123,6 +126,7 @@ private:
 	void FireEvent(const wxEventType& e, int userdata);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e);
+	void FireEvent(const wxEventType& e, const Coord& c);
 	void FireMapEvent(const wxEventType& e);
 
 	void StartDrag();
@@ -189,5 +193,6 @@ private:
 };
 
 wxDECLARE_EVENT(EVT_MAPLAYER_UPDATE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_MAPLAYER_CELL_SELECT, wxCommandEvent);
 
 #endif // _MAP_3D_EDITOR_H_

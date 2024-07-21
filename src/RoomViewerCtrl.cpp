@@ -35,6 +35,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
       m_redraw(false),
       m_repaint(false),
       m_zoom(1.0),
+      m_alpha(false),
       m_show_entities(true),
       m_show_warps(true),
       m_show_swaps(true),
@@ -47,6 +48,7 @@ RoomViewerCtrl::RoomViewerCtrl(wxWindow* parent, RoomViewerFrame* frame)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetBackgroundColour(*wxBLACK);
+    InitialiseBrushesAndPens();
     m_warp_brush = std::make_unique<wxBrush>(*wxRED, wxBRUSHSTYLE_BDIAGONAL_HATCH);
     m_layer_opacity = { {Layer::BACKGROUND1, 0xFF}, {Layer::BACKGROUND2, 0xFF}, {Layer::BG_SPRITES, 0xFF },
                         {Layer::FOREGROUND, 0xFF}, {Layer::FG_SPRITES, 0xFF}, {Layer::HEIGHTMAP, 0x80} };
@@ -125,6 +127,17 @@ bool RoomViewerCtrl::GetWarpsVisible() const
 bool RoomViewerCtrl::GetTileSwapsVisible() const
 {
     return m_show_swaps;
+}
+
+void RoomViewerCtrl::SetAlpha(bool visible)
+{
+    m_alpha = visible;
+    ForceRedraw();
+}
+
+bool RoomViewerCtrl::GetAlpha() const
+{
+    return m_alpha;
 }
 
 void RoomViewerCtrl::SetEntitiesVisible(bool visible)
@@ -1670,7 +1683,7 @@ void RoomViewerCtrl::OnDraw(wxDC& dc)
     wxMemoryDC mdc(*m_bmp);
     if (m_redraw)
     {
-        mdc.SetBackground(*wxBLACK_BRUSH);
+        mdc.SetBackground(m_alpha ? *m_alpha_brush : *wxBLACK_BRUSH);
         mdc.Clear();
         for (const auto& layer : m_layers)
         {
@@ -2894,6 +2907,23 @@ void RoomViewerCtrl::ClearAllPreviews()
     m_preview_doors.clear();
     m_preview_swaps.clear();
     RefreshRoom(true);
+}
+
+void RoomViewerCtrl::InitialiseBrushesAndPens()
+{
+    m_alpha_brush = std::make_unique<wxBrush>();
+    m_stipple = std::make_unique<wxBitmap>(6, 6);
+    std::unique_ptr<wxMemoryDC> imagememDC(new wxMemoryDC());
+    imagememDC->SelectObject(*m_stipple);
+    imagememDC->SetBackground(*wxGREY_BRUSH);
+    imagememDC->Clear();
+    imagememDC->SetBrush(*wxLIGHT_GREY_BRUSH);
+    imagememDC->SetPen(*wxTRANSPARENT_PEN);
+    imagememDC->DrawRectangle(0, 0, 3, 3);
+    imagememDC->DrawRectangle(3, 3, 5, 5);
+    imagememDC->SelectObject(wxNullBitmap);
+    m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
+    m_alpha_brush->SetStipple(*m_stipple);
 }
 
 void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)

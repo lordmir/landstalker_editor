@@ -53,6 +53,14 @@ void EntityViewerFrame::Update()
 		m_palette = m_gd->GetSpriteData()->GetSpritePalette(palette_idxs.first, palette_idxs.second);
 
 		m_entity_ctrl->Open(m_entity_id, m_palette);
+		if (m_gd->GetSpriteData()->IsEntityItem(m_entity_id))
+		{
+			m_entity_ctrl->Pause();
+		}
+		else
+		{
+			m_entity_ctrl->Play();
+		}
 		m_reset_props = true;
 		FireEvent(EVT_PROPERTIES_UPDATE);
 	}
@@ -149,7 +157,7 @@ void EntityViewerFrame::RefreshLists() const
 		{
 			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetLoPalette(i)->GetName()));
 		}
-		auto font = m_lo_palettes.Item(epals.first + 1).GetFont();
+		wxFont font = m_lo_palettes.Item(epals.first + 1).GetFont();
 		font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
 		m_lo_palettes.Item(epals.first + 1).SetFont(font);
 
