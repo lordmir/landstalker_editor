@@ -5,6 +5,7 @@
 #include <ImageBuffer.h>
 
 wxDEFINE_EVENT(EVT_MAPLAYER_UPDATE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_MAPLAYER_CELL_SELECT, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(Map3DEditor, wxScrolledCanvas)
 EVT_ERASE_BACKGROUND(Map3DEditor::OnEraseBackground)
@@ -124,6 +125,29 @@ int Map3DEditor::GetSelectedBlock() const
 bool Map3DEditor::IsBlockSelected() const
 {
     return (m_blockset != nullptr && m_selected_block >= 0 && m_selected_block < static_cast<int>(m_blockset->size()));
+}
+
+void Map3DEditor::SetSelectedCell(Map3DEditor::Coord cell)
+{
+    if (m_map != nullptr && IsCoordValid(cell))
+    {
+        m_selected = cell;
+    }
+    else
+    {
+        m_selected = { -1,-1 };
+    }
+    Refresh();
+}
+
+Map3DEditor::Coord Map3DEditor::GetSelectedCell() const
+{
+    return m_selected;
+}
+
+bool Map3DEditor::IsCellSelected() const
+{
+    return (m_map != nullptr && IsCoordValid(m_selected));
 }
 
 void Map3DEditor::SetHovered(Coord sel)
@@ -807,14 +831,25 @@ bool Map3DEditor::HandleLeftDown(unsigned int modifiers)
         {
             SetSelectedDoor(-1);
             SetSelectedSwap(-1);
+            m_selected_block = -1;
             FireEvent(EVT_TILESWAP_SELECT, -1);
             FireEvent(EVT_DOOR_SELECT, -1);
         }
         Refresh();
     }
-    else if (IsBlockSelected() && m_hovered.first != -1)
+    else if (m_hovered.first != -1)
     {
-        SetHoveredTile();
+        if((modifiers & (wxMOD_ALT | wxMOD_SHIFT)) > 0)
+        {
+            if (m_selected != m_hovered)
+            {
+                FireEvent(EVT_MAPLAYER_CELL_SELECT, m_hovered);
+            }
+        }
+        else
+        {
+            SetHoveredTile();
+        }
     }
     return false;
 }
@@ -1137,11 +1172,11 @@ void Map3DEditor::OnDraw(wxDC& dc)
     }
     if (m_selected.first != -1 && m_hovered != m_selected)
     {
-        DrawCell(dc, m_selected, *wxYELLOW_PEN, *wxWHITE_BRUSH);
+        DrawCell(dc, m_selected, wxPen(*wxYELLOW, 2), *wxTRANSPARENT_BRUSH);
     }
     if (m_selected.first != -1 && m_hovered == m_selected)
     {
-        DrawCell(dc, m_selected, wxColor(255, 255, 128), *wxWHITE_BRUSH);
+        DrawCell(dc, m_selected, wxPen(wxColor(255, 255, 128), 2), *wxTRANSPARENT_BRUSH);
     }
 }
 
@@ -1403,6 +1438,15 @@ void Map3DEditor::FireEvent(const wxEventType& e, const std::string& userdata)
 void Map3DEditor::FireEvent(const wxEventType& e)
 {
     wxCommandEvent evt(e);
+    evt.SetClientData(m_frame);
+    wxPostEvent(m_frame, evt);
+}
+
+void Map3DEditor::FireEvent(const wxEventType& e, const Coord& c)
+{
+    wxCommandEvent evt(e);
+    evt.SetInt(static_cast<int>(c.first));
+    evt.SetExtraLong(static_cast<long>(c.second));
     evt.SetClientData(m_frame);
     wxPostEvent(m_frame, evt);
 }

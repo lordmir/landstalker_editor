@@ -37,6 +37,7 @@ enum MENU_IDS
 	ID_TOOLS_SWAPS,
 	ID_TOOLS_BLOCKS,
 	ID_VIEW,
+	ID_VIEW_ALPHA,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
@@ -47,7 +48,8 @@ enum MENU_IDS
 
 enum TOOL_IDS
 {
-	TOOL_TOGGLE_ENTITIES = 30000,
+	TOOL_TOGGLE_ALPHA = 30000,
+	TOOL_TOGGLE_ENTITIES,
 	TOOL_TOGGLE_ENTITY_HITBOX,
 	TOOL_TOGGLE_WARPS,
 	TOOL_TOGGLE_SWAPS,
@@ -78,7 +80,14 @@ enum TOOL_IDS
 	HM_NUDGE_HM_NW,
 	HM_NUDGE_HM_SE,
 	HM_NUDGE_HM_SW,
-	HM_ZOOM
+	HM_ZOOM,
+	TM_CLEAR,
+	TM_INSERT_ROW_BEFORE,
+	TM_INSERT_ROW_AFTER,
+	TM_DELETE_ROW,
+	TM_INSERT_COLUMN_BEFORE,
+	TM_INSERT_COLUMN_AFTER,
+	TM_DELETE_COLUMN
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
@@ -103,6 +112,7 @@ EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
 EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
 EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, RoomViewerFrame::OnBlockSelect)
 EVT_COMMAND(wxID_ANY, EVT_MAPLAYER_UPDATE, RoomViewerFrame::OnMapUpdate)
+EVT_COMMAND(wxID_ANY, EVT_MAPLAYER_CELL_SELECT, RoomViewerFrame::OnMapCellSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_UPDATE, RoomViewerFrame::OnSwapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_SELECT, RoomViewerFrame::OnSwapSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_ADD, RoomViewerFrame::OnSwapAdd)
@@ -313,6 +323,11 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 		m_reset_props = true;
 	}
 	m_roomnum = roomnum;
+	m_blkctrl->SetBlockSelection(0);
+	m_bgedit->SetSelectedBlock(0);
+	m_fgedit->SetSelectedBlock(0);
+	m_bgedit->SetSelectedCell({ -1,-1 });
+	m_fgedit->SetSelectedCell({ -1,-1 });
 	UpdateUI();
 	UpdateFrame();
 }
@@ -1246,12 +1261,13 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
-	AddMenuItem(viewMenu, 0, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 2, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 3, ID_VIEW_SWAPS, "Show Tile Swaps / Doors", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 4, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(viewMenu, 5, ID_VIEW_ERRORS, "Errors...");
+	AddMenuItem(viewMenu, 0, ID_VIEW_ALPHA, "Toggle Alpha", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 2, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 3, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 4, ID_VIEW_SWAPS, "Show Tile Swaps / Doors", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 5, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 6, ID_VIEW_ERRORS, "Errors...");
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
@@ -1262,6 +1278,7 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	wxAuiToolBar* main_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	main_tb->SetToolBitmapSize(wxSize(16, 16));
+	main_tb->AddTool(TOOL_TOGGLE_ALPHA, "Show Transparency", ilist.GetImage("alpha"), "Show Transparency", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_ENTITIES, "Entities Visible", ilist.GetImage("entity"), "Entities Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_ENTITY_HITBOX, "Entity Hitboxes Visible", ilist.GetImage("ehitbox"), "Entity Hitboxes Visible", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_TOGGLE_WARPS, "Warps Visible", ilist.GetImage("warp"), "Warps Visible", wxITEM_CHECK);
@@ -1359,6 +1376,16 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	hm_tb->AddControl(hmzoom, "Zoom");
 	AddToolbar(m_mgr, *hm_tb, "Heightmap", "Heightmap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(2));
 
+	wxAuiToolBar* tm_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	tm_tb->AddTool(TM_CLEAR, "Clear Whole Tilemap", ilist.GetImage("delete"), "Clear Whole Tilemap", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_INSERT_ROW_BEFORE, "Insert Row Before", ilist.GetImage("map_insert_se"), "Insert Row Before", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_INSERT_ROW_AFTER, "Insert Row After", ilist.GetImage("map_insert_nw"), "Insert Row After", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_DELETE_ROW, "Delete Row", ilist.GetImage("map_delete_nesw"), "Delete Row", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_INSERT_COLUMN_BEFORE, "Insert Column Before", ilist.GetImage("map_insert_sw"), "Insert Column Before", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_INSERT_COLUMN_AFTER, "Insert Column After", ilist.GetImage("map_insert_ne"), "Insert Column After", wxITEM_NORMAL);
+	tm_tb->AddTool(TM_DELETE_COLUMN, "Delete Column", ilist.GetImage("map_delete_nwse"), "Delete Column", wxITEM_NORMAL);
+	AddToolbar(m_mgr, *tm_tb, "Tilemap", "Tilemap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(3));
+
 	UpdateUI();
 
 	m_mgr.Update();
@@ -1397,6 +1424,10 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_IMPORT_ALL_TMX:
 			OnImportAllTmx();
+			break;
+		case ID_VIEW_ALPHA:
+		case TOOL_TOGGLE_ALPHA:
+			m_roomview->SetAlpha(!m_roomview->GetAlpha());
 			break;
 		case ID_VIEW_ENTITIES:
 		case TOOL_TOGGLE_ENTITIES:
@@ -1518,6 +1549,27 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case HM_NUDGE_HM_SW:
 			m_hmedit->NudgeHeightmapUp();
 			break;
+		case TM_CLEAR:
+			OnTmClear();
+			break;
+		case TM_DELETE_COLUMN:
+			OnTmDeleteColumn();
+			break;
+		case TM_DELETE_ROW:
+			OnTmDeleteRow();
+			break;
+		case TM_INSERT_COLUMN_BEFORE:
+			OnTmInsertColumnBefore();
+			break;
+		case TM_INSERT_COLUMN_AFTER:
+			OnTmInsertColumnAfter();
+			break;
+		case TM_INSERT_ROW_BEFORE:
+			OnTmInsertRowBefore();
+			break;
+		case TM_INSERT_ROW_AFTER:
+			OnTmInsertRowAfter();
+			break;
 		case HM_TYPE_DROPDOWN:
 		case HM_ZOOM:
 			break;
@@ -1525,6 +1577,85 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
 		}
 		UpdateUI();
+	}
+}
+
+void RoomViewerFrame::OnTmClear()
+{
+	auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+	map->GetData()->ClearTilemap();
+	UpdateFrame();
+}
+
+void RoomViewerFrame::OnTmDeleteRow()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->DeleteTilemapRow(sel.first);
+		UpdateFrame();
+	}
+}
+
+void RoomViewerFrame::OnTmDeleteColumn()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->DeleteTilemapColumn(sel.second);
+		UpdateFrame();
+	}
+}
+
+void RoomViewerFrame::OnTmInsertRowBefore()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->InsertTilemapRow(sel.first);
+		++sel.first;
+		m_bgedit->SetSelectedCell(sel);
+		m_fgedit->SetSelectedCell(sel);
+		UpdateFrame();
+	}
+}
+
+void RoomViewerFrame::OnTmInsertRowAfter()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->InsertTilemapRow(sel.first + 1);
+		UpdateFrame();
+	}
+}
+
+void RoomViewerFrame::OnTmInsertColumnBefore()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->InsertTilemapColumn(sel.second);
+		++sel.second;
+		m_bgedit->SetSelectedCell(sel);
+		m_fgedit->SetSelectedCell(sel);
+		UpdateFrame();
+	}
+}
+
+void RoomViewerFrame::OnTmInsertColumnAfter()
+{
+	if (m_bgedit->IsCellSelected())
+	{
+		auto sel = m_bgedit->GetSelectedCell();
+		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
+		map->GetData()->InsertTilemapColumn(sel.second + 1);
+		UpdateFrame();
 	}
 }
 
@@ -1693,6 +1824,11 @@ void RoomViewerFrame::UpdateUI() const
 
 	if (m_mode == RoomEdit::Mode::NORMAL)
 	{
+		CheckMenuItem(ID_VIEW_ALPHA, m_roomview->GetAlpha());
+		CheckToolbarItem("Main", TOOL_TOGGLE_ALPHA, m_roomview->GetAlpha());
+		EnableMenuItem(ID_VIEW_ALPHA, true);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ALPHA, true);
+
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
 		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
@@ -1738,9 +1874,22 @@ void RoomViewerFrame::UpdateUI() const
 			hmcell->Enable(false);
 			hmzoom->Enable(false);
 		}
+
+		EnableToolbarItem("Tilemap", TM_CLEAR, false);
+		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, false);
+		EnableToolbarItem("Tilemap", TM_DELETE_ROW, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, false);
 	}
-	else
+	else if (m_mode == RoomEdit::Mode::HEIGHTMAP)
 	{
+		CheckMenuItem(ID_VIEW_ALPHA, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ALPHA, false);
+		EnableMenuItem(ID_VIEW_ALPHA, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ALPHA, false);
+
 		CheckMenuItem(ID_VIEW_ENTITIES, false);
 		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
 		EnableMenuItem(ID_VIEW_ENTITIES, false);
@@ -1797,6 +1946,72 @@ void RoomViewerFrame::UpdateUI() const
 				hmcell->SetSelection(0);
 			}
 		}
+		EnableToolbarItem("Tilemap", TM_CLEAR, false);
+		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, false);
+		EnableToolbarItem("Tilemap", TM_DELETE_ROW, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, false);
+	}
+	else if (m_mode == RoomEdit::Mode::FOREGROUND || m_mode == RoomEdit::Mode::BACKGROUND)
+	{
+		CheckMenuItem(ID_VIEW_ALPHA, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ALPHA, false);
+		EnableMenuItem(ID_VIEW_ALPHA, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ALPHA, false);
+
+		CheckMenuItem(ID_VIEW_ENTITIES, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
+		EnableMenuItem(ID_VIEW_ENTITIES, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, false);
+
+		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, false);
+
+		CheckMenuItem(ID_VIEW_WARPS, false);
+		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, false);
+		EnableMenuItem(ID_VIEW_WARPS, false);
+		EnableToolbarItem("Main", TOOL_TOGGLE_WARPS, false);
+
+		CheckMenuItem(ID_VIEW_SWAPS, true);
+		CheckToolbarItem("Main", TOOL_TOGGLE_SWAPS, true);
+		EnableMenuItem(ID_VIEW_SWAPS, true);
+		EnableToolbarItem("Main", TOOL_TOGGLE_SWAPS, true);
+
+		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
+		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
+
+		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
+		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
+		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, false);
+
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, false);
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, false);
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, false);
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, false);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, false);
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, false);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, false);
+		if (hmcell != nullptr && hmzoom != nullptr)
+		{
+			hmcell->SetSelection(0);
+			hmcell->Enable(false);
+			hmzoom->Enable(false);
+		}
+		EnableToolbarItem("Tilemap", TM_CLEAR, true);
+		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, m_bgedit->IsCellSelected());
+		EnableToolbarItem("Tilemap", TM_DELETE_ROW, m_bgedit->IsCellSelected());
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_AFTER, m_bgedit->IsCellSelected());
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, m_bgedit->IsCellSelected());
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, m_bgedit->IsCellSelected());
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, m_bgedit->IsCellSelected());
 	}
 }
 
@@ -2159,6 +2374,7 @@ void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 	{
 		m_hmedit->SetSelectedType(ctrl->GetSelection());
 	}
+	UpdateUI();
 	evt.Skip();
 }
 
@@ -2200,6 +2416,20 @@ void RoomViewerFrame::OnMapUpdate(wxCommandEvent& evt)
 	{
 		m_fgedit->RefreshGraphics();
 	}
+	evt.Skip();
+}
+
+void RoomViewerFrame::OnMapCellSelect(wxCommandEvent& evt)
+{
+	if (m_bgedit)
+	{
+		m_bgedit->SetSelectedCell({ evt.GetInt(), evt.GetExtraLong() });
+	}
+	if (m_fgedit)
+	{
+		m_fgedit->SetSelectedCell({ evt.GetInt(), evt.GetExtraLong() });
+	}
+	UpdateUI();
 	evt.Skip();
 }
 

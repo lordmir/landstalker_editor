@@ -539,7 +539,7 @@ void BlocksetEditorCtrl::SetBlockSelection(int block)
 				ScrollToRow(row);
 			}
 		}
-		FireEvent(EVT_BLOCK_SELECT, "");
+		FireBlockEvent(EVT_BLOCK_SELECT, "");
 		RefreshStatusbar();
 		Refresh();
 	}

@@ -114,6 +114,11 @@ public:
     void InsertHeightmapColumn(uint8_t before);
     void DeleteHeightmapRow(uint8_t row);
     void DeleteHeightmapColumn(uint8_t col);
+    void ClearTilemap();
+    void InsertTilemapRow(int row);
+    void InsertTilemapColumn(int col);
+    void DeleteTilemapRow(int row);
+    void DeleteTilemapColumn(int col);
     void SetLeft(uint8_t left);
     void SetTop(uint8_t top);
     uint8_t GetHeightmapWidth() const;

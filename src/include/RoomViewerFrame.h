@@ -71,6 +71,15 @@ private:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+
+	void OnTmClear();
+	void OnTmDeleteRow();
+	void OnTmDeleteColumn();
+	void OnTmInsertRowBefore();
+	void OnTmInsertRowAfter();
+	void OnTmInsertColumnBefore();
+	void OnTmInsertColumnAfter();
+
 	void OnExportBin();
 	void OnExportCsv();
 	void OnExportTmx();
@@ -125,6 +134,7 @@ private:
 
 	void OnBlockSelect(wxCommandEvent& evt);
 	void OnMapUpdate(wxCommandEvent& evt);
+	void OnMapCellSelect(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
 	void OnTabChange(wxAuiNotebookEvent& evt);

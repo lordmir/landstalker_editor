@@ -1179,9 +1179,9 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
                 m_map->SetHeight({ m_selected.first, m_selected.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
                 m_map->SetCellProps({ m_selected.first, m_selected.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
                 m_map->SetCellType({ m_selected.first, m_selected.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
-                ForceRedraw();
                 FireEvent(EVT_HEIGHTMAP_UPDATE);
             }
+            ForceRedraw();
         }
     }
     return false;
