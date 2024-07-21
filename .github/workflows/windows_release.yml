@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: landstalker_editor
 
@@ -26,14 +26,14 @@ jobs:
         run: Compress-Archive -Path landstalker_editor\* -Destination landstalker_editor_sources.zip
 
       - name: Checkout zlib
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: madler/zlib
           ref: refs/tags/v1.2.13
           path: zlib
 
       - name: Checkout libpng
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: glennrp/libpng
           ref: refs/tags/v1.6.40
@@ -41,15 +41,15 @@ jobs:
           path: libpng
 
       - name: Checkout wxWidgets
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: wxWidgets/wxWidgets
-          ref: refs/tags/v3.2.2.1
+          ref: refs/tags/v3.2.5
           submodules: recursive
           path: wxwidgets
 
       - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v1.1
+        uses: microsoft/setup-msbuild@v2
 
       - name: Install MSVC Dev
         uses: ilammy/msvc-dev-cmd@v1
@@ -91,13 +91,7 @@ jobs:
         run: Compress-Archive -Path landstalker_editor.exe -Destination ..\..\..\landstalker_editor.zip
 
       - name: Archive build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: landstalker_editor_binary_windows
           path: ${{github.workspace}}/landstalker_editor.zip
-
-      - name: Archive sources
-        uses: actions/upload-artifact@v3
-        with:
-          name: landstalker_editor_sources_zip
-          path: ${{github.workspace}}/landstalker_editor_sources.zip

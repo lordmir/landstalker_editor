@@ -7,13 +7,13 @@ CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))
 LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base,xml` -lpng
-SRCDIR  	:= src
+SRCDIR  	:= ./src
 BUILDDIR	:= build
 BINDIR		:= bin
 INC_DIRS	:= ./third_party
-INCS		:= $(SRCDIR) $(addsuffix /include,$(SRCDIR)) $(INC_DIRS)
+INCS		:= $(SRCDIR) $(INC_DIRS)
 
-SRC		:= $(foreach sdir,$(SRCDIR),$(wildcard $(sdir)/*.cpp))
+SRC		:= $(foreach sdir,$(SRCDIR),$(wildcard $(sdir)/*/*/src/*.cpp))
 OBJ		:= $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRC))
 INCLUDES	:= $(addprefix -I,$(INCS))
 
@@ -42,6 +42,7 @@ clean-all: clean
 	@rm -rf $(EXEC)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
 $(EXEC): $(OBJ) $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))

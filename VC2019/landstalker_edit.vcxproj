@@ -11,216 +11,224 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\AnimatedTileset.cpp" />
-    <ClCompile Include="..\src\AnimationControlFrame.cpp" />
-    <ClCompile Include="..\src\AnimationFrameControlFrame.cpp" />
-    <ClCompile Include="..\src\AsmFile.cpp" />
-    <ClCompile Include="..\src\AsmUtils.cpp" />
-    <ClCompile Include="..\src\AssemblyBuilderDialog.cpp" />
-    <ClCompile Include="..\src\BaseDataViewModel.cpp" />
-    <ClCompile Include="..\src\BitBarrel.cpp" />
-    <ClCompile Include="..\src\BitBarrelWriter.cpp" />
-    <ClCompile Include="..\src\Block.cpp" />
-    <ClCompile Include="..\src\Blockmap2D.cpp" />
-    <ClCompile Include="..\src\BlockmapIsometric.cpp" />
-    <ClCompile Include="..\src\BlocksetCmp.cpp" />
-    <ClCompile Include="..\src\BlocksetEditorCtrl.cpp" />
-    <ClCompile Include="..\src\BlocksetEditorFrame.cpp" />
-    <ClCompile Include="..\src\CharacterDialog.cpp" />
-    <ClCompile Include="..\src\ChestDialog.cpp" />
-    <ClCompile Include="..\src\Chests.cpp" />
-    <ClCompile Include="..\src\DataManager.cpp" />
-    <ClCompile Include="..\src\DataViewCtrlPaletteModel.cpp" />
-    <ClCompile Include="..\src\DataViewCtrlPaletteRenderer.cpp" />
-    <ClCompile Include="..\src\DoorDataViewModel.cpp" />
-    <ClCompile Include="..\src\Doors.cpp" />
-    <ClCompile Include="..\src\EditorFrame.cpp" />
-    <ClCompile Include="..\src\EndCreditString.cpp" />
-    <ClCompile Include="..\src\Entity.cpp" />
-    <ClCompile Include="..\src\EntityControlFrame.cpp" />
-    <ClCompile Include="..\src\EntityPropertiesWindow.cpp" />
-    <ClCompile Include="..\src\EntityViewerCtrl.cpp" />
-    <ClCompile Include="..\src\EntityViewerFrame.cpp" />
-    <ClCompile Include="..\src\EntryPreferences.cpp" />
-    <ClCompile Include="..\src\ExecutorThread.cpp" />
-    <ClCompile Include="..\src\FlagDataViewModel.cpp" />
-    <ClCompile Include="..\src\FlagDialog.cpp" />
-    <ClCompile Include="..\src\Flags.cpp" />
-    <ClCompile Include="..\src\FrameControlFrame.cpp" />
-    <ClCompile Include="..\src\GameData.cpp" />
-    <ClCompile Include="..\src\GraphicsData.cpp" />
-    <ClCompile Include="..\src\HeightmapEditorCtrl.cpp" />
-    <ClCompile Include="..\src\HuffmanString.cpp" />
-    <ClCompile Include="..\src\HuffmanTree.cpp" />
-    <ClCompile Include="..\src\HuffmanTrees.cpp" />
-    <ClCompile Include="..\src\ImageBuffer.cpp" />
-    <ClCompile Include="..\src\ImageList.cpp" />
-    <ClCompile Include="..\src\LayerControlFrame.cpp" />
-    <ClCompile Include="..\src\Map2DEditor.cpp" />
-    <ClCompile Include="..\src\Map2DEditorFrame.cpp" />
-    <ClCompile Include="..\src\Map3DEditor.cpp" />
-    <ClCompile Include="..\src\MapToTmx.cpp" />
-    <ClCompile Include="..\src\PreferencesDialog.cpp" />
-    <ClCompile Include="..\src\RomLabels.cpp" />
-    <ClCompile Include="..\src\RomOffsets.cpp" />
-    <ClCompile Include="..\src\RoomDialogueTable.cpp" />
-    <ClCompile Include="..\src\RoomErrorDialog.cpp" />
-    <ClCompile Include="..\src\RoomViewerCtrl.cpp" />
-    <ClCompile Include="..\src\RoomViewerFrame.cpp" />
-    <ClCompile Include="..\src\PaletteListFrame.cpp" />
-    <ClCompile Include="..\src\IntroString.cpp" />
-    <ClCompile Include="..\src\LSString.cpp" />
-    <ClCompile Include="..\src\LZ77.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\MainFrame.cpp" />
-    <ClCompile Include="..\src\Palette.cpp" />
-    <ClCompile Include="..\src\PaletteEditor.cpp" />
-    <ClCompile Include="..\src\ResizeableGrid.cpp" />
-    <ClCompile Include="..\src\Rom.cpp" />
-    <ClCompile Include="..\src\Room.cpp" />
-    <ClCompile Include="..\src\DataTypes.cpp" />
-    <ClCompile Include="..\src\RoomData.cpp" />
-    <ClCompile Include="..\src\SelectionControlFrame.cpp" />
-    <ClCompile Include="..\src\SpriteData.cpp" />
-    <ClCompile Include="..\src\SpriteFrameEditorCtrl.cpp" />
-    <ClCompile Include="..\src\SpriteEditorFrame.cpp" />
-    <ClCompile Include="..\src\SpriteFrame.cpp" />
-    <ClCompile Include="..\src\StringData.cpp" />
-    <ClCompile Include="..\src\StringDataViewModel.cpp" />
-    <ClCompile Include="..\src\StringEditorFrame.cpp" />
-    <ClCompile Include="..\src\SubspriteControlFrame.cpp" />
-    <ClCompile Include="..\src\Tile.cpp" />
-    <ClCompile Include="..\src\TileAttributes.cpp" />
-    <ClCompile Include="..\src\TileEditor.cpp" />
-    <ClCompile Include="..\src\Tilemap.cpp" />
-    <ClCompile Include="..\src\Tilemap2DRLE.cpp" />
-    <ClCompile Include="..\src\Tilemap3DCmp.cpp" />
-    <ClCompile Include="..\src\Tileset.cpp" />
-    <ClCompile Include="..\src\TilesetEditor.cpp" />
-    <ClCompile Include="..\src\TilesetEditorFrame.cpp" />
-    <ClCompile Include="..\src\TileSwapControlFrame.cpp" />
-    <ClCompile Include="..\src\TileSwapDataViewModel.cpp" />
-    <ClCompile Include="..\src\TileSwapDialog.cpp" />
-    <ClCompile Include="..\src\TileSwaps.cpp" />
-    <ClCompile Include="..\src\Utils.cpp" />
-    <ClCompile Include="..\src\WarpControlFrame.cpp" />
-    <ClCompile Include="..\src\WarpList.cpp" />
-    <ClCompile Include="..\src\WarpPropertyWindow.cpp" />
-    <ClCompile Include="..\src\wxcrafter.cpp" />
-    <ClCompile Include="..\src\wxcrafter_bitmaps.cpp" />
+    <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp" />
+    <ClCompile Include="..\src\landstalker\2d_maps\src\Tilemap.cpp" />
+    <ClCompile Include="..\src\landstalker\2d_maps\src\Tilemap2DRLE.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\BlockmapIsometric.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\Doors.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\MapToTmx.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\Tilemap3DCmp.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\TileSwaps.cpp" />
+    <ClCompile Include="..\src\landstalker\blockset\src\Block.cpp" />
+    <ClCompile Include="..\src\landstalker\blockset\src\BlocksetCmp.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\AsmFile.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\AsmUtils.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\DataManager.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\DataTypes.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\EntryPreferences.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\GameData.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\GraphicsData.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\ImageBuffer.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\Rom.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\RomLabels.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\RomOffsets.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\RoomData.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\SpriteData.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\StringData.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\BitBarrel.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\LZ77.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\Utils.cpp" />
+    <ClCompile Include="..\src\landstalker\palettes\src\Palette.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\Chests.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\Entity.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\Flags.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\Room.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\RoomDialogueTable.cpp" />
+    <ClCompile Include="..\src\landstalker\rooms\src\WarpList.cpp" />
+    <ClCompile Include="..\src\landstalker\sprites\src\SpriteFrame.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\EndCreditString.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\HuffmanString.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\HuffmanTree.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\HuffmanTrees.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\IntroString.cpp" />
+    <ClCompile Include="..\src\landstalker\text\src\LSString.cpp" />
+    <ClCompile Include="..\src\landstalker\tileset\src\AnimatedTileset.cpp" />
+    <ClCompile Include="..\src\landstalker\tileset\src\Tile.cpp" />
+    <ClCompile Include="..\src\landstalker\tileset\src\TileAttributes.cpp" />
+    <ClCompile Include="..\src\landstalker\tileset\src\Tileset.cpp" />
+    <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditor.cpp" />
+    <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\main\src\EditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\main\src\ImageList.cpp" />
+    <ClCompile Include="..\src\user_interface\main\src\main.cpp" />
+    <ClCompile Include="..\src\user_interface\main\src\MainFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\misc\src\AssemblyBuilderDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\misc\src\ExecutorThread.cpp" />
+    <ClCompile Include="..\src\user_interface\misc\src\PreferencesDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\misc\src\ResizeableGrid.cpp" />
+    <ClCompile Include="..\src\user_interface\misc\src\SelectionControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\palettes\src\DataViewCtrlPaletteModel.cpp" />
+    <ClCompile Include="..\src\user_interface\palettes\src\DataViewCtrlPaletteRenderer.cpp" />
+    <ClCompile Include="..\src\user_interface\palettes\src\PaletteEditor.cpp" />
+    <ClCompile Include="..\src\user_interface\palettes\src\PaletteListFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\CharacterDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\ChestDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\DoorDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\EntityControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\EntityPropertiesWindow.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\FlagDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\FlagDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\HeightmapEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\LayerControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\Map3DEditor.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\RoomErrorDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\RoomViewerCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\RoomViewerFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\AnimationFrameControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\FrameControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\SpriteEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\SpriteFrameEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\sprites\src\SubspriteControlFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\text\src\StringDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\text\src\StringEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\tileset\src\TileEditor.cpp" />
+    <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditor.cpp" />
+    <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter.cpp" />
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\wxcrafter.wxcp" />
-    <None Include="..\src\wxcrafter.xrc" />
-    <None Include="..\src\wxcrafter_bitmaps.xrc" />
+    <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h" />
+    <ClInclude Include="..\src\landstalker\2d_maps\include\Tilemap.h" />
+    <ClInclude Include="..\src\landstalker\2d_maps\include\Tilemap2DRLE.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\BlockmapIsometric.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\Doors.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\MapToTmx.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\Tilemap3DCmp.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\TileSwaps.h" />
+    <ClInclude Include="..\src\landstalker\blockset\include\Block.h" />
+    <ClInclude Include="..\src\landstalker\blockset\include\BlocksetCmp.h" />
+    <ClInclude Include="..\src\landstalker\main\include\AsmFile.h" />
+    <ClInclude Include="..\src\landstalker\main\include\AsmFile_inl.h" />
+    <ClInclude Include="..\src\landstalker\main\include\AsmUtils.h" />
+    <ClInclude Include="..\src\landstalker\main\include\DataManager.h" />
+    <ClInclude Include="..\src\landstalker\main\include\DataTypes.h" />
+    <ClInclude Include="..\src\landstalker\main\include\EntryPreferences.h" />
+    <ClInclude Include="..\src\landstalker\main\include\GameData.h" />
+    <ClInclude Include="..\src\landstalker\main\include\GraphicsData.h" />
+    <ClInclude Include="..\src\landstalker\main\include\ImageBuffer.h" />
+    <ClInclude Include="..\src\landstalker\main\include\Rom.h" />
+    <ClInclude Include="..\src\landstalker\main\include\RomLabels.h" />
+    <ClInclude Include="..\src\landstalker\main\include\RomOffsets.h" />
+    <ClInclude Include="..\src\landstalker\main\include\RoomData.h" />
+    <ClInclude Include="..\src\landstalker\main\include\SpriteData.h" />
+    <ClInclude Include="..\src\landstalker\main\include\StringData.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\BitBarrel.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\BitBarrelWriter.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\Literals.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\LZ77.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\Utils.h" />
+    <ClInclude Include="..\src\landstalker\palettes\include\Palette.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\Chests.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\Entity.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\Flags.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\Room.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h" />
+    <ClInclude Include="..\src\landstalker\rooms\include\WarpList.h" />
+    <ClInclude Include="..\src\landstalker\sprites\include\SpriteFrame.h" />
+    <ClInclude Include="..\src\landstalker\text\include\Charset.h" />
+    <ClInclude Include="..\src\landstalker\text\include\EndCreditString.h" />
+    <ClInclude Include="..\src\landstalker\text\include\HuffmanString.h" />
+    <ClInclude Include="..\src\landstalker\text\include\HuffmanTree.h" />
+    <ClInclude Include="..\src\landstalker\text\include\HuffmanTrees.h" />
+    <ClInclude Include="..\src\landstalker\text\include\IntroString.h" />
+    <ClInclude Include="..\src\landstalker\text\include\LSString.h" />
+    <ClInclude Include="..\src\landstalker\tileset\include\AnimatedTileset.h" />
+    <ClInclude Include="..\src\landstalker\tileset\include\Tile.h" />
+    <ClInclude Include="..\src\landstalker\tileset\include\TileAttributes.h" />
+    <ClInclude Include="..\src\landstalker\tileset\include\Tileset.h" />
+    <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditor.h" />
+    <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\main\include\EditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\main\include\Icons.h" />
+    <ClInclude Include="..\src\user_interface\main\include\ImageList.h" />
+    <ClInclude Include="..\src\user_interface\main\include\MainFrame.h" />
+    <ClInclude Include="..\src\user_interface\main\include\resource.h" />
+    <ClInclude Include="..\src\user_interface\main\include\wxcrafter.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\AssemblyBuilderDialog.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\BaseDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\ExecutorThread.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\PreferencesDialog.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\ResizeableGrid.h" />
+    <ClInclude Include="..\src\user_interface\misc\include\SelectionControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\palettes\include\DataViewCtrlPaletteModel.h" />
+    <ClInclude Include="..\src\user_interface\palettes\include\DataViewCtrlPaletteRenderer.h" />
+    <ClInclude Include="..\src\user_interface\palettes\include\PaletteEditor.h" />
+    <ClInclude Include="..\src\user_interface\palettes\include\PaletteListFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\CharacterDialog.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\ChestDialog.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\DoorDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\EntityControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\EntityPropertiesWindow.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\FlagDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\FlagDialog.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\HeightmapEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\LayerControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\Map3DEditor.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\RoomErrorDialog.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\RoomViewerCtrl.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\RoomViewerFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\AnimationFrameControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerCtrl.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerFrame.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\FrameControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\SpriteEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\SpriteFrameEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\sprites\include\SubspriteControlFrame.h" />
+    <ClInclude Include="..\src\user_interface\text\include\StringDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\text\include\StringEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\tileset\include\TileEditor.h" />
+    <ClInclude Include="..\src\user_interface\tileset\include\TilesetEditor.h" />
+    <ClInclude Include="..\src\user_interface\tileset\include\TilesetEditorFrame.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\include\AnimatedTileset.h" />
-    <ClInclude Include="..\src\include\AnimationControlFrame.h" />
-    <ClInclude Include="..\src\include\AnimationFrameControlFrame.h" />
-    <ClInclude Include="..\src\include\AsmFile.h" />
-    <ClInclude Include="..\src\include\AsmFile_inl.h" />
-    <ClInclude Include="..\src\include\AsmUtils.h" />
-    <ClInclude Include="..\src\include\AssemblyBuilderDialog.h" />
-    <ClInclude Include="..\src\include\BitBarrel.h" />
-    <ClInclude Include="..\src\include\BitBarrelWriter.h" />
-    <ClInclude Include="..\src\include\Block.h" />
-    <ClInclude Include="..\src\include\Blockmap2D.h" />
-    <ClInclude Include="..\src\include\BlockmapIsometric.h" />
-    <ClInclude Include="..\src\include\BlocksetCmp.h" />
-    <ClInclude Include="..\src\include\BlocksetEditorCtrl.h" />
-    <ClInclude Include="..\src\include\BlocksetEditorFrame.h" />
-    <ClInclude Include="..\src\include\CharacterDialog.h" />
-    <ClInclude Include="..\src\include\Charset.h" />
-    <ClInclude Include="..\src\include\ChestDialog.h" />
-    <ClInclude Include="..\src\include\Chests.h" />
-    <ClInclude Include="..\src\include\DataManager.h" />
-    <ClInclude Include="..\src\include\DataViewCtrlPaletteModel.h" />
-    <ClInclude Include="..\src\include\DataViewCtrlPaletteRenderer.h" />
-    <ClInclude Include="..\src\include\DoorDataViewModel.h" />
-    <ClInclude Include="..\src\include\Doors.h" />
-    <ClInclude Include="..\src\include\EditorFrame.h" />
-    <ClInclude Include="..\src\include\EndCreditString.h" />
-    <ClInclude Include="..\src\include\Entity.h" />
-    <ClInclude Include="..\src\include\EntityControlFrame.h" />
-    <ClInclude Include="..\src\include\EntityPropertiesWindow.h" />
-    <ClInclude Include="..\src\include\EntityViewerCtrl.h" />
-    <ClInclude Include="..\src\include\EntityViewerFrame.h" />
-    <ClInclude Include="..\src\include\EntryPreferences.h" />
-    <ClInclude Include="..\src\include\ExecutorThread.h" />
-    <ClInclude Include="..\src\include\FlagDataViewModel.h" />
-    <ClInclude Include="..\src\include\FlagDialog.h" />
-    <ClInclude Include="..\src\include\Flags.h" />
-    <ClInclude Include="..\src\include\FrameControlFrame.h" />
-    <ClInclude Include="..\src\include\GameData.h" />
-    <ClInclude Include="..\src\include\GraphicsData.h" />
-    <ClInclude Include="..\src\include\HeightmapEditorCtrl.h" />
-    <ClInclude Include="..\src\include\HuffmanString.h" />
-    <ClInclude Include="..\src\include\HuffmanTree.h" />
-    <ClInclude Include="..\src\include\HuffmanTrees.h" />
-    <ClInclude Include="..\src\include\Icons.h" />
-    <ClInclude Include="..\src\include\ImageBuffer.h" />
-    <ClInclude Include="..\src\include\ImageList.h" />
-    <ClInclude Include="..\src\include\Images.h" />
-    <ClInclude Include="..\src\include\IntroString.h" />
-    <ClInclude Include="..\src\include\LayerControlFrame.h" />
-    <ClInclude Include="..\src\include\Literals.h" />
-    <ClInclude Include="..\src\include\LSString.h" />
-    <ClInclude Include="..\src\include\LZ77.h" />
-    <ClInclude Include="..\src\include\MainFrame.h" />
-    <ClInclude Include="..\src\include\Map2DEditor.h" />
-    <ClInclude Include="..\src\include\Map2DEditorFrame.h" />
-    <ClInclude Include="..\src\include\Map3DEditor.h" />
-    <ClInclude Include="..\src\include\MapToTmx.h" />
-    <ClInclude Include="..\src\include\PreferencesDialog.h" />
-    <ClInclude Include="..\src\include\RomLabels.h" />
-    <ClInclude Include="..\src\include\RoomDialogueTable.h" />
-    <ClInclude Include="..\src\include\RoomErrorDialog.h" />
-    <ClInclude Include="..\src\include\RoomViewerCtrl.h" />
-    <ClInclude Include="..\src\include\RoomViewerFrame.h" />
-    <ClInclude Include="..\src\include\Palette.h" />
-    <ClInclude Include="..\src\include\PaletteEditor.h" />
-    <ClInclude Include="..\src\include\PaletteListFrame.h" />
-    <ClInclude Include="..\src\include\ResizeableGrid.h" />
-    <ClInclude Include="..\src\include\resource.h" />
-    <ClInclude Include="..\src\include\Rom.h" />
-    <ClInclude Include="..\src\include\RomOffsets.h" />
-    <ClInclude Include="..\src\include\Room.h" />
-    <ClInclude Include="..\src\include\DataTypes.h" />
-    <ClInclude Include="..\src\include\RoomData.h" />
-    <ClInclude Include="..\src\include\SelectionControlFrame.h" />
-    <ClInclude Include="..\src\include\SpriteData.h" />
-    <ClInclude Include="..\src\include\SpriteFrameEditorCtrl.h" />
-    <ClInclude Include="..\src\include\SpriteEditorFrame.h" />
-    <ClInclude Include="..\src\include\SpriteFrame.h" />
-    <ClInclude Include="..\src\include\StringData.h" />
-    <ClInclude Include="..\src\include\StringDataViewModel.h" />
-    <ClInclude Include="..\src\include\StringEditorFrame.h" />
-    <ClInclude Include="..\src\include\SubspriteControlFrame.h" />
-    <ClInclude Include="..\src\include\Tile.h" />
-    <ClInclude Include="..\src\include\TileAttributes.h" />
-    <ClInclude Include="..\src\include\TileEditor.h" />
-    <ClInclude Include="..\src\include\Tilemap.h" />
-    <ClInclude Include="..\src\include\Tilemap2DRLE.h" />
-    <ClInclude Include="..\src\include\Tilemap3DCmp.h" />
-    <ClInclude Include="..\src\include\Tileset.h" />
-    <ClInclude Include="..\src\include\TilesetEditor.h" />
-    <ClInclude Include="..\src\include\TilesetEditorFrame.h" />
-    <ClInclude Include="..\src\include\TileSwapControlFrame.h" />
-    <ClInclude Include="..\src\include\TileSwapDataViewModel.h" />
-    <ClInclude Include="..\src\include\TileSwapDialog.h" />
-    <ClInclude Include="..\src\include\TileSwaps.h" />
-    <ClInclude Include="..\src\include\Utils.h" />
-    <ClInclude Include="..\src\include\WarpControlFrame.h" />
-    <ClInclude Include="..\src\include\WarpList.h" />
-    <ClInclude Include="..\src\include\WarpPropertyWindow.h" />
-    <ClInclude Include="..\src\include\wxcrafter.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\src\win_resources.rc">
+    <ResourceCompile Include="..\src\user_interface\wxresource\resource\win_resources.rc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.wxcp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.xrc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter_bitmaps.xrc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -259,7 +267,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -281,7 +289,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\src\include;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
