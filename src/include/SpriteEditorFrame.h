@@ -10,7 +10,7 @@
 #include <map>
 
 #include "SpriteFrameEditorCtrl.h"
-#include "SpriteAnimationEditorCtrl.h"
+#include "EntityViewerCtrl.h"
 #include "EditorFrame.h"
 #include "Palette.h"
 #include "PaletteEditor.h"
@@ -105,7 +105,7 @@ private:
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
 	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
-	SpriteAnimationEditorCtrl* m_spriteanimeditor = nullptr;
+	EntityViewerCtrl* m_preview = nullptr;
 	PaletteEditor* m_paledit = nullptr;
 	TileEditor* m_tileedit = nullptr;
 	FrameControlFrame* m_framectrl = nullptr;
@@ -113,7 +113,6 @@ private:
 	AnimationControlFrame* m_animctrl = nullptr;
 	AnimationFrameControlFrame* m_animframectrl = nullptr;
 	mutable wxAuiManager m_mgr;
-	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
 
 	mutable wxPGChoices m_hi_palettes;
@@ -137,7 +136,7 @@ private:
 	int m_frame = -1;
 	int m_anim = -1;
 	int m_zoom = 1;
-	int m_speed = 1;
+	int m_speed = 2;
 	mutable bool m_status_init = false;
 
 	std::string m_name;
