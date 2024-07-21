@@ -429,9 +429,6 @@
     <ClCompile Include="..\src\AnimationFrameControlFrame.cpp">
       <Filter>src\UI\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\SpriteAnimationEditorCtrl.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxcrafter.wxcp">
@@ -731,9 +728,6 @@
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\EntityViewerCtrl.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\include\SpriteAnimationEditorCtrl.h">
       <Filter>include\UI\Sprites</Filter>
     </ClInclude>
     <ClInclude Include="..\src\include\AnimationControlFrame.h">

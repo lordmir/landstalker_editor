@@ -26,6 +26,7 @@ enum MENU_IDS
 	ID_VIEW_ANIM_FRAMES,
 	ID_VIEW_EDITOR,
 	ID_VIEW_PALETTE,
+	ID_VIEW_PREVIEW,
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_ALPHA,
 	ID_TOGGLE_HITBOX,
@@ -71,6 +72,7 @@ EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_ADD, SpriteEditorFrame::OnAnimationFra
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_DELETE, SpriteEditorFrame::OnAnimationFrameDelete)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_UP, SpriteEditorFrame::OnAnimationFrameMoveUp)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_DOWN, SpriteEditorFrame::OnAnimationFrameMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_CHANGE, SpriteEditorFrame::OnAnimationFrameChange)
 wxEND_EVENT_TABLE()
 
 SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -79,13 +81,15 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_mgr.SetManagedWindow(this);
 
 	m_spriteeditor = new SpriteFrameEditorCtrl(this);
-	m_spriteanimeditor = new SpriteAnimationEditorCtrl(this);
+	m_preview = new EntityViewerCtrl(this);
 	m_paledit = new PaletteEditor(this);
 	m_tileedit = new TileEditor(this);
 	m_framectrl = new FrameControlFrame(this, imglst);
 	m_subspritectrl = new SubspriteControlFrame(this, imglst);
 	m_animctrl = new AnimationControlFrame(this, imglst);
 	m_animframectrl = new AnimationFrameControlFrame(this, imglst);
+
+	m_preview->SetPixelSize(2);
 
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
@@ -95,24 +99,21 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Frames"));
 	m_mgr.AddPane(m_subspritectrl, wxAuiPaneInfo().Left().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Subsprites"));
-	m_mgr.AddPane(m_animctrl, wxAuiPaneInfo().Right().Layer(2).Resizable(false).MinSize(220, 150)
+	m_mgr.AddPane(m_preview, wxAuiPaneInfo().Right().Layer(2).Movable(true).Resizable(true).MinSize(220, 150)
+		.BestSize(220, 200).FloatingSize(220, 200).Caption("Preview"));
+	m_mgr.AddPane(m_animctrl, wxAuiPaneInfo().Right().Layer(2).Movable(true).Resizable(true).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Animations"));
 	m_mgr.AddPane(m_animframectrl, wxAuiPaneInfo().Right().Layer(2).Movable(true).Resizable(true).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Animation Frames"));
 
-	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
-	m_nb->Freeze();
-	m_nb->AddPage(m_spriteeditor, "Sprite Frames");
-	m_nb->AddPage(m_spriteanimeditor, "Sprite Animations");
-	m_nb->Thaw();
-	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
+	m_mgr.AddPane(m_spriteeditor, wxAuiPaneInfo().CenterPane());
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();
 
 	this->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_spriteeditor->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_spriteanimeditor->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_preview->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_tileedit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -121,7 +122,7 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_animframectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_spriteeditor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_spriteanimeditor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_preview->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_tileedit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -135,7 +136,7 @@ SpriteEditorFrame::~SpriteEditorFrame()
 
 	this->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_spriteeditor->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_spriteanimeditor->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_preview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_tileedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -144,7 +145,7 @@ SpriteEditorFrame::~SpriteEditorFrame()
 	m_animframectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	this->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_spriteeditor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_spriteanimeditor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
+	m_preview->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_tileedit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -154,6 +155,18 @@ SpriteEditorFrame::~SpriteEditorFrame()
 }
 
 bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
+{
+	OpenFrame(spr, frame, anim, ent);
+	m_preview->Open(m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite())[0], m_anim, m_palette);
+	m_framectrl->SetSelected(m_frame + 1);
+	m_animctrl->SetSelected(m_anim + 1);
+	m_animframectrl->SetSelected(1);
+	m_subspritectrl->SetSelected(0);
+	m_spriteeditor->SelectSubSprite(-1);
+	return true;
+}
+
+bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent)
 {
 	if (m_gd == nullptr)
 	{
@@ -179,7 +192,8 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	}
 	else
 	{
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, anim, frame);
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, frame);
+		m_anim = anim;
 	}
 	m_palette = m_gd->GetSpriteData()->GetEntityPalette(entity);
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
@@ -191,11 +205,6 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
 	Update();
-	m_framectrl->SetSelected(m_frame + 1);
-	m_animctrl->SetSelected(m_anim + 1);
-	m_animframectrl->SetSelected(1);
-	m_subspritectrl->SetSelected(0);
-	m_spriteeditor->SelectSubSprite(-1);
 	return true;
 }
 
@@ -206,7 +215,7 @@ void SpriteEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 	m_paledit->SetGameData(gd);
 	m_animctrl->SetGameData(gd);
 	m_spriteeditor->SetGameData(gd);
-	m_spriteanimeditor->SetGameData(gd);
+	m_preview->SetGameData(gd);
 	m_framectrl->SetGameData(gd);
 	m_animframectrl->SetGameData(gd);
 }
@@ -217,9 +226,12 @@ void SpriteEditorFrame::ClearGameData()
 	m_tileedit->SetGameData(nullptr);
 	m_paledit->SetGameData(nullptr);
 	m_animctrl->ClearGameData();
-	m_spriteanimeditor->ClearGameData();
+	m_preview->ClearGameData();
 	m_framectrl->ClearGameData();
 	m_animframectrl->ClearGameData();
+	m_anim = 0;
+	m_frame = 0;
+	m_sprite = nullptr;
 }
 
 void SpriteEditorFrame::SetActivePalette(const std::string& name)
@@ -231,7 +243,7 @@ void SpriteEditorFrame::SetActivePalette(const std::string& name)
 		{
 			m_palette = std::make_shared<Palette>(*pal->GetData());
 			m_spriteeditor->SetActivePalette(m_palette);
-			m_spriteanimeditor->SetActivePalette(m_palette);
+			m_preview->SetActivePalette(m_palette);
 			m_paledit->SelectPalette(m_palette);
 			m_tileedit->SetActivePalette(m_palette);
 		}
@@ -249,7 +261,7 @@ void SpriteEditorFrame::SetActivePalette(const std::vector<std::string>& names)
 			});
 		m_palette = std::make_shared<Palette>(pals);
 		m_spriteeditor->SetActivePalette(m_palette);
-		m_spriteanimeditor->SetActivePalette(m_palette);
+		m_preview->SetActivePalette(m_palette);
 		m_paledit->SelectPalette(m_palette);
 		m_tileedit->SetActivePalette(m_palette);
 	}
@@ -266,7 +278,7 @@ void SpriteEditorFrame::RedrawTiles(int index) const
 {
 	m_spriteeditor->RedrawTiles(index);
 	m_tileedit->Redraw();
-	m_spriteanimeditor->Refresh(true);
+	m_preview->Refresh(true);
 }
 
 void SpriteEditorFrame::Update()
@@ -274,7 +286,7 @@ void SpriteEditorFrame::Update()
 	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
 	m_framectrl->SetSprite(m_sprite->GetSprite());
 	m_animctrl->SetSprite(m_sprite->GetSprite());
-	m_animframectrl->SetAnimation(m_sprite->GetSprite(), 0);
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 	Redraw();
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -315,20 +327,21 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 4, ID_VIEW_TOOLBAR, "Toolbar", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 5, ID_VIEW_EDITOR, "Tile Editor", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 6, ID_VIEW_PALETTE, "Palette", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 7, ID_VIEW_FRAMES, "Frames", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 8, ID_VIEW_SUBSPRITES, "Subsprites", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 9, ID_VIEW_ANIMATIONS, "Animations", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 10, ID_VIEW_ANIM_FRAMES, "Animation Frames", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 7, ID_VIEW_PREVIEW, "Preview", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 8, ID_VIEW_FRAMES, "Frames", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 9, ID_VIEW_SUBSPRITES, "Subsprites", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 10, ID_VIEW_ANIMATIONS, "Animations", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 11, ID_VIEW_ANIM_FRAMES, "Animation Frames", wxITEM_CHECK);
 
 	auto* parent = m_mgr.GetManagedWindow();
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
-	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord), wxSL_HORIZONTAL | wxSL_INVERSE);
+	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 10, wxDefaultPosition, wxSize(80, wxDefaultCoord));
 	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
-	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("alpha"), "Toggle Hitbox", wxITEM_CHECK);
+	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("ehitbox"), "Toggle Hitbox", wxITEM_CHECK);
 	toolbar->AddSeparator();
-	toolbar->AddTool(ID_COMPRESS_FRAME, "Compress Frame", ilist.GetImage("cut"), "Compress Frame", wxITEM_CHECK);
+	toolbar->AddTool(ID_COMPRESS_FRAME, "Compress Frame", ilist.GetImage("compress"), "Compress Frame", wxITEM_CHECK);
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_CUT_TILE, "Cut", ilist.GetImage("cut"), "Cut");
 	toolbar->AddTool(ID_COPY_TILE, "Copy", ilist.GetImage("copy"), "Copy");
@@ -339,7 +352,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddLabel(wxID_ANY, "Zoom:");
 	toolbar->AddControl(m_zoomslider, "Zoom");
 	toolbar->AddSeparator();
-	toolbar->AddTool(ID_PLAY_PAUSE, "Play/Pause", ilist.GetImage("delete"), "Play/Pause", wxITEM_CHECK);
+	toolbar->AddTool(ID_PLAY_PAUSE, "Play/Pause", ilist.GetImage("play"), "Play/Pause", wxITEM_CHECK);
 	toolbar->AddSeparator();
 	toolbar->AddLabel(wxID_ANY, "Speed:");
 	toolbar->AddControl(m_speedslider, "Play Speed");
@@ -350,6 +363,13 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	UpdateUI();
 
 	m_mgr.Update();
+}
+
+void SpriteEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+	m_zoomslider = nullptr;
+	m_speedslider = nullptr;
 }
 
 void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
@@ -429,13 +449,13 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		}
 		break;
 	case ID_PLAY_PAUSE:
-		if (m_spriteanimeditor->IsPlaying())
+		if (m_preview->IsPlaying())
 		{
-			m_spriteanimeditor->Pause();
+			m_preview->Pause();
 		}
 		else
 		{
-			m_spriteanimeditor->Play();
+			m_preview->Play();
 		}
 		break;
 	case ID_VIEW_TOOLBAR:
@@ -446,6 +466,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_VIEW_PALETTE:
 		SetPaneVisibility(m_paledit, !IsPaneVisible(m_paledit));
+		break;
+	case ID_VIEW_PREVIEW:
+		SetPaneVisibility(m_preview, !IsPaneVisible(m_preview));
 		break;
 	case ID_VIEW_FRAMES:
 		SetPaneVisibility(m_framectrl, !IsPaneVisible(m_framectrl));
@@ -465,6 +488,20 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+std::string SpriteEditorFrame::ShowFrameDialog(const std::string& prompt, const std::string& title)
+{
+	wxArrayString choices;
+	std::vector<std::string> frames = m_gd->GetSpriteData()->GetSpriteFrames(m_sprite->GetSprite());
+	for (const auto& f : frames)
+	{
+		choices.Add(f);
+	}
+	wxSingleChoiceDialog dlg(this, prompt, title, choices);
+	int result = dlg.ShowModal();
+
+	return result == wxID_OK ? dlg.GetStringSelection().ToStdString() : std::string();
 }
 
 void SpriteEditorFrame::ExportFrm(const std::string& filename) const
@@ -569,7 +606,6 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
-		props.Append(new wxIntProperty("Additional Value", "Additional Value", sd->GetSpriteMysteryData(sprite_index)));
 		props.Append(new wxPropertyCategory("Frame", "Frame"));
 		auto prop_cmp = new wxBoolProperty("Compressed", "Compressed", m_sprite->GetData()->GetCompressed());
 		prop_cmp->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
@@ -600,6 +636,12 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
 		height_prop->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(height_prop);
+		wxPGProperty* vol_prop = new wxFloatProperty("Volume", "Volume", sd->GetSpriteVolume(sprite_index) / 16.0);
+		vol_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
+		vol_prop->SetAttribute(wxPG_ATTR_MAX, 4095.9375);
+		vol_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
+		vol_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(vol_prop);
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
@@ -690,7 +732,7 @@ void SpriteEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 
 void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
-	if (m_gd != nullptr)
+	if (m_gd != nullptr && m_sprite != nullptr)
 	{
 		RefreshLists();
 		props.GetGrid()->Freeze();
@@ -710,7 +752,7 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
-		props.GetGrid()->SetPropertyValue("Additional Value", static_cast<int>(sd->GetSpriteMysteryData(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Volume", static_cast<double>(sd->GetSpriteVolume(sprite_index)) / 16.0);
 		props.GetGrid()->SetPropertyValue("Compressed", m_sprite->GetData()->GetCompressed());
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
 		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoices(m_idle_frame_count_options);
@@ -775,8 +817,8 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	}
 	else if (name == "Additional Value")
 	{
-		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetInteger());
-		sd->SetSpriteMysteryData(sprite_index, value);
+		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetDouble() * 16.0);
+		sd->SetSpriteVolume(sprite_index, value);
 	}
 	else if (name == "Low Palette" || name == "High Palette" || name == "Projectile/Misc Palette 1" || name == "Projectile/Misc Palette 2")
 	{
@@ -838,6 +880,7 @@ void SpriteEditorFrame::UpdateUI() const
 	CheckMenuItem(ID_VIEW_TOOLBAR, IsToolbarVisible("Sprite"));
 	CheckMenuItem(ID_VIEW_EDITOR, IsPaneVisible(m_tileedit));
 	CheckMenuItem(ID_VIEW_PALETTE, IsPaneVisible(m_paledit));
+	CheckMenuItem(ID_VIEW_PREVIEW, IsPaneVisible(m_preview));
 	CheckMenuItem(ID_VIEW_FRAMES, IsPaneVisible(m_framectrl));
 	CheckMenuItem(ID_VIEW_SUBSPRITES, IsPaneVisible(m_subspritectrl));
 	CheckMenuItem(ID_VIEW_ANIMATIONS, IsPaneVisible(m_animctrl));
@@ -863,7 +906,7 @@ void SpriteEditorFrame::UpdateUI() const
 		EnableToolbarItem("Sprite", ID_SWAP_TILES, m_spriteeditor->IsSelectionValid());
 		EnableToolbarItem("Sprite", ID_CLEAR_TILE, m_spriteeditor->IsSelectionValid());
 		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, true);
-		CheckToolbarItem("Sprite", ID_PLAY_PAUSE, m_spriteanimeditor->IsPlaying());
+		CheckToolbarItem("Sprite", ID_PLAY_PAUSE, m_preview->IsPlaying());
 		if (m_zoomslider != nullptr)
 		{
 			EnableToolbarItem("Sprite", ID_ZOOM, true);
@@ -872,7 +915,7 @@ void SpriteEditorFrame::UpdateUI() const
 		if (m_speedslider != nullptr)
 		{
 			EnableToolbarItem("Sprite", ID_PLAY_SPEED, true);
-			m_speedslider->SetValue(m_spriteanimeditor->GetAnimSpeed());
+			m_speedslider->SetValue(m_preview->GetAnimSpeed());
 		}
 	}
 	else
@@ -912,7 +955,7 @@ void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
 void SpriteEditorFrame::OnFrameSelect(wxCommandEvent& evt)
 {
 	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(evt.GetString().ToStdString());
-	Open(m_sprite->GetSprite(), evt.GetInt() - 1);
+	OpenFrame(m_sprite->GetSprite(), evt.GetInt() - 1);
 }
 
 void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& /*evt*/)
@@ -930,7 +973,7 @@ void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& /*evt*/)
 	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 	int sel = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), name);
 	m_framectrl->SetSelected(sel + 1);
-	Open(m_sprite->GetSprite(), sel);
+	OpenFrame(m_sprite->GetSprite(), sel);
 }
 
 void SpriteEditorFrame::OnFrameDelete(wxCommandEvent& evt)
@@ -952,7 +995,7 @@ void SpriteEditorFrame::OnFrameDelete(wxCommandEvent& evt)
 		m_framectrl->SetSprite(m_sprite->GetSprite());
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 		m_framectrl->SetSelected(m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), next_frame));
-		Open(m_sprite->GetSprite(), m_framectrl->GetSelected() - 1);
+		OpenFrame(m_sprite->GetSprite(), m_framectrl->GetSelected() - 1);
 	}
 }
 
@@ -1030,58 +1073,204 @@ void SpriteEditorFrame::OnSubSpriteUpdate(wxCommandEvent& /*evt*/)
 
 void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Select", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())))
+	{
+		m_anim = evt.GetInt() - 1;
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
-void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& evt)
+void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& /*evt*/)
 {
-	wxMessageBox("Animation Add", evt.GetString());
+	std::string name = "";
+	auto dlg = wxTextEntryDialog(this, "Enter a unique name for the new animation", "New animation");
+	do
+	{
+		dlg.ShowModal();
+		name = dlg.GetValue().ToStdString();
+	} while (m_gd->GetSpriteData()->SpriteAnimationExists(name));
+	m_gd->GetSpriteData()->AddSpriteAnimation(m_sprite->GetSprite(), name);
+	m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
+	m_preview->SetAnimation(m_anim);
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+	m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+	OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+	m_framectrl->SetSelected(m_frame + 1);
+	m_animctrl->SetSelected(m_anim + 1);
 }
 
 void SpriteEditorFrame::OnAnimationDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Delete", evt.GetString());
+	if (m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_gd->GetSpriteData()->DeleteSpriteAnimation(evt.GetString().ToStdString());
+		if (m_anim >= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())))
+		{
+			m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
+		}
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationMoveUp(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Move Up", evt.GetString());
+	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
+		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_anim = evt.GetInt() - 2;
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt() - 2);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationMoveDown(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Move Down", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
+		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_anim = evt.GetInt();
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt());
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameSelect(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Select", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		m_preview->Pause();
+		m_preview->SetAnimationFrame(evt.GetInt() - 1);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), evt.GetString().ToStdString());
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+		UpdateUI();
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Add", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		auto new_frame = ShowFrameDialog("Select Frame", "New Animation Frame");
+		if (!new_frame.empty())
+		{
+			std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+			m_gd->GetSpriteData()->InsertSpriteAnimationFrame(anim, evt.GetInt(), new_frame);
+			m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+			m_preview->SetAnimationFrame(evt.GetInt());
+			m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+			m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+			OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+			m_framectrl->SetSelected(m_frame + 1);
+			m_animctrl->SetSelected(m_anim + 1);
+			m_animframectrl->SetSelected(evt.GetInt() + 1);
+			UpdateUI();
+		}
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Delete", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+		int new_frame = evt.GetInt() - 1;
+		if (new_frame > static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+		{
+			new_frame = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)) - 1;
+		}
+		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, new_frame);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[new_frame]);
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+		m_animframectrl->SetSelected(evt.GetInt());
+		UpdateUI();
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameMoveUp(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Move Up", evt.GetString());
+	std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+	{
+		int new_frame = evt.GetInt() - 2;
+		int old_frame = evt.GetInt() - 1;
+		m_gd->GetSpriteData()->MoveSpriteAnimationFrame(anim, old_frame, new_frame);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_animframectrl->SetSelected(new_frame + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameMoveDown(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Move Down", evt.GetString());
+	std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+	{
+		int new_frame = evt.GetInt();
+		int old_frame = evt.GetInt() - 1;
+		m_gd->GetSpriteData()->MoveSpriteAnimationFrame(anim, old_frame, new_frame);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_animframectrl->SetSelected(new_frame + 1);
+	}
+}
+
+void SpriteEditorFrame::OnAnimationFrameChange(wxCommandEvent& evt)
+{
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+		std::string new_frame = ShowFrameDialog(StrPrintf("Change frame \"%s\" to:", evt.GetString().c_str().AsChar()), "Change frame");
+		m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(evt.GetInt() - 1);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+		m_animframectrl->SetSelected(evt.GetInt());
+		UpdateUI();
+	}
 }
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)
 {
 	m_zoom = m_zoomslider->GetValue();
-	m_spriteanimeditor->SetPixelSize(m_zoomslider->GetValue());
 	m_spriteeditor->SetPixelSize(m_zoomslider->GetValue());
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
@@ -1090,7 +1279,7 @@ void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)
 void SpriteEditorFrame::OnSpeedChange(wxCommandEvent& evt)
 {
 	m_speed = m_speedslider->GetValue();
-	m_spriteanimeditor->SetAnimSpeed(m_speedslider->GetValue());
+	m_preview->SetAnimSpeed(m_speedslider->GetValue());
 	evt.Skip();
 }
 

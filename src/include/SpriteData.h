@@ -121,6 +121,16 @@ public:
 	void DeleteSpriteFrame(const std::string& name);
 	void AddSpriteFrame(uint8_t sprite_id, const std::string& name);
 
+	bool SpriteAnimationExists(const std::string& name) const;
+	void DeleteSpriteAnimation(const std::string& name);
+	void AddSpriteAnimation(uint8_t sprite_id, const std::string& name);
+	void MoveSpriteAnimation(uint8_t sprite_id, const std::string& name, int pos);
+
+	void DeleteSpriteAnimationFrame(const std::string& animation_name, int frame_id);
+	void InsertSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name);
+	void ChangeSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name);
+	void MoveSpriteAnimationFrame(const std::string& animation_name, int old_pos, int new_pos);
+
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
@@ -143,8 +153,8 @@ public:
 	std::vector<std::string> GetSpriteAnimationFrames(const std::string& name, uint8_t anim_id) const;
 	AnimationFlags GetSpriteAnimationFlags(uint8_t id) const;
 	void SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags);
-	uint16_t GetSpriteMysteryData(uint8_t id) const;
-	void SetSpriteMysteryData(uint8_t id, uint16_t val);
+	uint16_t GetSpriteVolume(uint8_t id) const;
+	void SetSpriteVolume(uint8_t id, uint16_t val);
 
 	std::vector<Entity> GetRoomEntities(uint16_t room) const;
 	void SetRoomEntities(uint16_t room, const std::vector<Entity>& entities);
@@ -244,8 +254,8 @@ private:
 	std::map<std::string, uint8_t> m_ids;
 	std::map<uint8_t, std::set<std::string>> m_sprite_frames;
 
-	std::map<uint8_t, uint16_t> m_sprite_mystery_data;
-	std::map<uint8_t, uint16_t> m_sprite_mystery_data_orig;
+	std::map<uint8_t, uint16_t> m_sprite_volume;
+	std::map<uint8_t, uint16_t> m_sprite_volume_orig;
 	std::map<uint8_t, std::vector<std::string>> m_animations;
 	std::map<uint8_t, std::vector<std::string>> m_animations_orig;
 	std::map<std::string, std::vector<std::string>> m_animation_frames;

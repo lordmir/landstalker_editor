@@ -338,7 +338,7 @@ bool SpriteData::HasBeenModified() const
 	{
 		return true;
 	}
-	if (m_sprite_mystery_data_orig != m_sprite_mystery_data)
+	if (m_sprite_volume_orig != m_sprite_volume)
 	{
 		return true;
 	}
@@ -550,6 +550,95 @@ void SpriteData::AddSpriteFrame(uint8_t sprite_id, const std::string& name)
 
 		m_frames[name] = entry;
 		m_sprite_frames.at(sprite_id).insert(name);
+	}
+}
+
+bool SpriteData::SpriteAnimationExists(const std::string& name) const
+{
+	return m_animation_frames.count(name) > 0;
+}
+
+void SpriteData::DeleteSpriteAnimation(const std::string& name)
+{
+	if (SpriteAnimationExists(name))
+	{
+		for (const auto& a : m_animations)
+		{
+			if (std::count(a.second.cbegin(), a.second.cend(), name) == static_cast<ptrdiff_t>(a.second.size()))
+			{
+				return;
+			}
+		}
+		for (auto& a : m_animations)
+		{
+			for (auto it = a.second.begin(); it != a.second.end();)
+			{
+				if (*it == name)
+				{
+					it = a.second.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		}
+		m_animation_frames.erase(name);
+	}
+}
+
+void SpriteData::AddSpriteAnimation(uint8_t sprite_id, const std::string& name)
+{
+	m_animation_frames.insert({name, {*m_sprite_frames.at(sprite_id).cbegin()}});
+	m_animations.at(sprite_id).push_back(name);
+}
+
+void SpriteData::MoveSpriteAnimation(uint8_t sprite_id, const std::string& name, int pos)
+{
+	auto it = std::find(m_animations.at(sprite_id).begin(), m_animations.at(sprite_id).end(), name);
+	if(it != m_animations.at(sprite_id).end())
+	{
+		if (pos < static_cast<int>(m_animations.at(sprite_id).size()))
+		{
+			std::iter_swap(it, m_animations.at(sprite_id).begin() + pos);
+		}
+	}
+}
+
+void SpriteData::DeleteSpriteAnimationFrame(const std::string& animation_name, int frame_id)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name).erase(m_animation_frames.at(animation_name).begin() + frame_id);
+	}
+}
+
+void SpriteData::InsertSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id <= static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name).insert(m_animation_frames.at(animation_name).begin() + frame_id, name);
+	}
+}
+
+void SpriteData::ChangeSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name)[frame_id] = name;
+	}
+}
+
+void SpriteData::MoveSpriteAnimationFrame(const std::string& animation_name, int old_pos, int new_pos)
+{
+	if (SpriteAnimationExists(animation_name) && old_pos >= 0 && new_pos >= 0 &&
+		old_pos < static_cast<int>(m_animation_frames.at(animation_name).size()) &&
+		new_pos < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		std::iter_swap(m_animation_frames.at(animation_name).begin() + old_pos, m_animation_frames.at(animation_name).begin() + new_pos);
 	}
 }
 
@@ -835,11 +924,11 @@ void SpriteData::SetSpriteAnimationFlags(uint8_t id, const AnimationFlags& flags
 	}
 }
 
-uint16_t SpriteData::GetSpriteMysteryData(uint8_t id) const
+uint16_t SpriteData::GetSpriteVolume(uint8_t id) const
 {
-	if (m_sprite_mystery_data.count(id) > 0)
+	if (m_sprite_volume.count(id) > 0)
 	{
-		return m_sprite_mystery_data.at(id);
+		return m_sprite_volume.at(id);
 	}
 	else
 	{
@@ -847,9 +936,9 @@ uint16_t SpriteData::GetSpriteMysteryData(uint8_t id) const
 	}
 }
 
-void SpriteData::SetSpriteMysteryData(uint8_t id, uint16_t val)
+void SpriteData::SetSpriteVolume(uint8_t id, uint16_t val)
 {
-	m_sprite_mystery_data[id] = val;
+	m_sprite_volume[id] = val;
 }
 
 std::vector<Entity> SpriteData::GetRoomEntities(uint16_t room) const
@@ -1099,7 +1188,7 @@ void SpriteData::CommitAllChanges()
 	m_frames_orig = m_frames;
 	m_animations_orig = m_animations;
 	m_animation_frames_orig = m_animation_frames;
-	m_sprite_mystery_data_orig = m_sprite_mystery_data;
+	m_sprite_volume_orig = m_sprite_volume;
 	m_lo_palettes_orig = m_lo_palettes;
 	m_hi_palettes_orig = m_hi_palettes;
 	m_projectile1_palettes_orig = m_projectile1_palettes;
@@ -1228,7 +1317,7 @@ void SpriteData::InitCache()
 	m_animations_orig = m_animations;
 	m_animation_frames_orig = m_animation_frames;
 	m_frames_orig = m_frames;
-	m_sprite_mystery_data_orig = m_sprite_mystery_data;
+	m_sprite_volume_orig = m_sprite_volume;
 	m_lo_palettes_orig = m_lo_palettes;
 	m_hi_palettes_orig = m_hi_palettes;
 	m_projectile1_palettes_orig = m_projectile1_palettes;
@@ -1445,7 +1534,7 @@ bool SpriteData::AsmLoadSpritePointers()
 			}
 			m_names.insert({ spr, sprname });
 			m_ids.insert({ sprname, spr });
-			m_sprite_mystery_data[spr] = lut[spr].second;
+			m_sprite_volume[spr] = lut[spr].second;
 			m_animations.insert({ spr, std::vector<std::string>() });
 			int anim_end = 0xFFFF;
 			if (spr < (lut.size() - 1))
@@ -1612,7 +1701,7 @@ bool SpriteData::RomLoadSpriteFrames(const Rom& rom)
 	{
 		int sprite_frame_count = 0;
 		std::string sprname = StrPrintf(RomLabels::Sprites::SPRITE_GFX, i);
-		m_sprite_mystery_data.insert({ i, offset_table[i * 2 + 1] });
+		m_sprite_volume.insert({ i, offset_table[i * 2 + 1] });
 		m_names.insert({ i, sprname });
 		m_ids.insert({ sprname, i });
 		uint16_t anim_count;
@@ -1840,8 +1929,8 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 		{
 			lut.push_back((anim_count >> 8) & 0xFF);
 			lut.push_back(anim_count & 0xFF);
-			lut.push_back((m_sprite_mystery_data[spr.first] >> 8) & 0xFF);
-			lut.push_back(m_sprite_mystery_data[spr.first] & 0xFF);
+			lut.push_back((m_sprite_volume[spr.first] >> 8) & 0xFF);
+			lut.push_back(m_sprite_volume[spr.first] & 0xFF);
 			anim_count += static_cast<uint16_t>(spr.second.size());
 		}
 		WriteBytes(lut, dir / m_sprite_lut_file);
@@ -1948,7 +2037,7 @@ bool SpriteData::RomPrepareInjectSpriteFrames(const Rom& rom)
 	for (const auto& spr : m_animations)
 	{
 		it = Insert<uint16_t>(it, anim_count);
-		it = Insert<uint16_t>(it, m_sprite_mystery_data[spr.first]);
+		it = Insert<uint16_t>(it, m_sprite_volume[spr.first]);
 		anim_count += static_cast<uint16_t>(spr.second.size());
 	}
 	uint32_t frame_count = 0;

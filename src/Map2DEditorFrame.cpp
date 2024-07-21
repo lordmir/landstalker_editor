@@ -741,6 +741,7 @@ void Map2DEditorFrame::ClearMenu(wxMenuBar& menu) const
 	// The toolbar destructor deletes these, but doesn't clear the pointer
 	m_palette_select = nullptr;
 	m_tileset_select = nullptr;
+	m_zoomslider = nullptr;
 }
 
 void Map2DEditorFrame::UpdateUI() const
@@ -784,6 +785,10 @@ void Map2DEditorFrame::UpdateUI() const
 
 void Map2DEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
+	if (!m_gd)
+	{
+		return;
+	}
 	if (m_tileset_list.GetCount() == 0 || m_palette_list.GetCount() == 0)
 	{
 		InitCombos();

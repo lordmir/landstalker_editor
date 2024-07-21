@@ -62,8 +62,8 @@ void EditorFrame::ClearProperties(wxPropertyGridManager& props) const
 {
 	if(m_props_init == true)
 	{
-		props.GetGrid()->Clear();
 		m_props_init = false;
+		props.GetGrid()->Clear();
 	}
 }
 

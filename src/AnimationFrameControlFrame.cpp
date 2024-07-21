@@ -8,6 +8,7 @@ wxDEFINE_EVENT(EVT_ANIMATION_FRAME_ADD, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ANIMATION_FRAME_DELETE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ANIMATION_FRAME_MOVE_UP, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ANIMATION_FRAME_MOVE_DOWN, wxCommandEvent);
+wxDEFINE_EVENT(EVT_ANIMATION_FRAME_CHANGE, wxCommandEvent);
 
 AnimationFrameControlFrame::AnimationFrameControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
 	: SelectionControlFrame(parent, imglst)
@@ -76,6 +77,7 @@ void AnimationFrameControlFrame::MoveDown()
 
 void AnimationFrameControlFrame::OpenElement()
 {
+	FireEvent(EVT_ANIMATION_FRAME_CHANGE);
 }
 
 std::string AnimationFrameControlFrame::MakeLabel(int index) const

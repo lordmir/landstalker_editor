@@ -29,6 +29,7 @@ public:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	virtual void ClearMenu(wxMenuBar& menu) const override;
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 	void SetActivePalette(std::string name);

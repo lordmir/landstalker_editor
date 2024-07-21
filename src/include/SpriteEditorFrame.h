@@ -10,7 +10,7 @@
 #include <map>
 
 #include "SpriteFrameEditorCtrl.h"
-#include "SpriteAnimationEditorCtrl.h"
+#include "EntityViewerCtrl.h"
 #include "EditorFrame.h"
 #include "Palette.h"
 #include "PaletteEditor.h"
@@ -27,6 +27,7 @@ public:
 	~SpriteEditorFrame();
 
 	bool Open(uint8_t spr, int frame = -1, int anim = -1, int ent = -1);
+	bool OpenFrame(uint8_t spr, int frame = -1, int anim = -1, int ent = -1);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
@@ -41,6 +42,7 @@ public:
 	const std::string& GetFilename() const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void ClearMenu(wxMenuBar& menu) const override;
 
 	void ExportFrm(const std::string& filename) const;
 	void ExportTiles(const std::string& filename) const;
@@ -61,6 +63,8 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void ProcessEvent(int id);
 
+	std::string ShowFrameDialog(const std::string& prompt, const std::string& title);
+
 	void OnFrameSelect(wxCommandEvent& evt);
 	void OnFrameAdd(wxCommandEvent& evt);
 	void OnFrameDelete(wxCommandEvent& evt);
@@ -80,6 +84,7 @@ private:
 	void OnAnimationFrameDelete(wxCommandEvent& evt);
 	void OnAnimationFrameMoveUp(wxCommandEvent& evt);
 	void OnAnimationFrameMoveDown(wxCommandEvent& evt);
+	void OnAnimationFrameChange(wxCommandEvent& evt);
 
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnSpeedChange(wxCommandEvent& evt);
@@ -104,7 +109,7 @@ private:
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
 	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
-	SpriteAnimationEditorCtrl* m_spriteanimeditor = nullptr;
+	EntityViewerCtrl* m_preview = nullptr;
 	PaletteEditor* m_paledit = nullptr;
 	TileEditor* m_tileedit = nullptr;
 	FrameControlFrame* m_framectrl = nullptr;
@@ -112,7 +117,6 @@ private:
 	AnimationControlFrame* m_animctrl = nullptr;
 	AnimationFrameControlFrame* m_animframectrl = nullptr;
 	mutable wxAuiManager m_mgr;
-	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
 
 	mutable wxPGChoices m_hi_palettes;
@@ -136,7 +140,7 @@ private:
 	int m_frame = -1;
 	int m_anim = -1;
 	int m_zoom = 1;
-	int m_speed = 1;
+	int m_speed = 2;
 	mutable bool m_status_init = false;
 
 	std::string m_name;

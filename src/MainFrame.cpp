@@ -496,7 +496,10 @@ void MainFrame::OnPropertiesInit(wxCommandEvent& event)
 void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-	frame->UpdateProperties(*this->m_properties);
+    if (frame && m_properties->GetGrid())
+    {
+        frame->UpdateProperties(*this->m_properties);
+    }
 	event.Skip();
 }
 
@@ -631,6 +634,9 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     {
         editor.second->Hide();
         editor.second->ClearGameData();
+        editor.second->ClearMenu(*m_menubar);
+        editor.second->ClearStatusBar(*m_statusbar);
+        editor.second->ClearProperties(*m_properties);
     }
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
