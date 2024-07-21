@@ -27,7 +27,7 @@ Current State of progress:
 | Entity Properties           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Behaviours           | :x:                | :x:                | ROM format partially reverse engineered.                   |
 | Sprite Frames               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Sprite Animations           | :heavy_check_mark: | :x:                |                                                            |
+| Sprite Animations           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 
 # Build
 
