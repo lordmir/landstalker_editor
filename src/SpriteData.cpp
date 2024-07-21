@@ -605,6 +605,43 @@ void SpriteData::MoveSpriteAnimation(uint8_t sprite_id, const std::string& name,
 	}
 }
 
+void SpriteData::DeleteSpriteAnimationFrame(const std::string& animation_name, int frame_id)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name).erase(m_animation_frames.at(animation_name).begin() + frame_id);
+	}
+}
+
+void SpriteData::InsertSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id <= static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name).insert(m_animation_frames.at(animation_name).begin() + frame_id, name);
+	}
+}
+
+void SpriteData::ChangeSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name)
+{
+	if (SpriteAnimationExists(animation_name) && frame_id >= 0 &&
+		frame_id < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		m_animation_frames.at(animation_name)[frame_id] = name;
+	}
+}
+
+void SpriteData::MoveSpriteAnimationFrame(const std::string& animation_name, int old_pos, int new_pos)
+{
+	if (SpriteAnimationExists(animation_name) && old_pos >= 0 && new_pos >= 0 &&
+		old_pos < static_cast<int>(m_animation_frames.at(animation_name).size()) &&
+		new_pos < static_cast<int>(m_animation_frames.at(animation_name).size()))
+	{
+		std::iter_swap(m_animation_frames.at(animation_name).begin() + old_pos, m_animation_frames.at(animation_name).begin() + new_pos);
+	}
+}
+
 bool SpriteData::IsEntity(uint8_t id) const
 {
 	return (m_sprite_to_entity_lookup.find(id) != m_sprite_to_entity_lookup.cend());

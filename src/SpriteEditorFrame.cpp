@@ -72,6 +72,7 @@ EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_ADD, SpriteEditorFrame::OnAnimationFra
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_DELETE, SpriteEditorFrame::OnAnimationFrameDelete)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_UP, SpriteEditorFrame::OnAnimationFrameMoveUp)
 EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_MOVE_DOWN, SpriteEditorFrame::OnAnimationFrameMoveDown)
+EVT_COMMAND(wxID_ANY, EVT_ANIMATION_FRAME_CHANGE, SpriteEditorFrame::OnAnimationFrameChange)
 wxEND_EVENT_TABLE()
 
 SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -487,6 +488,20 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+std::string SpriteEditorFrame::ShowFrameDialog(const std::string& prompt, const std::string& title)
+{
+	wxArrayString choices;
+	std::vector<std::string> frames = m_gd->GetSpriteData()->GetSpriteFrames(m_sprite->GetSprite());
+	for (const auto& f : frames)
+	{
+		choices.Add(f);
+	}
+	wxSingleChoiceDialog dlg(this, prompt, title, choices);
+	int result = dlg.ShowModal();
+
+	return result == wxID_OK ? dlg.GetStringSelection().ToStdString() : std::string();
 }
 
 void SpriteEditorFrame::ExportFrm(const std::string& filename) const
@@ -1161,22 +1176,96 @@ void SpriteEditorFrame::OnAnimationFrameSelect(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Add", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		auto new_frame = ShowFrameDialog("Select Frame", "New Animation Frame");
+		if (!new_frame.empty())
+		{
+			std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+			m_gd->GetSpriteData()->InsertSpriteAnimationFrame(anim, evt.GetInt(), new_frame);
+			m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+			m_preview->SetAnimationFrame(evt.GetInt());
+			m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+			m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+			OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+			m_framectrl->SetSelected(m_frame + 1);
+			m_animctrl->SetSelected(m_anim + 1);
+			m_animframectrl->SetSelected(evt.GetInt() + 1);
+			UpdateUI();
+		}
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Delete", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+		int new_frame = evt.GetInt() - 1;
+		if (new_frame > static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+		{
+			new_frame = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)) - 1;
+		}
+		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, new_frame);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[new_frame]);
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+		m_animframectrl->SetSelected(evt.GetInt());
+		UpdateUI();
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameMoveUp(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Move Up", evt.GetString());
+	std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+	{
+		int new_frame = evt.GetInt() - 2;
+		int old_frame = evt.GetInt() - 1;
+		m_gd->GetSpriteData()->MoveSpriteAnimationFrame(anim, old_frame, new_frame);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_animframectrl->SetSelected(new_frame + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameMoveDown(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Frame Move Down", evt.GetString());
+	std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
+	{
+		int new_frame = evt.GetInt();
+		int old_frame = evt.GetInt() - 1;
+		m_gd->GetSpriteData()->MoveSpriteAnimationFrame(anim, old_frame, new_frame);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(new_frame);
+		m_animframectrl->SetSelected(new_frame + 1);
+	}
+}
+
+void SpriteEditorFrame::OnAnimationFrameChange(wxCommandEvent& evt)
+{
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	{
+		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
+		std::string new_frame = ShowFrameDialog(StrPrintf("Change frame \"%s\" to:", evt.GetString().c_str().AsChar()), "Change frame");
+		m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		m_preview->SetAnimationFrame(evt.GetInt() - 1);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+		m_animframectrl->SetSelected(evt.GetInt());
+		UpdateUI();
+	}
 }
 
 void SpriteEditorFrame::OnZoomChange(wxCommandEvent& evt)

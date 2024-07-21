@@ -63,6 +63,8 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void ProcessEvent(int id);
 
+	std::string ShowFrameDialog(const std::string& prompt, const std::string& title);
+
 	void OnFrameSelect(wxCommandEvent& evt);
 	void OnFrameAdd(wxCommandEvent& evt);
 	void OnFrameDelete(wxCommandEvent& evt);
@@ -82,6 +84,7 @@ private:
 	void OnAnimationFrameDelete(wxCommandEvent& evt);
 	void OnAnimationFrameMoveUp(wxCommandEvent& evt);
 	void OnAnimationFrameMoveDown(wxCommandEvent& evt);
+	void OnAnimationFrameChange(wxCommandEvent& evt);
 
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnSpeedChange(wxCommandEvent& evt);

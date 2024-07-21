@@ -126,6 +126,11 @@ public:
 	void AddSpriteAnimation(uint8_t sprite_id, const std::string& name);
 	void MoveSpriteAnimation(uint8_t sprite_id, const std::string& name, int pos);
 
+	void DeleteSpriteAnimationFrame(const std::string& animation_name, int frame_id);
+	void InsertSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name);
+	void ChangeSpriteAnimationFrame(const std::string& animation_name, int frame_id, const std::string& name);
+	void MoveSpriteAnimationFrame(const std::string& animation_name, int old_pos, int new_pos);
+
 	uint32_t GetSpriteAnimationCount(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(uint8_t id) const;
 	std::vector<std::string> GetSpriteAnimations(const std::string& name) const;
