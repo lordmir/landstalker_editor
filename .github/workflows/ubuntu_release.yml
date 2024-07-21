@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: landstalker_editor
 
@@ -44,10 +44,10 @@ jobs:
              sudo apt-get install -y --no-install-recommends libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
       - name: Checkout wxWidgets
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: wxWidgets/wxWidgets
-          ref: refs/tags/v3.2.2.1
+          ref: refs/tags/v3.2.5
           submodules: recursive
           path: wxwidgets
 
@@ -83,13 +83,8 @@ jobs:
         run: tar zvcf landstalker_editor.tar.gz landstalker_editor
 
       - name: Archive build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: landstalker_editor_binary_ubuntu
           path: ${{github.workspace}}/landstalker_editor/landstalker_editor.tar.gz
 
-      - name: Archive sources
-        uses: actions/upload-artifact@v3
-        with:
-          name: landstalker_editor_sources_tar
-          path: ${{github.workspace}}/landstalker_editor_sources.tar.gz
