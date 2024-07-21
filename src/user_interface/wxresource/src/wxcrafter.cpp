@@ -4,7 +4,7 @@
 // Do not modify this file by hand!
 //////////////////////////////////////////////////////////////////////
 
-#include "wxcrafter.h"
+#include <user_interface/wxresource/include/wxcrafter.h>
 
 
 // Declare the bitmap loading function

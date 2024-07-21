@@ -65,7 +65,6 @@
     <ClCompile Include="..\src\user_interface\main\src\ImageList.cpp" />
     <ClCompile Include="..\src\user_interface\main\src\main.cpp" />
     <ClCompile Include="..\src\user_interface\main\src\MainFrame.cpp" />
-    <ClCompile Include="..\src\user_interface\main\src\wxcrafter.cpp" />
     <ClCompile Include="..\src\user_interface\misc\src\AssemblyBuilderDialog.cpp" />
     <ClCompile Include="..\src\user_interface\misc\src\ExecutorThread.cpp" />
     <ClCompile Include="..\src\user_interface\misc\src\PreferencesDialog.cpp" />
@@ -106,6 +105,8 @@
     <ClCompile Include="..\src\user_interface\tileset\src\TileEditor.cpp" />
     <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditor.cpp" />
     <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter.cpp" />
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h" />

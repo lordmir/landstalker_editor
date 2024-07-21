@@ -136,6 +136,12 @@
     <Filter Include="src\Data\3D Maps">
       <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\UI\WX Resources">
+      <UniqueIdentifier>{d82c677d-286f-4857-83ff-027959b5e882}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\WX Resources">
+      <UniqueIdentifier>{bf1bf039-ca9f-46eb-af68-b53496731074}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
@@ -297,9 +303,6 @@
     <ClCompile Include="..\src\user_interface\main\src\MainFrame.cpp">
       <Filter>src\UI\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\wxcrafter.cpp">
-      <Filter>src\UI\Main</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\user_interface\misc\src\AssemblyBuilderDialog.cpp">
       <Filter>src\UI\Miscellaneous</Filter>
     </ClCompile>
@@ -422,6 +425,12 @@
     </ClCompile>
     <ClCompile Include="..\src\landstalker\main\src\ImageBuffer.cpp">
       <Filter>src\Data\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter.cpp">
+      <Filter>src\UI\WX Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter_bitmaps.cpp">
+      <Filter>src\UI\WX Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -596,9 +605,6 @@
     <ClInclude Include="..\src\user_interface\main\include\resource.h">
       <Filter>include\UI\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\wxcrafter.h">
-      <Filter>include\UI\Main</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\user_interface\misc\include\AssemblyBuilderDialog.h">
       <Filter>include\UI\Miscellaneous</Filter>
     </ClInclude>
@@ -724,6 +730,9 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\misc\include\BaseDataViewModel.h">
       <Filter>include\UI\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\main\include\wxcrafter.h">
+      <Filter>include\UI\WX Resources</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
