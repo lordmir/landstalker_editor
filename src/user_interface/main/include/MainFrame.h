@@ -1,6 +1,5 @@
 #ifndef MAINFRAME_H
 #define MAINFRAME_H
-#include "wxcrafter.h"
 #include <cstdint>
 #include <vector>
 #include <memory>
@@ -9,6 +8,7 @@
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/main/include/ImageBuffer.h>
 #include <user_interface/main/include/ImageList.h>
+#include <user_interface/wxresource/include/wxcrafter.h>
 #include <user_interface/tileset/include/TilesetEditorFrame.h>
 #include <user_interface/text/include/StringEditorFrame.h>
 #include <user_interface/palettes/include/PaletteListFrame.h>

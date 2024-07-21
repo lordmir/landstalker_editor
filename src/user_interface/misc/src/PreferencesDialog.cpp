@@ -1,6 +1,6 @@
 #include <user_interface/misc/include/PreferencesDialog.h>
 #include <wx/config.h>
-#include <user_interface/main/include/wxcrafter.h>
+#include <user_interface/wxresource/include/wxcrafter.h>
 #include <user_interface/misc/include/AssemblyBuilderDialog.h>
 
 PreferencesDialog::PreferencesDialog(wxWindow* parent, wxConfig* config)

@@ -735,4 +735,20 @@
       <Filter>include\UI\WX Resources</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\user_interface\wxresource\resource\win_resources.rc">
+      <Filter>wxcrafter</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.wxcp">
+      <Filter>wxcrafter</Filter>
+    </None>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.xrc">
+      <Filter>wxcrafter</Filter>
+    </None>
+    <None Include="..\src\user_interface\wxresource\resource\wxcrafter_bitmaps.xrc">
+      <Filter>wxcrafter</Filter>
+    </None>
+  </ItemGroup>
 </Project>

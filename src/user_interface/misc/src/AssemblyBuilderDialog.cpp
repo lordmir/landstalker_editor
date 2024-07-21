@@ -1,5 +1,5 @@
 #include <user_interface/misc/include/AssemblyBuilderDialog.h>
-#include <user_interface/main/include/wxcrafter.h>
+#include <user_interface/wxresource/include/wxcrafter.h>
 
 static wxString init_clonecmd = "git clone {URL} --branch {TAG} --single-branch .";
 static wxString init_cloneurl = "https://github.com/lordmir/landstalker_disasm.git";
