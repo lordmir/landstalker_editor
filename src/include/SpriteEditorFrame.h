@@ -42,6 +42,7 @@ public:
 	const std::string& GetFilename() const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void ClearMenu(wxMenuBar& menu) const override;
 
 	void ExportFrm(const std::string& filename) const;
 	void ExportTiles(const std::string& filename) const;

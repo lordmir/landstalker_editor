@@ -840,6 +840,12 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	}
 }
 
+void TilesetEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+	m_zoomslider = nullptr;
+}
+
 void TilesetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
 {
 	m_gd = gd;

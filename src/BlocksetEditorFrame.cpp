@@ -232,6 +232,7 @@ void BlocksetEditorFrame::ClearMenu(wxMenuBar& menu) const
 	EditorFrame::ClearMenu(menu);
 	// The toolbar destructor deletes these, but doesn't clear the pointer
 	m_palette_select = nullptr;
+	m_zoomslider = nullptr;
 }
 
 void BlocksetEditorFrame::ExportBin(const std::string& filename) const

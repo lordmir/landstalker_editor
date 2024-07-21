@@ -228,6 +228,9 @@ void SpriteEditorFrame::ClearGameData()
 	m_preview->ClearGameData();
 	m_framectrl->ClearGameData();
 	m_animframectrl->ClearGameData();
+	m_anim = 0;
+	m_frame = 0;
+	m_sprite = nullptr;
 }
 
 void SpriteEditorFrame::SetActivePalette(const std::string& name)
@@ -359,6 +362,13 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	UpdateUI();
 
 	m_mgr.Update();
+}
+
+void SpriteEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+	m_zoomslider = nullptr;
+	m_speedslider = nullptr;
 }
 
 void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
@@ -581,7 +591,6 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
-		props.Append(new wxIntProperty("Additional Value", "Additional Value", sd->GetSpriteMysteryData(sprite_index)));
 		props.Append(new wxPropertyCategory("Frame", "Frame"));
 		auto prop_cmp = new wxBoolProperty("Compressed", "Compressed", m_sprite->GetData()->GetCompressed());
 		prop_cmp->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
@@ -612,6 +621,12 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
 		height_prop->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(height_prop);
+		wxPGProperty* vol_prop = new wxFloatProperty("Volume", "Volume", sd->GetSpriteVolume(sprite_index) / 16.0);
+		vol_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
+		vol_prop->SetAttribute(wxPG_ATTR_MAX, 4095.9375);
+		vol_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
+		vol_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(vol_prop);
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
@@ -702,7 +717,7 @@ void SpriteEditorFrame::UpdateProperties(wxPropertyGridManager& props) const
 
 void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 {
-	if (m_gd != nullptr)
+	if (m_gd != nullptr && m_sprite != nullptr)
 	{
 		RefreshLists();
 		props.GetGrid()->Freeze();
@@ -722,7 +737,7 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
-		props.GetGrid()->SetPropertyValue("Additional Value", static_cast<int>(sd->GetSpriteMysteryData(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Volume", static_cast<double>(sd->GetSpriteVolume(sprite_index)) / 16.0);
 		props.GetGrid()->SetPropertyValue("Compressed", m_sprite->GetData()->GetCompressed());
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
 		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoices(m_idle_frame_count_options);
@@ -787,8 +802,8 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	}
 	else if (name == "Additional Value")
 	{
-		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetInteger());
-		sd->SetSpriteMysteryData(sprite_index, value);
+		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetDouble() * 16.0);
+		sd->SetSpriteVolume(sprite_index, value);
 	}
 	else if (name == "Low Palette" || name == "High Palette" || name == "Projectile/Misc Palette 1" || name == "Projectile/Misc Palette 2")
 	{
@@ -1056,24 +1071,77 @@ void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
 	}
 }
 
-void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& evt)
+void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& /*evt*/)
 {
-	wxMessageBox("Animation Add", evt.GetString());
+	std::string name = "";
+	auto dlg = wxTextEntryDialog(this, "Enter a unique name for the new animation", "New animation");
+	do
+	{
+		dlg.ShowModal();
+		name = dlg.GetValue().ToStdString();
+	} while (m_gd->GetSpriteData()->SpriteAnimationExists(name));
+	m_gd->GetSpriteData()->AddSpriteAnimation(m_sprite->GetSprite(), name);
+	m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
+	m_preview->SetAnimation(m_anim);
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+	m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+	OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+	m_framectrl->SetSelected(m_frame + 1);
+	m_animctrl->SetSelected(m_anim + 1);
 }
 
 void SpriteEditorFrame::OnAnimationDelete(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Delete", evt.GetString());
+	if (m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_gd->GetSpriteData()->DeleteSpriteAnimation(evt.GetString().ToStdString());
+		if (m_anim >= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())))
+		{
+			m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
+		}
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationMoveUp(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Move Up", evt.GetString());
+	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
+		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_anim = evt.GetInt() - 2;
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt() - 2);
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationMoveDown(wxCommandEvent& evt)
 {
-	wxMessageBox("Animation Move Down", evt.GetString());
+	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
+		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	{
+		m_anim = evt.GetInt();
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt());
+		m_preview->SetAnimation(m_anim);
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+		m_framectrl->SetSelected(m_frame + 1);
+		m_animctrl->SetSelected(m_anim + 1);
+	}
 }
 
 void SpriteEditorFrame::OnAnimationFrameSelect(wxCommandEvent& evt)

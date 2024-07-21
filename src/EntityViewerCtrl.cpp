@@ -35,6 +35,7 @@ void EntityViewerCtrl::SetGameData(std::shared_ptr<GameData> gd)
 
 void EntityViewerCtrl::ClearGameData()
 {
+	Pause();
 	m_gd.reset();
 	m_entity_id = -1;
 	m_sprite.reset();
@@ -133,6 +134,10 @@ void EntityViewerCtrl::Open(uint8_t entity, uint8_t animation, std::shared_ptr<P
 	if (freeze && m_playing)
 	{
 		Pause();
+	}
+	else if(!freeze && !m_playing)
+	{
+		Play();
 	}
 	Refresh(true);
 }
