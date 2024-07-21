@@ -18,8 +18,8 @@ SpriteFrame::SpriteFrame(const std::string& filename)
 }
 
 SpriteFrame::SpriteFrame()
-	: m_compressed(false),
-	  m_sprite_gfx(std::make_shared<Tileset>())
+	: m_sprite_gfx(std::make_shared<Tileset>()),
+	  m_compressed(false)
 {
 }
 

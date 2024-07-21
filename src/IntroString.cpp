@@ -23,7 +23,7 @@ IntroString::IntroString()
 }
 
 IntroString::IntroString(uint16_t line1_y, uint16_t line1_x, uint16_t line2_y, uint16_t line2_x, uint16_t display_time, IntroString::StringType line1, IntroString::StringType line2)
-	: LSString(m_str, INTRO_CHARSET),
+	: LSString(line1, INTRO_CHARSET),
 	m_line1Y(line1_y),
 	m_line1X(line1_x),
 	m_line2Y(line2_y),

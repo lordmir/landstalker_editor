@@ -43,7 +43,7 @@ struct Door
 	std::pair<uint8_t, uint8_t> GetBytes() const;
 
 	std::vector<std::pair<int, int>> GetMapRegionPoly(std::shared_ptr<const Tilemap3D> tilemap = nullptr, int tile_width = 8, int tile_height = 8) const;
-	static std::vector<std::pair<int, int>> OffsetRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset);
+	static std::vector<std::pair<int, int>> OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset);
 	std::pair<int, int> GetTileOffset(std::shared_ptr<const Tilemap3D> tilemap = nullptr, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 	std::pair<int, int> GetTileOffset(const Tilemap3D& tilemap, const Tilemap3D::Layer& layer = Tilemap3D::Layer::BG) const;
 	void DrawDoor(Tilemap3D& map, Tilemap3D::Layer layer) const;

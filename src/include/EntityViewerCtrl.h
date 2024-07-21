@@ -59,8 +59,8 @@ private:
 	int m_frame = 0;
 	int m_pixelsize = 4;
 
-	int m_columns = 1;
 	int m_rows = 1;
+	int m_columns = 1;
 	int m_cellwidth = 8;
 	int m_cellheight = 8;
 

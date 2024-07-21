@@ -1098,7 +1098,7 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
             auto lines = d.GetMapRegionPoly(map, CELL_WIDTH, CELL_HEIGHT);
             auto wxpoints = ToWxPoints2DDouble(lines);
             auto pos = GetScreenPosition(d.GetTileOffset(map, Tilemap3D::Layer::FG), roomnum, Tilemap3D::Layer::FG);
-            m_door_regions.push_back(ToWxPoints2DDouble(Door::OffsetRegionPoly(map, lines, pos)));
+            m_door_regions.push_back(ToWxPoints2DDouble(Door::OffsetRegionPoly(lines, pos)));
         }
     }
     auto draw_poly = [this, &gc](int index, const std::vector<wxPoint2DDouble>& points)
@@ -1841,7 +1841,6 @@ void RoomViewerCtrl::OnMouseLeave(wxMouseEvent& evt)
 void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-    bool selection_made = false;
     if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
@@ -1852,7 +1851,7 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
             {
                 SetCursor(m_hovered != NO_SELECTION ? wxCURSOR_HAND : wxCURSOR_ARROW);
             }
-            selection_made = UpdateSelection(m_hovered, evt.ControlDown() ? Action::DO_ACTION : Action::NORMAL);
+            UpdateSelection(m_hovered, evt.ControlDown() ? Action::DO_ACTION : Action::NORMAL);
             m_selected = m_hovered;
         }
     }
@@ -2929,7 +2928,6 @@ void RoomViewerCtrl::InitialiseBrushesAndPens()
 void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-    bool selection_made = false;
     if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
@@ -2937,7 +2935,7 @@ void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
         {
             std::string status_text;
             CheckMousePosForLink(xy, status_text);
-            selection_made = UpdateSelection(m_hovered, Action::DO_ACTION);
+            UpdateSelection(m_hovered, Action::DO_ACTION);
             m_selected = m_hovered;
         }
     }
@@ -2947,7 +2945,6 @@ void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
 void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-    bool selection_made = false;
     if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
@@ -2958,7 +2955,7 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
             {
 
             }
-            selection_made = UpdateSelection(m_hovered, Action::DO_ALT_ACTION);
+            UpdateSelection(m_hovered, Action::DO_ALT_ACTION);
             m_selected = m_hovered;
         }
     }

@@ -135,7 +135,7 @@ std::vector<std::pair<int, int>> Door::GetMapRegionPoly(std::shared_ptr<const Ti
 	return ts.GetMapRegionPoly(TileSwap::Region::UNDEFINED, tile_width, tile_height);
 }
 
-std::vector<std::pair<int, int>> Door::OffsetRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
+std::vector<std::pair<int, int>> Door::OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
 {
 	std::vector<std::pair<int, int>> offsetted;
 	std::transform(points.begin(), points.end(), std::back_inserter(offsetted), [&](const auto& pt)

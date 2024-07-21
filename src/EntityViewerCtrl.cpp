@@ -228,9 +228,6 @@ void EntityViewerCtrl::OnDraw(wxDC& dc)
 	dc.SetBackground(wxBrush(wxColor(32, 32, 32)));
 	dc.Clear();
 
-	wxPosition s = GetVisibleBegin();
-	wxPosition e = GetVisibleEnd();
-
 	if (m_sprite && m_palette)
 	{
 		for (int i = 0; i < static_cast<int>(m_sprite->GetTileCount()); ++i)
