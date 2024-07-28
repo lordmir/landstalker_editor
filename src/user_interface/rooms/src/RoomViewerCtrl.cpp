@@ -536,14 +536,26 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         auto& warp = GetSelectedWarp();
         int idx = GetSelectedWarpIndex();
-        txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
-                        idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
-                        m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
-                        (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
-                        (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
+        if (warp.room1 == 65535 || warp.room2 == 65535)
+        {
+            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
+                idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
+                m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
+                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
+                        (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))));
+        }
+        else
+        {
+            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
+                idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
+                m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
+                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
                         (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))),
-                        m_roomnum == warp.room1 ? warp.room2 : warp.room1,
-                        m_g ? m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->name.c_str() : "?");
+                m_roomnum == warp.room1 ? warp.room2 : warp.room1,
+                m_g ? m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->name.c_str() : "?");
+        }
     }
     else if (IsTileSwapSelected())
     {

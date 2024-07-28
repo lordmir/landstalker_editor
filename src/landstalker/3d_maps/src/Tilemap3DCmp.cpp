@@ -1121,8 +1121,8 @@ bool Tilemap3D::IsPixelPointValid(const PixelPoint2D& pix, Layer layer) const
 
 bool Tilemap3D::IsHMPointValid(const HMPoint2D& p) const
 {
-    return ((p.x >= 0 && p.x <= hmwidth) &&
-            (p.y >= 0 && p.y <= hmheight));
+    return ((p.x >= 0 && p.x < hmwidth) &&
+            (p.y >= 0 && p.y < hmheight));
 }
 
 Point2D Tilemap3D::IsoToCartesian(const IsoPoint2D& iso, Layer /*layer*/) const

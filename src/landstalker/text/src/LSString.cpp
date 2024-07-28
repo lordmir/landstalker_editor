@@ -169,8 +169,6 @@ size_t LSString::EncodeChar(LSString::StringType str, size_t index, uint8_t& chr
 	std::ostringstream ss;
 	ss << "Bad character \'" << str[index] << "\' in position " << index << " found when parsing string.";
 	throw std::runtime_error(ss.str());
-	chr = 0xFF;
-	return 0;
 }
 
 LSString::StringType LSString::ApplyDiacritics(const StringType& str) const

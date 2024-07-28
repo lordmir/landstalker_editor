@@ -975,7 +975,7 @@ bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int /*row*/)
 {
 	if (m_data.size() < 32)
 	{
-		uint8_t next_idx = 0;
+		uint8_t next_idx = 1;
 		while (next_idx < 32)
 		{
 			if (std::none_of(m_data.cbegin(), m_data.cend(), [&](const auto& e)
@@ -1096,7 +1096,7 @@ bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, un
 			m_data[row].always = variant.GetBool();
 			return true;
 		case 2:
-			if (m_data[row].always)
+			if (!m_data[row].always)
 			{
 				m_data[row].flag = variant.GetLong();
 				return true;
@@ -1113,7 +1113,7 @@ template <>
 void FlagDataViewModel<TileSwapFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewSpinRenderer(0, 30, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
+		new wxDataViewSpinRenderer(1, 31, wxDATAVIEW_CELL_EDITABLE), 0, 200, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
