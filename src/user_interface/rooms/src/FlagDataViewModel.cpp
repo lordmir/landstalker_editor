@@ -975,7 +975,7 @@ bool FlagDataViewModel<TileSwapFlag>::AddRow(unsigned int /*row*/)
 {
 	if (m_data.size() < 32)
 	{
-		uint8_t next_idx = 0;
+		uint8_t next_idx = 1;
 		while (next_idx < 32)
 		{
 			if (std::none_of(m_data.cbegin(), m_data.cend(), [&](const auto& e)
