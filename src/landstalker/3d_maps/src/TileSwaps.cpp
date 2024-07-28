@@ -50,11 +50,8 @@ std::vector<uint8_t> TileSwaps::GetData() const
 	{
 		for (uint8_t i = 0; i < static_cast<uint8_t>(r.second.size()); ++i)
 		{
-			if (r.second[i].active == true)
-			{
-				auto bytes = r.second[i].GetBytes(r.first, i);
-				out.insert(out.end(), bytes.cbegin(), bytes.cend());
-			}
+			auto bytes = r.second[i].GetBytes(r.first, i);
+			out.insert(out.end(), bytes.cbegin(), bytes.cend());
 		}
 	}
 	std::fill_n(std::back_inserter(out), 16, 0xFF_u8);
