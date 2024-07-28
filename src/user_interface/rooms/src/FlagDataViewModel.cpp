@@ -1096,7 +1096,7 @@ bool FlagDataViewModel<TileSwapFlag>::SetValueByRow(const wxVariant& variant, un
 			m_data[row].always = variant.GetBool();
 			return true;
 		case 2:
-			if (m_data[row].always)
+			if (!m_data[row].always)
 			{
 				m_data[row].flag = variant.GetLong();
 				return true;
