@@ -1662,7 +1662,7 @@ void RoomViewerFrame::OnTmInsertColumnAfter()
 void RoomViewerFrame::OnExportBin()
 {
 	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
-	const wxString default_file = rd->map + ".bin";
+	const wxString default_file = rd->map + ".cmp";
 	wxFileDialog fd(this, _("Export Map As Binary"), "", default_file, "Room Map (*.cmp)|*.cmp|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
