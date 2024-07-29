@@ -232,7 +232,7 @@ void ImageBuffer::Insert3DMapLayer(int x, int y, uint8_t palette_index, Tilemap3
 
 bool ImageBuffer::WritePNG(const std::string& filename, const std::vector<std::shared_ptr<Palette>>& palettes, bool use_alpha)
 {
-    bool retval = false;
+    volatile bool retval = false;
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info = png_create_info_struct(png);
