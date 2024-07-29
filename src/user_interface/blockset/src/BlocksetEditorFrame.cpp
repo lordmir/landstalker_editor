@@ -222,8 +222,7 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 void BlocksetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
-	UpdateUI();
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	ProcessEvent(evt.GetId());
 	evt.Skip();
 }
 
@@ -1000,6 +999,7 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	default:
 		break;
 	}
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void BlocksetEditorFrame::UpdateUI() const
