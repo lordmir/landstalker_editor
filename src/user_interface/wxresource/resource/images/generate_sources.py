@@ -3,7 +3,7 @@
 import glob, os
 import sys
 
-with open('../include/Icons.h', 'w') as sys.stdout:
+with open('../../../main/include/Icons.h', 'w') as sys.stdout:
 
     PNG2C = os.getenv('WX_WIN') + "/misc/scripts/png2c.py"
 

@@ -1,6 +1,6 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "resource.h"
+#include "../../main/include/resource.h"
 /////////////////////////////////////////////////////////////////////////////
 // English (United Kingdom) resources
 
@@ -40,7 +40,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-aaaa                    ICON                    "img\\msword.ico"
+aaaa                    ICON                    "images/msword.ico"
 
 #endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
