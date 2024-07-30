@@ -540,18 +540,32 @@ void SpriteEditorFrame::ImportFrm(const std::string& filename)
 {
 	auto bytes = ReadBytes(filename);
 	m_sprite->GetData()->SetBits(bytes);
-	RedrawTiles();
-	m_reset_props = true;
-	Update();
+	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
+	m_preview->Open(m_sprite->GetData(), m_palette);
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	m_framectrl->SetSprite(m_sprite->GetSprite());
+	m_animctrl->SetSprite(m_sprite->GetSprite());
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	Redraw();
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void SpriteEditorFrame::ImportTiles(const std::string& filename)
 {
 	auto bytes = ReadBytes(filename);
 	m_sprite->GetData()->GetTileset()->SetBits(bytes, false);
-	RedrawTiles();
-	m_reset_props = true;
-	Update();
+	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
+	m_preview->Open(m_sprite->GetData(), m_palette);
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	m_framectrl->SetSprite(m_sprite->GetSprite());
+	m_animctrl->SetSprite(m_sprite->GetSprite());
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	Redraw();
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
@@ -582,9 +596,16 @@ void SpriteEditorFrame::ImportVdpSpritemap(const std::string& filename)
 	}
 	m_sprite->GetData()->SetCompressed(compressed);
 	m_sprite->GetData()->SetSubSprites(subs);
-
-	m_reset_props = true;
-	Update();
+	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
+	m_preview->Open(m_sprite->GetData(), m_palette);
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	m_framectrl->SetSprite(m_sprite->GetSprite());
+	m_animctrl->SetSprite(m_sprite->GetSprite());
+	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+	Redraw();
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
