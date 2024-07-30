@@ -681,7 +681,7 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	else if (name == "A#T")
 	{
 		auto ats = std::static_pointer_cast<AnimatedTileset, Tileset>(m_tileset);
-		ats->SetFrameSizeBytes(property->GetValuePlain().GetLong());
+		ats->SetFrameSizeTiles(property->GetValuePlain().GetLong());
 
 	}
 	else if (name == "A#F")
