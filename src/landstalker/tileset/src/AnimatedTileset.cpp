@@ -80,7 +80,7 @@ Tile AnimatedTileset::GetStartTile() const
 
 uint16_t AnimatedTileset::GetFrameSizeBytes() const
 {
-	return m_length * 2;
+	return m_length;
 }
 
 std::size_t AnimatedTileset::GetFrameSizeTiles() const
@@ -115,7 +115,7 @@ void AnimatedTileset::SetStartTile(Tile tile)
 
 void AnimatedTileset::SetFrameSizeBytes(uint16_t bytes)
 {
-	m_length = bytes / 2;
+	m_length = bytes;
 }
 
 void AnimatedTileset::SetFrameSizeTiles(std::size_t count)
