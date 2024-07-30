@@ -80,12 +80,12 @@ Tile AnimatedTileset::GetStartTile() const
 
 uint16_t AnimatedTileset::GetFrameSizeBytes() const
 {
-	return m_length;
+	return m_length * 2;
 }
 
 std::size_t AnimatedTileset::GetFrameSizeTiles() const
 {
-	return m_length / Tileset::GetTileSizeBytes();
+	return (2 * m_length) / Tileset::GetTileSizeBytes();
 }
 
 uint8_t AnimatedTileset::GetAnimationSpeed() const
@@ -115,12 +115,12 @@ void AnimatedTileset::SetStartTile(Tile tile)
 
 void AnimatedTileset::SetFrameSizeBytes(uint16_t bytes)
 {
-	m_length = bytes;
+	m_length = bytes / 2;
 }
 
 void AnimatedTileset::SetFrameSizeTiles(std::size_t count)
 {
-	m_length = static_cast<uint16_t>(count * Tileset::GetTileSizeBytes());
+	m_length = static_cast<uint16_t>(count * Tileset::GetTileSizeBytes() / 2);
 }
 
 void AnimatedTileset::SetAnimationSpeed(uint8_t speed)
