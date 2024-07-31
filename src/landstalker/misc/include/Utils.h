@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <vector>
 #include <cassert>
+#include <cstdint>
 #include <wjakob/filesystem/path.h>
 
 void Debug(const std::string& message);
