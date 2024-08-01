@@ -842,8 +842,9 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 
 void TilesetEditorFrame::ClearMenu(wxMenuBar& menu) const
 {
-	EditorFrame::ClearMenu(menu);
+	// The toolbar destructor deletes these, but doesn't clear the pointer
 	m_zoomslider = nullptr;
+	EditorFrame::ClearMenu(menu);
 }
 
 void TilesetEditorFrame::SetGameData(std::shared_ptr<GameData> gd)

@@ -283,11 +283,14 @@ void SpriteEditorFrame::RedrawTiles(int index) const
 
 void SpriteEditorFrame::Update()
 {
-	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
-	m_framectrl->SetSprite(m_sprite->GetSprite());
-	m_animctrl->SetSprite(m_sprite->GetSprite());
-	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
-	Redraw();
+	if (m_sprite != nullptr)
+	{
+		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+		m_framectrl->SetSprite(m_sprite->GetSprite());
+		m_animctrl->SetSprite(m_sprite->GetSprite());
+		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+		Redraw();
+	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	FireEvent(EVT_STATUSBAR_UPDATE);
@@ -367,9 +370,10 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 void SpriteEditorFrame::ClearMenu(wxMenuBar& menu) const
 {
-	EditorFrame::ClearMenu(menu);
+	// The toolbar destructor deletes these, but doesn't clear the pointer
 	m_zoomslider = nullptr;
 	m_speedslider = nullptr;
+	EditorFrame::ClearMenu(menu);
 }
 
 void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
