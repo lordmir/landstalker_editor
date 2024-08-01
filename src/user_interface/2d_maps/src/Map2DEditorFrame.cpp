@@ -737,11 +737,11 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 
 void Map2DEditorFrame::ClearMenu(wxMenuBar& menu) const
 {
-	EditorFrame::ClearMenu(menu);
 	// The toolbar destructor deletes these, but doesn't clear the pointer
 	m_palette_select = nullptr;
 	m_tileset_select = nullptr;
 	m_zoomslider = nullptr;
+	EditorFrame::ClearMenu(menu);
 }
 
 void Map2DEditorFrame::UpdateUI() const
