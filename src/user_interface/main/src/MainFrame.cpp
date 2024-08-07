@@ -183,8 +183,12 @@ void MainFrame::InitUI()
     const int rm_img = m_imgs->GetIdx("room");
     const int spr_img = m_imgs->GetIdx("sprite");
     const int ent_img = m_imgs->GetIdx("entity");
+    const int scr_img = m_imgs->GetIdx("script");
+    const int bscr_img = m_imgs->GetIdx("bscript");
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
+    wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
+    wxTreeItemId nodeBScript = m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());

@@ -67,7 +67,8 @@ private:
             ROOM,
             SPRITE,
             SPRITE_FRAME,
-            ENTITY
+            ENTITY,
+            BEHAVIOUR_SCRIPT
         };
         TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
         std::size_t GetValue() const { return m_value; }
@@ -87,7 +88,8 @@ private:
         PALETTE,
         ROOMMAP,
         SPRITE,
-        ENTITY
+        ENTITY,
+        BEHAVIOUR_SCRIPT
     };
 
     enum class EditorType
@@ -101,6 +103,7 @@ private:
         BLOCKSET,
         SPRITE,
         ENTITY,
+        BEHAVIOUR_SCRIPT,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);

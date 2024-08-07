@@ -14,6 +14,7 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 # Video Demonstrations
 
 | [![Version 0.3.4 Demo](https://img.youtube.com/vi/KPmFZTG75sg/0.jpg)](https://www.youtube.com/watch?v=KPmFZTG75sg) | [![Version 0.2 Demo](https://img.youtube.com/vi/ozUC3DsCItQ/0.jpg)](https://www.youtube.com/watch?v=ozUC3DsCItQ) |
+|--|--|
 | Map and Sprite Editing Demo, version 0.3.4 | Text, Graphics, Room and Entity Editing Demo, version 0.2 |
 
 ## Current State of progress
