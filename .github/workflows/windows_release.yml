@@ -96,7 +96,7 @@ jobs:
         run: |
           MKDIR build
           CD build
-          cmake ..
+          cmake -G "Visual Studio 16 2019" -A Win32 ..
 
       - name: Build yaml-cpp
         working-directory: ${{github.workspace}}/yaml-cpp/build
