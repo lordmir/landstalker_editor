@@ -7,6 +7,7 @@
 #include <landstalker/main/include/DataTypes.h>
 #include <landstalker/rooms/include/Entity.h>
 #include <landstalker/rooms/include/Flags.h>
+#include <landstalker/behaviours/include/Behaviours.h>
 
 class SpriteData : public DataManager
 {
@@ -305,10 +306,8 @@ private:
 	std::map<uint16_t, std::vector<Entity>> m_room_entities;
 	std::map<uint16_t, std::vector<Entity>> m_room_entities_orig;
 
-	std::vector<uint8_t> m_sprite_behaviours;
-	std::vector<uint8_t> m_sprite_behaviours_orig;
-	std::vector<uint8_t> m_sprite_behaviour_offsets;
-	std::vector<uint8_t> m_sprite_behaviour_offsets_orig;
+	std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> m_sprite_behaviours;
+	std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> m_sprite_behaviours_orig;
 };
 
 #endif // _SPRITE_DATA_H_

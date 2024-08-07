@@ -142,6 +142,12 @@
     <Filter Include="include\UI\WX Resources">
       <UniqueIdentifier>{bf1bf039-ca9f-46eb-af68-b53496731074}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\Data\Behaviours">
+      <UniqueIdentifier>{263218d6-5db5-4634-ab63-630d91f607da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Data\Behaviours">
+      <UniqueIdentifier>{d9b5c1a3-eb74-4132-9f5a-504ccbb94851}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
@@ -431,6 +437,9 @@
     </ClCompile>
     <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter_bitmaps.cpp">
       <Filter>src\UI\WX Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\behaviours\src\Behaviours.cpp">
+      <Filter>src\Data\Behaviours</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -733,6 +742,9 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\main\include\wxcrafter.h">
       <Filter>include\UI\WX Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\behaviours\include\Behaviours.h">
+      <Filter>include\Data\Behaviours</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

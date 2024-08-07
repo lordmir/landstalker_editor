@@ -19,6 +19,7 @@
     <ClCompile Include="..\src\landstalker\3d_maps\src\MapToTmx.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\Tilemap3DCmp.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\TileSwaps.cpp" />
+    <ClCompile Include="..\src\landstalker\behaviours\src\Behaviours.cpp" />
     <ClCompile Include="..\src\landstalker\blockset\src\Block.cpp" />
     <ClCompile Include="..\src\landstalker\blockset\src\BlocksetCmp.cpp" />
     <ClCompile Include="..\src\landstalker\main\src\AsmFile.cpp" />
@@ -117,6 +118,7 @@
     <ClInclude Include="..\src\landstalker\3d_maps\include\MapToTmx.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\Tilemap3DCmp.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\TileSwaps.h" />
+    <ClInclude Include="..\src\landstalker\behaviours\include\Behaviours.h" />
     <ClInclude Include="..\src\landstalker\blockset\include\Block.h" />
     <ClInclude Include="..\src\landstalker\blockset\include\BlocksetCmp.h" />
     <ClInclude Include="..\src\landstalker\main\include\AsmFile.h" />
@@ -265,9 +267,9 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -276,8 +278,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libpng16.lib;zlib.lib;yaml-cppd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -287,9 +289,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -300,8 +302,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libpng16.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libpng16.lib;zlib.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>

@@ -16,6 +16,11 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.16.x'
+
       - name: Checkout sources
         uses: actions/checkout@v4
         with:
@@ -48,6 +53,14 @@ jobs:
           submodules: recursive
           path: wxwidgets
 
+      - name: Checkout yaml-cpp
+        uses: actions/checkout@v4
+        with:
+          repository: jbeder/yaml-cpp
+          ref: refs/tags/yaml-cpp-0.7.0
+          submodules: recursive
+          path: yaml-cpp
+
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
@@ -77,6 +90,19 @@ jobs:
         shell: cmd
         run: nmake /f makefile.vc BUILD=release SHARED=0 TARGET_CPU=X86
 
+      - name: Configure yaml-cpp
+        working-directory: ${{github.workspace}}/yaml-cpp
+        shell: cmd
+        run: |
+          MKDIR build
+          CD build
+          cmake ..
+
+      - name: Build yaml-cpp
+        working-directory: ${{github.workspace}}/yaml-cpp/build
+        shell: cmd
+        run: cmake --build . --target ALL_BUILD --config Release --parallel 8
+
       - name: Build Landstalker Editor
         working-directory: ${{github.workspace}}/landstalker_editor
         shell: cmd
@@ -84,6 +110,7 @@ jobs:
             ZLIB_PATH: ${{github.workspace}}/zlib
             LIBPNG_PATH: ${{github.workspace}}/libpng
             WX_WIN: ${{github.workspace}}/wxWidgets
+            YAMLCPP_PATH: ${{github.workspace}}/yaml-cpp
         run: msbuild .\VC2019\landstalker_edit.sln /t:build /property:Configuration=Release /property:Platform=x86 /m
 
       - name: Compress artifacts
