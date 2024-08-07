@@ -22,9 +22,6 @@
     <Filter Include="include\UI\Main">
       <UniqueIdentifier>{b90da4bd-3c33-4fda-a661-1bdf0baf23df}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Tileset">
-      <UniqueIdentifier>{71e0b0c9-8b72-45fb-bb7e-42fbd70adfb1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="include\Data\Main">
       <UniqueIdentifier>{ba71b140-b0cd-4e11-baac-7f1cbe0a9da2}</UniqueIdentifier>
     </Filter>
@@ -147,6 +144,15 @@
     </Filter>
     <Filter Include="src\Data\Behaviours">
       <UniqueIdentifier>{d9b5c1a3-eb74-4132-9f5a-504ccbb94851}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Behaviours">
+      <UniqueIdentifier>{ac4a45cd-4e12-4bed-b40e-b1e651c5aac3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Behaviours">
+      <UniqueIdentifier>{e9a77bdd-3c90-4660-9b3a-16ea91575dcc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Tileset">
+      <UniqueIdentifier>{71e0b0c9-8b72-45fb-bb7e-42fbd70adfb1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -440,6 +446,12 @@
     </ClCompile>
     <ClCompile Include="..\src\landstalker\behaviours\src\Behaviours.cpp">
       <Filter>src\Data\Behaviours</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorFrame.cpp">
+      <Filter>src\UI\Behaviours</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorCtrl.cpp">
+      <Filter>src\UI\Behaviours</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -745,6 +757,12 @@
     </ClInclude>
     <ClInclude Include="..\src\landstalker\behaviours\include\Behaviours.h">
       <Filter>include\Data\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorFrame.h">
+      <Filter>include\UI\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorCtrl.h">
+      <Filter>include\UI\Behaviours</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

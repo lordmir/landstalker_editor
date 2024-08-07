@@ -60,6 +60,8 @@
     <ClCompile Include="..\src\landstalker\tileset\src\Tileset.cpp" />
     <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditor.cpp" />
     <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorCtrl.cpp" />
     <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\main\src\EditorFrame.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="..\src\landstalker\tileset\include\Tileset.h" />
     <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditor.h" />
     <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorFrame.h" />
     <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorCtrl.h" />
     <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorFrame.h" />
     <ClInclude Include="..\src\user_interface\main\include\EditorFrame.h" />

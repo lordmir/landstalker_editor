@@ -42,6 +42,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::BLOCKSET, new BlocksetEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::ENTITY, new EntityViewerFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -840,6 +841,11 @@ void MainFrame::Refresh()
         GetEntityViewer()->Open(m_seldata);
         ShowEditor(EditorType::ENTITY);
         break;
+    case Mode::BEHAVIOUR_SCRIPT:
+        // Display entity
+        GetBehaviourScriptEditor()->Open();
+        ShowEditor(EditorType::BEHAVIOUR_SCRIPT);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -892,6 +898,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     case TreeNodeData::Node::ENTITY:
         SetMode(Mode::ENTITY);
         break;
+    case TreeNodeData::Node::BEHAVIOUR_SCRIPT:
+        SetMode(Mode::BEHAVIOUR_SCRIPT);
+        break;
     default:
         // do nothing
         break;
@@ -936,6 +945,11 @@ SpriteEditorFrame* MainFrame::GetSpriteEditor()
 EntityViewerFrame* MainFrame::GetEntityViewer()
 {
     return static_cast<EntityViewerFrame*>(m_editors.at(EditorType::ENTITY));
+}
+
+BehaviourScriptEditorFrame* MainFrame::GetBehaviourScriptEditor()
+{
+    return static_cast<BehaviourScriptEditorFrame*>(m_editors.at(EditorType::BEHAVIOUR_SCRIPT));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

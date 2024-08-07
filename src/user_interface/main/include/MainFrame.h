@@ -17,6 +17,7 @@
 #include <user_interface/blockset/include/BlocksetEditorFrame.h>
 #include <user_interface/sprites/include/SpriteEditorFrame.h>
 #include <user_interface/sprites/include/EntityViewerFrame.h>
+#include <user_interface/behaviours/include/BehaviourScriptEditorFrame.h>
 #include <landstalker/main/include/GameData.h>
 
 #ifdef _WIN32
@@ -143,6 +144,7 @@ private:
     BlocksetEditorFrame* GetBlocksetEditor();
     SpriteEditorFrame* GetSpriteEditor();
     EntityViewerFrame* GetEntityViewer();
+    BehaviourScriptEditorFrame* GetBehaviourScriptEditor();
     
     Mode m_mode;
     ImageList* m_imgs;
