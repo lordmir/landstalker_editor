@@ -20,6 +20,9 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.16.x'
+     
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -96,7 +99,7 @@ jobs:
         run: |
           MKDIR build
           CD build
-          cmake -G "Visual Studio 16 2019" -A Win32 ..
+          cmake -G "Visual Studio 17 2022" -A Win32 ..
 
       - name: Build yaml-cpp
         working-directory: ${{github.workspace}}/yaml-cpp/build
