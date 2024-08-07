@@ -66,8 +66,6 @@ jobs:
 
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: '[16.0,17.0)'
 
       - name: Install MSVC Dev
         uses: ilammy/msvc-dev-cmd@v1
