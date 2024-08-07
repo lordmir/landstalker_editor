@@ -22,9 +22,10 @@ public:
 private:
 	void UpdateUI();
 
+	void OnScriptSelect(wxCommandEvent& evt);
+
 	wxTextCtrl* m_text_ctrl;
 	wxChoice* m_script_dropdown;
-	wxArrayString m_scripts;
 
 	std::shared_ptr<GameData> m_gd;
 	int m_behaviour_script;

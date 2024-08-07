@@ -296,6 +296,13 @@ std::string Behaviours::ToYaml(int id, const std::string& name, const std::vecto
     ss << "Index: " << std::dec << id << std::endl;
     ss << "Name: " << name << std::endl;
     ss << "Script:" << std::endl;
+    ss << ToYaml(behaviour);
+    return ss.str();
+}
+
+std::string Behaviours::ToYaml(const std::vector<Behaviours::Command>& behaviour)
+{
+    std::ostringstream ss;
     for (const auto& c : behaviour)
     {
         ss << "- " << Behaviours::GetCommand(c.command).aliases[0];
@@ -320,8 +327,18 @@ std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml, i
     YAML::Node node = YAML::Load(yaml);
     id = node["Index"].as<int>();
     name = node["Name"].as<std::string>();
+    return FromYaml(yaml);
+}
+
+std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml)
+{
+    YAML::Node node = YAML::Load(yaml);
+    if (node["Script"].IsDefined())
+    {
+        node = node["Script"];
+    }
     std::vector<Behaviours::Command> cmds;
-    for (const auto& c : node["Script"])
+    for (const auto& c : node)
     {
         if (c.IsScalar())
         {

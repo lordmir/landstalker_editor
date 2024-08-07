@@ -193,6 +193,10 @@ public:
 	void SetEnemyStats(uint8_t entity_index, const EnemyStats& stats);
 	void ClearEnemyStats(uint8_t entity_index);
 
+	std::map<int, std::string> GetScriptNames() const;
+	std::pair<std::string, std::vector<Behaviours::Command>> GetScript(int id) const;
+	void SetScript(int id, const std::string& name, const std::vector<Behaviours::Command>& cmds);
+
 protected:
 	virtual void CommitAllChanges();
 private:

@@ -164,7 +164,9 @@ public:
     static std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Pack(const std::map<int, std::pair<std::string, std::vector<Command>>>& behaviours);
 
     static std::string ToYaml(int id, const std::string& name, const std::vector<Command>& behaviour);
+    static std::string ToYaml(const std::vector<Command>& behaviour);
     static std::vector<Command> FromYaml(const std::string& yaml, int& id, std::string& name);
+    static std::vector<Command> FromYaml(const std::string& yaml);
 
     static std::map<int, std::pair<std::string, std::vector<Command>>> AllFromYaml(const std::vector<std::string>& yamls);
     static std::vector<std::string> AllToYaml(const std::map<int, std::pair<std::string, std::vector<Command>>>& behaviours);

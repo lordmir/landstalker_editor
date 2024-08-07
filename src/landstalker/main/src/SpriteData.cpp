@@ -1176,6 +1176,31 @@ void SpriteData::ClearEnemyStats(uint8_t entity_index)
 	m_enemy_stats.erase(entity_index);
 }
 
+std::map<int, std::string> SpriteData::GetScriptNames() const
+{
+	std::map<int, std::string> names;
+	for (const auto& s : m_sprite_behaviours)
+	{
+		names.insert({ s.first, s.second.first });
+	}
+	return names;
+}
+
+std::pair<std::string, std::vector<Behaviours::Command>> SpriteData::GetScript(int id) const
+{
+	auto it = m_sprite_behaviours.find(id);
+	if (it != m_sprite_behaviours.cend())
+	{
+		return it->second;
+	}
+	return {"", {}};
+}
+
+void SpriteData::SetScript(int id, const std::string& name, const std::vector<Behaviours::Command>& cmds)
+{
+	m_sprite_behaviours[id] = std::make_pair(name, cmds);
+}
+
 void SpriteData::CommitAllChanges()
 {
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };
