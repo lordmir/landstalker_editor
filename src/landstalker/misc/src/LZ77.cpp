@@ -214,6 +214,5 @@ size_t LZ77::Encode(const uint8_t* inbuf, size_t bufsize, uint8_t* outbuf)
         }
         bb(it->type == Entry::T_BYTE);
     }
-    return esize;
 }
 

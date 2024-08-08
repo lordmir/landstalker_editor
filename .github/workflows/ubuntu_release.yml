@@ -39,7 +39,8 @@ jobs:
                 libglu1-mesa-dev \
                 libcurl4-openssl-dev \
                 libwebkit2gtk-4.0-dev \
-                libpng-dev
+                libpng-dev \
+                cmake
              sudo apt-get remove libunwind-*
              sudo apt-get install -y --no-install-recommends libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
@@ -67,6 +68,35 @@ jobs:
 
       - name: Install wxWidgets
         working-directory: ${{github.workspace}}/wxwidgets/gtkbuild
+        shell: bash
+        run: | 
+            sudo make install
+            sudo ldconfig
+
+      - name: Checkout yaml-cpp
+        uses: actions/checkout@v4
+        with:
+          repository: jbeder/yaml-cpp
+          ref: refs/tags/yaml-cpp-0.7.0
+          submodules: recursive
+          path: yaml-cpp
+
+      - shell: bash
+        working-directory: ${{github.workspace}}/yaml-cpp
+        run: mkdir build
+
+      - name: Configure yaml-cpp
+        working-directory: ${{github.workspace}}/yaml-cpp/build
+        shell: bash
+        run: cmake -DYAML_CPP_BUILD_TESTS=OFF ..
+
+      - name: Build yaml-cpp
+        working-directory: ${{github.workspace}}/yaml-cpp/build
+        shell: bash
+        run: make -j8
+
+      - name: Install yaml-cpp
+        working-directory: ${{github.workspace}}/yaml-cpp/build
         shell: bash
         run: | 
             sudo make install
