@@ -4,6 +4,7 @@
 #include <variant>
 #include <yaml-cpp/yaml.h>
 #include <cassert>
+#include <numeric>
 
 const std::unordered_map<Behaviours::ParamType, int> Behaviours::PARAM_SIZES =
 {
@@ -150,7 +151,15 @@ const Behaviours::CommandDefinition& Behaviours::GetCommandByName(const std::str
             }
         }
     }
-    return GetCommand(commands_by_name.at(name));
+    try
+    {
+        const auto& result = GetCommand(commands_by_name.at(name));
+        return result;
+    }
+    catch (const std::exception&)
+    {
+        throw std::runtime_error("Unknown command \"" + name + "\"");
+    }
 }
 
 std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> Behaviours::Unpack(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& behaviour_table)
@@ -295,7 +304,6 @@ std::string Behaviours::ToYaml(int id, const std::string& name, const std::vecto
     std::ostringstream ss;
     ss << "Index: " << std::dec << id << std::endl;
     ss << "Name: " << name << std::endl;
-    ss << "Script:" << std::endl;
     ss << ToYaml(behaviour);
     return ss.str();
 }
@@ -303,6 +311,7 @@ std::string Behaviours::ToYaml(int id, const std::string& name, const std::vecto
 std::string Behaviours::ToYaml(const std::vector<Behaviours::Command>& behaviour)
 {
     std::ostringstream ss;
+    ss << "Script:" << std::endl;
     for (const auto& c : behaviour)
     {
         ss << "- " << Behaviours::GetCommand(c.command).aliases[0];
@@ -338,17 +347,31 @@ std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml)
         node = node["Script"];
     }
     std::vector<Behaviours::Command> cmds;
+    int cmd_index = 1;
     for (const auto& c : node)
     {
         if (c.IsScalar())
         {
-            cmds.push_back({ Behaviours::GetCommandByName(c.as<std::string>()).id, {} });
+            const auto& cmddef = Behaviours::GetCommandByName(c.as<std::string>());
+            if (!cmddef.params.empty())
+            {
+                std::string err("#" + std::to_string(cmd_index) + ": Expected parameters for command \"" + cmddef.aliases.front() + "\"");
+                err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
+                    std::string("\"") + cmddef.params.front().first + "\"", [](std::string r, const auto& s)
+                    {
+                        return std::move(r) + ", \"" + s.first + "\"";
+                    });
+                throw std::runtime_error(err);
+            }
+            cmds.push_back({ cmddef.id, {} });
         }
         else if (c.IsMap() && c.size() >= 1)
         {
             const auto& cmddef = Behaviours::GetCommandByName(c.begin()->first.as<std::string>());
             Behaviours::Command cmd;
             cmd.command = cmddef.id;
+            std::vector<bool> params_set(cmddef.params.size());
+            std::fill(params_set.begin(), params_set.end(), false);
             for (const auto& p : cmddef.params)
             {
                 cmd.params.push_back({ p.first, -1 });
@@ -363,6 +386,7 @@ std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml)
                 if (pdef != cmddef.params.end())
                 {
                     auto pindex = std::distance(cmddef.params.cbegin(), pdef);
+                    params_set[pindex] = true;
                     switch (pdef->second)
                     {
                     case Behaviours::ParamType::COORDINATE:
@@ -374,9 +398,35 @@ std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml)
                         break;
                     }
                 }
+                else
+                {
+                    std::string err("#" + std::to_string(cmd_index) + ": Bad parameter \"" + pname + "\" for command \"" + cmddef.aliases.front() + "\"");
+                    err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
+                        std::string("\"") + cmddef.params.front().first + "\"", [](std::string r, const auto& s)
+                        {
+                            return std::move(r) + ", \"" + s.first + "\"";
+                        });
+                    throw std::runtime_error(err);
+                }
+            }
+            if (!std::all_of(params_set.begin(), params_set.end(), [](bool p) {return p; }))
+            {
+                std::string err("#" + std::to_string(cmd_index) + ": Expected " + std::to_string(cmddef.params.size()) +
+                    " parameters for command \"" + cmddef.aliases.front() + "\"");
+                err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
+                    std::string("\"") + cmddef.params.front().first + "\"",  [](std::string r, const auto& s)
+                    {
+                        return std::move(r) + ", \"" + s.first + "\"";
+                    });
+                throw std::runtime_error(err);
             }
             cmds.push_back(cmd);
         }
+        else
+        {
+            throw std::runtime_error("#" + std::to_string(cmd_index) + ": Unexpected element in YAML: " + c.as<std::string>("?"));
+        }
+        ++cmd_index;
     }
     return cmds;
 }

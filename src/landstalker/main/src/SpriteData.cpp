@@ -1201,6 +1201,11 @@ void SpriteData::SetScript(int id, const std::string& name, const std::vector<Be
 	m_sprite_behaviours[id] = std::make_pair(name, cmds);
 }
 
+void SpriteData::SetScript(int id, const std::vector<Behaviours::Command>& cmds)
+{
+	m_sprite_behaviours[id] = std::make_pair(m_sprite_behaviours.at(id).first, cmds);
+}
+
 void SpriteData::CommitAllChanges()
 {
 	auto pair_commit = [](const auto& e) {return e.second->Commit(); };

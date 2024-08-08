@@ -10,7 +10,7 @@ on:
 jobs:
   build-release:
     name: Windows release build
-    runs-on: windows-2019
+    runs-on: windows-2022
     env:
       BUILD_TYPE: Release
     strategy:
@@ -99,7 +99,7 @@ jobs:
         run: |
           MKDIR build
           CD build
-          cmake -G "Visual Studio 16 2019" -A Win32 ..
+          cmake -G "Visual Studio 17 2022" -A Win32 ..
 
       - name: Build yaml-cpp
         working-directory: ${{github.workspace}}/yaml-cpp/build

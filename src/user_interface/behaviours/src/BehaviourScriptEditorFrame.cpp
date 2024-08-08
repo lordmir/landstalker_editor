@@ -30,7 +30,6 @@ bool BehaviourScriptEditorFrame::Open(int script_id)
 		return true;
 	}
 	return false;
-	return false;
 }
 
 void BehaviourScriptEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
