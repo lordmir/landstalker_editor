@@ -5,6 +5,14 @@
 
 namespace RomLabels
 {
+	namespace Script
+	{
+		extern const std::string SCRIPT_SECTION;
+		extern const std::string SCRIPT_END;
+
+		extern const std::string SCRIPT_FILE;
+	}
+
 	namespace Sprites
 	{
 		extern const std::string POINTER;

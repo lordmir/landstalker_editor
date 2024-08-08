@@ -25,6 +25,19 @@ private:
     void SetDefaultFilenames();
     bool CreateDirectoryStructure(const filesystem::path& dir);
     void InitCache();
+
+    bool AsmLoadScript();
+
+    bool RomLoadScript(const Rom& rom);
+
+    bool AsmSaveScript(const filesystem::path& dir);
+
+    bool RomPrepareInjectScript(const Rom& rom);
+
+    filesystem::path m_script_filename;
+
+    std::vector<uint8_t> m_script;
+    std::vector<uint8_t> m_script_orig;
 };
 
 #endif // _SCRIPT_DATA_H_

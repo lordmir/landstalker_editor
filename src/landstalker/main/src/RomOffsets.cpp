@@ -188,7 +188,8 @@ namespace RomOffsets
 		{ Rooms::SHOP_LIST_LEA2,                   {{Region::JP, 0x009BAC}, {Region::US, 0x009C12}, {Region::UK, 0x009C12}, {Region::FR, 0x009C12}, {Region::DE, 0x009C1C}, {Region::US_BETA, 0x009BBA}}},
 		{ Rooms::LIFESTOCK_SOLD_FLAGS,             {{Region::JP, 0x009C70}, {Region::US, 0x009CD6}, {Region::UK, 0x009CD6}, {Region::FR, 0x009CD6}, {Region::DE, 0x009CE0}, {Region::US_BETA, 0x009C7E}}},
 		{ Rooms::LANTERN_ROOM_FLAGS,               {{Region::JP, 0x008764}, {Region::US, 0x0087BE}, {Region::UK, 0x0087BE}, {Region::FR, 0x0087BE}, {Region::DE, 0x0087C8}, {Region::US_BETA, 0x008772}}},
-		{ Tilesets::INTRO_FONT_PTR,                {{Region::JP, 0x00C4C2}, {Region::US, 0x00C528}, {Region::UK, 0x00C528}, {Region::FR, 0x00C528}, {Region::DE, 0x00C532}, {Region::US_BETA, 0x00C4D0}}}
+		{ Tilesets::INTRO_FONT_PTR,                {{Region::JP, 0x00C4C2}, {Region::US, 0x00C528}, {Region::UK, 0x00C528}, {Region::FR, 0x00C528}, {Region::DE, 0x00C532}, {Region::US_BETA, 0x00C4D0}}},
+		{ Script::SCRIPT_END,                      {{Region::JP, 0x000000}, {Region::US, 0x02540A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
 	const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
@@ -252,7 +253,8 @@ namespace RomOffsets
 		{ Graphics::TITLE_PALETTE_YELLOW,            {{Region::JP, {0x039C2C, 0x039C36}}, {Region::US, {0x039C3C, 0x039C46}}, {Region::UK, {0x039C3C, 0x039C46}}, {Region::FR, {0x039C28, 0x039C32}}, {Region::DE, {0x039C28, 0x039C32}}, {Region::US_BETA, {0x039C48, 0x039C52}}}},
 		{ Graphics::EQUIP_PAL_SECTION,               {{Region::JP, {0x0078A6, 0x0078D2}}, {Region::US, {0x007900, 0x00792C}}, {Region::UK, {0x007900, 0x00792C}}, {Region::FR, {0x007900, 0x00792C}}, {Region::DE, {0x00790A, 0x007936}}, {Region::US_BETA, {0x0078B4, 0x0078E0}}}},
 		{ Graphics::MISC_PAL_SECTION,                {{Region::JP, {0x008FB6, 0x008FE0}}, {Region::US, {0x00901C, 0x009046}}, {Region::UK, {0x00901C, 0x009046}}, {Region::FR, {0x00901C, 0x009046}}, {Region::DE, {0x009026, 0x009050}}, {Region::US_BETA, {0x008FC4, 0x008FEE}}}},
-		{ Graphics::INV_ITEM_PAL_SECTION,            {{Region::JP, {0x00783C, 0x00785C}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x007896, 0x0078B6}}, {Region::FR, {0x007896, 0x0078B6}}, {Region::DE, {0x0078A0, 0x0078C0}}, {Region::US_BETA, {0x00784A, 0x00786A}}}}
+		{ Graphics::INV_ITEM_PAL_SECTION,            {{Region::JP, {0x00783C, 0x00785C}}, {Region::US, {0x007896, 0x0078B6}}, {Region::UK, {0x007896, 0x0078B6}}, {Region::FR, {0x007896, 0x0078B6}}, {Region::DE, {0x0078A0, 0x0078C0}}, {Region::US_BETA, {0x00784A, 0x00786A}}}},
+		{ Script::SCRIPT_SECTION,                    {{Region::JP, {0x000000, 0x000000}}, {Region::US, {0x0277F6, 0x028D64}}, {Region::UK, {0x000000, 0x000000}}, {Region::FR, {0x000000, 0x000000}}, {Region::DE, {0x000000, 0x000000}}, {Region::US_BETA, {0x000000, 0x000000}}}}
 	};
 
 } // namespace RomOffsets

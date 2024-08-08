@@ -2,6 +2,14 @@
 
 namespace RomLabels
 {
+	namespace Script
+	{
+		const std::string SCRIPT_SECTION("Script");
+		const std::string SCRIPT_END("ScriptEnd");
+
+		const std::string SCRIPT_FILE("assets_packed/script/script.bin");
+	}
+
 	namespace Sprites
 	{
 		const std::string POINTER("SpriteGfxPtrPtr");
