@@ -6,6 +6,7 @@ namespace RomLabels
 	{
 		const std::string SCRIPT_SECTION("Script");
 		const std::string SCRIPT_END("ScriptEnd");
+		const std::string SCRIPT_STRINGS_BEGIN("SCRIPT_STRINGS_BEGIN");
 
 		const std::string SCRIPT_FILE("assets_packed/script/script.bin");
 	}

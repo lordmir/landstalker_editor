@@ -462,6 +462,12 @@
     <ClCompile Include="..\src\landstalker\main\src\ScriptData.cpp">
       <Filter>src\Data\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\Script.cpp">
+      <Filter>src\Data\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\ScriptTableEntry.cpp">
+      <Filter>src\Data\Script</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -775,6 +781,12 @@
     </ClInclude>
     <ClInclude Include="..\src\landstalker\main\include\ScriptData.h">
       <Filter>include\Data\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\Script.h">
+      <Filter>include\Data\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h">
+      <Filter>include\Data\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

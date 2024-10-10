@@ -3,6 +3,7 @@
 
 #include <landstalker/main/include/DataManager.h>
 #include <landstalker/main/include/DataTypes.h>
+#include <landstalker/script/include/Script.h>
 
 class ScriptData : public DataManager
 {
@@ -18,6 +19,8 @@ public:
 
     virtual bool HasBeenModified() const;
     virtual void RefreshPendingWrites(const Rom& rom);
+
+    uint16_t GetStringStart() const;
 protected:
     virtual void CommitAllChanges();
 private:
@@ -36,8 +39,8 @@ private:
 
     filesystem::path m_script_filename;
 
-    std::vector<uint8_t> m_script;
-    std::vector<uint8_t> m_script_orig;
+    Script m_script;
+    Script m_script_orig;
 };
 
 #endif // _SCRIPT_DATA_H_

@@ -71,6 +71,11 @@ void ScriptData::RefreshPendingWrites(const Rom& rom)
 	}
 }
 
+uint16_t ScriptData::GetStringStart() const
+{
+	return 0x4D;
+}
+
 void ScriptData::CommitAllChanges()
 {
 	m_pending_writes.clear();
@@ -113,7 +118,7 @@ void ScriptData::InitCache()
 bool ScriptData::AsmLoadScript()
 {
 	filesystem::path path = GetBasePath() / m_script_filename;
-	m_script = ReadBytes(path);
+	m_script = std::move(Script(ReadBytes(path)));
 	return true;
 }
 
@@ -122,18 +127,18 @@ bool ScriptData::RomLoadScript(const Rom& rom)
 	uint32_t script_begin = rom.get_section(RomLabels::Script::SCRIPT_SECTION).begin;
 	uint32_t script_end = Disasm::ReadOffset16(rom, RomLabels::Script::SCRIPT_END);
 	uint32_t script_size = script_end - script_begin;
-	m_script = rom.read_array<uint8_t>(script_begin, script_size);
+	m_script = std::move(Script(rom.read_array<uint8_t>(script_begin, script_size)));
 	return true;
 }
 
 bool ScriptData::AsmSaveScript(const filesystem::path& dir)
 {
-	WriteBytes(m_script, dir / m_script_filename);
+	WriteBytes(m_script.ToBytes(), dir / m_script_filename);
 	return true;
 }
 
 bool ScriptData::RomPrepareInjectScript(const Rom& /*rom*/)
 {
-	m_pending_writes.push_back({ RomLabels::Script::SCRIPT_SECTION, std::make_shared<ByteVector>(m_script) });
+	m_pending_writes.push_back({ RomLabels::Script::SCRIPT_SECTION, std::make_shared<ByteVector>(m_script.ToBytes()) });
 	return true;
 }

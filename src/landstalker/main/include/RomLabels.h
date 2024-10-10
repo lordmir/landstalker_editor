@@ -9,6 +9,7 @@ namespace RomLabels
 	{
 		extern const std::string SCRIPT_SECTION;
 		extern const std::string SCRIPT_END;
+		extern const std::string SCRIPT_STRINGS_BEGIN;
 
 		extern const std::string SCRIPT_FILE;
 	}

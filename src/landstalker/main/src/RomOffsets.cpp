@@ -189,7 +189,8 @@ namespace RomOffsets
 		{ Rooms::LIFESTOCK_SOLD_FLAGS,             {{Region::JP, 0x009C70}, {Region::US, 0x009CD6}, {Region::UK, 0x009CD6}, {Region::FR, 0x009CD6}, {Region::DE, 0x009CE0}, {Region::US_BETA, 0x009C7E}}},
 		{ Rooms::LANTERN_ROOM_FLAGS,               {{Region::JP, 0x008764}, {Region::US, 0x0087BE}, {Region::UK, 0x0087BE}, {Region::FR, 0x0087BE}, {Region::DE, 0x0087C8}, {Region::US_BETA, 0x008772}}},
 		{ Tilesets::INTRO_FONT_PTR,                {{Region::JP, 0x00C4C2}, {Region::US, 0x00C528}, {Region::UK, 0x00C528}, {Region::FR, 0x00C528}, {Region::DE, 0x00C532}, {Region::US_BETA, 0x00C4D0}}},
-		{ Script::SCRIPT_END,                      {{Region::JP, 0x000000}, {Region::US, 0x02540A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
+		{ Script::SCRIPT_END,                      {{Region::JP, 0x000000}, {Region::US, 0x02540A}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}},
+		{ Script::SCRIPT_STRINGS_BEGIN,            {{Region::JP, 0x000000}, {Region::US, 0x028DB4}, {Region::UK, 0x000000}, {Region::FR, 0x000000}, {Region::DE, 0x000000}, {Region::US_BETA, 0x000000}}}
 	};
 
 	const std::unordered_map<std::string, std::unordered_map<Region, Section>> SECTION
