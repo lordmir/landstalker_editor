@@ -413,7 +413,7 @@ bool AssemblyBuilderDialog::DoSave()
     {
         if (m_gd->Save(m_dir.ToStdString()))
         {
-            Log("Done!\n", *wxGREEN);
+            Log("Done!\n", wxColor(0, 128, 0));
             return true;
         }
         else
@@ -469,7 +469,7 @@ bool AssemblyBuilderDialog::DoFixChecksum()
         auto r = Rom(outname.ToStdString());
         r.writeFile(outname.ToStdString());
 
-        Log(StrPrintf("Done! Checksum is 0x%04X.\n", r.read_checksum()), *wxGREEN);
+        Log(StrPrintf("Done! Checksum is 0x%04X.\n", r.read_checksum()), wxColor(0, 128, 0));
         return true;
     }
     else
@@ -550,7 +550,7 @@ bool AssemblyBuilderDialog::DoSaveToRom()
         details.str(std::string());
     }
     message << std::endl;
-    Log(message.str(), warning ? *wxRED : *wxGREEN);
+    Log(message.str(), warning ? *wxRED : wxColor(0, 128, 0));
     Refresh();
     Update();
     wxYieldIfNeeded();
@@ -569,7 +569,7 @@ bool AssemblyBuilderDialog::DoSaveToRom()
     {
         m_gd->InjectIntoRom(output);
         output.writeFile(m_dir.ToStdString());
-        Log("ROM Injection complete!\n", *wxGREEN);
+        Log("ROM Injection complete!\n", wxColor(0, 128, 0));
         retval = true;
     }
     Refresh();

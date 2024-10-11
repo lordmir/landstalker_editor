@@ -23,6 +23,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["alpha"] = wxBITMAP_PNG_FROM_DATA(alpha_16x16);
 		m_images["append_tile"] = wxBITMAP_PNG_FROM_DATA(append_tile_16x16);
 		m_images["ats"] = wxBITMAP_PNG_FROM_DATA(ats_16x16);
+		m_images["bscript"] = wxBITMAP_PNG_FROM_DATA(bscript_16x16);
 		m_images["big_tiles"] = wxBITMAP_PNG_FROM_DATA(bigtiles_16x16);
 		m_images["chest16"] = wxBITMAP_PNG_FROM_DATA(chest16_16x16);
 		m_images["compress"] = wxBITMAP_PNG_FROM_DATA(compress_16x16);
@@ -97,6 +98,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["redo"] = wxBITMAP_PNG_FROM_DATA(REDO_16x16);
 		m_images["room"] = wxBITMAP_PNG_FROM_DATA(room_16x16);
 		m_images["save"] = wxBITMAP_PNG_FROM_DATA(SAVE_16x16);
+		m_images["script"] = wxBITMAP_PNG_FROM_DATA(script_16x16);
 		m_images["sel_block"] = wxBITMAP_PNG_FROM_DATA(selblock_16x16);
 		m_images["sel_tile"] = wxBITMAP_PNG_FROM_DATA(seltile_16x16);
 		m_images["sprite"] = wxBITMAP_PNG_FROM_DATA(sprite_16x16);

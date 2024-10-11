@@ -17,6 +17,7 @@
 #include <user_interface/blockset/include/BlocksetEditorFrame.h>
 #include <user_interface/sprites/include/SpriteEditorFrame.h>
 #include <user_interface/sprites/include/EntityViewerFrame.h>
+#include <user_interface/behaviours/include/BehaviourScriptEditorFrame.h>
 #include <landstalker/main/include/GameData.h>
 
 #ifdef _WIN32
@@ -67,7 +68,8 @@ private:
             ROOM,
             SPRITE,
             SPRITE_FRAME,
-            ENTITY
+            ENTITY,
+            BEHAVIOUR_SCRIPT
         };
         TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
         std::size_t GetValue() const { return m_value; }
@@ -87,7 +89,8 @@ private:
         PALETTE,
         ROOMMAP,
         SPRITE,
-        ENTITY
+        ENTITY,
+        BEHAVIOUR_SCRIPT
     };
 
     enum class EditorType
@@ -101,6 +104,7 @@ private:
         BLOCKSET,
         SPRITE,
         ENTITY,
+        BEHAVIOUR_SCRIPT,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -140,6 +144,7 @@ private:
     BlocksetEditorFrame* GetBlocksetEditor();
     SpriteEditorFrame* GetSpriteEditor();
     EntityViewerFrame* GetEntityViewer();
+    BehaviourScriptEditorFrame* GetBehaviourScriptEditor();
     
     Mode m_mode;
     ImageList* m_imgs;
