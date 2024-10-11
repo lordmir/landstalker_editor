@@ -189,7 +189,6 @@ void MainFrame::InitUI()
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
-    wxTreeItemId nodeBScript = m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
@@ -209,6 +208,7 @@ void MainFrame::InitUI()
     wxTreeItemId nodeEnt = m_browser->AppendItem(nodeRoot, "Entities", ent_img, ent_img, new TreeNodeData());
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
+    m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(StringData::Type::MAIN)));
     m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,

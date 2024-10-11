@@ -201,7 +201,7 @@ uint16_t ScriptInvalidEntry::ToBytes() const
 	return bits;
 }
 
-std::wstring ScriptInvalidEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptInvalidEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return StrWPrintf(L"Invalid Entry %04X", bits);
 }
@@ -211,7 +211,7 @@ uint16_t ScriptInitiateCutsceneEntry::ToBytes() const
 	return (7 << 10) | cutscene;
 }
 
-std::wstring ScriptInitiateCutsceneEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptInitiateCutsceneEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return StrWPrintf(L"Initiate cutscene %03d", cutscene);
 }
