@@ -1270,8 +1270,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ALL_CSV, "Export All Maps as CSV Set...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_TMX, "Export Map as Tiled TMX...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_ALL_TMX, "Export All Maps as Tiled TMX...");
-	AddMenuItem(fileMenu, 5, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 6, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
+	AddMenuItem(fileMenu, 6, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
 	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
 	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
