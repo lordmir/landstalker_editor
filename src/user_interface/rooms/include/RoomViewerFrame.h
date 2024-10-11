@@ -46,6 +46,7 @@ public:
 
 	bool ExportBin(const std::string& path);
 	bool ExportCsv(const std::array<std::string, 3>& paths);
+	bool ExportAllCsv(const std::string& dir);
 	bool ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
 	bool ExportAllTmx(const std::string& dir);
 	bool ExportPng(const std::string& path);
@@ -83,6 +84,7 @@ private:
 
 	void OnExportBin();
 	void OnExportCsv();
+	void OnExportAllCsv();
 	void OnExportTmx();
 	void OnExportAllTmx();
 	void OnExportPng();
