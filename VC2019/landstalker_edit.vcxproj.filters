@@ -160,6 +160,12 @@
     <Filter Include="include\Data\Script">
       <UniqueIdentifier>{c228e525-a1fe-4925-9a55-0a05911159fd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\UI\Script">
+      <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Script">
+      <UniqueIdentifier>{b3bc73ba-2b88-486f-8d94-02ebec7de3bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
@@ -467,6 +473,12 @@
     </ClCompile>
     <ClCompile Include="..\src\landstalker\script\src\ScriptTableEntry.cpp">
       <Filter>src\Data\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorCtrl.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp">
+      <Filter>src\UI\Script</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -787,6 +799,12 @@
     </ClInclude>
     <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h">
       <Filter>include\Data\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorCtrl.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h">
+      <Filter>include\UI\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -112,7 +112,12 @@ uint16_t ScriptGlobalCharLoadEntry::ToBytes() const
 
 std::wstring ScriptGlobalCharLoadEntry::ToString(std::shared_ptr<const GameData> gd) const
 {
-	return StrWPrintf(L"Load global character %02d (%s) into Slot %01d", chr, gd->GetStringData()->GetSpecialCharName(chr).c_str(), slot);
+	std::wstring char_name = gd->GetStringData()->GetDefaultCharName();
+	if (chr < gd->GetStringData()->GetSpecialCharNameCount())
+	{
+		char_name = gd->GetStringData()->GetSpecialCharName(chr);
+	}
+	return StrWPrintf(L"Load global character %02d (%s) into Slot %01d", chr, char_name.c_str(), slot);
 }
 
 uint16_t ScriptNumLoadEntry::ToBytes() const

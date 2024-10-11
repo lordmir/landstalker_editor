@@ -59,6 +59,51 @@ std::vector<uint8_t> Script::ToBytes() const
 	return bytes;
 }
 
+std::size_t Script::GetScriptLineCount() const
+{
+	return m_table.size();
+}
+
+const ScriptTableEntry& Script::GetScriptLine(std::size_t line) const
+{
+	return *m_table.at(line);
+}
+
+void Script::SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> content)
+{
+	if (line < m_table.size())
+	{
+		m_table[line] = std::move(content);
+	}
+}
+
+void Script::AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content)
+{
+	m_table.insert(m_table.cbegin() + line, std::move(content));
+}
+
+void Script::DeleteScriptLine(std::size_t line)
+{
+	m_table.erase(m_table.cbegin() + line);
+}
+
+std::wstring Script::GetScriptString(std::size_t line, std::shared_ptr<GameData> gd) const
+{
+	return m_table.at(line)->ToString(gd);
+}
+
+std::wstring Script::GetAllScriptStrings(std::shared_ptr<GameData> gd) const
+{
+	std::wstring lines;
+	for (const auto& line : m_table)
+	{
+		lines += line->ToString(gd);
+		lines += L"\n";
+	}
+
+	return lines;
+}
+
 void Script::Copy(const Script& rhs)
 {
 	m_table.clear();

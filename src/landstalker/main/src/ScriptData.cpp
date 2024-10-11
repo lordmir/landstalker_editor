@@ -76,6 +76,16 @@ uint16_t ScriptData::GetStringStart() const
 	return 0x4D;
 }
 
+Script& ScriptData::GetScript()
+{
+	return m_script;
+}
+
+const Script& ScriptData::GetScript() const
+{
+	return m_script;
+}
+
 void ScriptData::CommitAllChanges()
 {
 	m_pending_writes.clear();

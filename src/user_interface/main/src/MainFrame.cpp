@@ -43,6 +43,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::SPRITE, new SpriteEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::ENTITY, new EntityViewerFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::SCRIPT, new ScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -208,7 +209,9 @@ void MainFrame::InitUI()
     wxTreeItemId nodeEnt = m_browser->AppendItem(nodeRoot, "Entities", ent_img, ent_img, new TreeNodeData());
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
+    m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
+
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(StringData::Type::MAIN)));
     m_browser->AppendItem(nodeS, "Character Names", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
@@ -846,6 +849,11 @@ void MainFrame::Refresh()
         GetBehaviourScriptEditor()->Open();
         ShowEditor(EditorType::BEHAVIOUR_SCRIPT);
         break;
+    case Mode::SCRIPT:
+        // Display script
+        GetScriptEditor()->Open();
+        ShowEditor(EditorType::SCRIPT);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -901,6 +909,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
     case TreeNodeData::Node::BEHAVIOUR_SCRIPT:
         SetMode(Mode::BEHAVIOUR_SCRIPT);
         break;
+    case TreeNodeData::Node::SCRIPT:
+        SetMode(Mode::SCRIPT);
+        break;
     default:
         // do nothing
         break;
@@ -950,6 +961,11 @@ EntityViewerFrame* MainFrame::GetEntityViewer()
 BehaviourScriptEditorFrame* MainFrame::GetBehaviourScriptEditor()
 {
     return static_cast<BehaviourScriptEditorFrame*>(m_editors.at(EditorType::BEHAVIOUR_SCRIPT));
+}
+
+ScriptEditorFrame* MainFrame::GetScriptEditor()
+{
+    return static_cast<ScriptEditorFrame*>(m_editors.at(EditorType::SCRIPT));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

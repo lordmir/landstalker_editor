@@ -20,6 +20,15 @@ public:
 
 	std::vector<uint8_t> ToBytes() const;
 
+	std::size_t GetScriptLineCount() const;
+	const ScriptTableEntry& GetScriptLine(std::size_t line) const;
+	void SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
+	void AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
+	void DeleteScriptLine(std::size_t line);
+
+	std::wstring GetScriptString(std::size_t line, std::shared_ptr<GameData> gd) const;
+	std::wstring GetAllScriptStrings(std::shared_ptr<GameData> gd) const;
+
 private:
 	void Copy(const Script& rhs);
 	std::vector<std::unique_ptr<ScriptTableEntry>> m_table;

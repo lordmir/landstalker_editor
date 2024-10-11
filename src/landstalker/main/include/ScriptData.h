@@ -21,6 +21,9 @@ public:
     virtual void RefreshPendingWrites(const Rom& rom);
 
     uint16_t GetStringStart() const;
+
+    Script& GetScript();
+    const Script& GetScript() const;
 protected:
     virtual void CommitAllChanges();
 private:
