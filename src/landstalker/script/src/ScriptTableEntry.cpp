@@ -80,7 +80,7 @@ std::unique_ptr<ScriptTableEntry> ScriptTableEntry::FromBytes(uint16_t word)
 
 uint16_t ScriptStringEntry::ToBytes() const
 {
-	return 0x8000 | (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | string & 0x7FF;
+	return 0x8000 | (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (string & 0x7FF);
 }
 
 std::wstring ScriptStringEntry::ToString(std::shared_ptr<const GameData> gd) const
@@ -120,7 +120,7 @@ uint16_t ScriptNumLoadEntry::ToBytes() const
 	return (4 << 10) | num;
 }
 
-std::wstring ScriptNumLoadEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptNumLoadEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return StrWPrintf(L"Load number % 5d into Slot 0", num);
 }
@@ -130,7 +130,7 @@ uint16_t ScriptSetFlagEntry::ToBytes() const
 	return (5 << 10) | flag;
 }
 
-std::wstring ScriptSetFlagEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptSetFlagEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return StrWPrintf(L"Set flag %03d", flag);;
 }
@@ -140,7 +140,7 @@ uint16_t ScriptGiveItemEntry::ToBytes() const
 	return (5 << 10) | 1000;
 }
 
-std::wstring ScriptGiveItemEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptGiveItemEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return L"Give item in Slot 0 to player";
 }
@@ -150,17 +150,17 @@ uint16_t ScriptGiveMoneyEntry::ToBytes() const
 	return (5 << 10) | 1001;
 }
 
-std::wstring ScriptGiveMoneyEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptGiveMoneyEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	return L"Give money amount in Slot 0 to player";
 }
 
 uint16_t ScriptPlayBgmEntry::ToBytes() const
 {
-	return (5 << 10) | 1002 + bgm;
+	return (5 << 10) | (1002 + bgm);
 }
 
-std::wstring ScriptPlayBgmEntry::ToString(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptPlayBgmEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
 	static const std::array<std::wstring, 2> BGMS{ L"Heh Heh, I Think I Will Disrupt This Good Cheer", L"Black Market" };
 	return StrWPrintf(L"Play BGM track %01d (\"%s\").", bgm, BGMS[bgm % BGMS.size()].c_str());

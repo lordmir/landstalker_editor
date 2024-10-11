@@ -1,4 +1,4 @@
-#include <landstalker\script\include\Script.h>
+#include <landstalker/script/include/Script.h>
 
 Script::Script()
 {
