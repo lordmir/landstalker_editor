@@ -85,7 +85,7 @@ uint16_t ScriptStringEntry::ToBytes() const
 
 std::wstring ScriptStringEntry::ToString(std::shared_ptr<const GameData> gd) const
 {
-	LSString::StringType formatted_string = StrWPrintf(L"Message %04d %s %s", string, clear_box ? L"[Clear]" : L"", end ? L"[End]" : L"");
+	LSString::StringType formatted_string = StrWPrintf(L"Message %04d %s %s", string, clear_box ? L"[Clear]" : L"       ", end ? L"[End]" : L"     ");
 	if (gd)
 	{
 		formatted_string += std::wstring(L": \"");

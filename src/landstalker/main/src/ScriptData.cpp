@@ -15,6 +15,7 @@ ScriptData::ScriptData(const filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load script from \'") + m_script_filename.str() + '\'');
 	}
+	m_script_start = 0x4D;
 	InitCache();
 }
 
@@ -73,7 +74,7 @@ void ScriptData::RefreshPendingWrites(const Rom& rom)
 
 uint16_t ScriptData::GetStringStart() const
 {
-	return 0x4D;
+	return m_script_start;
 }
 
 Script& ScriptData::GetScript()
@@ -138,6 +139,7 @@ bool ScriptData::RomLoadScript(const Rom& rom)
 	uint32_t script_end = Disasm::ReadOffset16(rom, RomLabels::Script::SCRIPT_END);
 	uint32_t script_size = script_end - script_begin;
 	m_script = std::move(Script(rom.read_array<uint8_t>(script_begin, script_size)));
+	m_script_start = rom.read<uint16_t>(RomLabels::Script::SCRIPT_STRINGS_BEGIN);
 	return true;
 }
 

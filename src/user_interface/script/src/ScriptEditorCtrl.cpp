@@ -1,4 +1,4 @@
-#include <user_interface\script\include\ScriptEditorCtrl.h>
+#include <user_interface/script/include/ScriptEditorCtrl.h>
 
 wxBEGIN_EVENT_TABLE(ScriptEditorCtrl, wxPanel)
 wxEND_EVENT_TABLE()
@@ -9,7 +9,7 @@ ScriptEditorCtrl::ScriptEditorCtrl(wxWindow* parent)
 	wxBoxSizer* hsizer = new wxBoxSizer(wxHORIZONTAL);
 	this->SetSizer(hsizer);
 
-	m_text_ctrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxTE_MULTILINE | wxTE_RICH2);
+	m_text_ctrl = new wxTextCtrl(this, wxID_ANY, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxTE_MULTILINE | wxTE_RICH2 | wxTE_READONLY);
 	hsizer->Add(m_text_ctrl, 1, wxALL | wxEXPAND, 5);
 
 	GetSizer()->Fit(this);
@@ -40,6 +40,8 @@ void ScriptEditorCtrl::Open()
 		m_text_ctrl->SetBackgroundColour(*wxWHITE);
 		m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
 		m_text_ctrl->AppendText(_(m_gd->GetScriptData()->GetScript().GetAllScriptStrings(m_gd)));
+		m_text_ctrl->SetInsertionPoint(0);
+		m_text_ctrl->ShowPosition(0);
 	}
 }
 
@@ -54,5 +56,7 @@ void ScriptEditorCtrl::UpdateUI()
 		m_text_ctrl->SetBackgroundColour(*wxWHITE);
 		m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
 		m_text_ctrl->AppendText(_(m_gd->GetScriptData()->GetScript().GetAllScriptStrings(m_gd)));
+		m_text_ctrl->SetInsertionPoint(0);
+		m_text_ctrl->ShowPosition(0);
 	}
 }

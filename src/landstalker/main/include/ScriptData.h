@@ -44,6 +44,7 @@ private:
 
     Script m_script;
     Script m_script_orig;
+    uint16_t m_script_start;
 };
 
 #endif // _SCRIPT_DATA_H_
