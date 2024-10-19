@@ -432,7 +432,7 @@ bool RoomViewerFrame::ExportTmx(const std::string& tmx_path, const std::string& 
 		}
 	}
 	buf.WritePNG(bs_path, { palette }, true);
-	return MapToTmx::ExportToTmx(tmx_path, *m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData(), bs_path);
+	return MapToTmx::ExportToTmx(tmx_path, *m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData(), bs_path, blocksets);
 }
 
 bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
