@@ -50,6 +50,7 @@ public:
 	bool ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
 	bool ExportAllTmx(const std::string& dir);
 	bool ExportPng(const std::string& path);
+	bool ExportRoomTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
 	bool ImportTmx(const std::string& paths, uint16_t roomnum);
@@ -87,6 +88,7 @@ private:
 	void OnExportAllCsv();
 	void OnExportTmx();
 	void OnExportAllTmx();
+	void OnExportRoomTmx();
 	void OnExportPng();
 	void OnImportBin();
 	void OnImportCsv();

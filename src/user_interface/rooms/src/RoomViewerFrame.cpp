@@ -10,6 +10,7 @@
 #include <user_interface/rooms/include/RoomErrorDialog.h>
 #include <user_interface/rooms/include/TileSwapDialog.h>
 #include <landstalker/3d_maps/include/MapToTmx.h>
+#include <landstalker/3d_maps/include/RoomToTmx.h>
 #include <user_interface/rooms/include/RoomViewerCtrl.h>
 
 enum MENU_IDS
@@ -20,6 +21,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_TMX,
 	ID_FILE_EXPORT_ALL_TMX,
 	ID_FILE_EXPORT_PNG,
+	ID_FILE_EXPORT_ROOM_TMX,
 	ID_FILE_SEP1,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
@@ -454,6 +456,41 @@ bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 	}
 	wxSetWorkingDirectory(curdir);
 	return true;
+}
+
+bool RoomViewerFrame::ExportRoomTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum)
+{
+	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+	auto blocksets = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
+	auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
+	auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
+
+	const int width = 16;
+	const int height = 64;
+	int blockwidth = MapBlock::GetBlockWidth() * tileset->GetTileWidth();
+	int blockheight = MapBlock::GetBlockHeight() * tileset->GetTileHeight();
+	int pixelwidth = blockwidth * width;
+	int pixelheight = blockheight * height;
+	ImageBuffer buf(pixelwidth, pixelheight);
+	std::size_t i = 0;
+	for (int y = 0; y < pixelheight; y += blockheight)
+	{
+		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
+		{
+			if (i < blocksets->size())
+			{
+				buf.InsertBlock(x, y, 0, blocksets->at(i), *tileset);
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+	buf.WritePNG(bs_path, { palette }, true);
+
+	std::shared_ptr<RoomData> roomData = m_g->GetRoomData();
+	return RoomToTmx::ExportToTmx(tmx_path, roomnum, roomData, bs_path);
 }
 
 bool RoomViewerFrame::ExportPng(const std::string& path)
@@ -1271,10 +1308,11 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_TMX, "Export Map as Tiled TMX...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_ALL_TMX, "Export All Maps as Tiled TMX...");
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
-	AddMenuItem(fileMenu, 6, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
-	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
-	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
+	AddMenuItem(fileMenu, 7, ID_FILE_EXPORT_ROOM_TMX, "Export Room as Tiled TMX...");
+	AddMenuItem(fileMenu, 8, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 11, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
@@ -1438,6 +1476,9 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_EXPORT_PNG:
 			OnExportPng();
+			break;
+		case ID_FILE_EXPORT_ROOM_TMX:
+			OnExportRoomTmx();
 			break;
 		case ID_FILE_IMPORT_BIN:
 			OnImportBin();
@@ -1753,6 +1794,23 @@ void RoomViewerFrame::OnExportAllTmx()
 	if (dd.ShowModal() != wxID_CANCEL)
 	{
 		ExportAllTmx(dd.GetPath().ToStdString());
+	}
+}
+
+void RoomViewerFrame::OnExportRoomTmx()
+{
+	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+	wxString default_file = wxString::Format("Room%03d.tmx", m_roomnum);
+	wxFileDialog fd(this, _("Export Room As TMX"), "", default_file, "Tiled TMX Tilemap (*.tmx)|*.tmx|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		wxString tmx_file = fd.GetPath();
+		default_file = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
+		wxFileDialog bfd(this, _("Export Blockset As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+		if (bfd.ShowModal() != wxID_CANCEL)
+		{
+			ExportRoomTmx(tmx_file.ToStdString(), bfd.GetPath().ToStdString(), m_roomnum);
+		}
 	}
 }
 
