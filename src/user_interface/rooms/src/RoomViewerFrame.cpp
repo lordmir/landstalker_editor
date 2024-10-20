@@ -489,8 +489,7 @@ bool RoomViewerFrame::ExportRoomTmx(const std::string& tmx_path, const std::stri
 	}
 	buf.WritePNG(bs_path, { palette }, true);
 
-	std::shared_ptr<RoomData> roomData = m_g->GetRoomData();
-	return RoomToTmx::ExportToTmx(tmx_path, roomnum, roomData, bs_path);
+	return RoomToTmx::ExportToTmx(tmx_path, roomnum, m_g, bs_path);
 }
 
 bool RoomViewerFrame::ExportPng(const std::string& path)

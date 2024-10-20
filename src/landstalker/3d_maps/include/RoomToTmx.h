@@ -3,12 +3,12 @@
 
 #include <string>
 #include <landstalker/main/include/DataTypes.h>
-#include <landstalker/main/include/RoomData.h>
+#include <landstalker/main/include/GameData.h>
 
 class RoomToTmx
 {
 public:
-	static bool ExportToTmx(const std::string& fname, int roomnum, std::shared_ptr<RoomData> roomData, const std::string& blockset_filename);
+	static bool ExportToTmx(const std::string& fname, int roomnum, std::shared_ptr<GameData> gameData, const std::string& blockset_filename);
 };
 
 #endif // _ROOM_TO_TMX_H_

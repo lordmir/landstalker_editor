@@ -1,14 +1,16 @@
 #include <landstalker/3d_maps/include/RoomToTmx.h>
 #include <landstalker/3d_maps/include/MapToTmx.h>
 #include <landstalker/rooms/include/Room.h>
+#include <landstalker/rooms/include/Entity.h>
 #include <landstalker/rooms/include/WarpList.h>
 #include <sstream>
 #include <iomanip>
 #include <wx/filename.h>
 #include <wx/xml/xml.h>
 
-bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_ptr<RoomData> roomData, const std::string& blockset_filename)
+bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_ptr<GameData> gameData, const std::string& blockset_filename)
 {
+	std::shared_ptr<RoomData> roomData = gameData->GetRoomData();
 	wxXmlDocument tmx = MapToTmx::GenerateXmlDocument(fname, *(roomData->GetMapForRoom(roomnum)->GetData()), blockset_filename);
 
 	// Properties
@@ -118,7 +120,7 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 	tmx.GetRoot()->AddChild(properties);
 
 
-	// Warps object
+	// Warp objects
 	auto warps_objectgroup = new wxXmlNode(wxXML_ELEMENT_NODE, "objectgroup");
 	warps_objectgroup->AddAttribute("id", "3");
 	warps_objectgroup->AddAttribute("name", "Warps");
@@ -135,7 +137,7 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 		warp_object->AddAttribute("width", std::to_string(warp.x_size));
 		warp_object->AddAttribute("height", std::to_string(warp.y_size));
 		
-		// Adding warp properties
+		// Warp properties
 		auto properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
 		
 		auto room1_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
@@ -180,6 +182,57 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 
 
 	tmx.GetRoot()->AddChild(warps_objectgroup);
+
+
+	// Entity objects
+	auto entities_objectgroup = new wxXmlNode(wxXML_ELEMENT_NODE, "objectgroup");
+	entities_objectgroup->AddAttribute("id", "4");
+	entities_objectgroup->AddAttribute("name", "Entities");
+
+	int entity_id = 1;
+	std::vector<Entity> entities = gameData->GetSpriteData()->GetRoomEntities(roomnum);
+
+	for (const auto& entity : entities) {
+		auto entity_object = new wxXmlNode(wxXML_ELEMENT_NODE, "object");
+		entity_object->AddAttribute("id", std::to_string(entity_id));
+		entity_object->AddAttribute("x", std::to_string(entity.GetX()));
+		entity_object->AddAttribute("y", std::to_string(entity.GetY()));
+		entity_object->AddAttribute("visible", entity.IsVisible() ? "1" : "0");
+		entity_object->AddAttribute("name", entity.GetTypeName());
+		entities_objectgroup->AddChild(entity_object);
+
+		// Entity properties
+		auto properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
+
+		auto add_property = [&properties](const std::string& name, const std::string& value) {
+			auto property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
+			property->AddAttribute("name", name);
+			property->AddAttribute("value", value);
+			properties->AddChild(property);
+		};
+
+		add_property("Type", std::to_string(entity.GetType()));
+		add_property("Palette", std::to_string(entity.GetPalette()));
+		add_property("Behaviour", std::to_string(entity.GetBehaviour()));
+		add_property("Dialogue", std::to_string(entity.GetDialogue()));
+		add_property("Hostile", entity.IsHostile() ? "true" : "false");
+		add_property("NoRotate", entity.NoRotate() ? "true" : "false");
+		add_property("NoPickup", entity.NoPickup() ? "true" : "false");
+		add_property("HasDialogue", entity.HasDialogue() ? "true" : "false");
+		add_property("Visible", entity.IsVisible() ? "true" : "false");
+		add_property("Solid", entity.IsSolid() ? "true" : "false");
+		add_property("Gravity", entity.HasGravity() ? "true" : "false");
+		add_property("Friction", entity.HasFriction() ? "true" : "false");
+		add_property("Speed", std::to_string(entity.GetSpeed()));
+		add_property("Orientation", entity.GetOrientationName());
+		add_property("TileSource", std::to_string(entity.GetCopySource()));
+
+		entity_object->AddChild(properties);
+		
+		entity_id++;
+	}
+
+	tmx.GetRoot()->AddChild(entities_objectgroup);
 
 	return tmx.Save(fname);
 }
