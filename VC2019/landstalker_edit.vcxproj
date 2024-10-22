@@ -98,6 +98,7 @@
     <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp" />
     <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewModel.cpp" />
     <ClCompile Include="..\src\user_interface\script\src\ScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h" />
     <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewModel.h" />
     <ClInclude Include="..\src\user_interface\script\include\ScriptEditorCtrl.h" />
     <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h" />

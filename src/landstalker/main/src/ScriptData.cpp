@@ -56,7 +56,7 @@ bool ScriptData::Save()
 
 bool ScriptData::HasBeenModified() const
 {
-	if (m_script_orig != m_script)
+	if (m_script_orig != *m_script)
 	{
 		return true;
 	}
@@ -77,12 +77,12 @@ uint16_t ScriptData::GetStringStart() const
 	return m_script_start;
 }
 
-Script& ScriptData::GetScript()
+std::shared_ptr<Script> ScriptData::GetScript()
 {
 	return m_script;
 }
 
-const Script& ScriptData::GetScript() const
+std::shared_ptr<const Script> ScriptData::GetScript() const
 {
 	return m_script;
 }
@@ -123,13 +123,13 @@ bool ScriptData::CreateDirectoryStructure(const filesystem::path& dir)
 
 void ScriptData::InitCache()
 {
-	m_script_orig = m_script;
+	m_script_orig = *m_script;
 }
 
 bool ScriptData::AsmLoadScript()
 {
 	filesystem::path path = GetBasePath() / m_script_filename;
-	m_script = std::move(Script(ReadBytes(path)));
+	m_script = std::make_shared<Script>(ReadBytes(path));
 	return true;
 }
 
@@ -138,19 +138,19 @@ bool ScriptData::RomLoadScript(const Rom& rom)
 	uint32_t script_begin = rom.get_section(RomLabels::Script::SCRIPT_SECTION).begin;
 	uint32_t script_end = Disasm::ReadOffset16(rom, RomLabels::Script::SCRIPT_END);
 	uint32_t script_size = script_end - script_begin;
-	m_script = std::move(Script(rom.read_array<uint8_t>(script_begin, script_size)));
+	m_script = std::make_shared<Script>(rom.read_array<uint8_t>(script_begin, script_size));
 	m_script_start = rom.read<uint16_t>(RomLabels::Script::SCRIPT_STRINGS_BEGIN);
 	return true;
 }
 
 bool ScriptData::AsmSaveScript(const filesystem::path& dir)
 {
-	WriteBytes(m_script.ToBytes(), dir / m_script_filename);
+	WriteBytes(m_script->ToBytes(), dir / m_script_filename);
 	return true;
 }
 
 bool ScriptData::RomPrepareInjectScript(const Rom& /*rom*/)
 {
-	m_pending_writes.push_back({ RomLabels::Script::SCRIPT_SECTION, std::make_shared<ByteVector>(m_script.ToBytes()) });
+	m_pending_writes.push_back({ RomLabels::Script::SCRIPT_SECTION, std::make_shared<ByteVector>(m_script->ToBytes()) });
 	return true;
 }

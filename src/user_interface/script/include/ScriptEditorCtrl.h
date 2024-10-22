@@ -4,8 +4,10 @@
 #include <memory>
 
 #include <wx/wx.h>
+#include <wx/dataview.h>
 
 #include <landstalker/main/include/GameData.h>
+#include <user_interface/script/include/ScriptDataViewModel.h>
 
 class ScriptEditorCtrl : public wxPanel
 {
@@ -21,7 +23,8 @@ public:
 private:
 	void UpdateUI();
 
-	wxTextCtrl* m_text_ctrl;
+	wxDataViewCtrl* m_dvc_ctrl;
+	ScriptDataViewModel* m_model;
 
 	std::shared_ptr<GameData> m_gd;
 

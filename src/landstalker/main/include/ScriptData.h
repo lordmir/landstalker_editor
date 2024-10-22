@@ -22,8 +22,8 @@ public:
 
     uint16_t GetStringStart() const;
 
-    Script& GetScript();
-    const Script& GetScript() const;
+    std::shared_ptr<Script> GetScript();
+    std::shared_ptr<const Script> GetScript() const;
 protected:
     virtual void CommitAllChanges();
 private:
@@ -42,7 +42,7 @@ private:
 
     filesystem::path m_script_filename;
 
-    Script m_script;
+    std::shared_ptr<Script> m_script;
     Script m_script_orig;
     uint16_t m_script_start;
 };

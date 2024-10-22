@@ -166,6 +166,24 @@
     <Filter Include="include\UI\Script">
       <UniqueIdentifier>{b3bc73ba-2b88-486f-8d94-02ebec7de3bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\UI\Rooms\CharacterEditor">
+      <UniqueIdentifier>{688e4244-fdf8-4a86-881b-ad271ec66943}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms\ChestEditor">
+      <UniqueIdentifier>{839f4aae-1388-4b38-b5c0-c22fc22c8615}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms\EntityEditor">
+      <UniqueIdentifier>{4b4334d6-8031-4104-bd19-3d0efb7c2561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms\FlagEditor">
+      <UniqueIdentifier>{fa9b1f5e-30fe-4b0f-8771-97e1a3b06f0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms\DoorSwapEditor">
+      <UniqueIdentifier>{fb82b22a-c3f4-4aaf-9d23-9738100d1646}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\UI\Rooms\WarpEditor">
+      <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
@@ -354,27 +372,6 @@
     <ClCompile Include="..\src\user_interface\palettes\src\PaletteListFrame.cpp">
       <Filter>src\UI\Palette</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\CharacterDialog.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\ChestDialog.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\DoorDataViewModel.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\EntityControlFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\EntityPropertiesWindow.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\FlagDataViewModel.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\FlagDialog.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\user_interface\rooms\src\HeightmapEditorCtrl.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
@@ -391,21 +388,6 @@
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\user_interface\rooms\src\RoomViewerFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapControlFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDataViewModel.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp">
       <Filter>src\UI\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp">
@@ -478,6 +460,45 @@
       <Filter>src\UI\Script</Filter>
     </ClCompile>
     <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\CharacterDialog.cpp">
+      <Filter>src\UI\Rooms\CharacterEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\ChestDialog.cpp">
+      <Filter>src\UI\Rooms\ChestEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\EntityControlFrame.cpp">
+      <Filter>src\UI\Rooms\EntityEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\EntityPropertiesWindow.cpp">
+      <Filter>src\UI\Rooms\EntityEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\DoorDataViewModel.cpp">
+      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\FlagDataViewModel.cpp">
+      <Filter>src\UI\Rooms\FlagEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\FlagDialog.cpp">
+      <Filter>src\UI\Rooms\FlagEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapControlFrame.cpp">
+      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDataViewModel.cpp">
+      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp">
+      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp">
+      <Filter>src\UI\Rooms\WarpEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp">
+      <Filter>src\UI\Rooms\WarpEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewModel.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
   </ItemGroup>
@@ -804,6 +825,9 @@
       <Filter>include\UI\Script</Filter>
     </ClInclude>
     <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewModel.h">
       <Filter>include\UI\Script</Filter>
     </ClInclude>
   </ItemGroup>

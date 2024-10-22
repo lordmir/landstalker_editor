@@ -30,6 +30,7 @@ public:
 	virtual ~ScriptTableEntry() = default;
 	virtual uint16_t ToBytes() const = 0;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const = 0;
+	ScriptTableEntryType GetType() const { return type; }
 	static std::unique_ptr<ScriptTableEntry> FromBytes(uint16_t word);
 protected:
 	ScriptTableEntryType type = ScriptTableEntryType::INVALID;
