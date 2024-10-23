@@ -22,6 +22,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_ALL_TMX,
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_EXPORT_ROOM_TMX,
+	ID_FILE_EXPORT_ALL_ROOMS_TMX,
 	ID_FILE_SEP1,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
@@ -490,6 +491,27 @@ bool RoomViewerFrame::ExportRoomTmx(const std::string& tmx_path, const std::stri
 	buf.WritePNG(bs_path, { palette }, true);
 
 	return RoomToTmx::ExportToTmx(tmx_path, roomnum, m_g, bs_path);
+}
+
+bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
+{
+	wxBusyInfo wait("Exporting...");
+	wxString curdir = wxGetCwd();
+	wxSetWorkingDirectory(dir);
+	filesystem::path mappath(dir);
+	filesystem::path bspath(mappath / "blocksets");
+	filesystem::create_directories(bspath);
+	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
+	{
+		auto rd = m_g->GetRoomData()->GetRoom(i);
+		std::string roomfile = rd->name + ".tmx";
+		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
+		std::string blkpath = "blocksets";
+		blkpath += wxFileName::GetPathSeparator() + blkname;
+		ExportRoomTmx(roomfile, blkpath, i);
+	}
+	wxSetWorkingDirectory(curdir);
+	return true;
 }
 
 bool RoomViewerFrame::ExportPng(const std::string& path)
@@ -1308,10 +1330,11 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_ALL_TMX, "Export All Maps as Tiled TMX...");
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
 	AddMenuItem(fileMenu, 7, ID_FILE_EXPORT_ROOM_TMX, "Export Room as Tiled TMX...");
-	AddMenuItem(fileMenu, 8, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
-	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
-	AddMenuItem(fileMenu, 11, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
+	AddMenuItem(fileMenu, 8, ID_FILE_EXPORT_ALL_ROOMS_TMX, "Export All Rooms as Tiled TMX...");
+	AddMenuItem(fileMenu, 9, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 11, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 12, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
@@ -1478,6 +1501,9 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_EXPORT_ROOM_TMX:
 			OnExportRoomTmx();
+			break;
+		case ID_FILE_EXPORT_ALL_ROOMS_TMX:
+			OnExportAllRoomsTmx();
 			break;
 		case ID_FILE_IMPORT_BIN:
 			OnImportBin();
@@ -1810,6 +1836,15 @@ void RoomViewerFrame::OnExportRoomTmx()
 		{
 			ExportRoomTmx(tmx_file.ToStdString(), bfd.GetPath().ToStdString(), m_roomnum);
 		}
+	}
+}
+
+void RoomViewerFrame::OnExportAllRoomsTmx()
+{
+	wxDirDialog dd(this, "Select TMX Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllRoomsTmx(dd.GetPath().ToStdString());
 	}
 }
 
