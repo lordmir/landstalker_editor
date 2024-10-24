@@ -161,7 +161,7 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 		properties->AddChild(y2_property);
 		
 		auto type_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
-		type_property->AddAttribute("name", "type");
+		type_property->AddAttribute("name", "warpType");
 
 		// Convert the warp type to a string
 		std::string warp_type_str;
