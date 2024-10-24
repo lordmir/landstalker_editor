@@ -291,7 +291,7 @@ for (const auto& entity : entities) {
 
     auto speed_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     speed_property->AddAttribute("name", "Speed");
-	speed_property->AddAttribute("type", "bool");
+	speed_property->AddAttribute("type", "int");
     speed_property->AddAttribute("value", std::to_string(entity.GetSpeed()));
     properties->AddChild(speed_property);
 
