@@ -24,17 +24,13 @@ void ScriptEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
 {
 	m_gd = gd;
 	m_dvc_ctrl->ClearColumns();
-	delete m_model;
+	m_dvc_ctrl->AssociateModel(nullptr);
 	m_model = new ScriptDataViewModel(gd);
 
 	m_model->Initialise();
 	m_dvc_ctrl->AssociateModel(m_model);
 	m_model->DecRef();
 	m_model->InitControl(m_dvc_ctrl);
-	auto font = m_dvc_ctrl->GetFont();
-	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	font.SetPointSize(10);
-	m_dvc_ctrl->SetFont(font);
 }
 
 void ScriptEditorCtrl::ClearGameData()
@@ -45,32 +41,8 @@ void ScriptEditorCtrl::ClearGameData()
 
 void ScriptEditorCtrl::Open()
 {
-	/*if (m_gd)
-	{
-		m_text_ctrl->Clear();
-		auto font = m_text_ctrl->GetFont();
-		font.SetFamily(wxFONTFAMILY_TELETYPE);
-		font.SetPointSize(10);
-		m_text_ctrl->SetBackgroundColour(*wxWHITE);
-		m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
-		m_text_ctrl->AppendText(_(m_gd->GetScriptData()->GetScript()->GetAllScriptStrings(m_gd)));
-		m_text_ctrl->SetInsertionPoint(0);
-		m_text_ctrl->ShowPosition(0);
-	}*/
 }
 
 void ScriptEditorCtrl::UpdateUI()
 {
-	/*if (m_gd)
-	{
-		m_text_ctrl->Clear();
-		auto font = m_text_ctrl->GetFont();
-		font.SetFamily(wxFONTFAMILY_TELETYPE);
-		font.SetPointSize(10);
-		m_text_ctrl->SetBackgroundColour(*wxWHITE);
-		m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
-		m_text_ctrl->AppendText(_(m_gd->GetScriptData()->GetScript()->GetAllScriptStrings(m_gd)));
-		m_text_ctrl->SetInsertionPoint(0);
-		m_text_ctrl->ShowPosition(0);
-	}*/
 }

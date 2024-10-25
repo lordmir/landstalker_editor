@@ -1,4 +1,5 @@
 #include <user_interface/script/include/ScriptDataViewModel.h>
+#include <user_interface/script/include/ScriptDataViewRenderer.h>
 
 ScriptDataViewModel::ScriptDataViewModel(std::shared_ptr<GameData> gd)
   : BaseDataViewModel(),
@@ -93,7 +94,7 @@ void ScriptDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, un
 			variant = static_cast<long>(m_script->GetScriptLine(row).GetType());
 			break;
 		case 2:
-			variant = wxString(m_script->GetScriptLine(row).ToString(m_gd));
+			variant = static_cast<long>(m_script->GetScriptLine(row).ToBytes());
 			break;
 		default:
 			break;
@@ -101,13 +102,26 @@ void ScriptDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, un
 	}
 }
 
-bool ScriptDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int col, wxDataViewItemAttr& attr) const
+bool ScriptDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
 
-bool ScriptDataViewModel::SetValueByRow(const wxVariant& /*variant*/, unsigned int /*row*/, unsigned int /*col*/)
+bool ScriptDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
 {
+	if (col > 0 && row >= 0 && row < m_script->GetScriptLineCount())
+	{
+		if (col == 1)
+		{
+			//TODO
+			return false;
+		}
+		else if (col == 2)
+		{
+			m_script->SetScriptLine(row, ScriptTableEntry::FromBytes(static_cast<uint16_t>(variant.GetLong())));
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -136,5 +150,5 @@ void ScriptDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
 	// Parameters
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewTextRenderer(), 2, -1, wxALIGN_LEFT));
+		new ScriptDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, m_gd), 2, -1, wxALIGN_LEFT));
 }

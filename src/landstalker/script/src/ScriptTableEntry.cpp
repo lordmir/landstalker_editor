@@ -7,7 +7,7 @@ std::unique_ptr<ScriptTableEntry> ScriptTableEntry::FromBytes(uint16_t word)
 {
 	if ((word & 0x8000) > 0)
 	{
-		return std::make_unique<ScriptStringEntry>(static_cast<uint16_t>(word & 0x7FF), (word & 0x4000) > 0, (word & 0x2000) > 0);
+		return std::make_unique<ScriptStringEntry>(static_cast<uint16_t>(word & 0x1FFF), (word & 0x4000) > 0, (word & 0x2000) > 0);
 	}
 	else
 	{
@@ -80,7 +80,7 @@ std::unique_ptr<ScriptTableEntry> ScriptTableEntry::FromBytes(uint16_t word)
 
 uint16_t ScriptStringEntry::ToBytes() const
 {
-	return 0x8000 | (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (string & 0x7FF);
+	return 0x8000 | (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (string & 0x1FFF);
 }
 
 std::wstring ScriptStringEntry::ToString(std::shared_ptr<const GameData> gd) const
@@ -88,8 +88,16 @@ std::wstring ScriptStringEntry::ToString(std::shared_ptr<const GameData> gd) con
 	LSString::StringType formatted_string = StrWPrintf(L"Message %04d %s %s", string, clear_box ? L"[Clear]" : L"       ", end ? L"[End]" : L"     ");
 	if (gd)
 	{
+		std::size_t string_idx = gd->GetScriptData()->GetStringStart() + string;
 		formatted_string += std::wstring(L": \"");
-		formatted_string += gd->GetStringData()->GetString(StringData::Type::MAIN, gd->GetScriptData()->GetStringStart() + string).c_str();
+		if (string_idx < gd->GetStringData()->GetStringCount(StringData::Type::MAIN))
+		{
+			formatted_string += gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx).c_str();
+		}
+		else
+		{
+			formatted_string += L"<INVALID>";
+		}
 		formatted_string += L"\"";
 	}
 	return formatted_string;
