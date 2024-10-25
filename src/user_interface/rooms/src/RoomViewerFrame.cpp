@@ -9,6 +9,7 @@
 #include <user_interface/rooms/include/CharacterDialog.h>
 #include <user_interface/rooms/include/RoomErrorDialog.h>
 #include <user_interface/rooms/include/TileSwapDialog.h>
+#include <landstalker/misc/include/Labels.h>
 #include <landstalker/3d_maps/include/MapToTmx.h>
 #include <landstalker/3d_maps/include/RoomToTmx.h>
 #include <user_interface/rooms/include/RoomViewerCtrl.h>
@@ -840,25 +841,25 @@ void RoomViewerFrame::RefreshLists() const
 	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 
 	m_bgms.Clear();
-	m_bgms.Add("[00] The Marquis' Invitation");
-	m_bgms.Add("[01] Premonition of Trouble");
-	m_bgms.Add("[02] Overworld");
-	m_bgms.Add("[03] Bustling Street");
-	m_bgms.Add("[04] Torchlight");
-	m_bgms.Add("[05] Prayers to God");
-	m_bgms.Add("[06] Gumi");
-	m_bgms.Add("[07] Beneath the Mysterious Tree");
-	m_bgms.Add("[08] Overworld");
-	m_bgms.Add("[09] The King's Chamber");
-	m_bgms.Add("[0A] Mysterious Island");
-	m_bgms.Add("[0B] The Death God's Invitation");
-	m_bgms.Add("[0C] Deserted Street Corner");
-	m_bgms.Add("[0D] Labrynth");
-	m_bgms.Add("[0E] The Silence, the Darkness, and...");
-	m_bgms.Add("[0F] Light of the Setting Sun");
-	m_bgms.Add("[10] Friday and a Soft Breeze");
-	m_bgms.Add("[11] Divine Guardian of the Maze");
-	m_bgms.Add("[12] Fade Out");
+	m_bgms.Add("[00] " + Labels::GetBgm(0).value_or(""));
+	m_bgms.Add("[01] " + Labels::GetBgm(1).value_or(""));
+	m_bgms.Add("[02] " + Labels::GetBgm(2).value_or(""));
+	m_bgms.Add("[03] " + Labels::GetBgm(3).value_or(""));
+	m_bgms.Add("[04] " + Labels::GetBgm(4).value_or(""));
+	m_bgms.Add("[05] " + Labels::GetBgm(5).value_or(""));
+	m_bgms.Add("[06] " + Labels::GetBgm(6).value_or(""));
+	m_bgms.Add("[07] " + Labels::GetBgm(7).value_or(""));
+	m_bgms.Add("[08] " + Labels::GetBgm(8).value_or(""));
+	m_bgms.Add("[09] " + Labels::GetBgm(9).value_or(""));
+	m_bgms.Add("[0A] " + Labels::GetBgm(10).value_or(""));
+	m_bgms.Add("[0B] " + Labels::GetBgm(11).value_or(""));
+	m_bgms.Add("[0C] " + Labels::GetBgm(12).value_or(""));
+	m_bgms.Add("[0D] " + Labels::GetBgm(13).value_or(""));
+	m_bgms.Add("[0E] " + Labels::GetBgm(14).value_or(""));
+	m_bgms.Add("[0F] " + Labels::GetBgm(15).value_or(""));
+	m_bgms.Add("[10] " + Labels::GetBgm(16).value_or(""));
+	m_bgms.Add("[11] " + Labels::GetBgm(17).value_or(""));
+	m_bgms.Add("[12] " + Labels::GetBgm(18).value_or(""));
 
 	m_palettes.Clear();
 	for (const auto& p : m_g->GetRoomData()->GetRoomPalettes())
