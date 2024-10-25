@@ -2,7 +2,6 @@
 #include <sstream>
 #include <iomanip>
 #include <wx/filename.h>
-#include <wx/xml/xml.h>
 
 std::string GetData(const Tilemap3D& map, Tilemap3D::Layer layer)
 {
@@ -91,7 +90,7 @@ bool MapToTmx::ImportFromTmx(const std::string& fname, Tilemap3D& map)
 	return false;
 }
 
-bool MapToTmx::ExportToTmx(const std::string& fname, const Tilemap3D& map, const std::string& blockset_filename)
+wxXmlDocument MapToTmx::GenerateXmlDocument(const std::string& fname, const Tilemap3D& map, const std::string& blockset_filename)
 {
 	wxXmlDocument tmx;
 	wxFileName fn(fname);
@@ -153,5 +152,11 @@ bool MapToTmx::ExportToTmx(const std::string& fname, const Tilemap3D& map, const
 	tmx.GetRoot()->AddChild(bg_layer);
 	tmx.GetRoot()->AddChild(fg_layer);
 
+	return tmx;
+}
+
+bool MapToTmx::ExportToTmx(const std::string& fname, const Tilemap3D& map, const std::string& blockset_filename)
+{
+	wxXmlDocument tmx = MapToTmx::GenerateXmlDocument(fname, map, blockset_filename);
 	return tmx.Save(fname);
 }
