@@ -48,6 +48,7 @@ public:
 	void ExportTiles(const std::string& filename) const;
 	void ExportVdpSpritemap(const std::string& filename) const;
 	void ExportPng(const std::string& filename) const;
+	void ExportPngAnimation(const std::string& filename) const;
 	void ImportFrm(const std::string& filename);
 	void ImportTiles(const std::string& filename);
 	void ImportVdpSpritemap(const std::string& filename);
@@ -101,6 +102,7 @@ private:
 	void OnExportTiles();
 	void OnExportVdpSpritemap();
 	void OnExportPng();
+	void OnExportPngAnimation();
 	void OnImportFrm();
 	void OnImportTiles();
 	void OnImportVdpSpritemap();
