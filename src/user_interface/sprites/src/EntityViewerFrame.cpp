@@ -4,6 +4,7 @@
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_PNG = 20000,
+	ID_FILE_EXPORT_ALL_PNG,
 	ID_VIEW_SEP1
 };
 
@@ -556,13 +557,10 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 }
 
 
-void EntityViewerFrame::ExportPng(const std::string& filename) const
+void EntityViewerFrame::ExportPng(const std::string& filename, uint16_t entitynum) const
 {
 	auto sd = m_gd->GetSpriteData();
-	int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
-
-	std::shared_ptr<SpriteFrameEntry> frame = m_gd->GetSpriteData()->GetSpriteFrame(sprite_index, 0);
-
+	int sprite_index = sd->GetSpriteFromEntity(entitynum);
 	int frame_count = m_gd->GetSpriteData()->GetSpriteFrameCount(sprite_index);
 
 	int width = 0;
@@ -577,6 +575,7 @@ void EntityViewerFrame::ExportPng(const std::string& filename) const
 
 	ImageBuffer buf(width, height);
 	int draw_x = 0;
+
 	for (int frame_index = 0; frame_index < frame_count; ++frame_index) {
 		std::shared_ptr<SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(sprite_index, frame_index);
 		int draw_y = height - spriteFrame->GetData()->GetHeight();
@@ -584,25 +583,55 @@ void EntityViewerFrame::ExportPng(const std::string& filename) const
 		draw_x += spriteFrame->GetData()->GetWidth();
 	}
 
-	buf.WritePNG(filename, { m_palette }, true);
+	auto palette_idxs = m_gd->GetSpriteData()->GetEntityPaletteIdxs(entitynum);
+	auto palette = m_gd->GetSpriteData()->GetSpritePalette(palette_idxs.first, palette_idxs.second);
+	buf.WritePNG(filename, { palette }, true);
+}
+
+bool EntityViewerFrame::ExportAllPng(const std::string& dir)
+{
+	wxSetWorkingDirectory(dir);
+	filesystem::path mappath(dir);
+
+	int entity_id = 0;
+	for (const auto& name : Entity::EntityNames) {
+		std::string filename = wxString::Format("Entity%03d%s.png", entity_id, name).ToStdString();
+		std::replace(filename.begin(), filename.end(), ' ', '_');
+		ExportPng(filename, entity_id);
+		++entity_id;
+	}
+
+	return true;
 }
 
 void EntityViewerFrame::OnExportPng()
 {
-	const wxString default_file = StrPrintf("Entity%03d.png", m_entity_id);
+	wxString default_file = wxString::Format("Entity%03d%s.png", m_entity_id,  Entity::EntityNames[m_entity_id]);
+	default_file.Replace(" ", "_");
 	wxFileDialog fd(this, _("Export Entity Sprite As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
-		ExportPng(fd.GetPath().ToStdString());
+		ExportPng(fd.GetPath().ToStdString(), m_entity_id);
 	}
 }
+
+void EntityViewerFrame::OnExportAllPng()
+{
+	wxDirDialog dd(this, "Select PNG Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllPng(dd.GetPath().ToStdString());
+	}
+}
+
 
 void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
-	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_PNG, "Export Entity Sprite as PNG...");
-	AddMenuItem(fileMenu, 1, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_PNG, "Export Entity Sprites as PNG...");
+	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_ALL_PNG, "Export All Entities Sprites as PNG...");
+	AddMenuItem(fileMenu, 2, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
 	UpdateUI();
 
 	m_mgr.Update();
@@ -614,6 +643,9 @@ void EntityViewerFrame::OnMenuClick(wxMenuEvent& evt)
 	{
 	case ID_FILE_EXPORT_PNG:
 		OnExportPng();
+		break;
+	case ID_FILE_EXPORT_ALL_PNG:
+		OnExportAllPng();
 		break;
 	default:
 		break;

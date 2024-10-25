@@ -8,6 +8,8 @@
 
 #include <string>
 #include <memory>
+#include <algorithm> 
+#include <wx/string.h>
 
 class EntityViewerFrame : public EditorFrame
 {
@@ -28,8 +30,12 @@ private:
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
-	void ExportPng(const std::string& filename) const;
+	void ExportPng(const std::string& filename, uint16_t entitynum) const;
+	bool ExportAllPng(const std::string& dir);
+
 	void OnExportPng();
+	void OnExportAllPng();
+
 
 	mutable wxPGChoices m_hi_palettes;
 	mutable wxPGChoices m_lo_palettes;
