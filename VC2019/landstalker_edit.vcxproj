@@ -17,6 +17,7 @@
     <ClCompile Include="..\src\landstalker\3d_maps\src\BlockmapIsometric.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\Doors.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\MapToTmx.cpp" />
+    <ClCompile Include="..\src\landstalker\3d_maps\src\RoomToTmx.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\Tilemap3DCmp.cpp" />
     <ClCompile Include="..\src\landstalker\3d_maps\src\TileSwaps.cpp" />
     <ClCompile Include="..\src\landstalker\behaviours\src\Behaviours.cpp" />
@@ -118,6 +119,7 @@
     <ClInclude Include="..\src\landstalker\3d_maps\include\BlockmapIsometric.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\Doors.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\MapToTmx.h" />
+    <ClInclude Include="..\src\landstalker\3d_maps\include\RoomToTmx.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\Tilemap3DCmp.h" />
     <ClInclude Include="..\src\landstalker\3d_maps\include\TileSwaps.h" />
     <ClInclude Include="..\src\landstalker\behaviours\include\Behaviours.h" />
