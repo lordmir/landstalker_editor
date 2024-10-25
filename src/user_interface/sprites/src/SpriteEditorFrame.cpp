@@ -11,6 +11,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_TILES,
 	ID_FILE_EXPORT_VDPMAP,
 	ID_FILE_EXPORT_PNG,
+	ID_FILE_EXPORT_PNG_ANIMATION,
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
@@ -319,9 +320,11 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_TILES, "Export Sprite Tileset as Binary...");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_VDPMAP, "Export VDP Sprite Map as CSV...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
-	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
-	AddMenuItem(fileMenu, 5, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
-	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
+	AddMenuItem(fileMenu, 5, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
+	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
+	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
 	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
@@ -397,6 +400,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_FILE_EXPORT_PNG:
 		OnExportPng();
+		break;
+	case ID_FILE_EXPORT_PNG_ANIMATION:
+		OnExportPngAnimation();
 		break;
 	case ID_FILE_IMPORT_FRM:
 		OnImportFrm();
@@ -537,6 +543,32 @@ void SpriteEditorFrame::ExportPng(const std::string& filename) const
 	int height = m_sprite->GetData()->GetHeight();
 	ImageBuffer buf(width, height);
 	buf.InsertSprite(-m_sprite->GetData()->GetLeft(), -m_sprite->GetData()->GetTop(), 0, *m_sprite->GetData());
+	buf.WritePNG(filename, { m_palette }, true);
+}
+
+void SpriteEditorFrame::ExportPngAnimation(const std::string& filename) const
+{
+	std::vector<std::string> frames = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim);
+
+	int width = 0;
+	int height = 0;
+	for (const auto& frame : frames) {
+		std::shared_ptr<SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(frame);
+		width += spriteFrame->GetData()->GetWidth();
+		if(spriteFrame->GetData()->GetHeight() > height) {
+			height = spriteFrame->GetData()->GetHeight();
+		}
+	}
+
+	ImageBuffer buf(width, height);
+	int draw_x = 0;
+	for (const auto& frame : frames) {
+		std::shared_ptr<SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(frame);
+		int draw_y = height - spriteFrame->GetData()->GetHeight();
+		buf.InsertSprite(-spriteFrame->GetData()->GetLeft() + draw_x, -spriteFrame->GetData()->GetTop() + draw_y, 0, *spriteFrame->GetData());
+		draw_x += spriteFrame->GetData()->GetWidth();
+	}
+
 	buf.WritePNG(filename, { m_palette }, true);
 }
 
@@ -1404,6 +1436,16 @@ void SpriteEditorFrame::OnExportPng()
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		ExportPng(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportPngAnimation()
+{
+	const wxString default_file = StrPrintf("SpriteGfx%03dAnim%03d.png", m_sprite->GetSprite(), m_anim);
+	wxFileDialog fd(this, _("Export Sprite Animation As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPngAnimation(fd.GetPath().ToStdString());
 	}
 }
 
