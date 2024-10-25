@@ -22,7 +22,7 @@ public:
             romFile = this->argv[1];
         }
 
-        Labels::loadData("default_labels.yaml");
+        Labels::LoadData("default_labels.yaml");
 
         MainFrame* mainFrame = new MainFrame(NULL, romFile);
         SetTopWindow(mainFrame);

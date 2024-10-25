@@ -7,7 +7,7 @@
 
 class Labels {
 public:
-    static void loadData(const std::string& filename);
+    static void LoadData(const std::string& filename);
     static std::optional<std::string> GetRoom(int id);
     static std::optional<std::string> GetBgm(int id);
 

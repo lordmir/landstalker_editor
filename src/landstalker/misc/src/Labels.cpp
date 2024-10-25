@@ -4,7 +4,7 @@
 std::map<int, std::string> Labels::m_rooms;
 std::map<int, std::string> Labels::m_bgms;
 
-void Labels::loadData(const std::string& filename) {
+void Labels::LoadData(const std::string& filename) {
     try {
         YAML::Node config = YAML::LoadFile(filename);
         
