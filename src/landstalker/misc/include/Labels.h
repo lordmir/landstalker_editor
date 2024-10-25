@@ -4,6 +4,8 @@
 #include <yaml-cpp/yaml.h>
 #include <optional>
 #include <iostream>
+#include <map>
+#include <string>
 
 class Labels {
 public:
