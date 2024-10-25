@@ -4,6 +4,7 @@
 #include <landstalker/main/include/GameData.h>
 #include <user_interface/main/include/EditorFrame.h>
 #include <user_interface/sprites/include/EntityViewerCtrl.h>
+#include <landstalker/main/include/ImageBuffer.h>
 
 #include <string>
 #include <memory>
@@ -24,6 +25,11 @@ private:
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+
+	virtual void InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	void ExportPng(const std::string& filename) const;
+	void OnExportPng();
 
 	mutable wxPGChoices m_hi_palettes;
 	mutable wxPGChoices m_lo_palettes;

@@ -1,6 +1,12 @@
 #include <user_interface/sprites/include/EntityViewerFrame.h>
 #include <wx/propgrid/advprops.h>
 
+enum MENU_IDS
+{
+	ID_FILE_EXPORT_PNG = 20000,
+	ID_VIEW_SEP1
+};
+
 EntityViewerFrame::EntityViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst)
 {
@@ -547,4 +553,73 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		}
 	}
 	ctrl->GetGrid()->Thaw();
+}
+
+
+void EntityViewerFrame::ExportPng(const std::string& filename) const
+{
+	auto sd = m_gd->GetSpriteData();
+	int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
+
+	std::shared_ptr<SpriteFrameEntry> frame = m_gd->GetSpriteData()->GetSpriteFrame(sprite_index, 0);
+
+	int frame_count = m_gd->GetSpriteData()->GetSpriteFrameCount(sprite_index);
+
+	int width = 0;
+	int height = 0;
+	for (int frame_index = 0; frame_index < frame_count; ++frame_index) {
+	    std::shared_ptr<SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(sprite_index, frame_index);
+		width += spriteFrame->GetData()->GetWidth();
+		if(spriteFrame->GetData()->GetHeight() > height) {
+			height = spriteFrame->GetData()->GetHeight();
+		}
+	}
+
+	ImageBuffer buf(width, height);
+	int draw_x = 0;
+	for (int frame_index = 0; frame_index < frame_count; ++frame_index) {
+		std::shared_ptr<SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(sprite_index, frame_index);
+		int draw_y = height - spriteFrame->GetData()->GetHeight();
+		buf.InsertSprite(-spriteFrame->GetData()->GetLeft() + draw_x, -spriteFrame->GetData()->GetTop() + draw_y, 0, *spriteFrame->GetData());
+		draw_x += spriteFrame->GetData()->GetWidth();
+	}
+
+	buf.WritePNG(filename, { m_palette }, true);
+}
+
+void EntityViewerFrame::OnExportPng()
+{
+	const wxString default_file = StrPrintf("Entity%03d.png", m_entity_id);
+	wxFileDialog fd(this, _("Export Entity Sprite As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPng(fd.GetPath().ToStdString());
+	}
+}
+
+void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
+{
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_PNG, "Export Entity Sprite as PNG...");
+	AddMenuItem(fileMenu, 1, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	UpdateUI();
+
+	m_mgr.Update();
+}
+
+void EntityViewerFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	switch (evt.GetId())
+	{
+	case ID_FILE_EXPORT_PNG:
+		OnExportPng();
+		break;
+	default:
+		break;
+	}
+	UpdateUI();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	evt.Skip();
 }
