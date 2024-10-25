@@ -1,81 +1,209 @@
 rooms:
-  0: "Dungeon"
-  31: "Mercator's Castle ouside, main entrance"
-  51: "Mercator's Castle, throne"
-  52: "Mercator's Castle, throne"
-  53: "Mercator's Castle, throne"
-  54: "Mercator's Castle, throne"
-  32: "Mercator's Castle, outside"
-  33: "Mercator's Castle, outside, west"
-  34: "Mercator's Castle, outside, west tower"
-  34: "Mercator's Castle, outside, west tower middle"
-  35: "Mercator's Castle, outside, west tower top"
-  99: "princess room"
-  100: "Bathroom (entrance)"
-  101: "Bathroom"
-  102: "Bathroom (empty)"
-  111: "Treasure room (Nole)"
-  112: "Treasure room (Gola)"
-  113: "Treasure room (empty)"
-  139: "Jypta Ruins"
-  140: "Jypta Ruins"
-  141: "Jypta Ruins"
-  142: "Calva village"
-  143: "Big bird"
-  148: "Nole cave, outside (starting point)"
-  149: "Nole cave, first room"
-  150: "Nole cave, first room, bis"
-  173: "Teleportation pod, princess"
-  173: "Teleportation pod"
-  174: "Waterfall shrine"
-  175: "Waterfall shrine"
-  176: "Waterfall shrine"
-  183: "thieves' hideout (Outside entrance)"
-  408: "Waterfall"
-  475: "Mir tower, outside"
-  486: "Docks"
-  497: "Boat"
-  498: "Tall warterfall, curtscene"
-  663: "Casino, corridor"
-  664: "Casino, roulette"
-  665: "Casino, sprint race"
-  672: "Boulder game"
-  699: "Church"
-  700: "Church"
-  709: "Mercator, house"
-  711: "Village"
-  784: "Mir tower, Mir's lair"
-  798: "Helga's hut"
-  799: "Helga's hut"
-  800: "Helga's hut"
-  801: "Helga's hut"
-  802: "Helga's hut"
-  808: "Tibor"
-  809: "Tibor"
-  810: "Tibor"
-  811: "Tibor"
-  812: "Tibor"
-  813: "Tibor"
-  814: "Tibor"
-  815: "Tibor"
+  31: Mercator's Castle ouside, main entrance
+  51: Mercator's Castle, throne
+  52: Mercator's Castle, throne
+  53: Mercator's Castle, throne
+  54: Mercator's Castle, throne
+  32: Mercator's Castle, outside
+  33: Mercator's Castle, outside, west
+  34: Mercator's Castle, outside, west tower
+  34: Mercator's Castle, outside, west tower middle
+  35: Mercator's Castle, outside, west tower top
+  85: Mercator's Castle
+  99: princess' room
+  100: Bathroom (entrance)
+  101: Bathroom
+  102: Bathroom (empty)
+  111: Treasure room (Nole)
+  112: Treasure room (Gola)
+  113: Treasure room (empty)
+  114: Nole palace, pillars
+  115: Nole palace
+  116: Nole palace
+  117: Nole palace, save
+  118: Nole palace
+  119: Nole palace, stone warrior
+  120: Nole palace
+  121: Nole palace, spinner
+  122: Nole palace
+  123: Nole palace
+  124: Nole palace
+  125: Nole palace
+  126: Nole palace
+  127: Nole palace
+  128: Nole palace
+  129: Nole palace
+  130: Nole palace
+  131: Nole palace
+  132: Nole palace
+  133: Nole palace
+  134: Nole palace
+  135: Nole palace
+  136: Nole palace
+  137: Nole palace
+  138: Nole palace
+  139: Jypta Ruins
+  140: Jypta Ruins
+  141: Jypta Ruins
+  142: Calva village
+  143: Big bird
+  148: Nole cave, outside (starting point)
+  149: Nole cave, first room
+  150: Nole cave, first room, bis
+  162: Nole cave
+  163: Nole cave
+  164: Nole cave
+  165: Nole cave
+  166: Nole cave
+  167: Nole cave, river
+  168: Nole cave, river
+  169: Nole cave, river
+  173: Teleportation pod, princess
+  173: Teleportation pod
+  174: Waterfall shrine
+  175: Waterfall shrine
+  176: Waterfall shrine
+  183: thieves' hideout (Outside entrance)
+  263: Verla mine
+  408: Waterfall
+  404: Ifrit cave
+  421: Nole palace, stairs
+  424: 1st road
+  425: 1st road
+  426: 1st road, ouside of waterfall shrine
+  431: Swamp
+  432: Swamp
+  433: Swamp, shrine outside
+  436: Swamp
+  441: Helga's hut, outside
+  475: Mir tower, outside
+  486: Mountain, save
+  493: Dock with boat
+  494: Dock with boat
+  495: Dock with boat
+  496: Dock
+  497: Boat
+  492: Mountain
+  498: Tall waterfall, cutscene
+  510: Tibor, outside
+  511: Tibor, outside
+  512: Tibor, outside
+  513: Tibor, outside
+  522: Verla mine, save
+  533: Tibor, outside
+  534: Tibor, outside
+  535: Tibor, outside
+  536: Tibor, outside
+  537: Tibor, outside
+  538: Tibor, outside
+  539: Tibor, outside
+  543: Dock
+  544: Dock
+  560: Green Maze
+  561: Green Maze
+  562: Green Maze
+  563: Green Maze
+  564: Green Maze
+  565: Green Maze
+  566: Green Maze
+  567: Green Maze
+  568: Green Maze
+  569: Green Maze
+  570: Green Maze
+  592: Massan village, outside
+  593: Massan village, hut
+  594: Massan village, hut
+  595: Massan village, hut
+  596: Massan village, shop
+  597: Massan village, church
+  598: Massan village, inn
+  599: Massan village, hut
+  600: Massan village, inn, second floor
+  601: Gumi village, stake
+  602: Gumi village
+  603: Gumi village
+  610: Ryuma
+  611: Ryuma
+  612: Ryuma, lighthouse
+  627: Ryuma, lighthouse top
+  628: Ryuma, lighthouse top (night)
+  629: Ryuma, lighthouse top
+  630: Mercator
+  631: Mercator
+  632: Mercator
+  633: Mercator
+  634: Mercator
+  635: Mercator
+  651: Crypt, mummy's room
+  652: Crypt
+  653: Crypt
+  654: Crypt
+  655: Crypt
+  656: Crypt
+  657: Crypt
+  658: Crypt
+  659: Crypt
+  663: Casino, corridor
+  664: Casino, roulette
+  665: Casino, sprint race
+  666: Casino, chicken
+  672: Boulder game
+  676: Mercator dojo
+  680: Madam yard's
+  681: Mercator prison
+  682: Mercator prison
+  694: Mercator old woman house. First floor
+  699: Church
+  700: Church
+  707: Madame yard's
+  708: Madame yard's
+  709: Mercator, house
+  711: Verla, trap
+  712: Verla
+  721: Verla, church
+  737: Kazalt village
+  740: Kazalt
+  741: Kazalt
+  742: Kazalt
+  743: Kazalt
+  744: Kazalt
+  745: Kazalt, inn
+  746: Kazalt, inn
+  747: Kazalt, shop
+  748: Kazalt
+  749: Kazalt, church
+  784: Mir tower, Mir's lair
+  798: Helga's hut
+  799: Helga's hut
+  800: Helga's hut
+  801: Helga's hut
+  802: Helga's hut
+  808: Tibor
+  809: Tibor
+  810: Tibor
+  811: Tibor
+  812: Tibor
+  813: Tibor
+  814: Tibor
+  815: Tibor
 
 bgms: 
-  0: "The Marquis' Invitation"
-  1: "Premonition of Trouble"
-  2: "Overworld"
-  3: "Bustling Street"
-  4: "Torchlight"
-  5: "Prayers to God"
-  6: "Gumi"
-  7: "Beneath the Mysterious Tree"
-  8: "Overworld"
-  9: "The King's Chamber"
-  10: "Mysterious Island"
-  11: "The Death God's Invitation"
-  12: "Deserted Street Corner"
-  13: "Labrynth"
-  14: "The Silence, the Darkness, and..."
-  15: "Light of the Setting Sun"
-  16: "Friday and a Soft Breeze"
-  17: "Divine Guardian of the Maze"
-  18: "Fade Out"
+  0: The Marquis' Invitation
+  1: Premonition of Trouble
+  2: Overworld
+  3: Bustling Street
+  4: Torchlight
+  5: Prayers to God
+  6: Gumi
+  7: Beneath the Mysterious Tree
+  8: Overworld
+  9: The King's Chamber
+  10: Mysterious Island
+  11: The Death God's Invitation
+  12: Deserted Street Corner
+  13: Labrynth
+  14: The Silence, the Darkness, and...
+  15: Light of the Setting Sun
+  16: Friday and a Soft Breeze
+  17: Divine Guardian of the Maze
+  18: Fade Out
