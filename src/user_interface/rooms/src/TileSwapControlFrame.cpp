@@ -143,6 +143,10 @@ void TileSwapControlFrame::UpdateOtherControls()
 
 std::string TileSwapControlFrame::MakeLabel(int index) const
 {
+	if (!m_swaps[index].active)
+	{
+		return StrPrintf("%02d: <Inactive>", index + 1);
+	}
 	if (m_selected == ID::TILESWAP)
 	{
 		if (m_mode == RoomEdit::Mode::BACKGROUND || m_mode == RoomEdit::Mode::FOREGROUND)
