@@ -22,6 +22,7 @@
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/2d_maps/include/Blockmap2D.h>
 #include <landstalker/main/include/ImageBuffer.h>
+#include <landstalker/misc/include/Labels.h>
 #include <user_interface/misc/include/AssemblyBuilderDialog.h>
 #include <user_interface/misc/include/PreferencesDialog.h>
 
@@ -340,7 +341,12 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        m_browser->AppendItem(nodeRm, room->name, rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
+        wxString roomName = room->name;
+        if (auto roomLabel = Labels::GetRoom(room->index)) {
+            roomName += ": " + *roomLabel;
+        }
+
+        m_browser->AppendItem(nodeRm, roomName, rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
             (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);

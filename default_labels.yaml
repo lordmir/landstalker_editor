@@ -1,0 +1,10 @@
+rooms:
+  101: "Bathroom"
+  142: "Calva village"
+  148: "Nole cave, outside (starting point)"
+  149: "Nole cave, first room"
+
+entities:
+  000: "Nigel"
+
+behaviours:

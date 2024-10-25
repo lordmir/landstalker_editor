@@ -41,6 +41,7 @@
     <ClCompile Include="..\src\landstalker\misc\src\BitBarrelWriter.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\LZ77.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\Utils.cpp" />
+    <ClInclude Include="..\src\landstalker\misc\include\Labels.cpp" />
     <ClCompile Include="..\src\landstalker\palettes\src\Palette.cpp" />
     <ClCompile Include="..\src\landstalker\rooms\src\Chests.cpp" />
     <ClCompile Include="..\src\landstalker\rooms\src\Entity.cpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="..\src\landstalker\misc\include\Literals.h" />
     <ClInclude Include="..\src\landstalker\misc\include\LZ77.h" />
     <ClInclude Include="..\src\landstalker\misc\include\Utils.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\Labels.h" />
     <ClInclude Include="..\src\landstalker\palettes\include\Palette.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\Chests.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\Entity.h" />
