@@ -1,12 +1,9 @@
 #ifndef LABELS_H_
 #define LABELS_H_
 
-#include <cstdint>
-#include <string>
-#include <unordered_map>
-#include <map>
 #include <yaml-cpp/yaml.h>
 #include <optional>
+#include <iostream>
 
 class Labels {
 public:
