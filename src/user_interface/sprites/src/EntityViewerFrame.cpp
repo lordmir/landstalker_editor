@@ -597,7 +597,12 @@ bool EntityViewerFrame::ExportAllPng(const std::string& dir)
 	for (const auto& name : Entity::EntityNames) {
 		std::string filename = wxString::Format("Entity%03d%s.png", entity_id, name).ToStdString();
 		std::replace(filename.begin(), filename.end(), ' ', '_');
-		ExportPng(filename, entity_id);
+
+        if (m_gd->GetSpriteData()->IsEntity(entity_id))
+        {
+			ExportPng(filename, entity_id);
+        }
+
 		++entity_id;
 	}
 
