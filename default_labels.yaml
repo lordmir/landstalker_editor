@@ -41,11 +41,6 @@ rooms:
   814: "Tibor"
   815: "Tibor"
 
-entities:
-  000: "Nigel"
-
-behaviours:
-
 bgms: 
   0: "The Marquis' Invitation"
   1: "Premonition of Trouble"

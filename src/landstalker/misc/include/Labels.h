@@ -12,14 +12,10 @@ class Labels {
 public:
     static void loadData(const std::string& filename);
     static std::optional<std::string> GetRoom(int id);
-    static std::optional<std::string> GetEntity(int id);
-    static std::optional<std::string> GetBehaviour(int id);
     static std::optional<std::string> GetBgm(int id);
 
 private:
     static std::map<int, std::string> m_rooms;
-    static std::map<int, std::string> m_entities;
-    static std::map<int, std::string> m_behaviours;
     static std::map<int, std::string> m_bgms;
 };
 
