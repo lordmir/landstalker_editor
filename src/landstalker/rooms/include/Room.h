@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <optional>
 
 #include <landstalker/misc/include/Labels.h>
 
