@@ -6,6 +6,8 @@
 #include <vector>
 #include <array>
 
+#include <landstalker/misc/include/Labels.h>
+
 class Room
 {
     // Stored in ROM in following format:
@@ -43,6 +45,7 @@ public:
     void SetParams(uint8_t param0, uint8_t param1, uint8_t param2, uint8_t param3);
     std::array<uint8_t, 4> GetParams() const;
     uint8_t GetBlocksetId() const;
+    std::string GetDisplayName();
 };
 
 #endif // _ROOM_H_

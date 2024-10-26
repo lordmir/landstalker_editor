@@ -340,12 +340,7 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        wxString roomName = room->name;
-        if (auto roomLabel = Labels::GetRoom(room->index)) {
-            roomName += ": " + *roomLabel;
-        }
-
-        m_browser->AppendItem(nodeRm, roomName, rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
+        m_browser->AppendItem(nodeRm, room->GetDisplayName(), rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
             (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
     }
     m_mnu_save_as_asm->Enable(true);

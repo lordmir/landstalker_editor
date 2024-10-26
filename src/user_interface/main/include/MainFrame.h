@@ -19,7 +19,6 @@
 #include <user_interface/sprites/include/EntityViewerFrame.h>
 #include <user_interface/behaviours/include/BehaviourScriptEditorFrame.h>
 #include <landstalker/main/include/GameData.h>
-#include <landstalker/misc/include/Labels.h>
 
 #ifdef _WIN32
 #include <winsock.h>

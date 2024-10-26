@@ -15,7 +15,6 @@
 #include <wx/button.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/rooms/include/WarpList.h>
-#include <landstalker/misc/include/Labels.h>
 
 class WarpPropertyWindow : public wxDialog
 {
