@@ -20,6 +20,7 @@ enum MENU_IDS
 	ID_VIEW_TOGGLE_ALPHA,
 	ID_VIEW_TOGGLE_HITBOX,
 	ID_VIEW_SEP1,
+	ID_VIEW_SEP2,
 	ID_VIEW_TOOLBAR,
 	ID_VIEW_FRAMES,
 	ID_VIEW_SUBSPRITES,
@@ -329,7 +330,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_HITBOX, "Hitbox", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 3, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 3, ID_VIEW_SEP2, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 4, ID_VIEW_TOOLBAR, "Toolbar", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 5, ID_VIEW_EDITOR, "Tile Editor", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 6, ID_VIEW_PALETTE, "Palette", wxITEM_CHECK);
