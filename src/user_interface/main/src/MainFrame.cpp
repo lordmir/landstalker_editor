@@ -22,7 +22,6 @@
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/2d_maps/include/Blockmap2D.h>
 #include <landstalker/main/include/ImageBuffer.h>
-#include <landstalker/misc/include/Labels.h>
 #include <user_interface/misc/include/AssemblyBuilderDialog.h>
 #include <user_interface/misc/include/PreferencesDialog.h>
 

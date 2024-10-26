@@ -45,7 +45,12 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     wxArrayString room_names;
     for (std::size_t i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
     {
-        room_names.Add(gd.GetRoomData()->GetRoom(i)->name);
+        wxString roomName = gd.GetRoomData()->GetRoom(i)->name;
+        if (auto roomLabel = Labels::GetRoom(gd.GetRoomData()->GetRoom(i)->index)) {
+            roomName += ": " + *roomLabel;
+        }
+
+        room_names.Add(roomName);
     }
     m_ctrl_src_room = new wxChoice(this, ID_SRC_ROOM, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), room_names, 0);
     m_ctrl_src_room->SetSelection(src_room);
