@@ -1,26 +1,26 @@
 rooms:
-  0: Swamp shrine
-  1: Swamp shrine
-  2: Swamp shrine
-  3: Swamp shrine
-  4: Swamp shrine
-  5: Swamp shrine
-  6: Swamp shrine
-  7: Swamp shrine
+  0: Swamp shrine, floor 1
+  1: Swamp shrine, floor 1
+  2: Swamp shrine, floor 1
+  3: Swamp shrine, floor 1, stairs to floor 2
+  4: Swamp shrine, floor 1
+  5: Swamp shrine, floor 1, boulders
+  6: Swamp shrine, floor 1
+  7: Swamp shrine, floor 1
   8: Swamp shrine
   9: Swamp shrine
   10: Swamp shrine
   11: Swamp shrine
   12: Swamp shrine
   13: Swamp shrine
-  14: Swamp shrine
-  15: Swamp shrine
-  16: Swamp shrine
-  17: Swamp shrine
-  18: Swamp shrine
+  14: Swamp shrine, floor 3
+  15: Swamp shrine, floor 1, boulders, empty
+  16: Swamp shrine, floor 2, spiked boulders
+  17: Swamp shrine, floor 2
+  18: Swamp shrine, floor 2, stairs to floor 3
   19: Swamp shrine
   20: Swamp shrine
-  21: Swamp shrine
+  21: Swamp shrine, floor 3, spiked floor
   22: Swamp shrine
   23: Swamp shrine
   24: Swamp shrine
@@ -44,8 +44,8 @@ rooms:
   41: Mercator castle basement
   42: Mercator castle basement
   43: Mercator castle basement
-  44: Mercator castle basement
-  45: Mercator castle basement
+  44: Mercator castle basement, Moralis' cell
+  45: Mercator castle basement, cell
   46: Mercator castle basement
   47: Mercator castle basement
   48: Mercator castle basement
@@ -60,37 +60,37 @@ rooms:
   57: Mercator castle
   58: Mercator castle
   59: Mercator castle
-  60: Mercator castle
-  61: Mercator castle
-  62: Mercator castle
-  63: Mercator castle
-  64: Mercator castle
+  60: Mercator castle, main hall
+  61: Mercator castle, main hall
+  62: Mercator castle, main hall
+  63: Mercator castle, guards quaters
+  64: Mercator castle, guards quaters under attack
   65: Mercator castle
   66: Mercator castle
   67: Mercator castle
-  68: Mercator castle
-  69: Mercator castle
+  68: Mercator castle, kitchen
+  69: Mercator castle, kitchen
   70: Mercator castle
   71: Mercator castle
   72: Mercator castle
-  73: Mercator castle
-  74: Mercator castle
-  75: Mercator castle
+  73: Mercator castle, basement entrance 
+  74: Mercator castle, library
+  75: Mercator castle, library
   76: Mercator castle
   77: Mercator castle
-  78: Mercator castle
-  79: Mercator castle
+  78: Mercator castle, guards quaters
+  79: Mercator castle, guards quaters under attack
   80: Mercator castle
   81: Mercator castle
   82: Mercator castle
   83: Mercator castle
-  84: Mercator castle
-  85: Mercator castle
+  84: Mercator castle, guards quaters under attack
+  85: Mercator castle, Banquet hall
   86: Mercator castle
   87: Mercator castle
   88: Mercator castle
   89: Mercator castle
-  90: Mercator castle
+  90: Mercator castle, guards quaters under attack
   91: Mercator castle
   92: Mercator castle
   93: Mercator castle
@@ -99,7 +99,7 @@ rooms:
   96: Mercator castle
   97: Mercator castle
   98: Mercator castle
-  99: Mercator castle, princess' room
+  99: Mercator castle, room
   100: Mercator castle, Bathroom (entrance)
   101: Mercator castle, Bathroom
   102: Mercator castle, Bathroom (empty)
