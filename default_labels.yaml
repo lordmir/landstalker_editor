@@ -73,7 +73,7 @@ rooms:
   70: Mercator castle
   71: Mercator castle
   72: Mercator castle
-  73: Mercator castle, basement entrance 
+  73: Mercator castle, basement entrance
   74: Mercator castle, library
   75: Mercator castle, library
   76: Mercator castle
@@ -148,7 +148,7 @@ rooms:
   145: Nole cave
   146: Nole cave
   147: Nole cave
-  148: Nole cave
+  148: Nole cave, outside
   149: Nole cave
   150: Nole cave
   151: Nole cave
@@ -161,7 +161,7 @@ rooms:
   158: Nole cave
   159: Nole cave
   160: Nole cave
-  161: Gemstone room, Princess and Duke
+  161: Nole cave
   162: Nole cave
   163: Nole cave
   164: Nole cave
@@ -524,6 +524,7 @@ rooms:
   522: Verla mine, save
   523: Lake
   524: Lake, lava
+  525: Lake
   526: Lake, ouside of shrine
   527: Inside hut, empty
   528: Road
@@ -819,7 +820,7 @@ rooms:
   814: Tibor
   815: Tibor
 
-bgms: 
+bgms:
   0: The Marquis' Invitation
   1: Premonition of Trouble
   2: Overworld
