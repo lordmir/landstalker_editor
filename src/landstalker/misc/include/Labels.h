@@ -1,3 +1,4 @@
+// Labels.h
 #ifndef LABELS_H_
 #define LABELS_H_
 
@@ -6,16 +7,15 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <utility>
 
 class Labels {
 public:
     static void LoadData(const std::string& filename);
-    static std::optional<std::string> GetRoom(int id);
-    static std::optional<std::string> GetBgm(int id);
+    static std::optional<std::string> GetFromId(const std::string& what, int id);
 
 private:
-    static std::map<int, std::string> m_rooms;
-    static std::map<int, std::string> m_bgms;
+    static std::map<std::pair<std::string, int>, std::string> m_data;
 };
 
 #endif // LABELS_H_

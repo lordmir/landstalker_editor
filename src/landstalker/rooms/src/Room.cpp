@@ -69,7 +69,7 @@ uint8_t Room::GetBlocksetId() const
 std::string Room::GetDisplayName()
 {
     std::string displayName = name;
-    if (auto label = Labels::GetRoom(index)) {
+    if (auto label = Labels::GetFromId("rooms", index)) {
         displayName += " " + *label;
     }
 
