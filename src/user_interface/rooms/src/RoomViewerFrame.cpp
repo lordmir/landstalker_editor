@@ -841,25 +841,25 @@ void RoomViewerFrame::RefreshLists() const
 	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 
 	m_bgms.Clear();
-	m_bgms.Add("[00] " + Labels::GetFromId("bgms", 0).value_or(""));
-	m_bgms.Add("[01] " + Labels::GetFromId("bgms", 1).value_or(""));
-	m_bgms.Add("[02] " + Labels::GetFromId("bgms", 2).value_or(""));
-	m_bgms.Add("[03] " + Labels::GetFromId("bgms", 3).value_or(""));
-	m_bgms.Add("[04] " + Labels::GetFromId("bgms", 4).value_or(""));
-	m_bgms.Add("[05] " + Labels::GetFromId("bgms", 5).value_or(""));
-	m_bgms.Add("[06] " + Labels::GetFromId("bgms", 6).value_or(""));
-	m_bgms.Add("[07] " + Labels::GetFromId("bgms", 7).value_or(""));
-	m_bgms.Add("[08] " + Labels::GetFromId("bgms", 8).value_or(""));
-	m_bgms.Add("[09] " + Labels::GetFromId("bgms", 9).value_or(""));
-	m_bgms.Add("[0A] " + Labels::GetFromId("bgms", 10).value_or(""));
-	m_bgms.Add("[0B] " + Labels::GetFromId("bgms", 11).value_or(""));
-	m_bgms.Add("[0C] " + Labels::GetFromId("bgms", 12).value_or(""));
-	m_bgms.Add("[0D] " + Labels::GetFromId("bgms", 13).value_or(""));
-	m_bgms.Add("[0E] " + Labels::GetFromId("bgms", 14).value_or(""));
-	m_bgms.Add("[0F] " + Labels::GetFromId("bgms", 15).value_or(""));
-	m_bgms.Add("[10] " + Labels::GetFromId("bgms", 16).value_or(""));
-	m_bgms.Add("[11] " + Labels::GetFromId("bgms", 17).value_or(""));
-	m_bgms.Add("[12] " + Labels::GetFromId("bgms", 18).value_or(""));
+	m_bgms.Add("[00] " + Labels::Get("bgms", 0).value_or("[00"));
+	m_bgms.Add("[01] " + Labels::Get("bgms", 1).value_or("[01"));
+	m_bgms.Add("[02] " + Labels::Get("bgms", 2).value_or("[02"));
+	m_bgms.Add("[03] " + Labels::Get("bgms", 3).value_or("[03"));
+	m_bgms.Add("[04] " + Labels::Get("bgms", 4).value_or("[04"));
+	m_bgms.Add("[05] " + Labels::Get("bgms", 5).value_or("[05"));
+	m_bgms.Add("[06] " + Labels::Get("bgms", 6).value_or("[06"));
+	m_bgms.Add("[07] " + Labels::Get("bgms", 7).value_or("[07"));
+	m_bgms.Add("[08] " + Labels::Get("bgms", 8).value_or("[08"));
+	m_bgms.Add("[09] " + Labels::Get("bgms", 9).value_or("[09"));
+	m_bgms.Add("[0A] " + Labels::Get("bgms", 10).value_or("[0A]"));
+	m_bgms.Add("[0B] " + Labels::Get("bgms", 11).value_or("[0B]"));
+	m_bgms.Add("[0C] " + Labels::Get("bgms", 12).value_or("[0C]"));
+	m_bgms.Add("[0D] " + Labels::Get("bgms", 13).value_or("[0D]"));
+	m_bgms.Add("[0E] " + Labels::Get("bgms", 14).value_or("[0E]"));
+	m_bgms.Add("[0F] " + Labels::Get("bgms", 15).value_or("[0F]"));
+	m_bgms.Add("[10] " + Labels::Get("bgms", 16).value_or("[10]"));
+	m_bgms.Add("[11] " + Labels::Get("bgms", 17).value_or("[11]"));
+	m_bgms.Add("[12] " + Labels::Get("bgms", 18).value_or("[12]"));
 
 	m_palettes.Clear();
 	for (const auto& p : m_g->GetRoomData()->GetRoomPalettes())

@@ -261,7 +261,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const auto& ent_name = Entity::EntityNames[i];
+        const auto& ent_name = Labels::Get("entities", i).value_or("Entity" + std::to_string(i));
         m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
     }
 

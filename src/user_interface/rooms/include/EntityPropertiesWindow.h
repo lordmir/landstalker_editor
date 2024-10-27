@@ -14,6 +14,7 @@
 #include <wx/checkbox.h>
 #include <wx/button.h>
 #include <landstalker/rooms/include/Entity.h>
+#include <landstalker/misc/include/Labels.h>
 
 class EntityPropertiesWindow : public wxDialog
 {

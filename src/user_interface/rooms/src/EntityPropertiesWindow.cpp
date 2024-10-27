@@ -51,9 +51,9 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString entity_types;
-    for (std::size_t i = 0; i < Entity::EntityNames.size(); ++i)
+    for (std::size_t i = 0; i < 255; ++i)
     {
-        entity_types.Add(StrPrintf("[%02X] %s", i, Entity::EntityNames.at(i).c_str()));
+        entity_types.Add(StrPrintf("[%02X] %s", i, Labels::Get("entities", i).value_or("Entity" + std::to_string(i))));
     }
     m_ctrl_entity_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, 0);
     m_ctrl_entity_type->SetSelection(entity->GetType());

@@ -1,4 +1,3 @@
-// Labels.h
 #ifndef LABELS_H_
 #define LABELS_H_
 
@@ -12,7 +11,7 @@
 class Labels {
 public:
     static void LoadData(const std::string& filename);
-    static std::optional<std::string> GetFromId(const std::string& what, int id);
+    static std::optional<std::string> Get(const std::string& what, int id);
 
 private:
     static std::map<std::pair<std::string, int>, std::string> m_data;

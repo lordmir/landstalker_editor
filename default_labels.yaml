@@ -785,7 +785,7 @@ rooms:
   781: Mir's tower
   782: Mir's tower
   783: Mir's tower
-  784: Mir's tower, Mir's room
+  784: Mir's tower, Mir's lair
   785: Helga's hut
   786: Helga's hut
   787: Helga's hut
@@ -839,3 +839,261 @@ bgms:
   16: Friday and a Soft Breeze
   17: Divine Guardian of the Maze
   18: Fade Out
+
+entities:
+  0: Nigel
+  1: Old Man
+  2: Male Red Bear
+  3: Boy
+  4: Orc 1
+  5: Orc 2
+  6: Orc 3
+  7: Worm 1
+  8: Worm 2
+  9: Worm 3
+  10: Moneybag
+  11: Man 1
+  12: Woman 1
+  13: Girl
+  14: Dog
+  15: Chicken
+  16: Priest
+  17: Vase
+  18: Chest
+  19: Small Grey Ball
+  20: Large Grey Ball
+  21: Small Yellow Platform
+  22: Crate
+  23: Ninja 1
+  24: Ninja 2
+  25: Ninja 3
+  26: Lizard 1
+  27: Lizard 2
+  28: Lizard 3
+  29: Knight 1
+  30: Knight 2
+  31: Knight 3
+  32: Ghost 1
+  33: Ghost 2
+  34: Ghost 3
+  35: Mummy 1
+  36: Mummy 2
+  37: Mummy 3
+  38: Unicorn 1
+  39: Unicorn 2
+  40: Unicorn 3
+  41: Skeleton 1
+  42: Skeleton 2
+  43: Skeleton 3
+  44: Mimic 1
+  45: Mimic 2
+  46: Mimic 3
+  47: Child Red Bear
+  48: Male Dwarf
+  49: Female Yellow Bear
+  50: Soldier
+  51: Madame Yard
+  52: Dexter
+  53: Raft
+  54: Mushroom 1
+  55: Mushroom 2
+  56: Mushroom 3
+  57: Giant 1
+  58: Giant 2
+  59: Giant 3
+  60: Bubble 1
+  61: Bubble 2
+  62: Bubble 3
+  63: Old Lady
+  64: Male Yellow Bear
+  65: Child Yellow Bear
+  66: Fara stake
+  67: Praying Yellow Bear
+  68: Skeleton Statue 1
+  69: Praying Red Bear
+  70: Skeleton Statue 2
+  71: Female Red Bear
+  72: Female Dwarf
+  73: Small Grey Spiked Ball
+  74: Large Grey Spiked Ball
+  75: Sacred Tree
+  76: Large Wood Platform
+  77: Injured Dog
+  78: Dead Body
+  79: Woman 2
+  80: Man 2
+  81: Invisible Cube
+  82: Ink
+  83: Large Concrete Block
+  84: Square Switch
+  85: Round Switch
+  86: Unused Small Yellow Platform
+  87: Unused Small Grey Platform
+  88: Unused Small Green Platform
+  89: Small Thin Yellow Platform
+  90: Small Thin Grey Platform
+  91: Unused Small Thin Green Platform
+  92: Unused Large Dark Platform
+  93: Large Thin Grey Platform
+  94: Unused Large Thin Green Platform
+  95: Unused Large Thin Yellow Platform
+  96: Item Box
+  97: Friday
+  98: Large Boulder
+  99: Nigel in Bed
+  100: Godess Statue
+  101: 2-Way Signpost
+  102: 3-Way Signpost
+  103: Gate S
+  104: Gate N
+  105: Kayla
+  106: Wally
+  107: Woman 3
+  108: Locked Door
+  109: Man in bed
+  110: Lord Arthur
+  111: Kayla in Bath
+  112: Duke
+  113: Small Wood Platform
+  114: Small Thin Dark Grey Platform
+  115: Yellow Old Man
+  116: Man with Blue Shirt
+  117: Chef
+  118: Princess
+  119: Golem Statue 1
+  120: Mir Magic Barrier
+  121: Sailor
+  122: Pockets
+  123: Skeleton Priest
+  124: Mir
+  125: Unused Bird 1
+  126: Unused Bird 2
+  127: Unused Bird 3
+  128: Moralis
+  129: Bubble 4
+  130: Bubble 5
+  131: Bubble 6
+  132: Gnome
+  133: Zak
+  134: Mir Wall Barrier
+  135: Small Fireball
+  136: Reaper 1
+  137: Reaper 2
+  138: Unused Reaper 3
+  139: Golem Statue 2
+  140: Corrupted Round Switch
+  141: Small Green Spiked Ball
+  142: Large Grey Spiked Ball
+  143: Ghost Generator 1
+  144: Ghost Generator 2
+  145: Ghost Generator 3
+  146: Golem 1
+  147: Golem 2
+  148: Golem 3
+  149: Spectre 1
+  150: Spectre 2
+  151: Spectre 3
+  152: Unused Small Blue Ball
+  153: Small Red Ball
+  154: Unused Large Blue Ball
+  155: Large Red Ball
+  156: Unused Magic Fox
+  157: Spinner 1
+  158: Duke Chair
+  159: Miro
+  160: Ifrit
+  161: Ifrit Fireball
+  162: Gola
+  163: Pink Golem Statue
+  164: Gold Golem Statue
+  165: Nole
+  166: Nole Axe Projectile
+  167: Stone Warrior 1
+  168: Zak Boomerang
+  169: 1-Way Signpost
+  170: Spinner 2
+  171: Stone Warrior 2
+  172: Gola Fireball
+  173: ?AD
+  174: ?AE
+  175: ?AF
+  176: ?B0
+  177: ?B1
+  178: ?B2
+  179: ?B3
+  180: ?B4
+  181: ?B5
+  182: ?B6
+  183: ?B7
+  184: ?B8
+  185: ?B9
+  186: ?BA
+  187: ?BB
+  188: ?BC
+  189: ?BD
+  190: ?BE
+  191: ?BF
+  192: EkeEke
+  193: Magic Sword
+  194: Ice Sword
+  195: Thunder Sword
+  196: Gaia Sword
+  197: Fireproof
+  198: Iron Boots
+  199: Healing Boots
+  200: Snow Spikes
+  201: Steel Breast
+  202: Chrome Breast
+  203: Shell Breast
+  204: Hyper Breast
+  205: Mars Stone
+  206: Moon Stone
+  207: Saturn Stone
+  208: Venus Stone
+  209: Awakening Book
+  210: Detox Grass
+  211: Gaia Statue
+  212: Golden Statue
+  213: Mind Repair
+  214: Casino Ticket
+  215: Axe Magic
+  216: Blue Ribbon
+  217: Buyer Card
+  218: Lantern
+  219: Garlic
+  220: Anti-Paralyze
+  221: Statue of Jypta
+  222: Sun Stone
+  223: Armlet
+  224: Einstein Whistle
+  225: Detox Book
+  226: AntiCurse
+  227: Record Book
+  228: Spell Book
+  229: Hotel Register
+  230: Island Map
+  231: Lithograph
+  232: Red Jewel
+  233: Pawn Ticket
+  234: Purple Jewel
+  235: Gola's Eye
+  236: Death Statue
+  237: Dahl
+  238: Restoration
+  239: Logs
+  240: Oracle Stone
+  241: Idol Stone
+  242: Key
+  243: Safety Pass
+  244: No52
+  245: Bell
+  246: Shortcake
+  247: Gola's Nail
+  248: Gola's Horn
+  249: Gola's Fang
+  250: Broad Sword
+  251: Leather Breast
+  252: Leather Boots
+  253: None
+  254: Lifestock
+  255: No63

@@ -1,4 +1,3 @@
-// Labels.cpp
 #include <landstalker/misc/include/Labels.h>
 
 std::map<std::pair<std::string, int>, std::string> Labels::m_data;
@@ -26,7 +25,7 @@ void Labels::LoadData(const std::string& filename) {
     }
 }
 
-std::optional<std::string> Labels::GetFromId(const std::string& what, int id) {
+std::optional<std::string> Labels::Get(const std::string& what, int id) {
     auto it = m_data.find({what, id});
     if (it != m_data.end()) {
         return it->second;

@@ -76,7 +76,7 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", _(Entity::EntityNames.at(m_entity_id))))->Enable(false);
+		props.Append(new wxStringProperty("Name", "Name", _(Labels::Get("entities", m_entity_id).value_or("Entity" + std::to_string(m_entity_id)))))->Enable(false);
 		props.Append(new wxIntProperty("ID", "ID", m_entity_id))->Enable(false);
 		props.Append(new wxEnumProperty("Sprite", "Sprite", m_sprites));
 		auto sprite_id = new wxIntProperty("Sprite ID", "Sprite ID", sprite_index);
@@ -335,7 +335,7 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		bool is_enemy = sd->IsEntityEnemy(m_entity_id);
 		auto enemy_stats = sd->GetEnemyStats(m_entity_id);
 
-		props.GetGrid()->SetPropertyValue("Name", _(Entity::EntityNames.at(m_entity_id)));
+		props.GetGrid()->SetPropertyValue("Name", Labels::Get("entities", m_entity_id).value_or("Entity" + std::to_string(m_entity_id)).c_str());
 		props.GetGrid()->SetPropertyValue("ID", m_entity_id);
 		props.GetGrid()->GetProperty("Sprite")->SetChoices(m_sprites);
 		props.GetGrid()->GetProperty("Sprite")->SetChoiceSelection(m_sprites.Index(sprite_index));

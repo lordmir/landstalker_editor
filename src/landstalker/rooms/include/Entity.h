@@ -7,7 +7,7 @@
 #include <vector>
 #include <array>
 #include <memory>
-
+#include <landstalker/misc/include/Labels.h>
 
 enum class Orientation
 {
@@ -80,7 +80,7 @@ public:
 
     std::string GetTypeName() const
     {
-        return EntityNames.at(m_type);
+        return Labels::Get("entities", m_type).value_or("Entity" + std::to_string(m_type));
     }
 
     std::string GetOrientationName() const
