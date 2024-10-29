@@ -1256,7 +1256,8 @@ void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 {
-	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	int framesCount = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size());
+	if (evt.GetInt() > 0 && evt.GetInt() <= framesCount && framesCount > 1)
 	{
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
 		int new_frame = evt.GetInt() - 1;
@@ -1273,6 +1274,7 @@ void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 		m_framectrl->SetSelected(m_frame + 1);
 		m_animctrl->SetSelected(m_anim + 1);
 		m_animframectrl->SetSelected(evt.GetInt());
+		
 		UpdateUI();
 	}
 }
