@@ -1257,23 +1257,36 @@ void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
 void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 {
 	int framesCount = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size());
+
 	if (evt.GetInt() > 0 && evt.GetInt() <= framesCount && framesCount > 1)
 	{
+		int deleteIndex = evt.GetInt() - 1;
+
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
-		int new_frame = evt.GetInt() - 1;
-		if (new_frame > static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
-		{
-			new_frame = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)) - 1;
+
+		// Delete the frame
+		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, deleteIndex);
+		framesCount--;
+
+		// Update preview frame
+		int selectIndex = deleteIndex;
+		if(selectIndex >= framesCount){
+			selectIndex = framesCount - 1;
+
 		}
-		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, new_frame);
+
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
-		m_preview->SetAnimationFrame(new_frame);
-		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[new_frame]);
+		m_preview->SetAnimationFrame(selectIndex);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[selectIndex]);
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
 		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
 		m_framectrl->SetSelected(m_frame + 1);
 		m_animctrl->SetSelected(m_anim + 1);
-		m_animframectrl->SetSelected(evt.GetInt());
+
+		if(framesCount == deleteIndex )
+		{
+			m_animframectrl->SetSelected(framesCount);
+		}
 		
 		UpdateUI();
 	}
