@@ -397,7 +397,8 @@ bool AssemblyBuilderDialog::DoClone()
         return false;
     }
 
-    wxExecuteEnv env{.cwd = m_dir};
+    wxExecuteEnv env;
+    env.cwd = m_dir;
     if (wxExecute(cmd, wxEXEC_ASYNC, process, &env) < 1)
     {
         Log("Command execution failed!", *wxRED);
@@ -454,7 +455,8 @@ bool AssemblyBuilderDialog::DoBuild()
         return false;
     }
 
-    wxExecuteEnv env{.cwd = m_dir};
+    wxExecuteEnv env;
+    env.cwd = m_dir;
     if (wxExecute(cmd, wxEXEC_ASYNC, process, &env) < 1)
     {
         Log("Command execution failed.", *wxRED);
