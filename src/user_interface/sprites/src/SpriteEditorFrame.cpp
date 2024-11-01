@@ -1328,16 +1328,19 @@ void SpriteEditorFrame::OnAnimationFrameChange(wxCommandEvent& evt)
 	{
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
 		std::string new_frame = ShowFrameDialog(StrPrintf("Change frame \"%s\" to:", evt.GetString().c_str().AsChar()), "Change frame");
-		m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
-		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
-		m_preview->SetAnimationFrame(evt.GetInt() - 1);
-		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
-		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
-		m_framectrl->SetSelected(m_frame + 1);
-		m_animctrl->SetSelected(m_anim + 1);
-		m_animframectrl->SetSelected(evt.GetInt());
-		UpdateUI();
+		if (!new_frame.empty())
+		{
+			m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
+			m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+			m_preview->SetAnimationFrame(evt.GetInt() - 1);
+			m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+			m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+			OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+			m_framectrl->SetSelected(m_frame + 1);
+			m_animctrl->SetSelected(m_anim + 1);
+			m_animframectrl->SetSelected(evt.GetInt());
+			UpdateUI();
+		}
 	}
 }
 
