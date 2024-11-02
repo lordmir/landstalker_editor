@@ -161,7 +161,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	OpenFrame(spr, frame, anim, ent);
 	m_preview->Open(m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite())[0], m_anim, m_palette);
 	m_framectrl->SetSelected(m_frame + 1);
-	m_animctrl->SetSelected(m_anim);
+	m_animctrl->SetSelected(m_anim + 1);
 	m_animframectrl->SetSelected(1);
 	m_subspritectrl->SetSelected(0);
 	m_spriteeditor->SelectSubSprite(-1);
