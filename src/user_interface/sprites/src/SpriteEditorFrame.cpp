@@ -168,7 +168,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	return true;
 }
 
-bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent)
+bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, bool fullUpdate)
 {
 	if (m_gd == nullptr)
 	{
@@ -206,7 +206,17 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent)
 	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
-	Update();
+	
+	if(fullUpdate)
+	{
+		Update();
+	}
+	else{
+		UpdateUI();
+		FireEvent(EVT_PROPERTIES_UPDATE);
+		FireEvent(EVT_STATUSBAR_UPDATE);
+	}
+
 	return true;
 }
 
@@ -1138,7 +1148,8 @@ void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
 		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
-		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim, -1, false);
 		m_framectrl->SetSelected(m_frame + 1);
 		m_animctrl->SetSelected(m_anim + 1);
 	}
