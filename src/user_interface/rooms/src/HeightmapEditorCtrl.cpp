@@ -35,7 +35,7 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
       m_redraw(false),
       m_repaint(false),
       m_zoom(1.0),
-      m_selected(-1, -1),
+      m_selected{Coord{-1, -1}},
       m_hovered(-1, -1),
       m_cpysrc(-1, -1),
       m_dragged(-1, -1),
@@ -248,7 +248,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     if (key == WXK_ESCAPE)
     {
         StopDrag(true);
-        m_selected = { -1, -1 };
+        m_selected[0] = { -1, -1 };
         m_hovered = { -1, -1 };
         SetSelectedSwap(-1);
         SetSelectedDoor(-1);
@@ -635,7 +635,7 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
         }
         return false;
     case WXK_PAGEUP:
-        IncreaseSelectedHeight();
+        IncreaseHeight();
         return false;
     case WXK_PAGEDOWN:
         DecreaseSelectedHeight();
@@ -691,8 +691,8 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
     case '7':
     case '8':
     case '9':
-        SetSelectedHeight(key - '0');
-        return false;
+        //SetSelectedHeight(key - '0');
+        //return false;
     case WXK_NUMPAD0:
     case WXK_NUMPAD1:
     case WXK_NUMPAD2:
@@ -703,7 +703,7 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
     case WXK_NUMPAD7:
     case WXK_NUMPAD8:
     case WXK_NUMPAD9:
-        SetSelectedHeight(key - WXK_NUMPAD0);
+        //SetSelectedHeight(key - WXK_NUMPAD0);
         return false;
     case WXK_DELETE:
         if (modifiers == (wxMOD_SHIFT | wxMOD_ALT))
@@ -725,9 +725,9 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
 
 void HeightmapEditorCtrl::ClearSelection()
 {
-    if (m_selected.first != -1)
+    if (m_selected[0].first != -1)
     {
-        m_selected = { -1, -1 };
+        m_selected[0] = { -1, -1 };
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         Refresh(false);
     }
@@ -735,11 +735,11 @@ void HeightmapEditorCtrl::ClearSelection()
 
 void HeightmapEditorCtrl::SetSelection(int ix, int iy)
 {
-    if (m_selected.first != ix || m_selected.second != iy)
+    if (m_selected[0].first != ix || m_selected[0].second != iy)
     {
         if (ix >= 0 && ix < m_map->GetHeightmapWidth() && iy >= 0 && iy < m_map->GetHeightmapWidth())
         {
-            m_selected = { ix, iy };
+            m_selected[0] = { ix, iy };
             FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
             Refresh(false);
         }
@@ -752,29 +752,29 @@ void HeightmapEditorCtrl::SetSelection(int ix, int iy)
 
 std::pair<int, int> HeightmapEditorCtrl::GetSelection() const
 {
-    return m_selected;
+    return m_selected[0];
 }
 
 bool HeightmapEditorCtrl::IsSelectionValid() const
 {
-    return m_selected.first != -1;
+    return m_selected[0].first != -1;
 }
 
 void HeightmapEditorCtrl::NudgeSelectionUp()
 {
     bool upd = false;
-    if (m_selected.first == -1 && m_hovered.first == -1)
+    if (m_selected[0].first == -1 && m_hovered.first == -1)
     {
-        m_selected = { 0, 0 };
+        m_selected[0] = { 0, 0 };
         upd = true;
     }
-    else if (m_selected.first > 0)
+    else if (m_selected[0].first > 0)
     {
-        if (m_selected.first == -1)
+        if (m_selected[0].first == -1)
         {
-            m_selected = m_hovered;
+            m_selected[0] = m_hovered;
         }
-        m_selected.first--;
+        m_selected[0].first--;
         upd = true;
     }
     if (upd)
@@ -787,18 +787,18 @@ void HeightmapEditorCtrl::NudgeSelectionUp()
 void HeightmapEditorCtrl::NudgeSelectionDown()
 {
     bool upd = false;
-    if (m_selected.first == -1 && m_hovered.first == -1)
+    if (m_selected[0].first == -1 && m_hovered.first == -1)
     {
-        m_selected = { 0, 0 };
+        m_selected[0] = { 0, 0 };
         upd = true;
     }
-    else if (m_selected.first < m_map->GetHeightmapWidth() - 1)
+    else if (m_selected[0].first < m_map->GetHeightmapWidth() - 1)
     {
-        if (m_selected.first == -1)
+        if (m_selected[0].first == -1)
         {
-            m_selected = m_hovered;
+            m_selected[0] = m_hovered;
         }
-        m_selected.first++;
+        m_selected[0].first++;
         upd = true;
     }
     if (upd)
@@ -811,18 +811,18 @@ void HeightmapEditorCtrl::NudgeSelectionDown()
 void HeightmapEditorCtrl::NudgeSelectionLeft()
 {
     bool upd = false;
-    if (m_selected.first == -1 && m_hovered.first == -1)
+    if (m_selected[0].first == -1 && m_hovered.first == -1)
     {
-        m_selected = { 0, 0 };
+        m_selected[0] = { 0, 0 };
         upd = true;
     }
-    else if (m_selected.second < m_map->GetHeightmapHeight() - 1)
+    else if (m_selected[0].second < m_map->GetHeightmapHeight() - 1)
     {
-        if (m_selected.first == -1)
+        if (m_selected[0].first == -1)
         {
-            m_selected = m_hovered;
+            m_selected[0] = m_hovered;
         }
-        m_selected.second++;
+        m_selected[0].second++;
         upd = true;
     }
     if (upd)
@@ -835,18 +835,18 @@ void HeightmapEditorCtrl::NudgeSelectionLeft()
 void HeightmapEditorCtrl::NudgeSelectionRight()
 {
     bool upd = false;
-    if (m_selected.first == -1 && m_hovered.first == -1)
+    if (m_selected[0].first == -1 && m_hovered.first == -1)
     {
-        m_selected = { 0, 0 };
+        m_selected[0] = { 0, 0 };
         upd = true;
     }
-    else if (m_selected.second > 0)
+    else if (m_selected[0].second > 0)
     {
-        if (m_selected.first == -1)
+        if (m_selected[0].first == -1)
         {
-            m_selected = m_hovered;
+            m_selected[0] = m_hovered;
         }
-        m_selected.second--;
+        m_selected[0].second--;
         upd = true;
     }
     if (upd)
@@ -902,10 +902,10 @@ void HeightmapEditorCtrl::NudgeHeightmapRight()
 
 void HeightmapEditorCtrl::InsertRowAbove()
 {
-    if (m_selected.second != -1 && m_map->GetHeightmapWidth() < 64)
+    if (m_selected[0].second != -1 && m_map->GetHeightmapWidth() < 64)
     {
-        m_map->InsertHeightmapRow(m_selected.first);
-        m_selected.first++;
+        m_map->InsertHeightmapRow(m_selected[0].first);
+        m_selected[0].first++;
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         FireEvent(EVT_HEIGHTMAP_UPDATE);
@@ -915,9 +915,9 @@ void HeightmapEditorCtrl::InsertRowAbove()
 
 void HeightmapEditorCtrl::InsertRowBelow()
 {
-    if (m_selected.first != -1 && m_map->GetHeightmapWidth() < 64)
+    if (m_selected[0].first != -1 && m_map->GetHeightmapWidth() < 64)
     {
-        m_map->InsertHeightmapRow(m_selected.first);
+        m_map->InsertHeightmapRow(m_selected[0].first);
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         FireEvent(EVT_HEIGHTMAP_UPDATE);
@@ -927,12 +927,12 @@ void HeightmapEditorCtrl::InsertRowBelow()
 
 void HeightmapEditorCtrl::DeleteRow()
 {
-    if (m_selected.first != -1 && m_map->GetHeightmapWidth() > 1)
+    if (m_selected[0].first != -1 && m_map->GetHeightmapWidth() > 1)
     {
-        m_map->DeleteHeightmapRow(m_selected.first);
-        if (m_selected.first >= m_map->GetHeightmapWidth())
+        m_map->DeleteHeightmapRow(m_selected[0].first);
+        if (m_selected[0].first >= m_map->GetHeightmapWidth())
         {
-            m_selected.first = m_map->GetHeightmapWidth() - 1;
+            m_selected[0].first = m_map->GetHeightmapWidth() - 1;
         }
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
@@ -943,9 +943,9 @@ void HeightmapEditorCtrl::DeleteRow()
 
 void HeightmapEditorCtrl::InsertColumnLeft()
 {
-    if (m_selected.first != -1 && m_map->GetHeightmapHeight() < 64)
+    if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() < 64)
     {
-        m_map->InsertHeightmapColumn(m_selected.second);
+        m_map->InsertHeightmapColumn(m_selected[0].second);
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         FireEvent(EVT_HEIGHTMAP_UPDATE);
@@ -955,10 +955,10 @@ void HeightmapEditorCtrl::InsertColumnLeft()
 
 void HeightmapEditorCtrl::InsertColumnRight()
 {
-    if (m_selected.second != -1 && m_map->GetHeightmapHeight() < 64)
+    if (m_selected[0].second != -1 && m_map->GetHeightmapHeight() < 64)
     {
-        m_map->InsertHeightmapColumn(m_selected.second);
-        m_selected.second++;
+        m_map->InsertHeightmapColumn(m_selected[0].second);
+        m_selected[0].second++;
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         FireEvent(EVT_HEIGHTMAP_UPDATE);
@@ -968,12 +968,12 @@ void HeightmapEditorCtrl::InsertColumnRight()
 
 void HeightmapEditorCtrl::DeleteColumn()
 {
-    if (m_selected.first != -1 && m_map->GetHeightmapHeight() > 1)
+    if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() > 1)
     {
-        m_map->DeleteHeightmapColumn(m_selected.second);
-        if (m_selected.second >= m_map->GetHeightmapHeight())
+        m_map->DeleteHeightmapColumn(m_selected[0].second);
+        if (m_selected[0].second >= m_map->GetHeightmapHeight())
         {
-            m_selected.second = m_map->GetHeightmapHeight() - 1;
+            m_selected[0].second = m_map->GetHeightmapHeight() - 1;
         }
         RecreateBuffer();
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
@@ -982,55 +982,61 @@ void HeightmapEditorCtrl::DeleteColumn()
     }
 }
 
-uint8_t HeightmapEditorCtrl::GetSelectedHeight() const
+uint8_t HeightmapEditorCtrl::GetSelectedHeight(int selectedIndex) const
 {
-    return m_map->GetHeight({ m_selected.first, m_selected.second });
+    return m_map->GetHeight({ m_selected[selectedIndex].first, m_selected[selectedIndex].second });
 }
 
-void HeightmapEditorCtrl::SetSelectedHeight(uint8_t height)
+void HeightmapEditorCtrl::SetSelectedHeight(int selectedIndex, uint8_t height)
 {
-    m_map->SetHeight({ m_selected.first, m_selected.second }, height);
+    m_map->SetHeight({ m_selected[selectedIndex].first, m_selected[selectedIndex].second }, height);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
 
-void HeightmapEditorCtrl::IncreaseSelectedHeight()
+void HeightmapEditorCtrl::IncreaseHeight()
 {
-    uint8_t height = GetSelectedHeight();
-    if (height < 15)
-    {
-        ++height;
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        uint8_t height = GetSelectedHeight(i);
+        if (height < 15)
+        {
+            ++height;
+        }
+        SetSelectedHeight(i, height);
     }
-    SetSelectedHeight(height);
 }
 
 void HeightmapEditorCtrl::DecreaseSelectedHeight()
 {
-    uint8_t height = GetSelectedHeight();
-    if (height > 0)
-    {
-        --height;
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        uint8_t height = GetSelectedHeight(i);
+        if (height > 0)
+        {
+            --height;
+        }
+        SetSelectedHeight(i, height);
     }
-    SetSelectedHeight(height);
 }
 
 void HeightmapEditorCtrl::ClearSelectedCell()
 {
-    m_map->SetHeight({ m_selected.first, m_selected.second }, 0);
-    m_map->SetCellProps({ m_selected.first, m_selected.second }, 4);
-    m_map->SetCellType({ m_selected.first, m_selected.second }, 0);
+    m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, 0);
+    m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, 4);
+    m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, 0);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
 
 uint8_t HeightmapEditorCtrl::GetSelectedRestrictions() const
 {
-    return m_map->GetCellProps({ m_selected.first, m_selected.second });
+    return m_map->GetCellProps({ m_selected[0].first, m_selected[0].second });
 }
 
 void HeightmapEditorCtrl::SetSelectedRestrictions(uint8_t restrictions)
 {
-    m_map->SetCellProps({ m_selected.first, m_selected.second }, restrictions);
+    for (const auto& coord : m_selected) {
+        m_map->SetCellProps({ coord.first, coord.second }, restrictions);
+    }
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
@@ -1077,12 +1083,12 @@ void HeightmapEditorCtrl::DecrementSelectedRestrictions()
 
 uint8_t HeightmapEditorCtrl::GetSelectedType() const
 {
-    return m_map->GetCellType({m_selected.first, m_selected.second});
+    return m_map->GetCellType({m_selected[0].first, m_selected[0].second});
 }
 
 void HeightmapEditorCtrl::SetSelectedType(uint8_t type)
 {
-    m_map->SetCellType({ m_selected.first, m_selected.second }, type);
+    m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, type);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
@@ -1168,17 +1174,41 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
         }
         Refresh();
     }
+    else if ((modifiers & wxMOD_SHIFT) > 0)
+    {
+        // Multiple selection
+        auto it = std::find(m_selected.begin(), m_selected.end(), m_hovered);
+        if (it != m_selected.end()) {
+            m_selected.erase(it);
+        }
+        else
+        {
+            m_selected.push_back(m_hovered);
+        }
+
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        if (m_cpysrc.first != -1 && m_selected[0].first != -1 && m_selected[0] != m_cpysrc)
+        {
+            m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+        }
+        ForceRedraw();
+
+    }
     else
     {
-        if (m_selected != m_hovered)
+        if (m_selected[0] != m_hovered)
         {
-            m_selected = m_hovered;
+            m_selected.clear();
+            m_selected.push_back(m_hovered);
             FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            if (m_cpysrc.first != -1 && m_selected.first != -1 && m_selected != m_cpysrc)
+            if (m_cpysrc.first != -1 && m_selected[0].first != -1 && m_selected[0] != m_cpysrc)
             {
-                m_map->SetHeight({ m_selected.first, m_selected.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
-                m_map->SetCellProps({ m_selected.first, m_selected.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
-                m_map->SetCellType({ m_selected.first, m_selected.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
                 FireEvent(EVT_HEIGHTMAP_UPDATE);
             }
             ForceRedraw();
@@ -1196,10 +1226,10 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
 {
     if ((modifiers & wxMOD_CONTROL) == 0)
     {
-        if (m_selected != m_hovered)
+        if (m_selected[0] != m_hovered)
         {
-            m_selected = m_hovered;
-            m_cpysrc = m_selected;
+            m_selected[0] = m_hovered;
+            m_cpysrc = m_selected[0];
             Refresh(false);
         }
     }
@@ -1470,7 +1500,9 @@ void HeightmapEditorCtrl::DrawEntities(wxDC& dc)
 void HeightmapEditorCtrl::DrawSelectionCursors(wxDC& dc)
 {
     auto lines = GetTilePoly(0, 0);
-    if (m_hovered.first != -1 && m_hovered != m_selected)
+
+    // Draw cursor for hovered tile
+    if (m_hovered.first != -1 && std::find(m_selected.begin(), m_selected.end(), m_hovered) == m_selected.end())
     {
         int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
         int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
@@ -1478,15 +1510,22 @@ void HeightmapEditorCtrl::DrawSelectionCursors(wxDC& dc)
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawPolygon(lines.size(), lines.data(), x, y);
     }
-    if (m_selected.first != -1 && m_hovered != m_selected)
+
+    // Draw cursor for each selected tile
+    for (const auto& coord : m_selected)
     {
-        int x = (m_map->GetHeightmapHeight() + m_selected.first - m_selected.second - 1) * TILE_WIDTH / 2;
-        int y = (m_selected.first + m_selected.second) * TILE_HEIGHT / 2;
-        dc.SetPen(*wxYELLOW_PEN);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawPolygon(lines.size(), lines.data(), x, y);
+        if (coord.first != -1 && coord != m_hovered)
+        {
+            int x = (m_map->GetHeightmapHeight() + coord.first - coord.second - 1) * TILE_WIDTH / 2;
+            int y = (coord.first + coord.second) * TILE_HEIGHT / 2;
+            dc.SetPen(*wxYELLOW_PEN);
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawPolygon(lines.size(), lines.data(), x, y);
+        }
     }
-    if (m_selected.first != -1 && m_hovered == m_selected)
+
+    // Draw cursor if hovered tile is also selected
+    if (m_hovered.first != -1 && std::find(m_selected.begin(), m_selected.end(), m_hovered) != m_selected.end())
     {
         int x = (m_map->GetHeightmapHeight() + m_hovered.first - m_hovered.second - 1) * TILE_WIDTH / 2;
         int y = (m_hovered.first + m_hovered.second) * TILE_HEIGHT / 2;
@@ -1494,6 +1533,8 @@ void HeightmapEditorCtrl::DrawSelectionCursors(wxDC& dc)
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawPolygon(lines.size(), lines.data(), x, y);
     }
+
+    // Draw cursor for the copy source tile
     if (m_cpysrc.first != -1)
     {
         std::unique_ptr<wxPen> m_cpysrc_pen(new wxPen(*wxCYAN, 1, wxPENSTYLE_SHORT_DASH));
@@ -1504,6 +1545,7 @@ void HeightmapEditorCtrl::DrawSelectionCursors(wxDC& dc)
         dc.DrawPolygon(lines.size(), lines.data(), x, y);
     }
 }
+
 
 void HeightmapEditorCtrl::SetOpacity(wxImage& image, uint8_t opacity)
 {
@@ -1536,9 +1578,9 @@ bool HeightmapEditorCtrl::UpdateHoveredPosition(int screenx, int screeny)
 bool HeightmapEditorCtrl::UpdateSelectedPosition(int screenx, int screeny)
 {
     auto i = GetHMPosition(screenx, screeny);
-    if (m_selected.first != i.first || m_selected.second != i.second)
+    if (m_selected[0].first != i.first || m_selected[0].second != i.second)
     {
-        m_selected = i;
+        m_selected[0] = i;
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         return true;
     }
@@ -1611,9 +1653,9 @@ void HeightmapEditorCtrl::RecreateBuffer()
     {
         m_hovered = { -1, -1 };
     }
-    if (!IsCoordValid(m_selected))
+    if (!IsCoordValid(m_selected[0]))
     {
-        m_selected = { -1, -1 };
+        m_selected[0] = { -1, -1 };
     }
     m_cpysrc = {-1, -1};
     RefreshGraphics();
@@ -1804,11 +1846,11 @@ std::pair<int, int> HeightmapEditorCtrl::GetHMPosition(int screenx, int screeny)
 void HeightmapEditorCtrl::OnLeftClick(wxMouseEvent& evt)
 {
     UpdateSelectedPosition(evt.GetX(), evt.GetY());
-    if (m_cpysrc.first != -1 && m_selected.first != -1 && m_selected != m_cpysrc)
+    if (m_cpysrc.first != -1 && m_selected[0].first != -1 && m_selected[0] != m_cpysrc)
     {
-        m_map->SetHeight({ m_selected.first, m_selected.second}, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second}));
-        m_map->SetCellProps({ m_selected.first, m_selected.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
-        m_map->SetCellType({ m_selected.first, m_selected.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+        m_map->SetHeight({ m_selected[0].first, m_selected[0].second}, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second}));
+        m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+        m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
         ForceRedraw();
         FireEvent(EVT_HEIGHTMAP_UPDATE);
     }
@@ -1823,7 +1865,7 @@ void HeightmapEditorCtrl::OnRightClick(wxMouseEvent& evt)
 {
     if (UpdateSelectedPosition(evt.GetX(), evt.GetY()))
     {
-        m_cpysrc = m_selected;
+        m_cpysrc = m_selected[0];
         Refresh(false);
     }
     

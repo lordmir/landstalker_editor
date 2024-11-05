@@ -1624,7 +1624,7 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			m_hmedit->ToggleSelectedRaftTrack();
 			break;
 		case HM_INCREASE_HEIGHT:
-			m_hmedit->IncreaseSelectedHeight();
+			m_hmedit->IncreaseHeight();
 			break;
 		case HM_DECREASE_HEIGHT:
 			m_hmedit->DecreaseSelectedHeight();
@@ -2049,8 +2049,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15);
-		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0);
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, true /*m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15*/);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, true /*m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0*/);
 		if (hmcell != nullptr && hmzoom != nullptr)
 		{
 			hmcell->Enable(m_hmedit->IsSelectionValid());

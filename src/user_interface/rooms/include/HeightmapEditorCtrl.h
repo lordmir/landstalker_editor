@@ -87,9 +87,9 @@ public:
 	void InsertColumnRight();
 	void DeleteColumn();
 
-	uint8_t GetSelectedHeight() const;
-	void SetSelectedHeight(uint8_t height);
-	void IncreaseSelectedHeight();
+	uint8_t GetSelectedHeight(int selectedIndex) const;
+	void SetSelectedHeight(int selectedIndex, uint8_t height);
+	void IncreaseHeight();
 	void DecreaseSelectedHeight();
 	void ClearSelectedCell();
 
@@ -186,7 +186,7 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
-	Coord m_selected;
+	std::vector<Coord> m_selected;
 	Coord m_hovered;
 	Coord m_cpysrc;
 	Coord m_dragged;
