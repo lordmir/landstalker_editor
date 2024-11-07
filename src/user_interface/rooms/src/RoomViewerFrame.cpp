@@ -2049,8 +2049,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->AllSelectedMaxHeight());
-		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->AllSelectedMinHeight());
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->AnySelectedMaxHeight());
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() && m_hmedit->AnySelectedMinHeight());
 		if (hmcell != nullptr && hmzoom != nullptr)
 		{
 			hmcell->Enable(m_hmedit->IsSelectionValid());

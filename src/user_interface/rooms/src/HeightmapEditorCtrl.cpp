@@ -1313,14 +1313,15 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
     return false;
 }
 
-bool HeightmapEditorCtrl::AllSelectedMaxHeight()
+bool HeightmapEditorCtrl::AnySelectedMaxHeight()
 {
-    return std::all_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) < 15; });
+    std::cout << "AllSelectedMaxHeight" << std::endl; 
+    return std::any_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) < 15; });
 }
 
-bool HeightmapEditorCtrl::AllSelectedMinHeight()
+bool HeightmapEditorCtrl::AnySelectedMinHeight()
 {
-    return std::all_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) > 0; });
+    return std::any_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) > 0; });
 }
 
 void HeightmapEditorCtrl::RefreshStatusbar()
