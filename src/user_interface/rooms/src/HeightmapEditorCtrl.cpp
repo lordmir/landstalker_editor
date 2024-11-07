@@ -1045,9 +1045,9 @@ void HeightmapEditorCtrl::DecreaseSelectedHeight()
 void HeightmapEditorCtrl::ClearSelectedCell()
 {
     for (size_t i = 0; i < m_selected.size(); ++i) {
-        m_map->SetHeight({ m_selected[i].first, m_selected[0].second }, 0);
-        m_map->SetCellProps({ m_selected[i].first, m_selected[0].second }, 4);
-        m_map->SetCellType({ m_selected[i].first, m_selected[0].second }, 0);
+        m_map->SetHeight({ m_selected[i].first, m_selected[i].second }, 0);
+        m_map->SetCellProps({ m_selected[i].first, m_selected[i].second }, 4);
+        m_map->SetCellType({ m_selected[i].first, m_selected[i].second }, 0);
     }
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
