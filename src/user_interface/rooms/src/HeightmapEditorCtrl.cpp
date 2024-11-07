@@ -1313,6 +1313,16 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
     return false;
 }
 
+bool HeightmapEditorCtrl::AllSelectedMaxHeight()
+{
+    return std::all_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) < 15; });
+}
+
+bool HeightmapEditorCtrl::AllSelectedMinHeight()
+{
+    return std::all_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) > 0; });
+}
+
 void HeightmapEditorCtrl::RefreshStatusbar()
 {
     std::string msg = "";

@@ -113,6 +113,9 @@ public:
 	bool HandleLeftDown(unsigned int modifiers);
 	bool HandleLeftDClick(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
+
+	bool AllSelectedMaxHeight();
+	bool AllSelectedMinHeight();
 private:
 	void RefreshStatusbar();
 	void RefreshCursor(bool ctrl_down);
