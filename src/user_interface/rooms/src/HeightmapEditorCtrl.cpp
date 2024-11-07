@@ -35,7 +35,6 @@ HeightmapEditorCtrl::HeightmapEditorCtrl(wxWindow* parent, RoomViewerFrame* fram
       m_redraw(false),
       m_repaint(false),
       m_zoom(1.0),
-      m_selected{Coord{-1, -1}},
       m_hovered(-1, -1),
       m_cpysrc(-1, -1),
       m_dragged(-1, -1),
@@ -248,7 +247,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
     if (key == WXK_ESCAPE)
     {
         StopDrag(true);
-        m_selected[0] = { -1, -1 };
+        m_selected.clear();
         m_hovered = { -1, -1 };
         SetSelectedSwap(-1);
         SetSelectedDoor(-1);
@@ -675,11 +674,15 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
         return false;
     case 'C':
     case 'c':
-        SetSelectedType(0);
+        for (size_t i = 0; i < m_selected.size(); ++i) {
+            SetSelectedType(i, 0);
+        }
         return false;
     case 'X':
     case 'x':
-        SetSelectedRestrictions(0);
+        for (size_t i = 0; i < m_selected.size(); ++i) {
+            SetSelectedRestrictions(i, 0);
+        }
         return false;
     case '0':
     case '1':
@@ -725,12 +728,9 @@ bool HeightmapEditorCtrl::HandleDrawKeyDown(unsigned int key, unsigned int modif
 
 void HeightmapEditorCtrl::ClearSelection()
 {
-    if (m_selected[0].first != -1)
-    {
-        m_selected[0] = { -1, -1 };
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        Refresh(false);
-    }
+    m_selected.clear();
+    FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+    Refresh(false);
 }
 
 void HeightmapEditorCtrl::SetSelection(int ix, int iy)
@@ -750,109 +750,121 @@ void HeightmapEditorCtrl::SetSelection(int ix, int iy)
     }
 }
 
-std::pair<int, int> HeightmapEditorCtrl::GetSelection() const
+std::pair<int, int> HeightmapEditorCtrl::GetSelection(int index) const
 {
-    return m_selected[0];
+    return m_selected[index];
 }
 
 bool HeightmapEditorCtrl::IsSelectionValid() const
 {
-    return m_selected[0].first != -1;
+    return !m_selected.empty();
 }
 
 void HeightmapEditorCtrl::NudgeSelectionUp()
 {
-    bool upd = false;
-    if (m_selected[0].first == -1 && m_hovered.first == -1)
+    if(m_selected.size() == 1)
     {
-        m_selected[0] = { 0, 0 };
-        upd = true;
-    }
-    else if (m_selected[0].first > 0)
-    {
-        if (m_selected[0].first == -1)
+        bool upd = false;
+        if (m_selected[0].first == -1 && m_hovered.first == -1)
         {
-            m_selected[0] = m_hovered;
+            m_selected[0] = { 0, 0 };
+            upd = true;
         }
-        m_selected[0].first--;
-        upd = true;
-    }
-    if (upd)
-    {
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        Refresh(false);
+        else if (m_selected[0].first > 0)
+        {
+            if (m_selected[0].first == -1)
+            {
+                m_selected[0] = m_hovered;
+            }
+            m_selected[0].first--;
+            upd = true;
+        }
+        if (upd)
+        {
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            Refresh(false);
+        }
     }
 }
 
 void HeightmapEditorCtrl::NudgeSelectionDown()
 {
-    bool upd = false;
-    if (m_selected[0].first == -1 && m_hovered.first == -1)
+    if(m_selected.size() == 1)
     {
-        m_selected[0] = { 0, 0 };
-        upd = true;
-    }
-    else if (m_selected[0].first < m_map->GetHeightmapWidth() - 1)
-    {
-        if (m_selected[0].first == -1)
+        bool upd = false;
+        if (m_selected[0].first == -1 && m_hovered.first == -1)
         {
-            m_selected[0] = m_hovered;
+            m_selected[0] = { 0, 0 };
+            upd = true;
         }
-        m_selected[0].first++;
-        upd = true;
-    }
-    if (upd)
-    {
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        Refresh(false);
+        else if (m_selected[0].first < m_map->GetHeightmapWidth() - 1)
+        {
+            if (m_selected[0].first == -1)
+            {
+                m_selected[0] = m_hovered;
+            }
+            m_selected[0].first++;
+            upd = true;
+        }
+        if (upd)
+        {
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            Refresh(false);
+        }
     }
 }
 
 void HeightmapEditorCtrl::NudgeSelectionLeft()
 {
-    bool upd = false;
-    if (m_selected[0].first == -1 && m_hovered.first == -1)
+    if(m_selected.size() == 1)
     {
-        m_selected[0] = { 0, 0 };
-        upd = true;
-    }
-    else if (m_selected[0].second < m_map->GetHeightmapHeight() - 1)
-    {
-        if (m_selected[0].first == -1)
+        bool upd = false;
+        if (m_selected[0].first == -1 && m_hovered.first == -1)
         {
-            m_selected[0] = m_hovered;
+            m_selected[0] = { 0, 0 };
+            upd = true;
         }
-        m_selected[0].second++;
-        upd = true;
-    }
-    if (upd)
-    {
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        Refresh(false);
+        else if (m_selected[0].second < m_map->GetHeightmapHeight() - 1)
+        {
+            if (m_selected[0].first == -1)
+            {
+                m_selected[0] = m_hovered;
+            }
+            m_selected[0].second++;
+            upd = true;
+        }
+        if (upd)
+        {
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            Refresh(false);
+        }
     }
 }
 
 void HeightmapEditorCtrl::NudgeSelectionRight()
 {
-    bool upd = false;
-    if (m_selected[0].first == -1 && m_hovered.first == -1)
+    if(m_selected.size() == 1)
     {
-        m_selected[0] = { 0, 0 };
-        upd = true;
-    }
-    else if (m_selected[0].second > 0)
-    {
-        if (m_selected[0].first == -1)
+        bool upd = false;
+        if (m_selected[0].first == -1 && m_hovered.first == -1)
         {
-            m_selected[0] = m_hovered;
+            m_selected[0] = { 0, 0 };
+            upd = true;
         }
-        m_selected[0].second--;
-        upd = true;
-    }
-    if (upd)
-    {
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        Refresh(false);
+        else if (m_selected[0].second > 0)
+        {
+            if (m_selected[0].first == -1)
+            {
+                m_selected[0] = m_hovered;
+            }
+            m_selected[0].second--;
+            upd = true;
+        }
+        if (upd)
+        {
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            Refresh(false);
+        }
     }
 }
 
@@ -927,69 +939,81 @@ void HeightmapEditorCtrl::InsertRowBelow()
 
 void HeightmapEditorCtrl::DeleteRow()
 {
-    if (m_selected[0].first != -1 && m_map->GetHeightmapWidth() > 1)
+    if(m_selected.size() == 1)
     {
-        m_map->DeleteHeightmapRow(m_selected[0].first);
-        if (m_selected[0].first >= m_map->GetHeightmapWidth())
+        if (m_selected[0].first != -1 && m_map->GetHeightmapWidth() > 1)
         {
-            m_selected[0].first = m_map->GetHeightmapWidth() - 1;
+            m_map->DeleteHeightmapRow(m_selected[0].first);
+            if (m_selected[0].first >= m_map->GetHeightmapWidth())
+            {
+                m_selected[0].first = m_map->GetHeightmapWidth() - 1;
+            }
+            RecreateBuffer();
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+            FireEvent(EVT_PROPERTIES_UPDATE);
         }
-        RecreateBuffer();
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        FireEvent(EVT_HEIGHTMAP_UPDATE);
-        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
 void HeightmapEditorCtrl::InsertColumnLeft()
 {
-    if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() < 64)
+    if(m_selected.size() == 1)
     {
-        m_map->InsertHeightmapColumn(m_selected[0].second);
-        RecreateBuffer();
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        FireEvent(EVT_HEIGHTMAP_UPDATE);
-        FireEvent(EVT_PROPERTIES_UPDATE);
+        if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() < 64)
+        {
+            m_map->InsertHeightmapColumn(m_selected[0].second);
+            RecreateBuffer();
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+            FireEvent(EVT_PROPERTIES_UPDATE);
+        }
     }
 }
 
 void HeightmapEditorCtrl::InsertColumnRight()
 {
-    if (m_selected[0].second != -1 && m_map->GetHeightmapHeight() < 64)
+    if(m_selected.size() == 1)
     {
-        m_map->InsertHeightmapColumn(m_selected[0].second);
-        m_selected[0].second++;
-        RecreateBuffer();
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        FireEvent(EVT_HEIGHTMAP_UPDATE);
-        FireEvent(EVT_PROPERTIES_UPDATE);
+        if (m_selected[0].second != -1 && m_map->GetHeightmapHeight() < 64)
+        {
+            m_map->InsertHeightmapColumn(m_selected[0].second);
+            m_selected[0].second++;
+            RecreateBuffer();
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+            FireEvent(EVT_PROPERTIES_UPDATE);
+        }
     }
 }
 
 void HeightmapEditorCtrl::DeleteColumn()
 {
-    if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() > 1)
+    if(m_selected.size() == 1)
     {
-        m_map->DeleteHeightmapColumn(m_selected[0].second);
-        if (m_selected[0].second >= m_map->GetHeightmapHeight())
+        if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() > 1)
         {
-            m_selected[0].second = m_map->GetHeightmapHeight() - 1;
+            m_map->DeleteHeightmapColumn(m_selected[0].second);
+            if (m_selected[0].second >= m_map->GetHeightmapHeight())
+            {
+                m_selected[0].second = m_map->GetHeightmapHeight() - 1;
+            }
+            RecreateBuffer();
+            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+            FireEvent(EVT_PROPERTIES_UPDATE);
         }
-        RecreateBuffer();
-        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        FireEvent(EVT_HEIGHTMAP_UPDATE);
-        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
-uint8_t HeightmapEditorCtrl::GetSelectedHeight(int selectedIndex) const
+uint8_t HeightmapEditorCtrl::GetSelectedHeight(int index) const
 {
-    return m_map->GetHeight({ m_selected[selectedIndex].first, m_selected[selectedIndex].second });
+    return m_map->GetHeight({ m_selected[index].first, m_selected[index].second });
 }
 
-void HeightmapEditorCtrl::SetSelectedHeight(int selectedIndex, uint8_t height)
+void HeightmapEditorCtrl::SetSelectedHeight(int index, uint8_t height)
 {
-    m_map->SetHeight({ m_selected[selectedIndex].first, m_selected[selectedIndex].second }, height);
+    m_map->SetHeight({ m_selected[index].first, m_selected[index].second }, height);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
@@ -1020,19 +1044,21 @@ void HeightmapEditorCtrl::DecreaseSelectedHeight()
 
 void HeightmapEditorCtrl::ClearSelectedCell()
 {
-    m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, 0);
-    m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, 4);
-    m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, 0);
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        m_map->SetHeight({ m_selected[i].first, m_selected[0].second }, 0);
+        m_map->SetCellProps({ m_selected[i].first, m_selected[0].second }, 4);
+        m_map->SetCellType({ m_selected[i].first, m_selected[0].second }, 0);
+    }
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
 
-uint8_t HeightmapEditorCtrl::GetSelectedRestrictions() const
+uint8_t HeightmapEditorCtrl::GetSelectedRestrictions(int index) const
 {
-    return m_map->GetCellProps({ m_selected[0].first, m_selected[0].second });
+    return m_map->GetCellProps({ m_selected[index].first, m_selected[index].second });
 }
 
-void HeightmapEditorCtrl::SetSelectedRestrictions(uint8_t restrictions)
+void HeightmapEditorCtrl::SetSelectedRestrictions(int index, uint8_t restrictions)
 {
     for (const auto& coord : m_selected) {
         m_map->SetCellProps({ coord.first, coord.second }, restrictions);
@@ -1043,64 +1069,93 @@ void HeightmapEditorCtrl::SetSelectedRestrictions(uint8_t restrictions)
 
 bool HeightmapEditorCtrl::IsSelectedPlayerPassable() const
 {
-    return (GetSelectedRestrictions() & 0x04) == 0;
+    for (int i = 0; i < m_selected.size(); ++i) {
+        if ((GetSelectedRestrictions(i) & 0x04) != 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void HeightmapEditorCtrl::ToggleSelectedPlayerPassable()
 {
-    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x04);
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x04);
+    }
 }
 
 bool HeightmapEditorCtrl::IsSelectedNPCPassable() const
 {
-    return (GetSelectedRestrictions() & 0x02) == 0;
+    for (int i = 0; i < m_selected.size(); ++i) {
+        if ((GetSelectedRestrictions(i) & 0x02) != 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void HeightmapEditorCtrl::ToggleSelectedNPCPassable()
 {
-    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x02);
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x02);
+    }
 }
 
 bool HeightmapEditorCtrl::IsSelectedRaftTrack() const
 {
-    return (GetSelectedRestrictions() & 0x01) > 0;
+    for (int i = 0; i < m_selected.size(); ++i) {
+        if ((GetSelectedRestrictions(i) & 0x01) != 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void HeightmapEditorCtrl::ToggleSelectedRaftTrack()
 {
-    SetSelectedRestrictions(GetSelectedRestrictions() ^ 0x01);
+    for (int i = 0; i < m_selected.size(); ++i) {
+        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x01);
+    }
 }
 
 void HeightmapEditorCtrl::IncrementSelectedRestrictions()
 {
-    SetSelectedRestrictions((GetSelectedRestrictions() + 1) & 0x0F);
+    for (int i = 0; i < m_selected.size(); ++i) {
+        SetSelectedRestrictions(i, (GetSelectedRestrictions(i) + 1) & 0x0F);
+    }
 }
 
 void HeightmapEditorCtrl::DecrementSelectedRestrictions()
 {
-    SetSelectedRestrictions((GetSelectedRestrictions() - 1) & 0x0F);
+    for (int i = 0; i < m_selected.size(); ++i) {
+        SetSelectedRestrictions(i, (GetSelectedRestrictions(i) - 1) & 0x0F);
+    }
 }
 
-uint8_t HeightmapEditorCtrl::GetSelectedType() const
+uint8_t HeightmapEditorCtrl::GetSelectedType(int index) const
 {
-    return m_map->GetCellType({m_selected[0].first, m_selected[0].second});
+    return m_map->GetCellType({m_selected[index].first, m_selected[index].second});
 }
 
-void HeightmapEditorCtrl::SetSelectedType(uint8_t type)
+void HeightmapEditorCtrl::SetSelectedType(int index, uint8_t type)
 {
-    m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, type);
+    m_map->SetCellType({ m_selected[index].first, m_selected[index].second }, type);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
 
 void HeightmapEditorCtrl::IncrementSelectedType()
 {
-    SetSelectedType((GetSelectedType() + 1) & 0xFF);
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        SetSelectedType(i, (GetSelectedType(i) + 1) & 0xFF);
+    }
 }
 
 void HeightmapEditorCtrl::DecrementSelectedType()
 {
-    SetSelectedType((GetSelectedType() - 1) & 0xFF);
+    for (size_t i = 0; i < m_selected.size(); ++i) {
+        SetSelectedType(i, (GetSelectedType(i) - 1) & 0xFF);
+    }
 }
 
 bool HeightmapEditorCtrl::HandleMouse(MouseEventType type, bool left_down, bool right_down, unsigned int modifiers, int x, int y)
@@ -1185,22 +1240,13 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
         {
             m_selected.push_back(m_hovered);
         }
-
         FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-        if (m_cpysrc.first != -1 && m_selected[0].first != -1 && m_selected[0] != m_cpysrc)
-        {
-            m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
-            m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
-            m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
-        }
         ForceRedraw();
-
     }
     else
     {
-        if (m_selected[0] != m_hovered)
-        {
+        //if (m_selected[0] != m_hovered)
+        //{
             m_selected.clear();
             m_selected.push_back(m_hovered);
             FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
@@ -1212,7 +1258,7 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
                 FireEvent(EVT_HEIGHTMAP_UPDATE);
             }
             ForceRedraw();
-        }
+        //}
     }
     return false;
 }
@@ -1653,10 +1699,10 @@ void HeightmapEditorCtrl::RecreateBuffer()
     {
         m_hovered = { -1, -1 };
     }
-    if (!IsCoordValid(m_selected[0]))
-    {
-        m_selected[0] = { -1, -1 };
-    }
+    //if (!IsCoordValid(m_selected[0]))
+    //{
+    //    m_selected[0] = { -1, -1 };
+    //}
     m_cpysrc = {-1, -1};
     RefreshGraphics();
 }

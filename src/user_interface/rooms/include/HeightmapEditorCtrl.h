@@ -70,7 +70,7 @@ public:
 
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
-	std::pair<int, int> GetSelection() const;
+	std::pair<int, int> GetSelection(int index) const;
 	bool IsSelectionValid() const;
 	void NudgeSelectionUp();
 	void NudgeSelectionDown();
@@ -87,14 +87,14 @@ public:
 	void InsertColumnRight();
 	void DeleteColumn();
 
-	uint8_t GetSelectedHeight(int selectedIndex) const;
-	void SetSelectedHeight(int selectedIndex, uint8_t height);
+	uint8_t GetSelectedHeight(int index) const;
+	void SetSelectedHeight(int index, uint8_t height);
 	void IncreaseHeight();
 	void DecreaseSelectedHeight();
 	void ClearSelectedCell();
 
-	uint8_t GetSelectedRestrictions() const;
-	void SetSelectedRestrictions(uint8_t restrictions);
+	uint8_t GetSelectedRestrictions(int index) const;
+	void SetSelectedRestrictions(int index, uint8_t restrictions);
 	bool IsSelectedPlayerPassable() const;
 	void ToggleSelectedPlayerPassable();
 	bool IsSelectedNPCPassable() const;
@@ -104,8 +104,8 @@ public:
 	void IncrementSelectedRestrictions();
 	void DecrementSelectedRestrictions();
 
-	uint8_t GetSelectedType() const;
-	void SetSelectedType(uint8_t type);
+	uint8_t GetSelectedType(int index) const;
+	void SetSelectedType(int index, uint8_t type);
 	void IncrementSelectedType();
 	void DecrementSelectedType();
 

@@ -2049,8 +2049,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, true /*m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() < 15*/);
-		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, true /*m_hmedit->IsSelectionValid() && m_hmedit->GetSelectedHeight() > 0*/);
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, m_hmedit->IsSelectionValid() /*&& m_hmedit->GetSelectedHeight() < 15*/);
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, m_hmedit->IsSelectionValid() /*&& m_hmedit->GetSelectedHeight() > 0*/);
 		if (hmcell != nullptr && hmzoom != nullptr)
 		{
 			hmcell->Enable(m_hmedit->IsSelectionValid());
@@ -2066,11 +2066,11 @@ void RoomViewerFrame::UpdateUI() const
 			hmzoom->Enable(true);
 			if (m_hmedit->IsSelectionValid())
 			{
-				hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
+				//hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
 			}
 			else
 			{
-				hmcell->SetSelection(0);
+				//hmcell->SetSelection(0);
 			}
 		}
 		EnableToolbarItem("Tilemap", TM_CLEAR, false);
@@ -2499,7 +2499,7 @@ void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 	wxChoice* ctrl = static_cast<wxChoice*>(evt.GetEventObject());
 	if (ctrl != nullptr)
 	{
-		m_hmedit->SetSelectedType(ctrl->GetSelection());
+		//m_hmedit->SetSelectedType(ctrl->GetSelection());
 	}
 	UpdateUI();
 	evt.Skip();
