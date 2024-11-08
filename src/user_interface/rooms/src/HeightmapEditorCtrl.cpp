@@ -1286,7 +1286,7 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
 {
     if ((modifiers & wxMOD_CONTROL) == 0)
     {
-        if (m_selected[0] != m_hovered)
+        if (IsSingleSelection() && m_selected[0] != m_hovered)
         {
             m_selected[0] = m_hovered;
             m_cpysrc = m_selected[0];
