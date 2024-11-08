@@ -1060,9 +1060,7 @@ uint8_t HeightmapEditorCtrl::GetSelectedRestrictions(int index) const
 
 void HeightmapEditorCtrl::SetSelectedRestrictions(int index, uint8_t restrictions)
 {
-    for (const auto& coord : m_selected) {
-        m_map->SetCellProps({ coord.first, coord.second }, restrictions);
-    }
+    m_map->SetCellProps({ m_selected[index].first, m_selected[index].second }, restrictions);
     ForceRedraw();
     FireEvent(EVT_HEIGHTMAP_UPDATE);
 }
@@ -1315,7 +1313,6 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
 
 bool HeightmapEditorCtrl::AnySelectedMaxHeight()
 {
-    std::cout << "AllSelectedMaxHeight" << std::endl; 
     return std::any_of(m_selected.begin(), m_selected.end(), [&, i = 0](const auto&) mutable { return GetSelectedHeight(i++) < 15; });
 }
 
