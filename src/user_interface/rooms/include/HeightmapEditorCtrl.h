@@ -5,6 +5,7 @@
 #include <wx/window.h>
 #include <memory>
 #include <cstdint>
+#include <algorithm>
 #include <landstalker/main/include/ImageBuffer.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/3d_maps/include/Tilemap3DCmp.h>

@@ -2040,12 +2040,12 @@ void RoomViewerFrame::UpdateUI() const
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
 
-		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_DELETE_ROW, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, m_hmedit->IsSelectionValid());
-		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, m_hmedit->IsSelectionValid());
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, !m_hmedit->IsMultipleSelection());
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, !m_hmedit->IsMultipleSelection());
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, !m_hmedit->IsMultipleSelection());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, !m_hmedit->IsMultipleSelection());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, !m_hmedit->IsMultipleSelection());
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, !m_hmedit->IsMultipleSelection());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, m_hmedit->IsSelectionValid());
 		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid());

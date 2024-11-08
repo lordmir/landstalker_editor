@@ -1073,8 +1073,13 @@ bool HeightmapEditorCtrl::IsSelectedPlayerPassable() const
 
 void HeightmapEditorCtrl::ToggleSelectedPlayerPassable()
 {
+    bool hasFlag = IsSelectedPlayerPassable();
     for (size_t i = 0; i < m_selected.size(); ++i) {
-        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x04);
+        if (hasFlag) {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) | 0x04);
+        } else {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) & ~0x04);
+        }
     }
 }
 
@@ -1090,8 +1095,13 @@ bool HeightmapEditorCtrl::IsSelectedNPCPassable() const
 
 void HeightmapEditorCtrl::ToggleSelectedNPCPassable()
 {
+    bool hasFlag = IsSelectedNPCPassable();
     for (size_t i = 0; i < m_selected.size(); ++i) {
-        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x02);
+        if (hasFlag) {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) | 0x02);
+        } else {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) & ~0x02);
+        }
     }
 }
 
@@ -1107,8 +1117,13 @@ bool HeightmapEditorCtrl::IsSelectedRaftTrack() const
 
 void HeightmapEditorCtrl::ToggleSelectedRaftTrack()
 {
+    bool hasFlag = IsSelectedRaftTrack();
     for (size_t i = 0; i < m_selected.size(); ++i) {
-        SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x01);
+        if (hasFlag) {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) | 0x01);
+        } else {
+            SetSelectedRestrictions(i, GetSelectedRestrictions(i) & ~0x01);
+        }
     }
 }
 
