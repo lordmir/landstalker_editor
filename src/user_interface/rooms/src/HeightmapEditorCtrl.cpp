@@ -1259,20 +1259,20 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
     }
     else
     {
-        //if (m_selected[0] != m_hovered)
-        //{
+        if (m_cpysrc.first != -1)
+        {
+            m_map->SetHeight({ m_hovered.first, m_hovered.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellProps({ m_hovered.first, m_hovered.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellType({ m_hovered.first, m_hovered.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+            FireEvent(EVT_HEIGHTMAP_UPDATE);
+        }
+        else
+        {
             m_selected.clear();
             m_selected.push_back(m_hovered);
             FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            if (m_cpysrc.first != -1 && m_selected[0].first != -1 && m_selected[0] != m_cpysrc)
-            {
-                m_map->SetHeight({ m_selected[0].first, m_selected[0].second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
-                m_map->SetCellProps({ m_selected[0].first, m_selected[0].second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
-                m_map->SetCellType({ m_selected[0].first, m_selected[0].second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
-                FireEvent(EVT_HEIGHTMAP_UPDATE);
-            }
-            ForceRedraw();
-        //}
+        }
+        ForceRedraw();
     }
     return false;
 }
@@ -1286,12 +1286,8 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
 {
     if ((modifiers & wxMOD_CONTROL) == 0)
     {
-        if (IsSingleSelection() && m_selected[0] != m_hovered)
-        {
-            m_selected[0] = m_hovered;
-            m_cpysrc = m_selected[0];
-            Refresh(false);
-        }
+        m_cpysrc = m_hovered;
+        Refresh(false);
     }
     else
     {
