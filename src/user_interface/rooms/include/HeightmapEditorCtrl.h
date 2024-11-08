@@ -73,6 +73,7 @@ public:
 	void SetSelection(int ix, int iy);
 	std::pair<int, int> GetSelection(int index) const;
 	
+	bool IsSingleSelection() const;
 	bool IsMultipleSelection() const;
 	bool IsSelectionValid() const;
 	bool AnySelectedMaxHeight();

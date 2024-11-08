@@ -758,6 +758,11 @@ std::pair<int, int> HeightmapEditorCtrl::GetSelection(int index) const
     return m_selected[index];
 }
 
+bool HeightmapEditorCtrl::IsSingleSelection() const
+{
+    return m_selected.size() == 1;
+}
+
 bool HeightmapEditorCtrl::IsMultipleSelection() const
 {
     return m_selected.size() > 1;
