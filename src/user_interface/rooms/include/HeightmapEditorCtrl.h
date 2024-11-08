@@ -71,7 +71,12 @@ public:
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
 	std::pair<int, int> GetSelection(int index) const;
+	
+	bool IsMultipleSelection() const;
 	bool IsSelectionValid() const;
+	bool AnySelectedMaxHeight();
+	bool AnySelectedMinHeight();
+
 	void NudgeSelectionUp();
 	void NudgeSelectionDown();
 	void NudgeSelectionLeft();
@@ -114,8 +119,7 @@ public:
 	bool HandleLeftDClick(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
 
-	bool AnySelectedMaxHeight();
-	bool AnySelectedMinHeight();
+
 private:
 	void RefreshStatusbar();
 	void RefreshCursor(bool ctrl_down);

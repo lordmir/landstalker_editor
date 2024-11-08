@@ -2062,15 +2062,24 @@ void RoomViewerFrame::UpdateUI() const
 		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, m_hmedit->IsSelectionValid() && m_hmedit->IsSelectedRaftTrack());
 		if (hmcell != nullptr && hmzoom != nullptr)
 		{
-			hmcell->Enable(m_hmedit->IsSelectionValid());
 			hmzoom->Enable(true);
 			if (m_hmedit->IsSelectionValid())
 			{
-				//hmcell->SetSelection(m_hmedit->GetSelectedType() > 0x2F ? 0x30 : m_hmedit->GetSelectedType());
+				if(m_hmedit->IsMultipleSelection())
+				{
+					hmcell->Enable(false);
+					hmcell->SetSelection(0);
+				}
+				else
+				{
+					hmcell->Enable(true);
+					hmcell->SetSelection(m_hmedit->GetSelectedType(0) > 0x2F ? 0x30 : m_hmedit->GetSelectedType(0));
+				}
 			}
 			else
 			{
-				//hmcell->SetSelection(0);
+				hmcell->Enable(true);
+				hmcell->SetSelection(0);
 			}
 		}
 		EnableToolbarItem("Tilemap", TM_CLEAR, false);
