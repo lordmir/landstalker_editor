@@ -1260,6 +1260,7 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
     }
     else
     {
+        m_selected.clear();
         if (m_cpysrc.first != -1)
         {
             if(m_hovered == m_cpysrc)
@@ -1276,7 +1277,6 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
         }
         else
         {
-            m_selected.clear();
             m_selected.push_back(m_hovered);
             FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
         }
@@ -1295,6 +1295,15 @@ bool HeightmapEditorCtrl::HandleRightDown(unsigned int modifiers)
     if ((modifiers & wxMOD_CONTROL) == 0)
     {
         m_cpysrc = m_hovered;
+
+        for (const auto& element : m_selected)
+        {
+            m_map->SetHeight({ element.first, element.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellProps({ element.first, element.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+            m_map->SetCellType({ element.first, element.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+        }
+
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
         Refresh(false);
     }
     else
