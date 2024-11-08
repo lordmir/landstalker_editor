@@ -2508,7 +2508,7 @@ void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 	wxChoice* ctrl = static_cast<wxChoice*>(evt.GetEventObject());
 	if (ctrl != nullptr)
 	{
-		//m_hmedit->SetSelectedType(ctrl->GetSelection());
+		m_hmedit->SetSelectedType(0, ctrl->GetSelection());
 	}
 	UpdateUI();
 	evt.Skip();
