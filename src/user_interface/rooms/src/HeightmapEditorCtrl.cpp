@@ -768,9 +768,9 @@ bool HeightmapEditorCtrl::IsMultipleSelection() const
     return m_selected.size() > 1;
 }
 
-bool HeightmapEditorCtrl::IsSelectionValid() const
+bool HeightmapEditorCtrl::IsSelectionEmpty() const
 {
-    return !m_selected.empty();
+    return m_selected.empty();
 }
 
 void HeightmapEditorCtrl::NudgeSelectionUp()

@@ -75,7 +75,7 @@ public:
 	
 	bool IsSingleSelection() const;
 	bool IsMultipleSelection() const;
-	bool IsSelectionValid() const;
+	bool IsSelectionEmpty() const;
 	bool AnySelectedMaxHeight();
 	bool AnySelectedMinHeight();
 
