@@ -939,70 +939,58 @@ void HeightmapEditorCtrl::InsertRowBelow()
 
 void HeightmapEditorCtrl::DeleteRow()
 {
-    if(m_selected.size() == 1)
+    if (m_selected.size() == 1 && m_selected[0].first != -1 && m_map->GetHeightmapWidth() > 1)
     {
-        if (m_selected[0].first != -1 && m_map->GetHeightmapWidth() > 1)
+        m_map->DeleteHeightmapRow(m_selected[0].first);
+        if (m_selected[0].first >= m_map->GetHeightmapWidth())
         {
-            m_map->DeleteHeightmapRow(m_selected[0].first);
-            if (m_selected[0].first >= m_map->GetHeightmapWidth())
-            {
-                m_selected[0].first = m_map->GetHeightmapWidth() - 1;
-            }
-            RecreateBuffer();
-            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
-            FireEvent(EVT_PROPERTIES_UPDATE);
+            m_selected[0].first = m_map->GetHeightmapWidth() - 1;
         }
+        RecreateBuffer();
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
+        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
 void HeightmapEditorCtrl::InsertColumnLeft()
 {
-    if(m_selected.size() == 1)
+    if (m_selected.size() == 1 && m_selected[0].first != -1 && m_map->GetHeightmapHeight() < 64)
     {
-        if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() < 64)
-        {
-            m_map->InsertHeightmapColumn(m_selected[0].second);
-            RecreateBuffer();
-            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
-            FireEvent(EVT_PROPERTIES_UPDATE);
-        }
+        m_map->InsertHeightmapColumn(m_selected[0].second);
+        RecreateBuffer();
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
+        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
 void HeightmapEditorCtrl::InsertColumnRight()
 {
-    if(m_selected.size() == 1)
+    if (m_selected.size() == 1 && m_selected[0].second != -1 && m_map->GetHeightmapHeight() < 64)
     {
-        if (m_selected[0].second != -1 && m_map->GetHeightmapHeight() < 64)
-        {
-            m_map->InsertHeightmapColumn(m_selected[0].second);
-            m_selected[0].second++;
-            RecreateBuffer();
-            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
-            FireEvent(EVT_PROPERTIES_UPDATE);
-        }
+        m_map->InsertHeightmapColumn(m_selected[0].second);
+        m_selected[0].second++;
+        RecreateBuffer();
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
+        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
 void HeightmapEditorCtrl::DeleteColumn()
 {
-    if(m_selected.size() == 1)
+    if (m_selected.size() == 1 && m_selected[0].first != -1 && m_map->GetHeightmapHeight() > 1)
     {
-        if (m_selected[0].first != -1 && m_map->GetHeightmapHeight() > 1)
+        m_map->DeleteHeightmapColumn(m_selected[0].second);
+        if (m_selected[0].second >= m_map->GetHeightmapHeight())
         {
-            m_map->DeleteHeightmapColumn(m_selected[0].second);
-            if (m_selected[0].second >= m_map->GetHeightmapHeight())
-            {
-                m_selected[0].second = m_map->GetHeightmapHeight() - 1;
-            }
-            RecreateBuffer();
-            FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
-            FireEvent(EVT_PROPERTIES_UPDATE);
+            m_selected[0].second = m_map->GetHeightmapHeight() - 1;
         }
+        RecreateBuffer();
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        FireEvent(EVT_HEIGHTMAP_UPDATE);
+        FireEvent(EVT_PROPERTIES_UPDATE);
     }
 }
 
