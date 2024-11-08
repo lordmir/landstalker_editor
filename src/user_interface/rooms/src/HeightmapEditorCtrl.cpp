@@ -914,7 +914,7 @@ void HeightmapEditorCtrl::NudgeHeightmapRight()
 
 void HeightmapEditorCtrl::InsertRowAbove()
 {
-    if (m_selected[0].second != -1 && m_map->GetHeightmapWidth() < 64)
+    if (m_selected.size() == 1 && m_selected[0].second != -1 && m_map->GetHeightmapWidth() < 64)
     {
         m_map->InsertHeightmapRow(m_selected[0].first);
         m_selected[0].first++;
@@ -1055,7 +1055,7 @@ void HeightmapEditorCtrl::SetSelectedRestrictions(int index, uint8_t restriction
 
 bool HeightmapEditorCtrl::IsSelectedPlayerPassable() const
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         if ((GetSelectedRestrictions(i) & 0x04) != 0) {
             return false;
         }
@@ -1072,7 +1072,7 @@ void HeightmapEditorCtrl::ToggleSelectedPlayerPassable()
 
 bool HeightmapEditorCtrl::IsSelectedNPCPassable() const
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         if ((GetSelectedRestrictions(i) & 0x02) != 0) {
             return false;
         }
@@ -1089,7 +1089,7 @@ void HeightmapEditorCtrl::ToggleSelectedNPCPassable()
 
 bool HeightmapEditorCtrl::IsSelectedRaftTrack() const
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         if ((GetSelectedRestrictions(i) & 0x01) != 0) {
             return false;
         }
@@ -1099,21 +1099,21 @@ bool HeightmapEditorCtrl::IsSelectedRaftTrack() const
 
 void HeightmapEditorCtrl::ToggleSelectedRaftTrack()
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         SetSelectedRestrictions(i, GetSelectedRestrictions(i) ^ 0x01);
     }
 }
 
 void HeightmapEditorCtrl::IncrementSelectedRestrictions()
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         SetSelectedRestrictions(i, (GetSelectedRestrictions(i) + 1) & 0x0F);
     }
 }
 
 void HeightmapEditorCtrl::DecrementSelectedRestrictions()
 {
-    for (int i = 0; i < m_selected.size(); ++i) {
+    for (size_t i = 0; i < m_selected.size(); ++i) {
         SetSelectedRestrictions(i, (GetSelectedRestrictions(i) - 1) & 0x0F);
     }
 }
