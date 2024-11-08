@@ -249,6 +249,7 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
         StopDrag(true);
         m_selected.clear();
         m_hovered = { -1, -1 };
+        m_cpysrc = { -1, -1 };
         SetSelectedSwap(-1);
         SetSelectedDoor(-1);
         FireEvent(EVT_TILESWAP_SELECT, -1);
@@ -1263,8 +1264,7 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
         {
             if(m_hovered.first == m_cpysrc.first && m_hovered.second == m_cpysrc.second)
             {
-                m_cpysrc.first = -1;
-                m_cpysrc.second = -1;
+                m_cpysrc = { -1, -1 };
             }
             else
             {
