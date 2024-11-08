@@ -1261,10 +1261,18 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
     {
         if (m_cpysrc.first != -1)
         {
-            m_map->SetHeight({ m_hovered.first, m_hovered.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
-            m_map->SetCellProps({ m_hovered.first, m_hovered.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
-            m_map->SetCellType({ m_hovered.first, m_hovered.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
-            FireEvent(EVT_HEIGHTMAP_UPDATE);
+            if(m_hovered.first == m_cpysrc.first && m_hovered.second == m_cpysrc.second)
+            {
+                m_cpysrc.first = -1;
+                m_cpysrc.second = -1;
+            }
+            else
+            {
+                m_map->SetHeight({ m_hovered.first, m_hovered.second }, m_map->GetHeight({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellProps({ m_hovered.first, m_hovered.second }, m_map->GetCellProps({ m_cpysrc.first, m_cpysrc.second }));
+                m_map->SetCellType({ m_hovered.first, m_hovered.second }, m_map->GetCellType({ m_cpysrc.first, m_cpysrc.second }));
+                FireEvent(EVT_HEIGHTMAP_UPDATE);
+            }
         }
         else
         {
