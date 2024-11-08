@@ -253,6 +253,9 @@ bool HeightmapEditorCtrl::HandleKeyDown(unsigned int key, unsigned int modifiers
         SetSelectedDoor(-1);
         FireEvent(EVT_TILESWAP_SELECT, -1);
         FireEvent(EVT_DOOR_SELECT, -1);
+        FireEvent(EVT_HEIGHTMAP_CELL_SELECTED);
+        RefreshStatusbar();
+        ForceRedraw();
         return true;
     }
     if (!HandleRegionKeyDown(key, modifiers))
