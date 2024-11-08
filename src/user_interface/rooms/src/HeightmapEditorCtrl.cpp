@@ -1262,7 +1262,7 @@ bool HeightmapEditorCtrl::HandleLeftDown(unsigned int modifiers)
     {
         if (m_cpysrc.first != -1)
         {
-            if(m_hovered.first == m_cpysrc.first && m_hovered.second == m_cpysrc.second)
+            if(m_hovered == m_cpysrc)
             {
                 m_cpysrc = { -1, -1 };
             }
