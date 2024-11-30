@@ -1,133 +1,320 @@
 #include <user_interface/script/include/ScriptDataViewRenderer.h>
 #include <user_interface/script/include/ScriptDataViewEditorControl.h>
+#include <functional>
 #include <wx/dc.h>
 #include <wx/renderer.h>
 #include <landstalker/main/include/GameData.h>
 
+static const int LABEL_WIDTH = 180;
+
 ScriptDataViewRenderer::ScriptDataViewRenderer(wxDataViewCellMode mode, std::shared_ptr<GameData> gd)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
-	  m_gd(gd)
+	  m_gd(gd),
+	  m_index(-1)
 {
 }
 
 bool ScriptDataViewRenderer::Render(wxRect rect, wxDC* dc, int state)
 {
-	auto brush = wxBrush();
 	if (m_value)
 	{
-		switch (m_value->GetType())
+		rect.y += 2;
+		if (RenderLabel(rect, dc, state))
 		{
-		case ScriptTableEntryType::INVALID:
-			brush.SetColour(*wxRED);
-			break;
-		case ScriptTableEntryType::STRING:
-			return RenderString(rect, dc, state);
-		case ScriptTableEntryType::ITEM_LOAD:
-			brush.SetColour(*wxGREEN);
-			break;
-		case ScriptTableEntryType::NUMBER_LOAD:
-			brush.SetColour(*wxYELLOW);
-			break;
-		case ScriptTableEntryType::GIVE_ITEM:
-			brush.SetColour(wxColour(255,0,255));
-			break;
-		case ScriptTableEntryType::GIVE_MONEY:
-			brush.SetColour(wxColour(128,255,128));
-			break;
-		case ScriptTableEntryType::SET_FLAG:
-			brush.SetColour(wxColour(128, 128, 255));
-			break;
-		case ScriptTableEntryType::PLAY_BGM:
-			brush.SetColour(wxColour(255, 128, 255));
-			break;
-		case ScriptTableEntryType::PLAY_CUTSCENE:
-			brush.SetColour(wxColour(255, 128, 128));
-			break;
-		case ScriptTableEntryType::SET_SPEAKER:
-			brush.SetColour(wxColour(255, 255, 128));
-			break;
-		case ScriptTableEntryType::SET_GLOBAL_SPEAKER:
-			brush.SetColour(wxColour(255, 192, 128));
-			break;
-		case ScriptTableEntryType::GLOBAL_CHAR_LOAD:
-			brush.SetColour(wxColour(255, 255, 64));
-			break;
-		default:
-			brush.SetColour(wxColour(100, 100, 100));
-			break;
+			auto win = GetOwner()->GetOwner();
+			dc->SetPen(wxPen(wxColour(128, 128, 128), 1, wxPENSTYLE_SHORT_DASH));
+			dc->DrawLine(rect.GetLeft(), rect.GetBottom() + 4, rect.GetLeft() + win->GetSize().GetWidth(), rect.GetBottom() + 4);
+			dc->SetPen(*wxTRANSPARENT_PEN);
 		}
-	}
-	dc->SetBrush(brush);
-	rect.width += 2;
-	rect.y += 2;
-	dc->DrawRoundedRectangle(rect, 3);
-	if (m_value && m_gd)
-	{
-		RenderText(_(m_value->ToString(m_gd)), 2, rect, dc, state);
 	}
 	return true;
 }
 
-bool ScriptDataViewRenderer::RenderString(wxRect rect, wxDC* dc, int state)
+bool ScriptDataViewRenderer::RenderLabel(wxRect rect, wxDC* dc, int state)
 {
-	const wxString CLEAR_LABEL = "Clear: ";
-	const wxString END_LABEL = "End: ";
-	const wxString STRING_LABEL = "String: ";
-	const auto& string = dynamic_cast<ScriptStringEntry&>(*m_value);
-	const wxSize DEFAULT_CHECKBOX_SIZE = wxRendererNative::Get().GetCheckBoxSize(GetView());
-	std::wstring string_preview = !m_gd ? L"" : m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_gd->GetScriptData()->GetStringStart() + string.string);
-
-	wxRendererNative& renderer = wxRendererNative::Get();
-	wxWindow* const win = GetOwner()->GetOwner();
-
-	wxSize size = rect.GetSize();
-	size.IncTo(GetSize());
-	rect.SetSize(size);
-	wxFont font = dc->GetFont();
-
-	wxRect clear_check_rect(DEFAULT_CHECKBOX_SIZE), clear_label_rect(rect),
-		end_check_rect(DEFAULT_CHECKBOX_SIZE), end_label_rect(rect),
-		string_label_rect(rect), string_id_rect(rect), string_preview_rect(rect);
-	
-	dc->SetFont(string.clear_box ? font.Bold() : font);
-	clear_label_rect.width = GetTextExtent(CLEAR_LABEL).GetWidth() + 10;
-	RenderText(CLEAR_LABEL, 0, clear_label_rect, dc, state);
-	clear_check_rect.x = clear_label_rect.GetRight();
-	clear_check_rect.y = rect.y + (clear_check_rect.height < rect.height ? (rect.height - clear_check_rect.height) / 2 : 0);
-	renderer.DrawCheckBox(win, *dc, clear_check_rect, string.clear_box ? wxCONTROL_CHECKED : 0);
-
-	dc->SetFont(string.end ? font.Bold() : font);
-	end_label_rect.width = GetTextExtent(END_LABEL).GetWidth() + 10;
-	end_label_rect.x = clear_check_rect.GetRight() + clear_check_rect.GetWidth();
-	RenderText(END_LABEL, 0, end_label_rect, dc, state);
-	end_check_rect.x = end_label_rect.GetRight();
-	end_check_rect.y = clear_check_rect.y;
-	renderer.DrawCheckBox(win, *dc, end_check_rect, string.end ? wxCONTROL_CHECKED : 0);
-
-	dc->SetFont(font);
-	string_label_rect.width = GetTextExtent(STRING_LABEL).GetWidth() + 10;
-	string_label_rect.x = end_check_rect.GetRight() + end_check_rect.GetWidth();
-	RenderText(STRING_LABEL, 0, string_label_rect, dc, state);
-	string_id_rect.width = GetTextExtent("00000").GetWidth();
-	string_id_rect.x = string_label_rect.GetRight() + 10;
-	RenderText(StrWPrintf(L"%04d", string.string + m_gd->GetScriptData()->GetStringStart()), 0, string_id_rect, dc, state);
-	dc->SetFont(font.Italic());
-	string_preview_rect.width = GetTextExtent(string_preview).GetWidth();
-	string_preview_rect.x = string_id_rect.GetRight() + 20;
-	dc->SetBrush(*wxCYAN_BRUSH);
-	string_preview_rect.width += 4;
-	dc->DrawRoundedRectangle(string_preview_rect, 3);
-	RenderText(string_preview, 2, string_preview_rect, dc, state);
-	dc->SetFont(font);
-
-	if (string.end)
+	switch (m_value->GetType())
 	{
-		dc->SetPen(wxPen(wxColour(128, 128, 128), 1, wxPENSTYLE_SHORT_DASH));
-		dc->DrawLine(rect.GetLeft(), rect.GetBottom() + 4, rect.GetLeft() + win->GetSize().GetWidth(), rect.GetBottom() + 4);
-		dc->SetPen(*wxTRANSPARENT_PEN);
+	case ScriptTableEntryType::STRING:
+		return RenderStringProperties(rect, dc, state);
+	case ScriptTableEntryType::ITEM_LOAD:
+		return RenderSetItemProperties(rect, dc, state);
+	case ScriptTableEntryType::NUMBER_LOAD:
+		return RenderSetNumberProperties(rect, dc, state);
+	case ScriptTableEntryType::GIVE_ITEM:
+		return RenderGiveItemProperties(rect, dc, state);
+	case ScriptTableEntryType::GIVE_MONEY:
+		return RenderGiveMoneyProperties(rect, dc, state);
+	case ScriptTableEntryType::SET_FLAG:
+		return RenderSetFlagProperties(rect, dc, state);
+	case ScriptTableEntryType::PLAY_BGM:
+		return RenderPlayBGMProperties(rect, dc, state);
+	case ScriptTableEntryType::PLAY_CUTSCENE:
+		return RenderCutsceneProperties(rect, dc, state);
+	case ScriptTableEntryType::SET_SPEAKER:
+		return RenderSetSpeakerProperties(rect, dc, state);
+	case ScriptTableEntryType::SET_GLOBAL_SPEAKER:
+		return RenderSetGlobalSpeakerProperties(rect, dc, state);
+	case ScriptTableEntryType::GLOBAL_CHAR_LOAD:
+		return RenderLoadGlobalSpeakerProperties(rect, dc, state);
+	case ScriptTableEntryType::INVALID:
+	default:
+		return RenderInvalidProperties(rect, dc, state);
 	}
+}
 
+void ScriptDataViewRenderer::InsertRenderLabel(wxRect& rect, wxDC* dc, int state, const wxString& text, int min_width, const wxFont* font)
+{
+	wxFont orig_font;
+	if (font)
+	{
+		orig_font = dc->GetFont();
+		dc->SetFont(*font);
+	}
+	auto extent = dc->GetTextExtent(text);
+	int y_offset = std::max((rect.GetHeight() - extent.GetHeight()) / 2, 0);
+	rect.y += y_offset;
+	RenderText(text, 2, rect, dc, state);
+	rect.y -= y_offset;
+	int new_width = std::max(extent.GetWidth() + 2, min_width);
+	rect.x += new_width;
+	rect.width -= new_width;
+	if (font)
+	{
+		dc->SetFont(orig_font);
+	}
+}
+
+void ScriptDataViewRenderer::InsertRenderBubble(wxRect& rect, wxDC* dc, int state, const wxString& text, const wxColour& colour, int min_width, const wxFont* font)
+{
+	wxFont orig_font = dc->GetFont();
+	if (font)
+	{
+		orig_font = dc->GetFont();
+		dc->SetFont(*font);
+	}
+	auto extent = dc->GetTextExtent(text);
+	wxRect draw_rect = rect;
+
+	draw_rect.width = extent.GetWidth() + 4;
+	draw_rect.x += 2;
+
+	dc->SetBrush(wxBrush(colour));
+	dc->DrawRoundedRectangle(draw_rect, 3);
+	RenderText(text, 2, draw_rect, dc, state);
+	int new_width = std::max(draw_rect.GetWidth() + 2, min_width);
+	rect.x += new_width;
+	rect.width -= new_width;
+	if (font)
+	{
+		dc->SetFont(orig_font);
+	}
+}
+
+void ScriptDataViewRenderer::InsertRenderCheckbox(wxRect& rect, wxDC* dc, int state, const wxString& text, bool checkstate, int min_width, const wxFont* font)
+{
+	wxFont orig_font = dc->GetFont();
+	if (font)
+	{
+		dc->SetFont(*font);
+	}
+	else
+	{
+		dc->SetFont(dc->GetFont().Bold());
+	}
+	InsertRenderLabel(rect, dc, state, text, 2);
+	wxWindow* const win = GetOwner()->GetOwner();
+	wxRendererNative& renderer = wxRendererNative::Get();
+	wxRect check_rect(wxRendererNative::Get().GetCheckBoxSize(GetView()));
+	check_rect.x = rect.x + 5;
+	check_rect.y = rect.y + (check_rect.height < rect.height ? (rect.height - check_rect.height) / 2 : 0);
+	renderer.DrawCheckBox(win, *dc, check_rect, checkstate ? wxCONTROL_CHECKED : 0);
+	int new_width = std::max(check_rect.GetWidth() + 12, min_width);
+	rect.x += new_width;
+	rect.width -= new_width;
+	dc->SetFont(orig_font);
+}
+
+bool ScriptDataViewRenderer::RenderInvalidProperties(wxRect& rect, wxDC* dc, int state)
+{
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "INVALID", *wxRED, LABEL_WIDTH, &font);
+	dc->SetTextForeground(*wxRED);
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%04X", m_index), 40, &font);
+	dc->SetTextForeground(orig_col);
 	return true;
+}
+
+bool ScriptDataViewRenderer::RenderStringProperties(wxRect& rect, wxDC * dc, int state)
+{
+	const auto& string = dynamic_cast<ScriptStringEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	std::wstring string_preview = !m_gd ? L"" : m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_gd->GetScriptData()->GetStringStart() + string.string);
+	InsertRenderBubble(rect, dc, state, "STRING", *wxCYAN, LABEL_WIDTH, &font);
+	InsertRenderCheckbox(rect, dc, state, "Clear:", string.clear_box, 40);
+	InsertRenderCheckbox(rect, dc, state, "End:", string.end, 40);
+	InsertRenderLabel(rect, dc, state, "String:", 60, &font);
+	InsertRenderLabel(rect, dc, state, StrWPrintf(L"%04d", string.string + m_gd->GetScriptData()->GetStringStart()), 40);
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, string_preview, 0, &font);
+	return string.end;
+}
+
+bool ScriptDataViewRenderer::RenderCutsceneProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& cutscene = dynamic_cast<ScriptInitiateCutsceneEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "PLAY CUTSCENE", *wxBLUE, LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	InsertRenderLabel(rect, dc, state, _("Cutscene Index: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", cutscene.cutscene), 40);
+	return true;
+}
+
+bool ScriptDataViewRenderer::RenderSetItemProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& item_set = dynamic_cast<ScriptItemLoadEntry&>(*m_value);
+	std::wstring item_name = !m_gd ? L"" : m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_set.item);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "SET ITEM", wxColour("DARK ORCHID"), LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	InsertRenderLabel(rect, dc, state, _("Item Slot: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", item_set.slot + 1), 40);
+	InsertRenderLabel(rect, dc, state, _("Item: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", item_set.item), 40);
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, item_name, 0, &font);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderSetNumberProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& num_set = dynamic_cast<ScriptNumLoadEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "SET NUMBER", wxColour("MAROON"), LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	InsertRenderLabel(rect, dc, state, _("Number: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%d", num_set.num), 40);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderGiveItemProperties(wxRect& rect, wxDC* dc, int state)
+{
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "GIVE ITEM TO PLAYER", wxColour("FOREST GREEN"), LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderGiveMoneyProperties(wxRect& rect, wxDC* dc, int state)
+{
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "GIVE MONEY TO PLAYER", wxColour("DARK SLATE BLUE"), LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderSetFlagProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& flag_set = dynamic_cast<ScriptSetFlagEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	InsertRenderBubble(rect, dc, state, "SET FLAG", wxColour("MEDIUM SPRING GREEN"), LABEL_WIDTH, &font);
+	InsertRenderLabel(rect, dc, state, _("Flag: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", flag_set.flag), 0);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderPlayBGMProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& bgm = dynamic_cast<ScriptPlayBgmEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	InsertRenderBubble(rect, dc, state, "PLAY BGM", wxColour("LIGHT STEEL BLUE"), LABEL_WIDTH, &font);
+	InsertRenderLabel(rect, dc, state, _("BGM: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", bgm.bgm), 40);
+	if (bgm.bgm >= 0 && bgm.bgm < ScriptPlayBgmEntry::BGMS.size())
+	{
+		font = dc->GetFont().Italic();
+		font.SetFamily(wxFONTFAMILY_TELETYPE);
+		InsertRenderLabel(rect, dc, state, ScriptPlayBgmEntry::BGMS.at(bgm.bgm), 40, &font);
+	}
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderSetSpeakerProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& speaker = dynamic_cast<ScriptSetSpeakerEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	dc->SetTextForeground(*wxWHITE);
+	InsertRenderBubble(rect, dc, state, "SET SPEAKER", wxColour("DARK GREEN"), LABEL_WIDTH, &font);
+	dc->SetTextForeground(orig_col);
+	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
+	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
+	if (speaker.chr >= 0 && speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
+	{
+		name = m_gd->GetStringData()->GetString(StringData::Type::NAMES, speaker.chr);
+	}
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderSetGlobalSpeakerProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& speaker = dynamic_cast<ScriptSetGlobalSpeakerEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	InsertRenderBubble(rect, dc, state, "SET GLOBAL SPEAKER", wxColour("ORANGE"), LABEL_WIDTH, &font);
+	InsertRenderLabel(rect, dc, state, _("Speaker: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
+	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
+	if (speaker.chr >= 0 && speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+	{
+		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, speaker.chr);
+	}
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	return false;
+}
+
+bool ScriptDataViewRenderer::RenderLoadGlobalSpeakerProperties(wxRect& rect, wxDC* dc, int state)
+{
+	const auto& chr = dynamic_cast<ScriptGlobalCharLoadEntry&>(*m_value);
+	wxFont font = dc->GetFont().Bold();
+	wxColour orig_col = dc->GetTextForeground();
+	InsertRenderBubble(rect, dc, state, "LOAD GLOBAL CHAR", wxColour("GOLD"), LABEL_WIDTH, &font);
+	InsertRenderLabel(rect, dc, state, _("Slot: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", chr.slot + 1), 40);
+	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", chr.chr), 40);
+	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
+	if (chr.chr >= 0 && chr.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+	{
+		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, chr.chr);
+	}
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	return false;
 }
 
 bool ScriptDataViewRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewModel* /*model*/, const wxDataViewItem& /*item*/, unsigned int /*col*/, const wxMouseEvent* /*mouseEvent*/)
@@ -137,12 +324,13 @@ bool ScriptDataViewRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewMode
 
 wxSize ScriptDataViewRenderer::GetSize() const
 {
-	return GetTextExtent(m_value->ToString(m_gd));
+	return { GetOwner()->GetOwner()->GetSize().GetWidth(), GetTextExtent(m_value->ToString(m_gd)).GetHeight()};
 }
 
 bool ScriptDataViewRenderer::SetValue(const wxVariant& value)
 {
 	m_value = ScriptTableEntry::FromBytes(static_cast<uint16_t>(value.GetLong()));
+	m_index = value.GetLong();
 	return true;
 }
 

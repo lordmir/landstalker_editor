@@ -27,7 +27,7 @@ void ScriptDataViewModel::CommitData()
 
 unsigned int ScriptDataViewModel::GetColumnCount() const
 {
-	return 2;
+	return 1;
 }
 
 unsigned int ScriptDataViewModel::GetRowCount() const
@@ -42,38 +42,20 @@ wxString ScriptDataViewModel::GetColumnHeader(unsigned int col) const
 	case 0:
 		return "Index";
 	case 1:
-		return "Type";
-	case 2:
-		return "Parameters";
+		return "Entry";
 	default:
 		return "???";
 	}
 }
 
-wxArrayString ScriptDataViewModel::GetColumnChoices(unsigned int col) const
+wxArrayString ScriptDataViewModel::GetColumnChoices(unsigned int /*col*/) const
 {
-	wxArrayString choices;
-	if (col == 1)
-	{
-		choices.Add("Invalid");
-		choices.Add("String");
-		choices.Add("Load Item");
-		choices.Add("Load Global Character");
-		choices.Add("Load Number");
-		choices.Add("Set Flag");
-		choices.Add("Give Item to Player");
-		choices.Add("Give Money to Player");
-		choices.Add("Play BGM");
-		choices.Add("Set Speaker (Normal)");
-		choices.Add("Set Speaker (Global)");
-		choices.Add("Play Cutscene");
-	}
-	return choices;
+	return wxArrayString();
 }
 
 wxString ScriptDataViewModel::GetColumnType(unsigned int col) const
 {
-	if (col == 2)
+	if (col == 1)
 	{
 		return "string";
 	}
@@ -88,17 +70,7 @@ void ScriptDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, un
 	}
 	else if (row < m_script->GetScriptLineCount())
 	{
-		switch (col)
-		{
-		case 1:
-			variant = static_cast<long>(m_script->GetScriptLine(row).GetType());
-			break;
-		case 2:
-			variant = static_cast<long>(m_script->GetScriptLine(row).ToBytes());
-			break;
-		default:
-			break;
-		}
+		variant = static_cast<long>(m_script->GetScriptLine(row).ToBytes());
 	}
 }
 
@@ -112,11 +84,6 @@ bool ScriptDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int r
 	if (col > 0 && row >= 0 && row < m_script->GetScriptLineCount())
 	{
 		if (col == 1)
-		{
-			//TODO
-			return false;
-		}
-		else if (col == 2)
 		{
 			m_script->SetScriptLine(row, ScriptTableEntry::FromBytes(static_cast<uint16_t>(variant.GetLong())));
 			return true;
@@ -145,10 +112,7 @@ void ScriptDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 	// Index
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
-	// Type
-	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
 	// Parameters
-	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new ScriptDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, m_gd), 2, -1, wxALIGN_LEFT));
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new ScriptDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, m_gd), 1, -1, wxALIGN_LEFT));
 }

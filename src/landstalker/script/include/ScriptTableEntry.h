@@ -31,6 +31,8 @@ public:
 	virtual uint16_t ToBytes() const = 0;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const = 0;
 	ScriptTableEntryType GetType() const { return type; }
+
+	static std::unique_ptr<ScriptTableEntry> MakeEntry(const ScriptTableEntryType& ntype);
 	static std::unique_ptr<ScriptTableEntry> FromBytes(uint16_t word);
 protected:
 	ScriptTableEntryType type = ScriptTableEntryType::INVALID;
@@ -122,6 +124,8 @@ public:
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 
 	uint8_t bgm;
+
+	static const std::array<std::wstring, 2> BGMS;
 };
 
 class ScriptSetSpeakerEntry : public ScriptTableEntry

@@ -138,27 +138,27 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 		warp_object->AddAttribute("height", std::to_string(warp.y_size));
 		
 		// Warp properties
-		auto properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
+		auto warp_properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
 		
 		auto room1_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 		room1_property->AddAttribute("name", "room1");
 		room1_property->AddAttribute("value", std::to_string(warp.room1));
-		properties->AddChild(room1_property);
+		warp_properties->AddChild(room1_property);
 		
 		auto room2_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 		room2_property->AddAttribute("name", "room2");
 		room2_property->AddAttribute("value", std::to_string(warp.room2));
-		properties->AddChild(room2_property);
+		warp_properties->AddChild(room2_property);
 		
 		auto x2_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 		x2_property->AddAttribute("name", "x2");
 		x2_property->AddAttribute("value", std::to_string(warp.x2));
-		properties->AddChild(x2_property);
+		warp_properties->AddChild(x2_property);
 		
 		auto y2_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 		y2_property->AddAttribute("name", "y2");
 		y2_property->AddAttribute("value", std::to_string(warp.y2));
-		properties->AddChild(y2_property);
+		warp_properties->AddChild(y2_property);
 		
 		auto type_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 		type_property->AddAttribute("name", "warpType");
@@ -173,9 +173,9 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 		}
 
 		type_property->AddAttribute("value", warp_type_str);
-		properties->AddChild(type_property);
+		warp_properties->AddChild(type_property);
 		
-		warp_object->AddChild(properties);
+		warp_object->AddChild(warp_properties);
 		warp_id++;
 		warps_objectgroup->AddChild(warp_object);
 	}
@@ -201,111 +201,111 @@ for (const auto& entity : entities) {
     entities_objectgroup->AddChild(entity_object);
 
     // Entity properties
-    auto properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
+    auto entity_properties = new wxXmlNode(wxXML_ELEMENT_NODE, "properties");
 
     auto type_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     type_property->AddAttribute("name", "Type");
     type_property->AddAttribute("value", std::to_string(entity.GetType()));
-    properties->AddChild(type_property);
+	entity_properties->AddChild(type_property);
 
     auto x_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     x_property->AddAttribute("name", "X");
 	x_property->AddAttribute("type", "float");
     x_property->AddAttribute("value", std::to_string(entity.GetXDbl()));
-    properties->AddChild(x_property);
+	entity_properties->AddChild(x_property);
 
     auto y_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     y_property->AddAttribute("name", "Y");
 	y_property->AddAttribute("type", "float");
     y_property->AddAttribute("value", std::to_string(entity.GetYDbl()));
-    properties->AddChild(y_property);
+	entity_properties->AddChild(y_property);
 
     auto z_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     z_property->AddAttribute("name", "Z");
 	z_property->AddAttribute("type", "float");
     z_property->AddAttribute("value", std::to_string(entity.GetZDbl()));
-    properties->AddChild(z_property);
+	entity_properties->AddChild(z_property);
 
-    auto palette_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
-    palette_property->AddAttribute("name", "Palette");
-    palette_property->AddAttribute("value", std::to_string(entity.GetPalette()));
-    properties->AddChild(palette_property);
+    auto ent_palette_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
+	ent_palette_property->AddAttribute("name", "Palette");
+	ent_palette_property->AddAttribute("value", std::to_string(entity.GetPalette()));
+	entity_properties->AddChild(ent_palette_property);
 
     auto behaviour_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     behaviour_property->AddAttribute("name", "Behaviour");
     behaviour_property->AddAttribute("value", std::to_string(entity.GetBehaviour()));
-    properties->AddChild(behaviour_property);
+	entity_properties->AddChild(behaviour_property);
 
     auto dialogue_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     dialogue_property->AddAttribute("name", "Dialogue");
     dialogue_property->AddAttribute("value", std::to_string(entity.GetDialogue()));
-    properties->AddChild(dialogue_property);
+	entity_properties->AddChild(dialogue_property);
 
     auto hostile_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     hostile_property->AddAttribute("name", "Hostile");
 	hostile_property->AddAttribute("type", "bool");
     hostile_property->AddAttribute("value", entity.IsHostile() ? "true" : "false");
-    properties->AddChild(hostile_property);
+	entity_properties->AddChild(hostile_property);
 
     auto no_rotate_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     no_rotate_property->AddAttribute("name", "NoRotate");
 	no_rotate_property->AddAttribute("type", "bool");
     no_rotate_property->AddAttribute("value", entity.NoRotate() ? "true" : "false");
-    properties->AddChild(no_rotate_property);
+	entity_properties->AddChild(no_rotate_property);
 
     auto no_pickup_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     no_pickup_property->AddAttribute("name", "NoPickup");
 	no_pickup_property->AddAttribute("type", "bool");
     no_pickup_property->AddAttribute("value", entity.NoPickup() ? "true" : "false");
-    properties->AddChild(no_pickup_property);
+	entity_properties->AddChild(no_pickup_property);
 
     auto has_dialogue_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     has_dialogue_property->AddAttribute("name", "HasDialogue");
 	has_dialogue_property->AddAttribute("type", "bool");
     has_dialogue_property->AddAttribute("value", entity.HasDialogue() ? "true" : "false");
-    properties->AddChild(has_dialogue_property);
+	entity_properties->AddChild(has_dialogue_property);
 
     auto visible_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     visible_property->AddAttribute("name", "Visible");
 	visible_property->AddAttribute("type", "bool");
     visible_property->AddAttribute("value", entity.IsVisible() ? "true" : "false");
-    properties->AddChild(visible_property);
+	entity_properties->AddChild(visible_property);
 
     auto solid_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     solid_property->AddAttribute("name", "Solid");
 	solid_property->AddAttribute("type", "bool");
     solid_property->AddAttribute("value", entity.IsSolid() ? "true" : "false");
-    properties->AddChild(solid_property);
+	entity_properties->AddChild(solid_property);
 
     auto gravity_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     gravity_property->AddAttribute("name", "Gravity");
 	gravity_property->AddAttribute("type", "bool");
     gravity_property->AddAttribute("value", entity.HasGravity() ? "true" : "false");
-    properties->AddChild(gravity_property);
+	entity_properties->AddChild(gravity_property);
 
     auto friction_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     friction_property->AddAttribute("name", "Friction");
 	friction_property->AddAttribute("type", "bool");
     friction_property->AddAttribute("value", entity.HasFriction() ? "true" : "false");
-    properties->AddChild(friction_property);
+	entity_properties->AddChild(friction_property);
 
     auto speed_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     speed_property->AddAttribute("name", "Speed");
 	speed_property->AddAttribute("type", "int");
     speed_property->AddAttribute("value", std::to_string(entity.GetSpeed()));
-    properties->AddChild(speed_property);
+	entity_properties->AddChild(speed_property);
 
     auto orientation_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     orientation_property->AddAttribute("name", "Orientation");
     orientation_property->AddAttribute("value", entity.GetOrientationName());
-    properties->AddChild(orientation_property);
+	entity_properties->AddChild(orientation_property);
 
     auto tile_source_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
     tile_source_property->AddAttribute("name", "TileSource");
     tile_source_property->AddAttribute("value", std::to_string(entity.GetCopySource()));
-    properties->AddChild(tile_source_property);
+	entity_properties->AddChild(tile_source_property);
 
-    entity_object->AddChild(properties);
+    entity_object->AddChild(entity_properties);
     
     entity_id++;
 }

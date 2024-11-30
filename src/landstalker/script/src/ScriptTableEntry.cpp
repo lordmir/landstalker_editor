@@ -3,6 +3,40 @@
 
 #include <codecvt>
 
+const std::array<std::wstring, 2> ScriptPlayBgmEntry::BGMS{ L"Heh Heh, I Think I Will Disrupt This Good Cheer", L"Black Market" };
+
+std::unique_ptr<ScriptTableEntry> ScriptTableEntry::MakeEntry(const ScriptTableEntryType& ntype)
+{
+	switch (ntype)
+	{
+	case ScriptTableEntryType::STRING:
+		return std::make_unique<ScriptStringEntry>(0_u16, false, false);
+	case ScriptTableEntryType::GIVE_ITEM:
+		return std::make_unique<ScriptGiveItemEntry>();
+	case ScriptTableEntryType::GIVE_MONEY:
+		return std::make_unique<ScriptGiveMoneyEntry>();
+	case ScriptTableEntryType::GLOBAL_CHAR_LOAD:
+		return std::make_unique<ScriptGlobalCharLoadEntry>(0_u8, 0_u8);
+	case ScriptTableEntryType::ITEM_LOAD:
+		return std::make_unique<ScriptItemLoadEntry>(0_u8, 0_u8);
+	case ScriptTableEntryType::NUMBER_LOAD:
+		return std::make_unique<ScriptNumLoadEntry>(0_u8);
+	case ScriptTableEntryType::PLAY_BGM:
+		return std::make_unique<ScriptPlayBgmEntry>(0_u8);
+	case ScriptTableEntryType::PLAY_CUTSCENE:
+		return std::make_unique<ScriptInitiateCutsceneEntry>(0_u16);
+	case ScriptTableEntryType::SET_FLAG:
+		return std::make_unique<ScriptSetFlagEntry>(0_u16);
+	case ScriptTableEntryType::SET_GLOBAL_SPEAKER:
+		return std::make_unique<ScriptSetGlobalSpeakerEntry>(0_u8);
+	case ScriptTableEntryType::SET_SPEAKER:
+		return std::make_unique<ScriptSetSpeakerEntry>(0_u16);
+	case ScriptTableEntryType::INVALID:
+	default:
+		return std::make_unique<ScriptInvalidEntry>(0x77FF_u16);
+	}
+}
+
 std::unique_ptr<ScriptTableEntry> ScriptTableEntry::FromBytes(uint16_t word)
 {
 	if ((word & 0x8000) > 0)
@@ -175,7 +209,6 @@ uint16_t ScriptPlayBgmEntry::ToBytes() const
 
 std::wstring ScriptPlayBgmEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
-	static const std::array<std::wstring, 2> BGMS{ L"Heh Heh, I Think I Will Disrupt This Good Cheer", L"Black Market" };
 	return StrWPrintf(L"Play BGM track %01d (\"%s\").", bgm, BGMS[bgm % BGMS.size()].c_str());
 }
 
