@@ -9,8 +9,8 @@ static const int LABEL_WIDTH = 180;
 
 ScriptDataViewRenderer::ScriptDataViewRenderer(wxDataViewCellMode mode, std::shared_ptr<GameData> gd)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
-	  m_gd(gd),
-	  m_index(-1)
+	  m_index(-1),
+	  m_gd(gd)
 {
 }
 
@@ -127,7 +127,7 @@ void ScriptDataViewRenderer::InsertRenderCheckbox(wxRect& rect, wxDC* dc, int st
 	wxRect check_rect(wxRendererNative::Get().GetCheckBoxSize(GetView()));
 	check_rect.x = rect.x + 5;
 	check_rect.y = rect.y + (check_rect.height < rect.height ? (rect.height - check_rect.height) / 2 : 0);
-	renderer.DrawCheckBox(win, *dc, check_rect, checkstate ? wxCONTROL_CHECKED : 0);
+	renderer.DrawCheckBox(win, *dc, check_rect, checkstate ? wxCONTROL_CHECKED : wxCONTROL_NONE);
 	int new_width = std::max(check_rect.GetWidth() + 12, min_width);
 	rect.x += new_width;
 	rect.width -= new_width;
@@ -247,7 +247,7 @@ bool ScriptDataViewRenderer::RenderPlayBGMProperties(wxRect& rect, wxDC* dc, int
 	InsertRenderBubble(rect, dc, state, "PLAY BGM", wxColour("LIGHT STEEL BLUE"), LABEL_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, _("BGM: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", bgm.bgm), 40);
-	if (bgm.bgm >= 0 && bgm.bgm < ScriptPlayBgmEntry::BGMS.size())
+	if (bgm.bgm < ScriptPlayBgmEntry::BGMS.size())
 	{
 		font = dc->GetFont().Italic();
 		font.SetFamily(wxFONTFAMILY_TELETYPE);
@@ -267,7 +267,7 @@ bool ScriptDataViewRenderer::RenderSetSpeakerProperties(wxRect& rect, wxDC* dc, 
 	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
 	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (speaker.chr >= 0 && speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
+	if (speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
 	{
 		name = m_gd->GetStringData()->GetString(StringData::Type::NAMES, speaker.chr);
 	}
@@ -286,7 +286,7 @@ bool ScriptDataViewRenderer::RenderSetGlobalSpeakerProperties(wxRect& rect, wxDC
 	InsertRenderLabel(rect, dc, state, _("Speaker: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
 	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (speaker.chr >= 0 && speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+	if (speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
 	{
 		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, speaker.chr);
 	}
@@ -307,7 +307,7 @@ bool ScriptDataViewRenderer::RenderLoadGlobalSpeakerProperties(wxRect& rect, wxD
 	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", chr.chr), 40);
 	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (chr.chr >= 0 && chr.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+	if (chr.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
 	{
 		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, chr.chr);
 	}

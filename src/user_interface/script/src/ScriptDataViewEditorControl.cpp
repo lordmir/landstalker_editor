@@ -70,7 +70,7 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_panels[ScriptTableEntryType::ITEM_LOAD] = new wxPanel(this);
 	m_panel_sizers[ScriptTableEntryType::ITEM_LOAD] = new wxBoxSizer(wxHORIZONTAL);
 	m_item_slot = new wxChoice(m_panels[ScriptTableEntryType::ITEM_LOAD], wxID_ANY);
-	m_item_slot->Insert({ "1", "2", "3", "4" }, 0);
+	m_item_slot->Insert(std::vector<wxString>{ "1", "2", "3", "4" }, 0);
 	m_item_slot->Select(0);
 	m_item_select = new wxSpinCtrl(m_panels[ScriptTableEntryType::ITEM_LOAD], wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxWANTS_CHARS, 0, 63);
 	m_item_name = new wxStaticText(m_panels[ScriptTableEntryType::ITEM_LOAD], wxID_ANY, wxEmptyString);
@@ -100,7 +100,7 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_panels[ScriptTableEntryType::GLOBAL_CHAR_LOAD] = new wxPanel(this);
 	m_panel_sizers[ScriptTableEntryType::GLOBAL_CHAR_LOAD] = new wxBoxSizer(wxHORIZONTAL);
 	m_load_global_char_slot = new wxChoice(m_panels[ScriptTableEntryType::GLOBAL_CHAR_LOAD], wxID_ANY);
-	m_load_global_char_slot->Insert({ "1", "2", "3", "4" }, 0);
+	m_load_global_char_slot->Insert(std::vector<wxString>{ "1", "2", "3", "4" }, 0);
 	m_load_global_char_slot->Select(0);
 	m_load_global_char_select = new wxSpinCtrl(m_panels[ScriptTableEntryType::GLOBAL_CHAR_LOAD], wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxWANTS_CHARS, 0, 23);
 	m_load_global_char_name = new wxStaticText(m_panels[ScriptTableEntryType::GLOBAL_CHAR_LOAD], wxID_ANY, wxEmptyString);
@@ -247,7 +247,7 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 			m_string_clear->SetValue(string_entry.clear_box);
 			m_string_end->SetValue(string_entry.end);
 			m_string_select->SetValue(string_idx);
-			if (string_idx >= 0 && string_idx < m_gd->GetStringData()->GetStringCount(StringData::Type::MAIN))
+			if (string_idx < m_gd->GetStringData()->GetStringCount(StringData::Type::MAIN))
 			{
 				m_string_preview->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx));
 			}
@@ -265,7 +265,7 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 			const auto& item_entry = dynamic_cast<const ScriptItemLoadEntry&>(*m_entry);
 			m_item_slot->Select(item_entry.slot);
 			m_item_select->SetValue(item_entry.item);
-			if (item_entry.item >= 0 && item_entry.item < m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES))
+			if (item_entry.item < m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES))
 			{
 				m_item_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_entry.item));
 			}
@@ -283,7 +283,7 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 			const auto& char_entry = dynamic_cast<const ScriptGlobalCharLoadEntry&>(*m_entry);
 			m_load_global_char_slot->Select(char_entry.slot);
 			m_load_global_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr >= 0 && char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
 			{
 				m_load_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, char_entry.chr));
 			}
@@ -300,7 +300,7 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 		{
 			const auto& char_entry = dynamic_cast<const ScriptSetGlobalSpeakerEntry&>(*m_entry);
 			m_set_global_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr >= 0 && char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
+			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
 			{
 				m_set_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, char_entry.chr));
 			}
@@ -314,7 +314,7 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 		{
 			const auto& char_entry = dynamic_cast<const ScriptSetSpeakerEntry&>(*m_entry);
 			m_set_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr >= 0 && char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
+			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
 			{
 				m_set_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::NAMES, char_entry.chr));
 			}
@@ -330,6 +330,10 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 	case ScriptTableEntryType::INVALID:
 		m_custom_value->SetValue(m_entry->ToBytes());
 		break;
+	case ScriptTableEntryType::GIVE_ITEM:
+	case ScriptTableEntryType::GIVE_MONEY:
+	default:
+		break;
 	}
 	Thaw();
 }
@@ -338,18 +342,14 @@ uint16_t ScriptDataViewEditorControl::GetValue() const
 {
 	if (m_entry)
 	{
-		switch (m_entry->GetType())
+		if (m_entry->GetType() == ScriptTableEntryType::STRING)
 		{
-		case ScriptTableEntryType::STRING:
+			const auto& string_entry = dynamic_cast<const ScriptStringEntry&>(*m_entry);
+			std::size_t string_idx = string_entry.string + m_gd->GetScriptData()->GetStringStart();
+			if (m_string_preview->GetValue().ToStdWstring() != m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx))
 			{
-				const auto& string_entry = dynamic_cast<const ScriptStringEntry&>(*m_entry);
-				std::size_t string_idx = string_entry.string + m_gd->GetScriptData()->GetStringStart();
-				if (m_string_preview->GetValue().ToStdWstring() != m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx))
-				{
-					m_gd->GetStringData()->SetString(StringData::Type::MAIN, string_idx, m_string_preview->GetValue().ToStdWstring());
-				}
+				m_gd->GetStringData()->SetString(StringData::Type::MAIN, string_idx, m_string_preview->GetValue().ToStdWstring());
 			}
-			break;
 		}
 		return m_entry->ToBytes();
 	}
@@ -480,7 +480,11 @@ void ScriptDataViewEditorControl::Update()
 		dynamic_cast<ScriptPlayBgmEntry&>(*m_entry).bgm = m_bgm_select->GetSelection();
 		break;
 	case ScriptTableEntryType::INVALID:
-		m_entry->FromBytes(m_custom_value->GetValue());
+		m_entry = std::move(ScriptTableEntry::FromBytes(m_custom_value->GetValue()));
+		break;
+	case ScriptTableEntryType::GIVE_ITEM:
+	case ScriptTableEntryType::GIVE_MONEY:
+	default:
 		break;
 	}
 	SetValue(m_entry->ToBytes());
@@ -528,6 +532,10 @@ void ScriptDataViewEditorControl::SetFocus()
 	case ScriptTableEntryType::INVALID:
 		m_custom_value->SetFocus();
 		m_custom_value->SetSelection(0, m_custom_value->GetTextValue().Length());
+		break;
+	case ScriptTableEntryType::GIVE_ITEM:
+	case ScriptTableEntryType::GIVE_MONEY:
+	default:
 		break;
 	}
 }

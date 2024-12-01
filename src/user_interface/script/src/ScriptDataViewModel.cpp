@@ -81,7 +81,7 @@ bool ScriptDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*
 
 bool ScriptDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
 {
-	if (col > 0 && row >= 0 && row < m_script->GetScriptLineCount())
+	if (col > 0 && row < m_script->GetScriptLineCount())
 	{
 		if (col == 1)
 		{
