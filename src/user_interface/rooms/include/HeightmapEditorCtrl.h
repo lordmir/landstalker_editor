@@ -5,6 +5,7 @@
 #include <wx/window.h>
 #include <memory>
 #include <cstdint>
+#include <algorithm>
 #include <landstalker/main/include/ImageBuffer.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/3d_maps/include/Tilemap3DCmp.h>
@@ -70,8 +71,14 @@ public:
 
 	void ClearSelection();
 	void SetSelection(int ix, int iy);
-	std::pair<int, int> GetSelection() const;
-	bool IsSelectionValid() const;
+	std::pair<int, int> GetSelection(int index) const;
+	
+	bool IsSingleSelection() const;
+	bool IsMultipleSelection() const;
+	bool IsSelectionEmpty() const;
+	bool AnySelectedMaxHeight();
+	bool AnySelectedMinHeight();
+
 	void NudgeSelectionUp();
 	void NudgeSelectionDown();
 	void NudgeSelectionLeft();
@@ -87,14 +94,14 @@ public:
 	void InsertColumnRight();
 	void DeleteColumn();
 
-	uint8_t GetSelectedHeight() const;
-	void SetSelectedHeight(uint8_t height);
-	void IncreaseSelectedHeight();
+	uint8_t GetSelectedHeight(int index) const;
+	void SetSelectedHeight(int index, uint8_t height);
+	void IncreaseHeight();
 	void DecreaseSelectedHeight();
 	void ClearSelectedCell();
 
-	uint8_t GetSelectedRestrictions() const;
-	void SetSelectedRestrictions(uint8_t restrictions);
+	uint8_t GetSelectedRestrictions(int index) const;
+	void SetSelectedRestrictions(int index, uint8_t restrictions);
 	bool IsSelectedPlayerPassable() const;
 	void ToggleSelectedPlayerPassable();
 	bool IsSelectedNPCPassable() const;
@@ -104,8 +111,8 @@ public:
 	void IncrementSelectedRestrictions();
 	void DecrementSelectedRestrictions();
 
-	uint8_t GetSelectedType() const;
-	void SetSelectedType(uint8_t type);
+	uint8_t GetSelectedType(int index) const;
+	void SetSelectedType(int index, uint8_t type);
 	void IncrementSelectedType();
 	void DecrementSelectedType();
 
@@ -113,6 +120,8 @@ public:
 	bool HandleLeftDown(unsigned int modifiers);
 	bool HandleLeftDClick(unsigned int modifiers);
 	bool HandleRightDown(unsigned int modifiers);
+
+
 private:
 	void RefreshStatusbar();
 	void RefreshCursor(bool ctrl_down);
@@ -186,7 +195,7 @@ private:
 	bool m_redraw;
 	bool m_repaint;
 	double m_zoom;
-	Coord m_selected;
+	std::vector<Coord> m_selected;
 	Coord m_hovered;
 	Coord m_cpysrc;
 	Coord m_dragged;
