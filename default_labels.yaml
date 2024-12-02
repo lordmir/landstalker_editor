@@ -1,0 +1,1100 @@
+rooms:
+  0: Swamp shrine, floor 1
+  1: Swamp shrine, floor 1
+  2: Swamp shrine, floor 1
+  3: Swamp shrine, floor 1, stairs to floor 2
+  4: Swamp shrine, floor 1
+  5: Swamp shrine, floor 1, boulders
+  6: Swamp shrine, floor 1
+  7: Swamp shrine, floor 1
+  8: Swamp shrine
+  9: Swamp shrine
+  10: Swamp shrine
+  11: Swamp shrine
+  12: Swamp shrine
+  13: Swamp shrine
+  14: Swamp shrine, floor 3
+  15: Swamp shrine, floor 1, boulders, empty
+  16: Swamp shrine, floor 2, spiked boulders
+  17: Swamp shrine, floor 2
+  18: Swamp shrine, floor 2, stairs to floor 3
+  19: Swamp shrine
+  20: Swamp shrine
+  21: Swamp shrine, floor 3, spiked floor
+  22: Swamp shrine
+  23: Swamp shrine
+  24: Swamp shrine
+  25: Swamp shrine
+  26: Swamp shrine
+  27: Swamp shrine
+  28: Swamp shrine
+  29: Swamp shrine
+  30: Swamp shrine
+  31: Mercator castle ouside, main entrance
+  32: Mercator castle, outside
+  33: Mercator castle, outside, west
+  34: Mercator castle, outside, west tower
+  34: Mercator castle, outside, west tower middle
+  35: Mercator castle, outside, west tower top
+  36: Mercator castle, basement entrance
+  37: Mercator castle basement
+  38: Mercator castle basement
+  39: Mercator castle basement
+  40: Mercator castle basement
+  41: Mercator castle basement
+  42: Mercator castle basement
+  43: Mercator castle basement
+  44: Mercator castle basement, Moralis' cell
+  45: Mercator castle basement, cell
+  46: Mercator castle basement
+  47: Mercator castle basement
+  48: Mercator castle basement
+  49: Mercator castle basement
+  50: Mercator castle basement
+  51: Mercator castle, throne
+  52: Mercator castle, throne
+  53: Mercator castle, throne
+  54: Mercator castle, throne
+  55: Mercator castle
+  56: Mercator castle
+  57: Mercator castle
+  58: Mercator castle
+  59: Mercator castle
+  60: Mercator castle, main hall
+  61: Mercator castle, main hall
+  62: Mercator castle, main hall
+  63: Mercator castle, guards quaters
+  64: Mercator castle, guards quaters under attack
+  65: Mercator castle
+  66: Mercator castle
+  67: Mercator castle
+  68: Mercator castle, kitchen
+  69: Mercator castle, kitchen
+  70: Mercator castle
+  71: Mercator castle
+  72: Mercator castle
+  73: Mercator castle, basement entrance
+  74: Mercator castle, library
+  75: Mercator castle, library
+  76: Mercator castle
+  77: Mercator castle
+  78: Mercator castle, guards quaters
+  79: Mercator castle, guards quaters under attack
+  80: Mercator castle
+  81: Mercator castle
+  82: Mercator castle
+  83: Mercator castle
+  84: Mercator castle, guards quaters under attack
+  85: Mercator castle, Banquet hall
+  86: Mercator castle
+  87: Mercator castle
+  88: Mercator castle
+  89: Mercator castle
+  90: Mercator castle, guards quaters under attack
+  91: Mercator castle
+  92: Mercator castle
+  93: Mercator castle
+  94: Mercator castle
+  95: Mercator castle
+  96: Mercator castle
+  97: Mercator castle
+  98: Mercator castle
+  99: Mercator castle, room
+  100: Mercator castle, Bathroom (entrance)
+  101: Mercator castle, Bathroom
+  102: Mercator castle, Bathroom (empty)
+  103: Mercator castle
+  104: Mercator castle
+  105: Mercator castle
+  106: Mercator castle
+  107: Mercator castle
+  108: Mercator castle
+  109: Mercator castle
+  110: Mercator castle
+  111: Treasure room (Nole)
+  112: Treasure room (Gola)
+  113: Treasure room (empty)
+  114: Nole palace, pillars
+  115: Nole palace
+  116: Nole palace
+  117: Nole palace, save
+  118: Nole palace
+  119: Nole palace, stone warrior
+  120: Nole palace
+  121: Nole palace, spinner
+  122: Nole palace
+  123: Nole palace
+  124: Nole palace
+  125: Nole palace
+  126: Nole palace
+  127: Nole palace
+  128: Nole palace
+  129: Nole palace
+  130: Nole palace
+  131: Nole palace
+  132: Nole palace
+  133: Nole palace
+  134: Nole palace
+  135: Nole palace
+  136: Nole palace
+  137: Nole palace
+  138: Nole palace
+  139: Jypta Ruins
+  140: Jypta Ruins
+  141: Jypta Ruins
+  142: Kalva harbor
+  143: Bird
+  144: Nole cave
+  145: Nole cave
+  146: Nole cave
+  147: Nole cave
+  148: Nole cave, outside
+  149: Nole cave
+  150: Nole cave
+  151: Nole cave
+  152: Nole cave
+  153: Nole cave
+  154: Nole cave
+  155: Nole cave
+  156: Nole cave
+  157: Nole cave
+  158: Nole cave
+  159: Nole cave
+  160: Nole cave
+  161: Nole cave
+  162: Nole cave
+  163: Nole cave
+  164: Nole cave
+  165: Nole cave
+  166: Nole cave
+  167: Nole cave, river
+  168: Nole cave, river
+  169: Nole cave, river
+  170: Nole cave
+  171: Nole cave
+  172: Nole cave
+  173: Gemstone room
+  174: Waterfall shrine
+  175: Waterfall shrine
+  176: Waterfall shrine
+  177: Waterfall shrine
+  178: Waterfall shrine
+  179: Waterfall shrine
+  180: Waterfall shrine
+  181: Waterfall shrine
+  182: Waterfall shrine
+  183: Thieves' hideout (Outside entrance)
+  184: Thieves' hideout
+  185: Thieves' hideout
+  186: Thieves' hideout
+  187: Thieves' hideout
+  188: Thieves' hideout
+  189: Thieves' hideout
+  190: Thieves' hideout
+  191: Thieves' hideout, cell
+  192: Thieves' hideout
+  193: Thieves' hideout
+  194: Thieves' hideout
+  195: Thieves' hideout
+  196: Thieves' hideout
+  197: Thieves' hideout
+  198: Thieves' hideout
+  199: Thieves' hideout
+  200: Thieves' hideout
+  201: Thieves' hideout
+  202: Thieves' hideout
+  203: Thieves' hideout
+  204: Thieves' hideout
+  205: Thieves' hideout
+  206: Thieves' hideout
+  207: Thieves' hideout
+  208: Thieves' hideout
+  209: Thieves' hideout
+  210: Thieves' hideout
+  211: Thieves' hideout
+  212: Thieves' hideout
+  213: Thieves' hideout
+  214: Thieves' hideout
+  215: Thieves' hideout
+  216: Thieves' hideout
+  217: Thieves' hideout
+  218: Thieves' hideout
+  219: Thieves' hideout, save
+  220: Thieves' hideout, save
+  221: Thieves' hideout
+  222: Thieves' hideout
+  223: Thieves' hideout
+  224: Thieves' hideout
+  225: Thieves' hideout
+  226: Thieves' hideout, cliff
+  227: Verla Mine
+  228: Verla Mine
+  229: Verla Mine
+  230: Verla Mine
+  231: Verla Mine
+  232: Verla Mine
+  233: Verla Mine
+  234: Verla Mine
+  235: Verla Mine
+  236: Verla Mine
+  237: Verla Mine
+  238: Verla Mine
+  239: Verla Mine
+  240: Verla Mine
+  241: Verla Mine
+  242: Verla Mine
+  243: Verla Mine
+  244: Verla Mine
+  245: Verla Mine
+  246: Verla Mine
+  247: Verla Mine
+  248: Verla Mine
+  249: Verla Mine
+  250: Verla Mine
+  251: Verla Mine
+  252: Verla Mine
+  253: Verla Mine
+  254: Verla Mine
+  255: Verla Mine
+  256: Verla Mine
+  257: Verla Mine
+  258: Verla Mine
+  259: Verla Mine
+  260: Verla Mine
+  261: Verla Mine
+  262: Verla Mine
+  263: Verla Mine
+  264: Verla Mine
+  265: Verla Mine
+  266: Verla Mine
+  267: Verla Mine
+  268: Verla Mine
+  269: Verla Mine
+  270: Destel well
+  271: Destel well
+  272: Destel well
+  273: Destel well
+  274: Destel well
+  275: Destel well
+  276: Destel well
+  277: Destel well
+  278: Destel well
+  279: Destel well
+  280: Destel well
+  281: Destel well
+  282: Destel well
+  283: Destel well
+  284: Destel well
+  285: Destel well
+  286: Destel well
+  287: Destel well
+  288: Destel well
+  289: Destel well
+  290: Destel well
+  291: Lake Shrine
+  292: Lake Shrine
+  293: Lake Shrine
+  294: Lake Shrine
+  295: Lake Shrine
+  296: Lake Shrine
+  297: Lake Shrine
+  298: Lake Shrine
+  299: Lake Shrine
+  300: Lake Shrine
+  301: Lake Shrine
+  302: Lake Shrine
+  303: Lake Shrine
+  304: Lake Shrine
+  305: Lake Shrine
+  306: Lake Shrine
+  307: Lake Shrine
+  308: Lake Shrine
+  309: Lake Shrine
+  310: Lake Shrine
+  311: Lake Shrine
+  312: Lake Shrine
+  313: Lake Shrine
+  314: Lake Shrine
+  315: Lake Shrine
+  316: Lake Shrine
+  317: Lake Shrine
+  318: Lake Shrine
+  319: Lake Shrine
+  320: Lake Shrine
+  321: Lake Shrine
+  322: Lake Shrine
+  323: Lake Shrine
+  324: Lake Shrine
+  325: Lake Shrine
+  326: Lake Shrine
+  327: Lake Shrine
+  328: Lake Shrine
+  329: Lake Shrine
+  330: Lake Shrine
+  331: Lake Shrine
+  332: Lake Shrine
+  333: Lake Shrine
+  334: Lake Shrine
+  335: Lake Shrine
+  336: Lake Shrine
+  337: Lake Shrine
+  338: Lake Shrine
+  339: Lake Shrine
+  340: Lake Shrine
+  341: Lake Shrine
+  342: Lake Shrine
+  343: Lake Shrine
+  344: Lake Shrine
+  345: Lake Shrine
+  346: Lake Shrine
+  347: Lake Shrine
+  348: Lake Shrine
+  349: Lake Shrine
+  350: Lake Shrine
+  351: Lake Shrine
+  352: Lake Shrine
+  353: Lake Shrine
+  354: Lake Shrine
+  355: Nole's labyrinth
+  356: Nole's labyrinth
+  357: Nole's labyrinth
+  358: Nole's labyrinth
+  359: Nole's labyrinth
+  360: Nole's labyrinth
+  361: Nole's labyrinth
+  362: Nole's labyrinth
+  363: Nole's labyrinth
+  364: Nole's labyrinth
+  365: Nole's labyrinth
+  366: Nole's labyrinth
+  367: Nole's labyrinth
+  368: Nole's labyrinth
+  369: Nole's labyrinth
+  370: Nole's labyrinth
+  371: Nole's labyrinth
+  372: Nole's labyrinth
+  373: Nole's labyrinth
+  374: Nole's labyrinth
+  375: Nole's labyrinth
+  376: Nole's labyrinth
+  377: Nole's labyrinth
+  378: Nole's labyrinth
+  379: Nole's labyrinth
+  380: Nole's labyrinth
+  381: Nole's labyrinth
+  382: Nole's labyrinth
+  383: Nole's labyrinth
+  384: Nole's labyrinth
+  385: Nole's labyrinth
+  386: Nole's labyrinth
+  387: Nole's labyrinth
+  388: Nole's labyrinth
+  389: Nole's labyrinth
+  390: Nole's labyrinth
+  391: Nole's labyrinth
+  392: Nole's labyrinth
+  393: Nole's labyrinth
+  394: Nole's labyrinth
+  395: Nole's labyrinth
+  396: Nole's labyrinth
+  397: Nole's labyrinth
+  398: Nole's labyrinth
+  399: Nole's labyrinth
+  400: Nole's labyrinth
+  401: Nole's labyrinth
+  402: Nole's labyrinth
+  403: Nole's labyrinth
+  404: Nole's labyrinth
+  405: Nole's labyrinth
+  406: Nole's labyrinth
+  407: Nole's labyrinth
+  408: Nole's labyrinth
+  409: Nole's labyrinth
+  410: Nole's labyrinth
+  411: Nole's labyrinth
+  412: Nole's labyrinth
+  413: Nole's labyrinth
+  414: Nole's labyrinth
+  415: Nole's labyrinth
+  416: Nole's labyrinth
+  417: Nole's labyrinth
+  418: Nole's labyrinth
+  419: Nole's labyrinth
+  420: Nole's labyrinth
+  421: Nole palace, stairs
+  422: Nole's labyrinth
+  423: Nole's labyrinth
+  424: Road
+  425: Road
+  426: Road, ouside of waterfall shrine
+  427: Road
+  428: Road
+  429: Cliff
+  430: Cliff
+  431: Swamp
+  432: Swamp
+  433: Swamp, shrine outside
+  434: Road
+  435: Road
+  436: Swamp
+  437: Road
+  438: Road
+  439: Road
+  440: Road
+  441: Helga's hut, outside
+  442: Lone house
+  443: Swamp
+  444: Swamp
+  445: Road
+  446: Road
+  447: Road
+  448: Road
+  449: Road
+  450: Road
+  451: Road
+  452: Road
+  453: Road
+  454: Mercator gate
+  455: Road
+  456: Road
+  457: Road
+  458: Road
+  459: Road
+  460: Road
+  461: Road, ouside of Friday's village
+  462: Friday's village
+  463: Road
+  464: Road
+  465: Road
+  466: Underground passage
+  467: Road
+  468: Road
+  469: Road
+  470: Road
+  471: Underground passage
+  472: Road
+  473: Road
+  474: Road
+  475: Mir tower, outside
+  476: Road
+  477: Soldier's house
+  478: Road, waterfall
+  479: Helga's hut
+  480: Helga's hut, entrance
+  481: Mountain
+  482: Mountain
+  483: Mountain
+  484: Mountain
+  485: Mountain
+  486: Mountain, save
+  487: Mountain
+  488: Road, lake
+  489: Road, hut
+  490: Road
+  491: Inside hut
+  492: Mountain
+  493: Dock with boat
+  494: Dock with boat
+  495: Dock with boat
+  496: Dock
+  497: Boat
+  498: Tall waterfall, cutscene
+  499: Inside hut
+  500: Road
+  501: Road
+  502: Road
+  503: Road
+  504: Road
+  505: Road
+  506: Road
+  507: Road
+  508: Road
+  509: Road
+  510: Tibor, outside
+  511: Tibor, outside
+  512: Tibor, outside
+  513: Tibor, outside
+  514: Road
+  515: Road
+  516: Underground passageway
+  517: Waterfall shop
+  519: Road
+  520: Road
+  521: Road
+  522: Verla mine, save
+  523: Lake
+  524: Lake, lava
+  525: Lake
+  526: Lake, ouside of shrine
+  527: Inside hut, empty
+  528: Road
+  529: Road, pit
+  530: Road
+  531: Road
+  532: Underground passageway
+  530: Road
+  531: Road
+  532: Underground passageway
+  533: Tibor, outside
+  534: Tibor, outside
+  535: Tibor, outside
+  536: Tibor, outside
+  537: Tibor, outside
+  538: Tibor, outside
+  539: Tibor, outside
+  540: Road
+  541: Road
+  542: Road
+  543: Dock
+  544: Dock
+  545: Outside
+  546: Mountain, underground
+  547: Mountain, underground
+  548: Mountain, underground
+  549: Mountain, underground
+  550: Mountain, underground
+  551: Mountain, underground
+  552: Mountain, underground
+  553: Mountain, underground
+  554: Mountain, underground
+  555: Mountain, underground
+  556: Green maze
+  557: Green maze
+  558: Green maze
+  559: Green maze
+  560: Green Maze
+  561: Green Maze
+  562: Green Maze
+  563: Green Maze
+  564: Green Maze
+  565: Green Maze
+  566: Green Maze
+  567: Green Maze
+  568: Green Maze
+  569: Green Maze
+  570: Green Maze
+  571: Green maze
+  572: Green maze
+  573: Green maze
+  574: Green maze
+  575: Green maze
+  576: Green maze
+  577: Green maze
+  578: Green maze
+  579: Green maze
+  580: Green maze
+  581: Green maze
+  582: Green maze
+  583: Green maze
+  584: Green maze
+  585: Green maze
+  586: Green maze
+  587: Green maze
+  588: Green maze
+  589: Green maze
+  590: Green maze
+  591: Green maze
+  592: Massan village, outside
+  593: Massan village, hut
+  594: Massan village, hut
+  595: Massan village, hut
+  596: Massan village, shop
+  597: Massan village, church
+  598: Massan village, inn
+  599: Massan village, hut
+  600: Massan village, inn, second floor
+  601: Gumi village, stake
+  602: Gumi village
+  603: Gumi village
+  604: Gumi village, hut
+  605: Gumi village, hut
+  606: Gumi village, hut
+  607: Gumi village, church
+  608: Gumi village, inn first floor
+  609: Gumi village, inn secoond floor
+  610: Ryuma
+  611: Ryuma
+  612: Ryuma, lighthouse
+  613: Ryuma
+  614: Ryuma, church
+  615: Ryuma, shop
+  616: Ryuma
+  617: Ryuma
+  618: Ryuma
+  619: Ryuma
+  620: Ryuma
+  621: Ryuma
+  622: Ryuma
+  623: Ryuma, inn
+  624: Ryuma, inn
+  625: Ryuma, lighthouse stairs
+  626: Ryuma, lighthouse stairs
+  627: Ryuma, lighthouse top
+  628: Ryuma, lighthouse top (night)
+  629: Ryuma, lighthouse top
+  630: Mercator
+  631: Mercator
+  632: Mercator
+  633: Mercator
+  634: Mercator
+  635: Mercator
+  636: Mercator
+  637: Mercator
+  638: Mercator
+  639: Mercator
+  640: Mercator
+  641: Mercator harbor
+  642: Mercator harbor
+  643: Mercator harbor
+  644: Mercator harbor
+  645: Underground passage
+  646: Crypt
+  647: Crypt
+  648: Crypt
+  649: Crypt
+  650: Crypt
+  651: Crypt, mummy's room
+  652: Crypt
+  653: Crypt
+  654: Crypt
+  655: Crypt
+  656: Crypt
+  657: Crypt
+  658: Crypt
+  659: Crypt
+  660: Mercator
+  661: Mercator
+  662: Mercator
+  663: Casino, corridor
+  664: Casino, roulette
+  665: Casino, sprint race
+  666: Casino, chicken
+  667: Mercator
+  668: Mercator
+  669: Mercator
+  670: Mercator
+  671: Mercator
+  672: Mercator, throw game
+  673: Mercator
+  674: Mercator
+  675: Mercator
+  676: Mercator
+  677: Mercator
+  678: Mercator
+  679: Mercator
+  680: Madam yard's
+  681: Mercator prison
+  682: Mercator prison
+  683: Mercator
+  684: Mercator
+  685: Mercator
+  686: Mercator
+  687: Mercator
+  688: Mercator
+  689: Mercator
+  690: Mercator
+  691: Mercator
+  692: Mercator
+  693: Mercator
+  694: Mercator old woman house. First floor
+  695: Mercator, empty shop
+  696: Mercator, drug store
+  697: Mercator, variety shop
+  698: Mercator, shop's backroom
+  699: Mercator, church
+  700: Mercator, church
+  701: Mercator
+  702: Mercator
+  703: Mercator
+  704: Mercator
+  705: Mercator
+  706: Mercator
+  707: Madame yard's, corridor
+  708: Madame yard's
+  709: Mercator, old woman's house first floor
+  710: Madame yard's
+  711: Verla, trap
+  712: Verla
+  713: Verla
+  714: Verla
+  715: Verla
+  716: Verla
+  717: Verla
+  718: Verla
+  719: Verla
+  720: Verla
+  721: Verla, church
+  722: Verla
+  723: Verla
+  724: Verla
+  725: Verla
+  726: Destel
+  727: Destel
+  728: Destel
+  729: Destel, inn first floor
+  730: Destel, inn second floor
+  731: Destel
+  732: Destel
+  733: Destel
+  734: Destel
+  735: Destel
+  736: Destel, church
+  737: Kazalt village
+  738: Kazalt
+  739: Kazalt
+  740: Kazalt
+  741: Kazalt
+  742: Kazalt
+  743: Kazalt
+  744: Kazalt
+  745: Kazalt, inn
+  746: Kazalt, inn
+  747: Kazalt, shop
+  748: Kazalt
+  749: Kazalt, church
+  750: Mir's tower
+  751: Mir's tower
+  752: Mir's tower
+  753: Mir's tower
+  754: Mir's tower
+  755: Mir's tower
+  756: Mir's tower
+  757: Mir's tower
+  758: Mir's tower
+  759: Mir's tower
+  760: Mir's tower
+  761: Mir's tower
+  762: Mir's tower
+  763: Mir's tower
+  764: Mir's tower
+  765: Mir's tower
+  766: Mir's tower
+  767: Mir's tower
+  768: Mir's tower
+  769: Mir's tower
+  770: Mir's tower
+  771: Mir's tower
+  772: Mir's tower
+  773: Mir's tower
+  774: Mir's tower
+  775: Mir's tower
+  776: Mir's tower
+  777: Mir's tower
+  778: Mir's tower
+  779: Mir's tower
+  780: Mir's tower
+  781: Mir's tower
+  782: Mir's tower
+  783: Mir's tower
+  784: Mir's tower, Mir's lair
+  785: Helga's hut
+  786: Helga's hut
+  787: Helga's hut
+  788: Helga's hut
+  789: Helga's hut
+  790: Helga's hut
+  791: Helga's hut
+  792: Helga's hut
+  793: Helga's hut
+  794: Helga's hut
+  795: Helga's hut
+  796: Helga's hut
+  797: Helga's hut
+  798: Helga's hut
+  799: Helga's hut
+  800: Helga's hut
+  801: Helga's hut
+  802: Helga's hut
+  803: Massan cave
+  804: Massan cave
+  805: Massan cave
+  806: Massan cave
+  807: Massan cave
+  808: Massan cave
+  808: Tibor
+  809: Tibor
+  810: Tibor
+  811: Tibor
+  812: Tibor
+  813: Tibor
+  814: Tibor
+  815: Tibor
+
+bgms:
+  0: The Marquis' Invitation
+  1: Premonition of Trouble
+  2: Overworld
+  3: Bustling Street
+  4: Torchlight
+  5: Prayers to God
+  6: Gumi
+  7: Beneath the Mysterious Tree
+  8: Overworld
+  9: The King's Chamber
+  10: Mysterious Island
+  11: The Death God's Invitation
+  12: Deserted Street Corner
+  13: Labrynth
+  14: The Silence, the Darkness, and...
+  15: Light of the Setting Sun
+  16: Friday and a Soft Breeze
+  17: Divine Guardian of the Maze
+  18: Fade Out
+
+entities:
+  0: Nigel
+  1: Old Man
+  2: Male Red Bear
+  3: Boy
+  4: Orc 1
+  5: Orc 2
+  6: Orc 3
+  7: Worm 1
+  8: Worm 2
+  9: Worm 3
+  10: Moneybag
+  11: Man 1
+  12: Woman 1
+  13: Girl
+  14: Dog
+  15: Chicken
+  16: Priest
+  17: Vase
+  18: Chest
+  19: Small Grey Ball
+  20: Large Grey Ball
+  21: Small Yellow Platform
+  22: Crate
+  23: Ninja 1
+  24: Ninja 2
+  25: Ninja 3
+  26: Lizard 1
+  27: Lizard 2
+  28: Lizard 3
+  29: Knight 1
+  30: Knight 2
+  31: Knight 3
+  32: Ghost 1
+  33: Ghost 2
+  34: Ghost 3
+  35: Mummy 1
+  36: Mummy 2
+  37: Mummy 3
+  38: Unicorn 1
+  39: Unicorn 2
+  40: Unicorn 3
+  41: Skeleton 1
+  42: Skeleton 2
+  43: Skeleton 3
+  44: Mimic 1
+  45: Mimic 2
+  46: Mimic 3
+  47: Child Red Bear
+  48: Male Dwarf
+  49: Female Yellow Bear
+  50: Soldier
+  51: Madame Yard
+  52: Dexter
+  53: Raft
+  54: Mushroom 1
+  55: Mushroom 2
+  56: Mushroom 3
+  57: Giant 1
+  58: Giant 2
+  59: Giant 3
+  60: Bubble 1
+  61: Bubble 2
+  62: Bubble 3
+  63: Old Lady
+  64: Male Yellow Bear
+  65: Child Yellow Bear
+  66: Fara stake
+  67: Praying Yellow Bear
+  68: Skeleton Statue 1
+  69: Praying Red Bear
+  70: Skeleton Statue 2
+  71: Female Red Bear
+  72: Female Dwarf
+  73: Small Grey Spiked Ball
+  74: Large Grey Spiked Ball
+  75: Sacred Tree
+  76: Large Wood Platform
+  77: Injured Dog
+  78: Dead Body
+  79: Woman 2
+  80: Man 2
+  81: Invisible Cube
+  82: Ink
+  83: Large Concrete Block
+  84: Square Switch
+  85: Round Switch
+  86: Unused Small Yellow Platform
+  87: Unused Small Grey Platform
+  88: Unused Small Green Platform
+  89: Small Thin Yellow Platform
+  90: Small Thin Grey Platform
+  91: Unused Small Thin Green Platform
+  92: Unused Large Dark Platform
+  93: Large Thin Grey Platform
+  94: Unused Large Thin Green Platform
+  95: Unused Large Thin Yellow Platform
+  96: Item Box
+  97: Friday
+  98: Large Boulder
+  99: Nigel in Bed
+  100: Godess Statue
+  101: 2-Way Signpost
+  102: 3-Way Signpost
+  103: Gate S
+  104: Gate N
+  105: Kayla
+  106: Wally
+  107: Woman 3
+  108: Locked Door
+  109: Man in bed
+  110: Lord Arthur
+  111: Kayla in Bath
+  112: Duke
+  113: Small Wood Platform
+  114: Small Thin Dark Grey Platform
+  115: Yellow Old Man
+  116: Man with Blue Shirt
+  117: Chef
+  118: Princess
+  119: Golem Statue 1
+  120: Mir Magic Barrier
+  121: Sailor
+  122: Pockets
+  123: Skeleton Priest
+  124: Mir
+  125: Unused Bird 1
+  126: Unused Bird 2
+  127: Unused Bird 3
+  128: Moralis
+  129: Bubble 4
+  130: Bubble 5
+  131: Bubble 6
+  132: Gnome
+  133: Zak
+  134: Mir Wall Barrier
+  135: Small Fireball
+  136: Reaper 1
+  137: Reaper 2
+  138: Unused Reaper 3
+  139: Golem Statue 2
+  140: Corrupted Round Switch
+  141: Small Green Spiked Ball
+  142: Large Grey Spiked Ball
+  143: Ghost Generator 1
+  144: Ghost Generator 2
+  145: Ghost Generator 3
+  146: Golem 1
+  147: Golem 2
+  148: Golem 3
+  149: Spectre 1
+  150: Spectre 2
+  151: Spectre 3
+  152: Unused Small Blue Ball
+  153: Small Red Ball
+  154: Unused Large Blue Ball
+  155: Large Red Ball
+  156: Unused Magic Fox
+  157: Spinner 1
+  158: Duke Chair
+  159: Miro
+  160: Ifrit
+  161: Ifrit Fireball
+  162: Gola
+  163: Pink Golem Statue
+  164: Gold Golem Statue
+  165: Nole
+  166: Nole Axe Projectile
+  167: Stone Warrior 1
+  168: Zak Boomerang
+  169: 1-Way Signpost
+  170: Spinner 2
+  171: Stone Warrior 2
+  172: Gola Fireball
+  173: ?AD
+  174: ?AE
+  175: ?AF
+  176: ?B0
+  177: ?B1
+  178: ?B2
+  179: ?B3
+  180: ?B4
+  181: ?B5
+  182: ?B6
+  183: ?B7
+  184: ?B8
+  185: ?B9
+  186: ?BA
+  187: ?BB
+  188: ?BC
+  189: ?BD
+  190: ?BE
+  191: ?BF
+  192: EkeEke
+  193: Magic Sword
+  194: Ice Sword
+  195: Thunder Sword
+  196: Gaia Sword
+  197: Fireproof
+  198: Iron Boots
+  199: Healing Boots
+  200: Snow Spikes
+  201: Steel Breast
+  202: Chrome Breast
+  203: Shell Breast
+  204: Hyper Breast
+  205: Mars Stone
+  206: Moon Stone
+  207: Saturn Stone
+  208: Venus Stone
+  209: Awakening Book
+  210: Detox Grass
+  211: Gaia Statue
+  212: Golden Statue
+  213: Mind Repair
+  214: Casino Ticket
+  215: Axe Magic
+  216: Blue Ribbon
+  217: Buyer Card
+  218: Lantern
+  219: Garlic
+  220: Anti-Paralyze
+  221: Statue of Jypta
+  222: Sun Stone
+  223: Armlet
+  224: Einstein Whistle
+  225: Detox Book
+  226: AntiCurse
+  227: Record Book
+  228: Spell Book
+  229: Hotel Register
+  230: Island Map
+  231: Lithograph
+  232: Red Jewel
+  233: Pawn Ticket
+  234: Purple Jewel
+  235: Gola's Eye
+  236: Death Statue
+  237: Dahl
+  238: Restoration
+  239: Logs
+  240: Oracle Stone
+  241: Idol Stone
+  242: Key
+  243: Safety Pass
+  244: No52
+  245: Bell
+  246: Shortcake
+  247: Gola's Nail
+  248: Gola's Horn
+  249: Gola's Fang
+  250: Broad Sword
+  251: Leather Breast
+  252: Leather Boots
+  253: None
+  254: Lifestock
+  255: No63

@@ -1,6 +1,7 @@
 #include <wx/app.h>
 #include <wx/event.h>
 #include <user_interface/main/include/MainFrame.h>
+#include <landstalker/misc/include/Labels.h>
 #include <wx/image.h>
 #include <wx/cmdline.h>
 #include <string>
@@ -20,6 +21,8 @@ public:
         {
             romFile = this->argv[1];
         }
+
+        Labels::LoadData("default_labels.yaml");
 
         MainFrame* mainFrame = new MainFrame(NULL, romFile);
         SetTopWindow(mainFrame);
