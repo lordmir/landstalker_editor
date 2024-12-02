@@ -407,8 +407,14 @@ void ScriptDataViewEditorControl::OnChangeType(wxCommandEvent& evt)
 		m_type = static_cast<ScriptTableEntryType>(selected + 1);
 	}
 	m_entry = std::move(ScriptTableEntry::MakeEntry(m_type));
-	ShowEditor(m_type);
-	Update();
+	if (m_type == ScriptTableEntryType::INVALID)
+	{
+		ShowEditor(m_type);
+	}
+	else
+	{
+		Update();
+	}
 	evt.Skip();
 }
 
@@ -487,7 +493,10 @@ void ScriptDataViewEditorControl::Update()
 	default:
 		break;
 	}
-	SetValue(m_entry->ToBytes());
+	if (m_type != ScriptTableEntryType::INVALID)
+	{
+		SetValue(m_entry->ToBytes());
+	}
 }
 
 void ScriptDataViewEditorControl::SetFocus()

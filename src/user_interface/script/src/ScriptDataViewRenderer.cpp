@@ -151,7 +151,11 @@ bool ScriptDataViewRenderer::RenderStringProperties(wxRect& rect, wxDC * dc, int
 {
 	const auto& string = dynamic_cast<ScriptStringEntry&>(*m_value);
 	wxFont font = dc->GetFont().Bold();
-	std::wstring string_preview = !m_gd ? L"" : m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_gd->GetScriptData()->GetStringStart() + string.string);
+	std::wstring string_preview = L"";
+	if (m_gd && m_gd->GetStringData()->GetStringCount(StringData::Type::MAIN) > static_cast<std::size_t>(m_gd->GetScriptData()->GetStringStart() + string.string))
+	{
+		string_preview = m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_gd->GetScriptData()->GetStringStart() + string.string);
+	}
 	InsertRenderBubble(rect, dc, state, "STRING", *wxCYAN, LABEL_WIDTH, &font);
 	InsertRenderCheckbox(rect, dc, state, "Clear:", string.clear_box, 40);
 	InsertRenderCheckbox(rect, dc, state, "End:", string.end, 40);
@@ -179,7 +183,11 @@ bool ScriptDataViewRenderer::RenderCutsceneProperties(wxRect& rect, wxDC* dc, in
 bool ScriptDataViewRenderer::RenderSetItemProperties(wxRect& rect, wxDC* dc, int state)
 {
 	const auto& item_set = dynamic_cast<ScriptItemLoadEntry&>(*m_value);
-	std::wstring item_name = !m_gd ? L"" : m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_set.item);
+	std::wstring item_name = L"<INVALID>";
+	if (m_gd && m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES) > static_cast<std::size_t>(item_set.item))
+	{
+		item_name = m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_set.item);
+	}
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	dc->SetTextForeground(*wxWHITE);

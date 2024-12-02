@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include <codecvt>
+#include <unordered_map>
 
 class GameData;
 
@@ -24,27 +26,49 @@ enum class ScriptTableEntryType
 	PLAY_CUTSCENE
 };
 
+
 class ScriptTableEntry
 {
 public:
 	virtual ~ScriptTableEntry() = default;
 	virtual uint16_t ToBytes() const = 0;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const = 0;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const = 0;
 	ScriptTableEntryType GetType() const { return type; }
+	std::string GetName() const
+	{
+		if (ENTRY_NAMES.find(GetType()) != ENTRY_NAMES.cend())
+		{
+			return ENTRY_NAMES.at(GetType());
+		}
+		return ENTRY_NAMES.at(ScriptTableEntryType::INVALID);
+	};
+	std::wstring GetWName() const
+	{
+		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> cvt;
+		return cvt.from_bytes(GetName());
+	}
 
 	static std::unique_ptr<ScriptTableEntry> MakeEntry(const ScriptTableEntryType& ntype);
+	static std::unique_ptr<ScriptTableEntry> MakeEntry(const std::string& ntype);
 	static std::unique_ptr<ScriptTableEntry> FromBytes(uint16_t word);
 protected:
 	ScriptTableEntryType type = ScriptTableEntryType::INVALID;
+private:
+	static const std::unordered_map<ScriptTableEntryType, std::string> ENTRY_NAMES;
 };
 
 class ScriptStringEntry : public ScriptTableEntry
 {
 public:
-	ScriptStringEntry(uint16_t p_string, bool p_clear_box, bool p_end) : string(p_string), clear_box(p_clear_box), end(p_end) { type = ScriptTableEntryType::STRING; }
+	ScriptStringEntry(uint16_t p_string, bool p_clear_box, bool p_end) : string(p_string), clear_box(p_clear_box), end(p_end)
+	{
+		type = ScriptTableEntryType::STRING;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t string;
 	bool clear_box;
@@ -54,10 +78,14 @@ public:
 class ScriptItemLoadEntry : public ScriptTableEntry
 {
 public:
-	ScriptItemLoadEntry(uint8_t p_item, uint8_t p_slot) : item(p_item), slot(p_slot) { type = ScriptTableEntryType::ITEM_LOAD; }
+	ScriptItemLoadEntry(uint8_t p_item, uint8_t p_slot) : item(p_item), slot(p_slot)
+	{
+		type = ScriptTableEntryType::ITEM_LOAD;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint8_t item;
 	uint8_t slot;
@@ -66,10 +94,14 @@ public:
 class ScriptGlobalCharLoadEntry : public ScriptTableEntry
 {
 public:
-	ScriptGlobalCharLoadEntry(uint8_t p_chr, uint8_t p_slot) : chr(p_chr), slot(p_slot) { type = ScriptTableEntryType::GLOBAL_CHAR_LOAD; }
+	ScriptGlobalCharLoadEntry(uint8_t p_chr, uint8_t p_slot) : chr(p_chr), slot(p_slot)
+	{
+		type = ScriptTableEntryType::GLOBAL_CHAR_LOAD;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint8_t chr;
 	uint8_t slot;
@@ -78,10 +110,14 @@ public:
 class ScriptNumLoadEntry : public ScriptTableEntry
 {
 public:
-	ScriptNumLoadEntry(uint16_t p_num) : num(p_num) { type = ScriptTableEntryType::NUMBER_LOAD; }
+	ScriptNumLoadEntry(uint16_t p_num) : num(p_num)
+	{
+		type = ScriptTableEntryType::NUMBER_LOAD;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t num;
 };
@@ -89,10 +125,14 @@ public:
 class ScriptSetFlagEntry : public ScriptTableEntry
 {
 public:
-	ScriptSetFlagEntry(uint16_t p_flag) : flag(p_flag) { type = ScriptTableEntryType::SET_FLAG; }
+	ScriptSetFlagEntry(uint16_t p_flag) : flag(p_flag)
+	{
+		type = ScriptTableEntryType::SET_FLAG;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t flag;
 };
@@ -100,28 +140,40 @@ public:
 class ScriptGiveItemEntry : public ScriptTableEntry
 {
 public:
-	ScriptGiveItemEntry() { type = ScriptTableEntryType::GIVE_ITEM; }
+	ScriptGiveItemEntry()
+	{
+		type = ScriptTableEntryType::GIVE_ITEM;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 };
 
 class ScriptGiveMoneyEntry : public ScriptTableEntry
 {
 public:
-	ScriptGiveMoneyEntry() { type = ScriptTableEntryType::GIVE_MONEY; }
+	ScriptGiveMoneyEntry()
+	{
+		type = ScriptTableEntryType::GIVE_MONEY;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 };
 
 class ScriptPlayBgmEntry : public ScriptTableEntry
 {
 public:
-	ScriptPlayBgmEntry(uint8_t p_bgm) : bgm(p_bgm) { type = ScriptTableEntryType::PLAY_BGM; }
+	ScriptPlayBgmEntry(uint8_t p_bgm) : bgm(p_bgm)
+	{
+		type = ScriptTableEntryType::PLAY_BGM;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint8_t bgm;
 
@@ -131,10 +183,14 @@ public:
 class ScriptSetSpeakerEntry : public ScriptTableEntry
 {
 public:
-	ScriptSetSpeakerEntry(uint16_t p_chr) : chr(p_chr) { type = ScriptTableEntryType::SET_SPEAKER; }
+	ScriptSetSpeakerEntry(uint16_t p_chr) : chr(p_chr)
+	{
+		type = ScriptTableEntryType::SET_SPEAKER;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t chr;
 };
@@ -142,10 +198,14 @@ public:
 class ScriptSetGlobalSpeakerEntry : public ScriptTableEntry
 {
 public:
-	ScriptSetGlobalSpeakerEntry(uint8_t p_chr) : chr(p_chr) { type = ScriptTableEntryType::SET_GLOBAL_SPEAKER; }
+	ScriptSetGlobalSpeakerEntry(uint8_t p_chr) : chr(p_chr)
+	{
+		type = ScriptTableEntryType::SET_GLOBAL_SPEAKER;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint8_t chr;
 };
@@ -153,10 +213,14 @@ public:
 class ScriptInitiateCutsceneEntry : public ScriptTableEntry
 {
 public:
-	ScriptInitiateCutsceneEntry(uint16_t p_cutscene) : cutscene(p_cutscene) { type = ScriptTableEntryType::PLAY_CUTSCENE; }
+	ScriptInitiateCutsceneEntry(uint16_t p_cutscene) : cutscene(p_cutscene)
+	{
+		type = ScriptTableEntryType::PLAY_CUTSCENE;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t cutscene;
 };
@@ -164,10 +228,14 @@ public:
 class ScriptInvalidEntry : public ScriptTableEntry
 {
 public:
-	ScriptInvalidEntry(uint16_t p_bits) : bits(p_bits) { type = ScriptTableEntryType::INVALID; }
+	ScriptInvalidEntry(uint16_t p_bits) : bits(p_bits)
+	{
+		type = ScriptTableEntryType::INVALID;
+	}
 
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
+	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
 
 	uint16_t bits;
 };

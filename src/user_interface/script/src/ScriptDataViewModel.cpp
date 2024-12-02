@@ -92,18 +92,37 @@ bool ScriptDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int r
 	return false;
 }
 
-bool ScriptDataViewModel::DeleteRow(unsigned int /*row*/)
+bool ScriptDataViewModel::DeleteRow(unsigned int row)
 {
+	if (row < m_script->GetScriptLineCount())
+	{
+		m_script->DeleteScriptLine(row);
+		RowDeleted(row);
+		return true;
+	}
 	return false;
 }
 
-bool ScriptDataViewModel::AddRow(unsigned int /*row*/)
+bool ScriptDataViewModel::AddRow(unsigned int row)
 {
+	if (row <= m_script->GetScriptLineCount())
+	{
+		m_script->AddScriptLineBefore(row, ScriptTableEntry::MakeEntry(ScriptTableEntryType::STRING));
+		RowInserted(row);
+		return true;
+	}
 	return false;
 }
 
-bool ScriptDataViewModel::SwapRows(unsigned int /*r1*/, unsigned int /*r2*/)
+bool ScriptDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
 {
+	if (r1 < m_script->GetScriptLineCount() && r2 < m_script->GetScriptLineCount() && r1 != r2)
+	{
+		m_script->SwapScriptLines(r1, r2);
+		RowChanged(r1);
+		RowChanged(r2);
+		return true;
+	}
 	return false;
 }
 

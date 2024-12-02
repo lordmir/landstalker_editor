@@ -67,9 +67,6 @@
     <Filter Include="include\UI\Sprites">
       <UniqueIdentifier>{5cce17b8-2e40-4569-ae14-5979f28947c1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Text">
-      <UniqueIdentifier>{798fc907-3a71-4dc0-9898-411de987af9b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\Data">
       <UniqueIdentifier>{49289520-a6bd-4176-bdff-c725ccda0cb5}</UniqueIdentifier>
     </Filter>
@@ -183,6 +180,9 @@
     </Filter>
     <Filter Include="src\UI\Rooms\WarpEditor">
       <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Text">
+      <UniqueIdentifier>{798fc907-3a71-4dc0-9898-411de987af9b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -507,6 +507,7 @@
     <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewEditorControl.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\landstalker\3d_maps\src\RoomToTmx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -842,6 +843,7 @@
     <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewEditorControl.h">
       <Filter>include\UI\Script</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\landstalker\3d_maps\include\RoomToTmx.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\user_interface\wxresource\resource\win_resources.rc">

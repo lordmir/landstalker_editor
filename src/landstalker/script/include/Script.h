@@ -25,9 +25,13 @@ public:
 	void SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
 	void AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
 	void DeleteScriptLine(std::size_t line);
+	void SwapScriptLines(std::size_t line1, std::size_t line2);
 
 	std::wstring GetScriptString(std::size_t line, std::shared_ptr<GameData> gd) const;
 	std::wstring GetAllScriptStrings(std::shared_ptr<GameData> gd) const;
+
+	std::wstring ToYaml(std::shared_ptr<GameData> gd) const;
+	bool FromYaml(std::shared_ptr<GameData> gd, const std::string& yaml);
 
 private:
 	void Copy(const Script& rhs);

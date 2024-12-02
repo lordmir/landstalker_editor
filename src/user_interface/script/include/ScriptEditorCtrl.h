@@ -19,9 +19,21 @@ public:
 	virtual void ClearGameData();
 
 	void Open();
+	void RefreshData();
+
+	void InsertRow();
+	void DeleteRow();
+	void MoveRowUp();
+	void MoveRowDown();
+
+	bool IsRowSelected() const;
+	bool IsSelTop() const;
+	bool IsSelBottom() const;
 
 private:
 	void UpdateUI();
+
+	void OnSelectionChange(wxDataViewEvent& evt);
 
 	wxDataViewCtrl* m_dvc_ctrl;
 	ScriptDataViewModel* m_model;

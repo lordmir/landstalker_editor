@@ -14,16 +14,16 @@
 void Debug(const std::string& message);
 
 template<template<typename, typename, typename...> class C, typename T, typename U, typename... Rest>
-T FindMapKey(const C<T, U, Rest...>& map, const U& value)
+typename C<T, U, Rest...>::const_iterator FindMapKey(const C<T, U, Rest...>& map, const U& value)
 {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->second == value)
 		{
-			return it->first;
+			return it;
 		}
 	}
-	return T();
+	return map.end();
 }
 
 template< class T >

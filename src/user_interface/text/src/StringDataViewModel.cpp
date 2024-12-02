@@ -261,3 +261,37 @@ bool StringDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int r
     }
     return true;
 }
+
+bool StringDataViewModel::DeleteRow(unsigned int row)
+{
+    if (row < m_sd->GetStringCount(m_type))
+    {
+        m_sd->DeleteString(m_type, row);
+        RowDeleted(row);
+        return true;
+    }
+    return false;
+}
+
+bool StringDataViewModel::AddRow(unsigned int row)
+{
+    if (row <= m_sd->GetStringCount(m_type))
+    {
+        m_sd->InsertString(m_type, row, L"");
+        RowInserted(row);
+        return true;
+    }
+    return false;
+}
+
+bool StringDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
+{
+    if (r1 < m_sd->GetStringCount(m_type) && r2 < m_sd->GetStringCount(m_type) && r1 != r2)
+    {
+        m_sd->SwapStrings(m_type, r1, r2);
+        RowChanged(r1);
+        RowChanged(r2);
+        return true;
+    }
+    return false;
+}
