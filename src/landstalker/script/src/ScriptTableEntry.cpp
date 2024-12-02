@@ -278,7 +278,7 @@ std::wstring ScriptNumLoadEntry::ToString(std::shared_ptr<const GameData> /*gd*/
 	return StrWPrintf(L"Load number % 5d into Slot 0", num);
 }
 
-std::wstring ScriptNumLoadEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptNumLoadEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s: % 3d",
@@ -298,7 +298,7 @@ std::wstring ScriptSetFlagEntry::ToString(std::shared_ptr<const GameData> /*gd*/
 	return StrWPrintf(L"Set flag %03d", flag);;
 }
 
-std::wstring ScriptSetFlagEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptSetFlagEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s: % 3d",
@@ -318,7 +318,7 @@ std::wstring ScriptGiveItemEntry::ToString(std::shared_ptr<const GameData> /*gd*
 	return L"Give item in Slot 0 to player";
 }
 
-std::wstring ScriptGiveItemEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptGiveItemEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s",
@@ -338,7 +338,7 @@ std::wstring ScriptGiveMoneyEntry::ToString(std::shared_ptr<const GameData> /*gd
 	return L"Give money amount in Slot 0 to player";
 }
 
-std::wstring ScriptGiveMoneyEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptGiveMoneyEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s",
@@ -358,20 +358,17 @@ std::wstring ScriptPlayBgmEntry::ToString(std::shared_ptr<const GameData> /*gd*/
 	return StrWPrintf(L"Play BGM track %01d (\"%s\").", bgm, BGMS[bgm % BGMS.size()].c_str());
 }
 
-std::wstring ScriptPlayBgmEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptPlayBgmEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring str_preview;
-	if (gd)
+	str_preview = L"  # ";
+	if (bgm < BGMS.size())
 	{
-		str_preview = L"  # ";
-		if (bgm < BGMS.size())
-		{
-			str_preview += BGMS.at(bgm);
-		}
-		else
-		{
-			str_preview += L"<INVALID>";
-		}
+		str_preview += BGMS.at(bgm);
+	}
+	else
+	{
+		str_preview += L"<INVALID>";
 	}
 	std::wstring yaml(StrWPrintf(
 		L"- %s: %1d%s",
@@ -467,7 +464,7 @@ std::wstring ScriptInvalidEntry::ToString(std::shared_ptr<const GameData> /*gd*/
 	return StrWPrintf(L"Invalid Entry %04X", bits);
 }
 
-std::wstring ScriptInvalidEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptInvalidEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s: 0x%04X",
@@ -487,7 +484,7 @@ std::wstring ScriptInitiateCutsceneEntry::ToString(std::shared_ptr<const GameDat
 	return StrWPrintf(L"Initiate cutscene %03d", cutscene);
 }
 
-std::wstring ScriptInitiateCutsceneEntry::ToYaml(std::shared_ptr<const GameData> gd) const
+std::wstring ScriptInitiateCutsceneEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring yaml(StrWPrintf(
 		L"- %s: % 3d\n\n"
@@ -496,4 +493,19 @@ std::wstring ScriptInitiateCutsceneEntry::ToYaml(std::shared_ptr<const GameData>
 	));
 
 	return yaml;
+}
+
+std::string ScriptTableEntry::GetName() const
+{
+	if (ENTRY_NAMES.find(GetType()) != ENTRY_NAMES.cend())
+	{
+		return ENTRY_NAMES.at(GetType());
+	}
+	return ENTRY_NAMES.at(ScriptTableEntryType::INVALID);
+}
+
+std::wstring ScriptTableEntry::GetWName() const
+{
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	return cvt.from_bytes(GetName());
 }

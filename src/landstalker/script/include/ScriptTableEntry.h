@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <cstdint>
-#include <codecvt>
 #include <unordered_map>
 
 class GameData;
@@ -35,19 +34,8 @@ public:
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const = 0;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const = 0;
 	ScriptTableEntryType GetType() const { return type; }
-	std::string GetName() const
-	{
-		if (ENTRY_NAMES.find(GetType()) != ENTRY_NAMES.cend())
-		{
-			return ENTRY_NAMES.at(GetType());
-		}
-		return ENTRY_NAMES.at(ScriptTableEntryType::INVALID);
-	};
-	std::wstring GetWName() const
-	{
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> cvt;
-		return cvt.from_bytes(GetName());
-	}
+	std::string GetName() const;
+	std::wstring GetWName() const;
 
 	static std::unique_ptr<ScriptTableEntry> MakeEntry(const ScriptTableEntryType& ntype);
 	static std::unique_ptr<ScriptTableEntry> MakeEntry(const std::string& ntype);
