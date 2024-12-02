@@ -1,4 +1,5 @@
 #include <user_interface/text/include/StringEditorFrame.h>
+#include <wx/dataview.h>
 #include <codecvt>
 #include <locale>
 
@@ -6,6 +7,14 @@ enum MENU_IDS
 {
     ID_FILE_EXPORT = 22000,
     ID_FILE_IMPORT
+};
+
+enum TOOL_IDS
+{
+    ID_INSERT = 30000,
+    ID_DELETE,
+    ID_MOVE_UP,
+    ID_MOVE_DOWN
 };
 
 static const std::string MODE_DESCRIPTORS[] =
@@ -20,6 +29,11 @@ static const std::string MODE_DESCRIPTORS[] =
     "End Credit",
     "System"
 };
+
+
+wxBEGIN_EVENT_TABLE(StringEditorFrame, EditorFrame)
+EVT_DATAVIEW_SELECTION_CHANGED(wxID_ANY, StringEditorFrame::OnSelectionChange)
+wxEND_EVENT_TABLE()
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
@@ -93,6 +107,8 @@ void StringEditorFrame::SetMode(StringData::Type type)
         m_stringView->InsertColumn(1, new wxDataViewColumn(m_model->GetColumnHeader(1),
             new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_EDITABLE), 1, -1, wxALIGN_LEFT));
     }
+    m_stringView->SetSelections({});
+    UpdateUI();
 	Update();
 }
 
@@ -108,6 +124,18 @@ void StringEditorFrame::OnMenuClick(wxMenuEvent& evt)
             break;
         case ID_FILE_IMPORT:
             OnMenuImport();
+            break;
+        case ID_INSERT:
+            OnInsert();
+            break;
+        case ID_DELETE:
+            OnDelete();
+            break;
+        case ID_MOVE_UP:
+            OnMoveUp();
+            break;
+        case ID_MOVE_DOWN:
+            OnMoveDown();
             break;
         default:
             wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -151,6 +179,80 @@ void StringEditorFrame::OnMenuExport()
         ExportStrings(path, m_type);
         Update();
     }
+}
+
+void StringEditorFrame::OnInsert()
+{
+    if (m_stringView->HasSelection())
+    {
+        m_model->AddRow(reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1);
+    }
+    else
+    {
+        m_model->AddRow(0);
+    }
+    UpdateUI();
+}
+
+void StringEditorFrame::OnDelete()
+{
+    if (m_stringView->HasSelection())
+    {
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
+        m_model->DeleteRow(sel);
+        if (m_model->GetRowCount() > sel)
+        {
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
+        }
+        else if (m_model->GetRowCount() != 0)
+        {
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+        }
+    }
+    UpdateUI();
+}
+
+void StringEditorFrame::OnMoveUp()
+{
+    if (m_stringView->HasSelection() && m_model->GetRowCount() >= 2)
+    {
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
+        if (sel > 0)
+        {
+            m_model->SwapRows(sel - 1, sel);
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
+        }
+    }
+    UpdateUI();
+}
+
+void StringEditorFrame::OnMoveDown()
+{
+    if (m_stringView->HasSelection() && m_model->GetRowCount() >= 2)
+    {
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
+        if (sel < m_model->GetRowCount() - 1)
+        {
+            m_model->SwapRows(sel, sel + 1);
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
+        }
+    }
+    UpdateUI();
+}
+
+bool StringEditorFrame::IsAddRemoveAllowed() const
+{
+    return m_type != StringData::Type::DEFAULT_NAME && m_type != StringData::Type::SYSTEM;
+}
+
+bool StringEditorFrame::IsSelTop() const
+{
+    return reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) < 2;
+}
+
+bool StringEditorFrame::IsSelBottom() const
+{
+    return reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) >= static_cast<intptr_t>(m_model->GetRowCount());
 }
 
 void StringEditorFrame::SetGameData(std::shared_ptr<GameData> gd)
@@ -259,12 +361,37 @@ bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringDa
     return retval;
 }
 
-void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
+void StringEditorFrame::UpdateUI() const
 {
+    EnableToolbarItem("Strings", ID_INSERT, IsAddRemoveAllowed());
+    EnableToolbarItem("Strings", ID_DELETE, m_stringView->HasSelection() && IsAddRemoveAllowed());
+    EnableToolbarItem("Strings", ID_MOVE_UP, m_stringView->HasSelection() && !IsSelTop());
+    EnableToolbarItem("Strings", ID_MOVE_DOWN, m_stringView->HasSelection() && !IsSelBottom());
+}
+
+void StringEditorFrame::OnSelectionChange(wxDataViewEvent& evt)
+{
+    UpdateUI();
+    evt.Skip();
+}
+
+void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+{
+    auto* parent = m_mgr.GetManagedWindow();
+
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export Strings...");
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Strings...");
+
+    wxAuiToolBar* strings_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+    strings_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
+    strings_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
+    strings_tb->AddSeparator();
+    strings_tb->AddTool(ID_MOVE_UP, "Move Up", ilist.GetImage("up"), "Move Up");
+    strings_tb->AddTool(ID_MOVE_DOWN, "Move Down", ilist.GetImage("down"), "Move Down");
+    AddToolbar(m_mgr, *strings_tb, "Strings", "Script Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
+
     UpdateUI();
     m_mgr.Update();
 }

@@ -326,7 +326,11 @@ void EntityViewerCtrl::UpdateSprite()
 {
 	if (m_gd)
 	{
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame)->GetData();
-		Refresh(true);
+		auto frame = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame);
+		if(frame)
+		{
+			m_sprite = frame->GetData();
+			Refresh(true);
+		}
 	}
 }

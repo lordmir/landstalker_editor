@@ -140,8 +140,8 @@ bool AsmFile::Write(const T& value)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC);
-	m_nextline.width = FindMapKey(WIDTHS, w);
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC)->first;
+	m_nextline.width = FindMapKey(WIDTHS, w)->first;
 	m_nextline.operand = ToAsmValue(value);
 	return true;
 }
@@ -174,8 +174,8 @@ inline bool AsmFile::Write(Iter begin, Iter end)
 		{
 			PushNextLine();
 		}
-		m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC);
-		m_nextline.width = FindMapKey(WIDTHS, w);
+		m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC)->first;
+		m_nextline.width = FindMapKey(WIDTHS, w)->first;
 
 		for (std::size_t i = 0; i < MAX_ELEMENTS_ON_LINE; ++i)
 		{

@@ -264,7 +264,7 @@ bool AssemblyBuilderDialog::Assemble(bool post_save)
         Log("Unable to write to directory \"" + m_dir + "\".\n", *wxRED);
         return false;
     }
-    wxSetWorkingDirectory(m_dir);
+
     if (dir.HasFiles() || dir.HasSubDirs())
     {
         m_step = Step::BUILD;
@@ -306,7 +306,7 @@ bool AssemblyBuilderDialog::Build(bool post_save)
     {
         return true;
     }
-    wxSetWorkingDirectory(m_dir);
+
     if (dir.HasFiles(baseasm) && dir.HasSubDirs())
     {
         m_step = Step::BUILD;
@@ -397,7 +397,9 @@ bool AssemblyBuilderDialog::DoClone()
         return false;
     }
 
-    if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
+    wxExecuteEnv env;
+    env.cwd = m_dir;
+    if (wxExecute(cmd, wxEXEC_ASYNC, process, &env) < 1)
     {
         Log("Command execution failed!", *wxRED);
         m_msgQueue.Post(ExecutorThread::ThreadMessage::ExitThread);
@@ -452,31 +454,46 @@ bool AssemblyBuilderDialog::DoBuild()
         Abandon();
         return false;
     }
-    if (wxExecute(cmd, wxEXEC_ASYNC, process) < 1)
+
+    wxExecuteEnv env;
+    env.cwd = m_dir;
+    auto old_cwd = wxGetCwd();
+    wxSetWorkingDirectory(m_dir);
+
+    if (wxExecute(cmd, wxEXEC_ASYNC, process, &env) < 1)
     {
         Log("Command execution failed.", *wxRED);
         Abandon();
+        wxSetWorkingDirectory(old_cwd);
         return false;
     }
+    wxSetWorkingDirectory(old_cwd);
     return true;
 }
 
 bool AssemblyBuilderDialog::DoFixChecksum()
 {
+    wxString originalDir = wxGetCwd();
+    wxSetWorkingDirectory(m_dir);
+
+    Log("Fixing ROM checksum...\n", *wxBLUE);
+    bool isSuccess;
     if (wxFileName(outname).Exists())
     {
-        Log("Fixing ROM checksum...\n", *wxBLUE);
         auto r = Rom(outname.ToStdString());
         r.writeFile(outname.ToStdString());
 
         Log(StrPrintf("Done! Checksum is 0x%04X.\n", r.read_checksum()), wxColor(0, 128, 0));
-        return true;
+        isSuccess = true;
     }
     else
     {
-        Log(wxString("Failed to read ROM file \"") + outname + "\".");
+        Log(wxString("Failed to read ROM file \"") + outname + "\" while checking checksum. ", *wxRED);
+        isSuccess = false;
     }
-    return false;
+
+    wxSetWorkingDirectory(originalDir);
+    return isSuccess;
 }
 
 bool AssemblyBuilderDialog::DoRun(const wxString& fname, bool post_build)
@@ -490,7 +507,8 @@ bool AssemblyBuilderDialog::DoRun(const wxString& fname, bool post_build)
     {
         cmd << " \"" << fname << "\"";
         Log(cmd + "\n", *wxBLUE);
-        if (wxExecute(cmd, wxEXEC_ASYNC) < 1)
+
+        if (wxExecute(cmd, wxEXEC_ASYNC, nullptr) < 1)
         {
             Log("Command execution failed.", *wxRED);
             return false;

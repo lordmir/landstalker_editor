@@ -143,6 +143,10 @@ void TileSwapControlFrame::UpdateOtherControls()
 
 std::string TileSwapControlFrame::MakeLabel(int index) const
 {
+	if (index >= static_cast<int>(m_swaps.size()))
+	{
+		return "<Invalid>";
+	}
 	if (!m_swaps[index].active)
 	{
 		return StrPrintf("%02d: <Inactive>", index + 1);

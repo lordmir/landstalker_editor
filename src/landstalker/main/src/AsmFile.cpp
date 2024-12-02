@@ -373,8 +373,8 @@ bool AsmFile::Write(const std::string& data)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC);
-	m_nextline.width = FindMapKey(WIDTHS, sizeof(uint32_t));
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC)->first;
+	m_nextline.width = FindMapKey(WIDTHS, sizeof(uint32_t))->first;
 	m_nextline.operand = data;
 	return true;
 }
@@ -406,7 +406,7 @@ bool AsmFile::Write(const IncludeFile& file)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == FileType::ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN);
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == FileType::ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN)->first;
 	m_nextline.operand = "\"";
 	m_nextline.operand += file.path.str();
 	m_nextline.operand += "\"";
@@ -425,7 +425,7 @@ bool AsmFile::Write(const Align& align)
 	{
 		PushNextLine();
 	}
-	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::ALIGN);
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::ALIGN)->first;
 	m_nextline.operand = ToAsmValue(align.amount);
 	return true;
 }

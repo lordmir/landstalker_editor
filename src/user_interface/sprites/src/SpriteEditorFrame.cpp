@@ -168,7 +168,7 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	return true;
 }
 
-bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent)
+bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, bool fullUpdate)
 {
 	if (m_gd == nullptr)
 	{
@@ -206,7 +206,17 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent)
 	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
-	Update();
+	
+	if(fullUpdate)
+	{
+		Update();
+	}
+	else{
+		UpdateUI();
+		FireEvent(EVT_PROPERTIES_UPDATE);
+		FireEvent(EVT_STATUSBAR_UPDATE);
+	}
+
 	return true;
 }
 
@@ -1138,7 +1148,8 @@ void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
 		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), first_frame_name);
-		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+
+		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim, -1, false);
 		m_framectrl->SetSelected(m_frame + 1);
 		m_animctrl->SetSelected(m_anim + 1);
 	}
@@ -1256,23 +1267,38 @@ void SpriteEditorFrame::OnAnimationFrameAdd(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnAnimationFrameDelete(wxCommandEvent& evt)
 {
-	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
+	int framesCount = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size());
+
+	if (evt.GetInt() > 0 && evt.GetInt() <= framesCount && framesCount > 1)
 	{
+		int deleteIndex = evt.GetInt() - 1;
+
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
-		int new_frame = evt.GetInt() - 1;
-		if (new_frame > static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)))
-		{
-			new_frame = static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrameCount(anim)) - 1;
+
+		// Delete the frame
+		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, deleteIndex);
+		framesCount--;
+
+		// Update preview frame
+		int selectIndex = deleteIndex;
+		if(selectIndex >= framesCount){
+			selectIndex = framesCount - 1;
+
 		}
-		m_gd->GetSpriteData()->DeleteSpriteAnimationFrame(anim, new_frame);
+
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
-		m_preview->SetAnimationFrame(new_frame);
-		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[new_frame]);
+		m_preview->SetAnimationFrame(selectIndex);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[selectIndex]);
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
 		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
 		m_framectrl->SetSelected(m_frame + 1);
 		m_animctrl->SetSelected(m_anim + 1);
-		m_animframectrl->SetSelected(evt.GetInt());
+
+		if(framesCount == deleteIndex )
+		{
+			m_animframectrl->SetSelected(framesCount);
+		}
+		
 		UpdateUI();
 	}
 }
@@ -1313,16 +1339,19 @@ void SpriteEditorFrame::OnAnimationFrameChange(wxCommandEvent& evt)
 	{
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
 		std::string new_frame = ShowFrameDialog(StrPrintf("Change frame \"%s\" to:", evt.GetString().c_str().AsChar()), "Change frame");
-		m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
-		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
-		m_preview->SetAnimationFrame(evt.GetInt() - 1);
-		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
-		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
-		m_framectrl->SetSelected(m_frame + 1);
-		m_animctrl->SetSelected(m_anim + 1);
-		m_animframectrl->SetSelected(evt.GetInt());
-		UpdateUI();
+		if (!new_frame.empty())
+		{
+			m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
+			m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
+			m_preview->SetAnimationFrame(evt.GetInt() - 1);
+			m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), new_frame);
+			m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
+			OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
+			m_framectrl->SetSelected(m_frame + 1);
+			m_animctrl->SetSelected(m_anim + 1);
+			m_animframectrl->SetSelected(evt.GetInt());
+			UpdateUI();
+		}
 	}
 }
 

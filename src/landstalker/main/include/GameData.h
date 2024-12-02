@@ -10,6 +10,7 @@
 #include <landstalker/main/include/GraphicsData.h>
 #include <landstalker/main/include/StringData.h>
 #include <landstalker/main/include/SpriteData.h>
+#include <landstalker/main/include/ScriptData.h>
 #include <landstalker/main/include/DataTypes.h>
 
 class GameData : public DataManager
@@ -33,6 +34,7 @@ public:
     std::shared_ptr<GraphicsData> GetGraphicsData() const { return m_gd; }
     std::shared_ptr<StringData> GetStringData() const { return m_sd; }
     std::shared_ptr<SpriteData> GetSpriteData() const { return m_spd; }
+    std::shared_ptr<ScriptData> GetScriptData() const { return m_scd; }
 
     const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
     const std::map<std::string, std::shared_ptr<TilesetEntry>>& GetAllTilesets() const;
@@ -52,6 +54,7 @@ private:
     std::shared_ptr<GraphicsData> m_gd;
     std::shared_ptr<StringData> m_sd;
     std::shared_ptr<SpriteData> m_spd;
+    std::shared_ptr<ScriptData> m_scd;
 
     std::vector<std::shared_ptr<DataManager>> m_data;
 

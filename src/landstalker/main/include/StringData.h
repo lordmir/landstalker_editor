@@ -47,6 +47,8 @@ public:
     const LSString::StringType& GetOrigString(Type type, std::size_t index) const;
     void SetString(Type type, std::size_t index, const LSString::StringType& value);
     void InsertString(Type type, std::size_t index, const LSString::StringType& value);
+    void DeleteString(Type type, std::size_t index);
+    void SwapStrings(Type type, std::size_t i1, std::size_t i2);
     bool HasStringChanged(Type type, std::size_t index) const;
 
     std::size_t GetMainStringCount() const;
