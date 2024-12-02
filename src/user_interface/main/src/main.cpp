@@ -22,8 +22,6 @@ public:
             romFile = this->argv[1];
         }
 
-        Labels::LoadData("default_labels.yaml");
-
         MainFrame* mainFrame = new MainFrame(NULL, romFile);
         SetTopWindow(mainFrame);
         return GetTopWindow()->Show();

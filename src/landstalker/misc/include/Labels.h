@@ -10,11 +10,16 @@
 
 class Labels {
 public:
+    static void InitDefaults();
     static void LoadData(const std::string& filename);
-    static std::optional<std::string> Get(const std::string& what, int id);
+    static void SaveData(const std::string& filename);
+    static std::optional<std::wstring> Get(const std::wstring& what, int id);
+    static bool Update(const std::wstring& what, int id, const std::wstring& updated);
+    static std::optional<std::string> ToAsmFriendly(const std::wstring& what);
+    static std::optional<std::wstring> FromAsmFriendly(const std::string& what);
 
 private:
-    static std::map<std::pair<std::string, int>, std::string> m_data;
+    static std::map<std::pair<std::wstring, int>, std::wstring> m_data;
 };
 
 #endif // LABELS_H_

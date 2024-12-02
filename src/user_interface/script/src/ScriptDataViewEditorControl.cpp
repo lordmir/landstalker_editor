@@ -1,5 +1,7 @@
 #include <user_interface/script/include/ScriptDataViewEditorControl.h>
 
+#include <algorithm>
+
 wxBEGIN_EVENT_TABLE(ScriptDataViewEditorControl, wxWindow)
 EVT_KEY_DOWN(ScriptDataViewEditorControl::OnKeyDown)
 EVT_LEFT_UP(ScriptDataViewEditorControl::OnClick)
@@ -156,7 +158,11 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_panels[ScriptTableEntryType::PLAY_BGM] = new wxPanel(this);
 	m_panel_sizers[ScriptTableEntryType::PLAY_BGM] = new wxBoxSizer(wxHORIZONTAL);
 	m_bgm_select = new wxChoice(m_panels[ScriptTableEntryType::PLAY_BGM], wxID_ANY);
-	m_bgm_select->Insert(std::vector<wxString>(ScriptPlayBgmEntry::BGMS.cbegin(), ScriptPlayBgmEntry::BGMS.cend()), 0);
+	auto bgms = std::vector<wxString>{};
+	std::transform(ScriptPlayBgmEntry::BGMS.cbegin(), ScriptPlayBgmEntry::BGMS.cend(), std::back_inserter(bgms), [](const auto& bgm) {
+		return *Labels::Get(L"sounds", bgm);
+	});
+	m_bgm_select->Insert(bgms, 0);
 	m_bgm_select->Select(0);
 	m_type_ctrl_sizer->Add(m_panels[ScriptTableEntryType::PLAY_BGM], 1, wxGROW);
 	m_panel_sizers[ScriptTableEntryType::PLAY_BGM]->AddSpacer(10);

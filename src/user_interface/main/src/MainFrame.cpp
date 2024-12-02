@@ -127,6 +127,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             return;
         }
+        OpenLabelsFile(path.ToStdString());
         m_rom.load_from_file(static_cast<std::string>(path));
         m_g = std::make_shared<GameData>(m_rom);
         this->SetLabel("Landstalker Editor - " + m_rom.get_description());
@@ -150,6 +151,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
+        OpenLabelsFile(std::filesystem::path(path.ToStdString()).parent_path().string());
         m_g = std::make_shared<GameData>(path.ToStdString());
         this->SetLabel("Landstalker Editor - " + path);
         wxFileName name(path);
@@ -264,7 +266,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const auto& ent_name = Labels::Get("entities", i).value_or("Entity" + std::to_string(i));
+        const auto& ent_name = Labels::Get(L"entities", i).value_or(L"Entity" + std::to_wstring(i));
         m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
     }
 
@@ -375,6 +377,22 @@ MainFrame::ReturnCode MainFrame::Save()
     }
 }
 
+MainFrame::ReturnCode MainFrame::SaveLabelsFile(std::string path)
+{
+    std::filesystem::path path_obj = std::filesystem::path(path);
+    if (std::filesystem::is_directory(path_obj))
+    {
+        path_obj /= "landstalker_labels.yaml";
+    }
+    else
+    {
+        std::string prefix = path_obj.has_stem() ? path_obj.stem().string() : "landstalker";
+        path_obj = path_obj.replace_filename(prefix + "_labels.yaml");
+    }
+    Labels::SaveData(path_obj.string());
+    return ReturnCode::OK;
+}
+
 MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
 {
     try
@@ -390,6 +408,7 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
+            SaveLabelsFile(path);
             AssemblyBuilderDialog bdlg(this, path, m_g);
             bdlg.ShowModal();
             if (bdlg.DidOperationSucceed())
@@ -449,6 +468,7 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
                 return ReturnCode::CANCELLED;
             }
             path = fdlog.GetPath().ToStdString();
+            SaveLabelsFile(path);
         }
         if (m_g)
         {
@@ -675,7 +695,8 @@ bool MainFrame::CheckForFileChanges()
 
 void MainFrame::OpenFile(const wxString& path)
 {
-    auto extension = std::filesystem::path(path.ToStdString()).extension().string();
+    auto path_obj = std::filesystem::path(path.ToStdString());
+    auto extension = path_obj.extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(),
         [](const unsigned char i) { return std::tolower(i); });
     m_filehistory->AddFileToHistory(path);
@@ -687,6 +708,21 @@ void MainFrame::OpenFile(const wxString& path)
     {
         OpenRomFile(path);
     }
+}
+
+void MainFrame::OpenLabelsFile(std::string path)
+{
+    std::filesystem::path path_obj = std::filesystem::path(path);
+    if (std::filesystem::is_directory(path_obj))
+    {
+        path_obj /= "landstalker_labels.yaml";
+    }
+    else
+    {
+        std::string prefix = path_obj.has_stem() ? path_obj.stem().string() : "landstalker";
+        path_obj = path_obj.replace_filename(prefix + "_labels.yaml");
+    }
+    Labels::LoadData(path_obj.string());
 }
 
 void MainFrame::OnOpen(wxCommandEvent& event)

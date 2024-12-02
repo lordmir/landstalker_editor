@@ -130,11 +130,13 @@ private:
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
+    void OpenLabelsFile(std::string path);
     void OpenRomFile(const wxString& path);
     void OpenAsmFile(const wxString& path);
     void InitUI();
     void InitConfig();
     ReturnCode Save();
+    ReturnCode SaveLabelsFile(std::string path = std::string());
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
     void SetMode(const Mode& mode);

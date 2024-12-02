@@ -507,7 +507,15 @@
     <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewEditorControl.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\RoomToTmx.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\Labels.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\3d_maps\src\RoomToTmx.cpp">
+      <Filter>src\Data\3D Maps</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\misc\src\DefaultLabels.cpp">
+      <Filter>src\Data\Miscellaneous</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -843,7 +851,15 @@
     <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewEditorControl.h">
       <Filter>include\UI\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\RoomToTmx.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\Labels.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\3d_maps\include\RoomToTmx.h">
+      <Filter>include\Data\3D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\misc\include\DefaultLabels.h">
+      <Filter>include\Data\Miscellaneous</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\user_interface\wxresource\resource\win_resources.rc">

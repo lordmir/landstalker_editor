@@ -40,6 +40,7 @@
     <ClCompile Include="..\src\landstalker\main\src\StringData.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\BitBarrel.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\BitBarrelWriter.cpp" />
+    <ClCompile Include="..\src\landstalker\misc\src\DefaultLabels.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\LZ77.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\Utils.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\Labels.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="..\src\landstalker\main\include\StringData.h" />
     <ClInclude Include="..\src\landstalker\misc\include\BitBarrel.h" />
     <ClInclude Include="..\src\landstalker\misc\include\BitBarrelWriter.h" />
+    <ClInclude Include="..\src\landstalker\misc\include\DefaultLabels.h" />
     <ClInclude Include="..\src\landstalker\misc\include\Literals.h" />
     <ClInclude Include="..\src\landstalker\misc\include\LZ77.h" />
     <ClInclude Include="..\src\landstalker\misc\include\Utils.h" />

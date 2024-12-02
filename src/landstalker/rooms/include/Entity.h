@@ -78,9 +78,9 @@ public:
     bool IsTileCopySet() const;
     void SetTileCopy(bool tile_copy);
 
-    std::string GetTypeName() const
+    std::wstring GetTypeName() const
     {
-        return Labels::Get("entities", m_type).value_or("Entity" + std::to_string(m_type));
+        return Labels::Get(L"entities", m_type).value_or(L"Entity" + std::to_wstring(m_type));
     }
 
     std::string GetOrientationName() const

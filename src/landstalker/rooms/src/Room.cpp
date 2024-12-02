@@ -66,11 +66,11 @@ uint8_t Room::GetBlocksetId() const
     return pri_blockset << 5 | tileset;
 }
 
-std::string Room::GetDisplayName()
+std::wstring Room::GetDisplayName()
 {
-    std::string displayName = name;
-    if (auto label = Labels::Get("rooms", index)) {
-        displayName += " " + *label;
+    std::wstring displayName = *Labels::FromAsmFriendly(name);
+    if (auto label = Labels::Get(L"rooms", index)) {
+        displayName = *label;
     }
 
     return displayName;

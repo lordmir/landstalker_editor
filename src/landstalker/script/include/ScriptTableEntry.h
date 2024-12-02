@@ -165,7 +165,7 @@ public:
 
 	uint8_t bgm;
 
-	static const std::array<std::wstring, 2> BGMS;
+	static const std::array<int, 2> BGMS;
 };
 
 class ScriptSetSpeakerEntry : public ScriptTableEntry
