@@ -35,6 +35,7 @@
     <ClCompile Include="..\src\landstalker\main\src\RomLabels.cpp" />
     <ClCompile Include="..\src\landstalker\main\src\RomOffsets.cpp" />
     <ClCompile Include="..\src\landstalker\main\src\RoomData.cpp" />
+    <ClCompile Include="..\src\landstalker\main\src\ScriptData.cpp" />
     <ClCompile Include="..\src\landstalker\main\src\SpriteData.cpp" />
     <ClCompile Include="..\src\landstalker\main\src\StringData.cpp" />
     <ClCompile Include="..\src\landstalker\misc\src\BitBarrel.cpp" />
@@ -48,6 +49,8 @@
     <ClCompile Include="..\src\landstalker\rooms\src\Room.cpp" />
     <ClCompile Include="..\src\landstalker\rooms\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\landstalker\rooms\src\WarpList.cpp" />
+    <ClCompile Include="..\src\landstalker\script\src\Script.cpp" />
+    <ClCompile Include="..\src\landstalker\script\src\ScriptTableEntry.cpp" />
     <ClCompile Include="..\src\landstalker\sprites\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\landstalker\text\src\EndCreditString.cpp" />
     <ClCompile Include="..\src\landstalker\text\src\HuffmanString.cpp" />
@@ -96,6 +99,11 @@
     <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp" />
     <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewEditorControl.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewRenderer.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationFrameControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerCtrl.cpp" />
@@ -138,6 +146,7 @@
     <ClInclude Include="..\src\landstalker\main\include\RomLabels.h" />
     <ClInclude Include="..\src\landstalker\main\include\RomOffsets.h" />
     <ClInclude Include="..\src\landstalker\main\include\RoomData.h" />
+    <ClInclude Include="..\src\landstalker\main\include\ScriptData.h" />
     <ClInclude Include="..\src\landstalker\main\include\SpriteData.h" />
     <ClInclude Include="..\src\landstalker\main\include\StringData.h" />
     <ClInclude Include="..\src\landstalker\misc\include\BitBarrel.h" />
@@ -152,6 +161,8 @@
     <ClInclude Include="..\src\landstalker\rooms\include\Room.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\WarpList.h" />
+    <ClInclude Include="..\src\landstalker\script\include\Script.h" />
+    <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h" />
     <ClInclude Include="..\src\landstalker\sprites\include\SpriteFrame.h" />
     <ClInclude Include="..\src\landstalker\text\include\Charset.h" />
     <ClInclude Include="..\src\landstalker\text\include\EndCreditString.h" />
@@ -204,6 +215,11 @@
     <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h" />
     <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h" />
     <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewRenderer.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewEditorControl.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationFrameControlFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerCtrl.h" />

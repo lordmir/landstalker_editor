@@ -23,17 +23,30 @@ public:
 
 	bool ExportStrings(const filesystem::path& filename, StringData::Type mode);
 	bool ImportStrings(const filesystem::path& filename, StringData::Type mode);
+
+	void UpdateUI() const;
 private:
+	void OnSelectionChange(wxDataViewEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void OnMenuImport();
 	void OnMenuExport();
+	void OnInsert();
+	void OnDelete();
+	void OnMoveUp();
+	void OnMoveDown();
+
+	bool IsAddRemoveAllowed() const;
+	bool IsSelTop() const;
+	bool IsSelBottom() const;
 
 	StringData::Type m_type;
 	mutable wxAuiManager m_mgr;
 	wxDataViewCtrl* m_stringView;
 	StringDataViewModel* m_model;
 	std::string m_title;
+
+	wxDECLARE_EVENT_TABLE();
 };
 
 #endif // _STRING_EDITOR_FRAME_H_

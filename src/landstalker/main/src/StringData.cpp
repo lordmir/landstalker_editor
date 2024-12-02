@@ -475,8 +475,124 @@ void StringData::SetString(Type type, std::size_t index, const LSString::StringT
 	}
 }
 
-void StringData::InsertString(Type /*type*/, std::size_t /*index*/, const LSString::StringType& /*value*/)
+void StringData::InsertString(Type type, std::size_t index, const LSString::StringType& value)
 {
+	switch (type)
+	{
+	case Type::MAIN:
+		assert(index <= m_decompressed_strings.size());
+		m_decompressed_strings.insert(m_decompressed_strings.begin() + index, value);
+		break;
+	case Type::NAMES:
+		assert(index <= m_character_names.size());
+		m_character_names.insert(m_character_names.begin() + index, value);
+		break;
+	case Type::SPECIAL_NAMES:
+		assert(index <= m_special_character_names.size());
+		m_special_character_names.insert(m_special_character_names.begin() + index, value);
+		break;
+	case Type::ITEM_NAMES:
+		assert(index <= m_item_names.size());
+		m_item_names.insert(m_item_names.begin() + index, value);
+		break;
+	case Type::MENU:
+		assert(index <= m_menu_strings.size());
+		m_menu_strings.insert(m_menu_strings.begin() + index, value);
+		break;
+	case Type::INTRO:
+		assert(index <= m_intro_strings.size());
+		m_intro_strings.insert(m_intro_strings.begin() + index, IntroString(0, 0, 0, 0, 0, value, L""));
+		break;
+	case Type::END_CREDITS:
+		assert(index <= m_ending_strings.size());
+		m_ending_strings.insert(m_ending_strings.begin() + index, EndCreditString(0, 0, value));
+		break;
+	case Type::SYSTEM:
+	case Type::DEFAULT_NAME:
+	default:
+		break;
+	}
+}
+
+void StringData::DeleteString(Type type, std::size_t index)
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		assert(index < m_decompressed_strings.size());
+		m_decompressed_strings.erase(m_decompressed_strings.begin() + index);
+		break;
+	case Type::NAMES:
+		assert(index < m_character_names.size());
+		m_character_names.erase(m_character_names.begin() + index);
+		break;
+	case Type::SPECIAL_NAMES:
+		assert(index < m_special_character_names.size());
+		m_special_character_names.erase(m_special_character_names.begin() + index);
+		break;
+	case Type::ITEM_NAMES:
+		assert(index < m_item_names.size());
+		m_item_names.erase(m_item_names.begin() + index);
+		break;
+	case Type::MENU:
+		assert(index < m_menu_strings.size());
+		m_menu_strings.erase(m_menu_strings.begin() + index);
+		break;
+	case Type::INTRO:
+		assert(index < m_intro_strings.size());
+		m_intro_strings.erase(m_intro_strings.begin() + index);
+		break;
+	case Type::END_CREDITS:
+		assert(index < m_ending_strings.size());
+		m_ending_strings.erase(m_ending_strings.begin() + index);
+		break;
+	case Type::SYSTEM:
+	case Type::DEFAULT_NAME:
+	default:
+		break;
+	}
+}
+
+void StringData::SwapStrings(Type type, std::size_t i1, std::size_t i2)
+{
+	switch (type)
+	{
+	case Type::MAIN:
+		assert(i1 < m_decompressed_strings.size() && i2 < m_decompressed_strings.size());
+		std::iter_swap(m_decompressed_strings.begin() + i1, m_decompressed_strings.begin() + i2);
+		break;
+	case Type::NAMES:
+		assert(i1 < m_character_names.size() && i2 < m_character_names.size());
+		std::iter_swap(m_character_names.begin() + i1, m_character_names.begin() + i2);
+		break;
+	case Type::SPECIAL_NAMES:
+		assert(i1 < m_special_character_names.size() && i2 < m_special_character_names.size());
+		std::iter_swap(m_special_character_names.begin() + i1, m_special_character_names.begin() + i2);
+		break;
+	case Type::ITEM_NAMES:
+		assert(i1 < m_item_names.size() && i2 < m_item_names.size());
+		std::iter_swap(m_item_names.begin() + i1, m_item_names.begin() + i2);
+		break;
+	case Type::MENU:
+		assert(i1 < m_menu_strings.size() && i2 < m_menu_strings.size());
+		std::iter_swap(m_menu_strings.begin() + i1, m_menu_strings.begin() + i2);
+		break;
+	case Type::INTRO:
+		assert(i1 < m_intro_strings.size() && i2 < m_intro_strings.size());
+		std::iter_swap(m_intro_strings.begin() + i1, m_intro_strings.begin() + i2);
+		break;
+	case Type::END_CREDITS:
+		assert(i1 < m_ending_strings.size() && i2 < m_ending_strings.size());
+		std::iter_swap(m_ending_strings.begin() + i1, m_ending_strings.begin() + i2);
+		break;
+	case Type::SYSTEM:
+		assert(i1 < m_system_strings.size() && i2 < m_system_strings.size());
+		std::iter_swap(m_system_strings.begin() + i1, m_system_strings.begin() + i2);
+		break;
+	case Type::DEFAULT_NAME:
+	default:
+		break;
+	}
 }
 
 bool StringData::HasStringChanged(Type type, std::size_t index) const

@@ -457,12 +457,17 @@ bool AssemblyBuilderDialog::DoBuild()
 
     wxExecuteEnv env;
     env.cwd = m_dir;
+    auto old_cwd = wxGetCwd();
+    wxSetWorkingDirectory(m_dir);
+
     if (wxExecute(cmd, wxEXEC_ASYNC, process, &env) < 1)
     {
         Log("Command execution failed.", *wxRED);
         Abandon();
+        wxSetWorkingDirectory(old_cwd);
         return false;
     }
+    wxSetWorkingDirectory(old_cwd);
     return true;
 }
 

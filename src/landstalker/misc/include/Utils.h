@@ -5,23 +5,25 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <locale>
 #include <cassert>
 #include <cstdint>
+#include <cwchar>
 #include <wjakob/filesystem/path.h>
 
 void Debug(const std::string& message);
 
 template<template<typename, typename, typename...> class C, typename T, typename U, typename... Rest>
-T FindMapKey(const C<T, U, Rest...>& map, const U& value)
+typename C<T, U, Rest...>::const_iterator FindMapKey(const C<T, U, Rest...>& map, const U& value)
 {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->second == value)
 		{
-			return it->first;
+			return it;
 		}
 	}
-	return T();
+	return map.end();
 }
 
 template< class T >
@@ -74,6 +76,15 @@ std::string StrPrintf(const std::string& fmt, Args... args)
 	std::vector<char> buf(reqd + 1);
 	std::snprintf(buf.data(), buf.size(), fmt.c_str(), args...);
 	return std::string(buf.data(), buf.data() + reqd);
+}
+
+template<typename... Args>
+std::wstring StrWPrintf(const std::wstring& fmt, Args... args)
+{
+	int reqd = std::swprintf(nullptr, 0, fmt.c_str(), args...);
+	std::vector<wchar_t> buf(reqd + 1);
+	std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...);
+	return std::wstring(reinterpret_cast<const wchar_t*>(buf.data()), reinterpret_cast<const wchar_t*>(buf.data()) + reqd);
 }
 
 std::vector<uint8_t> ReadBytes(const std::string& filename);
