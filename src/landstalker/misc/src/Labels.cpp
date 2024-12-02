@@ -4,6 +4,7 @@
 #include <cwctype>
 #include <codecvt>
 #include <fstream>
+#include <unordered_map>
 
 std::map<std::pair<std::wstring, int>, std::wstring> Labels::m_data;
 static const std::unordered_map<wchar_t, char> ESCAPES
