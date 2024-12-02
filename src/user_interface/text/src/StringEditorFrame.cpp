@@ -1,4 +1,5 @@
 #include <user_interface/text/include/StringEditorFrame.h>
+#include <wx/dataview.h>
 #include <codecvt>
 #include <locale>
 
@@ -31,7 +32,7 @@ static const std::string MODE_DESCRIPTORS[] =
 
 
 wxBEGIN_EVENT_TABLE(StringEditorFrame, EditorFrame)
-EVT_DATAVIEW_SELECTION_CHANGED(wxID_ANY, OnSelectionChange)
+EVT_DATAVIEW_SELECTION_CHANGED(wxID_ANY, StringEditorFrame::OnSelectionChange)
 wxEND_EVENT_TABLE()
 
 StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -184,7 +185,7 @@ void StringEditorFrame::OnInsert()
 {
     if (m_stringView->HasSelection())
     {
-        m_model->AddRow(PtrToUint(m_stringView->GetSelection().GetID()) - 1);
+        m_model->AddRow(reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1);
     }
     else
     {
@@ -197,15 +198,15 @@ void StringEditorFrame::OnDelete()
 {
     if (m_stringView->HasSelection())
     {
-        std::size_t sel = PtrToUint(m_stringView->GetSelection().GetID()) - 1;
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
         m_model->DeleteRow(sel);
         if (m_model->GetRowCount() > sel)
         {
-            m_stringView->Select(wxDataViewItem(UintToPtr(sel + 1)));
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
         }
         else if (m_model->GetRowCount() != 0)
         {
-            m_stringView->Select(wxDataViewItem(UintToPtr(m_model->GetRowCount())));
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
         }
     }
     UpdateUI();
@@ -215,11 +216,11 @@ void StringEditorFrame::OnMoveUp()
 {
     if (m_stringView->HasSelection() && m_model->GetRowCount() >= 2)
     {
-        std::size_t sel = PtrToUint(m_stringView->GetSelection().GetID()) - 1;
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
         if (sel > 0)
         {
             m_model->SwapRows(sel - 1, sel);
-            m_stringView->Select(wxDataViewItem(UintToPtr(sel)));
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
         }
     }
     UpdateUI();
@@ -229,11 +230,11 @@ void StringEditorFrame::OnMoveDown()
 {
     if (m_stringView->HasSelection() && m_model->GetRowCount() >= 2)
     {
-        std::size_t sel = PtrToUint(m_stringView->GetSelection().GetID()) - 1;
+        std::size_t sel = reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) - 1;
         if (sel < m_model->GetRowCount() - 1)
         {
             m_model->SwapRows(sel, sel + 1);
-            m_stringView->Select(wxDataViewItem(UintToPtr(sel + 2)));
+            m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
         }
     }
     UpdateUI();
@@ -246,12 +247,12 @@ bool StringEditorFrame::IsAddRemoveAllowed() const
 
 bool StringEditorFrame::IsSelTop() const
 {
-    return PtrToUint(m_stringView->GetSelection().GetID()) < 2;
+    return reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) < 2;
 }
 
 bool StringEditorFrame::IsSelBottom() const
 {
-    return PtrToUint(m_stringView->GetSelection().GetID()) >= m_model->GetRowCount();
+    return reinterpret_cast<std::intptr_t>(m_stringView->GetSelection().GetID()) >= static_cast<intptr_t>(m_model->GetRowCount());
 }
 
 void StringEditorFrame::SetGameData(std::shared_ptr<GameData> gd)

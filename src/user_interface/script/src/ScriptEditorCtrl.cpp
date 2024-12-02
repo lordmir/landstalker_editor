@@ -57,7 +57,7 @@ void ScriptEditorCtrl::InsertRow()
 {
 	if (IsRowSelected())
 	{
-		m_model->AddRow(PtrToUint(m_dvc_ctrl->GetSelection().GetID()) - 1);
+		m_model->AddRow(reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1);
 	}
 	else
 	{
@@ -70,15 +70,15 @@ void ScriptEditorCtrl::DeleteRow()
 {
 	if (IsRowSelected())
 	{
-		std::size_t sel = PtrToUint(m_dvc_ctrl->GetSelection().GetID()) - 1;
+		std::size_t sel = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
 		m_model->DeleteRow(sel);
 		if (m_model->GetRowCount() > sel)
 		{
-			m_dvc_ctrl->Select(wxDataViewItem(UintToPtr(sel + 1)));
+			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
 		}
 		else if (m_model->GetRowCount() != 0)
 		{
-			m_dvc_ctrl->Select(wxDataViewItem(UintToPtr(m_model->GetRowCount())));
+			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
 		}
 	}
 	UpdateUI();
@@ -88,11 +88,11 @@ void ScriptEditorCtrl::MoveRowUp()
 {
 	if (IsRowSelected() && m_model->GetRowCount() >= 2)
 	{
-		std::size_t sel = PtrToUint(m_dvc_ctrl->GetSelection().GetID()) - 1;
+		std::size_t sel = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
 		if (sel > 0)
 		{
 			m_model->SwapRows(sel - 1, sel);
-			m_dvc_ctrl->Select(wxDataViewItem(UintToPtr(sel)));
+			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
 		}
 	}
 	UpdateUI();
@@ -102,11 +102,11 @@ void ScriptEditorCtrl::MoveRowDown()
 {
 	if (IsRowSelected() && m_model->GetRowCount() >= 2)
 	{
-		std::size_t sel = PtrToUint(m_dvc_ctrl->GetSelection().GetID()) - 1;
+		std::size_t sel = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
 		if (sel < m_model->GetRowCount() - 1)
 		{
 			m_model->SwapRows(sel, sel + 1);
-			m_dvc_ctrl->Select(wxDataViewItem(UintToPtr(sel + 2)));
+			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
 		}
 	}
 	UpdateUI();
@@ -119,12 +119,12 @@ bool ScriptEditorCtrl::IsRowSelected() const
 
 bool ScriptEditorCtrl::IsSelTop() const
 {
-	return PtrToUint(m_dvc_ctrl->GetSelection().GetID()) < 2;
+	return reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) < 2;
 }
 
 bool ScriptEditorCtrl::IsSelBottom() const
 {
-	return PtrToUint(m_dvc_ctrl->GetSelection().GetID()) >= m_model->GetRowCount();
+	return reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) >= static_cast<intptr_t>(m_model->GetRowCount());
 }
 
 void ScriptEditorCtrl::UpdateUI()
