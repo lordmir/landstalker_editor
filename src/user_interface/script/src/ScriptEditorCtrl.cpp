@@ -2,7 +2,7 @@
 #include <user_interface/script/include/ScriptEditorFrame.h>
 
 wxBEGIN_EVENT_TABLE(ScriptEditorCtrl, wxPanel)
-EVT_DATAVIEW_SELECTION_CHANGED(wxID_ANY, OnSelectionChange)
+EVT_DATAVIEW_SELECTION_CHANGED(wxID_ANY, ScriptEditorCtrl::OnSelectionChange)
 wxEND_EVENT_TABLE()
 
 ScriptEditorCtrl::ScriptEditorCtrl(wxWindow* parent)
