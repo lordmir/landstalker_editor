@@ -515,7 +515,7 @@ void RoomViewerCtrl::RefreshStatusbar()
 {
     auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
     std::ostringstream ss;
-    std::string txt;
+    std::wstring txt;
     ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
         << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
         << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
@@ -528,7 +528,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         auto& entity = GetSelectedEntity();
         int idx = GetSelectedEntityIndex();
-        txt = StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+        txt = StrWPrintf(L"Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
             idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str());
         FireUpdateStatusEvent(txt, 1);
     }
@@ -538,31 +538,31 @@ void RoomViewerCtrl::RefreshStatusbar()
         int idx = GetSelectedWarpIndex();
         if (warp.room1 == 65535 || warp.room2 == 65535)
         {
-            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
-                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
-                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
-                        (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))));
+                (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? L"SSE" :
+                        (warp.type == WarpList::Warp::Type::STAIR_SW ? L"SSW" : L"UNK"))));
         }
         else
         {
-            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
-                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
-                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
-                        (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))),
+                (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? L"SSE" :
+                        (warp.type == WarpList::Warp::Type::STAIR_SW ? L"SSW" : L"UNK"))),
                 m_roomnum == warp.room1 ? warp.room2 : warp.room1,
-                m_g ? m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->name.c_str() : "?");
+                m_g ? Labels::FromAsmFriendly(m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->name)->c_str() : L"?");
         }
     }
     else if (IsTileSwapSelected())
     {
         const TileSwap& swap = GetSelectedTileSwap();
         int idx = GetSelectedTileSwapIndex();
-        txt = StrPrintf("Selected Tile Swap %d %s HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
-            idx, swap.mode == TileSwap::Mode::FLOOR ? "Floor" : swap.mode == TileSwap::Mode::WALL_NE ? "NE Wall" : swap.mode == TileSwap::Mode::WALL_NW ? "NW Wall" : "?",
+        txt = StrWPrintf(L"Selected Tile Swap %d %s HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
+            idx, swap.mode == TileSwap::Mode::FLOOR ? L"Floor" : swap.mode == TileSwap::Mode::WALL_NE ? L"NE Wall" : swap.mode == TileSwap::Mode::WALL_NW ? L"NW Wall" : L"?",
             swap.heightmap.src_x, swap.heightmap.src_y, swap.heightmap.dst_x, swap.heightmap.dst_y, swap.heightmap.width, swap.heightmap.height,
             swap.map.src_x, swap.map.src_y, swap.map.dst_x, swap.map.dst_y, swap.map.width, swap.map.height);
     }
@@ -570,7 +570,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         const Door& door = GetSelectedDoor();
         int idx = GetSelectedDoorIndex();
-        txt = StrPrintf("Selected Door %d (%02d,%02d) (%02dx%02d)",
+        txt = StrWPrintf(L"Selected Door %d (%02d,%02d) (%02dx%02d)",
                         idx, door.x, door.y, door.SIZE_NAMES.count(door.size) ? door.SIZE_NAMES.at(door.size).c_str() : "?");
     }
     FireUpdateStatusEvent(txt, 1);
@@ -1647,11 +1647,11 @@ bool RoomViewerCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int
 
 void RoomViewerCtrl::GoToRoom(uint16_t room)
 {
-    const auto& name = m_g->GetRoomData()->GetRoom(room)->name;
+    const auto& name = *Labels::FromAsmFriendly(m_g->GetRoomData()->GetRoom(room)->name);
     FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
 }
 
-void RoomViewerCtrl::FireUpdateStatusEvent(const std::string& data, int pane)
+void RoomViewerCtrl::FireUpdateStatusEvent(const wxString& data, int pane)
 {
     wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
     evt.SetString(data);
@@ -1669,7 +1669,7 @@ void RoomViewerCtrl::FireEvent(const wxEventType& e, long userdata)
     wxPostEvent(m_frame, evt);
 }
 
-void RoomViewerCtrl::FireEvent(const wxEventType& e, const std::string& userdata)
+void RoomViewerCtrl::FireEvent(const wxEventType& e, const wxString& userdata)
 {
     wxCommandEvent evt(e);
     evt.SetString(userdata);

@@ -151,7 +151,7 @@ private:
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireEvent(const wxEventType& e, int userdata);
 	void FireEventLong(const wxEventType& e, long userdata);
-	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e, const wxString& userdata);
 	void FireEvent(const wxEventType& e);
 
 	void OnDraw(wxDC& dc);

@@ -1039,7 +1039,7 @@ TreeWarpFlag RoomData::GetTreeWarp(uint16_t room) const
 
 void RoomData::SetTreeWarp(const TreeWarpFlag& flags)
 {
-    auto new_flags = flags;
+    TreeWarpFlag new_flags = flags;
     if (flags.room2 < flags.room1)
     {
         new_flags = { flags.room2, flags.room1, flags.flag };
@@ -1320,7 +1320,7 @@ bool RoomData::AsmLoadRoomTable()
         uint16_t index = 0;
         while (file.IsGood())
         {
-            std::string name = StrPrintf("Room%03d", index);
+            std::string name = *Labels::ToAsmFriendly("Room", * Labels::Get(L"rooms", index));
             if (file.IsLabel())
             {
                 AsmFile::Label l;
@@ -1714,7 +1714,7 @@ bool RoomData::RomLoadRoomData(const Rom& rom)
             map_addr = rom.read<uint32_t>(addr);
             table_end_addr = std::min(map_addr, table_end_addr);
             map_list.insert(map_addr);
-            std::string name = StrPrintf("Room%03d", index);
+            std::string name = *Labels::ToAsmFriendly("Room", Labels::Get(L"rooms", index).value_or(StrWPrintf(L"Room%03d", index)));
             auto room = std::make_shared<Room>(name, Hex(map_addr), index++, rom.read_array<uint8_t>(addr + 4, 4));
             m_roomlist.push_back(room);
             m_roomlist_by_name.insert({ name, room });

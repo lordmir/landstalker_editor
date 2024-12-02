@@ -614,7 +614,7 @@ wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned
 	case 0:
 		for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
 		{
-			choices.Add(m_gd->GetRoomData()->GetRoom(i)->name);
+			choices.Add(*Labels::FromAsmFriendly(m_gd->GetRoomData()->GetRoom(i)->name));
 		}
 		break;
 	default:

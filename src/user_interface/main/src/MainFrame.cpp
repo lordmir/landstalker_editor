@@ -408,7 +408,6 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
-            SaveLabelsFile(path);
             AssemblyBuilderDialog bdlg(this, path, m_g);
             bdlg.ShowModal();
             if (bdlg.DidOperationSucceed())
@@ -426,6 +425,7 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
                     m_built_rom = romfile.GetFullPath();
                     m_mnu_run_emu->Enable(true);
                 }
+                SaveLabelsFile(path);
             }
         }
         return ReturnCode::OK;

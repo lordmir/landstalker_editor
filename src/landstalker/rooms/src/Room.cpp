@@ -68,10 +68,5 @@ uint8_t Room::GetBlocksetId() const
 
 std::wstring Room::GetDisplayName()
 {
-    std::wstring displayName = *Labels::FromAsmFriendly(name);
-    if (auto label = Labels::Get(L"rooms", index)) {
-        displayName = *label;
-    }
-
-    return displayName;
+    return *Labels::FromAsmFriendly(name);
 }

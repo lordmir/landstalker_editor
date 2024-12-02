@@ -9,7 +9,6 @@
 std::map<std::pair<std::wstring, int>, std::wstring> Labels::m_data;
 static const std::unordered_map<wchar_t, char> ESCAPES
 {
-    {L' ', '_'}, {L'/', '@'}
 };
 
 void Labels::InitDefaults()
@@ -80,7 +79,7 @@ std::optional<std::wstring> Labels::Get(const std::wstring& what, int id) {
 
 bool Labels::Update(const std::wstring& what, int id, const std::wstring& updated)
 {
-    if (!ToAsmFriendly(updated))
+    if (!ToAsmFriendly("X", updated))
     {
         Debug("Invalid characters in name");
         return false;
@@ -105,7 +104,7 @@ bool Labels::Update(const std::wstring& what, int id, const std::wstring& update
     return true;
 }
 
-std::optional<std::string> Labels::ToAsmFriendly(const std::wstring& what)
+std::optional<std::string> Labels::ToAsmFriendly(const std::string& prefix, const std::wstring& what)
 {
     std::string output;
     for (const wchar_t chr : what)
@@ -120,21 +119,21 @@ std::optional<std::string> Labels::ToAsmFriendly(const std::wstring& what)
         }
         else if (std::iswprint(chr))
         {
-            output += StrPrintf("$%02X$", static_cast<unsigned int>(chr));
+            output += StrPrintf("_%02X_", static_cast<unsigned int>(chr));
         }
         else
         {
             return std::nullopt;
         }
     }
-    return output;
+    return prefix + "_" + output;
 }
 
 std::optional<std::wstring> Labels::FromAsmFriendly(const std::string& what)
 {
     std::wstring output;
     std::string hex;
-    std::size_t i = 0;
+    std::size_t i = what.find('_') + 1;
     while (i < what.size())
     {
         auto escape = FindMapKey(ESCAPES, what.at(i));
@@ -149,9 +148,9 @@ std::optional<std::wstring> Labels::FromAsmFriendly(const std::string& what)
             output += chr;
             ++i;
         }
-        else if (chr == L'$')
+        else if (chr == L'_')
         {
-            std::size_t end = what.find('$', i + 1);
+            std::size_t end = what.find('_', i + 1);
             if (end == std::string::npos || end <= i + 2)
             {
                 return std::nullopt;

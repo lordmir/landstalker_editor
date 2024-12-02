@@ -167,9 +167,9 @@ private:
 
 	void InitialiseBrushesAndPens();
 
-	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
+	void FireUpdateStatusEvent(const wxString& data, int pane = 0);
 	void FireEvent(const wxEventType& e, long userdata);
-	void FireEvent(const wxEventType& e, const std::string& userdata);
+	void FireEvent(const wxEventType& e, const wxString& userdata);
 	void FireEvent(const wxEventType& e);
 
 	void OnDraw(wxDC& dc);
