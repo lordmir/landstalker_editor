@@ -26,6 +26,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["bscript"] = wxBITMAP_PNG_FROM_DATA(bscript_16x16);
 		m_images["big_tiles"] = wxBITMAP_PNG_FROM_DATA(bigtiles_16x16);
 		m_images["chest16"] = wxBITMAP_PNG_FROM_DATA(chest16_16x16);
+		m_images["closed_folder"] = wxBITMAP_PNG_FROM_DATA(closed_folder_16x16);
 		m_images["compress"] = wxBITMAP_PNG_FROM_DATA(compress_16x16);
 		m_images["copy"] = wxBITMAP_PNG_FROM_DATA(COPY_16x16);
 		m_images["cut"] = wxBITMAP_PNG_FROM_DATA(CUT_16x16);
@@ -88,6 +89,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["mouse"] = wxBITMAP_PNG_FROM_DATA(mouse_16x16);
 		m_images["new"] = wxBITMAP_PNG_FROM_DATA(NEW_16x16);
 		m_images["nigel"] = wxBITMAP_PNG_FROM_DATA(nigel_16x16);
+		m_images["open_folder"] = wxBITMAP_PNG_FROM_DATA(open_folder_16x16);
 		m_images["palette"] = wxBITMAP_PNG_FROM_DATA(pal_16x16);
 		m_images["paste"] = wxBITMAP_PNG_FROM_DATA(PASTE_16x16);
 		m_images["pencil"] = wxBITMAP_PNG_FROM_DATA(pencil_16x16);

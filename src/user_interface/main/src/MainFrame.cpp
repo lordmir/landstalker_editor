@@ -9,6 +9,7 @@
 #include <locale>
 #include <algorithm>
 #include <filesystem>
+#include <stack>
 
 #include <wx/wx.h>
 #include <wx/filename.h>
@@ -75,6 +76,9 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
+    this->Connect(EVT_RENAME_NAV_ITEM, wxCommandEventHandler(MainFrame::OnRenameNavItem), nullptr, this);
+    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
+    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -189,6 +193,7 @@ void MainFrame::InitUI()
     const int ent_img = m_imgs->GetIdx("entity");
     const int scr_img = m_imgs->GetIdx("script");
     const int bscr_img = m_imgs->GetIdx("bscript");
+
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
@@ -267,7 +272,8 @@ void MainFrame::InitUI()
             continue;
         }
         const auto& ent_name = Labels::Get(L"entities", i).value_or(L"Entity" + std::to_wstring(i));
-        m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
+        InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
+        //m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
     }
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
@@ -345,8 +351,7 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        m_browser->AppendItem(nodeRm, room->GetDisplayName(), rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
-            (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
+        InsertNavItem(L"Rooms/" + room->GetDisplayName(), rm_img, TreeNodeData::Node::ROOM, room->index, false);
     }
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
@@ -583,16 +588,42 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 
 void MainFrame::OnGoToNavItem(wxCommandEvent& event)
 {
-    GoToNavItem(std::string(event.GetString()));
+    GoToNavItem(std::wstring(event.GetString()));
 }
 
-void MainFrame::GoToNavItem(const std::string& path)
+void MainFrame::OnRenameNavItem(wxCommandEvent& event)
 {
-    std::istringstream ss(path);
+    wxEvtHandler const* const event_object{ static_cast<wxEvtHandler*>(event.GetEventObject()) };
+    if (event_object == nullptr)
+    {
+        return;
+    }
+
+    wxString const* const renamed{ reinterpret_cast<wxString const*>(event_object->GetClientObject()) };
+    if (renamed == nullptr) {
+        return;
+    }
+    
+    RenameNavItem(event.GetString().ToStdWstring(), renamed->ToStdWstring());
+}
+
+void MainFrame::OnDeleteNavItem(wxCommandEvent& event)
+{
+    DeleteNavItem(event.GetString().ToStdWstring());
+}
+
+void MainFrame::OnAddNavItem(wxCommandEvent& event)
+{
+    AddNavItem(event.GetString().ToStdWstring(), event.GetInt(), static_cast<TreeNodeData::Node>(event.GetExtraLong()), event.GetSelection());
+}
+
+std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
+{
+    std::wistringstream ss(path);
     wxTreeItemIdValue cookie;
-    std::string name;
+    std::wstring name;
     auto c = m_browser->GetRootItem();
-    while (std::getline(ss, name, '/'))
+    while (std::getline(ss, name, L'/'))
     {
         c = m_browser->GetFirstChild(c, cookie);
         while (c.IsOk() == true)
@@ -607,8 +638,159 @@ void MainFrame::GoToNavItem(const std::string& path)
     }
     if (ss.eof() && c.IsOk())
     {
-        m_browser->SelectItem(c);
-        ProcessSelectedBrowserItem(c);
+        return c;
+    }
+    return std::nullopt;
+}
+
+std::optional<wxTreeItemId> MainFrame::InsertNavItem(const std::wstring& path, int img, const TreeNodeData::Node& type, int value, bool no_delete)
+{
+    static const int CLOSED_FOLDER_ICON = m_imgs->GetIdx("closed_folder");
+    static const int OPEN_FOLDER_ICON = m_imgs->GetIdx("open_folder");
+
+    std::wistringstream ss(path);
+    wxTreeItemIdValue cookie;
+    std::wstring name;
+    auto parent = m_browser->GetRootItem();
+    auto child = parent;
+    if (FindNavItem(path))
+    {
+        // Already exists
+        return FindNavItem(path);
+    }
+    while (std::getline(ss, name, L'/'))
+    {
+        child = m_browser->GetFirstChild(parent, cookie);
+        while (child.IsOk() == true)
+        {
+            auto label = m_browser->GetItemText(child);
+            if (label == name)
+            {
+                parent = child;
+                break;
+            }
+            child = m_browser->GetNextSibling(child);
+        }
+        if (parent.IsOk() && !child.IsOk())
+        {
+            // Child not found, create one
+            if (ss.eof())
+            {
+                // Final Node
+                child = m_browser->AppendItem(parent, name, img, img, new TreeNodeData(type, value, img, no_delete));
+            }
+            else
+            {
+                // Subdirectory
+                child = m_browser->AppendItem(parent, name, CLOSED_FOLDER_ICON, CLOSED_FOLDER_ICON,
+                    new TreeNodeData(TreeNodeData::Node::BASE, value, CLOSED_FOLDER_ICON, no_delete));
+                m_browser->SetItemImage(child, OPEN_FOLDER_ICON, wxTreeItemIcon_Expanded);
+                m_browser->SetItemImage(child, OPEN_FOLDER_ICON, wxTreeItemIcon_SelectedExpanded);
+            }
+            parent = child;
+        }
+    }
+    if (ss.eof() && child.IsOk())
+    {
+        return child;
+    }
+    return std::nullopt;
+}
+
+bool MainFrame::RemoveNavItem(const std::wstring& path)
+{
+    std::stack<wxTreeItemId> path_elems;
+    std::wistringstream ss(path);
+    wxTreeItemIdValue cookie;
+    std::wstring name;
+    auto parent = m_browser->GetRootItem();
+    auto child = parent;
+    while (std::getline(ss, name, L'/'))
+    {
+        child = m_browser->GetFirstChild(parent, cookie);
+        while (child.IsOk() == true)
+        {
+            auto label = m_browser->GetItemText(child);
+            if (label == name)
+            {
+                parent = child;
+                path_elems.push(child);
+                break;
+            }
+            child = m_browser->GetNextSibling(child);
+        }
+        if (!child.IsOk())
+        {
+            // Path not found
+            return false;
+        }
+    }
+    while (!path_elems.empty() && m_browser->GetChildrenCount(path_elems.top()) == 0)
+    {
+        TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(path_elems.top()));
+        if (node_data->DoNotDelete() == true)
+        {
+            break;
+        }
+        m_browser->Delete(path_elems.top());
+        path_elems.pop();
+    }
+    return true;
+}
+
+bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& new_path)
+{
+    auto item = FindNavItem(old_path);
+    if (!item)
+    {
+        return false;
+    }
+    TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*item));
+    if (!node_data)
+    {
+        return false;
+    }
+    auto new_item = InsertNavItem(new_path, node_data->GetNodeImage(), node_data->GetNodeType(), node_data->GetValue(), node_data->DoNotDelete());
+    if (!new_item)
+    {
+        return false;
+    }
+    if (!RemoveNavItem(old_path))
+    {
+        RemoveNavItem(new_path);
+        return false;
+    }
+    m_browser->SelectItem(*new_item);
+    return true;
+}
+
+bool MainFrame::AddNavItem(const std::wstring& path, int image, const MainFrame::TreeNodeData::Node& type, int value, bool no_delete)
+{
+    auto item = InsertNavItem(path, image, type, value, no_delete);
+    if (item)
+    {
+        m_browser->SelectItem(*item);
+        ProcessSelectedBrowserItem(*item);
+    }
+    return true;
+}
+
+bool MainFrame::DeleteNavItem(const std::wstring& path)
+{
+    if (*FindNavItem(path) == m_browser->GetSelection())
+    {
+        m_browser->SelectItem(m_browser->GetNextVisible(m_browser->GetSelection()));
+    }
+    return RemoveNavItem(path);
+}
+
+void MainFrame::GoToNavItem(const std::wstring& path)
+{
+    auto item = FindNavItem(path);
+    if (item)
+    {
+        m_browser->SelectItem(*item);
+        ProcessSelectedBrowserItem(*item);
     }
 }
 
