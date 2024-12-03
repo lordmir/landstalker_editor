@@ -141,15 +141,15 @@ void TileSwapControlFrame::UpdateOtherControls()
 	m_swap_btn->SetValue(m_swap_btn->GetId() == static_cast<int>(m_selected));
 }
 
-std::string TileSwapControlFrame::MakeLabel(int index) const
+std::wstring TileSwapControlFrame::MakeLabel(int index) const
 {
 	if (index >= static_cast<int>(m_swaps.size()))
 	{
-		return "<Invalid>";
+		return L"<Invalid>";
 	}
 	if (!m_swaps[index].active)
 	{
-		return StrPrintf("%02d: <Inactive>", index + 1);
+		return StrWPrintf(L"%02d: <Inactive>", index + 1);
 	}
 	if (m_selected == ID::TILESWAP)
 	{
@@ -165,7 +165,7 @@ std::string TileSwapControlFrame::MakeLabel(int index) const
 					offsety = map->GetData()->GetTop();
 				}
 			}
-			return StrPrintf("%02d: M%01d (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
+			return StrWPrintf(L"%02d: M%01d (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
 				static_cast<int>(m_swaps[index].mode),
 				m_swaps[index].map.src_x - offsetx, m_swaps[index].map.src_y - offsety,
 				m_swaps[index].map.dst_x - offsetx, m_swaps[index].map.dst_y - offsety,
@@ -173,7 +173,7 @@ std::string TileSwapControlFrame::MakeLabel(int index) const
 		}
 		else
 		{
-			return StrPrintf("%02d: H (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
+			return StrWPrintf(L"%02d: H (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
 				m_swaps[index].heightmap.src_x, m_swaps[index].heightmap.src_y,
 				m_swaps[index].heightmap.dst_x, m_swaps[index].heightmap.dst_y,
 				m_swaps[index].heightmap.width, m_swaps[index].heightmap.height);
@@ -181,8 +181,9 @@ std::string TileSwapControlFrame::MakeLabel(int index) const
 	}
 	else
 	{
-		return StrPrintf("%02d: (%02d, %02d) %s", index + 1, m_doors[index].x, m_doors[index].y,
-			Door::SIZE_NAMES.at(m_doors[index].size).c_str());
+		const auto& door_sz_name = Door::SIZE_NAMES.at(m_doors[index].size);
+		return StrWPrintf(L"%02d: (%02d, %02d) %s", index + 1, m_doors[index].x, m_doors[index].y,
+			std::wstring(door_sz_name.cbegin(), door_sz_name.cend()).c_str());
 	}
 }
 

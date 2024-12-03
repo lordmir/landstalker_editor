@@ -1766,7 +1766,7 @@ bool HeightmapEditorCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x
 
 void HeightmapEditorCtrl::GoToRoom(uint16_t room)
 {
-    const auto& name = *Labels::FromAsmFriendly(m_g->GetRoomData()->GetRoom(room)->name);
+    const auto& name = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
     FireEvent(EVT_GO_TO_NAV_ITEM, wxString("Rooms/") + name);
 }
 

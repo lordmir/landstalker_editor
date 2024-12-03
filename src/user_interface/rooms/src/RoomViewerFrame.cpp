@@ -317,7 +317,7 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 {
 	if (m_g != nullptr)
 	{
-		m_nb->SetPageText(0, *Labels::FromAsmFriendly(m_g->GetRoomData()->GetRoom(roomnum)->name));
+		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->GetDisplayName());
 		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_nb->SetPageText(2, wxString("Background: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_nb->SetPageText(3, wxString("Foreground: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
@@ -786,7 +786,8 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", *Labels::FromAsmFriendly(rd->name)));
+		props.Append(new wxStringProperty("Name", "Name", rd->GetDisplayName()));
+		props.Append(new wxStringProperty("Label", "Label", rd->name))->Enable(false);
 		props.Append(new wxIntProperty("Room Number", "RN", rd->index))->Enable(false);
 		props.Append(new wxEnumProperty("Tileset", "TS", m_tilesets));
 		props.Append(new wxEnumProperty("Room Palette", "RP", m_palettes))->SetChoiceSelection(rd->room_palette);
@@ -882,7 +883,7 @@ void RoomViewerFrame::RefreshLists() const
 	m_rooms.Add("<NONE>");
 	for (const auto& room : m_g->GetRoomData()->GetRoomlist())
 	{
-		m_rooms.Add(_(*Labels::FromAsmFriendly(room->name)));
+		m_rooms.Add(_(room->GetDisplayName()));
 	}
 	m_menustrings.Clear();
 	m_menustrings.Add("<NONE>");
@@ -922,7 +923,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
-		props.GetGrid()->SetPropertyValue("Name", _(*Labels::FromAsmFriendly(rd->name)));
+		props.GetGrid()->SetPropertyValue("Name", _(rd->GetDisplayName()));
+		props.GetGrid()->SetPropertyValue("Label", _(rd->name));
 		props.GetGrid()->SetPropertyValue("RN", rd->index);
 		props.GetGrid()->GetProperty("TS")->SetChoiceSelection(rd->tileset);
 		props.GetGrid()->GetProperty("RP")->SetChoiceSelection(rd->room_palette);

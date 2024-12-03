@@ -20,8 +20,13 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 	// Room Properties
 	auto name_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 	name_property->AddAttribute("name", "RoomName");
-	name_property->AddAttribute("value", *Labels::FromAsmFriendly(room->name));
+	name_property->AddAttribute("value", room->GetDisplayName());
 	properties->AddChild(name_property);
+
+	auto label_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
+	name_property->AddAttribute("name", "RoomLabel");
+	name_property->AddAttribute("value", room->name);
+	properties->AddChild(label_property);
 
 	auto room_number_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 	room_number_property->AddAttribute("name", "RoomNumber");

@@ -64,9 +64,9 @@ void SubspriteControlFrame::OpenElement()
 {
 }
 
-std::string SubspriteControlFrame::MakeLabel(int index) const
+std::wstring SubspriteControlFrame::MakeLabel(int index) const
 {
-	return StrPrintf("%02d: (%02d, %02d) %01dx%01d @%02d", index + 1, m_subsprites[index].x,
+	return StrWPrintf(L"%02d: (%02d, %02d) %01dx%01d @%02d", index + 1, m_subsprites[index].x,
 		m_subsprites[index].y, m_subsprites[index].w, m_subsprites[index].h, m_subsprites[index].tile_idx);
 }
 

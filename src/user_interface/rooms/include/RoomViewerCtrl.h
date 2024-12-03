@@ -97,7 +97,7 @@ public:
 	std::string GetErrorText(int errnum) const;
 	const std::vector<std::string>& GetErrors() const;
 
-	const std::string& GetStatusText() const;
+	const std::wstring& GetStatusText() const;
 
 	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
@@ -156,7 +156,7 @@ private:
 	void DoDeleteEntity(int entity);
 	void DoMoveEntityUp(int entity);
 	void DoMoveEntityDown(int entity);
-	bool CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text);
+	bool CheckMousePosForLink(const std::pair<int, int>& xy, std::wstring& status_text);
 	bool UpdateSelection(int new_selection, Action action);
 
 	std::vector<TileSwap> GetPreviewSwaps();
@@ -249,7 +249,7 @@ private:
 	int m_selected;
 	int m_hovered;
 
-	std::string m_status_text;
+	std::wstring m_status_text;
 	std::vector<std::string> m_errors;
 
 	wxDECLARE_EVENT_TABLE();

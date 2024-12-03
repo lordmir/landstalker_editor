@@ -614,7 +614,7 @@ wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned
 	case 0:
 		for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
 		{
-			choices.Add(*Labels::FromAsmFriendly(m_gd->GetRoomData()->GetRoom(i)->name));
+			choices.Add(m_gd->GetRoomData()->GetRoom(i)->GetDisplayName());
 		}
 		break;
 	default:
@@ -778,7 +778,7 @@ void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned in
 		}
 		if (count > row)
 		{
-			variant = StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
+			variant = StrWPrintf(L"[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
 				ent[idx].GetXDbl(), ent[idx].GetYDbl(), ent[idx].GetZDbl());
 		}
 		else

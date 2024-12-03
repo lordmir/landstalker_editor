@@ -31,10 +31,10 @@ protected:
 	virtual void MoveUp();
 	virtual void MoveDown();
 	virtual void OpenElement();
-	virtual std::string MakeLabel(int index) const;
+	virtual std::wstring MakeLabel(int index) const;
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 private:
-	std::vector<std::string> m_frames;
+	std::vector<wxString> m_frames;
 	std::shared_ptr<GameData> m_gd;
 
 	SpriteEditorFrame* m_sef;

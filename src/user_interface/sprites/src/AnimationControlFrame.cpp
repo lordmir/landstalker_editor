@@ -22,7 +22,8 @@ void AnimationControlFrame::SetSprite(uint8_t sprite_id)
 	m_anims.clear();
 	if (m_gd)
 	{
-		m_anims = m_gd->GetSpriteData()->GetSpriteAnimations(sprite_id);
+		const auto& namelist = m_gd->GetSpriteData()->GetSpriteAnimations(sprite_id);
+		m_anims = std::vector<wxString>(namelist.cbegin(), namelist.cend());
 	}
 	UpdateUI();
 }
@@ -76,9 +77,9 @@ void AnimationControlFrame::OpenElement()
 {
 }
 
-std::string AnimationControlFrame::MakeLabel(int index) const
+std::wstring AnimationControlFrame::MakeLabel(int index) const
 {
-	return m_anims.at(index);
+	return m_anims.at(index).ToStdWstring();
 }
 
 bool AnimationControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)

@@ -25,7 +25,7 @@ protected:
 	virtual void UpdateOtherControls() {}
 	void FireEvent(const wxEventType& e);
 	void UpdateUI();
-	virtual std::string MakeLabel(int index) const = 0;
+	virtual std::wstring MakeLabel(int index) const = 0;
 
 	wxBoxSizer* m_buttons_boxsizer;
 	wxListBox* m_ctrl_list;
