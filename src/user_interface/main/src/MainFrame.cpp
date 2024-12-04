@@ -32,6 +32,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	  m_activeEditor(nullptr),
       m_g(nullptr)
 {
+    Freeze();
     m_imgs = new ImageList();
     m_imgs32 = new ImageList(true);
     wxGridSizer* sizer = new wxGridSizer(1);
@@ -59,6 +60,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_mnu_save->Enable(false);
     m_mnu_build_asm->Enable(false);
     m_mnu_run_emu->Enable(false);
+    Thaw();
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
@@ -172,6 +174,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
 
 void MainFrame::InitUI()
 {
+    Freeze();
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
@@ -212,8 +215,8 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
-    wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
-    wxTreeItemId nodeEnt = m_browser->AppendItem(nodeRoot, "Entities", ent_img, ent_img, new TreeNodeData());
+    InsertNavItem(L"Rooms", rm_img);
+    InsertNavItem(L"Entities", ent_img);
     wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
 
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
@@ -365,7 +368,7 @@ void MainFrame::InitUI()
     {
         m_mnu_run_emu->Enable(true);
     }
-
+    Thaw();
 }
 
 void MainFrame::InitConfig()
@@ -525,7 +528,9 @@ void MainFrame::OnStatusBarClear(wxCommandEvent& event)
 void MainFrame::OnPropertiesInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->InitProperties(*this->m_properties);
+    Thaw();
 	event.Skip();
 }
 
@@ -534,7 +539,9 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
     if (frame && m_properties->GetGrid())
     {
+        Freeze();
         frame->UpdateProperties(*this->m_properties);
+        Thaw();
     }
 	event.Skip();
 }
@@ -542,7 +549,9 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 void MainFrame::OnPropertiesClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->ClearProperties(*this->m_properties);
+    Thaw();
 	event.Skip();
 }
 
@@ -558,14 +567,18 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->InitMenu(*this->m_menubar, *m_imgs);
+    Thaw();
 	event.Skip();
 }
 
 void MainFrame::OnMenuClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->ClearMenu(*this->m_menubar);
+    Thaw();
 	event.Skip();
 }
 
@@ -582,9 +595,11 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 {
 	if (m_activeEditor != nullptr)
 	{
+        Freeze();
 		auto* pane = event.GetPane();
 		pane->Hide();
 		m_activeEditor->UpdateUI();
+        Thaw();
 	}
 	event.Skip();
 }
@@ -708,7 +723,7 @@ void MainFrame::SortNavItems(const wxTreeItemId& parent)
             {
                 SortNavItems(child);
             }
-        } while (child = m_browser->GetNextChild(parent, cookie));
+        } while ((child = m_browser->GetNextChild(parent, cookie)));
     }
 }
 
@@ -823,6 +838,7 @@ void MainFrame::GoToNavItem(const std::wstring& path)
 
 void MainFrame::ShowEditor(EditorType editor)
 {
+    Freeze();
     if (!m_editors.at(editor)->IsShown())
     {
         m_activeEditor = m_editors.at(editor);
@@ -838,6 +854,7 @@ void MainFrame::ShowEditor(EditorType editor)
         this->m_mainwin->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
         this->m_mainwin->GetSizer()->Layout();
     }
+    Thaw();
 }
 
 void MainFrame::HideAllEditors()
@@ -867,6 +884,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
             }
         }
     }
+    Freeze();
     for (const auto& editor : m_editors)
     {
         editor.second->Hide();
@@ -890,6 +908,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_last_asm.clear();
     m_last_rom.clear();
     m_built_rom.clear();
+    Thaw();
     return ReturnCode::OK;
 }
 
