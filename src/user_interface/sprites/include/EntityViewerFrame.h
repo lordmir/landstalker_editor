@@ -24,6 +24,7 @@ private:
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	void FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name);
 
 	mutable wxPGChoices m_hi_palettes;
 	mutable wxPGChoices m_lo_palettes;

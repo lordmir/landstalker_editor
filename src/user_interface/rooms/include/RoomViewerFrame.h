@@ -147,6 +147,7 @@ private:
 	void OnTabChange(wxAuiNotebookEvent& evt);
 
 	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
+	void FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e, int userdata);

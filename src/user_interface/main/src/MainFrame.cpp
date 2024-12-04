@@ -273,7 +273,6 @@ void MainFrame::InitUI()
         }
         const auto& ent_name = Labels::Get(L"entities", i).value_or(L"Entity" + std::to_wstring(i));
         InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
-        //m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
     }
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
@@ -353,6 +352,9 @@ void MainFrame::InitUI()
     {
         InsertNavItem(L"Rooms/" + room->GetDisplayName(), rm_img, TreeNodeData::Node::ROOM, room->index, false);
     }
+
+    SortNavItems(m_browser->GetRootItem());
+
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
     if (m_asmfile)
@@ -363,6 +365,7 @@ void MainFrame::InitUI()
     {
         m_mnu_run_emu->Enable(true);
     }
+
 }
 
 void MainFrame::InitConfig()
@@ -593,18 +596,12 @@ void MainFrame::OnGoToNavItem(wxCommandEvent& event)
 
 void MainFrame::OnRenameNavItem(wxCommandEvent& event)
 {
-    wxEvtHandler const* const event_object{ static_cast<wxEvtHandler*>(event.GetEventObject()) };
-    if (event_object == nullptr)
-    {
-        return;
-    }
-
-    wxString const* const renamed{ reinterpret_cast<wxString const*>(event_object->GetClientObject()) };
-    if (renamed == nullptr) {
-        return;
-    }
+    std::wstring combined(event.GetString().ToStdWstring());
+    int pos = combined.find_first_of(L'\1');
+    std::wstring new_path(combined.substr(0, pos));
+    std::wstring old_path(combined.substr(pos + 1));
     
-    RenameNavItem(event.GetString().ToStdWstring(), renamed->ToStdWstring());
+    RenameNavItem(old_path, new_path);
 }
 
 void MainFrame::OnDeleteNavItem(wxCommandEvent& event)
@@ -697,6 +694,24 @@ std::optional<wxTreeItemId> MainFrame::InsertNavItem(const std::wstring& path, i
     return std::nullopt;
 }
 
+void MainFrame::SortNavItems(const wxTreeItemId& parent)
+{
+    if (m_browser->HasChildren(parent))
+    {
+        wxTreeItemIdValue cookie;
+        
+        m_browser->SortChildren(parent);
+        auto child = m_browser->GetFirstChild(parent, cookie);
+        do
+        {
+            if (m_browser->HasChildren(child))
+            {
+                SortNavItems(child);
+            }
+        } while (child = m_browser->GetNextChild(parent, cookie));
+    }
+}
+
 bool MainFrame::RemoveNavItem(const std::wstring& path)
 {
     std::stack<wxTreeItemId> path_elems;
@@ -740,17 +755,23 @@ bool MainFrame::RemoveNavItem(const std::wstring& path)
 
 bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& new_path)
 {
-    auto item = FindNavItem(old_path);
-    if (!item)
+    auto old_item = FindNavItem(old_path);
+    auto new_item = FindNavItem(new_path);
+    if (!old_item || new_item)
     {
         return false;
     }
-    TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*item));
+    if (GetNavItemParent(old_path) == GetNavItemParent(new_path))
+    {
+        m_browser->SetItemText(*old_item, new_path.substr(new_path.find_last_of(L"/") + 1));
+        return true;
+    }
+    TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*old_item));
     if (!node_data)
     {
         return false;
     }
-    auto new_item = InsertNavItem(new_path, node_data->GetNodeImage(), node_data->GetNodeType(), node_data->GetValue(), node_data->DoNotDelete());
+    new_item = InsertNavItem(new_path, node_data->GetNodeImage(), node_data->GetNodeType(), node_data->GetValue(), node_data->DoNotDelete());
     if (!new_item)
     {
         return false;
@@ -760,11 +781,12 @@ bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& 
         RemoveNavItem(new_path);
         return false;
     }
+    SortNavItems(m_browser->GetRootItem());
     m_browser->SelectItem(*new_item);
     return true;
 }
 
-bool MainFrame::AddNavItem(const std::wstring& path, int image, const MainFrame::TreeNodeData::Node& type, int value, bool no_delete)
+bool MainFrame::AddNavItem(const std::wstring& path, int image, const TreeNodeData::Node& type, int value, bool no_delete)
 {
     auto item = InsertNavItem(path, image, type, value, no_delete);
     if (item)
@@ -782,6 +804,11 @@ bool MainFrame::DeleteNavItem(const std::wstring& path)
         m_browser->SelectItem(m_browser->GetNextVisible(m_browser->GetSelection()));
     }
     return RemoveNavItem(path);
+}
+
+std::wstring MainFrame::GetNavItemParent(const std::wstring& path)
+{
+    return path.substr(0, path.find_last_of(L'/'));
 }
 
 void MainFrame::GoToNavItem(const std::wstring& path)

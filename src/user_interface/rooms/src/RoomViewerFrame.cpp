@@ -844,7 +844,7 @@ void RoomViewerFrame::RefreshLists() const
 	m_bgms.Clear();
 	for (int i = 0; i < 19; ++i)
 	{
-		m_bgms.Add(StrWPrintf(L"[%02X] ", i) + Labels::Get(L"bgms", i).value_or(StrWPrintf(L"Track %d", i)));
+		m_bgms.Add(Labels::Get(L"bgms", i).value_or(StrWPrintf(L"[%02X] Track %d", i, i)));
 	}
 
 	m_palettes.Clear();
@@ -1019,7 +1019,12 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
 	const wxString& name = property->GetName();
-	if (name == "TS")
+	if (name == "Name")
+	{
+		FireRenameNavItemEvent(property->GetValueAsString().ToStdWstring(), rd->GetDisplayName());
+		Labels::Update(L"rooms", m_roomnum, property->GetValueAsString().ToStdWstring());
+	}
+	else if (name == "TS")
 	{
 		if (property->GetChoiceSelection() != rd->tileset)
 		{
@@ -2574,6 +2579,14 @@ void RoomViewerFrame::FireUpdateStatusEvent(const std::string& data, int pane)
 	evt.SetString(data); 
 	evt.SetInt(pane);
 	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)
+{
+	wxCommandEvent evt(EVT_RENAME_NAV_ITEM);
+	std::wstring lbl(L"Rooms/" + old_name + L"\1Rooms/" + new_name);
+	evt.SetString(lbl);
 	wxPostEvent(this, evt);
 }
 

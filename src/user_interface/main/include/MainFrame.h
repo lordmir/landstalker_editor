@@ -36,37 +36,6 @@ class MainFrame : public MainFrameBaseClass
 public:
     MainFrame(wxWindow* parent, const std::string& filename);
     virtual ~MainFrame();
-
-    class TreeNodeData : public wxTreeItemData
-    {
-    public:
-        enum class Node {
-            BASE,
-            STRING,
-            IMAGE,
-            TILESET,
-            ANIM_TILESET,
-            BLOCKSET,
-            PALETTE,
-            ROOM,
-            SPRITE,
-            SPRITE_FRAME,
-            ENTITY,
-            BEHAVIOUR_SCRIPT,
-            SCRIPT
-        };
-        TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0, int img = -1, bool no_delete = true)
-            : m_nodeType(nodeType), m_value(value), m_img(img), m_no_delete(no_delete) {}
-        std::size_t GetValue() const { return m_value; }
-        Node GetNodeType() const { return m_nodeType; }
-        int GetNodeImage() const { return m_img; }
-        bool DoNotDelete() const { return m_no_delete; }
-    private:
-        const Node m_nodeType;
-        const std::size_t m_value;
-        const int m_img;
-        bool m_no_delete;
-    };
 protected:
     enum class ReturnCode
     {
@@ -135,11 +104,13 @@ private:
     void OnAddNavItem(wxCommandEvent& event);
     std::optional<wxTreeItemId> FindNavItem(const std::wstring& path);
     std::optional<wxTreeItemId> InsertNavItem(const std::wstring& path, int img = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
+    void SortNavItems(const wxTreeItemId& parent);
     bool RemoveNavItem(const std::wstring& path);
     void GoToNavItem(const std::wstring& path);
     bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);
     bool AddNavItem(const std::wstring& path, int image = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     bool DeleteNavItem(const std::wstring& path);
+    std::wstring GetNavItemParent(const std::wstring& path);
     void ShowEditor(EditorType editor);
     void HideAllEditors();
     ReturnCode CloseFiles(bool force = false);

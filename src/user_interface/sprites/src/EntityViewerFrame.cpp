@@ -76,7 +76,7 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id))))->Enable(false);
+		props.Append(new wxStringProperty("Name", "Name", Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id))));
 		props.Append(new wxIntProperty("ID", "ID", m_entity_id))->Enable(false);
 		props.Append(new wxEnumProperty("Sprite", "Sprite", m_sprites));
 		auto sprite_id = new wxIntProperty("Sprite ID", "Sprite ID", sprite_index);
@@ -243,7 +243,7 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		bool is_enemy = sd->IsEntityEnemy(m_entity_id);
 		auto enemy_stats = sd->GetEnemyStats(m_entity_id);
 
-		props.GetGrid()->SetPropertyValue("Name", Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id)).c_str());
+		props.GetGrid()->SetPropertyValue("Name", _(Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id))));
 		props.GetGrid()->SetPropertyValue("ID", m_entity_id);
 		props.GetGrid()->GetProperty("Sprite")->SetChoices(m_sprites);
 		props.GetGrid()->GetProperty("Sprite")->SetChoiceSelection(m_sprites.Index(sprite_index));
@@ -304,7 +304,12 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	auto sd = m_gd->GetSpriteData();
 	int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
 	const wxString& name = property->GetName();
-	if (name == "Sprite" || name == "Sprite ID")
+	if (name == "Name")
+	{
+		FireRenameNavItemEvent(property->GetValueAsString().ToStdWstring(), Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id)));
+		Labels::Update(L"entities", m_entity_id, property->GetValueAsString().ToStdWstring());
+	}
+	else if (name == "Sprite" || name == "Sprite ID")
 	{
 		int value = property->GetValuePlain().GetLong();
 		if (value != sprite_index)
@@ -455,4 +460,12 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		}
 	}
 	ctrl->GetGrid()->Thaw();
+}
+
+void EntityViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)
+{
+	wxCommandEvent evt(EVT_RENAME_NAV_ITEM);
+	std::wstring lbl(L"Entities/" + old_name + L"\1Entities/" + new_name);
+	evt.SetString(lbl);
+	wxPostEvent(this, evt);
 }
