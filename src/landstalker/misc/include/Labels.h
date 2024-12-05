@@ -14,9 +14,11 @@ public:
     static void LoadData(const std::string& filename);
     static void SaveData(const std::string& filename);
     static std::optional<std::wstring> Get(const std::wstring& what, int id);
-    static bool Update(const std::wstring& what, int id, const std::wstring& updated);
+    static bool IsValid(const std::wstring& what);
+    static bool Update(const std::wstring& category, int id, const std::wstring& updated);
 
 private:
+    static bool IsExistingValid(const std::wstring& what);
     static std::map<std::pair<std::wstring, int>, std::wstring> m_data;
 };
 

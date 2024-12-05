@@ -1021,8 +1021,17 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	const wxString& name = property->GetName();
 	if (name == "Name")
 	{
-		FireRenameNavItemEvent(property->GetValueAsString().ToStdWstring(), rd->GetDisplayName());
-		Labels::Update(L"rooms", m_roomnum, property->GetValueAsString().ToStdWstring());
+		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
+		if (Labels::IsValid(new_name))
+		{
+			FireRenameNavItemEvent(new_name, rd->GetDisplayName());
+			m_nb->SetPageText(0, new_name);
+			Labels::Update(L"rooms", m_roomnum, new_name);
+		}
+		else
+		{
+			property->SetValueFromString(rd->GetDisplayName());
+		}
 	}
 	else if (name == "TS")
 	{

@@ -306,8 +306,17 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	const wxString& name = property->GetName();
 	if (name == "Name")
 	{
-		FireRenameNavItemEvent(property->GetValueAsString().ToStdWstring(), Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id)));
-		Labels::Update(L"entities", m_entity_id, property->GetValueAsString().ToStdWstring());
+		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
+		const std::wstring old_name = Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id));
+		if (Labels::IsValid(new_name))
+		{
+			FireRenameNavItemEvent(new_name, old_name);
+			Labels::Update(L"entities", m_entity_id, new_name);
+		}
+		else
+		{
+			property->SetValueFromString(old_name);
+		}
 	}
 	else if (name == "Sprite" || name == "Sprite ID")
 	{

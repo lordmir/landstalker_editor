@@ -4,6 +4,7 @@
 #include <cwctype>
 #include <codecvt>
 #include <fstream>
+#include <functional>
 
 std::map<std::pair<std::wstring, int>, std::wstring> Labels::m_data;
 
@@ -64,10 +65,36 @@ void Labels::SaveData(const std::string& filename)
 
 std::optional<std::wstring> Labels::Get(const std::wstring& what, int id) {
     auto it = m_data.find({what, id});
-    if (it != m_data.end()) {
+    if (it != m_data.end() && IsExistingValid(it->second))
+    {
         return it->second;
     }
     return std::nullopt;
+}
+
+bool Labels::IsValid(const std::wstring& what)
+{
+    if (!IsExistingValid(what))
+    {
+        return false;
+    }
+    for(const auto& lbl : m_data)
+    {
+        if (lbl.second == what)
+        {
+            Debug("Duplicate label found");
+            return false;
+        }
+        if (lbl.second.length() > what.length() && lbl.second.rfind(what, 0) == 0)
+        {
+            if (lbl.second.at(what.length()) == L'/')
+            {
+                Debug("Label same name as subdirectory");
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 bool Labels::Update(const std::wstring& what, int id, const std::wstring& updated)
@@ -77,12 +104,45 @@ bool Labels::Update(const std::wstring& what, int id, const std::wstring& update
         // No update needed
         return true;
     }
-    auto it = FindMapKey(m_data, updated);
-    if (it != m_data.end())
+    if (!IsValid(updated))
     {
-        Debug("Duplicate label found");
         return false;
     }
     m_data[{what, id}] = updated;
+    return true;
+}
+
+bool Labels::IsExistingValid(const std::wstring& what)
+{
+    if (what.empty())
+    {
+        Debug("Empty string");
+        return false;
+    }
+    if (what.front() == L'/' || what.back() == L'/')
+    {
+        Debug("Invalid Path");
+        return false;
+    }
+    if (!std::all_of(what.cbegin(), what.cend(), std::iswprint))
+    {
+        Debug("Invalid characters");
+        return false;
+    }
+    std::wstring tmp;
+    std::wstringstream ss(what);
+    std::vector<std::wstring> elems;
+    while (std::getline(ss, tmp, L'/'))
+    {
+        elems.push_back(tmp);
+    }
+    for (const std::wstring& elem : elems)
+    {
+        if (elem.empty() || std::iswblank(elem.front()) || std::iswblank(elem.back()))
+        {
+            Debug("Invalid whitespace");
+            return false;
+        }
+    }
     return true;
 }
