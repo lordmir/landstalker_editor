@@ -9,6 +9,7 @@
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/main/include/RomLabels.h>
 #include <landstalker/misc/include/Literals.h>
+#include <landstalker/misc/include/Labels.h>
 
 std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
 {
@@ -483,6 +484,37 @@ void RoomData::RefreshPendingWrites(const Rom& rom)
     {
         throw std::runtime_error(std::string("Unable to prepare miscellaneous room data for ROM injection"));
     }
+}
+
+std::wstring RoomData::GetTilesetDisplayName(uint8_t index) const
+{
+    return Labels::Get(Labels::C_TILESETS, index).value_or(StrWPrintf(RomLabels::Tilesets::LABEL_FORMAT_STRING, index + 1));
+}
+
+std::wstring RoomData::GetAnimatedTilesetDisplayName(uint8_t tileset, uint8_t index) const
+{
+    return Labels::Get(Labels::C_ANIM_TILESETS, (tileset << 8) | index).value_or(StrWPrintf(RomLabels::Tilesets::ANIM_LABEL_FORMAT_STRING, tileset + 1, index));
+}
+
+std::wstring RoomData::GetRoomPaletteDisplayName(uint8_t index) const
+{
+    return Labels::Get(Labels::C_ROOM_PALETTES, index).value_or(StrWPrintf(RomLabels::Rooms::ROOM_PAL_NAME, index + 1));
+}
+
+std::wstring RoomData::GetBlocksetDisplayName(uint8_t tileset, uint8_t pri, uint8_t sec) const
+{
+    return Labels::Get(Labels::C_ANIM_TILESETS, (tileset << 16) | (pri << 8) | sec).value_or(StrWPrintf(RomLabels::Blocksets::BLOCKSET_LABEL, tileset + (pri << 5), sec));
+}
+
+std::wstring RoomData::GetRoomDisplayName(uint16_t room) const
+{
+    return m_roomlist.at(room)->GetDisplayName();
+}
+
+std::wstring RoomData::GetMapDisplayName(const std::string& map) const
+{
+    int index = std::distance(m_maps.cbegin(), m_maps.find(map));
+    return Labels::Get(Labels::C_MAPS, index).value_or(std::wstring(map.cbegin(), map.cend()));
 }
 
 std::vector<std::shared_ptr<TilesetEntry>> RoomData::GetTilesets() const

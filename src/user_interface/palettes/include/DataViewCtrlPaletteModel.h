@@ -15,7 +15,7 @@ public:
         PALETTE
     };
 
-    DataViewCtrlPaletteModel(const std::vector<std::shared_ptr<PaletteEntry>>& palettes);
+    DataViewCtrlPaletteModel(const std::vector<std::shared_ptr<PaletteEntry>>& palettes, const std::vector<std::wstring>& labels);
     virtual ~DataViewCtrlPaletteModel();
 
     virtual unsigned int GetColumnCount() const override { return 2; }
@@ -30,6 +30,7 @@ public:
 
 private:
     std::vector<std::shared_ptr<PaletteEntry>> m_palettes;
+    std::vector<std::wstring> m_labels;
 };
 
 #endif // _DATA_VIEW_CTRL_PALETTE_MODEL_H_

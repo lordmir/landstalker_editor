@@ -53,7 +53,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     wxArrayString entity_types;
     for (std::size_t i = 0; i < 255; ++i)
     {
-        std::wstring entityName = Labels::Get(L"entities", i).value_or(L"Entity" + std::to_wstring(i));
+        std::wstring entityName = Labels::Get(Labels::C_ENTITIES, i).value_or(L"Entity" + std::to_wstring(i));
         entity_types.Add(StrWPrintf(L"[%02X] %s", i, entityName.c_str()));
     }
     m_ctrl_entity_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, 0);

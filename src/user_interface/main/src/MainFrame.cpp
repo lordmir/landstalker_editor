@@ -217,7 +217,7 @@ void MainFrame::InitUI()
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
     InsertNavItem(L"Rooms", rm_img);
     InsertNavItem(L"Entities", ent_img);
-    wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
+    InsertNavItem(L"Sprites", spr_img);
 
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
@@ -265,8 +265,8 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
-        m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, i));
+        const std::wstring spr_name = m_g->GetSpriteData()->GetSpriteDisplayName(i);
+        InsertNavItem(L"Sprites/" + spr_name, spr_img, TreeNodeData::Node::SPRITE, i, false);
     }
     for (int i = 0; i < 255; ++i)
     {
@@ -274,7 +274,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const auto& ent_name = Labels::Get(L"entities", i).value_or(L"Entity" + std::to_wstring(i));
+        const std::wstring ent_name = m_g->GetSpriteData()->GetEntityDisplayName(i);
         InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
     }
 
@@ -637,6 +637,10 @@ std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
     auto c = m_browser->GetRootItem();
     while (std::getline(ss, name, L'/'))
     {
+        if (!c.IsOk())
+        {
+            return std::nullopt;
+        }
         c = m_browser->GetFirstChild(c, cookie);
         while (c.IsOk() == true)
         {
@@ -1095,7 +1099,7 @@ void MainFrame::Refresh()
         break;
     case Mode::SPRITE:
         // Display sprite
-        GetSpriteEditor()->Open(m_seldata & 0xFF, ((m_seldata >> 16) & 0xFF) - 1, ((m_seldata >> 8) & 0xFF) - 1);
+        GetSpriteEditor()->Open(m_seldata & 0xFF);
         ShowEditor(EditorType::SPRITE);
         break;
     case Mode::IMAGE:

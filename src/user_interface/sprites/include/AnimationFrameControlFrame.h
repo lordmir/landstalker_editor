@@ -35,6 +35,8 @@ protected:
 private:
 	std::vector<wxString> m_frames;
 	std::shared_ptr<GameData> m_gd;
+	uint8_t m_sprite_id;
+	uint8_t m_anim_id;
 
 	SpriteEditorFrame* m_sef;
 };

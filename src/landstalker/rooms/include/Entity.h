@@ -80,7 +80,7 @@ public:
 
     std::wstring GetTypeName() const
     {
-        return Labels::Get(L"entities", m_type).value_or(L"Entity" + std::to_wstring(m_type));
+        return Labels::Get(Labels::C_ENTITIES, m_type).value_or(L"Entity" + std::to_wstring(m_type));
     }
 
     std::string GetOrientationName() const
@@ -94,8 +94,6 @@ public:
         };
         return OrientationToString.find(m_orientation)->second;
     }
-
-    static const std::vector<std::string> EntityNames;
 private:
     double CoordinateToDouble(uint16_t coord) const;
     uint16_t DoubleToCoordinate(double coord, bool z) const;

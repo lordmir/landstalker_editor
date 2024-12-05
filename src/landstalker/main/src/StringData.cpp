@@ -5,6 +5,7 @@
 #include <landstalker/main/include/AsmUtils.h>
 #include <landstalker/main/include/RomLabels.h>
 #include <landstalker/misc/include/Literals.h>
+#include <landstalker/misc/include/Labels.h>
 
 StringData::StringData(const filesystem::path& asm_file)
 	: DataManager(asm_file), m_has_region_check(false)
@@ -299,6 +300,45 @@ void StringData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare script data for ROM injection"));
 	}
+}
+
+std::wstring StringData::GetItemDisplayName(int item) const
+{
+	if (Labels::Get(Labels::C_ENTITIES, item + 0xC0))
+	{
+		return *Labels::Get(Labels::C_ENTITIES, item + 0xC0);
+	}
+	else if (item < static_cast<int>(m_item_names.size()))
+	{
+		return m_item_names.at(item);
+	}
+	return StrWPrintf(L"Item%02d", item);
+}
+
+std::wstring StringData::GetCharacterDisplayName(int character) const
+{
+	if (Labels::Get(Labels::C_CHARACTER, character))
+	{
+		return *Labels::Get(Labels::C_CHARACTER, character);
+	}
+	else if (character < static_cast<int>(m_character_names.size()))
+	{
+		return m_character_names.at(character);
+	}
+	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
+}
+
+std::wstring StringData::GetGlobalCharacterDisplayName(int character) const
+{
+	if (Labels::Get(Labels::C_GLOBAL_CHARACTER, character))
+	{
+		return *Labels::Get(Labels::C_GLOBAL_CHARACTER, character);
+	}
+	else if (character < static_cast<int>(m_special_character_names.size()))
+	{
+		return m_special_character_names.at(character);
+	}
+	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> StringData::GetAllTilesets() const

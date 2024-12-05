@@ -34,6 +34,8 @@ protected:
 	virtual std::wstring MakeLabel(int index) const;
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 private:
+	uint8_t m_sprite_id;
+
 	std::vector<wxString> m_frames;
 	std::shared_ptr<GameData> m_gd;
 

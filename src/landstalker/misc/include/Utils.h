@@ -87,6 +87,12 @@ std::wstring StrWPrintf(const std::wstring& fmt, Args... args)
 	return std::wstring(reinterpret_cast<const wchar_t*>(buf.data()), reinterpret_cast<const wchar_t*>(buf.data()) + reqd);
 }
 
+template<typename... Args>
+std::wstring StrWPrintf(const std::string& fmt, Args... args)
+{
+	return StrWPrintf(std::wstring(fmt.cbegin(), fmt.cend()), args...);
+}
+
 std::vector<uint8_t> ReadBytes(const std::string& filename);
 std::vector<uint8_t> ReadBytes(const filesystem::path& filename);
 

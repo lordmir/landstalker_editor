@@ -844,13 +844,13 @@ void RoomViewerFrame::RefreshLists() const
 	m_bgms.Clear();
 	for (int i = 0; i < 19; ++i)
 	{
-		m_bgms.Add(Labels::Get(L"bgms", i).value_or(StrWPrintf(L"[%02X] Track %d", i, i)));
+		m_bgms.Add(Labels::Get(Labels::C_BGMS, i).value_or(StrWPrintf(L"[%02X] Track %d", i, i)));
 	}
 
 	m_palettes.Clear();
-	for (const auto& p : m_g->GetRoomData()->GetRoomPalettes())
+	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomPalettes().size(); ++i)
 	{
-		m_palettes.Add(_(p->GetName()));
+		m_palettes.Add(_(m_g->GetRoomData()->GetRoomPaletteDisplayName(i)));
 	}
 
 	m_tilesets.Clear();
@@ -1026,7 +1026,7 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		{
 			FireRenameNavItemEvent(new_name, rd->GetDisplayName());
 			m_nb->SetPageText(0, new_name);
-			Labels::Update(L"rooms", m_roomnum, new_name);
+			Labels::Update(Labels::C_ROOMS, m_roomnum, new_name);
 		}
 		else
 		{

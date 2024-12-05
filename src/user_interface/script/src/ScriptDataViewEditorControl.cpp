@@ -160,7 +160,7 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_bgm_select = new wxChoice(m_panels[ScriptTableEntryType::PLAY_BGM], wxID_ANY);
 	auto bgms = std::vector<wxString>{};
 	std::transform(ScriptPlayBgmEntry::BGMS.cbegin(), ScriptPlayBgmEntry::BGMS.cend(), std::back_inserter(bgms), [](const auto& bgm) {
-		return *Labels::Get(L"sounds", bgm);
+		return *Labels::Get(Labels::C_SOUNDS, bgm);
 	});
 	m_bgm_select->Insert(bgms, 0);
 	m_bgm_select->Select(0);

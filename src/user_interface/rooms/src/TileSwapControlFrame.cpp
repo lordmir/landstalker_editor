@@ -143,16 +143,16 @@ void TileSwapControlFrame::UpdateOtherControls()
 
 std::wstring TileSwapControlFrame::MakeLabel(int index) const
 {
-	if (index >= static_cast<int>(m_swaps.size()))
-	{
-		return L"<Invalid>";
-	}
-	if (!m_swaps[index].active)
-	{
-		return StrWPrintf(L"%02d: <Inactive>", index + 1);
-	}
 	if (m_selected == ID::TILESWAP)
 	{
+		if (index >= static_cast<int>(m_swaps.size()))
+		{
+			return L"<Invalid>";
+		}
+		if (!m_swaps[index].active)
+		{
+			return StrWPrintf(L"%02d: <Inactive>", index + 1);
+		}
 		if (m_mode == RoomEdit::Mode::BACKGROUND || m_mode == RoomEdit::Mode::FOREGROUND)
 		{
 			int offsetx = 0, offsety = 0;

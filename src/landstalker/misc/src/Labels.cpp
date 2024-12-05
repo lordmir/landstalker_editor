@@ -1,5 +1,5 @@
-#include <landstalker/misc/include/DefaultLabels.h>
 #include <landstalker/misc/include/Labels.h>
+#include <landstalker/misc/include/DefaultLabels.h>
 #include <landstalker/misc/include/Utils.h>
 #include <cwctype>
 #include <codecvt>
@@ -7,6 +7,34 @@
 #include <functional>
 
 std::map<std::pair<std::wstring, int>, std::wstring> Labels::m_data;
+
+static const std::map<std::wstring, std::wstring> FORMAT_STRINGS
+{
+    {Labels::C_SPRITE_ANIMATIONS, L"0x%04X"},
+    {Labels::C_SPRITE_FRAMES, L"0x%04X"},
+    {Labels::C_BLOCKSETS, L"0x%06X"}
+};
+
+const std::wstring Labels::C_ROOMS(L"rooms");
+const std::wstring Labels::C_BGMS(L"bgms");
+const std::wstring Labels::C_SOUNDS(L"sounds");
+const std::wstring Labels::C_ENTITIES(L"entities");
+const std::wstring Labels::C_SPRITES(L"sprites");
+const std::wstring Labels::C_SPRITE_FRAMES(L"sprite_frames");
+const std::wstring Labels::C_SPRITE_ANIMATIONS(L"sprite_animations");
+const std::wstring Labels::C_MAPS(L"maps");
+const std::wstring Labels::C_ROOM_PALETTES(L"room_palettes");
+const std::wstring Labels::C_HIGH_PALETTES(L"sprite_high_palettes");
+const std::wstring Labels::C_LOW_PALETTES(L"sprite_low_palettes");
+const std::wstring Labels::C_TILESETS(L"tilesets");
+const std::wstring Labels::C_ANIM_TILESETS(L"animated_tilesets");
+const std::wstring Labels::C_BLOCKSETS(L"blocksets");
+const std::wstring Labels::C_FLAGS(L"flags");
+const std::wstring Labels::C_BEHAVIOURS(L"behaviours");
+const std::wstring Labels::C_SCRIPT(L"script");
+const std::wstring Labels::C_CUTSCENE(L"cutscene");
+const std::wstring Labels::C_CHARACTER(L"character");
+const std::wstring Labels::C_GLOBAL_CHARACTER(L"global_character");
 
 void Labels::InitDefaults()
 {
@@ -59,7 +87,8 @@ void Labels::SaveData(const std::string& filename)
             }
             ofs << category << L":" << std::endl;
         }
-        ofs << L"    " << label.first.second << L": \"" << label.second << "\"" << std::endl;
+        const std::wstring fmt = (FORMAT_STRINGS.count(label.first.first) > 0) ? FORMAT_STRINGS.at(label.first.first) : L"%d";
+        ofs << L"    " << StrWPrintf(fmt, label.first.second) << L": \"" << label.second << "\"" << std::endl;
     }
 }
 
@@ -99,7 +128,7 @@ bool Labels::IsValid(const std::wstring& what)
 
 bool Labels::Update(const std::wstring& what, int id, const std::wstring& updated)
 {
-    if (m_data.at({ what, id }) == updated)
+    if (m_data.count({ what, id }) > 0 && m_data.at({ what, id }) == updated)
     {
         // No update needed
         return true;

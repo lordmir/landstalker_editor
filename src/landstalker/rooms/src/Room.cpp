@@ -68,5 +68,5 @@ uint8_t Room::GetBlocksetId() const
 
 std::wstring Room::GetDisplayName()
 {
-    return Labels::Get(L"rooms", index).value_or(std::wstring(name.cbegin(), name.cend()));
+    return Labels::Get(Labels::C_ROOMS, index).value_or(std::wstring(name.cbegin(), name.cend()));
 }

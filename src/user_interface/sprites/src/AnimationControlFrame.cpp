@@ -9,7 +9,8 @@ wxDEFINE_EVENT(EVT_ANIMATION_MOVE_UP, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ANIMATION_MOVE_DOWN, wxCommandEvent);
 
 AnimationControlFrame::AnimationControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
-	: SelectionControlFrame(parent, imglst)
+	: SelectionControlFrame(parent, imglst),
+	  m_sprite_id(0xFF)
 {
 }
 
@@ -19,6 +20,7 @@ AnimationControlFrame::~AnimationControlFrame()
 
 void AnimationControlFrame::SetSprite(uint8_t sprite_id)
 {
+	m_sprite_id = sprite_id;
 	m_anims.clear();
 	if (m_gd)
 	{
@@ -79,6 +81,10 @@ void AnimationControlFrame::OpenElement()
 
 std::wstring AnimationControlFrame::MakeLabel(int index) const
 {
+	if (m_gd)
+	{
+		return m_gd->GetSpriteData()->GetSpriteAnimationDisplayName(m_sprite_id, m_anims.at(index).ToStdString());
+	}
 	return m_anims.at(index).ToStdWstring();
 }
 

@@ -34,6 +34,7 @@ protected:
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 private:
 	std::vector<wxString> m_anims;
+	uint8_t m_sprite_id;
 	std::shared_ptr<GameData> m_gd;
 
 	SpriteEditorFrame* m_sef;

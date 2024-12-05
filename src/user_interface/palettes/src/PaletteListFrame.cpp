@@ -58,12 +58,14 @@ void PaletteListFrame::Update()
     if (m_gd != nullptr)
     {
         std::vector<std::shared_ptr<PaletteEntry>> entries;
+        std::vector<std::wstring> labels;
         switch (m_mode)
         {
         case Mode::ROOM:
-            for (const auto& p : m_gd->GetRoomData()->GetRoomPalettes())
+            for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomPalettes().size(); ++i)
             {
-                entries.push_back(p);
+                entries.push_back(m_gd->GetRoomData()->GetRoomPalette(i));
+                labels.push_back(m_gd->GetRoomData()->GetRoomPaletteDisplayName(i));
             }
             break;
         case Mode::ROOM_MISC:
@@ -96,12 +98,14 @@ void PaletteListFrame::Update()
             for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
             {
                 entries.push_back(m_gd->GetSpriteData()->GetHiPalette(i));
+                labels.push_back(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i));
             }
             break;
         case Mode::SPRITE_LO:
             for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
             {
                 entries.push_back(m_gd->GetSpriteData()->GetLoPalette(i));
+                labels.push_back(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i));
             }
             break;
         case Mode::PROJECTILE:
@@ -118,7 +122,7 @@ void PaletteListFrame::Update()
             break;
         }
         m_renderer->Reset();
-        m_model = new DataViewCtrlPaletteModel(entries);
+        m_model = new DataViewCtrlPaletteModel(entries, labels);
         m_list->AssociateModel(m_model);
         m_model->DecRef();
         m_list->GetColumn(1)->SetWidth(m_renderer->GetTotalWidth(m_model->GetColumnMaxElements()));

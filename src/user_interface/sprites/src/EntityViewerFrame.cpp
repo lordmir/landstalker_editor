@@ -76,7 +76,7 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id))));
+		props.Append(new wxStringProperty("Name", "Name", sd->GetEntityDisplayName(m_entity_id)));
 		props.Append(new wxIntProperty("ID", "ID", m_entity_id))->Enable(false);
 		props.Append(new wxEnumProperty("Sprite", "Sprite", m_sprites));
 		auto sprite_id = new wxIntProperty("Sprite ID", "Sprite ID", sprite_index);
@@ -155,7 +155,7 @@ void EntityViewerFrame::RefreshLists() const
 		m_lo_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
 		{
-			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetLoPalette(i)->GetName()));
+			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
 		}
 		wxFont font = m_lo_palettes.Item(epals.first + 1).GetFont();
 		font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
@@ -165,7 +165,7 @@ void EntityViewerFrame::RefreshLists() const
 		m_hi_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
 		{
-			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetHiPalette(i)->GetName()));
+			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
 		}
 		font = m_hi_palettes.Item(epals.second + 1).GetFont();
 		font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
@@ -178,7 +178,7 @@ void EntityViewerFrame::RefreshLists() const
 			{
 				continue;
 			}
-			m_sprites.Add(m_gd->GetSpriteData()->GetSpriteName(i), i);
+			m_sprites.Add(m_gd->GetSpriteData()->GetSpriteDisplayName(i), i);
 		}
 
 		m_verbs.Clear();
@@ -190,15 +190,15 @@ void EntityViewerFrame::RefreshLists() const
 		m_items.Clear();
 		for (std::size_t i = 0; i < m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES); ++i)
 		{
-			m_items.Add(m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, i), i);
+			m_items.Add(m_gd->GetStringData()->GetItemDisplayName(i), i);
 		}
 
 		m_sounds.Clear();
 		for (int i = 0; i <= 0xFF; ++i)
 		{
-			if (Labels::Get(L"sounds", i))
+			if (Labels::Get(Labels::C_SOUNDS, i))
 			{
-				m_sounds.Add(*Labels::Get(L"sounds", i), i);
+				m_sounds.Add(*Labels::Get(Labels::C_SOUNDS, i), i);
 			}
 		}
 
@@ -243,7 +243,7 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		bool is_enemy = sd->IsEntityEnemy(m_entity_id);
 		auto enemy_stats = sd->GetEnemyStats(m_entity_id);
 
-		props.GetGrid()->SetPropertyValue("Name", _(Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id))));
+		props.GetGrid()->SetPropertyValue("Name", _(sd->GetEntityDisplayName(m_entity_id)));
 		props.GetGrid()->SetPropertyValue("ID", m_entity_id);
 		props.GetGrid()->GetProperty("Sprite")->SetChoices(m_sprites);
 		props.GetGrid()->GetProperty("Sprite")->SetChoiceSelection(m_sprites.Index(sprite_index));
@@ -307,11 +307,11 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	if (name == "Name")
 	{
 		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
-		const std::wstring old_name = Labels::Get(L"entities", m_entity_id).value_or(L"Entity" + std::to_wstring(m_entity_id));
+		const std::wstring old_name = sd->GetEntityDisplayName(m_entity_id);
 		if (Labels::IsValid(new_name))
 		{
 			FireRenameNavItemEvent(new_name, old_name);
-			Labels::Update(L"entities", m_entity_id, new_name);
+			Labels::Update(Labels::C_ENTITIES, m_entity_id, new_name);
 		}
 		else
 		{

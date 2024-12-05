@@ -255,11 +255,11 @@ bool ScriptDataViewRenderer::RenderPlayBGMProperties(wxRect& rect, wxDC* dc, int
 	InsertRenderBubble(rect, dc, state, "PLAY BGM", wxColour("LIGHT STEEL BLUE"), LABEL_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, _("BGM: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", bgm.bgm), 40);
-	if (bgm.bgm < ScriptPlayBgmEntry::BGMS.size() && Labels::Get(L"sounds", ScriptPlayBgmEntry::BGMS.at(bgm.bgm)))
+	if (bgm.bgm < ScriptPlayBgmEntry::BGMS.size() && Labels::Get(Labels::C_SOUNDS, ScriptPlayBgmEntry::BGMS.at(bgm.bgm)))
 	{
 		font = dc->GetFont().Italic();
 		font.SetFamily(wxFONTFAMILY_TELETYPE);
-		InsertRenderLabel(rect, dc, state, *Labels::Get(L"sounds", ScriptPlayBgmEntry::BGMS.at(bgm.bgm)), 40, &font);
+		InsertRenderLabel(rect, dc, state, *Labels::Get(Labels::C_SOUNDS, ScriptPlayBgmEntry::BGMS.at(bgm.bgm)), 40, &font);
 	}
 	return false;
 }

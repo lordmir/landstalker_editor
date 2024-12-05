@@ -362,9 +362,9 @@ std::wstring ScriptPlayBgmEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) 
 {
 	std::wstring str_preview;
 	str_preview = L"  # ";
-	if (bgm < BGMS.size() && Labels::Get(L"sounds", bgm))
+	if (bgm < BGMS.size() && Labels::Get(Labels::C_SOUNDS, bgm))
 	{
-		str_preview += *Labels::Get(L"sounds", BGMS.at(bgm));
+		str_preview += *Labels::Get(Labels::C_SOUNDS , BGMS.at(bgm));
 	}
 	else
 	{
