@@ -9,7 +9,8 @@ wxDEFINE_EVENT(EVT_ANIMATION_MOVE_UP, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ANIMATION_MOVE_DOWN, wxCommandEvent);
 
 AnimationControlFrame::AnimationControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
-	: SelectionControlFrame(parent, imglst)
+	: SelectionControlFrame(parent, imglst),
+	  m_sprite_id(0xFF)
 {
 }
 
@@ -19,10 +20,12 @@ AnimationControlFrame::~AnimationControlFrame()
 
 void AnimationControlFrame::SetSprite(uint8_t sprite_id)
 {
+	m_sprite_id = sprite_id;
 	m_anims.clear();
 	if (m_gd)
 	{
-		m_anims = m_gd->GetSpriteData()->GetSpriteAnimations(sprite_id);
+		const auto& namelist = m_gd->GetSpriteData()->GetSpriteAnimations(sprite_id);
+		m_anims = std::vector<wxString>(namelist.cbegin(), namelist.cend());
 	}
 	UpdateUI();
 }
@@ -76,9 +79,13 @@ void AnimationControlFrame::OpenElement()
 {
 }
 
-std::string AnimationControlFrame::MakeLabel(int index) const
+std::wstring AnimationControlFrame::MakeLabel(int index) const
 {
-	return m_anims.at(index);
+	if (m_gd)
+	{
+		return m_gd->GetSpriteData()->GetSpriteAnimationDisplayName(m_sprite_id, m_anims.at(index).ToStdString());
+	}
+	return m_anims.at(index).ToStdWstring();
 }
 
 bool AnimationControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)

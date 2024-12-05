@@ -665,7 +665,7 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		int sprite_index = m_sprite->GetSprite();
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", _(m_sprite->GetName())));
+		props.Append(new wxStringProperty("Name", "Name", _(sd->GetSpriteDisplayName(sprite_index))));
 		props.Append(new wxIntProperty("ID", "ID", sprite_index))->Enable(false);
 		props.Append(new wxStringProperty("Start Address", "Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress()))))->Enable(false);
 		props.Append(new wxStringProperty("End Address", "End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress()))))->Enable(false);
@@ -731,7 +731,7 @@ void SpriteEditorFrame::RefreshLists() const
 		m_lo_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
 		{
-			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetLoPalette(i)->GetName()));
+			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
 		}
 		for (int i = 0; i < static_cast<int>(m_lo_palettes.GetCount()); ++i)
 		{
@@ -746,7 +746,7 @@ void SpriteEditorFrame::RefreshLists() const
 		m_hi_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
 		{
-			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetHiPalette(i)->GetName()));
+			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
 		}
 		for (int i = 0; i < static_cast<int>(m_hi_palettes.GetCount()); ++i)
 		{
@@ -853,7 +853,21 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	auto sd = m_gd->GetSpriteData();
 	int sprite_index = m_sprite->GetSprite();
 	const wxString& name = property->GetName();
-	if (name == "Width/Length")
+	if (name == "Name")
+	{
+		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
+		const std::wstring old_name = sd->GetSpriteDisplayName(sprite_index);
+		if (Labels::IsValid(new_name))
+		{
+			FireRenameNavItemEvent(new_name, old_name);
+			Labels::Update(Labels::C_SPRITES, sprite_index, new_name);
+		}
+		else
+		{
+			property->SetValueFromString(old_name);
+		}
+	}
+	else if (name == "Width/Length")
 	{
 		auto hitbox = sd->GetSpriteHitbox(sprite_index);
 		int value = static_cast<int>(property->GetValuePlain().GetDouble() * 8.0);
@@ -1572,4 +1586,12 @@ void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*e
 		ss << "Cursor at (" << pos.first << "," << pos.second << ")";
 	}
 	status.SetStatusText(ss.str(), 1);
+}
+
+void SpriteEditorFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)
+{
+	wxCommandEvent evt(EVT_RENAME_NAV_ITEM);
+	std::wstring lbl(L"Sprites/" + old_name + L"\1Sprites/" + new_name);
+	evt.SetString(lbl);
+	wxPostEvent(this, evt);
 }

@@ -409,7 +409,7 @@ protected:
         m_list[0].reserve(m_gd->GetRoomData()->GetRoomCount());
         for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
         {
-            m_list[0].push_back(wxString(m_gd->GetRoomData()->GetRoomlist()[i]->name));
+            m_list[0].push_back(m_gd->GetRoomData()->GetRoomlist()[i]->GetDisplayName());
         }
     }
 };

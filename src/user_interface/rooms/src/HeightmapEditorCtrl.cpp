@@ -1766,8 +1766,8 @@ bool HeightmapEditorCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x
 
 void HeightmapEditorCtrl::GoToRoom(uint16_t room)
 {
-    const auto& name = m_g->GetRoomData()->GetRoom(room)->name;
-    FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
+    const auto& name = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
+    FireEvent(EVT_GO_TO_NAV_ITEM, wxString("Rooms/") + name);
 }
 
 bool HeightmapEditorCtrl::IsCellHidden(uint8_t restrictions, uint8_t type, uint8_t z)
@@ -1800,7 +1800,7 @@ void HeightmapEditorCtrl::FireEventLong(const wxEventType& e, long userdata)
     wxPostEvent(m_frame, evt);
 }
 
-void HeightmapEditorCtrl::FireEvent(const wxEventType& e, const std::string& userdata)
+void HeightmapEditorCtrl::FireEvent(const wxEventType& e, const wxString& userdata)
 {
     wxCommandEvent evt(e);
     evt.SetString(userdata);

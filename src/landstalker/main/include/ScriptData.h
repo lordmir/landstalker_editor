@@ -20,6 +20,10 @@ public:
     virtual bool HasBeenModified() const;
     virtual void RefreshPendingWrites(const Rom& rom);
 
+    std::wstring GetScriptEntryDisplayName(int script_id) const;
+    std::wstring GetFlagDisplayName(int script_id) const;
+    std::wstring GetCutsceneDisplayName(int script_id) const;
+
     uint16_t GetStringStart() const;
 
     std::shared_ptr<Script> GetScript();

@@ -20,7 +20,6 @@
 #include <wx/aui/framemanager.h>
 #include <wx/aui/dockart.h>
 #include <wx/panel.h>
-#include <wx/treectrl.h>
 #include <wx/propgrid/manager.h>
 #include <wx/radiobut.h>
 #include <wx/checkbox.h>
@@ -39,6 +38,7 @@
 #include <wx/persist/bookctrl.h>
 #include <wx/persist/treebook.h>
 #endif
+#include <user_interface/main/include/BrowserTreeCtrl.h>
 
 #ifdef WXC_FROM_DIP
 #undef WXC_FROM_DIP
@@ -75,7 +75,7 @@ protected:
     wxStatusBar* m_statusbar;
     wxAuiManager* m_window;
     wxPanel* m_panel_browser;
-    wxTreeCtrl* m_browser;
+    BrowserTreeCtrl* m_browser;
     wxPanel* m_panel_properties;
     wxPropertyGridManager* m_properties;
     wxWindow* m_mainwin;
@@ -146,7 +146,7 @@ public:
     {
         return m_statusbar;
     }
-    wxTreeCtrl* GetBrowser()
+    BrowserTreeCtrl* GetBrowser()
     {
         return m_browser;
     }

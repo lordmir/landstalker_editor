@@ -317,7 +317,7 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 {
 	if (m_g != nullptr)
 	{
-		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->name);
+		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->GetDisplayName());
 		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_nb->SetPageText(2, wxString("Background: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_nb->SetPageText(3, wxString("Foreground: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
@@ -786,7 +786,8 @@ void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", rd->name));
+		props.Append(new wxStringProperty("Name", "Name", rd->GetDisplayName()));
+		props.Append(new wxStringProperty("Label", "Label", rd->name))->Enable(false);
 		props.Append(new wxIntProperty("Room Number", "RN", rd->index))->Enable(false);
 		props.Append(new wxEnumProperty("Tileset", "TS", m_tilesets));
 		props.Append(new wxEnumProperty("Room Palette", "RP", m_palettes))->SetChoiceSelection(rd->room_palette);
@@ -841,30 +842,15 @@ void RoomViewerFrame::RefreshLists() const
 	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 
 	m_bgms.Clear();
-	m_bgms.Add("[00] " + Labels::Get("bgms", 0).value_or("[00"));
-	m_bgms.Add("[01] " + Labels::Get("bgms", 1).value_or("[01"));
-	m_bgms.Add("[02] " + Labels::Get("bgms", 2).value_or("[02"));
-	m_bgms.Add("[03] " + Labels::Get("bgms", 3).value_or("[03"));
-	m_bgms.Add("[04] " + Labels::Get("bgms", 4).value_or("[04"));
-	m_bgms.Add("[05] " + Labels::Get("bgms", 5).value_or("[05"));
-	m_bgms.Add("[06] " + Labels::Get("bgms", 6).value_or("[06"));
-	m_bgms.Add("[07] " + Labels::Get("bgms", 7).value_or("[07"));
-	m_bgms.Add("[08] " + Labels::Get("bgms", 8).value_or("[08"));
-	m_bgms.Add("[09] " + Labels::Get("bgms", 9).value_or("[09"));
-	m_bgms.Add("[0A] " + Labels::Get("bgms", 10).value_or("[0A]"));
-	m_bgms.Add("[0B] " + Labels::Get("bgms", 11).value_or("[0B]"));
-	m_bgms.Add("[0C] " + Labels::Get("bgms", 12).value_or("[0C]"));
-	m_bgms.Add("[0D] " + Labels::Get("bgms", 13).value_or("[0D]"));
-	m_bgms.Add("[0E] " + Labels::Get("bgms", 14).value_or("[0E]"));
-	m_bgms.Add("[0F] " + Labels::Get("bgms", 15).value_or("[0F]"));
-	m_bgms.Add("[10] " + Labels::Get("bgms", 16).value_or("[10]"));
-	m_bgms.Add("[11] " + Labels::Get("bgms", 17).value_or("[11]"));
-	m_bgms.Add("[12] " + Labels::Get("bgms", 18).value_or("[12]"));
+	for (int i = 0; i < 19; ++i)
+	{
+		m_bgms.Add(Labels::Get(Labels::C_BGMS, i).value_or(StrWPrintf(L"[%02X] Track %d", i, i)));
+	}
 
 	m_palettes.Clear();
-	for (const auto& p : m_g->GetRoomData()->GetRoomPalettes())
+	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomPalettes().size(); ++i)
 	{
-		m_palettes.Add(_(p->GetName()));
+		m_palettes.Add(_(m_g->GetRoomData()->GetRoomPaletteDisplayName(i)));
 	}
 
 	m_tilesets.Clear();
@@ -897,7 +883,7 @@ void RoomViewerFrame::RefreshLists() const
 	m_rooms.Add("<NONE>");
 	for (const auto& room : m_g->GetRoomData()->GetRoomlist())
 	{
-		m_rooms.Add(room->name);
+		m_rooms.Add(_(room->GetDisplayName()));
 	}
 	m_menustrings.Clear();
 	m_menustrings.Add("<NONE>");
@@ -937,7 +923,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
-		props.GetGrid()->SetPropertyValue("Name", _(rd->name));
+		props.GetGrid()->SetPropertyValue("Name", _(rd->GetDisplayName()));
+		props.GetGrid()->SetPropertyValue("Label", _(rd->name));
 		props.GetGrid()->SetPropertyValue("RN", rd->index);
 		props.GetGrid()->GetProperty("TS")->SetChoiceSelection(rd->tileset);
 		props.GetGrid()->GetProperty("RP")->SetChoiceSelection(rd->room_palette);
@@ -1032,7 +1019,21 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
 	const wxString& name = property->GetName();
-	if (name == "TS")
+	if (name == "Name")
+	{
+		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
+		if (Labels::IsValid(new_name))
+		{
+			FireRenameNavItemEvent(new_name, rd->GetDisplayName());
+			m_nb->SetPageText(0, new_name);
+			Labels::Update(Labels::C_ROOMS, m_roomnum, new_name);
+		}
+		else
+		{
+			property->SetValueFromString(rd->GetDisplayName());
+		}
+	}
+	else if (name == "TS")
 	{
 		if (property->GetChoiceSelection() != rd->tileset)
 		{
@@ -2587,6 +2588,14 @@ void RoomViewerFrame::FireUpdateStatusEvent(const std::string& data, int pane)
 	evt.SetString(data); 
 	evt.SetInt(pane);
 	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)
+{
+	wxCommandEvent evt(EVT_RENAME_NAV_ITEM);
+	std::wstring lbl(L"Rooms/" + old_name + L"\1Rooms/" + new_name);
+	evt.SetString(lbl);
 	wxPostEvent(this, evt);
 }
 

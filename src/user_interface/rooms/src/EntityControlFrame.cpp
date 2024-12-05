@@ -71,8 +71,8 @@ void EntityControlFrame::MoveDown()
     FireEvent(EVT_ENTITY_MOVE_DOWN);
 }
 
-std::string EntityControlFrame::MakeLabel(int index) const
+std::wstring EntityControlFrame::MakeLabel(int index) const
 {
-    return StrPrintf("%02d: (%04.1f, %04.1f, %04.1f) %s", index + 1, m_entities[index].GetXDbl(),
+    return StrWPrintf(L"%02d: (%04.1f, %04.1f, %04.1f) %s", index + 1, m_entities[index].GetXDbl(),
         m_entities[index].GetYDbl(), m_entities[index].GetZDbl(), m_entities[index].GetTypeName().c_str());
 }

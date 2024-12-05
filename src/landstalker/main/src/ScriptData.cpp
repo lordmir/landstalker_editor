@@ -3,6 +3,7 @@
 #include <landstalker/main/include/AsmUtils.h>
 #include <landstalker/main/include/RomLabels.h>
 #include <landstalker/misc/include/Literals.h>
+#include <landstalker/misc/include/Labels.h>
 
 ScriptData::ScriptData(const filesystem::path& asm_file)
 	: DataManager(asm_file)
@@ -70,6 +71,21 @@ void ScriptData::RefreshPendingWrites(const Rom& rom)
 	{
 		throw std::runtime_error(std::string("Unable to prepare script for ROM injection"));
 	}
+}
+
+std::wstring ScriptData::GetScriptEntryDisplayName(int script_id) const
+{
+	return Labels::Get(Labels::C_SCRIPT, script_id).value_or(StrWPrintf(L"ScriptId%04d", script_id));
+}
+
+std::wstring ScriptData::GetFlagDisplayName(int flag) const
+{
+	return Labels::Get(Labels::C_FLAGS, flag).value_or(StrWPrintf(L"Flag%04d", flag));
+}
+
+std::wstring ScriptData::GetCutsceneDisplayName(int cutscene) const
+{
+	return Labels::Get(Labels::C_CUTSCENE, cutscene).value_or(StrWPrintf(L"Cutscene%03d", cutscene));
 }
 
 uint16_t ScriptData::GetStringStart() const

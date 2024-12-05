@@ -36,6 +36,10 @@ public:
     virtual bool HasBeenModified() const;
     virtual void RefreshPendingWrites(const Rom& rom);
 
+    std::wstring GetItemDisplayName(int item) const;
+    std::wstring GetCharacterDisplayName(int character) const;
+    std::wstring GetGlobalCharacterDisplayName(int character) const;
+
     std::map<std::string, std::shared_ptr<TilesetEntry>> GetAllTilesets() const;
     std::vector<std::shared_ptr<TilesetEntry>> GetFonts() const;
 

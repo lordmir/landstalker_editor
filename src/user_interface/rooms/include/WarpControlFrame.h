@@ -25,7 +25,7 @@ protected:
 	virtual void MoveDown();
 	virtual void OpenElement();
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
-	virtual std::string MakeLabel(int index) const;
+	virtual std::wstring MakeLabel(int index) const;
 private:
 	std::vector<WarpList::Warp> m_warps;
 

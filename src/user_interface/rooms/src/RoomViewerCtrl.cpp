@@ -399,7 +399,7 @@ void RoomViewerCtrl::DrawRoom(uint16_t roomnum)
         RedrawAllSprites();
     }
     auto mp = wxGetMousePosition();
-    std::string s;
+    std::wstring s;
     CheckMousePosForLink({ mp.x, mp.y }, s);
     SetCursor(m_selected == NO_SELECTION ? wxCURSOR_ARROW : wxCURSOR_HAND);
 }
@@ -515,7 +515,7 @@ void RoomViewerCtrl::RefreshStatusbar()
 {
     auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
     std::ostringstream ss;
-    std::string txt;
+    std::wstring txt;
     ss << "Room: " << std::dec << std::uppercase << std::setw(3) << std::setfill('0') << rd->index
         << " Tileset: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->tileset)
         << " Palette: 0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<unsigned>(rd->room_palette)
@@ -528,7 +528,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         auto& entity = GetSelectedEntity();
         int idx = GetSelectedEntityIndex();
-        txt = StrPrintf("Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+        txt = StrWPrintf(L"Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
             idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str());
         FireUpdateStatusEvent(txt, 1);
     }
@@ -538,31 +538,31 @@ void RoomViewerCtrl::RefreshStatusbar()
         int idx = GetSelectedWarpIndex();
         if (warp.room1 == 65535 || warp.room2 == 65535)
         {
-            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
-                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
-                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
-                        (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))));
+                (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? L"SSE" :
+                        (warp.type == WarpList::Warp::Type::STAIR_SW ? L"SSW" : L"UNK"))));
         }
         else
         {
-            txt = StrPrintf("Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
-                (warp.type == WarpList::Warp::Type::NORMAL ? "NML" :
-                    (warp.type == WarpList::Warp::Type::STAIR_SE ? "SSE" :
-                        (warp.type == WarpList::Warp::Type::STAIR_SW ? "SSW" : "UNK"))),
+                (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
+                    (warp.type == WarpList::Warp::Type::STAIR_SE ? L"SSE" :
+                        (warp.type == WarpList::Warp::Type::STAIR_SW ? L"SSW" : L"UNK"))),
                 m_roomnum == warp.room1 ? warp.room2 : warp.room1,
-                m_g ? m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->name.c_str() : "?");
+                m_g ? m_g->GetRoomData()->GetRoom(m_roomnum == warp.room1 ? warp.room2 : warp.room1)->GetDisplayName().c_str() : L"?");
         }
     }
     else if (IsTileSwapSelected())
     {
         const TileSwap& swap = GetSelectedTileSwap();
         int idx = GetSelectedTileSwapIndex();
-        txt = StrPrintf("Selected Tile Swap %d %s HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
-            idx, swap.mode == TileSwap::Mode::FLOOR ? "Floor" : swap.mode == TileSwap::Mode::WALL_NE ? "NE Wall" : swap.mode == TileSwap::Mode::WALL_NW ? "NW Wall" : "?",
+        txt = StrWPrintf(L"Selected Tile Swap %d %s HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
+            idx, swap.mode == TileSwap::Mode::FLOOR ? L"Floor" : swap.mode == TileSwap::Mode::WALL_NE ? L"NE Wall" : swap.mode == TileSwap::Mode::WALL_NW ? L"NW Wall" : L"?",
             swap.heightmap.src_x, swap.heightmap.src_y, swap.heightmap.dst_x, swap.heightmap.dst_y, swap.heightmap.width, swap.heightmap.height,
             swap.map.src_x, swap.map.src_y, swap.map.dst_x, swap.map.dst_y, swap.map.width, swap.map.height);
     }
@@ -570,7 +570,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         const Door& door = GetSelectedDoor();
         int idx = GetSelectedDoorIndex();
-        txt = StrPrintf("Selected Door %d (%02d,%02d) (%02dx%02d)",
+        txt = StrWPrintf(L"Selected Door %d (%02d,%02d) (%02dx%02d)",
                         idx, door.x, door.y, door.SIZE_NAMES.count(door.size) ? door.SIZE_NAMES.at(door.size).c_str() : "?");
     }
     FireUpdateStatusEvent(txt, 1);
@@ -1337,7 +1337,8 @@ void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label
     const double LINK_Y = y;
     gc->DrawText(label, x, y);
     gc->SetFont(font, *wxYELLOW);
-    auto roomlabel = StrPrintf("Room %03d", room);
+    auto roomname = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
+    auto roomlabel = StrWPrintf(L"Room %03d (%s)", room, roomname.c_str());
     gc->DrawText(roomlabel, LINK_X, LINK_Y);
     gc->GetTextExtent(roomlabel, &w, &h);
     m_link_poly.push_back({ room, {
@@ -1627,7 +1628,7 @@ std::string RoomViewerCtrl::GetErrorText(int errnum) const
     return m_errors.at(errnum);
 }
 
-const std::string& RoomViewerCtrl::GetStatusText() const
+const std::wstring& RoomViewerCtrl::GetStatusText() const
 {
     return m_status_text;
 }
@@ -1647,11 +1648,11 @@ bool RoomViewerCtrl::Pnpoly(const std::vector<wxPoint2DDouble>& poly, int x, int
 
 void RoomViewerCtrl::GoToRoom(uint16_t room)
 {
-    const auto& name = m_g->GetRoomData()->GetRoom(room)->name;
-    FireEvent(EVT_GO_TO_NAV_ITEM, "Rooms/" + name);
+    const auto& name = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
+    FireEvent(EVT_GO_TO_NAV_ITEM, L"Rooms/" + name);
 }
 
-void RoomViewerCtrl::FireUpdateStatusEvent(const std::string& data, int pane)
+void RoomViewerCtrl::FireUpdateStatusEvent(const wxString& data, int pane)
 {
     wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
     evt.SetString(data);
@@ -1669,7 +1670,7 @@ void RoomViewerCtrl::FireEvent(const wxEventType& e, long userdata)
     wxPostEvent(m_frame, evt);
 }
 
-void RoomViewerCtrl::FireEvent(const wxEventType& e, const std::string& userdata)
+void RoomViewerCtrl::FireEvent(const wxEventType& e, const wxString& userdata)
 {
     wxCommandEvent evt(e);
     evt.SetString(userdata);
@@ -1762,14 +1763,14 @@ void RoomViewerCtrl::OnSize(wxSizeEvent& evt)
 void RoomViewerCtrl::OnMouseMove(wxMouseEvent& evt)
 {
     auto xy = GetAbsoluteCoordinates(evt.GetX(), evt.GetY());
-    std::string status_text = m_status_text;
+    std::wstring status_text = m_status_text;
     if (m_g != nullptr)
     {
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
             auto r = map->PixelToHMPoint({ xy.first, xy.second });
-            status_text = StrPrintf("(%d,%d) [%d,%d]", xy.first, xy.second, r.x, r.y);
+            status_text = StrWPrintf(L"(%d,%d) [%d,%d]", xy.first, xy.second, r.x, r.y);
             if (CheckMousePosForLink(xy, status_text))
             {
                 Refresh();
@@ -1858,7 +1859,7 @@ void RoomViewerCtrl::OnLeftClick(wxMouseEvent& evt)
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            std::string status_text;
+            std::wstring status_text;
             if (CheckMousePosForLink(xy, status_text))
             {
                 SetCursor(m_hovered != NO_SELECTION ? wxCURSOR_HAND : wxCURSOR_ARROW);
@@ -2701,7 +2702,7 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
     }
 }
 
-bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::string& status_text)
+bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::wstring& status_text)
 {
     int prev_hover = m_hovered;
     for (const auto& wp : m_warp_poly)
@@ -2712,7 +2713,8 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::st
             uint16_t room = (warp.room1 == m_roomnum) ? warp.room2 : warp.room1;
             uint8_t wx = (warp.room1 == m_roomnum) ? warp.x2 : warp.x1;
             uint8_t wy = (warp.room1 == m_roomnum) ? warp.y2 : warp.y1;
-            status_text += StrPrintf(" - Right Click: Warp to room %03d (%d,%d)", room, wx, wy);
+            std::wstring display_name = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
+            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%d,%d) (%s)", room, wx, wy, display_name.c_str());
             m_hovered = WARP_IDX_OFFSET + wp.first + 1;
             return m_hovered != prev_hover;
         }
@@ -2722,7 +2724,8 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::st
     {
         if (Pnpoly(it->second, xy.first, xy.second))
         {
-            status_text += StrPrintf(" - Right Click: Warp to room %03d", it->first);
+            std::wstring display_name = m_g->GetRoomData()->GetRoom(it->first)->GetDisplayName();
+            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%s)", it->first, display_name.c_str());
             m_hovered = LINK_IDX_OFFSET + i;
             return m_hovered != prev_hover;
         }
@@ -2733,7 +2736,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::st
         {
             SetCursor(wxStockCursor::wxCURSOR_HAND);
             m_hovered = ENTITY_IDX_OFFSET + ep.first;
-            status_text += StrPrintf(" - Entity (%d)", ep.first);
+            status_text += StrWPrintf(L" - Entity %d (%s)", ep.first, m_entities.at(ep.first - 1).GetTypeName().c_str());
             return m_hovered != prev_hover;
         }
     }
@@ -2749,7 +2752,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::st
                 m_redraw = true;
                 m_repaint = true;
             }
-            status_text += StrPrintf(" - Tile Swap (%d)", i + 1);
+            status_text += StrWPrintf(L" - Tile Swap (%d)", i + 1);
             return m_hovered != prev_hover;
         }
     }
@@ -2765,7 +2768,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::st
                 m_redraw = true;
                 m_repaint = true;
             }
-            status_text += StrPrintf(" - Door (%d)", i + 1);
+            status_text += StrWPrintf(L" - Door (%d)", i + 1);
             return m_hovered != prev_hover;
         }
     }
@@ -2945,7 +2948,7 @@ void RoomViewerCtrl::OnLeftDblClick(wxMouseEvent& evt)
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            std::string status_text;
+            std::wstring status_text;
             CheckMousePosForLink(xy, status_text);
             UpdateSelection(m_hovered, Action::DO_ACTION);
             m_selected = m_hovered;
@@ -2962,7 +2965,7 @@ void RoomViewerCtrl::OnRightClick(wxMouseEvent& evt)
         auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
         if (map)
         {
-            std::string status_text;
+            std::wstring status_text;
             if (CheckMousePosForLink(xy, status_text))
             {
 

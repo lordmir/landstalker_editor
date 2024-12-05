@@ -37,6 +37,13 @@ public:
 	virtual bool HasBeenModified() const;
     virtual void RefreshPendingWrites(const Rom& rom);
 
+    std::wstring GetTilesetDisplayName(uint8_t index) const;
+    std::wstring GetAnimatedTilesetDisplayName(uint8_t tileset, uint8_t index) const;
+    std::wstring GetRoomPaletteDisplayName(uint8_t index) const;
+    std::wstring GetBlocksetDisplayName(uint8_t tileset, uint8_t pri, uint8_t sec) const;
+    std::wstring GetRoomDisplayName(uint16_t room) const;
+    std::wstring GetMapDisplayName(const std::string& map) const;
+
     std::vector<std::shared_ptr<TilesetEntry>> GetTilesets() const;
     std::vector<std::shared_ptr<AnimatedTilesetEntry>> GetAnimatedTilesets(const std::string& tileset) const;
     bool HasAnimatedTilesets(const std::string& tileset) const;

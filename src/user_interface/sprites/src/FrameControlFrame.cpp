@@ -7,7 +7,8 @@ wxDEFINE_EVENT(EVT_FRAME_ADD, wxCommandEvent);
 wxDEFINE_EVENT(EVT_FRAME_DELETE, wxCommandEvent);
 
 FrameControlFrame::FrameControlFrame(SpriteEditorFrame* parent, ImageList* imglst)
-	: SelectionControlFrame(parent, imglst)
+	: SelectionControlFrame(parent, imglst),
+	  m_sprite_id(0xFF)
 {
 	m_ctrl_move_up->Hide();
 	m_ctrl_move_down->Hide();
@@ -19,10 +20,12 @@ FrameControlFrame::~FrameControlFrame()
 
 void FrameControlFrame::SetSprite(uint8_t sprite_id)
 {
+	m_sprite_id = sprite_id;
 	m_frames.clear();
 	if (m_gd)
 	{
-		m_frames = m_gd->GetSpriteData()->GetSpriteFrames(sprite_id);
+		const auto& namelist = m_gd->GetSpriteData()->GetSpriteFrames(sprite_id);
+		m_frames = std::vector<wxString>(namelist.cbegin(), namelist.cend());
 	}
 	UpdateUI();
 }
@@ -75,9 +78,13 @@ void FrameControlFrame::OpenElement()
 {
 }
 
-std::string FrameControlFrame::MakeLabel(int index) const
+std::wstring FrameControlFrame::MakeLabel(int index) const
 {
-	return m_frames[index];
+	if (m_gd)
+	{
+		return m_gd->GetSpriteData()->GetSpriteFrameDisplayName(m_sprite_id, m_frames[index].ToStdString());
+	}
+	return m_frames[index].ToStdWstring();
 }
 
 bool FrameControlFrame::HandleKeyPress(unsigned int /*key*/, unsigned int /*modifiers*/)

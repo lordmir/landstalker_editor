@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
+#include <optional>
 #include <wx/dcmemory.h>
 #include <wx/dataview.h>
 #include <landstalker/main/include/Rom.h>
@@ -35,7 +36,6 @@ class MainFrame : public MainFrameBaseClass
 public:
     MainFrame(wxWindow* parent, const std::string& filename);
     virtual ~MainFrame();
-
 protected:
     enum class ReturnCode
     {
@@ -56,31 +56,6 @@ protected:
     virtual void OnAbout(wxCommandEvent& event);
     virtual void OnBrowserSelect(wxTreeEvent& event);
 private:
-    class TreeNodeData : public wxTreeItemData
-    {
-    public:
-        enum class Node {
-            BASE,
-            STRING,
-            IMAGE,
-            TILESET,
-            ANIM_TILESET,
-            BLOCKSET,
-            PALETTE,
-            ROOM,
-            SPRITE,
-            SPRITE_FRAME,
-            ENTITY,
-            BEHAVIOUR_SCRIPT,
-            SCRIPT
-        };
-        TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0) : m_nodeType(nodeType), m_value(value) {}
-        std::size_t GetValue() const { return m_value; }
-        Node GetNodeType() const { return m_nodeType; }
-    private:
-        const Node m_nodeType;
-        const std::size_t m_value;
-    };
     enum class Mode
     {
         NONE,
@@ -124,17 +99,30 @@ private:
 	void OnMenuClick(wxMenuEvent& event);
 	void OnPaneClose(wxAuiManagerEvent& event);
     void OnGoToNavItem(wxCommandEvent& event);
-    void GoToNavItem(const std::string& path);
+    void OnRenameNavItem(wxCommandEvent& event);
+    void OnDeleteNavItem(wxCommandEvent& event);
+    void OnAddNavItem(wxCommandEvent& event);
+    std::optional<wxTreeItemId> FindNavItem(const std::wstring& path);
+    std::optional<wxTreeItemId> InsertNavItem(const std::wstring& path, int img = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
+    void SortNavItems(const wxTreeItemId& parent);
+    bool RemoveNavItem(const std::wstring& path);
+    void GoToNavItem(const std::wstring& path);
+    bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);
+    bool AddNavItem(const std::wstring& path, int image = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
+    bool DeleteNavItem(const std::wstring& path);
+    std::wstring GetNavItemParent(const std::wstring& path);
     void ShowEditor(EditorType editor);
     void HideAllEditors();
     ReturnCode CloseFiles(bool force = false);
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
+    void OpenLabelsFile(std::string path);
     void OpenRomFile(const wxString& path);
     void OpenAsmFile(const wxString& path);
     void InitUI();
     void InitConfig();
     ReturnCode Save();
+    ReturnCode SaveLabelsFile(std::string path = std::string());
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
     void SetMode(const Mode& mode);

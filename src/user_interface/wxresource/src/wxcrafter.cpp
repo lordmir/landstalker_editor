@@ -133,7 +133,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     wxBoxSizer* m_boxsizer_browser = new wxBoxSizer(wxVERTICAL);
     m_panel_browser->SetSizer(m_boxsizer_browser);
     
-    m_browser = new wxTreeCtrl(m_panel_browser, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_panel_browser, wxSize(300,50)), wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxFULL_REPAINT_ON_RESIZE);
+    m_browser = new BrowserTreeCtrl(m_panel_browser, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_panel_browser, wxSize(300,50)), wxTR_DEFAULT_STYLE|wxTR_HIDE_ROOT|wxFULL_REPAINT_ON_RESIZE);
     
     m_boxsizer_browser->Add(m_browser, 1, wxALL|wxEXPAND, WXC_FROM_DIP(5));
     m_browser->SetMinSize(wxSize(300,50));

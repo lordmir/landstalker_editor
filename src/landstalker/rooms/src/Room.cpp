@@ -53,7 +53,7 @@ void Room::SetParams(uint8_t param0, uint8_t param1, uint8_t param2, uint8_t par
 
 std::array<uint8_t, 4> Room::GetParams() const
 {
-    std::array<uint8_t, 4> ret;
+    std::array<uint8_t, 4> ret{};
     ret[0] = ((unknown_param1 & 0x03) << 6) | ((pri_blockset & 0x01) << 5) | (tileset & 0x1F);
     ret[1] = ((unknown_param2 & 0x03) << 6) | (room_palette & 0x3F);
     ret[2] = ((room_z_end & 0x0F) << 4) | (room_z_begin & 0x0F);
@@ -66,12 +66,7 @@ uint8_t Room::GetBlocksetId() const
     return pri_blockset << 5 | tileset;
 }
 
-std::string Room::GetDisplayName()
+std::wstring Room::GetDisplayName()
 {
-    std::string displayName = name;
-    if (auto label = Labels::Get("rooms", index)) {
-        displayName += " " + *label;
-    }
-
-    return displayName;
+    return Labels::Get(Labels::C_ROOMS, index).value_or(std::wstring(name.cbegin(), name.cend()));
 }

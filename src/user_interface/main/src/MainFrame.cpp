@@ -9,6 +9,7 @@
 #include <locale>
 #include <algorithm>
 #include <filesystem>
+#include <stack>
 
 #include <wx/wx.h>
 #include <wx/filename.h>
@@ -31,6 +32,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	  m_activeEditor(nullptr),
       m_g(nullptr)
 {
+    Freeze();
     m_imgs = new ImageList();
     m_imgs32 = new ImageList(true);
     wxGridSizer* sizer = new wxGridSizer(1);
@@ -58,6 +60,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_mnu_save->Enable(false);
     m_mnu_build_asm->Enable(false);
     m_mnu_run_emu->Enable(false);
+    Thaw();
     if (!filename.empty())
     {
         OpenFile(filename.c_str());
@@ -75,6 +78,9 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
+    this->Connect(EVT_RENAME_NAV_ITEM, wxCommandEventHandler(MainFrame::OnRenameNavItem), nullptr, this);
+    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
+    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -127,6 +133,7 @@ void MainFrame::OpenRomFile(const wxString& path)
         {
             return;
         }
+        OpenLabelsFile(path.ToStdString());
         m_rom.load_from_file(static_cast<std::string>(path));
         m_g = std::make_shared<GameData>(m_rom);
         this->SetLabel("Landstalker Editor - " + m_rom.get_description());
@@ -150,6 +157,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
         {
             return;
         }
+        OpenLabelsFile(std::filesystem::path(path.ToStdString()).parent_path().string());
         m_g = std::make_shared<GameData>(path.ToStdString());
         this->SetLabel("Landstalker Editor - " + path);
         wxFileName name(path);
@@ -166,6 +174,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
 
 void MainFrame::InitUI()
 {
+    Freeze();
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
@@ -187,6 +196,7 @@ void MainFrame::InitUI()
     const int ent_img = m_imgs->GetIdx("entity");
     const int scr_img = m_imgs->GetIdx("script");
     const int bscr_img = m_imgs->GetIdx("bscript");
+
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
@@ -205,9 +215,9 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
-    wxTreeItemId nodeRm = m_browser->AppendItem(nodeRoot, "Rooms", rm_img, rm_img, new TreeNodeData());
-    wxTreeItemId nodeEnt = m_browser->AppendItem(nodeRoot, "Entities", ent_img, ent_img, new TreeNodeData());
-    wxTreeItemId nodeSprites = m_browser->AppendItem(nodeRoot, "Sprites", spr_img, spr_img, new TreeNodeData());
+    InsertNavItem(L"Rooms", rm_img);
+    InsertNavItem(L"Entities", ent_img);
+    InsertNavItem(L"Sprites", spr_img);
 
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
@@ -255,8 +265,8 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        auto spr_name = m_g->GetSpriteData()->GetSpriteName(i);
-        m_browser->AppendItem(nodeSprites, spr_name, spr_img, spr_img, new TreeNodeData(TreeNodeData::Node::SPRITE, i));
+        const std::wstring spr_name = m_g->GetSpriteData()->GetSpriteDisplayName(i);
+        InsertNavItem(L"Sprites/" + spr_name, spr_img, TreeNodeData::Node::SPRITE, i, false);
     }
     for (int i = 0; i < 255; ++i)
     {
@@ -264,8 +274,8 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const auto& ent_name = Labels::Get("entities", i).value_or("Entity" + std::to_string(i));
-        m_browser->AppendItem(nodeEnt, ent_name, ent_img, ent_img, new TreeNodeData(TreeNodeData::Node::ENTITY, i));
+        const std::wstring ent_name = m_g->GetSpriteData()->GetEntityDisplayName(i);
+        InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
     }
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
@@ -343,9 +353,11 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        m_browser->AppendItem(nodeRm, room->GetDisplayName(), rm_img, rm_img, new TreeNodeData(TreeNodeData::Node::ROOM,
-            (static_cast<int>(RoomEdit::Mode::NORMAL) << 16) | room->index));
+        InsertNavItem(L"Rooms/" + room->GetDisplayName(), rm_img, TreeNodeData::Node::ROOM, room->index, false);
     }
+
+    SortNavItems(m_browser->GetRootItem());
+
     m_mnu_save_as_asm->Enable(true);
     m_mnu_save_to_rom->Enable(true);
     if (m_asmfile)
@@ -356,6 +368,7 @@ void MainFrame::InitUI()
     {
         m_mnu_run_emu->Enable(true);
     }
+    Thaw();
 }
 
 void MainFrame::InitConfig()
@@ -373,6 +386,22 @@ MainFrame::ReturnCode MainFrame::Save()
     {
         return SaveToRom(m_last.ToStdString());
     }
+}
+
+MainFrame::ReturnCode MainFrame::SaveLabelsFile(std::string path)
+{
+    std::filesystem::path path_obj = std::filesystem::path(path);
+    if (std::filesystem::is_directory(path_obj))
+    {
+        path_obj /= "landstalker_labels.yaml";
+    }
+    else
+    {
+        std::string prefix = path_obj.has_stem() ? path_obj.stem().string() : "landstalker";
+        path_obj = path_obj.replace_filename(prefix + "_labels.yaml");
+    }
+    Labels::SaveData(path_obj.string());
+    return ReturnCode::OK;
 }
 
 MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
@@ -407,6 +436,7 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
                     m_built_rom = romfile.GetFullPath();
                     m_mnu_run_emu->Enable(true);
                 }
+                SaveLabelsFile(path);
             }
         }
         return ReturnCode::OK;
@@ -449,6 +479,7 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
                 return ReturnCode::CANCELLED;
             }
             path = fdlog.GetPath().ToStdString();
+            SaveLabelsFile(path);
         }
         if (m_g)
         {
@@ -497,7 +528,9 @@ void MainFrame::OnStatusBarClear(wxCommandEvent& event)
 void MainFrame::OnPropertiesInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->InitProperties(*this->m_properties);
+    Thaw();
 	event.Skip();
 }
 
@@ -506,7 +539,9 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
     if (frame && m_properties->GetGrid())
     {
+        Freeze();
         frame->UpdateProperties(*this->m_properties);
+        Thaw();
     }
 	event.Skip();
 }
@@ -514,7 +549,9 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 void MainFrame::OnPropertiesClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->ClearProperties(*this->m_properties);
+    Thaw();
 	event.Skip();
 }
 
@@ -530,14 +567,18 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->InitMenu(*this->m_menubar, *m_imgs);
+    Thaw();
 	event.Skip();
 }
 
 void MainFrame::OnMenuClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
+    Freeze();
 	frame->ClearMenu(*this->m_menubar);
+    Thaw();
 	event.Skip();
 }
 
@@ -554,26 +595,52 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 {
 	if (m_activeEditor != nullptr)
 	{
+        Freeze();
 		auto* pane = event.GetPane();
 		pane->Hide();
 		m_activeEditor->UpdateUI();
+        Thaw();
 	}
 	event.Skip();
 }
 
 void MainFrame::OnGoToNavItem(wxCommandEvent& event)
 {
-    GoToNavItem(std::string(event.GetString()));
+    GoToNavItem(std::wstring(event.GetString()));
 }
 
-void MainFrame::GoToNavItem(const std::string& path)
+void MainFrame::OnRenameNavItem(wxCommandEvent& event)
 {
-    std::istringstream ss(path);
+    std::wstring combined(event.GetString().ToStdWstring());
+    int pos = combined.find_first_of(L'\1');
+    std::wstring new_path(combined.substr(0, pos));
+    std::wstring old_path(combined.substr(pos + 1));
+    
+    RenameNavItem(old_path, new_path);
+}
+
+void MainFrame::OnDeleteNavItem(wxCommandEvent& event)
+{
+    DeleteNavItem(event.GetString().ToStdWstring());
+}
+
+void MainFrame::OnAddNavItem(wxCommandEvent& event)
+{
+    AddNavItem(event.GetString().ToStdWstring(), event.GetInt(), static_cast<TreeNodeData::Node>(event.GetExtraLong()), event.GetSelection());
+}
+
+std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
+{
+    std::wistringstream ss(path);
     wxTreeItemIdValue cookie;
-    std::string name;
+    std::wstring name;
     auto c = m_browser->GetRootItem();
-    while (std::getline(ss, name, '/'))
+    while (std::getline(ss, name, L'/'))
     {
+        if (!c.IsOk())
+        {
+            return std::nullopt;
+        }
         c = m_browser->GetFirstChild(c, cookie);
         while (c.IsOk() == true)
         {
@@ -587,13 +654,195 @@ void MainFrame::GoToNavItem(const std::string& path)
     }
     if (ss.eof() && c.IsOk())
     {
-        m_browser->SelectItem(c);
-        ProcessSelectedBrowserItem(c);
+        return c;
+    }
+    return std::nullopt;
+}
+
+std::optional<wxTreeItemId> MainFrame::InsertNavItem(const std::wstring& path, int img, const TreeNodeData::Node& type, int value, bool no_delete)
+{
+    static const int CLOSED_FOLDER_ICON = m_imgs->GetIdx("closed_folder");
+    static const int OPEN_FOLDER_ICON = m_imgs->GetIdx("open_folder");
+
+    std::wistringstream ss(path);
+    wxTreeItemIdValue cookie;
+    std::wstring name;
+    auto parent = m_browser->GetRootItem();
+    auto child = parent;
+    if (FindNavItem(path))
+    {
+        // Already exists
+        return FindNavItem(path);
+    }
+    while (std::getline(ss, name, L'/'))
+    {
+        child = m_browser->GetFirstChild(parent, cookie);
+        while (child.IsOk() == true)
+        {
+            auto label = m_browser->GetItemText(child);
+            if (label == name)
+            {
+                parent = child;
+                break;
+            }
+            child = m_browser->GetNextSibling(child);
+        }
+        if (parent.IsOk() && !child.IsOk())
+        {
+            // Child not found, create one
+            if (ss.eof())
+            {
+                // Final Node
+                child = m_browser->AppendItem(parent, name, img, img, new TreeNodeData(type, value, img, no_delete));
+            }
+            else
+            {
+                // Subdirectory
+                child = m_browser->AppendItem(parent, name, CLOSED_FOLDER_ICON, CLOSED_FOLDER_ICON,
+                    new TreeNodeData(TreeNodeData::Node::BASE, value, CLOSED_FOLDER_ICON, no_delete));
+                m_browser->SetItemImage(child, OPEN_FOLDER_ICON, wxTreeItemIcon_Expanded);
+                m_browser->SetItemImage(child, OPEN_FOLDER_ICON, wxTreeItemIcon_SelectedExpanded);
+            }
+            parent = child;
+        }
+    }
+    if (ss.eof() && child.IsOk())
+    {
+        return child;
+    }
+    return std::nullopt;
+}
+
+void MainFrame::SortNavItems(const wxTreeItemId& parent)
+{
+    if (m_browser->HasChildren(parent))
+    {
+        wxTreeItemIdValue cookie;
+        
+        m_browser->SortChildren(parent);
+        auto child = m_browser->GetFirstChild(parent, cookie);
+        do
+        {
+            if (m_browser->HasChildren(child))
+            {
+                SortNavItems(child);
+            }
+        } while ((child = m_browser->GetNextChild(parent, cookie)));
+    }
+}
+
+bool MainFrame::RemoveNavItem(const std::wstring& path)
+{
+    std::stack<wxTreeItemId> path_elems;
+    std::wistringstream ss(path);
+    wxTreeItemIdValue cookie;
+    std::wstring name;
+    auto parent = m_browser->GetRootItem();
+    auto child = parent;
+    while (std::getline(ss, name, L'/'))
+    {
+        child = m_browser->GetFirstChild(parent, cookie);
+        while (child.IsOk() == true)
+        {
+            auto label = m_browser->GetItemText(child);
+            if (label == name)
+            {
+                parent = child;
+                path_elems.push(child);
+                break;
+            }
+            child = m_browser->GetNextSibling(child);
+        }
+        if (!child.IsOk())
+        {
+            // Path not found
+            return false;
+        }
+    }
+    while (!path_elems.empty() && m_browser->GetChildrenCount(path_elems.top()) == 0)
+    {
+        TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(path_elems.top()));
+        if (node_data->DoNotDelete() == true)
+        {
+            break;
+        }
+        m_browser->Delete(path_elems.top());
+        path_elems.pop();
+    }
+    return true;
+}
+
+bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& new_path)
+{
+    auto old_item = FindNavItem(old_path);
+    auto new_item = FindNavItem(new_path);
+    if (!old_item || new_item)
+    {
+        return false;
+    }
+    if (GetNavItemParent(old_path) == GetNavItemParent(new_path))
+    {
+        m_browser->SetItemText(*old_item, new_path.substr(new_path.find_last_of(L"/") + 1));
+        return true;
+    }
+    TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*old_item));
+    if (!node_data)
+    {
+        return false;
+    }
+    new_item = InsertNavItem(new_path, node_data->GetNodeImage(), node_data->GetNodeType(), node_data->GetValue(), node_data->DoNotDelete());
+    if (!new_item)
+    {
+        return false;
+    }
+    if (!RemoveNavItem(old_path))
+    {
+        RemoveNavItem(new_path);
+        return false;
+    }
+    SortNavItems(m_browser->GetRootItem());
+    m_browser->SelectItem(*new_item);
+    return true;
+}
+
+bool MainFrame::AddNavItem(const std::wstring& path, int image, const TreeNodeData::Node& type, int value, bool no_delete)
+{
+    auto item = InsertNavItem(path, image, type, value, no_delete);
+    if (item)
+    {
+        m_browser->SelectItem(*item);
+        ProcessSelectedBrowserItem(*item);
+    }
+    return true;
+}
+
+bool MainFrame::DeleteNavItem(const std::wstring& path)
+{
+    if (*FindNavItem(path) == m_browser->GetSelection())
+    {
+        m_browser->SelectItem(m_browser->GetNextVisible(m_browser->GetSelection()));
+    }
+    return RemoveNavItem(path);
+}
+
+std::wstring MainFrame::GetNavItemParent(const std::wstring& path)
+{
+    return path.substr(0, path.find_last_of(L'/'));
+}
+
+void MainFrame::GoToNavItem(const std::wstring& path)
+{
+    auto item = FindNavItem(path);
+    if (item)
+    {
+        m_browser->SelectItem(*item);
+        ProcessSelectedBrowserItem(*item);
     }
 }
 
 void MainFrame::ShowEditor(EditorType editor)
 {
+    Freeze();
     if (!m_editors.at(editor)->IsShown())
     {
         m_activeEditor = m_editors.at(editor);
@@ -609,6 +858,7 @@ void MainFrame::ShowEditor(EditorType editor)
         this->m_mainwin->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
         this->m_mainwin->GetSizer()->Layout();
     }
+    Thaw();
 }
 
 void MainFrame::HideAllEditors()
@@ -638,6 +888,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
             }
         }
     }
+    Freeze();
     for (const auto& editor : m_editors)
     {
         editor.second->Hide();
@@ -661,6 +912,7 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_last_asm.clear();
     m_last_rom.clear();
     m_built_rom.clear();
+    Thaw();
     return ReturnCode::OK;
 }
 
@@ -675,7 +927,8 @@ bool MainFrame::CheckForFileChanges()
 
 void MainFrame::OpenFile(const wxString& path)
 {
-    auto extension = std::filesystem::path(path.ToStdString()).extension().string();
+    auto path_obj = std::filesystem::path(path.ToStdString());
+    auto extension = path_obj.extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(),
         [](const unsigned char i) { return std::tolower(i); });
     m_filehistory->AddFileToHistory(path);
@@ -687,6 +940,21 @@ void MainFrame::OpenFile(const wxString& path)
     {
         OpenRomFile(path);
     }
+}
+
+void MainFrame::OpenLabelsFile(std::string path)
+{
+    std::filesystem::path path_obj = std::filesystem::path(path);
+    if (std::filesystem::is_directory(path_obj))
+    {
+        path_obj /= "landstalker_labels.yaml";
+    }
+    else
+    {
+        std::string prefix = path_obj.has_stem() ? path_obj.stem().string() : "landstalker";
+        path_obj = path_obj.replace_filename(prefix + "_labels.yaml");
+    }
+    Labels::LoadData(path_obj.string());
 }
 
 void MainFrame::OnOpen(wxCommandEvent& event)
@@ -831,7 +1099,7 @@ void MainFrame::Refresh()
         break;
     case Mode::SPRITE:
         // Display sprite
-        GetSpriteEditor()->Open(m_seldata & 0xFF, ((m_seldata >> 16) & 0xFF) - 1, ((m_seldata >> 8) & 0xFF) - 1);
+        GetSpriteEditor()->Open(m_seldata & 0xFF);
         ShowEditor(EditorType::SPRITE);
         break;
     case Mode::IMAGE:

@@ -1,8 +1,9 @@
 #include <user_interface/palettes/include/DataViewCtrlPaletteModel.h>
 
-DataViewCtrlPaletteModel::DataViewCtrlPaletteModel(const std::vector<std::shared_ptr<PaletteEntry>>& palettes)
+DataViewCtrlPaletteModel::DataViewCtrlPaletteModel(const std::vector<std::shared_ptr<PaletteEntry>>& palettes, const std::vector<std::wstring>& labels)
 	: wxDataViewVirtualListModel(palettes.size()),
-	  m_palettes(palettes)
+	  m_palettes(palettes),
+	  m_labels(labels)
 {
 }
 
@@ -44,7 +45,11 @@ void DataViewCtrlPaletteModel::GetValueByRow(wxVariant& variant, unsigned int ro
 {
 	if (col == static_cast<int>(Col::NAME))
 	{
-		if (row < m_palettes.size())
+		if (row < m_labels.size())
+		{
+			variant = m_labels.at(row);
+		}
+		else if (row < m_palettes.size())
 		{
 			variant = m_palettes[row]->GetName();
 		}

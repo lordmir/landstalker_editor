@@ -44,7 +44,7 @@ protected:
 	virtual void OpenElement();
 	virtual bool HandleKeyPress(unsigned int key, unsigned int modifiers);
 	virtual void UpdateOtherControls();
-	virtual std::string MakeLabel(int index) const;
+	virtual std::wstring MakeLabel(int index) const;
 
 private:
 	void OnToggle(wxCommandEvent& evt);

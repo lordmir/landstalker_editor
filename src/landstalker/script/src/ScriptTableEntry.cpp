@@ -18,7 +18,7 @@ const std::unordered_map<ScriptTableEntryType, std::string> ScriptTableEntry::EN
 	{ScriptTableEntryType::INVALID, "Unknown"}
 };
 
-const std::array<std::wstring, 2> ScriptPlayBgmEntry::BGMS{ L"Heh Heh, I Think I Will Disrupt This Good Cheer", L"Black Market" };
+const std::array<int, 2> ScriptPlayBgmEntry::BGMS{ 0x24, 0x0E };
 
 std::unique_ptr<ScriptTableEntry> ScriptTableEntry::MakeEntry(const ScriptTableEntryType& ntype)
 {
@@ -355,16 +355,16 @@ uint16_t ScriptPlayBgmEntry::ToBytes() const
 
 std::wstring ScriptPlayBgmEntry::ToString(std::shared_ptr<const GameData> /*gd*/) const
 {
-	return StrWPrintf(L"Play BGM track %01d (\"%s\").", bgm, BGMS[bgm % BGMS.size()].c_str());
+	return StrWPrintf(L"Play BGM track %01d (\"%d\").", bgm, BGMS[bgm % BGMS.size()]);
 }
 
 std::wstring ScriptPlayBgmEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) const
 {
 	std::wstring str_preview;
 	str_preview = L"  # ";
-	if (bgm < BGMS.size())
+	if (bgm < BGMS.size() && Labels::Get(Labels::C_SOUNDS, bgm))
 	{
-		str_preview += BGMS.at(bgm);
+		str_preview += *Labels::Get(Labels::C_SOUNDS , BGMS.at(bgm));
 	}
 	else
 	{

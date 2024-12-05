@@ -109,6 +109,7 @@ private:
 
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
+	void FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name);
 
 	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
 	EntityViewerCtrl* m_preview = nullptr;
