@@ -164,7 +164,9 @@ private:
 		DCB,
 		INCLUDE,
 		INCBIN,
-		ALIGN
+		ALIGN,
+		SCRIPTID,
+		SCRIPTJUMP
 	};
 
 	bool ParseLine(AsmLine& line, const std::string& str);

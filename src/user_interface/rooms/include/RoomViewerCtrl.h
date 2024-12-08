@@ -135,7 +135,7 @@ private:
 	void UpdateRoomDescText(uint16_t roomnum);
 	std::unique_ptr<wxBitmap> DrawRoomWarps(uint16_t roomnum);
 	void DrawWarp(wxGraphicsContext& gc, int index, std::shared_ptr<Tilemap3D> map, int tile_width, int tile_height, bool adjust_z = false);
-	void AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y);
+	void AddRoomLink(wxGraphicsContext* gc, const std::wstring& label, uint16_t room, int x, int y);
 	std::unique_ptr<wxBitmap> DrawHeightmapVisualisation(std::shared_ptr<Tilemap3D> map, uint8_t opacity);
 	void DrawHeightmapCell(wxGraphicsContext& gc, int x, int y, int z, int width, int height, int restrictions,
 		int classification, bool draw_walls = true, wxColor border_colour = *wxWHITE);

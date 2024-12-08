@@ -18,10 +18,23 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 private:
+	void OnSaveAsYaml();
+	void OnSaveAllAsYaml();
+	void OnLoadFromYaml();
+	void OnLoadAllFromYaml();
+
+	bool SaveAsYaml(const std::string& filename, int behaviour_id);
+	bool SaveAllAsYaml(const std::string& dirname);
+	int LoadFromYaml(const std::string& filename);
+	bool LoadAllFromYaml(const std::string& filename);
+
 	virtual void InitProperties(wxPropertyGridManager& props) const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	virtual void ClearMenu(wxMenuBar& menu) const;
 
 	mutable bool m_reset_props = false;
 

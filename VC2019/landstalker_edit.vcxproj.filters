@@ -184,6 +184,24 @@
     <Filter Include="include\UI\Text">
       <UniqueIdentifier>{798fc907-3a71-4dc0-9898-411de987af9b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\UI\Rooms\CharacterEditor">
+      <UniqueIdentifier>{68de2def-adca-48ec-8906-0700bb3c2ab4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms\ChestEditor">
+      <UniqueIdentifier>{a90d8013-396f-4c28-932e-1d7790ecfa46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms\DoorSwapEditor">
+      <UniqueIdentifier>{36b851f3-64af-419f-8b17-83914e5e6d05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms\EntityEditor">
+      <UniqueIdentifier>{add910db-0953-4d3b-b4f7-5e5dfb8077fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms\FlagEditor">
+      <UniqueIdentifier>{a6f7a102-cbad-4844-afd7-09e443777fa3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\UI\Rooms\WarpEditor">
+      <UniqueIdentifier>{6533a7a0-2bfb-47b5-8ed9-67e56b7a210b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
@@ -519,6 +537,9 @@
     <ClCompile Include="..\src\user_interface\main\src\BrowserTreeCtrl.cpp">
       <Filter>src\UI\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\landstalker\behaviours\src\BehaviourYamlConverter.cpp">
+      <Filter>src\Data\Behaviours</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -719,27 +740,6 @@
     <ClInclude Include="..\src\user_interface\palettes\include\PaletteListFrame.h">
       <Filter>include\UI\Palette</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\CharacterDialog.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\ChestDialog.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\DoorDataViewModel.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\EntityControlFrame.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\EntityPropertiesWindow.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\FlagDataViewModel.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\FlagDialog.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\user_interface\rooms\include\HeightmapEditorCtrl.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
@@ -756,21 +756,6 @@
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\user_interface\rooms\include\RoomViewerFrame.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapControlFrame.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDataViewModel.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h">
       <Filter>include\UI\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h">
@@ -865,6 +850,45 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\main\include\BrowserTreeCtrl.h">
       <Filter>include\UI\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\behaviours\include\BehaviourYamlConverter.h">
+      <Filter>include\Data\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\CharacterDialog.h">
+      <Filter>include\UI\Rooms\CharacterEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\ChestDialog.h">
+      <Filter>include\UI\Rooms\ChestEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\DoorDataViewModel.h">
+      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapControlFrame.h">
+      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDataViewModel.h">
+      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h">
+      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\EntityControlFrame.h">
+      <Filter>include\UI\Rooms\EntityEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\EntityPropertiesWindow.h">
+      <Filter>include\UI\Rooms\EntityEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\FlagDataViewModel.h">
+      <Filter>include\UI\Rooms\FlagEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\FlagDialog.h">
+      <Filter>include\UI\Rooms\FlagEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h">
+      <Filter>include\UI\Rooms\WarpEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h">
+      <Filter>include\UI\Rooms\WarpEditor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

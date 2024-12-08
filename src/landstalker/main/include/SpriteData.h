@@ -100,13 +100,13 @@ public:
 	virtual bool HasBeenModified() const;
 	virtual void RefreshPendingWrites(const Rom& rom);
 
-	std::wstring GetEntityDisplayName(uint8_t id) const;
-	std::wstring GetSpriteDisplayName(uint8_t id) const;
+	static std::wstring GetEntityDisplayName(uint8_t id);
+	static std::wstring GetSpriteDisplayName(uint8_t id);
 	std::wstring GetSpriteAnimationDisplayName(uint8_t id, const std::string& name) const;
 	std::wstring GetSpriteFrameDisplayName(uint8_t id, const std::string& name) const;
-	std::wstring GetSpriteLowPaletteDisplayName(uint8_t id) const;
-	std::wstring GetSpriteHighPaletteDisplayName(uint8_t id) const;
-	std::wstring GetBehaviourDisplayName(int behav_id) const;
+	static std::wstring GetSpriteLowPaletteDisplayName(uint8_t id);
+	static std::wstring GetSpriteHighPaletteDisplayName(uint8_t id);
+	static std::wstring GetBehaviourDisplayName(int behav_id);
 
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;

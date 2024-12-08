@@ -10,8 +10,10 @@ const std::unordered_map<Behaviours::ParamType, int> Behaviours::PARAM_SIZES =
 {
     {ParamType::UINT8,           1},
     {ParamType::INT8,            1},
+    {ParamType::SOUND,           1},
+    {ParamType::LOW_CUTSCENE,    1},
+    {ParamType::HIGH_CUTSCENE,   1},
     {ParamType::UINT16,          2},
-    {ParamType::UINT8_PLUS_256,  1},
     {ParamType::LABEL,           1},
     {ParamType::COORDINATE,      1},
     {ParamType::LONG_COORDINATE, 2},
@@ -98,7 +100,7 @@ const std::unordered_map<Behaviours::CommandType, Behaviours::CommandDefinition>
     { CommandType::MOVE_TO_XY_POS_IMMEDIATE  , {  CommandType::MOVE_TO_XY_POS_IMMEDIATE  , {"MoveToXYPosImmedite"},      {{"X", ParamType::COORDINATE}, {"Y", ParamType::COORDINATE}} }},
     { CommandType::MOVE_TO_Z_POS_IMMEDIATE   , {  CommandType::MOVE_TO_Z_POS_IMMEDIATE   , {"MoveToZPosImmediate"},      {{"Z", ParamType::COORDINATE}} }},
     { CommandType::RESET_TO_INITIAL_POS      , {  CommandType::RESET_TO_INITIAL_POS      , {"ResetToInitialPos"},        {} }},
-    { CommandType::START_CUTSCENE            , {  CommandType::START_CUTSCENE            , {"StartCutscene"},            {{"Cutscene", ParamType::UINT8}} }},
+    { CommandType::START_CUTSCENE            , {  CommandType::START_CUTSCENE            , {"StartCutscene"},            {{"Cutscene", ParamType::LOW_CUTSCENE}} }},
     { CommandType::MOVE_NO_CLIP              , {  CommandType::MOVE_NO_CLIP              , {"MoveNoClip"},               {{"Unknown", ParamType::UINT8}} }},
     { CommandType::ROTATE_PLAYER             , {  CommandType::ROTATE_PLAYER             , {"RotatePlayer"},             {{"Unknown", ParamType::UINT8}} }},
     { CommandType::MAKE_HOSTILE              , {  CommandType::MAKE_HOSTILE              , {"MakeHostile"},              {} }},
@@ -118,9 +120,9 @@ const std::unordered_map<Behaviours::CommandType, Behaviours::CommandDefinition>
     { CommandType::DECAY_FLASH               , {  CommandType::DECAY_FLASH               , {"DecayFlash"},               {{"Ticks", ParamType::UINT8}} }},
     { CommandType::FLASH_SPIN_APPEAR         , {  CommandType::FLASH_SPIN_APPEAR         , {"FlashSpinAppear"},          {{"Ticks", ParamType::UINT8}} }},
     { CommandType::FLASH_SPIN_DISAPPEAR      , {  CommandType::FLASH_SPIN_DISAPPEAR      , {"FlashSpinDisappear"},       {{"Ticks", ParamType::UINT8}} }},
-    { CommandType::PLAY_SOUND                , {  CommandType::PLAY_SOUND                , {"PlaySound"},                {{"Sound", ParamType::UINT8}} }},
+    { CommandType::PLAY_SOUND                , {  CommandType::PLAY_SOUND                , {"PlaySound"},                {{"Sound", ParamType::SOUND}} }},
     { CommandType::UNKNOWN_B63               , {  CommandType::UNKNOWN_B63               , {"UnknownB63"},               {{"Unknown", ParamType::UINT8}} }},
-    { CommandType::START_HI_CUTSCENE         , {  CommandType::START_HI_CUTSCENE         , {"StartHiCutscene"},          {{"Cutscene", ParamType::UINT8_PLUS_256}} }},
+    { CommandType::START_HI_CUTSCENE         , {  CommandType::START_HI_CUTSCENE         , {"StartHiCutscene"},          {{"Cutscene", ParamType::HIGH_CUTSCENE}} }},
     { CommandType::UNKNOWN_B65               , {  CommandType::UNKNOWN_B65               , {"UnknownB65"},               {{"Unknown", ParamType::UINT8}} }},
     { CommandType::UNKNOWN_B66               , {  CommandType::UNKNOWN_B66               , {"UnknownB66"},               {{"Unknown", ParamType::UINT8}} }},
     { CommandType::UNKNOWN_B67               , {  CommandType::UNKNOWN_B67               , {"UnknownB67"},               {} }},
@@ -192,12 +194,14 @@ std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> Behaviou
                 switch (p.second)
                 {
                 case Behaviours::ParamType::UINT8:
+                case Behaviours::ParamType::SOUND:
+                case Behaviours::ParamType::LOW_CUTSCENE:
                     value = b.second[++j];
                     break;
                 case Behaviours::ParamType::INT8:
                     value = static_cast<int8_t>(b.second[++j]);
                     break;
-                case Behaviours::ParamType::UINT8_PLUS_256:
+                case Behaviours::ParamType::HIGH_CUTSCENE:
                     value = b.second[++j] + 256;
                     break;
                 case Behaviours::ParamType::UINT16:
@@ -228,7 +232,7 @@ std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> Behaviou
                     j += 2;
                     break;
                 }
-                behaviours_decoded[b.first].second.back().params.push_back({ p.first, value });
+                behaviours_decoded[b.first].second.back().params.push_back({ p.first, value, p.second });
             }
             ++j;
         }
@@ -250,29 +254,29 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Behaviours::Pack(const std
         {
             labels.insert({ static_cast<int>(labels.size() + 1), static_cast<int>(behaviour_bytes.size()) });
             behaviour_bytes.push_back(static_cast<uint8_t>(c.command));
-            const auto& cmddef = Behaviours::GetCommand(c.command);
             for (const auto& p : c.params)
             {
-                auto pdef = std::find_if(cmddef.params.cbegin(), cmddef.params.cend(), [&p](const auto& v) {
-                    return v.first == p.first;
-                    });
-                switch (pdef->second)
+                const auto& param_value = std::get<1>(p);
+                const auto& param_type = std::get<2>(p);
+                switch (param_type)
                 {
                 case Behaviours::ParamType::UINT8:
                 case Behaviours::ParamType::INT8:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second)));
+                case Behaviours::ParamType::SOUND:
+                case Behaviours::ParamType::LOW_CUTSCENE:
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value)));
                     break;
-                case Behaviours::ParamType::UINT8_PLUS_256:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second) - 256));
+                case Behaviours::ParamType::HIGH_CUTSCENE:
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value) - 256));
                     break;
                 case Behaviours::ParamType::UINT16:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second) >> 8));
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second) & 0xFF));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value) >> 8));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value) & 0xFF));
                     break;
                 case Behaviours::ParamType::LABEL:
-                    if (labels.find(std::get<int>(p.second)) != labels.cend())
+                    if (labels.find(std::get<int>(param_value)) != labels.cend())
                     {
-                        behaviour_bytes.push_back(static_cast<uint8_t>(labels.find(std::get<int>(p.second))->second - behaviour_bytes.size() + 1));
+                        behaviour_bytes.push_back(static_cast<uint8_t>(labels.find(std::get<int>(param_value))->second - behaviour_bytes.size() + 1));
                     }
                     else
                     {
@@ -280,15 +284,15 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Behaviours::Pack(const std
                     }
                     break;
                 case Behaviours::ParamType::FLAG:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second) >> 3));
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(p.second) & 0x07));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value) >> 3));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<int>(param_value) & 0x07));
                     break;
                 case Behaviours::ParamType::COORDINATE:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(p.second) * 16.0));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(param_value) * 16.0));
                     break;
                 case Behaviours::ParamType::LONG_COORDINATE:
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(p.second)));
-                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(p.second) * 256.0));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(param_value)));
+                    behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(param_value) * 256.0));
                     break;
                 }
             }
@@ -297,160 +301,4 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Behaviours::Pack(const std
         cur_offset = behaviour_bytes.size();
     }
     return { offset_bytes, behaviour_bytes };
-}
-
-std::string Behaviours::ToYaml(int id, const std::string& name, const std::vector<Behaviours::Command>& behaviour)
-{
-    std::ostringstream ss;
-    ss << "Index: " << std::dec << id << std::endl;
-    ss << "Name: " << name << std::endl;
-    ss << ToYaml(behaviour);
-    return ss.str();
-}
-
-std::string Behaviours::ToYaml(const std::vector<Behaviours::Command>& behaviour)
-{
-    std::ostringstream ss;
-    ss << "Script:" << std::endl;
-    for (const auto& c : behaviour)
-    {
-        ss << "- " << Behaviours::GetCommand(c.command).aliases[0];
-        if (!c.params.empty())
-        {
-            ss << ":" << std::endl;
-            for (const auto& p : c.params)
-            {
-                ss << "    " << p.first << ": " << std::visit([](const auto& v) { return std::to_string(v); }, p.second) << std::endl;
-            }
-        }
-        else
-        {
-            ss << std::endl;
-        }
-    }
-    return ss.str();
-}
-
-std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml, int& id, std::string& name)
-{
-    YAML::Node node = YAML::Load(yaml);
-    id = node["Index"].as<int>();
-    name = node["Name"].as<std::string>();
-    return FromYaml(yaml);
-}
-
-std::vector<Behaviours::Command> Behaviours::FromYaml(const std::string& yaml)
-{
-    YAML::Node node = YAML::Load(yaml);
-    if (node["Script"].IsDefined())
-    {
-        node = node["Script"];
-    }
-    std::vector<Behaviours::Command> cmds;
-    int cmd_index = 1;
-    for (const auto& c : node)
-    {
-        if (c.IsScalar())
-        {
-            const auto& cmddef = Behaviours::GetCommandByName(c.as<std::string>());
-            if (!cmddef.params.empty())
-            {
-                std::string err("#" + std::to_string(cmd_index) + ": Expected parameters for command \"" + cmddef.aliases.front() + "\"");
-                err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
-                    std::string("\"") + cmddef.params.front().first + "\"", [](std::string r, const auto& s)
-                    {
-                        return std::move(r) + ", \"" + s.first + "\"";
-                    });
-                throw std::runtime_error(err);
-            }
-            cmds.push_back({ cmddef.id, {} });
-        }
-        else if (c.IsMap() && c.size() >= 1)
-        {
-            const auto& cmddef = Behaviours::GetCommandByName(c.begin()->first.as<std::string>());
-            Behaviours::Command cmd;
-            cmd.command = cmddef.id;
-            std::vector<bool> params_set(cmddef.params.size());
-            std::fill(params_set.begin(), params_set.end(), false);
-            for (const auto& p : cmddef.params)
-            {
-                cmd.params.push_back({ p.first, -1 });
-            }
-            for (const auto& p : c.begin()->second)
-            {
-                const auto& pname = p.first.as<std::string>();
-                auto pdef = std::find_if(cmddef.params.cbegin(), cmddef.params.cend(), [&pname](const auto& v)
-                    {
-                        return v.first == pname;
-                    });
-                if (pdef != cmddef.params.end())
-                {
-                    auto pindex = std::distance(cmddef.params.cbegin(), pdef);
-                    params_set[pindex] = true;
-                    switch (pdef->second)
-                    {
-                    case Behaviours::ParamType::COORDINATE:
-                    case Behaviours::ParamType::LONG_COORDINATE:
-                        cmd.params[pindex].second = p.second.as<double>();
-                        break;
-                    default:
-                        cmd.params[pindex].second = p.second.as<int>();
-                        break;
-                    }
-                }
-                else
-                {
-                    std::string err("#" + std::to_string(cmd_index) + ": Bad parameter \"" + pname + "\" for command \"" + cmddef.aliases.front() + "\"");
-                    err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
-                        std::string("\"") + cmddef.params.front().first + "\"", [](std::string r, const auto& s)
-                        {
-                            return std::move(r) + ", \"" + s.first + "\"";
-                        });
-                    throw std::runtime_error(err);
-                }
-            }
-            if (!std::all_of(params_set.begin(), params_set.end(), [](bool p) {return p; }))
-            {
-                std::string err("#" + std::to_string(cmd_index) + ": Expected " + std::to_string(cmddef.params.size()) +
-                    " parameters for command \"" + cmddef.aliases.front() + "\"");
-                err += "\nThe following parameters are required: " + std::accumulate(cmddef.params.cbegin() + 1, cmddef.params.cend(),
-                    std::string("\"") + cmddef.params.front().first + "\"",  [](std::string r, const auto& s)
-                    {
-                        return std::move(r) + ", \"" + s.first + "\"";
-                    });
-                throw std::runtime_error(err);
-            }
-            cmds.push_back(cmd);
-        }
-        else
-        {
-            throw std::runtime_error("#" + std::to_string(cmd_index) + ": Unexpected element in YAML: " + c.as<std::string>("?"));
-        }
-        ++cmd_index;
-    }
-    return cmds;
-}
-
-std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> Behaviours::AllFromYaml(const std::vector<std::string>& yamls)
-{
-    std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> behaviours;
-    for (const auto& yaml : yamls)
-    {
-        int id = 0;
-        std::string name;
-        auto cmds = FromYaml(yaml, id, name);
-        behaviours.emplace(id, std::make_pair(name, cmds));
-    }
-    return behaviours;
-}
-
-std::vector<std::string> Behaviours::AllToYaml(const std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>>& behaviours)
-{
-    std::vector<std::string> behaviours_yaml;
-
-    for (const auto& b : behaviours)
-    {
-        behaviours_yaml.push_back(ToYaml(b.first, b.second.first, b.second.second));
-    }
-    return behaviours_yaml;
 }

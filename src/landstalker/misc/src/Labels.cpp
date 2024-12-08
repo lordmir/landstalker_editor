@@ -92,6 +92,11 @@ void Labels::SaveData(const std::string& filename)
     }
 }
 
+bool Labels::Exists(const std::wstring& what, int id)
+{
+    return m_data.find({what, id}) != m_data.cend() && IsExistingValid(m_data.at({what, id}));
+}
+
 std::optional<std::wstring> Labels::Get(const std::wstring& what, int id) {
     auto it = m_data.find({what, id});
     if (it != m_data.end() && IsExistingValid(it->second))

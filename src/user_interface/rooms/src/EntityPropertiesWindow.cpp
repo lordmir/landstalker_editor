@@ -2,6 +2,7 @@
 
 #include <wx/settings.h>
 #include <landstalker/misc/include/Utils.h>
+#include <landstalker/main/include/SpriteData.h>
 #include <cmath>
 #include <algorithm>
 #include <vector>
@@ -31,11 +32,29 @@ enum ID
     ID_CPYSRC
 };
 
-EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity* entity)
+EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity* entity, const std::vector<std::wstring>& char_names)
     : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(500, 500)),
       m_entity(entity),
       m_id(id)
 {
+    wxArrayString entity_types;
+    for (std::size_t i = 0; i < 256; ++i)
+    {
+        std::wstring entity_name = SpriteData::GetEntityDisplayName(i);
+        entity_types.Add(StrWPrintf(L"[%02X] %s", i, entity_name.c_str()));
+    }
+    wxArrayString behaviours;
+    for (std::size_t i = 0; i < 1024; ++i)
+    {
+        std::wstring behaviour_name = SpriteData::GetBehaviourDisplayName(i);
+        behaviours.Add(StrWPrintf(L"[%04d] %s", i, behaviour_name.c_str()));
+    }
+    wxArrayString dialogues;
+    for (std::size_t i = 0; i < 64; ++i)
+    {
+        std::wstring dialogue_name = i < static_cast<int>(char_names.size()) ? char_names.at(i) : L"???";
+        dialogues.Add(StrWPrintf(L"[%02d] %s", i, dialogue_name.c_str()));
+    }
 
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(szr1);
@@ -50,12 +69,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
 
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    wxArrayString entity_types;
-    for (std::size_t i = 0; i < 255; ++i)
-    {
-        std::wstring entityName = Labels::Get(Labels::C_ENTITIES, i).value_or(L"Entity" + std::to_wstring(i));
-        entity_types.Add(StrWPrintf(L"[%02X] %s", i, entityName.c_str()));
-    }
     m_ctrl_entity_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, 0);
     m_ctrl_entity_type->SetSelection(entity->GetType());
     szr2a->Add(m_ctrl_entity_type, 0, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
@@ -88,6 +101,13 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     m_ctrl_z->SetValue(entity->GetZDbl());
     szr2b->Add(m_ctrl_z, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
+    szr2b->Add(new wxStaticText(this, wxID_ANY, "Speed:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_speed = new wxSpinCtrl(this, ID_SPD, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    m_ctrl_speed->SetRange(0, 7);
+    m_ctrl_speed->SetValue(entity->GetSpeed());
+    m_ctrl_speed->SetIncrement(1);
+    szr2b->Add(m_ctrl_speed, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
     wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2c, 1, wxALL | wxEXPAND, 0);
     szr2c->Add(new wxStaticText(this, wxID_ANY, "Orientation:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -113,80 +133,74 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     wxBoxSizer* szr2d = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2d, 1, wxALL | wxEXPAND, 0);
 
-    szr2d->Add(new wxStaticText(this, wxID_ANY, "Speed:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_speed = new wxSpinCtrl(this, ID_SPD, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_speed->SetRange(0, 7);
-    m_ctrl_speed->SetValue(entity->GetSpeed());
-    m_ctrl_speed->SetIncrement(1);
-    szr2d->Add(m_ctrl_speed, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
     szr2d->Add(new wxStaticText(this, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_behaviour = new wxSpinCtrl(this, ID_BEHAV, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_behaviour->SetRange(0, 1023);
-    m_ctrl_behaviour->SetValue(entity->GetBehaviour());
-    m_ctrl_behaviour->SetIncrement(1);
+    m_ctrl_behaviour = new wxChoice(this, ID_BEHAV);
+    m_ctrl_behaviour->Insert(behaviours, 0);
+    m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
     szr2d->Add(m_ctrl_behaviour, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    szr2d->Add(new wxStaticText(this, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dialogue = new wxSpinCtrl(this, ID_DLG, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_dialogue->SetRange(0, 63);
-    m_ctrl_dialogue->SetValue(entity->GetDialogue());
-    m_ctrl_dialogue->SetIncrement(1);
-    szr2d->Add(m_ctrl_dialogue, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    wxBoxSizer* szr2e = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2e, 1, wxALL | wxEXPAND, 0);
+
+    szr2e->Add(new wxStaticText(this, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_dialogue = new wxChoice(this, ID_DLG);
+    m_ctrl_dialogue->Insert(dialogues, 0);
+    m_ctrl_dialogue->SetSelection(entity->GetDialogue());
+    szr2e->Add(m_ctrl_dialogue, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
-    wxGridSizer* szr2e = new wxGridSizer(3, 3, 0, 0);
-    szr1->Add(szr2e, 2, wxALL | wxEXPAND, 5);
+    wxGridSizer* szr2f = new wxGridSizer(3, 3, 0, 0);
+    szr1->Add(szr2f, 2, wxALL | wxEXPAND, 5);
 
     m_ctrl_hostile = new wxCheckBox(this, ID_FH, _("Hostile"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_hostile->SetValue(entity->IsHostile());
-    szr2e->Add(m_ctrl_hostile, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_hostile, 0, wxALL, 5);
 
     m_ctrl_no_rotate = new wxCheckBox(this, ID_FR, _("No Rotate"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_no_rotate->SetValue(entity->NoRotate());
-    szr2e->Add(m_ctrl_no_rotate, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_no_rotate, 0, wxALL, 5);
 
     m_ctrl_no_pickup = new wxCheckBox(this, ID_FP, _("No Pickup"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_no_pickup->SetValue(entity->NoPickup());
-    szr2e->Add(m_ctrl_no_pickup, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_no_pickup, 0, wxALL, 5);
 
     m_ctrl_has_dialogue = new wxCheckBox(this, ID_FD, _("Has Dialogue"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_dialogue->SetValue(entity->HasDialogue());
-    szr2e->Add(m_ctrl_has_dialogue, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_has_dialogue, 0, wxALL, 5);
 
     m_ctrl_visible = new wxCheckBox(this, ID_FV, _("Visible"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_visible->SetValue(entity->IsVisible());
-    szr2e->Add(m_ctrl_visible, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_visible, 0, wxALL, 5);
 
     m_ctrl_solid = new wxCheckBox(this, ID_FS, _("Solid"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_solid->SetValue(entity->IsSolid());
-    szr2e->Add(m_ctrl_solid, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_solid, 0, wxALL, 5);
 
     m_ctrl_has_gravity = new wxCheckBox(this, ID_FG, _("Gravity"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_gravity->SetValue(entity->HasGravity());
-    szr2e->Add(m_ctrl_has_gravity, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_has_gravity, 0, wxALL, 5);
 
     m_ctrl_has_friction = new wxCheckBox(this, ID_FF, _("Friction"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_friction->SetValue(entity->HasFriction());
-    szr2e->Add(m_ctrl_has_friction, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_has_friction, 0, wxALL, 5);
 
     m_ctrl_reserved = new wxCheckBox(this, ID_FX, _("Reserved"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_reserved->SetValue(entity->IsReservedSet());
-    szr2e->Add(m_ctrl_reserved, 0, wxALL, 5);
+    szr2f->Add(m_ctrl_reserved, 0, wxALL, 5);
 
     szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
-    wxBoxSizer* szr2f = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2f, 1, wxALL | wxEXPAND, 5);
+    wxBoxSizer* szr2g = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2g, 1, wxALL | wxEXPAND, 5);
 
     m_ctrl_copy_tiles = new wxCheckBox(this, ID_FT, _("Copy Tiles"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_copy_tiles->SetValue(entity->IsTileCopySet());
-    szr2f->Add(m_ctrl_copy_tiles, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    szr2f->Add(new wxStaticText(this, wxID_ANY, _("Tile Source:")), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    szr2g->Add(m_ctrl_copy_tiles, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2g->Add(new wxStaticText(this, wxID_ANY, _("Tile Source:")), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_copy_source = new wxSpinCtrl(this, ID_CPYSRC, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
     m_ctrl_copy_source->SetRange(0, 15);
     m_ctrl_copy_source->SetValue(entity->GetCopySource());
     m_ctrl_copy_source->SetIncrement(1);
-    szr2f->Add(m_ctrl_copy_source, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2g->Add(m_ctrl_copy_source, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
     m_sizer_btn = new wxStdDialogButtonSizer();
@@ -219,8 +233,8 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
     m_entity->SetYDbl(m_ctrl_y->GetValue());
     m_entity->SetZDbl(m_ctrl_z->GetValue());
     m_entity->SetSpeed(m_ctrl_speed->GetValue());
-    m_entity->SetBehaviour(m_ctrl_behaviour->GetValue());
-    m_entity->SetDialogue(m_ctrl_dialogue->GetValue());
+    m_entity->SetBehaviour(m_ctrl_behaviour->GetSelection());
+    m_entity->SetDialogue(m_ctrl_dialogue->GetSelection());
     m_entity->SetOrientation(static_cast<Orientation>(m_ctrl_orientation->GetSelection()));
     m_entity->SetPalette(m_ctrl_palette->GetSelection());
     m_entity->SetHostile(m_ctrl_hostile->GetValue());

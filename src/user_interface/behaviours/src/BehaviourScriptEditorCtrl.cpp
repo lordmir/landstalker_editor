@@ -1,4 +1,5 @@
 #include <user_interface/behaviours/include/BehaviourScriptEditorCtrl.h>
+#include <landstalker/behaviours/include/BehaviourYamlConverter.h>
 
 #include <wx/propgrid/advprops.h>
 
@@ -83,11 +84,11 @@ void BehaviourScriptEditorCtrl::RefreshBehaviourScript()
         m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
         for (const auto& script : scripts)
         {
-            m_script_dropdown->Append(StrPrintf("[%d] %s", script.first, script.second.c_str()));
+            m_script_dropdown->Append(StrWPrintf("[%d] %s", script.first, m_gd->GetSpriteData()->GetBehaviourDisplayName(script.first).c_str()));
         }
         if (m_behaviour_script >= 0 && m_behaviour_script < static_cast<int>(m_script_dropdown->GetCount()))
         {
-            orig = Behaviours::ToYaml(m_gd->GetSpriteData()->GetScript(m_behaviour_script).second);
+            orig = utf8_to_wstr(BehaviourYamlConverter::ToYaml(m_gd->GetSpriteData()->GetScript(m_behaviour_script).second));
             m_text_ctrl->AppendText(orig);
             m_script_dropdown->SetSelection(m_behaviour_script);
         }
@@ -133,7 +134,7 @@ bool BehaviourScriptEditorCtrl::Commit()
 {
     try
     {
-        auto result = Behaviours::FromYaml(m_text_ctrl->GetValue().ToStdString());
+        auto result = BehaviourYamlConverter::FromYaml(wstr_to_utf8(m_text_ctrl->GetValue().ToStdWstring()));
         if (m_gd && m_behaviour_script >= 0)
         {
             m_gd->GetSpriteData()->SetScript(m_behaviour_script, result);

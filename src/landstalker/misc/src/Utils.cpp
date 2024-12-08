@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <codecvt>
 
 #ifndef NDEBUG
 void Debug(const std::string& message)
@@ -168,4 +169,25 @@ bool StrToInt(const std::string& s, uint32_t& val)
 	{
 	}
 	return false;
+}
+
+std::wstring utf8_to_wstr(const std::string& utf8)
+{
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	return cvt.from_bytes(utf8);
+}
+
+std::string wstr_to_utf8(const std::wstring& unicode)
+{
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	return cvt.to_bytes(unicode);
+}
+
+std::string str_to_lower(const std::string& str)
+{
+	std::string result(str);
+	std::transform(str.begin(), str.end(), result.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+
+	return result;
 }

@@ -450,12 +450,12 @@ void SpriteData::RefreshPendingWrites(const Rom& rom)
 	}
 }
 
-std::wstring SpriteData::GetEntityDisplayName(uint8_t id) const
+std::wstring SpriteData::GetEntityDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_ENTITIES, id).value_or(L"Entity" + std::to_wstring(id));
 }
 
-std::wstring SpriteData::GetSpriteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_SPRITES, id).value_or(StrWPrintf(RomLabels::Sprites::SPRITE_GFX, id));
 }
@@ -474,17 +474,17 @@ std::wstring SpriteData::GetSpriteFrameDisplayName(uint8_t id, const std::string
 	return Labels::Get(Labels::C_SPRITE_FRAMES, (id << 8) | frame_id).value_or(std::wstring(name.cbegin(), name.cend()));
 }
 
-std::wstring SpriteData::GetSpriteLowPaletteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteLowPaletteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_LOW_PALETTES, id).value_or(StrWPrintf(RomLabels::Sprites::PALETTE_LO, id));
 }
 
-std::wstring SpriteData::GetSpriteHighPaletteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteHighPaletteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_HIGH_PALETTES, id).value_or(StrWPrintf(RomLabels::Sprites::PALETTE_HI, id));
 }
 
-std::wstring SpriteData::GetBehaviourDisplayName(int behav_id) const
+std::wstring SpriteData::GetBehaviourDisplayName(int behav_id)
 {
 	return Labels::Get(Labels::C_BEHAVIOURS, behav_id).value_or(StrWPrintf(L"Behaviour%d", behav_id));
 }

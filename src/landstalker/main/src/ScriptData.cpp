@@ -73,19 +73,34 @@ void ScriptData::RefreshPendingWrites(const Rom& rom)
 	}
 }
 
-std::wstring ScriptData::GetScriptEntryDisplayName(int script_id) const
+std::wstring ScriptData::GetScriptEntryDisplayName(int script_id)
 {
-	return Labels::Get(Labels::C_SCRIPT, script_id).value_or(StrWPrintf(L"ScriptId%04d", script_id));
+	std::wstring label = StrWPrintf("Script%04d", script_id);
+	if (Labels::Exists(Labels::C_SCRIPT, script_id))
+	{
+		label += L" " + *Labels::Get(Labels::C_SCRIPT, script_id);
+	}
+	return label;
 }
 
-std::wstring ScriptData::GetFlagDisplayName(int flag) const
+std::wstring ScriptData::GetFlagDisplayName(int flag)
 {
-	return Labels::Get(Labels::C_FLAGS, flag).value_or(StrWPrintf(L"Flag%04d", flag));
+	std::wstring label = StrWPrintf("[Flag %04d]", flag);
+	if (Labels::Exists(Labels::C_FLAGS, flag))
+	{
+		label += L" (" + *Labels::Get(Labels::C_FLAGS, flag) + L")";
+	}
+	return label;
 }
 
-std::wstring ScriptData::GetCutsceneDisplayName(int cutscene) const
+std::wstring ScriptData::GetCutsceneDisplayName(int cutscene)
 {
-	return Labels::Get(Labels::C_CUTSCENE, cutscene).value_or(StrWPrintf(L"Cutscene%03d", cutscene));
+	std::wstring label = StrWPrintf("Cutscene%03d", cutscene);
+	if (Labels::Exists(Labels::C_CUTSCENE, cutscene))
+	{
+		label += L" " + *Labels::Get(Labels::C_CUTSCENE, cutscene);
+	}
+	return label;
 }
 
 uint16_t ScriptData::GetStringStart() const

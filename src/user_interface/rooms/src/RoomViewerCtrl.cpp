@@ -842,18 +842,18 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
     int line = 0;
     if (m_g->GetRoomData()->HasClimbDestination(roomnum))
     {
-        AddRoomLink(gc, "Climb Destination:", m_g->GetRoomData()->GetClimbDestination(roomnum), 5, 5 + line * 16);
+        AddRoomLink(gc, L"Climb Destination:", m_g->GetRoomData()->GetClimbDestination(roomnum), 5, 5 + line * 16);
         line++;
     }
     if (m_g->GetRoomData()->HasFallDestination(roomnum))
     {
-        AddRoomLink(gc, "Fall Destination:", m_g->GetRoomData()->GetFallDestination(roomnum), 5, 5 + line * 16);
+        AddRoomLink(gc, L"Fall Destination:", m_g->GetRoomData()->GetFallDestination(roomnum), 5, 5 + line * 16);
         line++;
     }
     auto txns = m_g->GetRoomData()->GetTransitions(roomnum);
     for (const auto& t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.flag, (t.src_rm == roomnum) ? "SET" : "CLEAR");
+        std::wstring label = StrWPrintf("Transition when flag %s is %s:", m_g->GetScriptData()->GetFlagDisplayName(t.flag).c_str(), (t.src_rm == roomnum) ? L"SET" : L"CLEAR");
         uint16_t dest = (t.src_rm == roomnum) ? t.dst_rm : t.src_rm;
         AddRoomLink(gc, label, dest, 5, 5 + line * 16);
         line++;
@@ -1327,7 +1327,7 @@ void RoomViewerCtrl::AddWarp()
     FireEvent(EVT_WARP_UPDATE);
 }
 
-void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y)
+void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::wstring& label, uint16_t room, int x, int y)
 {
     wxFont font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     double w, h;
@@ -1789,7 +1789,11 @@ void RoomViewerCtrl::UpdateEntityProperties(int entity)
 {
     if (entity > 0 && entity <= static_cast<int>(m_entities.size()))
     {
-        EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1]);
+        const std::vector<uint16_t> chars = m_g->GetStringData()->GetRoomCharacters(m_roomnum);
+        std::vector<std::wstring> char_names;
+        std::transform(chars.cbegin(), chars.cend(), std::back_inserter(char_names),
+            [this](uint16_t chr) {return m_g->GetStringData()->GetCharacterDisplayName(chr); });
+        EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1], char_names);
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);

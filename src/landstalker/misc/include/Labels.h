@@ -13,6 +13,7 @@ public:
     static void InitDefaults();
     static void LoadData(const std::string& filename);
     static void SaveData(const std::string& filename);
+    static bool Exists(const std::wstring& what, int id);
     static std::optional<std::wstring> Get(const std::wstring& what, int id);
     static bool IsValid(const std::wstring& what);
     static bool Update(const std::wstring& category, int id, const std::wstring& updated);

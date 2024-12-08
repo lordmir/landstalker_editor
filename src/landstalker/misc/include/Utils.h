@@ -113,6 +113,12 @@ bool CreateDirectoryTree(const filesystem::path& path);
 
 bool StrToInt(const std::string& s, uint32_t& val);
 
+std::wstring utf8_to_wstr(const std::string& utf8);
+
+std::string wstr_to_utf8(const std::wstring& unicode);
+
+std::string str_to_lower(const std::string& str);
+
 template<class T, class U>
 std::vector<T> Split(U data)
 {

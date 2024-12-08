@@ -19,7 +19,7 @@
 class EntityPropertiesWindow : public wxDialog
 {
 public:
-    EntityPropertiesWindow(wxWindow* parent, int id, Entity* entity);
+    EntityPropertiesWindow(wxWindow* parent, int id, Entity* entity, const std::vector<std::wstring>& char_names = {});
 
     virtual ~EntityPropertiesWindow();
 
@@ -39,8 +39,8 @@ private:
     wxSpinCtrl* m_ctrl_speed;
     wxChoice* m_ctrl_orientation;
     wxChoice* m_ctrl_palette;
-    wxSpinCtrl* m_ctrl_dialogue;
-    wxSpinCtrl* m_ctrl_behaviour;
+    wxChoice* m_ctrl_dialogue;
+    wxChoice* m_ctrl_behaviour;
     wxCheckBox* m_ctrl_hostile;
     wxCheckBox* m_ctrl_no_rotate;
     wxCheckBox* m_ctrl_no_pickup;

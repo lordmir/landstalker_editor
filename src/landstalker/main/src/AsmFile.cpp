@@ -7,7 +7,11 @@
 #include <fstream>
 #include <cstdio>
 
-const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS{ {"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN}, {"Align", Inst::ALIGN} };
+const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS
+{
+	{"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN},
+	{"Align", Inst::ALIGN}, {"ScriptID", Inst::SCRIPTID}, {"ScriptJump", Inst::SCRIPTJUMP}
+};
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
 AsmFile::AsmFile(const filesystem::path& filename, FileType type)

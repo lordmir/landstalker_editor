@@ -51,10 +51,13 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE] = new wxBoxSizer(wxHORIZONTAL);
 	m_cutscene_select = new wxSpinCtrl(m_panels[ScriptTableEntryType::PLAY_CUTSCENE], wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxWANTS_CHARS, 0,1023);
 	m_type_ctrl_sizer->Add(m_panels[ScriptTableEntryType::PLAY_CUTSCENE], 1, wxGROW);
+	m_cutscene_name = new wxStaticText(m_panels[ScriptTableEntryType::PLAY_CUTSCENE], wxID_ANY, wxEmptyString);
+	m_cutscene_name->SetFont(tt_font);
 	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->AddSpacer(10);
 	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->Add(new wxStaticText(m_panels[ScriptTableEntryType::PLAY_CUTSCENE], wxID_ANY, "Cutscene Index: "), wxLEFT);
 	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->Add(m_cutscene_select, wxLEFT);
-	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->Add(new wxStaticText(m_panels[ScriptTableEntryType::PLAY_CUTSCENE], wxID_ANY, wxEmptyString), wxEXPAND);
+	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->AddSpacer(20);
+	m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]->Add(m_cutscene_name, wxEXPAND);
 	m_panels[ScriptTableEntryType::PLAY_CUTSCENE]->SetSizer(m_panel_sizers[ScriptTableEntryType::PLAY_CUTSCENE]);
 
 	m_panels[ScriptTableEntryType::GIVE_ITEM] = new wxPanel(this);
@@ -122,11 +125,14 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_panels[ScriptTableEntryType::SET_FLAG] = new wxPanel(this);
 	m_panel_sizers[ScriptTableEntryType::SET_FLAG] = new wxBoxSizer(wxHORIZONTAL);
 	m_flag_select = new wxSpinCtrl(m_panels[ScriptTableEntryType::SET_FLAG], wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS | wxWANTS_CHARS, 0, 999);
+	m_flag_name = new wxStaticText(m_panels[ScriptTableEntryType::SET_FLAG], wxID_ANY, wxEmptyString);
+	m_flag_name->SetFont(tt_font);
 	m_type_ctrl_sizer->Add(m_panels[ScriptTableEntryType::SET_FLAG], 1, wxGROW);
 	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->AddSpacer(10);
 	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->Add(new wxStaticText(m_panels[ScriptTableEntryType::SET_FLAG], wxID_ANY, "Flag: "), wxLEFT);
 	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->Add(m_flag_select, wxLEFT);
-	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->Add(new wxStaticText(m_panels[ScriptTableEntryType::SET_FLAG], wxID_ANY, wxEmptyString), wxEXPAND);
+	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->AddSpacer(20);
+	m_panel_sizers[ScriptTableEntryType::SET_FLAG]->Add(m_flag_name, wxEXPAND);
 	m_panels[ScriptTableEntryType::SET_FLAG]->SetSizer(m_panel_sizers[ScriptTableEntryType::SET_FLAG]);
 
 	m_panels[ScriptTableEntryType::SET_SPEAKER] = new wxPanel(this);
@@ -264,21 +270,18 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 		}
 		break;
 	case ScriptTableEntryType::PLAY_CUTSCENE:
-		m_cutscene_select->SetValue(dynamic_cast<const ScriptInitiateCutsceneEntry&>(*m_entry).cutscene);
+		{
+			const auto& cutscene_entry = dynamic_cast<const ScriptInitiateCutsceneEntry&>(*m_entry);
+			m_cutscene_select->SetValue(cutscene_entry.cutscene);
+			m_cutscene_name->SetLabelText(m_gd->GetScriptData()->GetCutsceneDisplayName(cutscene_entry.cutscene));
+		}
 		break;
 	case ScriptTableEntryType::ITEM_LOAD:
 		{
 			const auto& item_entry = dynamic_cast<const ScriptItemLoadEntry&>(*m_entry);
 			m_item_slot->Select(item_entry.slot);
 			m_item_select->SetValue(item_entry.item);
-			if (item_entry.item < m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES))
-			{
-				m_item_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_entry.item));
-			}
-			else
-			{
-				m_item_name->SetLabelText("???");
-			}
+			m_item_name->SetLabelText(m_gd->GetStringData()->GetItemDisplayName(item_entry.item));
 		}
 		break;
 	case ScriptTableEntryType::NUMBER_LOAD:
@@ -289,45 +292,28 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 			const auto& char_entry = dynamic_cast<const ScriptGlobalCharLoadEntry&>(*m_entry);
 			m_load_global_char_slot->Select(char_entry.slot);
 			m_load_global_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
-			{
-				m_load_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, char_entry.chr));
-			}
-			else
-			{
-				m_load_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0));
-			}
+			m_load_global_char_name->SetLabelText(m_gd->GetStringData()->GetGlobalCharacterDisplayName(char_entry.chr));
 		}
 		break;
 	case ScriptTableEntryType::SET_FLAG:
-		m_flag_select->SetValue(dynamic_cast<const ScriptSetFlagEntry&>(*m_entry).flag);
+		{
+			const auto& flag_entry = dynamic_cast<const ScriptSetFlagEntry&>(*m_entry);
+			m_flag_select->SetValue(flag_entry.flag);
+			m_flag_name->SetLabelText(m_gd->GetScriptData()->GetFlagDisplayName(flag_entry.flag));
+		}
 		break;
 	case ScriptTableEntryType::SET_GLOBAL_SPEAKER:
 		{
 			const auto& char_entry = dynamic_cast<const ScriptSetGlobalSpeakerEntry&>(*m_entry);
 			m_set_global_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
-			{
-				m_set_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, char_entry.chr));
-			}
-			else
-			{
-				m_set_global_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0));
-			}
+			m_set_global_char_name->SetLabelText(m_gd->GetStringData()->GetGlobalCharacterDisplayName(char_entry.chr));
 		}
 		break;
 	case ScriptTableEntryType::SET_SPEAKER:
 		{
 			const auto& char_entry = dynamic_cast<const ScriptSetSpeakerEntry&>(*m_entry);
 			m_set_char_select->SetValue(char_entry.chr);
-			if (char_entry.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
-			{
-				m_set_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::NAMES, char_entry.chr));
-			}
-			else
-			{
-				m_set_char_name->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0));
-			}
+			m_set_char_name->SetLabelText(m_gd->GetStringData()->GetCharacterDisplayName(char_entry.chr));
 		}
 		break;
 	case ScriptTableEntryType::PLAY_BGM:
