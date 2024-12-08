@@ -18,6 +18,8 @@ ScriptDataViewEditorControl::ScriptDataViewEditorControl(wxWindow* parent, const
 	m_gd(gd)
 {
 	Freeze();
+	SetBackgroundColour(*wxWHITE);
+	SetBackgroundStyle(wxBackgroundStyle::wxBG_STYLE_SYSTEM);
 	m_main_sizer = new wxBoxSizer(wxHORIZONTAL);
 	m_type_ctrl_sizer = new wxBoxSizer(wxHORIZONTAL);
 	m_type_select = new wxChoice(this, wxID_ANY);
@@ -261,11 +263,11 @@ void ScriptDataViewEditorControl::SetValue(uint16_t value)
 			m_string_select->SetValue(string_idx);
 			if (string_idx < m_gd->GetStringData()->GetStringCount(StringData::Type::MAIN))
 			{
-				m_string_preview->SetLabelText(m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx));
+				m_string_preview->SetValue(m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx));
 			}
 			else
 			{
-				m_string_preview->SetLabelText("???");
+				m_string_preview->SetValue("???");
 			}
 		}
 		break;

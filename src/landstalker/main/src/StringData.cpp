@@ -325,7 +325,7 @@ std::wstring StringData::GetCharacterDisplayName(int character) const
 	{
 		return m_character_names.at(character);
 	}
-	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
+	return StrWPrintf(L"%ls (%d)", m_default_character_name.c_str(), character);
 }
 
 std::wstring StringData::GetGlobalCharacterDisplayName(int character) const
@@ -338,7 +338,7 @@ std::wstring StringData::GetGlobalCharacterDisplayName(int character) const
 	{
 		return m_special_character_names.at(character);
 	}
-	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
+	return StrWPrintf(L"%ls (%d)", m_default_character_name.c_str(), character);
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> StringData::GetAllTilesets() const

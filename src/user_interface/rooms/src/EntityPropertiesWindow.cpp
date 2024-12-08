@@ -41,19 +41,19 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     for (std::size_t i = 0; i < 256; ++i)
     {
         std::wstring entity_name = SpriteData::GetEntityDisplayName(i);
-        entity_types.Add(StrWPrintf(L"[%02X] %s", i, entity_name.c_str()));
+        entity_types.Add(StrWPrintf(L"[%02X] %ls", i, entity_name.c_str()));
     }
     wxArrayString behaviours;
     for (std::size_t i = 0; i < 1024; ++i)
     {
         std::wstring behaviour_name = SpriteData::GetBehaviourDisplayName(i);
-        behaviours.Add(StrWPrintf(L"[%04d] %s", i, behaviour_name.c_str()));
+        behaviours.Add(StrWPrintf(L"[%04d] %ls", i, behaviour_name.c_str()));
     }
     wxArrayString dialogues;
     for (std::size_t i = 0; i < 64; ++i)
     {
         std::wstring dialogue_name = i < char_names.size() ? char_names.at(i) : L"???";
-        dialogues.Add(StrWPrintf(L"[%02d] %s", i, dialogue_name.c_str()));
+        dialogues.Add(StrWPrintf(L"[%02d] %ls", i, dialogue_name.c_str()));
     }
 
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);

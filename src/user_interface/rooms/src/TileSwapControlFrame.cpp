@@ -182,7 +182,7 @@ std::wstring TileSwapControlFrame::MakeLabel(int index) const
 	else
 	{
 		const auto& door_sz_name = Door::SIZE_NAMES.at(m_doors[index].size);
-		return StrWPrintf(L"%02d: (%02d, %02d) %s", index + 1, m_doors[index].x, m_doors[index].y,
+		return StrWPrintf(L"%02d: (%02d, %02d) %ls", index + 1, m_doors[index].x, m_doors[index].y,
 			std::wstring(door_sz_name.cbegin(), door_sz_name.cend()).c_str());
 	}
 }

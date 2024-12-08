@@ -84,7 +84,7 @@ void BehaviourScriptEditorCtrl::RefreshBehaviourScript()
         m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
         for (const auto& script : scripts)
         {
-            m_script_dropdown->Append(StrWPrintf("[%d] %s", script.first, m_gd->GetSpriteData()->GetBehaviourDisplayName(script.first).c_str()));
+            m_script_dropdown->Append(StrWPrintf("[%d] %ls", script.first, m_gd->GetSpriteData()->GetBehaviourDisplayName(script.first).c_str()));
         }
         if (m_behaviour_script >= 0 && m_behaviour_script < static_cast<int>(m_script_dropdown->GetCount()))
         {

@@ -36,7 +36,7 @@ wxArrayString FlagDataViewModel<EntityFlag>::GetColumnChoices(unsigned int col) 
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrWPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -183,7 +183,7 @@ wxArrayString FlagDataViewModel<OneTimeEventFlag>::GetColumnChoices(unsigned int
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrWPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -348,7 +348,7 @@ wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int co
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrWPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -551,7 +551,7 @@ void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsign
 				{
 					if (tree == row)
 					{
-						variant = StrWPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+						variant = StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 							ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl());
 						found = true;
 						break;
@@ -809,7 +809,7 @@ void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned in
 		}
 		if (count > row)
 		{
-			variant = StrWPrintf(L"[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
+			variant = StrWPrintf(L"[%02d] %ls (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
 				ent[idx].GetXDbl(), ent[idx].GetYDbl(), ent[idx].GetZDbl());
 		}
 		else
@@ -943,7 +943,7 @@ void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned in
 				{
 					if (label.empty())
 					{
-						label = StrWPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, e.GetTypeName().c_str(),
+						label = StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", idx + 1, e.GetTypeName().c_str(),
 							e.GetXDbl(), e.GetYDbl(), e.GetZDbl());
 					}
 					else
