@@ -83,7 +83,7 @@ std::wstring StrWPrintf(const std::wstring& fmt, Args... args)
 {
 	int reqd = std::swprintf(nullptr, 0, fmt.c_str(), args...);
 	std::vector<wchar_t> buf(reqd < 0 ? 128 : reqd + 1);
-	while (std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...) < 0)
+	while ((reqd = std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...)) < 0)
 	{
 		buf.resize(buf.size() * 2);
 	}
