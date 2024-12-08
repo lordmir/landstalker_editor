@@ -665,14 +665,12 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTID>(const AsmFile::AsmLine& line)
 	std::string word;
 	std::stringstream ss(line.operand);
 	std::getline(ss, word, ',');
-	auto id = ParseValue(word);
+	uint16_t id = static_cast<uint16_t>(ParseValue(word));
 	std::getline(ss, word, ',');
-	auto pos = ParseValue(word);
+	uint16_t pos = static_cast<uint16_t>(ParseValue(word));
 
-	if (id > 0 && pos > 0)
-	{
-		m_data.push_back(ScriptId(id, pos));
-	}
+	m_data.push_back(ScriptId(id, pos));
+	
 	return true;
 }
 
@@ -690,9 +688,9 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTJUMP>(const AsmFile::AsmLine& lin
 	std::getline(ss, word, ',');
 	auto func = word;
 	std::getline(ss, word, ',');
-	auto pos = ParseValue(word);
+	uint16_t pos = static_cast<uint16_t>(ParseValue(word));
 
-	if (func.empty() == false && pos >= 0)
+	if (func.empty() == false)
 	{
 		m_data.push_back(ScriptJump(func, pos));
 	}
