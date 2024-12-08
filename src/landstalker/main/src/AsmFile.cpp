@@ -518,6 +518,7 @@ bool AsmFile::ParseLine(AsmFile::AsmLine& line, const std::string& str)
 	}
 	line.operand = Trim(s);
 	end = line.instruction.find_first_of(".");
+	line.width = "";
 	if (end != std::string::npos)
 	{
 		line.width = line.instruction[end + 1];
