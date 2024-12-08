@@ -52,7 +52,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity*
     wxArrayString dialogues;
     for (std::size_t i = 0; i < 64; ++i)
     {
-        std::wstring dialogue_name = i < static_cast<int>(char_names.size()) ? char_names.at(i) : L"???";
+        std::wstring dialogue_name = i < char_names.size() ? char_names.at(i) : L"???";
         dialogues.Add(StrWPrintf(L"[%02d] %s", i, dialogue_name.c_str()));
     }
 

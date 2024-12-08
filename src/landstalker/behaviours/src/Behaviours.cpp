@@ -231,6 +231,8 @@ std::map<int, std::pair<std::string, std::vector<Behaviours::Command>>> Behaviou
                     value = static_cast<double>(((b.second[static_cast<uint8_t>(j + 1)] << 8) | b.second[static_cast<uint8_t>(j + 2)]) / 256.0);
                     j += 2;
                     break;
+                case Behaviours::ParamType::NONE:
+                    throw std::logic_error("Unexpected Parameter Type <NONE>");
                 }
                 behaviours_decoded[b.first].second.back().params.push_back({ p.first, value, p.second });
             }
@@ -294,6 +296,8 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Behaviours::Pack(const std
                     behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(param_value)));
                     behaviour_bytes.push_back(static_cast<uint8_t>(std::get<double>(param_value) * 256.0));
                     break;
+                case Behaviours::ParamType::NONE:
+                    throw std::logic_error("Unexpected Parameter Type <NONE>");
                 }
             }
         }
