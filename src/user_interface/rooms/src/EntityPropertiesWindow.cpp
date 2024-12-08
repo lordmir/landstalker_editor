@@ -33,7 +33,7 @@ enum ID
 };
 
 EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Entity* entity, const std::vector<std::wstring>& char_names)
-    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 500)),
+    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 560)),
       m_entity(entity),
       m_id(id)
 {
