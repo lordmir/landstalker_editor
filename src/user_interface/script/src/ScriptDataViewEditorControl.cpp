@@ -550,4 +550,5 @@ void ScriptDataViewEditorControl::ShowEditor(const ScriptTableEntryType& type)
 		m_type_ctrl_sizer->Show(panel.second, panel.first == type);
 	}
 	m_type_ctrl_sizer->Layout();
+	SetFocus();
 }
