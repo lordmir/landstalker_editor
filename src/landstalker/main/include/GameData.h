@@ -16,12 +16,12 @@
 class GameData : public DataManager
 {
 public:
-    GameData(const filesystem::path& asm_file);
+    GameData(const std::filesystem::path& asm_file);
     GameData(const Rom& rom);
 
     virtual ~GameData() {}
 
-    virtual bool Save(const filesystem::path& dir);
+    virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
 
     virtual PendingWrites GetPendingWrites() const;

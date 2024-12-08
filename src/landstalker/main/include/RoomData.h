@@ -26,12 +26,12 @@ public:
         LANTERN
     };
 
-    RoomData(const filesystem::path& asm_file);
+    RoomData(const std::filesystem::path& asm_file);
     RoomData(const Rom& rom);
 
     virtual ~RoomData() {}
 
-    virtual bool Save(const filesystem::path& dir);
+    virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
 
 	virtual bool HasBeenModified() const;
@@ -144,7 +144,7 @@ protected:
 private:
     bool LoadAsmFilenames();
     void SetDefaultFilenames();
-    bool CreateDirectoryStructure(const filesystem::path& dir);
+    bool CreateDirectoryStructure(const std::filesystem::path& dir);
 
     bool AsmLoadRoomTable();
     bool AsmLoadMaps();
@@ -172,20 +172,20 @@ private:
     bool RomLoadGfxSwapData(const Rom& rom);
     bool RomLoadMiscData(const Rom& rom);
 
-    bool AsmSaveMaps(const filesystem::path& dir);
-    bool AsmSaveRoomData(const filesystem::path& dir);
-    bool AsmSaveWarpData(const filesystem::path& dir);
-    bool AsmSaveRoomPalettes(const filesystem::path& dir);
-    bool AsmSaveMiscPaletteData(const filesystem::path& dir);
-    bool AsmSaveBlocksetPointerData(const filesystem::path& dir);
-    bool AsmSaveBlocksetData(const filesystem::path& dir);
-    bool AsmSaveTilesetData(const filesystem::path& dir);
-    bool AsmSaveTilesetPointerData(const filesystem::path& dir);
-    bool AsmSaveAnimatedTilesetData(const filesystem::path& dir);
-    bool AsmSaveChestData(const filesystem::path& dir);
-    bool AsmSaveDoorData(const filesystem::path& dir);
-    bool AsmSaveGfxSwapData(const filesystem::path& dir);
-    bool AsmSaveMiscData(const filesystem::path& dir);
+    bool AsmSaveMaps(const std::filesystem::path& dir);
+    bool AsmSaveRoomData(const std::filesystem::path& dir);
+    bool AsmSaveWarpData(const std::filesystem::path& dir);
+    bool AsmSaveRoomPalettes(const std::filesystem::path& dir);
+    bool AsmSaveMiscPaletteData(const std::filesystem::path& dir);
+    bool AsmSaveBlocksetPointerData(const std::filesystem::path& dir);
+    bool AsmSaveBlocksetData(const std::filesystem::path& dir);
+    bool AsmSaveTilesetData(const std::filesystem::path& dir);
+    bool AsmSaveTilesetPointerData(const std::filesystem::path& dir);
+    bool AsmSaveAnimatedTilesetData(const std::filesystem::path& dir);
+    bool AsmSaveChestData(const std::filesystem::path& dir);
+    bool AsmSaveDoorData(const std::filesystem::path& dir);
+    bool AsmSaveGfxSwapData(const std::filesystem::path& dir);
+    bool AsmSaveMiscData(const std::filesystem::path& dir);
 
     bool RomPrepareInjectMiscWarp(const Rom& rom);
     bool RomPrepareInjectRoomData(const Rom& rom);
@@ -201,34 +201,34 @@ private:
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
 
-    filesystem::path m_room_data_filename;
-    filesystem::path m_map_data_filename;
-    filesystem::path m_warp_data_filename;
-    filesystem::path m_fall_data_filename;
-    filesystem::path m_climb_data_filename;
-    filesystem::path m_transition_data_filename;
-    filesystem::path m_palette_data_filename;
-    filesystem::path m_lava_pal_data_filename;
-    filesystem::path m_warp_pal_data_filename;
-    filesystem::path m_lantern_pal_data_filename;
-    filesystem::path m_tileset_data_filename;
-    filesystem::path m_tileset_ptrtab_filename;
-    filesystem::path m_tileset_anim_filename;
-    filesystem::path m_blockset_pri_ptr_filename;
-    filesystem::path m_blockset_sec_ptr_filename;
-    filesystem::path m_blockset_data_filename;
-    filesystem::path m_chest_offset_data_filename;
-    filesystem::path m_chest_data_filename;
-    filesystem::path m_door_offset_data_filename;
-    filesystem::path m_door_table_data_filename;
-    filesystem::path m_gfxswap_flag_data_filename;
-    filesystem::path m_gfxswap_locked_door_flag_data_filename;
-    filesystem::path m_gfxswap_big_tree_flag_data_filename;
-    filesystem::path m_gfxswap_table_data_filename;
-    filesystem::path m_shop_table_data_filename;
-    filesystem::path m_lifestock_sold_flag_data_filename;
-    filesystem::path m_bigtree_data_filename;
-    filesystem::path m_lantern_flag_data_filename;
+    std::filesystem::path m_room_data_filename;
+    std::filesystem::path m_map_data_filename;
+    std::filesystem::path m_warp_data_filename;
+    std::filesystem::path m_fall_data_filename;
+    std::filesystem::path m_climb_data_filename;
+    std::filesystem::path m_transition_data_filename;
+    std::filesystem::path m_palette_data_filename;
+    std::filesystem::path m_lava_pal_data_filename;
+    std::filesystem::path m_warp_pal_data_filename;
+    std::filesystem::path m_lantern_pal_data_filename;
+    std::filesystem::path m_tileset_data_filename;
+    std::filesystem::path m_tileset_ptrtab_filename;
+    std::filesystem::path m_tileset_anim_filename;
+    std::filesystem::path m_blockset_pri_ptr_filename;
+    std::filesystem::path m_blockset_sec_ptr_filename;
+    std::filesystem::path m_blockset_data_filename;
+    std::filesystem::path m_chest_offset_data_filename;
+    std::filesystem::path m_chest_data_filename;
+    std::filesystem::path m_door_offset_data_filename;
+    std::filesystem::path m_door_table_data_filename;
+    std::filesystem::path m_gfxswap_flag_data_filename;
+    std::filesystem::path m_gfxswap_locked_door_flag_data_filename;
+    std::filesystem::path m_gfxswap_big_tree_flag_data_filename;
+    std::filesystem::path m_gfxswap_table_data_filename;
+    std::filesystem::path m_shop_table_data_filename;
+    std::filesystem::path m_lifestock_sold_flag_data_filename;
+    std::filesystem::path m_bigtree_data_filename;
+    std::filesystem::path m_lantern_flag_data_filename;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_tilesets_by_name_orig;

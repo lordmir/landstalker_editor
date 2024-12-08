@@ -635,7 +635,7 @@ std::vector<uint8_t>& Tileset::GetTilePixels(int tile_index)
         std::ostringstream ss;
         ss << "Attempt to obtain out-of-range tile " << tile_index;
         Debug(ss.str());
-        throw(ss.str());
+        throw(std::runtime_error(ss.str()));
     }
     return m_tiles[tile_index];
 }

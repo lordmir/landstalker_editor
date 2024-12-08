@@ -252,7 +252,7 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			ss.str(std::string());
 			ss.clear();
 			ss << "Insert " << count << " zero words." << std::endl;
-			Debug(ss.str().c_str());
+			Debug(ss.string().c_str());
 #endif
 			dest_it += count * 2;
 		}
@@ -265,7 +265,7 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			ss.str(std::string());
 			ss.clear();
 			ss << "Copy " << elen << " compressed bytes, " << dlen << " bytes decompressed.";
-			Debug(ss.str().c_str());
+			Debug(ss.string().c_str());
 #endif
 			it += elen;
 			m_compressed = true;
@@ -276,7 +276,7 @@ std::size_t SpriteFrame::SetBits(const std::vector<uint8_t>& src)
 			ss.str(std::string());
 			ss.clear();
 			ss << "Copy " << count << " words directly.";
-			Debug(ss.str().c_str());
+			Debug(ss.string().c_str());
 #endif
 			std::copy(it, it + count * 2, dest_it);
 			dest_it += count * 2;

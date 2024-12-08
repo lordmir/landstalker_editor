@@ -56,9 +56,9 @@ std::vector<uint8_t> ReadBytes(const std::string& filename)
 	return ret;
 }
 
-std::vector<uint8_t> ReadBytes(const filesystem::path& filename)
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename)
 {
-	return ReadBytes(filename.str());
+	return ReadBytes(filename.string());
 }
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
@@ -71,9 +71,9 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
 }
 
-void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename)
+void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename)
 {
-	WriteBytes(data, filename.str());
+	WriteBytes(data, filename.string());
 }
 
 bool IsHex(const std::string& str)
@@ -139,12 +139,12 @@ bool StrToHex(const std::string& s, uint32_t& val)
 	return valid;
 }
 
-bool CreateDirectoryTree(const filesystem::path& path)
+bool CreateDirectoryTree(const std::filesystem::path& path)
 {
-	if (!path.parent_path().is_directory() &&
-		!filesystem::create_directories(path.parent_path()))
+	if (!std::filesystem::is_directory(path.parent_path()) &&
+		!std::filesystem::create_directories(path.parent_path()))
 	{
-		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().str() + "\"");
+		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().string() + "\"");
 	}
 	return true;
 }

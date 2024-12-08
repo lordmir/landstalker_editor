@@ -4,7 +4,7 @@
 
 #include <landstalker/main/include/RomLabels.h>
 
-GameData::GameData(const filesystem::path& asm_file)
+GameData::GameData(const std::filesystem::path& asm_file)
 	: DataManager(asm_file),
 	  m_rd(std::make_shared<RoomData>(asm_file)),
 	  m_gd(std::make_shared<GraphicsData>(asm_file)),
@@ -38,7 +38,7 @@ GameData::GameData(const Rom& rom)
 	SetDefaults();
 }
 
-bool GameData::Save(const filesystem::path& dir)
+bool GameData::Save(const std::filesystem::path& dir)
 {
 	auto success = std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{

@@ -5,16 +5,16 @@
 #include <landstalker/misc/include/Literals.h>
 #include <landstalker/misc/include/Labels.h>
 
-ScriptData::ScriptData(const filesystem::path& asm_file)
+ScriptData::ScriptData(const std::filesystem::path& asm_file)
 	: DataManager(asm_file)
 {
 	if (!LoadAsmFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadScript())
 	{
-		throw std::runtime_error(std::string("Unable to load script from \'") + m_script_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load script from \'") + m_script_filename.string() + '\'');
 	}
 	m_script_start = 0x4D;
 	InitCache();
@@ -31,20 +31,20 @@ ScriptData::ScriptData(const Rom& rom)
 	InitCache();
 }
 
-bool ScriptData::Save(const filesystem::path& dir)
+bool ScriptData::Save(const std::filesystem::path& dir)
 {
-	filesystem::path directory = dir;
-	if (directory.exists() && directory.is_file())
+	std::filesystem::path directory = dir;
+	if (std::filesystem::exists(directory) && std::filesystem::is_regular_file(directory))
 	{
 		directory = directory.parent_path();
 	}
 	if (!CreateDirectoryStructure(directory))
 	{
-		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveScript(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save script to \'") + m_script_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save script to \'") + m_script_filename.string() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -128,7 +128,7 @@ bool ScriptData::LoadAsmFilenames()
 	try
 	{
 		bool retval = true;
-		AsmFile f(GetAsmFilename().str());
+		AsmFile f(GetAsmFilename().string());
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::SCRIPT_SECTION, m_script_filename);
 		return retval;
 	}
@@ -143,7 +143,7 @@ void ScriptData::SetDefaultFilenames()
 	if (m_script_filename.empty()) m_script_filename = RomLabels::Script::SCRIPT_FILE;
 }
 
-bool ScriptData::CreateDirectoryStructure(const filesystem::path& dir)
+bool ScriptData::CreateDirectoryStructure(const std::filesystem::path& dir)
 {
 	bool retval = true;
 
@@ -159,7 +159,7 @@ void ScriptData::InitCache()
 
 bool ScriptData::AsmLoadScript()
 {
-	filesystem::path path = GetBasePath() / m_script_filename;
+	std::filesystem::path path = GetBasePath() / m_script_filename;
 	m_script = std::make_shared<Script>(ReadBytes(path));
 	return true;
 }
@@ -174,7 +174,7 @@ bool ScriptData::RomLoadScript(const Rom& rom)
 	return true;
 }
 
-bool ScriptData::AsmSaveScript(const filesystem::path& dir)
+bool ScriptData::AsmSaveScript(const std::filesystem::path& dir)
 {
 	WriteBytes(m_script->ToBytes(), dir / m_script_filename);
 	return true;

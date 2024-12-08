@@ -139,10 +139,10 @@ void PaletteListFrame::ClearGameData()
     m_gd = nullptr;
 }
 
-bool PaletteListFrame::ExportAllPalettes(const filesystem::path& filename)
+bool PaletteListFrame::ExportAllPalettes(const std::filesystem::path& filename)
 {
     bool retval = false;
-    std::ofstream fs(filename.str());
+    std::ofstream fs(filename.string());
 
     if (fs.good())
     {
@@ -161,10 +161,10 @@ bool PaletteListFrame::ExportAllPalettes(const filesystem::path& filename)
     return retval;
 }
 
-bool PaletteListFrame::ImportPalettes(const filesystem::path& filename)
+bool PaletteListFrame::ImportPalettes(const std::filesystem::path& filename)
 {
     bool retval = true;
-    std::ifstream fs(filename.str(), std::ios::in);
+    std::ifstream fs(filename.string(), std::ios::in);
     std::ostringstream errorss;
 
     if (fs.good())

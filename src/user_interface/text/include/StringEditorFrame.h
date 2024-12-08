@@ -21,8 +21,8 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	bool ExportStrings(const filesystem::path& filename, StringData::Type mode);
-	bool ImportStrings(const filesystem::path& filename, StringData::Type mode);
+	bool ExportStrings(const std::filesystem::path& filename, StringData::Type mode);
+	bool ImportStrings(const std::filesystem::path& filename, StringData::Type mode);
 
 	void UpdateUI() const;
 private:

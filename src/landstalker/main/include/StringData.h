@@ -25,12 +25,12 @@ public:
         SYSTEM
     };
 
-    StringData(const filesystem::path& asm_file);
+    StringData(const std::filesystem::path& asm_file);
     StringData(const Rom& rom);
 
     virtual ~StringData() {}
 
-    virtual bool Save(const filesystem::path& dir);
+    virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
 
     virtual bool HasBeenModified() const;
@@ -130,7 +130,7 @@ protected:
 private:
     bool LoadAsmFilenames();
     void SetDefaultFilenames();
-    bool CreateDirectoryStructure(const filesystem::path& dir);
+    bool CreateDirectoryStructure(const std::filesystem::path& dir);
     void InitCache();
     bool DecompressStrings();
     bool CompressStrings();
@@ -167,15 +167,15 @@ private:
     bool RomLoadTalkSfx(const Rom& rom);
     bool RomLoadScriptData(const Rom& rom);
 
-    bool AsmSaveFonts(const filesystem::path& dir);
-    bool AsmSaveSystemText(const filesystem::path& dir);
-    bool AsmSaveCompressedStringData(const filesystem::path& dir);
-    bool AsmSaveHuffmanData(const filesystem::path& dir);
-    bool AsmSaveStringTables(const filesystem::path& dir);
-    bool AsmSaveIntroStrings(const filesystem::path& dir);
-    bool AsmSaveEndCreditStrings(const filesystem::path& dir);
-    bool AsmSaveTalkSfx(const filesystem::path& dir);
-    bool AsmSaveScriptData(const filesystem::path& dir);
+    bool AsmSaveFonts(const std::filesystem::path& dir);
+    bool AsmSaveSystemText(const std::filesystem::path& dir);
+    bool AsmSaveCompressedStringData(const std::filesystem::path& dir);
+    bool AsmSaveHuffmanData(const std::filesystem::path& dir);
+    bool AsmSaveStringTables(const std::filesystem::path& dir);
+    bool AsmSaveIntroStrings(const std::filesystem::path& dir);
+    bool AsmSaveEndCreditStrings(const std::filesystem::path& dir);
+    bool AsmSaveTalkSfx(const std::filesystem::path& dir);
+    bool AsmSaveScriptData(const std::filesystem::path& dir);
 
     bool RomPrepareInjectSystemText(const Rom& rom);
     bool RomPrepareInjectCompressedStringData(const Rom& rom);
@@ -186,31 +186,31 @@ private:
     bool RomPrepareInjectTalkSfx(const Rom& rom);
     bool RomPrepareInjectScriptData(const Rom& rom);
 
-    filesystem::path m_region_check_filename;
-    filesystem::path m_region_check_routine_filename;
-    filesystem::path m_region_check_strings_filename;
-    filesystem::path m_system_font_filename;
-    filesystem::path m_strings_filename;
-    filesystem::path m_string_ptr_filename;
-    filesystem::path m_string_filename_path;
-    filesystem::path m_huffman_offset_path;
-    filesystem::path m_huffman_table_path;
-    filesystem::path m_string_table_path;
-    filesystem::path m_save_loc_path;
-    filesystem::path m_map_loc_path;
-    filesystem::path m_char_table_path;
-    filesystem::path m_schar_table_path;
-    filesystem::path m_dchar_table_path;
-    filesystem::path m_item_table_path;
-    filesystem::path m_menu_table_path;
-    filesystem::path m_intro_string_data_path;
-    filesystem::path m_intro_string_ptrtable_path;
-    std::vector<filesystem::path> m_intro_strings_path;
-    filesystem::path m_room_visit_flags_path;
-    filesystem::path m_end_credit_strings_path;
-    filesystem::path m_char_talk_sfx_path;
-    filesystem::path m_sprite_talk_sfx_path;
-    filesystem::path m_room_dialogue_table_path;
+    std::filesystem::path m_region_check_filename;
+    std::filesystem::path m_region_check_routine_filename;
+    std::filesystem::path m_region_check_strings_filename;
+    std::filesystem::path m_system_font_filename;
+    std::filesystem::path m_strings_filename;
+    std::filesystem::path m_string_ptr_filename;
+    std::filesystem::path m_string_filename_path;
+    std::filesystem::path m_huffman_offset_path;
+    std::filesystem::path m_huffman_table_path;
+    std::filesystem::path m_string_table_path;
+    std::filesystem::path m_save_loc_path;
+    std::filesystem::path m_map_loc_path;
+    std::filesystem::path m_char_table_path;
+    std::filesystem::path m_schar_table_path;
+    std::filesystem::path m_dchar_table_path;
+    std::filesystem::path m_item_table_path;
+    std::filesystem::path m_menu_table_path;
+    std::filesystem::path m_intro_string_data_path;
+    std::filesystem::path m_intro_string_ptrtable_path;
+    std::vector<std::filesystem::path> m_intro_strings_path;
+    std::filesystem::path m_room_visit_flags_path;
+    std::filesystem::path m_end_credit_strings_path;
+    std::filesystem::path m_char_talk_sfx_path;
+    std::filesystem::path m_sprite_talk_sfx_path;
+    std::filesystem::path m_room_dialogue_table_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;

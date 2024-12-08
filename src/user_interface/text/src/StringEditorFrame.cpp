@@ -269,13 +269,13 @@ void StringEditorFrame::ClearGameData()
     Update();
 }
 
-bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringData::Type mode)
+bool StringEditorFrame::ExportStrings(const std::filesystem::path& filename, StringData::Type mode)
 {
     bool retval = true;
 
     auto sd = m_gd->GetStringData();
     std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
-    std::ofstream fs(filename.str(), std::ios::out | std::ios::trunc);
+    std::ofstream fs(filename.string(), std::ios::out | std::ios::trunc);
 
     switch (mode)
     {
@@ -306,7 +306,7 @@ bool StringEditorFrame::ExportStrings(const filesystem::path& filename, StringDa
     return retval;
 }
 
-bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringData::Type mode)
+bool StringEditorFrame::ImportStrings(const std::filesystem::path& filename, StringData::Type mode)
 {
     bool retval = true;
     std::ifstream fs;
@@ -315,7 +315,7 @@ bool StringEditorFrame::ImportStrings(const filesystem::path& filename, StringDa
     std::wstring_convert<std::codecvt_utf8<LSString::StringType::value_type>> utf8_conv;
     auto sd = m_gd->GetStringData();
 
-    fs.open(filename.str(), std::ios::in);
+    fs.open(filename.string(), std::ios::in);
     if (fs.good() == false)
     {
         errorss << "Unable to open file \"" << filename << "\" for reading." << std::endl;

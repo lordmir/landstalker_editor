@@ -799,7 +799,7 @@ void Map2DEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("SA", wxString(StrPrintf("0x%06X", m_map->GetStartAddress())));
 		props.GetGrid()->SetPropertyValue("EA", wxString(StrPrintf("0x%06X", m_map->GetOrigEndAddress())));
 		props.GetGrid()->SetPropertyValue("OS", wxString(StrPrintf("%d bytes", m_map->GetOrigDataLength())));
-		props.GetGrid()->SetPropertyValue("FN", wxString(m_map->GetFilename().str()));
+		props.GetGrid()->SetPropertyValue("FN", wxString(m_map->GetFilename().string()));
 		props.GetGrid()->SetPropertyValue("US", wxString(StrPrintf("%d bytes", m_map->GetOrigData()->GetWidth() * m_map->GetOrigData()->GetHeight() * sizeof(uint16_t))));
 		props.GetGrid()->SetPropertyValue("#", wxString(StrPrintf("%d", m_map->GetOrigData()->GetWidth() * m_map->GetOrigData()->GetHeight())));
 		props.GetGrid()->SetPropertyValue("W", wxString(StrPrintf("%d", m_map->GetData()->GetWidth())));

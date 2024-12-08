@@ -6,7 +6,7 @@
 #include <landstalker/main/include/AsmUtils.h>
 #include <landstalker/main/include/RomLabels.h>
 
-WarpList::WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path)
+WarpList::WarpList(const std::filesystem::path& warp_path, const std::filesystem::path& fall_dest_path, const std::filesystem::path& climb_dest_path, const std::filesystem::path& transition_path)
 {
 	auto warp_buf = ReadBytes(warp_path);
 	auto fall_buf = ReadBytes(fall_dest_path);

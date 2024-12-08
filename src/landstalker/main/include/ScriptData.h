@@ -9,12 +9,12 @@ class ScriptData : public DataManager
 {
 public:
 
-    ScriptData(const filesystem::path& asm_file);
+    ScriptData(const std::filesystem::path& asm_file);
     ScriptData(const Rom& rom);
 
     virtual ~ScriptData() {}
 
-    virtual bool Save(const filesystem::path& dir);
+    virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
 
     virtual bool HasBeenModified() const;
@@ -33,18 +33,18 @@ protected:
 private:
     bool LoadAsmFilenames();
     void SetDefaultFilenames();
-    bool CreateDirectoryStructure(const filesystem::path& dir);
+    bool CreateDirectoryStructure(const std::filesystem::path& dir);
     void InitCache();
 
     bool AsmLoadScript();
 
     bool RomLoadScript(const Rom& rom);
 
-    bool AsmSaveScript(const filesystem::path& dir);
+    bool AsmSaveScript(const std::filesystem::path& dir);
 
     bool RomPrepareInjectScript(const Rom& rom);
 
-    filesystem::path m_script_filename;
+    std::filesystem::path m_script_filename;
 
     std::shared_ptr<Script> m_script;
     Script m_script_orig;

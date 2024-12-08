@@ -256,13 +256,12 @@ std::string Tilemap2D::GetFileExtension() const
 
 Tilemap2D::Compression Tilemap2D::FromFileExtension(const std::string& filename)
 {
-	std::string ext = filesystem::path(filename).extension();
-	std::transform(ext.begin(), ext.end(), ext.begin(), [](uint8_t c) {return static_cast<char>(std::tolower(c)); });
-	if (ext == "lz77")
+	std::string ext = str_to_lower(std::filesystem::path(filename).extension().string());
+	if (ext == ".lz77")
 	{
 		return Compression::LZ77;
 	}
-	else if (ext == "rle")
+	else if (ext == ".rle")
 	{
 		return Compression::RLE;
 	}

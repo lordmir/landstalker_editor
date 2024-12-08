@@ -148,7 +148,7 @@ public:
 
     struct Command
     {
-        CommandType command;
+        CommandType command = CommandType::PAUSE;
         std::vector<Parameter> params;
 
         bool operator==(const Command& rhs) const

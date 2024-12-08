@@ -354,7 +354,7 @@ void BlocksetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Block Count", static_cast<int>(m_blocks->GetData()->size()));
 		props.GetGrid()->SetPropertyValue("Start Address", _(Hex(m_blocks->GetStartAddress())));
 		props.GetGrid()->SetPropertyValue("End Address", _(Hex(m_blocks->GetEndAddress())));
-		props.GetGrid()->SetPropertyValue("Filename", _(m_blocks->GetFilename().str()));
+		props.GetGrid()->SetPropertyValue("Filename", _(m_blocks->GetFilename().string()));
 		props.GetGrid()->SetPropertyValue("Original Size", wxString::Format("%lu bytes", m_blocks->GetOrigBytes()->size()));
 		props.GetGrid()->SetPropertyValue("Uncompressed Size", wxString::Format("%lu bytes", m_blocks->GetData()->size() * 8));
 	}

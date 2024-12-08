@@ -9,7 +9,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cwchar>
-#include <wjakob/filesystem/path.h>
+#include <filesystem>
 
 void Debug(const std::string& message);
 
@@ -97,10 +97,10 @@ std::wstring StrWPrintf(const std::string& fmt, Args... args)
 }
 
 std::vector<uint8_t> ReadBytes(const std::string& filename);
-std::vector<uint8_t> ReadBytes(const filesystem::path& filename);
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename);
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename);
-void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename);
+void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename);
 
 bool IsHex(const std::string& str);
 
@@ -112,7 +112,7 @@ std::string ReformatPath(const std::string& str);
 
 bool StrToHex(const std::string& s, uint32_t& val);
 
-bool CreateDirectoryTree(const filesystem::path& path);
+bool CreateDirectoryTree(const std::filesystem::path& path);
 
 bool StrToInt(const std::string& s, uint32_t& val);
 
