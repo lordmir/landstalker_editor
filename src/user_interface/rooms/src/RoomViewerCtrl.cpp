@@ -2709,6 +2709,10 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
 bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::wstring& status_text)
 {
     int prev_hover = m_hovered;
+    if (!m_g)
+    {
+        return false;
+    }
     for (const auto& wp : m_warp_poly)
     {
         if (Pnpoly(wp.second, xy.first, xy.second))

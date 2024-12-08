@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <landstalker/text/include/Charset.h>
+#include <landstalker/misc/include/Utils.h>
 
 const LSString::CharacterSet& LSString::DEFAULT_CHARACTER_SET = Charset::DEFAULT_ENGLISH_CHARSET;
 
@@ -167,7 +168,7 @@ size_t LSString::EncodeChar(LSString::StringType str, size_t index, uint8_t& chr
 		return 2 + charnum.length();
 	}
 	std::ostringstream ss;
-	ss << "Bad character \'" << str[index] << "\' in position " << index << " found when parsing string.";
+	ss << "Bad character code \'" << static_cast<int>(str[index]) << "\' in position " << index << " found when parsing string.";
 	throw std::runtime_error(ss.str());
 }
 

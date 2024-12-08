@@ -82,8 +82,11 @@ template<typename... Args>
 std::wstring StrWPrintf(const std::wstring& fmt, Args... args)
 {
 	int reqd = std::swprintf(nullptr, 0, fmt.c_str(), args...);
-	std::vector<wchar_t> buf(reqd + 1);
-	std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...);
+	std::vector<wchar_t> buf(reqd < 0 ? 128 : reqd + 1);
+	while (std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...) < 0)
+	{
+		buf.resize(buf.size() * 2);
+	}
 	return std::wstring(reinterpret_cast<const wchar_t*>(buf.data()), reinterpret_cast<const wchar_t*>(buf.data()) + reqd);
 }
 
