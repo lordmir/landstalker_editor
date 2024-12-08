@@ -10,7 +10,8 @@
 #include <map>
 #include <iterator> 
 #include <landstalker/misc/include/Utils.h>
-#include <wjakob/filesystem/path.h>
+#include <filesystem>
+#include <optional>
 
 class AsmFile
 {
@@ -34,14 +35,14 @@ public:
 		IncludeFile(const std::string& ppath, FileType ptype)
 			: path(ReformatPath(ppath)), type(ptype)
 		{}
-		IncludeFile(const filesystem::path& ppath, FileType ptype)
+		IncludeFile(const std::filesystem::path& ppath, FileType ptype)
 			: path(ppath), type(ptype)
 		{}
 		IncludeFile() : type(FileType::ASSEMBLER) {}
-		operator std::string() { return path.str(); }
-		operator const filesystem::path&() { return path; }
+		operator std::string() { return path.string(); }
+		operator const std::filesystem::path& () { return path; }
 
-		filesystem::path path;
+		std::filesystem::path path;
 		FileType type;
 	};
 
@@ -49,7 +50,7 @@ public:
 	{
 		Comment(const std::string& pcomment) : comment(pcomment) {}
 		Comment() {}
-		operator const std::string&() { return comment; }
+		operator const std::string& () { return comment; }
 		std::string comment;
 	};
 
@@ -57,7 +58,7 @@ public:
 	{
 		Label(const std::string& plabel) : label(plabel) {}
 		Label() {}
-		operator const std::string&() { return label; }
+		operator const std::string& () { return label; }
 		std::string label;
 	};
 
@@ -73,9 +74,27 @@ public:
 		std::size_t amount;
 	};
 
+	struct ScriptId
+	{
+		ScriptId(std::size_t p_script_id, std::size_t p_offset)
+			: script_id(p_script_id), offset(p_offset) {}
+		std::size_t script_id;
+		std::size_t offset;
+	};
+
+	struct ScriptJump
+	{
+		ScriptJump(std::string p_func, std::size_t p_offset)
+			: func(p_func), offset(p_offset) {}
+		std::string func;
+		std::size_t offset;
+	};
+
 	struct NewLine {};
 
-	AsmFile(const filesystem::path& filename, FileType type = FileType::ASSEMBLER);
+	using ScriptAction = std::optional<std::variant<ScriptId, ScriptJump>>;
+
+	AsmFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	AsmFile(FileType type = FileType::ASSEMBLER);
 
 	template<typename T>
@@ -98,9 +117,9 @@ public:
 	bool Goto(const Label& label);
 
 	bool IsGood() const;
-	bool ReadFile(const filesystem::path& filename, FileType type = FileType::ASSEMBLER);
-	bool WriteFile(const filesystem::path& filename, FileType type);
-	bool WriteFile(const filesystem::path& filename);
+	bool ReadFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
+	bool WriteFile(const std::filesystem::path& filename, FileType type);
+	bool WriteFile(const std::filesystem::path& filename);
 	std::ostream& PrintFile(std::ostream& stream);
 
 	std::size_t GetLineCount() const;
@@ -109,7 +128,7 @@ public:
 	FileType GetFileType() const;
 
 
-	void WriteFileHeader(const filesystem::path& p, const std::string& short_description);
+	void WriteFileHeader(const std::filesystem::path& p, const std::string& short_description);
 
 	template<typename T>
 	bool Read(T& value);
@@ -133,6 +152,8 @@ public:
 	bool Write(const IncludeFile& file);
 	bool Write(const NewLine&);
 	bool Write(const Align&);
+	bool Write(const ScriptId&);
+	bool Write(const ScriptJump&);
 	template<typename T, typename... Args>
 	bool Write(const T& first, Args&&... args);
 	template<typename Iter>
@@ -207,13 +228,14 @@ private:
 	static const std::unordered_map<std::string, std::size_t> WIDTHS;
 	static const std::size_t MAX_ELEMENTS_ON_LINE = 8;
 
+	using AsmData = std::variant<uint8_t, std::string, IncludeFile, ScriptId, ScriptJump>;
 	bool m_good;
 	FileType m_type;
-	filesystem::path m_filename;
+	std::filesystem::path m_filename;
 	std::vector<AsmLine> m_asm;
 	AsmLine m_nextline;
-	std::vector<std::variant<uint8_t, std::string, IncludeFile>> m_data;
-	std::vector<std::variant<uint8_t, std::string, IncludeFile>>::const_iterator m_readptr;
+	std::vector<AsmData> m_data;
+	std::vector<AsmData>::const_iterator m_readptr;
 	std::map<std::string, std::size_t> m_labels;
 	std::map<std::size_t, std::string> m_labelpos;
 };

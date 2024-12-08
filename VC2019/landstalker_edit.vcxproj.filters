@@ -540,6 +540,9 @@
     <ClCompile Include="..\src\landstalker\behaviours\src\BehaviourYamlConverter.cpp">
       <Filter>src\Data\Behaviours</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\ScriptTable.cpp">
+      <Filter>src\Data\Script</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -889,6 +892,9 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h">
       <Filter>include\UI\Rooms\WarpEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\ScriptTable.h">
+      <Filter>include\Data\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

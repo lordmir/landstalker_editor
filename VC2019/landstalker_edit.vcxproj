@@ -69,6 +69,7 @@
     <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorFrame.cpp" />
     <ClCompile Include="..\src\landstalker\behaviours\src\BehaviourYamlConverter.cpp" />
+    <ClCompile Include="..\src\landstalker\script\src\ScriptTable.cpp" />
     <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorCtrl.cpp" />
     <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\main\src\BrowserTreeCtrl.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\WarpList.h" />
     <ClInclude Include="..\src\landstalker\script\include\Script.h" />
+    <ClInclude Include="..\src\landstalker\script\include\ScriptTable.h" />
     <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h" />
     <ClInclude Include="..\src\landstalker\sprites\include\SpriteFrame.h" />
     <ClInclude Include="..\src\landstalker\text\include\Charset.h" />

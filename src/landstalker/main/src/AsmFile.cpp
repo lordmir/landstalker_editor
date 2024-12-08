@@ -1,4 +1,5 @@
 #include <landstalker/main/include/AsmFile.h>
+#include <landstalker/misc/include/Utils.h>
 
 #include <regex>
 #include <unordered_map>
@@ -14,13 +15,13 @@ const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS
 };
 const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
 
-AsmFile::AsmFile(const filesystem::path& filename, FileType type)
+AsmFile::AsmFile(const std::filesystem::path& filename, FileType type)
 	: m_type(type),
-	  m_filename(filename)
+	m_filename(filename)
 {
 	if (!ReadFile(m_filename, m_type))
 	{
-		throw std::runtime_error(std::string("File \'") + m_filename.str() + ("\' cannot be read!"));
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
 	}
 }
 
@@ -120,7 +121,7 @@ bool AsmFile::IsGood() const
 	return m_good && (m_readptr != m_data.end());
 }
 
-bool AsmFile::ReadFile(const filesystem::path& filename, FileType type)
+bool AsmFile::ReadFile(const std::filesystem::path& filename, FileType type)
 {
 	m_filename = filename;
 	m_type = type;
@@ -129,8 +130,7 @@ bool AsmFile::ReadFile(const filesystem::path& filename, FileType type)
 	{
 		if (m_type == FileType::ASSEMBLER)
 		{
-			std::vector<AsmLine> lines;
-			std::ifstream ifs(m_filename.str());
+			std::ifstream ifs(m_filename.string());
 			std::string line;
 			AsmLine asml;
 			while (std::getline(ifs, line))
@@ -158,7 +158,7 @@ bool AsmFile::ReadFile(const filesystem::path& filename, FileType type)
 		}
 		else
 		{
-			std::ifstream ifs(m_filename.str(), std::ios::binary);
+			std::ifstream ifs(m_filename.string(), std::ios::binary);
 			ifs.unsetf(std::ios::skipws);
 			m_data.insert(m_data.begin(),
 				std::istream_iterator<uint8_t>(ifs),
@@ -175,7 +175,7 @@ bool AsmFile::ReadFile(const filesystem::path& filename, FileType type)
 	return true;
 }
 
-bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
+bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
 {
 	try
 	{
@@ -185,12 +185,12 @@ bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
 		}
 		if (type == FileType::BINARY)
 		{
-			WriteBytes(ToBinary(), filename.str());
+			WriteBytes(ToBinary(), filename.string());
 			return true;
 		}
 		else
 		{
-			std::ofstream ofs(filename.str());
+			std::ofstream ofs(filename.string());
 			ofs << ToAssembly();
 		}
 	}
@@ -201,7 +201,7 @@ bool AsmFile::WriteFile(const filesystem::path& filename, FileType type)
 	return false;
 }
 
-bool AsmFile::WriteFile(const filesystem::path& filename)
+bool AsmFile::WriteFile(const std::filesystem::path& filename)
 {
 	return WriteFile(filename, m_type);
 }
@@ -239,7 +239,7 @@ std::size_t AsmFile::GetByteCount() const
 
 std::string AsmFile::GetFilename() const
 {
-	return m_filename.str();
+	return m_filename.string();
 }
 
 AsmFile::FileType AsmFile::GetFileType() const
@@ -252,7 +252,7 @@ std::string AsmFile::PrintCentered(const std::string& str)
 	std::size_t width = 72;
 	std::string start = ";; ";
 	std::string end = " ;;";
-	if(str.length() >= width)
+	if (str.length() >= width)
 	{
 		return start + str + end;
 	}
@@ -263,11 +263,11 @@ std::string AsmFile::PrintCentered(const std::string& str)
 	return start + result + end;
 }
 
-void AsmFile::WriteFileHeader(const filesystem::path& p, const std::string& short_description)
+void AsmFile::WriteFileHeader(const std::filesystem::path& p, const std::string& short_description)
 {
 	*this << AsmFile::Comment(std::string(78, ';'));
 	*this << AsmFile::Comment(PrintCentered(short_description));
-	*this << AsmFile::Comment(PrintCentered(p.str()));
+	*this << AsmFile::Comment(PrintCentered(p.string()));
 	*this << AsmFile::Comment(PrintCentered(""));
 	*this << AsmFile::Comment(PrintCentered("Generated using the Landstalker Editor v0.3.4:"));
 	*this << AsmFile::Comment(PrintCentered("https://github.com/lordmir/landstalker_editor"));
@@ -289,7 +289,7 @@ bool AsmFile::Read(const GotoLabel& label)
 }
 
 template<>
-bool AsmFile::Read(filesystem::path& path)
+bool AsmFile::Read(std::filesystem::path& path)
 {
 	bool ret = false;
 	AsmFile::IncludeFile file;
@@ -371,6 +371,30 @@ bool AsmFile::Read(Label& value)
 	return true;
 }
 
+template <>
+bool AsmFile::Read(ScriptAction& value)
+{
+	bool ret = false;
+	if (m_readptr != m_data.end())
+	{
+		if (std::holds_alternative<ScriptId>(*m_readptr))
+		{
+			value = std::get<ScriptId>(*m_readptr++);
+			ret = true;
+		}
+		else if (std::holds_alternative<ScriptJump>(*m_readptr))
+		{
+			value = std::get<ScriptJump>(*m_readptr++);
+			ret = true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return ret;
+}
+
 bool AsmFile::Write(const std::string& data)
 {
 	if (!m_nextline.instruction.empty())
@@ -412,7 +436,7 @@ bool AsmFile::Write(const IncludeFile& file)
 	}
 	m_nextline.instruction = FindMapKey(INSTRUCTIONS, file.type == FileType::ASSEMBLER ? Inst::INCLUDE : Inst::INCBIN)->first;
 	m_nextline.operand = "\"";
-	m_nextline.operand += file.path.str();
+	m_nextline.operand += file.path.string();
 	m_nextline.operand += "\"";
 	return true;
 }
@@ -431,6 +455,28 @@ bool AsmFile::Write(const Align& align)
 	}
 	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::ALIGN)->first;
 	m_nextline.operand = ToAsmValue(align.amount);
+	return true;
+}
+
+bool AsmFile::Write(const ScriptId& script_id)
+{
+	if (!m_nextline.instruction.empty())
+	{
+		PushNextLine();
+	}
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::SCRIPTID)->first;
+	m_nextline.operand = ToAsmValue(static_cast<uint16_t>(script_id.script_id)) + "," + ToAsmValue(static_cast<uint16_t>(script_id.offset));
+	return true;
+}
+
+bool AsmFile::Write(const ScriptJump& jump)
+{
+	if (!m_nextline.instruction.empty())
+	{
+		PushNextLine();
+	}
+	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::SCRIPTJUMP)->first;
+	m_nextline.operand = ToAsmValue(jump.func) + "," + ToAsmValue(static_cast<uint16_t>(jump.offset));
 	return true;
 }
 
@@ -607,6 +653,53 @@ bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& /*line*/
 	return true;
 }
 
+template<>
+bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTID>(const AsmFile::AsmLine& line)
+{
+	int width = GetWidth(line);
+	if (width != 0)
+	{
+		return false;
+	}
+
+	std::string word;
+	std::stringstream ss(line.operand);
+	std::getline(ss, word, ',');
+	auto id = ParseValue(word);
+	std::getline(ss, word, ',');
+	auto pos = ParseValue(word);
+
+	if (id > 0 && pos > 0)
+	{
+		m_data.push_back(ScriptId(id, pos));
+	}
+	return true;
+}
+
+template<>
+bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTJUMP>(const AsmFile::AsmLine& line)
+{
+	int width = GetWidth(line);
+	if (width != 0)
+	{
+		return false;
+	}
+
+	std::string word;
+	std::stringstream ss(line.operand);
+	std::getline(ss, word, ',');
+	auto func = word;
+	std::getline(ss, word, ',');
+	auto pos = ParseValue(word);
+
+	if (func.empty() == false && pos >= 0)
+	{
+		m_data.push_back(ScriptJump(func, pos));
+	}
+	return true;
+}
+
+
 bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 {
 	auto it = INSTRUCTIONS.find(line.instruction);
@@ -616,12 +709,14 @@ bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 	}
 	switch (it->second)
 	{
-	case Inst::DC:      return ProcessInst<Inst::DC>(line);
-	case Inst::DCB:     return ProcessInst<Inst::DCB>(line);
-	case Inst::INCLUDE: return ProcessInst<Inst::INCLUDE>(line);
-	case Inst::INCBIN:  return ProcessInst<Inst::INCBIN>(line);
-	case Inst::ALIGN:   return ProcessInst<Inst::ALIGN>(line);
-	default:            return false;
+	case Inst::DC:         return ProcessInst<Inst::DC>(line);
+	case Inst::DCB:        return ProcessInst<Inst::DCB>(line);
+	case Inst::INCLUDE:    return ProcessInst<Inst::INCLUDE>(line);
+	case Inst::INCBIN:     return ProcessInst<Inst::INCBIN>(line);
+	case Inst::ALIGN:      return ProcessInst<Inst::ALIGN>(line);
+	case Inst::SCRIPTID:   return ProcessInst<Inst::SCRIPTID>(line);
+	case Inst::SCRIPTJUMP: return ProcessInst<Inst::SCRIPTJUMP>(line);
+	default:               return false;
 	}
 }
 
