@@ -20,6 +20,7 @@ public:
 	void UpdateUI() const;
 private:
 	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
@@ -37,6 +38,10 @@ private:
 	mutable bool m_reset_props = false;
 	ScriptTableDataViewModel::Mode m_mode = ScriptTableDataViewModel::Mode::CUTSCENE;
 	unsigned int m_index = 0;
+
+	mutable wxPGChoices m_rooms;
+	mutable wxPGChoices m_rooms_plus_empty;
+	mutable wxPGChoices m_items;
 
 	mutable wxAuiManager m_mgr;
 	ScriptTableEditorCtrl* m_editor = nullptr;
