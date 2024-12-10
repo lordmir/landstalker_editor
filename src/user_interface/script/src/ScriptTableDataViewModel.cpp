@@ -1,15 +1,40 @@
 #include <user_interface/script/include/ScriptTableDataViewModel.h>
 
 ScriptTableDataViewModel::ScriptTableDataViewModel(std::shared_ptr<GameData> gd)
+	: BaseDataViewModel(),
+	  m_gd(gd),
+	  m_mode(Mode::CHARACTER),
+	  m_index(0)
 {
+	Initialise();
 }
 
 void ScriptTableDataViewModel::Initialise()
 {
+	if (m_gd && m_gd->GetScriptData()->HasTables())
+	{
+		m_cutscene_script = m_gd->GetScriptData()->GetCutsceneTable();
+		m_character_script = m_gd->GetScriptData()->GetCharTable();
+		m_shop_script = m_gd->GetScriptData()->GetShopTable();
+		m_item_script = m_gd->GetScriptData()->GetItemTable();
+	}
+	else
+	{
+		m_cutscene_script.reset();
+		m_character_script.reset();
+		m_shop_script.reset();
+		m_item_script.reset();
+	}
+	m_mode = Mode::CHARACTER;
+	m_index = 0;
+	Reset(GetRowCount());
 }
 
-void ScriptTableDataViewModel::SetMode(const Mode& mode, int index)
+void ScriptTableDataViewModel::SetMode(const Mode& mode, unsigned int index)
 {
+	m_mode = mode;
+	m_index = index;
+	Reset(GetRowCount());
 }
 
 void ScriptTableDataViewModel::CommitData()
@@ -18,58 +43,338 @@ void ScriptTableDataViewModel::CommitData()
 
 unsigned int ScriptTableDataViewModel::GetColumnCount() const
 {
-	return 0;
+	return 4;
 }
 
 unsigned int ScriptTableDataViewModel::GetRowCount() const
 {
-	return 0;
+	switch (m_mode)
+	{
+	case Mode::CUTSCENE:
+		return m_cutscene_script ? m_cutscene_script->size() : 0;
+	case Mode::CHARACTER:
+		return m_character_script ? m_character_script->size() : 0;
+	case Mode::SHOP:
+		return m_shop_script && m_index < m_shop_script->size() ? m_shop_script->at(m_index).actions.size() : 0;
+	case Mode::ITEM:
+		return m_item_script && m_index < m_item_script->size() ? m_item_script->at(m_index).actions.size() : 0;
+	default:
+		return 0;
+	}
 }
 
 wxString ScriptTableDataViewModel::GetColumnHeader(unsigned int col) const
 {
-	return wxString();
+	switch (col)
+	{
+	case 0:
+		return m_mode == Mode::SHOP ? "Event" : "Index";
+	case 1:
+		return "Type";
+	case 2:
+		return "Value";
+	case 3:
+		return "Comment";
+	default:
+		return "???";
+	}
 }
 
 wxArrayString ScriptTableDataViewModel::GetColumnChoices(unsigned int col) const
 {
-	return wxArrayString();
+	wxArrayString choices;
+	switch (col)
+	{
+	case 1:
+		choices.Add("Script");
+		choices.Add("Jump to Function");
+		break;
+	default:
+		break;
+	}
+	return choices;
 }
 
 wxString ScriptTableDataViewModel::GetColumnType(unsigned int col) const
 {
-	return wxString();
+	switch (col)
+	{
+	case 0:
+		return m_mode == Mode::SHOP ? "string" : "long";
+	case 1:
+		return "long";
+	case 2:
+		return "string";
+	case 3:
+		return "string";
+	default:
+		return "string";
+	}
 }
 
 void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
+	auto cell = GetCell(row);
+	if (!cell)
+	{
+		return;
+	}
+	switch(col)
+	{
+	case 0:
+		variant = static_cast<long>(row);
+		break;
+	case 1:
+		variant = std::visit([](const auto& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, uint16_t>)
+				{
+					return 0L;
+				}
+				else if constexpr (std::is_same_v<T, std::string>)
+				{
+					return 1L;
+				}
+			}, *cell);
+		break;
+	case 2:
+		variant = std::visit([](const auto& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, uint16_t>)
+				{
+					return _(Hex(arg));
+				}
+				else if constexpr (std::is_same_v<T, std::string>)
+				{
+					return _(arg);
+				}
+			}, *cell);
+		break;
+	case 3:
+		variant = std::visit([this](const auto& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, uint16_t>)
+				{
+					if (arg < m_gd->GetScriptData()->GetScript()->GetScriptLineCount())
+					{
+						return _(m_gd->GetScriptData()->GetScript()->GetScriptLine(arg).ToString(m_gd));
+					}
+					else
+					{
+						return _("Invalid Script ID");
+					}
+				}
+				else if constexpr (std::is_same_v<T, std::string>)
+				{
+					return _(StrPrintf("Jump to function %s", arg.c_str()));
+				}
+			}, *cell);
+		break;
+	}
 }
 
-bool ScriptTableDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const
+bool ScriptTableDataViewModel::GetAttrByRow(unsigned int /*row*/, unsigned int /*col*/, wxDataViewItemAttr& /*attr*/) const
 {
 	return false;
 }
 
 bool ScriptTableDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col)
 {
+	auto cell = GetCell(row);
+	if (!cell)
+	{
+		return false;
+	}
+	switch (col)
+	{
+	case 1:
+		if (variant.GetLong() == 0)
+		{
+			*cell = 0_u16;
+		}
+		else
+		{
+			*cell = "FUNC";
+		}
+		break;
+	case 2:
+		{
+			int val = -1;
+			try
+			{
+				val = std::stoi(variant.GetString().ToStdString(), nullptr, 0);
+			}
+			catch (const std::exception&)
+			{
+				val = -1;
+			}
+			if (val >= 0 && val < 65536)
+			{
+				*cell = static_cast<uint16_t>(val);
+			}
+			else
+			{
+				*cell = variant.GetString().ToStdString();
+			}
+		}
+		break;
+	}
 	return false;
 }
 
 bool ScriptTableDataViewModel::DeleteRow(unsigned int row)
 {
+	auto table = GetTable();
+	if (table && row < table->size())
+	{
+		table->erase(table->begin() + row);
+		RowDeleted(row);
+		return true;
+	}
 	return false;
 }
 
 bool ScriptTableDataViewModel::AddRow(unsigned int row)
 {
+	auto table = GetTable();
+	if (table && row <= table->size())
+	{
+		table->insert(table->begin() + row, 0_u16);
+		RowInserted(row);
+		return true;
+	}
 	return false;
 }
 
 bool ScriptTableDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
 {
+	if (m_mode == Mode::SHOP && m_shop_script && m_index < m_shop_script->size())
+	{
+		if (r1 < m_shop_script->at(m_index).actions.size() && r2 < m_shop_script->at(m_index).actions.size() && r1 != r2)
+		{
+			std::iter_swap(m_shop_script->at(m_index).actions.begin() + r1, m_shop_script->at(m_index).actions.begin() + r2);
+			RowChanged(r1);
+			RowChanged(r2);
+			return true;
+		}
+	}
+	else
+	{
+		auto table = GetTable();
+		if (r1 < table->size() && r2 < table->size() && r1 != r2)
+		{
+			std::iter_swap(table->begin() + r1, table->begin() + r2);
+			RowChanged(r1);
+			RowChanged(r2);
+			return true;
+		}
+	}
 	return false;
 }
 
 void ScriptTableDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 {
+	// Index
+	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
+		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
+	// Type
+	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
+		new wxDataViewChoiceByIndexRenderer(GetColumnChoices(1)), 1, 100, wxALIGN_LEFT));
+	// Value
+	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
+		new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_EDITABLE), 2, 150, wxALIGN_LEFT));
+	// Comment
+	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
+		new wxDataViewTextRenderer("string"), 3, -1, wxALIGN_LEFT));
+}
+
+std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable()
+{
+	switch (m_mode)
+	{
+	case Mode::CUTSCENE:
+		if (m_cutscene_script)
+		{
+			return &(*m_cutscene_script);
+		}
+		break;
+	case Mode::CHARACTER:
+		if (m_character_script)
+		{
+			return &(*m_character_script);
+		}
+		break;
+	case Mode::ITEM:
+		if (m_item_script && m_index >= 0 && m_index < m_item_script->size())
+		{
+			return &(m_item_script->at(m_index).actions);
+		}
+		break;
+	case Mode::SHOP:
+	default:
+		break;
+	}
+	return nullptr;
+}
+
+const std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable() const
+{
+	switch (m_mode)
+	{
+	case Mode::CUTSCENE:
+		if (m_cutscene_script)
+		{
+			return &(*m_cutscene_script);
+		}
+		break;
+	case Mode::CHARACTER:
+		if (m_character_script)
+		{
+			return &(*m_character_script);
+		}
+		break;
+	case Mode::ITEM:
+		if (m_item_script && m_index >= 0 && m_index < m_item_script->size())
+		{
+			return &(m_item_script->at(m_index).actions);
+		}
+		break;
+	case Mode::SHOP:
+	default:
+		break;
+	}
+	return nullptr;
+}
+
+const ScriptTable::Action* ScriptTableDataViewModel::GetCell(unsigned int row) const
+{
+	auto table = GetTable();
+	if (m_mode == Mode::SHOP && m_shop_script && m_index >= 0 && m_index < m_shop_script->size()
+		&& row < m_shop_script->at(m_index).actions.size())
+	{
+		return &m_shop_script->at(m_index).actions.at(row);
+	}
+	else if (table && row < table->size())
+	{
+		return &table->at(row);
+	}
+	return nullptr;
+}
+
+ScriptTable::Action* ScriptTableDataViewModel::GetCell(unsigned int row)
+{
+	auto table = GetTable();
+	if (m_mode == Mode::SHOP && m_shop_script && m_index >= 0 && m_index < m_shop_script->size()
+		&& row < m_shop_script->at(m_index).actions.size())
+	{
+		return &m_shop_script->at(m_index).actions.at(row);
+	}
+	else if (table && row < table->size())
+	{
+		return &table->at(row);
+	}
+	return nullptr;
 }

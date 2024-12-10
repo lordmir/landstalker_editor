@@ -21,7 +21,7 @@ void ScriptTableEditorCtrl::ClearGameData()
 {
 }
 
-void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, int index)
+void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index)
 {
 }
 

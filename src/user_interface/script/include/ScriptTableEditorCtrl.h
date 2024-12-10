@@ -19,7 +19,7 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void Open(const ScriptTableDataViewModel::Mode& mode, int index);
+	void Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0);
 	void RefreshData();
 
 	void InsertRow();

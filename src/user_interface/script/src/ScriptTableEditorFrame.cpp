@@ -23,7 +23,7 @@ ScriptTableEditorFrame::~ScriptTableEditorFrame()
 {
 }
 
-bool ScriptTableEditorFrame::Open(const ScriptTableDataViewModel::Mode& mode, int index)
+bool ScriptTableEditorFrame::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index)
 {
 	return false;
 }
