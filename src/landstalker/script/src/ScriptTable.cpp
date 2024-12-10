@@ -22,10 +22,6 @@ static std::vector<ScriptTable::Action> ParseAsmBody(AsmFile& file)
 					{
 						actions.push_back(static_cast<uint16_t>(arg.script_id));
 					}
-					else
-					{
-						break;
-					}
 				}, *action);
 		}
 	}
