@@ -109,6 +109,9 @@
     <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewRenderer.cpp" />
     <ClCompile Include="..\src\user_interface\script\src\ScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableDataViewModel.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorCtrl.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\AnimationFrameControlFrame.cpp" />
     <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerCtrl.cpp" />
@@ -230,6 +233,9 @@
     <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewEditorControl.h" />
     <ClInclude Include="..\src\user_interface\script\include\ScriptEditorCtrl.h" />
     <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableDataViewModel.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorCtrl.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\AnimationFrameControlFrame.h" />
     <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerCtrl.h" />

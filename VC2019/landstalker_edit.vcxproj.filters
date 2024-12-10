@@ -543,6 +543,15 @@
     <ClCompile Include="..\src\landstalker\script\src\ScriptTable.cpp">
       <Filter>src\Data\Script</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorCtrl.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorFrame.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ScriptTableDataViewModel.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -895,6 +904,15 @@
     </ClInclude>
     <ClInclude Include="..\src\landstalker\script\include\ScriptTable.h">
       <Filter>include\Data\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorCtrl.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorFrame.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ScriptTableDataViewModel.h">
+      <Filter>include\UI\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
