@@ -325,7 +325,7 @@ std::wstring StringData::GetCharacterDisplayName(int character) const
 	{
 		return m_character_names.at(character);
 	}
-	return StrWPrintf(L"%ls (%d)", m_default_character_name.c_str(), character);
+	return m_default_character_name;
 }
 
 std::wstring StringData::GetGlobalCharacterDisplayName(int character) const

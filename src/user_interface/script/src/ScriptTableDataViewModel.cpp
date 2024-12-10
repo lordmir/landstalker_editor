@@ -1,5 +1,8 @@
 #include <user_interface/script/include/ScriptTableDataViewModel.h>
 
+static const std::array<std::string, 5> SHOP_ACTIONS{ "On Enter", "On Exit", "On Pick Up", "On Pay", "On Steal" };
+static const std::array<std::string, 3> ITEM_ACTIONS{ "On Pick Up", "On Pay", "On Steal" };
+
 ScriptTableDataViewModel::ScriptTableDataViewModel(std::shared_ptr<GameData> gd)
 	: BaseDataViewModel(),
 	  m_gd(gd),
@@ -68,13 +71,21 @@ wxString ScriptTableDataViewModel::GetColumnHeader(unsigned int col) const
 	switch (col)
 	{
 	case 0:
-		return m_mode == Mode::SHOP ? "Event" : "Index";
+		switch (m_mode)
+		{
+		case Mode::CHARACTER:
+			return _("Character");
+		case Mode::CUTSCENE:
+			return _("Cutscene");
+		default:
+			return _("Event");
+		}
 	case 1:
-		return "Type";
+		return _("Type");
 	case 2:
-		return "Value";
+		return _("Value");
 	case 3:
-		return "Comment";
+		return _("Comment");
 	default:
 		return "???";
 	}
@@ -87,7 +98,7 @@ wxArrayString ScriptTableDataViewModel::GetColumnChoices(unsigned int col) const
 	{
 	case 1:
 		choices.Add("Script");
-		choices.Add("Jump to Function");
+		choices.Add("Jump");
 		break;
 	default:
 		break;
@@ -100,7 +111,7 @@ wxString ScriptTableDataViewModel::GetColumnType(unsigned int col) const
 	switch (col)
 	{
 	case 0:
-		return m_mode == Mode::SHOP ? "string" : "long";
+		return "string";
 	case 1:
 		return "long";
 	case 2:
@@ -115,14 +126,31 @@ wxString ScriptTableDataViewModel::GetColumnType(unsigned int col) const
 void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
 	auto cell = GetCell(row);
-	if (!cell)
+	if (!cell || !m_gd)
 	{
 		return;
 	}
 	switch(col)
 	{
 	case 0:
-		variant = static_cast<long>(row);
+		switch (m_mode)
+		{
+		case Mode::CUTSCENE:
+			variant = _(m_gd->GetScriptData()->GetCutsceneDisplayName(row));
+			break;
+		case Mode::CHARACTER:
+			variant = _(StrWPrintf("[%03d] %ls",row, m_gd->GetStringData()->GetCharacterDisplayName(row).c_str()));
+			break;
+		case Mode::SHOP:
+			variant = _(SHOP_ACTIONS.at(row));
+			break;
+		case Mode::ITEM:
+			variant = row < ITEM_ACTIONS.size() ? _(ITEM_ACTIONS.at(row)) : _(StrPrintf("Custom Event %d", row));
+			break;
+		default:
+			variant = _(std::to_string(row));
+			break;
+		}
 		break;
 	case 1:
 		variant = std::visit([](const auto& arg)
@@ -144,7 +172,7 @@ void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int ro
 				using T = std::decay_t<decltype(arg)>;
 				if constexpr (std::is_same_v<T, uint16_t>)
 				{
-					return _(Hex(arg));
+					return _(std::to_string(arg));
 				}
 				else if constexpr (std::is_same_v<T, std::string>)
 				{
@@ -279,16 +307,16 @@ void ScriptTableDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 {
 	// Index
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
+		new wxDataViewTextRenderer(GetColumnType(0)), 0, 120, wxALIGN_LEFT));
 	// Type
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewChoiceByIndexRenderer(GetColumnChoices(1)), 1, 100, wxALIGN_LEFT));
 	// Value
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_EDITABLE), 2, 150, wxALIGN_LEFT));
+		new wxDataViewTextRenderer(GetColumnType(2), wxDATAVIEW_CELL_EDITABLE), 2, 170, wxALIGN_LEFT));
 	// Comment
 	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
-		new wxDataViewTextRenderer("string"), 3, -1, wxALIGN_LEFT));
+		new wxDataViewTextRenderer(GetColumnType(3)), 3, -1, wxALIGN_LEFT));
 }
 
 std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable()

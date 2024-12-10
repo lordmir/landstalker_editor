@@ -47,7 +47,13 @@ void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, uns
 {
 	if (m_model)
 	{
+		Freeze();
 		m_model->SetMode(mode, index);
+		for (unsigned int i = 0; i < m_dvc_ctrl->GetColumnCount(); ++i)
+		{
+			m_dvc_ctrl->GetColumn(i)->SetTitle(m_model->GetColumnHeader(i));
+		}
+		Thaw();
 		UpdateUI();
 	}
 }
