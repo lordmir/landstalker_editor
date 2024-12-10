@@ -241,28 +241,28 @@ void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& d
 	}
 }
 
-SpriteData::SpriteData(const filesystem::path& asm_file)
+SpriteData::SpriteData(const std::filesystem::path& asm_file)
 	: DataManager(asm_file)
 {
 	if (!LoadAsmFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadSpriteFrames())
 	{
-		throw std::runtime_error(std::string("Unable to load sprite frame data from \'") + m_sprite_frames_data_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load sprite frame data from \'") + m_sprite_frames_data_file.string() + '\'');
 	}
 	if (!AsmLoadSpritePointers())
 	{
-		throw std::runtime_error(std::string("Unable to load sprite pointer data from \'") + m_sprite_anim_frames_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load sprite pointer data from \'") + m_sprite_anim_frames_file.string() + '\'');
 	}
 	if (!AsmLoadSpritePalettes())
 	{
-		throw std::runtime_error(std::string("Unable to load sprite palette data from \'") + m_palette_data_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load sprite palette data from \'") + m_palette_data_file.string() + '\'');
 	}
 	if (!AsmLoadSpriteData())
 	{
-		throw std::runtime_error(std::string("Unable to load sprite data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load sprite data from \'") + asm_file.string() + '\'');
 	}
 	InitCache();
 }
@@ -291,32 +291,32 @@ SpriteData::~SpriteData()
 {
 }
 
-bool SpriteData::Save(const filesystem::path& dir)
+bool SpriteData::Save(const std::filesystem::path& dir)
 {
-	filesystem::path directory = dir;
-	if (directory.exists() && directory.is_file())
+	std::filesystem::path directory = dir;
+	if (std::filesystem::exists(directory) && std::filesystem::is_regular_file(directory))
 	{
 		directory = directory.parent_path();
 	}
 	if (!CreateDirectoryStructure(directory))
 	{
-		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveSpriteFrames(directory))
 	{
-		throw std::runtime_error(std::string("Unable to save sprite frame data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save sprite frame data to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveSpritePointers(directory))
 	{
-		throw std::runtime_error(std::string("Unable to save sprite frame data to \'") + m_sprite_frames_data_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save sprite frame data to \'") + m_sprite_frames_data_file.string() + '\'');
 	}
 	if (!AsmSaveSpritePalettes(directory))
 	{
-		throw std::runtime_error(std::string("Unable to save sprite palette data to \'") + m_palette_data_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save sprite palette data to \'") + m_palette_data_file.string() + '\'');
 	}
 	if (!AsmSaveSpriteData(directory))
 	{
-		throw std::runtime_error(std::string("Unable to save sprite data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save sprite data to \'") + directory.string() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -450,12 +450,12 @@ void SpriteData::RefreshPendingWrites(const Rom& rom)
 	}
 }
 
-std::wstring SpriteData::GetEntityDisplayName(uint8_t id) const
+std::wstring SpriteData::GetEntityDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_ENTITIES, id).value_or(L"Entity" + std::to_wstring(id));
 }
 
-std::wstring SpriteData::GetSpriteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_SPRITES, id).value_or(StrWPrintf(RomLabels::Sprites::SPRITE_GFX, id));
 }
@@ -474,17 +474,17 @@ std::wstring SpriteData::GetSpriteFrameDisplayName(uint8_t id, const std::string
 	return Labels::Get(Labels::C_SPRITE_FRAMES, (id << 8) | frame_id).value_or(std::wstring(name.cbegin(), name.cend()));
 }
 
-std::wstring SpriteData::GetSpriteLowPaletteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteLowPaletteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_LOW_PALETTES, id).value_or(StrWPrintf(RomLabels::Sprites::PALETTE_LO, id));
 }
 
-std::wstring SpriteData::GetSpriteHighPaletteDisplayName(uint8_t id) const
+std::wstring SpriteData::GetSpriteHighPaletteDisplayName(uint8_t id)
 {
 	return Labels::Get(Labels::C_HIGH_PALETTES, id).value_or(StrWPrintf(RomLabels::Sprites::PALETTE_HI, id));
 }
 
-std::wstring SpriteData::GetBehaviourDisplayName(int behav_id) const
+std::wstring SpriteData::GetBehaviourDisplayName(int behav_id)
 {
 	return Labels::Get(Labels::C_BEHAVIOURS, behav_id).value_or(StrWPrintf(L"Behaviour%d", behav_id));
 }
@@ -578,7 +578,7 @@ void SpriteData::AddSpriteFrame(uint8_t sprite_id, const std::string& name)
 {
 	if (!SpriteFrameExists(name))
 	{
-		std::shared_ptr<SpriteFrameEntry> entry = SpriteFrameEntry::Create(this, name, filesystem::path(RomLabels::Sprites::SPRITE_FRAME_FILE).parent_path() / (name + ".frm"));
+		std::shared_ptr<SpriteFrameEntry> entry = SpriteFrameEntry::Create(this, name, std::filesystem::path(RomLabels::Sprites::SPRITE_FRAME_FILE).parent_path() / (name + ".frm"));
 		entry->SetSprite(sprite_id);
 		entry->GetData()->AddSubSpriteBefore(0);
 		entry->GetData()->PrepareSubSprites();
@@ -1281,7 +1281,7 @@ bool SpriteData::LoadAsmFilenames()
 	try
 	{
 		bool retval = true;
-		AsmFile f(GetAsmFilename().str());
+		AsmFile f(GetAsmFilename().string());
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_ANIM_FLAGS_LOOKUP, m_sprite_anim_flags_lookup_file);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::SPRITE_VISIBILITY_FLAGS, m_sprite_visibility_flags_file);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Sprites::ONE_TIME_EVENT_FLAGS, m_one_time_event_flags_file);
@@ -1339,7 +1339,7 @@ void SpriteData::SetDefaultFilenames()
 	if (m_proj2_pal_file.empty())                    m_proj2_pal_file                 = RomLabels::Sprites::PALETTE_PROJECTILE_2_FILE;
 }
 
-bool SpriteData::CreateDirectoryStructure(const filesystem::path& dir)
+bool SpriteData::CreateDirectoryStructure(const std::filesystem::path& dir)
 {
 	bool retval = true;
 	retval = retval && CreateDirectoryTree(dir / m_sprite_anim_flags_lookup_file);
@@ -1460,7 +1460,7 @@ ByteVector SpriteData::SerialisePalArray(const std::vector<std::shared_ptr<Palet
 }
 
 std::vector<std::shared_ptr<PaletteEntry>> SpriteData::DeserialisePalArray(const ByteVector& bytes, const std::string& name,
-	const filesystem::path& path, Palette::Type type, bool unique_path)
+	const std::filesystem::path& path, Palette::Type type, bool unique_path)
 {
 	std::vector<std::shared_ptr<PaletteEntry>> result;
 	const uint32_t size = Palette::GetSizeBytes(type);
@@ -1471,7 +1471,7 @@ std::vector<std::shared_ptr<PaletteEntry>> SpriteData::DeserialisePalArray(const
 	while (it != bytes.cend())
 	{
 		auto fname = format_name ? StrPrintf(name, idx + 1) : name + StrPrintf(":%d", idx);
-		auto fpath = unique_path ? StrPrintf(path.str(), idx + 1) : path.str();
+		auto fpath = unique_path ? StrPrintf(path.string(), idx + 1) : path.string();
 		auto b = ByteVector(it, it + size);
 		if (b[0] > 0x0E)
 		{
@@ -1948,12 +1948,12 @@ bool SpriteData::RomLoadSpriteData(const Rom& rom)
 	return true;
 }
 
-bool SpriteData::AsmSaveSpriteFrames(const filesystem::path& dir)
+bool SpriteData::AsmSaveSpriteFrames(const std::filesystem::path& dir)
 {
 	return std::all_of(m_frames.begin(), m_frames.end(), [&](auto& f) { return f.second->Save(dir); });
 }
 
-bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
+bool SpriteData::AsmSaveSpritePointers(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2007,7 +2007,7 @@ bool SpriteData::AsmSaveSpritePointers(const filesystem::path& dir)
 	return false;
 }
 
-bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
+bool SpriteData::AsmSaveSpritePalettes(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2043,7 +2043,7 @@ bool SpriteData::AsmSaveSpritePalettes(const filesystem::path& dir)
 	return false;
 }
 
-bool SpriteData::AsmSaveSpriteData(const filesystem::path& dir)
+bool SpriteData::AsmSaveSpriteData(const std::filesystem::path& dir)
 {
 	std::vector<std::array<uint8_t, 2>> anim_flags;
 	std::transform(m_sprite_animation_flags.cbegin(), m_sprite_animation_flags.cend(), std::back_inserter<std::vector<std::array<uint8_t, 2>>>(anim_flags), [](const auto& elem)

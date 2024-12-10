@@ -9,7 +9,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cwchar>
-#include <wjakob/filesystem/path.h>
+#include <filesystem>
 
 void Debug(const std::string& message);
 
@@ -82,8 +82,11 @@ template<typename... Args>
 std::wstring StrWPrintf(const std::wstring& fmt, Args... args)
 {
 	int reqd = std::swprintf(nullptr, 0, fmt.c_str(), args...);
-	std::vector<wchar_t> buf(reqd + 1);
-	std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...);
+	std::vector<wchar_t> buf(reqd < 0 ? 128 : reqd + 1);
+	while ((reqd = std::swprintf(buf.data(), buf.size(), fmt.c_str(), args...)) < 0)
+	{
+		buf.resize(buf.size() * 2);
+	}
 	return std::wstring(reinterpret_cast<const wchar_t*>(buf.data()), reinterpret_cast<const wchar_t*>(buf.data()) + reqd);
 }
 
@@ -94,10 +97,10 @@ std::wstring StrWPrintf(const std::string& fmt, Args... args)
 }
 
 std::vector<uint8_t> ReadBytes(const std::string& filename);
-std::vector<uint8_t> ReadBytes(const filesystem::path& filename);
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename);
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename);
-void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename);
+void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename);
 
 bool IsHex(const std::string& str);
 
@@ -109,9 +112,15 @@ std::string ReformatPath(const std::string& str);
 
 bool StrToHex(const std::string& s, uint32_t& val);
 
-bool CreateDirectoryTree(const filesystem::path& path);
+bool CreateDirectoryTree(const std::filesystem::path& path);
 
 bool StrToInt(const std::string& s, uint32_t& val);
+
+std::wstring utf8_to_wstr(const std::string& utf8);
+
+std::string wstr_to_utf8(const std::wstring& unicode);
+
+std::string str_to_lower(const std::string& str);
 
 template<class T, class U>
 std::vector<T> Split(U data)

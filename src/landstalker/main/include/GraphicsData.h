@@ -10,12 +10,12 @@
 class GraphicsData : public DataManager
 {
 public:
-    GraphicsData(const filesystem::path& asm_file);
+    GraphicsData(const std::filesystem::path& asm_file);
     GraphicsData(const Rom& rom);
 
     virtual ~GraphicsData() {}
 
-    virtual bool Save(const filesystem::path& dir);
+    virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
 
     virtual bool HasBeenModified() const;
@@ -55,7 +55,7 @@ protected:
 private:
     bool LoadAsmFilenames();
     void SetDefaultFilenames();
-    bool CreateDirectoryStructure(const filesystem::path& dir);
+    bool CreateDirectoryStructure(const std::filesystem::path& dir);
     void InitCache();
 
     bool AsmLoadInventoryGraphics();
@@ -86,17 +86,17 @@ private:
     bool RomLoadClimaxLogoData(const Rom& rom);
     bool RomLoadGameLoadScreenData(const Rom& rom);
 
-    bool AsmSaveGraphics(const filesystem::path& dir);
-    bool AsmSaveInventoryGraphics(const filesystem::path& dir);
-    bool AsmSaveSwordFx(const filesystem::path& dir);
-    bool AsmSaveStatusFx(const filesystem::path& dir);
-    bool AsmSaveEndCreditData(const filesystem::path& dir);
-    bool AsmSaveIslandMapData(const filesystem::path& dir);
-    bool AsmSaveLithographData(const filesystem::path& dir);
-    bool AsmSaveTitleScreenData(const filesystem::path& dir);
-    bool AsmSaveSegaLogoData(const filesystem::path& dir);
-    bool AsmSaveClimaxLogoData(const filesystem::path& dir);
-    bool AsmSaveGameLoadData(const filesystem::path& dir);
+    bool AsmSaveGraphics(const std::filesystem::path& dir);
+    bool AsmSaveInventoryGraphics(const std::filesystem::path& dir);
+    bool AsmSaveSwordFx(const std::filesystem::path& dir);
+    bool AsmSaveStatusFx(const std::filesystem::path& dir);
+    bool AsmSaveEndCreditData(const std::filesystem::path& dir);
+    bool AsmSaveIslandMapData(const std::filesystem::path& dir);
+    bool AsmSaveLithographData(const std::filesystem::path& dir);
+    bool AsmSaveTitleScreenData(const std::filesystem::path& dir);
+    bool AsmSaveSegaLogoData(const std::filesystem::path& dir);
+    bool AsmSaveClimaxLogoData(const std::filesystem::path& dir);
+    bool AsmSaveGameLoadData(const std::filesystem::path& dir);
 
     bool RomPrepareInjectInvGraphics(const Rom& rom);
     bool RomPrepareInjectPalettes(const Rom& rom);
@@ -115,25 +115,25 @@ private:
     void UpdateTilesetRecommendedPalettes();
     void ResetTilesetDefaultPalettes();
 
-    filesystem::path m_inventory_graphics_filename;
-    filesystem::path m_status_fx_path;
-    filesystem::path m_status_fx_pointers_path;
-    filesystem::path m_sword_fx_path;
-    filesystem::path m_end_credits_path;
-    filesystem::path m_island_map_path;
-    filesystem::path m_title_path;
-    filesystem::path m_title_routines_1_path;
-    filesystem::path m_title_routines_2_path;
-    filesystem::path m_title_routines_3_path;
-    filesystem::path m_sega_logo_path;
-    filesystem::path m_sega_logo_routines_1_path;
-    filesystem::path m_sega_logo_routines_2_path;
-    filesystem::path m_climax_logo_path;
-    filesystem::path m_load_game_path;
-    filesystem::path m_load_game_routines_1_path;
-    filesystem::path m_load_game_routines_2_path;
-    filesystem::path m_load_game_routines_3_path;
-    filesystem::path m_lithograph_path;
+    std::filesystem::path m_inventory_graphics_filename;
+    std::filesystem::path m_status_fx_path;
+    std::filesystem::path m_status_fx_pointers_path;
+    std::filesystem::path m_sword_fx_path;
+    std::filesystem::path m_end_credits_path;
+    std::filesystem::path m_island_map_path;
+    std::filesystem::path m_title_path;
+    std::filesystem::path m_title_routines_1_path;
+    std::filesystem::path m_title_routines_2_path;
+    std::filesystem::path m_title_routines_3_path;
+    std::filesystem::path m_sega_logo_path;
+    std::filesystem::path m_sega_logo_routines_1_path;
+    std::filesystem::path m_sega_logo_routines_2_path;
+    std::filesystem::path m_climax_logo_path;
+    std::filesystem::path m_load_game_path;
+    std::filesystem::path m_load_game_routines_1_path;
+    std::filesystem::path m_load_game_routines_2_path;
+    std::filesystem::path m_load_game_routines_3_path;
+    std::filesystem::path m_lithograph_path;
 
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name;
     std::map<std::string, std::shared_ptr<TilesetEntry>> m_fonts_by_name_orig;

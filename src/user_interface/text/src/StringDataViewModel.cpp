@@ -240,7 +240,7 @@ bool StringDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int r
     }
     else if (m_type == StringData::Type::END_CREDITS)
     {
-        auto news = m_sd->GetEndCreditString(row);
+        EndCreditString news = m_sd->GetEndCreditString(row);
         switch (col)
         {
         case 1:

@@ -69,7 +69,7 @@ bool DataManager::AbandomRomInjection()
 	return true;
 }
 
-bool DataManager::Save(const filesystem::path& /*dir*/)
+bool DataManager::Save(const std::filesystem::path& /*dir*/)
 {
 	bool success = true;
 	if (success)
@@ -97,12 +97,12 @@ void DataManager::CommitAllChanges()
 {
 }
 
-bool DataManager::GetFilenameFromAsm(AsmFile& file, const std::string& label, filesystem::path& path)
+bool DataManager::GetFilenameFromAsm(AsmFile& file, const std::string& label, std::filesystem::path& path)
 {
 	if (file.Goto(label) == false)
 	{
 		throw std::runtime_error("Could not locate label \"" + label + "\" in file \"" + file.GetFilename() + "\"");
 	}
 	file >> path;
-	return filesystem::path(m_base_path / path).exists();
+	return std::filesystem::exists(std::filesystem::path(m_base_path / path));
 }

@@ -36,7 +36,7 @@ wxArrayString FlagDataViewModel<EntityFlag>::GetColumnChoices(unsigned int col) 
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -46,6 +46,12 @@ wxArrayString FlagDataViewModel<EntityFlag>::GetColumnChoices(unsigned int col) 
 		}
 		break;
 	}
+	case 1:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		break;
 	case 2:
 		choices.Add("Set");
 		choices.Add("Clear");
@@ -131,9 +137,9 @@ template <>
 void FlagDataViewModel<EntityFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 340, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 240, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 120, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 220, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 100, wxALIGN_LEFT));
 }
@@ -177,7 +183,7 @@ wxArrayString FlagDataViewModel<OneTimeEventFlag>::GetColumnChoices(unsigned int
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -187,6 +193,13 @@ wxArrayString FlagDataViewModel<OneTimeEventFlag>::GetColumnChoices(unsigned int
 		}
 		break;
 	}
+	case 1:
+	case 3:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		break;
 	case 2:
 	case 4:
 		choices.Add("Set");
@@ -291,13 +304,13 @@ template <>
 void FlagDataViewModel<OneTimeEventFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 200, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 160, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 100, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 120, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 80, wxALIGN_LEFT));
 	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 3, 100, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(3)), 3, 120, wxALIGN_LEFT));
 	ctrl->InsertColumn(4, new wxDataViewColumn(this->GetColumnHeader(4),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
 }
@@ -335,7 +348,7 @@ wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int co
 		{
 			if (i < ent.size())
 			{
-				choices.Add(StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+				choices.Add(StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 					ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl()));
 			}
 			else
@@ -345,6 +358,12 @@ wxArrayString FlagDataViewModel<RoomClearFlag>::GetColumnChoices(unsigned int co
 		}
 		break;
 	}
+	case 1:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		break;
 	default:
 		break;
 	}
@@ -417,9 +436,9 @@ template <>
 void FlagDataViewModel<RoomClearFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 340, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 240, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 120, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 220, wxALIGN_LEFT));
 }
 
 wxString LockedDoorFlagViewModel::GetColumnHeader(unsigned int col) const
@@ -489,6 +508,12 @@ wxArrayString FlagDataViewModel<SacredTreeFlag>::GetColumnChoices(unsigned int c
 		choices.Add("???");
 		break;
 	}
+	case 1:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		break;
 	default:
 		break;
 	}
@@ -526,7 +551,7 @@ void FlagDataViewModel<SacredTreeFlag>::GetValueByRow(wxVariant& variant, unsign
 				{
 					if (tree == row)
 					{
-						variant = StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
+						variant = StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", i + 1, ent[i].GetTypeName().c_str(),
 							ent[i].GetXDbl(), ent[i].GetYDbl(), ent[i].GetZDbl());
 						found = true;
 						break;
@@ -580,9 +605,9 @@ template <>
 void FlagDataViewModel<SacredTreeFlag>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewTextRenderer(), 0, 420, wxALIGN_LEFT));
+		new wxDataViewTextRenderer(), 0, 270, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 290, wxALIGN_LEFT));
 }
 
 template <>
@@ -615,6 +640,12 @@ wxArrayString FlagDataViewModel<WarpList::Transition>::GetColumnChoices(unsigned
 		for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
 		{
 			choices.Add(m_gd->GetRoomData()->GetRoom(i)->GetDisplayName());
+		}
+		break;
+	case 1:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
 		}
 		break;
 	default:
@@ -689,9 +720,9 @@ template <>
 void FlagDataViewModel<WarpList::Transition>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 420, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 290, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewSpinRenderer(0, 1023, wxDATAVIEW_CELL_EDITABLE), 1, 140, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 270, wxALIGN_LEFT));
 }
 
 template <>
@@ -778,7 +809,7 @@ void FlagDataViewModel<ChestItem>::GetValueByRow(wxVariant& variant, unsigned in
 		}
 		if (count > row)
 		{
-			variant = StrWPrintf(L"[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
+			variant = StrWPrintf(L"[%02d] %ls (%04.1f, %04.1f, %04.1f)", idx + 1, ent[idx].GetTypeName().c_str(),
 				ent[idx].GetXDbl(), ent[idx].GetYDbl(), ent[idx].GetZDbl());
 		}
 		else
@@ -912,7 +943,7 @@ void FlagDataViewModel<Character>::GetValueByRow(wxVariant& variant, unsigned in
 				{
 					if (label.empty())
 					{
-						label = StrPrintf("[%02d] %s (%04.1f, %04.1f, %04.1f)", idx + 1, e.GetTypeName().c_str(),
+						label = StrWPrintf("[%02d] %ls (%04.1f, %04.1f, %04.1f)", idx + 1, e.GetTypeName().c_str(),
 							e.GetXDbl(), e.GetYDbl(), e.GetZDbl());
 					}
 					else
@@ -1029,9 +1060,21 @@ wxString FlagDataViewModel<TileSwapFlag>::GetColumnHeader(unsigned int col) cons
 }
 
 template <>
-wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int /*col*/) const
+wxArrayString FlagDataViewModel<TileSwapFlag>::GetColumnChoices(unsigned int col) const
 {
-	return wxArrayString();
+	wxArrayString choices;
+	switch (col)
+	{
+	case 2:
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		break;
+	default:
+		break;
+	}
+	return choices;
 }
 
 template <>
@@ -1117,7 +1160,7 @@ void FlagDataViewModel<TileSwapFlag>::InitControl(wxDataViewCtrl* ctrl) const
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 240, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 240, wxALIGN_LEFT));
 }
 
 
@@ -1168,9 +1211,21 @@ wxString FlagDataViewModel<TreeWarpFlag>::GetColumnHeader(unsigned int col) cons
 }
 
 template <>
-wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int /*col*/) const
+wxArrayString FlagDataViewModel<TreeWarpFlag>::GetColumnChoices(unsigned int col) const
 {
-	return m_list[0];
+	if (col == 2)
+	{
+		wxArrayString choices;
+		for (int i = 0; i < 2048; ++i)
+		{
+			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+		return choices;
+	}
+	else
+	{
+		return m_list[0];
+	}
 }
 
 template <>
@@ -1247,5 +1302,5 @@ void FlagDataViewModel<TreeWarpFlag>::InitControl(wxDataViewCtrl* ctrl) const
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewSpinRenderer(0, 2047, wxDATAVIEW_CELL_EDITABLE), 2, 200, wxALIGN_LEFT));
+		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
 }

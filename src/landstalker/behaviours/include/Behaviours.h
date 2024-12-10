@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <map>
 #include <variant>
+#include <tuple>
 
 class Behaviours
 {
@@ -122,17 +123,21 @@ public:
 
     enum class ParamType
     {
+        NONE,
         UINT8,
         INT8,
         UINT16,
-        UINT8_PLUS_256,
         LABEL,
         COORDINATE,
         LONG_COORDINATE,
-        FLAG
+        FLAG,
+        SOUND,
+        LOW_CUTSCENE,
+        HIGH_CUTSCENE
     };
 
     using ParameterValue = std::variant<int, double>;
+    using Parameter = std::tuple<std::string, ParameterValue, ParamType>;
 
     struct CommandDefinition
     {
@@ -143,8 +148,8 @@ public:
 
     struct Command
     {
-        CommandType command;
-        std::vector<std::pair<std::string, ParameterValue>> params;
+        CommandType command = CommandType::PAUSE;
+        std::vector<Parameter> params;
 
         bool operator==(const Command& rhs) const
         {
@@ -162,14 +167,6 @@ public:
 
     static std::map<int, std::pair<std::string, std::vector<Command>>> Unpack(const std::vector<uint8_t>& offsets, const std::vector<uint8_t>& behaviour_table);
     static std::pair<std::vector<uint8_t>, std::vector<uint8_t>> Pack(const std::map<int, std::pair<std::string, std::vector<Command>>>& behaviours);
-
-    static std::string ToYaml(int id, const std::string& name, const std::vector<Command>& behaviour);
-    static std::string ToYaml(const std::vector<Command>& behaviour);
-    static std::vector<Command> FromYaml(const std::string& yaml, int& id, std::string& name);
-    static std::vector<Command> FromYaml(const std::string& yaml);
-
-    static std::map<int, std::pair<std::string, std::vector<Command>>> AllFromYaml(const std::vector<std::string>& yamls);
-    static std::vector<std::string> AllToYaml(const std::map<int, std::pair<std::string, std::vector<Command>>>& behaviours);
 private:
     static const std::unordered_map<ParamType, int> PARAM_SIZES;
     static const std::unordered_map<CommandType, CommandDefinition> COMMANDS_BY_ID;

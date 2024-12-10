@@ -89,24 +89,24 @@ public:
 		std::array<uint8_t, 5> Pack() const;
 	};
 
-	SpriteData(const filesystem::path& asm_file);
+	SpriteData(const std::filesystem::path& asm_file);
 	SpriteData(const Rom& rom);
 
 	virtual ~SpriteData();
 
-	virtual bool Save(const filesystem::path& dir);
+	virtual bool Save(const std::filesystem::path& dir);
 	virtual bool Save();
 
 	virtual bool HasBeenModified() const;
 	virtual void RefreshPendingWrites(const Rom& rom);
 
-	std::wstring GetEntityDisplayName(uint8_t id) const;
-	std::wstring GetSpriteDisplayName(uint8_t id) const;
+	static std::wstring GetEntityDisplayName(uint8_t id);
+	static std::wstring GetSpriteDisplayName(uint8_t id);
 	std::wstring GetSpriteAnimationDisplayName(uint8_t id, const std::string& name) const;
 	std::wstring GetSpriteFrameDisplayName(uint8_t id, const std::string& name) const;
-	std::wstring GetSpriteLowPaletteDisplayName(uint8_t id) const;
-	std::wstring GetSpriteHighPaletteDisplayName(uint8_t id) const;
-	std::wstring GetBehaviourDisplayName(int behav_id) const;
+	static std::wstring GetSpriteLowPaletteDisplayName(uint8_t id);
+	static std::wstring GetSpriteHighPaletteDisplayName(uint8_t id);
+	static std::wstring GetBehaviourDisplayName(int behav_id);
 
 	bool IsEntity(uint8_t id) const;
 	bool IsSprite(uint8_t id) const;
@@ -211,14 +211,14 @@ protected:
 private:
 	bool LoadAsmFilenames();
 	void SetDefaultFilenames();
-	bool CreateDirectoryStructure(const filesystem::path& dir);
+	bool CreateDirectoryStructure(const std::filesystem::path& dir);
 	void InitCache();
 
 	ByteVector SerialisePaletteLUT() const;
 	void DeserialisePaletteLUT(const ByteVector& bytes);
 	ByteVector SerialisePalArray(const std::vector<std::shared_ptr<PaletteEntry>>& pals) const;
 	std::vector<std::shared_ptr<PaletteEntry>> DeserialisePalArray(const ByteVector& bytes, const std::string& name,
-		const filesystem::path& path, Palette::Type type, bool unique_path = false);
+		const std::filesystem::path& path, Palette::Type type, bool unique_path = false);
 	void DeserialiseRoomEntityTable(const ByteVector& offsets, const ByteVector& bytes);
 	std::pair<ByteVector, ByteVector> SerialiseRoomEntityTable() const;
 
@@ -231,38 +231,38 @@ private:
 	bool RomLoadSpritePalettes(const Rom& rom);
 	bool RomLoadSpriteData(const Rom& rom);
 
-	bool AsmSaveSpriteFrames(const filesystem::path& dir);
-	bool AsmSaveSpritePointers(const filesystem::path& dir);
-	bool AsmSaveSpritePalettes(const filesystem::path& dir);
-	bool AsmSaveSpriteData(const filesystem::path& dir);
+	bool AsmSaveSpriteFrames(const std::filesystem::path& dir);
+	bool AsmSaveSpritePointers(const std::filesystem::path& dir);
+	bool AsmSaveSpritePalettes(const std::filesystem::path& dir);
+	bool AsmSaveSpriteData(const std::filesystem::path& dir);
 
 	bool RomPrepareInjectSpriteFrames(const Rom& rom);
 	bool RomPrepareInjectSpritePalettes(const Rom& rom);
 	bool RomPrepareInjectSpriteData(const Rom& rom);
 
-	filesystem::path m_palette_data_file;
-	filesystem::path m_palette_lut_file;
-	filesystem::path m_proj1_pal_file;
-	filesystem::path m_proj2_pal_file;
-	filesystem::path m_sprite_lut_file;
-	filesystem::path m_sprite_anims_file;
-	filesystem::path m_sprite_anim_frames_file;
-	filesystem::path m_sprite_frames_data_file;
-	filesystem::path m_item_properties_file;
-	filesystem::path m_sprite_behaviour_offset_file;
-	filesystem::path m_sprite_behaviour_table_file;
-	filesystem::path m_sprite_anim_flags_lookup_file;
-	filesystem::path m_sprite_visibility_flags_file;
-	filesystem::path m_one_time_event_flags_file;
-	filesystem::path m_room_clear_flags_file;
-	filesystem::path m_locked_door_sprite_flags_file;
-	filesystem::path m_permanent_switch_flags_file;
-	filesystem::path m_sacred_tree_flags_file;
-	filesystem::path m_sprite_gfx_idx_lookup_file;
-	filesystem::path m_sprite_dimensions_lookup_file;
-	filesystem::path m_room_sprite_table_offsets_file;
-	filesystem::path m_enemy_stats_file;
-	filesystem::path m_room_sprite_table_file;
+	std::filesystem::path m_palette_data_file;
+	std::filesystem::path m_palette_lut_file;
+	std::filesystem::path m_proj1_pal_file;
+	std::filesystem::path m_proj2_pal_file;
+	std::filesystem::path m_sprite_lut_file;
+	std::filesystem::path m_sprite_anims_file;
+	std::filesystem::path m_sprite_anim_frames_file;
+	std::filesystem::path m_sprite_frames_data_file;
+	std::filesystem::path m_item_properties_file;
+	std::filesystem::path m_sprite_behaviour_offset_file;
+	std::filesystem::path m_sprite_behaviour_table_file;
+	std::filesystem::path m_sprite_anim_flags_lookup_file;
+	std::filesystem::path m_sprite_visibility_flags_file;
+	std::filesystem::path m_one_time_event_flags_file;
+	std::filesystem::path m_room_clear_flags_file;
+	std::filesystem::path m_locked_door_sprite_flags_file;
+	std::filesystem::path m_permanent_switch_flags_file;
+	std::filesystem::path m_sacred_tree_flags_file;
+	std::filesystem::path m_sprite_gfx_idx_lookup_file;
+	std::filesystem::path m_sprite_dimensions_lookup_file;
+	std::filesystem::path m_room_sprite_table_offsets_file;
+	std::filesystem::path m_enemy_stats_file;
+	std::filesystem::path m_room_sprite_table_file;
 
 	std::map<uint8_t, std::string> m_names;
 	std::map<std::string, uint8_t> m_ids;

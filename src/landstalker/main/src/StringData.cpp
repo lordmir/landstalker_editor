@@ -7,52 +7,52 @@
 #include <landstalker/misc/include/Literals.h>
 #include <landstalker/misc/include/Labels.h>
 
-StringData::StringData(const filesystem::path& asm_file)
+StringData::StringData(const std::filesystem::path& asm_file)
 	: DataManager(asm_file), m_has_region_check(false)
 {
 	if (!LoadAsmFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadCompressedStringData())
 	{
-		throw std::runtime_error(std::string("Unable to load compressed strings from \'") + m_strings_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load compressed strings from \'") + m_strings_filename.string() + '\'');
 	}
 	if (!AsmLoadHuffmanData())
 	{
-		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load Huffman data from \'") + asm_file.string() + '\'');
 	}
 	m_region = Charset::DeduceRegion(GetCharsetSize());
 	if (m_has_region_check)
 	{
 		if (!AsmLoadSystemFont())
 		{
-			throw std::runtime_error(std::string("Unable to load system font data from \'") + asm_file.str() + '\'');
+			throw std::runtime_error(std::string("Unable to load system font data from \'") + asm_file.string() + '\'');
 		}
 		if (!AsmLoadSystemStrings())
 		{
-			throw std::runtime_error(std::string("Unable to load system string data from \'") + asm_file.str() + '\'');
+			throw std::runtime_error(std::string("Unable to load system string data from \'") + asm_file.string() + '\'');
 		}
 	}
 	if (!AsmLoadStringTables())
 	{
-		throw std::runtime_error(std::string("Unable to load string tables from \'") + m_string_table_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load string tables from \'") + m_string_table_path.string() + '\'');
 	}
 	if (!AsmLoadIntroStrings())
 	{
-		throw std::runtime_error(std::string("Unable to load intro string data from \'") + m_string_table_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load intro string data from \'") + m_string_table_path.string() + '\'');
 	}
 	if (!AsmLoadEndCreditStrings())
 	{
-		throw std::runtime_error(std::string("Unable to load end credit strings from \'") + m_end_credit_strings_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load end credit strings from \'") + m_end_credit_strings_path.string() + '\'');
 	}
 	if (!AsmLoadTalkSfx())
 	{
-		throw std::runtime_error(std::string("Unable to load talk sound effects from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load talk sound effects from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadScriptData())
 	{
-		throw std::runtime_error(std::string("Unable to load script data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load script data from \'") + asm_file.string() + '\'');
 	}
 	DecompressStrings();
 	InitCache();
@@ -107,56 +107,56 @@ StringData::StringData(const Rom& rom)
 	InitCache();
 }
 
-bool StringData::Save(const filesystem::path& dir)
+bool StringData::Save(const std::filesystem::path& dir)
 {
-	filesystem::path directory = dir;
+	std::filesystem::path directory = dir;
 	CompressStrings();
-	if (directory.exists() && directory.is_file())
+	if (std::filesystem::exists(directory) && std::filesystem::is_regular_file(directory))
 	{
 		directory = directory.parent_path();
 	}
 	if (!CreateDirectoryStructure(directory))
 	{
-		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveFonts(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save font data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save font data to \'") + directory.string() + '\'');
 	}
 	if (m_has_region_check)
 	{
 		if (!AsmSaveSystemText(dir))
 		{
-			throw std::runtime_error(std::string("Unable to save system text data to \'") + m_region_check_strings_filename.str() + '\'');
+			throw std::runtime_error(std::string("Unable to save system text data to \'") + m_region_check_strings_filename.string() + '\'');
 		}
 	}
 	if (!AsmSaveCompressedStringData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save compressed string data to \'") + m_strings_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save compressed string data to \'") + m_strings_filename.string() + '\'');
 	}
 	if (!AsmSaveHuffmanData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save Huffman data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save Huffman data to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveStringTables(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save string tables to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save string tables to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveIntroStrings(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save intro strings to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save intro strings to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveEndCreditStrings(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save end credit strings to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save end credit strings to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveEndCreditStrings(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveScriptData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save script data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save script data to \'") + directory.string() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -325,7 +325,7 @@ std::wstring StringData::GetCharacterDisplayName(int character) const
 	{
 		return m_character_names.at(character);
 	}
-	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
+	return StrWPrintf(L"%ls (%d)", m_default_character_name.c_str(), character);
 }
 
 std::wstring StringData::GetGlobalCharacterDisplayName(int character) const
@@ -338,7 +338,7 @@ std::wstring StringData::GetGlobalCharacterDisplayName(int character) const
 	{
 		return m_special_character_names.at(character);
 	}
-	return StrWPrintf(L"%s (%d)", m_default_character_name.c_str(), character);
+	return StrWPrintf(L"%ls (%d)", m_default_character_name.c_str(), character);
 }
 
 std::map<std::string, std::shared_ptr<TilesetEntry>> StringData::GetAllTilesets() const
@@ -1068,7 +1068,7 @@ bool StringData::LoadAsmFilenames()
 	try
 	{
 		bool retval = true;
-		AsmFile f(GetAsmFilename().str());
+		AsmFile f(GetAsmFilename().string());
 
 		if (f.IsGood() && f.LabelExists(RomLabels::Strings::REGION_CHECK))
 		{
@@ -1109,7 +1109,7 @@ bool StringData::LoadAsmFilenames()
 		while (i.IsGood())
 		{
 			auto label = StrPrintf(RomLabels::Strings::INTRO_STRING, idx++);
-			filesystem::path path;
+			std::filesystem::path path;
 			retval = retval && GetFilenameFromAsm(i, label, path);
 			m_intro_strings_path.push_back(path);
 		}
@@ -1129,7 +1129,7 @@ void StringData::SetDefaultFilenames()
 	if (m_system_font_filename.empty()) m_system_font_filename = RomLabels::Graphics::SYS_FONT_FILE;
 	if (m_strings_filename.empty()) m_strings_filename = RomLabels::Strings::STRINGS_FILE;
 	if (m_string_ptr_filename.empty()) m_string_ptr_filename = RomLabels::Strings::STRING_BANK_PTR_FILE;
-	if (m_string_filename_path.empty()) m_string_filename_path = filesystem::path(RomLabels::Strings::STRING_BANK_FILE).parent_path();
+	if (m_string_filename_path.empty()) m_string_filename_path = std::filesystem::path(RomLabels::Strings::STRING_BANK_FILE).parent_path();
 	if (m_huffman_offset_path.empty()) m_huffman_offset_path = RomLabels::Strings::HUFFMAN_OFFSETS_FILE;
 	if (m_huffman_table_path.empty()) m_huffman_table_path = RomLabels::Strings::HUFFMAN_TABLE_FILE;
 	if (m_string_table_path.empty()) m_string_table_path = RomLabels::Strings::STRING_TABLE_DATA_FILE;
@@ -1149,7 +1149,7 @@ void StringData::SetDefaultFilenames()
 	if (m_room_dialogue_table_path.empty()) m_room_dialogue_table_path = RomLabels::Strings::ROOM_DIALOGUE_TABLE_FILE;
 }
 
-bool StringData::CreateDirectoryStructure(const filesystem::path& dir)
+bool StringData::CreateDirectoryStructure(const std::filesystem::path& dir)
 {
 	bool retval = true;
 
@@ -1412,7 +1412,7 @@ uint32_t StringData::GetCharsetSize() const
 
 bool StringData::AsmLoadSystemFont()
 {
-	filesystem::path path = GetBasePath() / m_system_font_filename;
+	std::filesystem::path path = GetBasePath() / m_system_font_filename;
 	auto e = TilesetEntry::Create(this, ReadBytes(path), RomLabels::Graphics::SYS_FONT, m_system_font_filename, false, 8, 8);
 	m_fonts_by_name.insert({ RomLabels::Graphics::SYS_FONT, e });
 	m_fonts_internal.insert({ RomLabels::Graphics::SYS_FONT, e });
@@ -1495,7 +1495,7 @@ bool StringData::AsmLoadCompressedStringData()
 
 bool StringData::AsmLoadHuffmanData()
 {
-	filesystem::path path = GetBasePath() / m_huffman_offset_path;
+	std::filesystem::path path = GetBasePath() / m_huffman_offset_path;
 	m_huffman_offsets = ReadBytes(path);
 	path = GetBasePath() / m_huffman_table_path;
 	m_huffman_tables = ReadBytes(path);
@@ -1789,7 +1789,7 @@ bool StringData::RomLoadScriptData(const Rom& rom)
 	return true;
 }
 
-bool StringData::AsmSaveFonts(const filesystem::path& dir)
+bool StringData::AsmSaveFonts(const std::filesystem::path& dir)
 {
 	bool retval = std::all_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), [&](auto& f)
 		{
@@ -1802,7 +1802,7 @@ bool StringData::AsmSaveFonts(const filesystem::path& dir)
 	return retval;
 }
 
-bool StringData::AsmSaveSystemText(const filesystem::path& dir)
+bool StringData::AsmSaveSystemText(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -1834,7 +1834,7 @@ bool StringData::AsmSaveSystemText(const filesystem::path& dir)
 	return false;
 }
 
-bool StringData::AsmSaveCompressedStringData(const filesystem::path& dir)
+bool StringData::AsmSaveCompressedStringData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -1853,7 +1853,7 @@ bool StringData::AsmSaveCompressedStringData(const filesystem::path& dir)
 				const auto& s = m_compressed_strings[i + j];
 				bytes.insert(bytes.end(), s.cbegin(), s.cend());
 			}
-			filesystem::path fname = StrPrintf(RomLabels::Strings::STRING_BANK_FILE, f + 1);
+			std::filesystem::path fname = StrPrintf(RomLabels::Strings::STRING_BANK_FILE, f + 1);
 			std::string pname = StrPrintf(RomLabels::Strings::STRING_BANK, f);
 			WriteBytes(bytes, dir / m_string_filename_path / fname.filename());
 			pfile << pname;
@@ -1870,14 +1870,14 @@ bool StringData::AsmSaveCompressedStringData(const filesystem::path& dir)
 	return false;
 }
 
-bool StringData::AsmSaveHuffmanData(const filesystem::path& dir)
+bool StringData::AsmSaveHuffmanData(const std::filesystem::path& dir)
 {
 	WriteBytes(m_huffman_offsets, dir / m_huffman_offset_path);
 	WriteBytes(m_huffman_tables, dir / m_huffman_table_path);
 	return true;
 }
 
-bool StringData::AsmSaveStringTables(const filesystem::path& dir)
+bool StringData::AsmSaveStringTables(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -1915,7 +1915,7 @@ bool StringData::AsmSaveStringTables(const filesystem::path& dir)
 	return false;
 }
 
-bool StringData::AsmSaveIntroStrings(const filesystem::path& dir)
+bool StringData::AsmSaveIntroStrings(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -1927,7 +1927,7 @@ bool StringData::AsmSaveIntroStrings(const filesystem::path& dir)
 		std::size_t i = 0;
 		for (const auto& s : m_intro_strings)
 		{
-			filesystem::path path;
+			std::filesystem::path path;
 			if (i < m_intro_strings_path.size())
 			{
 				path = m_intro_strings_path[i];
@@ -1956,7 +1956,7 @@ bool StringData::AsmSaveIntroStrings(const filesystem::path& dir)
 	return false;
 }
 
-bool StringData::AsmSaveEndCreditStrings(const filesystem::path& dir)
+bool StringData::AsmSaveEndCreditStrings(const std::filesystem::path& dir)
 {
 	ByteVector b(65536);
 	std::size_t offset = 0;
@@ -1969,7 +1969,7 @@ bool StringData::AsmSaveEndCreditStrings(const filesystem::path& dir)
 	return true;
 }
 
-bool StringData::AsmSaveTalkSfx(const filesystem::path& dir)
+bool StringData::AsmSaveTalkSfx(const std::filesystem::path& dir)
 {
 	ByteVector bytes(m_char_talk_sfx);
 	bytes.push_back(0xFF);
@@ -1978,7 +1978,7 @@ bool StringData::AsmSaveTalkSfx(const filesystem::path& dir)
 	return true;
 }
 
-bool StringData::AsmSaveScriptData(const filesystem::path& dir)
+bool StringData::AsmSaveScriptData(const std::filesystem::path& dir)
 {
 	ByteVector bytes;
 	auto words = m_room_dialogue_table.GetData();

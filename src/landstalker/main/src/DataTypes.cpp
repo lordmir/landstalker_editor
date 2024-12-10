@@ -1,6 +1,6 @@
 #include <landstalker/main/include/DataTypes.h>
 
-std::shared_ptr<TilesetEntry> TilesetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, bool compressed, std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
+std::shared_ptr<TilesetEntry> TilesetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename, bool compressed, std::size_t width, std::size_t height, uint8_t bit_depth, Tileset::BlockType blocktype)
 {
 	auto o = std::make_shared<TilesetEntry>(owner, b, name, filename, compressed, width, height, bit_depth, blocktype);
 	o->Initialise();
@@ -21,7 +21,7 @@ bool TilesetEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tileset>&
 	return true;
 }
 
-std::shared_ptr<PaletteEntry> PaletteEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Palette::Type type)
+std::shared_ptr<PaletteEntry> PaletteEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename, Palette::Type type)
 {
 	auto o = std::make_shared<PaletteEntry>(owner, b, name, filename, type);
 	o->Initialise();
@@ -40,7 +40,7 @@ bool PaletteEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Palette>&
 	return true;
 }
 
-std::shared_ptr<BlocksetEntry> BlocksetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+std::shared_ptr<BlocksetEntry> BlocksetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename)
 {
 	auto o = std::make_shared<BlocksetEntry>(owner, b, name, filename);
 	o->Initialise();
@@ -63,7 +63,7 @@ bool BlocksetEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Blockset
 	return true;
 }
 
-std::shared_ptr<Tilemap3DEntry> Tilemap3DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+std::shared_ptr<Tilemap3DEntry> Tilemap3DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename)
 {
 	auto o = std::make_shared<Tilemap3DEntry>(owner, b, name, filename);
 	o->Initialise();
@@ -86,7 +86,7 @@ bool Tilemap3DEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap
 	return true;
 }
 
-std::shared_ptr<AnimatedTilesetEntry> AnimatedTilesetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset)
+std::shared_ptr<AnimatedTilesetEntry> AnimatedTilesetEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename, uint16_t base, uint16_t length, uint8_t speed, uint8_t frames, uint8_t base_tileset)
 {
 	auto o = std::make_shared<AnimatedTilesetEntry>(owner, b, name, filename, base, length, speed, frames, base_tileset);
 	o->Initialise();
@@ -111,7 +111,7 @@ bool AnimatedTilesetEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<A
 	return true;
 }
 
-std::shared_ptr<Tilemap2DEntry> Tilemap2DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base, uint16_t width, uint16_t height)
+std::shared_ptr<Tilemap2DEntry> Tilemap2DEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename, Tilemap2D::Compression compression, uint16_t tile_base, uint16_t width, uint16_t height)
 {
 	auto o = std::make_shared<Tilemap2DEntry>(owner, b, name, filename, compression, tile_base, width, height);
 	o->Initialise();
@@ -132,14 +132,14 @@ bool Tilemap2DEntry::Deserialise(const ByteVectorPtr in, std::shared_ptr<Tilemap
 	return true;
 }
 
-std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename)
 {
 	auto o = std::make_shared<SpriteFrameEntry>(owner, b, name, filename);
 	o->Initialise();
 	return o;
 }
 
-std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const std::string& name, const filesystem::path& filename)
+std::shared_ptr<SpriteFrameEntry> SpriteFrameEntry::Create(DataManager* owner, const std::string& name, const std::filesystem::path& filename)
 {
 	return std::make_shared<SpriteFrameEntry>(owner, name, filename);
 }

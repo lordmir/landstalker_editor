@@ -177,17 +177,16 @@ bool ScriptDataViewRenderer::RenderCutsceneProperties(wxRect& rect, wxDC* dc, in
 	dc->SetTextForeground(orig_col);
 	InsertRenderLabel(rect, dc, state, _("Cutscene Index: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", cutscene.cutscene), 40);
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, m_gd->GetScriptData()->GetCutsceneDisplayName(cutscene.cutscene), 0, &font);
 	return true;
 }
 
 bool ScriptDataViewRenderer::RenderSetItemProperties(wxRect& rect, wxDC* dc, int state)
 {
 	const auto& item_set = dynamic_cast<ScriptItemLoadEntry&>(*m_value);
-	std::wstring item_name = L"<INVALID>";
-	if (m_gd && m_gd->GetStringData()->GetStringCount(StringData::Type::ITEM_NAMES) > static_cast<std::size_t>(item_set.item))
-	{
-		item_name = m_gd->GetStringData()->GetString(StringData::Type::ITEM_NAMES, item_set.item);
-	}
+	std::wstring item_name = m_gd->GetStringData()->GetItemDisplayName(item_set.item);
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	dc->SetTextForeground(*wxWHITE);
@@ -244,6 +243,9 @@ bool ScriptDataViewRenderer::RenderSetFlagProperties(wxRect& rect, wxDC* dc, int
 	InsertRenderBubble(rect, dc, state, "SET FLAG", wxColour("MEDIUM SPRING GREEN"), LABEL_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, _("Flag: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", flag_set.flag), 0);
+	font = dc->GetFont().Italic();
+	font.SetFamily(wxFONTFAMILY_TELETYPE);
+	InsertRenderLabel(rect, dc, state, m_gd->GetScriptData()->GetFlagDisplayName(flag_set.flag), 0, &font);
 	return false;
 }
 
@@ -274,14 +276,9 @@ bool ScriptDataViewRenderer::RenderSetSpeakerProperties(wxRect& rect, wxDC* dc, 
 	dc->SetTextForeground(orig_col);
 	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
-	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::NAMES))
-	{
-		name = m_gd->GetStringData()->GetString(StringData::Type::NAMES, speaker.chr);
-	}
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	InsertRenderLabel(rect, dc, state, m_gd->GetStringData()->GetCharacterDisplayName(speaker.chr), 100, &font);
 	return false;
 }
 
@@ -293,14 +290,9 @@ bool ScriptDataViewRenderer::RenderSetGlobalSpeakerProperties(wxRect& rect, wxDC
 	InsertRenderBubble(rect, dc, state, "SET GLOBAL SPEAKER", wxColour("ORANGE"), LABEL_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, _("Speaker: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
-	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (speaker.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
-	{
-		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, speaker.chr);
-	}
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	InsertRenderLabel(rect, dc, state, m_gd->GetStringData()->GetGlobalCharacterDisplayName(speaker.chr), 100, &font);
 	return false;
 }
 
@@ -314,14 +306,9 @@ bool ScriptDataViewRenderer::RenderLoadGlobalSpeakerProperties(wxRect& rect, wxD
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", chr.slot + 1), 40);
 	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", chr.chr), 40);
-	std::wstring name = m_gd->GetStringData()->GetString(StringData::Type::DEFAULT_NAME, 0);
-	if (chr.chr < m_gd->GetStringData()->GetStringCount(StringData::Type::SPECIAL_NAMES))
-	{
-		name = m_gd->GetStringData()->GetString(StringData::Type::SPECIAL_NAMES, chr.chr);
-	}
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	InsertRenderLabel(rect, dc, state, name, 100, &font);
+	InsertRenderLabel(rect, dc, state, m_gd->GetStringData()->GetGlobalCharacterDisplayName(chr.chr), 100, &font);
 	return false;
 }
 

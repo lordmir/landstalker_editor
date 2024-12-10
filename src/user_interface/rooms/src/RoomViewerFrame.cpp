@@ -444,9 +444,9 @@ bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 	wxBusyInfo wait("Exporting...");
 	wxString curdir = wxGetCwd();
 	wxSetWorkingDirectory(dir);
-	filesystem::path mappath(dir);
-	filesystem::path bspath(mappath / "blocksets");
-	filesystem::create_directories(bspath);
+	std::filesystem::path mappath(dir);
+	std::filesystem::path bspath(mappath / "blocksets");
+	std::filesystem::create_directories(bspath);
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		auto rd = m_g->GetRoomData()->GetRoom(i);
@@ -499,9 +499,9 @@ bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
 	wxBusyInfo wait("Exporting...");
 	wxString curdir = wxGetCwd();
 	wxSetWorkingDirectory(dir);
-	filesystem::path mappath(dir);
-	filesystem::path bspath(mappath / "blocksets");
-	filesystem::create_directories(bspath);
+	std::filesystem::path mappath(dir);
+	std::filesystem::path bspath(mappath / "blocksets");
+	std::filesystem::create_directories(bspath);
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		auto rd = m_g->GetRoomData()->GetRoom(i);

@@ -1,6 +1,7 @@
 #include <landstalker/sprites/include/SpriteFrame.h>
 #include <vector>
 #include <iterator>
+#include <algorithm>
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/misc/include/LZ77.h>
 #include <landstalker/misc/include/Utils.h>

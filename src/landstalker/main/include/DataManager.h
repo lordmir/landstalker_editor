@@ -7,7 +7,7 @@
 #include <vector>
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/main/include/AsmFile.h>
-#include <wjakob/filesystem/path.h>
+#include <filesystem>
 
 using ByteVector = std::vector<uint8_t>;
 using ByteVectorPtr = std::shared_ptr<ByteVector>;
@@ -21,8 +21,8 @@ public:
 	class Entry
 	{
 	public:
-		Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename);
-		Entry(DataManager* owner, const std::string& name, const filesystem::path& filename);
+		Entry(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename);
+		Entry(DataManager* owner, const std::string& name, const std::filesystem::path& filename);
 
 		virtual bool Serialise(const std::shared_ptr<T> in, ByteVectorPtr out) = 0;
 		virtual bool Deserialise(const ByteVectorPtr in, std::shared_ptr<T>& out) = 0;
@@ -32,7 +32,7 @@ public:
 		virtual void AbandonChanges();
 		virtual bool HasDataChanged() const;
 		virtual bool HasSavedDataChanged() const;
-		virtual bool Save(const filesystem::path& dir);
+		virtual bool Save(const std::filesystem::path& dir);
 
 		DataManager* GetOwner() { return m_owner; }
 
@@ -43,8 +43,8 @@ public:
 		std::shared_ptr<const ByteVector> GetOrigBytes() const;
 		std::string GetName() const;
 		void SetName(const std::string& val);
-		filesystem::path GetFilename() const;
-		void SetFilename(const filesystem::path& val) const;
+		std::filesystem::path GetFilename() const;
+		void SetFilename(const std::filesystem::path& val) const;
 		uint32_t GetStartAddress() const;
 		uint32_t GetDataLength();
 		uint32_t GetEndAddress();
@@ -57,13 +57,13 @@ public:
 		std::shared_ptr<T> m_saved_data;
 		uint32_t m_begin_address;
 		std::string m_name;
-		filesystem::path m_filename;
+		std::filesystem::path m_filename;
 		ByteVectorPtr m_raw_data;
 		ByteVectorPtr m_cached_raw_data;
 		DataManager* m_owner;
 	};
 
-	DataManager(const filesystem::path& asm_file) : m_asm_filename(asm_file), m_base_path(asm_file.parent_path()) {}
+	DataManager(const std::filesystem::path& asm_file) : m_asm_filename(asm_file), m_base_path(asm_file.parent_path()) {}
 	DataManager(const Rom&) {}
 
 	virtual ~DataManager() {}
@@ -73,25 +73,25 @@ public:
 	virtual bool HasBeenModified() const;
 	virtual bool InjectIntoRom(Rom& rom);
 	virtual bool AbandomRomInjection();
-	virtual bool Save(const filesystem::path& dir);
+	virtual bool Save(const std::filesystem::path& dir);
 	virtual bool Save();
 	virtual void RefreshPendingWrites(const Rom& rom);
 
-	filesystem::path GetBasePath() const { return m_base_path; }
-	filesystem::path GetAsmFilename() const { return m_asm_filename; }
+	std::filesystem::path GetBasePath() const { return m_base_path; }
+	std::filesystem::path GetAsmFilename() const { return m_asm_filename; }
 protected:
 	virtual void CommitAllChanges();
 	
-	virtual bool GetFilenameFromAsm(AsmFile& file, const std::string& label, filesystem::path& path);
+	virtual bool GetFilenameFromAsm(AsmFile& file, const std::string& label, std::filesystem::path& path);
 
 	mutable PendingWrites m_pending_writes;
 private:
-	filesystem::path m_asm_filename;
-	filesystem::path m_base_path;
+	std::filesystem::path m_asm_filename;
+	std::filesystem::path m_base_path;
 };
 
 template<class T>
-inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, const std::string& name, const filesystem::path& filename)
+inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, const std::string& name, const std::filesystem::path& filename)
 	: m_data(std::make_shared<T>()),
 	  m_orig_data(std::make_shared<T>()),
 	  m_saved_data(nullptr),
@@ -105,7 +105,7 @@ inline DataManager::Entry<T>::Entry(DataManager* owner, const ByteVector& b, con
 }
 
 template<class T>
-inline DataManager::Entry<T>::Entry(DataManager* owner, const std::string& name, const filesystem::path& filename)
+inline DataManager::Entry<T>::Entry(DataManager* owner, const std::string& name, const std::filesystem::path& filename)
   : m_data(std::make_shared<T>()),
 	m_orig_data(std::make_shared<T>()),
 	m_saved_data(std::make_shared<T>()),
@@ -204,13 +204,13 @@ inline void DataManager::Entry<T>::SetName(const std::string& val)
 }
 
 template<class T>
-inline filesystem::path DataManager::Entry<T>::GetFilename() const
+inline std::filesystem::path DataManager::Entry<T>::GetFilename() const
 {
 	return m_filename;
 }
 
 template<class T>
-inline void DataManager::Entry<T>::SetFilename(const filesystem::path& val) const
+inline void DataManager::Entry<T>::SetFilename(const std::filesystem::path& val) const
 {
 	m_filename = val;
 }
@@ -257,7 +257,7 @@ inline void DataManager::Entry<T>::SetStartAddress(uint32_t addr)
 }
 
 template<class T>
-inline bool DataManager::Entry<T>::Save(const filesystem::path& dir)
+inline bool DataManager::Entry<T>::Save(const std::filesystem::path& dir)
 {
 	auto bytes = GetBytes();
 	auto fname = dir / m_filename;

@@ -6,7 +6,7 @@
 #include <list>
 #include <map>
 #include <landstalker/main/include/Rom.h>
-#include <wjakob/filesystem/path.h>
+#include <filesystem>
 
 class WarpList
 {
@@ -61,7 +61,7 @@ public:
 		bool operator>(const Transition& rhs) const;
 		bool operator>=(const Transition& rhs) const;
 	};
-	WarpList(const filesystem::path& warp_path, const filesystem::path& fall_dest_path, const filesystem::path& climb_dest_path, const filesystem::path& transition_path);
+	WarpList(const std::filesystem::path& warp_path, const std::filesystem::path& fall_dest_path, const std::filesystem::path& climb_dest_path, const std::filesystem::path& transition_path);
 	WarpList(const Rom& rom);
 	WarpList() = default;
 

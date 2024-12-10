@@ -331,14 +331,7 @@ protected:
         m_list[0].clear();
         for (std::size_t i = 0; i < 0x400; ++i)
         {
-            if (i < m_gd->GetStringData()->GetCharNameCount())
-            {
-                m_list[0].Add(StrPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetCharName(i)));
-            }
-            else
-            {
-                m_list[0].Add(StrPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetDefaultCharName()));
-            }
+            m_list[0].Add(StrWPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetCharacterDisplayName(i)));
         }
     }
 };

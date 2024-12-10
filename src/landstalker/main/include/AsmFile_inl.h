@@ -81,7 +81,10 @@ template<>
 bool AsmFile::Read(Label& label);
 
 template<>
-bool AsmFile::Read(filesystem::path& label);
+bool AsmFile::Read(std::filesystem::path& label);
+
+template<>
+bool AsmFile::Read(ScriptAction& action);
 
 template<template<typename, typename...> class C, typename T, typename... Rest>
 bool AsmFile::Read(C<T, Rest...>& container)

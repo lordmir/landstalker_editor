@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iterator>
 #include <algorithm>
+#include <codecvt>
 
 #ifndef NDEBUG
 void Debug(const std::string& message)
@@ -55,9 +56,9 @@ std::vector<uint8_t> ReadBytes(const std::string& filename)
 	return ret;
 }
 
-std::vector<uint8_t> ReadBytes(const filesystem::path& filename)
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& filename)
 {
-	return ReadBytes(filename.str());
+	return ReadBytes(filename.string());
 }
 
 void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
@@ -70,9 +71,9 @@ void WriteBytes(const std::vector<uint8_t>& data, const std::string& filename)
 	file.write(reinterpret_cast<const char*>(&data[0]), data.size());
 }
 
-void WriteBytes(const std::vector<uint8_t>& data, const filesystem::path& filename)
+void WriteBytes(const std::vector<uint8_t>& data, const std::filesystem::path& filename)
 {
-	WriteBytes(data, filename.str());
+	WriteBytes(data, filename.string());
 }
 
 bool IsHex(const std::string& str)
@@ -138,12 +139,12 @@ bool StrToHex(const std::string& s, uint32_t& val)
 	return valid;
 }
 
-bool CreateDirectoryTree(const filesystem::path& path)
+bool CreateDirectoryTree(const std::filesystem::path& path)
 {
-	if (!path.parent_path().is_directory() &&
-		!filesystem::create_directories(path.parent_path()))
+	if (!std::filesystem::is_directory(path.parent_path()) &&
+		!std::filesystem::create_directories(path.parent_path()))
 	{
-		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().str() + "\"");
+		throw std::runtime_error(std::string("Unable to create directory \"") + path.parent_path().string() + "\"");
 	}
 	return true;
 }
@@ -168,4 +169,25 @@ bool StrToInt(const std::string& s, uint32_t& val)
 	{
 	}
 	return false;
+}
+
+std::wstring utf8_to_wstr(const std::string& utf8)
+{
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	return cvt.from_bytes(utf8);
+}
+
+std::string wstr_to_utf8(const std::wstring& unicode)
+{
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+	return cvt.to_bytes(unicode);
+}
+
+std::string str_to_lower(const std::string& str)
+{
+	std::string result(str);
+	std::transform(str.begin(), str.end(), result.begin(),
+		[](unsigned char c) { return static_cast<unsigned char>(std::tolower(c)); });
+
+	return result;
 }

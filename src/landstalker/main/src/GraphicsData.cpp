@@ -6,64 +6,64 @@
 #include <landstalker/main/include/AsmUtils.h>
 #include <landstalker/main/include/RomLabels.h>
 
-GraphicsData::GraphicsData(const filesystem::path& asm_file)
+GraphicsData::GraphicsData(const std::filesystem::path& asm_file)
 	: DataManager(asm_file)
 {
 	if (!LoadAsmFilenames())
 	{
-		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadInventoryGraphics())
 	{
-		throw std::runtime_error(std::string("Unable to load inventory graphics data from \'") + m_inventory_graphics_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load inventory graphics data from \'") + m_inventory_graphics_filename.string() + '\'');
 	}
 	if (!AsmLoadPalettes())
 	{
-		throw std::runtime_error(std::string("Unable to load palettes from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load palettes from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadTextGraphics())
 	{
-		throw std::runtime_error(std::string("Unable to load text graphics from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load text graphics from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadSwordFx())
 	{
-		throw std::runtime_error(std::string("Unable to load sword graphics from \'") + m_sword_fx_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load sword graphics from \'") + m_sword_fx_path.string() + '\'');
 	}
 	if (!AsmLoadStatusFx())
 	{
-		throw std::runtime_error(std::string("Unable to load status graphics from \'") + m_status_fx_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load status graphics from \'") + m_status_fx_path.string() + '\'');
 	}
 	if (!AsmLoadHudData())
 	{
-		throw std::runtime_error(std::string("Unable to load HUD data from \'") + asm_file.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load HUD data from \'") + asm_file.string() + '\'');
 	}
 	if (!AsmLoadEndCreditData())
 	{
-		throw std::runtime_error(std::string("Unable to load end credit data from \'") + m_end_credits_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load end credit data from \'") + m_end_credits_path.string() + '\'');
 	}
 	if (!AsmLoadIslandMapData())
 	{
-		throw std::runtime_error(std::string("Unable to load island map data from \'") + m_island_map_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load island map data from \'") + m_island_map_path.string() + '\'');
 	}
 	if (!AsmLoadLithographData())
 	{
-		throw std::runtime_error(std::string("Unable to load lithograph data from \'") + m_lithograph_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load lithograph data from \'") + m_lithograph_path.string() + '\'');
 	}
 	if (!AsmLoadTitleScreenData())
 	{
-		throw std::runtime_error(std::string("Unable to load title screen data from \'") + m_title_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load title screen data from \'") + m_title_path.string() + '\'');
 	}
 	if (!AsmLoadSegaLogoData())
 	{
-		throw std::runtime_error(std::string("Unable to load Sega logo data from \'") + m_sega_logo_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load Sega logo data from \'") + m_sega_logo_path.string() + '\'');
 	}
 	if (!AsmLoadClimaxLogoData())
 	{
-		throw std::runtime_error(std::string("Unable to load Climax logo data from \'") + m_climax_logo_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load Climax logo data from \'") + m_climax_logo_path.string() + '\'');
 	}
 	if (!AsmLoadLoadGameScreenData())
 	{
-		throw std::runtime_error(std::string("Unable to load Load Game screen data from \'") + m_load_game_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to load Load Game screen data from \'") + m_load_game_path.string() + '\'');
 	}
 	InitCache();
 	UpdateTilesetRecommendedPalettes();
@@ -131,60 +131,60 @@ GraphicsData::GraphicsData(const Rom& rom)
 	ResetTilesetDefaultPalettes();
 }
 
-bool GraphicsData::Save(const filesystem::path& dir)
+bool GraphicsData::Save(const std::filesystem::path& dir)
 {
-	filesystem::path directory = dir;
-	if (directory.exists() && directory.is_file())
+	std::filesystem::path directory = dir;
+	if (std::filesystem::exists(directory) && std::filesystem::is_regular_file(directory))
 	{
 		directory = directory.parent_path();
 	}
 	if (!CreateDirectoryStructure(directory))
 	{
-		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveGraphics(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save graphics data to \'") + directory.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save graphics data to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveInventoryGraphics(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save inventory graphics data to \'") + m_inventory_graphics_filename.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save inventory graphics data to \'") + m_inventory_graphics_filename.string() + '\'');
 	}
 	if (!AsmSaveSwordFx(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save sword effects data to \'") + m_sword_fx_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save sword effects data to \'") + m_sword_fx_path.string() + '\'');
 	}
 	if (!AsmSaveStatusFx(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save status effects data to \'") + m_status_fx_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save status effects data to \'") + m_status_fx_path.string() + '\'');
 	}
 	if (!AsmSaveEndCreditData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save end credit data to \'") + m_end_credits_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save end credit data to \'") + m_end_credits_path.string() + '\'');
 	}
 	if (!AsmSaveIslandMapData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save island map data to \'") + m_island_map_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save island map data to \'") + m_island_map_path.string() + '\'');
 	}
 	if (!AsmSaveLithographData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save lithograph data to \'") + m_lithograph_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save lithograph data to \'") + m_lithograph_path.string() + '\'');
 	}
 	if (!AsmSaveTitleScreenData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save title screen data to \'") + m_title_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save title screen data to \'") + m_title_path.string() + '\'');
 	}
 	if (!AsmSaveSegaLogoData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save Sega logo data to \'") + m_sega_logo_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save Sega logo data to \'") + m_sega_logo_path.string() + '\'');
 	}
 	if (!AsmSaveClimaxLogoData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save Climax logo data to \'") + m_climax_logo_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save Climax logo data to \'") + m_climax_logo_path.string() + '\'');
 	}
 	if (!AsmSaveGameLoadData(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save load game screen data to \'") + m_load_game_path.str() + '\'');
+		throw std::runtime_error(std::string("Unable to save load game screen data to \'") + m_load_game_path.string() + '\'');
 	}
 	CommitAllChanges();
 	return true;
@@ -795,7 +795,7 @@ bool GraphicsData::LoadAsmFilenames()
 	try
 	{
 		bool retval = true;
-		AsmFile f(GetAsmFilename().str());
+		AsmFile f(GetAsmFilename().string());
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Graphics::INV_SECTION, m_inventory_graphics_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Graphics::STATUS_FX_POINTERS, m_status_fx_pointers_path);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Graphics::STATUS_FX_DATA, m_status_fx_path);
@@ -839,7 +839,7 @@ void GraphicsData::SetDefaultFilenames()
 	if (m_load_game_routines_3_path.empty()) m_load_game_routines_3_path = RomLabels::Graphics::GAME_LOAD_ROUTINES_3_FILE;
 }
 
-bool GraphicsData::CreateDirectoryStructure(const filesystem::path& dir)
+bool GraphicsData::CreateDirectoryStructure(const std::filesystem::path& dir)
 {
 	bool retval = true;
 	retval = retval && CreateDirectoryTree(dir / m_inventory_graphics_filename);
@@ -958,7 +958,7 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		AsmFile file(GetBasePath() / m_inventory_graphics_filename);
 		AsmFile::Label name;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVectorPtr>> gfx;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVectorPtr>> gfx;
 		while (file.IsGood())
 		{
 			file >> name >> inc;
@@ -977,10 +977,8 @@ bool GraphicsData::AsmLoadInventoryGraphics()
 		std::shared_ptr<PaletteEntry> pal1;
 		std::shared_ptr<PaletteEntry> pal2;
 
-		filesystem::path menu_font_filename = std::get<1>(gfx[0]);
-		std::string menu_font_extension = menu_font_filename.extension();
-		std::transform(menu_font_extension.begin(), menu_font_extension.end(), menu_font_extension.begin(),
-			[](const unsigned char i) { return static_cast<unsigned char>(std::tolower(i)); });
+		std::filesystem::path menu_font_filename = std::get<1>(gfx[0]);
+		std::string menu_font_extension = str_to_lower(menu_font_filename.extension().string());
 
 		// French and German ROMs have a larger, compressed menu font to accomodate diacritics.
 		if (menu_font_extension == ".lz77")
@@ -1288,19 +1286,19 @@ bool GraphicsData::AsmLoadEndCreditData()
 		AsmFile::IncludeFile inc;
 		file >> lbl >> inc;
 		std::string pal_name = lbl;
-		filesystem::path pal_path = inc.path;
+		std::filesystem::path pal_path = inc.path;
 		auto pal_bytes = ReadBytes(GetBasePath() / pal_path);
 		file >> lbl >> inc;
 		std::string font_name = lbl;
-		filesystem::path font_path = inc.path;
+		std::filesystem::path font_path = inc.path;
 		auto font_bytes = ReadBytes(GetBasePath() / font_path);
 		file >> lbl >> inc;
 		std::string logos_name = lbl;
-		filesystem::path logos_path = inc.path;
+		std::filesystem::path logos_path = inc.path;
 		auto logos_bytes = ReadBytes(GetBasePath() / logos_path);
 		file >> lbl >> inc;
 		std::string map_name = lbl;
-		filesystem::path map_path = inc.path;
+		std::filesystem::path map_path = inc.path;
 		auto map_bytes = ReadBytes(GetBasePath() / map_path);
 		m_end_credits_palette = PaletteEntry::Create(this, pal_bytes, pal_name, pal_path, Palette::Type::END_CREDITS);
 		m_end_credits_tileset = TilesetEntry::Create(this, logos_bytes, logos_name, logos_path);
@@ -1323,7 +1321,7 @@ bool GraphicsData::AsmLoadIslandMapData()
 		AsmFile file(GetBasePath() / m_island_map_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1375,7 +1373,7 @@ bool GraphicsData::AsmLoadLithographData()
 		AsmFile file(GetBasePath() / m_lithograph_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1404,7 +1402,7 @@ bool GraphicsData::AsmLoadTitleScreenData()
 		AsmFile file(GetBasePath() / m_title_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1466,7 +1464,7 @@ bool GraphicsData::AsmLoadSegaLogoData()
 		AsmFile file(GetBasePath() / m_sega_logo_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1496,7 +1494,7 @@ bool GraphicsData::AsmLoadClimaxLogoData()
 		AsmFile file(GetBasePath() / m_climax_logo_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1525,7 +1523,7 @@ bool GraphicsData::AsmLoadLoadGameScreenData()
 		AsmFile file(GetBasePath() / m_load_game_path);
 		AsmFile::Label lbl;
 		AsmFile::IncludeFile inc;
-		std::vector<std::tuple<std::string, filesystem::path, ByteVector>> entries;
+		std::vector<std::tuple<std::string, std::filesystem::path, ByteVector>> entries;
 		while (file.IsGood())
 		{
 			file >> lbl >> inc;
@@ -1631,7 +1629,7 @@ bool GraphicsData::RomLoadInventoryGraphics(const Rom& rom)
 
 bool GraphicsData::RomLoadPalettes(const Rom& rom)
 {
-	auto extract_pals = [&](const ByteVector& bytes, const std::string& name, filesystem::path fname, Palette::Type type)
+	auto extract_pals = [&](const ByteVector& bytes, const std::string& name, std::filesystem::path fname, Palette::Type type)
 	{
 		int idx = 0;
 		for (auto it = bytes.cbegin(); it != bytes.cend(); it += Palette::GetSizeBytes(type))
@@ -2136,7 +2134,7 @@ bool GraphicsData::RomLoadGameLoadScreenData(const Rom& rom)
 	return true;
 }
 
-bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
+bool GraphicsData::AsmSaveGraphics(const std::filesystem::path& dir)
 {
 	std::unordered_map<std::string, ByteVector> combined;
 	bool retval = std::all_of(m_fonts_by_name.begin(), m_fonts_by_name.end(), [&](auto& f)
@@ -2199,10 +2197,10 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 			}
 			else
 			{
-				auto it = combined.find(f.second->GetFilename().str());
+				auto it = combined.find(f.second->GetFilename().string());
 				if (it == combined.cend())
 				{
-					combined.insert({ f.second->GetFilename().str(), *f.second->GetBytes()});
+					combined.insert({ f.second->GetFilename().string(), *f.second->GetBytes()});
 				}
 				else
 				{
@@ -2231,7 +2229,7 @@ bool GraphicsData::AsmSaveGraphics(const filesystem::path& dir)
 	return retval;
 }
 
-bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
+bool GraphicsData::AsmSaveInventoryGraphics(const std::filesystem::path& dir)
 {
 
 	try
@@ -2263,7 +2261,7 @@ bool GraphicsData::AsmSaveInventoryGraphics(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveSwordFx(const filesystem::path& dir)
+bool GraphicsData::AsmSaveSwordFx(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2284,7 +2282,7 @@ bool GraphicsData::AsmSaveSwordFx(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
+bool GraphicsData::AsmSaveStatusFx(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2314,7 +2312,7 @@ bool GraphicsData::AsmSaveStatusFx(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveEndCreditData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2337,7 +2335,7 @@ bool GraphicsData::AsmSaveEndCreditData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveIslandMapData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2366,7 +2364,7 @@ bool GraphicsData::AsmSaveIslandMapData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveLithographData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveLithographData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2390,7 +2388,7 @@ bool GraphicsData::AsmSaveLithographData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveTitleScreenData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveTitleScreenData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2424,7 +2422,7 @@ bool GraphicsData::AsmSaveTitleScreenData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveSegaLogoData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveSegaLogoData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2451,7 +2449,7 @@ bool GraphicsData::AsmSaveSegaLogoData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveClimaxLogoData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveClimaxLogoData(const std::filesystem::path& dir)
 {
 	try
 	{
@@ -2475,7 +2473,7 @@ bool GraphicsData::AsmSaveClimaxLogoData(const filesystem::path& dir)
 	return false;
 }
 
-bool GraphicsData::AsmSaveGameLoadData(const filesystem::path& dir)
+bool GraphicsData::AsmSaveGameLoadData(const std::filesystem::path& dir)
 {
 	try
 	{

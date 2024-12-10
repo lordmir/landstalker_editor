@@ -57,8 +57,10 @@ private:
 	wxChoice* m_bgm_select = nullptr;
 
 	wxSpinCtrl* m_cutscene_select = nullptr;
+	wxStaticText* m_cutscene_name = nullptr;
 
 	wxSpinCtrl* m_flag_select = nullptr;
+	wxStaticText* m_flag_name = nullptr;
 
 	wxSpinCtrl* m_set_global_char_select = nullptr;
 	wxStaticText* m_set_global_char_name = nullptr;

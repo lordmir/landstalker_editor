@@ -31,8 +31,8 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	bool ExportAllPalettes(const filesystem::path& filename);
-	bool ImportPalettes(const filesystem::path& filename);
+	bool ExportAllPalettes(const std::filesystem::path& filename);
+	bool ImportPalettes(const std::filesystem::path& filename);
 private:
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;

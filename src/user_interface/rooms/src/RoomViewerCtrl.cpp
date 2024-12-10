@@ -528,7 +528,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         auto& entity = GetSelectedEntity();
         int idx = GetSelectedEntityIndex();
-        txt = StrWPrintf(L"Selected Entity %d (%04.1f, %04.1f, %04.1f) - %s",
+        txt = StrWPrintf(L"Selected Entity %d (%04.1f, %04.1f, %04.1f) - %ls",
             idx, entity.GetXDbl(), entity.GetYDbl(), entity.GetZDbl(), entity.GetTypeName().c_str());
         FireUpdateStatusEvent(txt, 1);
     }
@@ -538,7 +538,7 @@ void RoomViewerCtrl::RefreshStatusbar()
         int idx = GetSelectedWarpIndex();
         if (warp.room1 == 65535 || warp.room2 == 65535)
         {
-            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> <PENDING>",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %ls) -> <PENDING>",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
                 (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
@@ -547,7 +547,7 @@ void RoomViewerCtrl::RefreshStatusbar()
         }
         else
         {
-            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %s) -> %03d (%s)",
+            txt = StrWPrintf(L"Selected Warp %d (%02d, %02d), (%01dx%01d %ls) -> %03d (%ls)",
                 idx, m_roomnum == warp.room1 ? warp.x1 : warp.x2,
                 m_roomnum == warp.room1 ? warp.y1 : warp.y2, warp.x_size, warp.y_size,
                 (warp.type == WarpList::Warp::Type::NORMAL ? L"NML" :
@@ -561,7 +561,7 @@ void RoomViewerCtrl::RefreshStatusbar()
     {
         const TileSwap& swap = GetSelectedTileSwap();
         int idx = GetSelectedTileSwapIndex();
-        txt = StrWPrintf(L"Selected Tile Swap %d %s HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
+        txt = StrWPrintf(L"Selected Tile Swap %d %ls HM (%02d,%02d) -> (%02d,%02d) (%02dx%02d) Map (%02d,%02d) -> (%02d,%02d) (%02dx%02d)",
             idx, swap.mode == TileSwap::Mode::FLOOR ? L"Floor" : swap.mode == TileSwap::Mode::WALL_NE ? L"NE Wall" : swap.mode == TileSwap::Mode::WALL_NW ? L"NW Wall" : L"?",
             swap.heightmap.src_x, swap.heightmap.src_y, swap.heightmap.dst_x, swap.heightmap.dst_y, swap.heightmap.width, swap.heightmap.height,
             swap.map.src_x, swap.map.src_y, swap.map.dst_x, swap.map.dst_y, swap.map.width, swap.map.height);
@@ -842,18 +842,18 @@ std::unique_ptr<wxBitmap> RoomViewerCtrl::DrawRoomWarps(uint16_t roomnum)
     int line = 0;
     if (m_g->GetRoomData()->HasClimbDestination(roomnum))
     {
-        AddRoomLink(gc, "Climb Destination:", m_g->GetRoomData()->GetClimbDestination(roomnum), 5, 5 + line * 16);
+        AddRoomLink(gc, L"Climb Destination:", m_g->GetRoomData()->GetClimbDestination(roomnum), 5, 5 + line * 16);
         line++;
     }
     if (m_g->GetRoomData()->HasFallDestination(roomnum))
     {
-        AddRoomLink(gc, "Fall Destination:", m_g->GetRoomData()->GetFallDestination(roomnum), 5, 5 + line * 16);
+        AddRoomLink(gc, L"Fall Destination:", m_g->GetRoomData()->GetFallDestination(roomnum), 5, 5 + line * 16);
         line++;
     }
     auto txns = m_g->GetRoomData()->GetTransitions(roomnum);
     for (const auto& t : txns)
     {
-        std::string label = StrPrintf("Transition when flag %04d is %s:", t.flag, (t.src_rm == roomnum) ? "SET" : "CLEAR");
+        std::wstring label = StrWPrintf("Transition when flag %ls is %ls:", m_g->GetScriptData()->GetFlagDisplayName(t.flag).c_str(), (t.src_rm == roomnum) ? L"SET" : L"CLEAR");
         uint16_t dest = (t.src_rm == roomnum) ? t.dst_rm : t.src_rm;
         AddRoomLink(gc, label, dest, 5, 5 + line * 16);
         line++;
@@ -1327,7 +1327,7 @@ void RoomViewerCtrl::AddWarp()
     FireEvent(EVT_WARP_UPDATE);
 }
 
-void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label, uint16_t room, int x, int y)
+void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::wstring& label, uint16_t room, int x, int y)
 {
     wxFont font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     double w, h;
@@ -1338,7 +1338,7 @@ void RoomViewerCtrl::AddRoomLink(wxGraphicsContext* gc, const std::string& label
     gc->DrawText(label, x, y);
     gc->SetFont(font, *wxYELLOW);
     auto roomname = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
-    auto roomlabel = StrWPrintf(L"Room %03d (%s)", room, roomname.c_str());
+    auto roomlabel = StrWPrintf(L"Room %03d (%ls)", room, roomname.c_str());
     gc->DrawText(roomlabel, LINK_X, LINK_Y);
     gc->GetTextExtent(roomlabel, &w, &h);
     m_link_poly.push_back({ room, {
@@ -1789,7 +1789,11 @@ void RoomViewerCtrl::UpdateEntityProperties(int entity)
 {
     if (entity > 0 && entity <= static_cast<int>(m_entities.size()))
     {
-        EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1]);
+        const std::vector<uint16_t> chars = m_g->GetStringData()->GetRoomCharacters(m_roomnum);
+        std::vector<std::wstring> char_names;
+        std::transform(chars.cbegin(), chars.cend(), std::back_inserter(char_names),
+            [this](uint16_t chr) {return m_g->GetStringData()->GetCharacterDisplayName(chr); });
+        EntityPropertiesWindow dlg(m_frame, entity, &m_entities[entity - 1], char_names);
         if (dlg.ShowModal() == wxID_OK)
         {
             m_g->GetSpriteData()->SetRoomEntities(m_roomnum, m_entities);
@@ -2705,6 +2709,10 @@ void RoomViewerCtrl::DoMoveEntityDown(int entity)
 bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::wstring& status_text)
 {
     int prev_hover = m_hovered;
+    if (!m_g)
+    {
+        return false;
+    }
     for (const auto& wp : m_warp_poly)
     {
         if (Pnpoly(wp.second, xy.first, xy.second))
@@ -2714,7 +2722,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::ws
             uint8_t wx = (warp.room1 == m_roomnum) ? warp.x2 : warp.x1;
             uint8_t wy = (warp.room1 == m_roomnum) ? warp.y2 : warp.y1;
             std::wstring display_name = m_g->GetRoomData()->GetRoom(room)->GetDisplayName();
-            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%d,%d) (%s)", room, wx, wy, display_name.c_str());
+            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%d,%d) (%ls)", room, wx, wy, display_name.c_str());
             m_hovered = WARP_IDX_OFFSET + wp.first + 1;
             return m_hovered != prev_hover;
         }
@@ -2725,7 +2733,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::ws
         if (Pnpoly(it->second, xy.first, xy.second))
         {
             std::wstring display_name = m_g->GetRoomData()->GetRoom(it->first)->GetDisplayName();
-            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%s)", it->first, display_name.c_str());
+            status_text += StrWPrintf(L" - Right Click: Warp to room %03d (%ls)", it->first, display_name.c_str());
             m_hovered = LINK_IDX_OFFSET + i;
             return m_hovered != prev_hover;
         }
@@ -2736,7 +2744,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::ws
         {
             SetCursor(wxStockCursor::wxCURSOR_HAND);
             m_hovered = ENTITY_IDX_OFFSET + ep.first;
-            status_text += StrWPrintf(L" - Entity %d (%s)", ep.first, m_entities.at(ep.first - 1).GetTypeName().c_str());
+            status_text += StrWPrintf(L" - Entity %d (%ls)", ep.first, m_entities.at(ep.first - 1).GetTypeName().c_str());
             return m_hovered != prev_hover;
         }
     }

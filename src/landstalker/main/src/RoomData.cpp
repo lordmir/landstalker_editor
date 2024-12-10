@@ -127,64 +127,64 @@ ByteVector EncodeFromSet(const std::set<uint16_t>& data, bool terminate = true)
     return ret;
 }
 
-RoomData::RoomData(const filesystem::path& asm_file)
+RoomData::RoomData(const std::filesystem::path& asm_file)
     : DataManager(asm_file)
 {
     if (!LoadAsmFilenames())
     {
-        throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load file data from \'") + asm_file.string() + '\'');
     }
     if (!AsmLoadRoomTable())
     {
-        throw std::runtime_error(std::string("Unable to load room data from \'") + m_room_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load room data from \'") + m_room_data_filename.string() + '\'');
     }
     if (!AsmLoadMaps())
     {
-        throw std::runtime_error(std::string("Unable to load map data from \'") + m_map_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load map data from \'") + m_map_data_filename.string() + '\'');
     }
     if (!AsmLoadWarpData())
     {
-        throw std::runtime_error(std::string("Unable to load warp data from \'") + m_warp_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load warp data from \'") + m_warp_data_filename.string() + '\'');
     }
     if (!AsmLoadRoomPalettes())
     {
-        throw std::runtime_error(std::string("Unable to load room palette data from \'") + m_palette_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load room palette data from \'") + m_palette_data_filename.string() + '\'');
     }
     if (!AsmLoadMiscPaletteData())
     {
-        throw std::runtime_error(std::string("Unable to load misc palette data from \'") + asm_file.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load misc palette data from \'") + asm_file.string() + '\'');
     }
     if (!AsmLoadBlocksetData())
     {
-        throw std::runtime_error(std::string("Unable to load blockset data from \'") + m_blockset_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load blockset data from \'") + m_blockset_data_filename.string() + '\'');
     }
     if (!AsmLoadBlocksetPtrData())
     {
-        throw std::runtime_error(std::string("Unable to load blockset pointers from \'") + m_blockset_pri_ptr_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load blockset pointers from \'") + m_blockset_pri_ptr_filename.string() + '\'');
     }
     if (!AsmLoadAnimatedTilesetData())
     {
-        throw std::runtime_error(std::string("Unable to load animated tileset data from \'") + m_tileset_anim_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load animated tileset data from \'") + m_tileset_anim_filename.string() + '\'');
     }
     if (!AsmLoadTilesetData())
     {
-        throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load tileset data from \'") + m_tileset_data_filename.string() + '\'');
     }
     if (!AsmLoadChestData())
     {
-        throw std::runtime_error(std::string("Unable to load chest data from \'") + m_chest_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load chest data from \'") + m_chest_data_filename.string() + '\'');
     }
     if (!AsmLoadDoorData())
     {
-        throw std::runtime_error(std::string("Unable to load door data from \'") + m_door_table_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load door data from \'") + m_door_table_data_filename.string() + '\'');
     }
     if (!AsmLoadGfxSwapData())
     {
-        throw std::runtime_error(std::string("Unable to load tile swap data from \'") + m_gfxswap_table_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load tile swap data from \'") + m_gfxswap_table_data_filename.string() + '\'');
     }
     if (!AsmLoadMiscData())
     {
-        throw std::runtime_error(std::string("Unable to load miscellaneous room data from \'") + asm_file.str() + '\'');
+        throw std::runtime_error(std::string("Unable to load miscellaneous room data from \'") + asm_file.string() + '\'');
     }
     UpdateTilesetRecommendedPalettes();
     ResetTilesetDefaultPalettes();
@@ -238,32 +238,32 @@ RoomData::RoomData(const Rom& rom)
     ResetTilesetDefaultPalettes();
 }
 
-bool RoomData::Save(const filesystem::path& dir)
+bool RoomData::Save(const std::filesystem::path& dir)
 {
-    filesystem::path directory = dir;
-    if (directory.exists() && directory.is_file())
+    std::filesystem::path directory = dir;
+    if (std::filesystem::exists(directory) && std::filesystem::is_regular_file(directory))
     {
         directory = directory.parent_path();
     }
     if (!CreateDirectoryStructure(directory))
     {
-        throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.str() + '\'');
+        throw std::runtime_error(std::string("Unable to create directory structure at \'") + directory.string() + '\'');
     }
     if (!AsmSaveMaps(dir))
     {
-        throw std::runtime_error(std::string("Unable to save map file list to \'") + m_map_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save map file list to \'") + m_map_data_filename.string() + '\'');
     }
     if (!AsmSaveRoomData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save room data to \'") + m_room_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save room data to \'") + m_room_data_filename.string() + '\'');
     }
     if (!AsmSaveWarpData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save warp data to \'") + m_warp_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save warp data to \'") + m_warp_data_filename.string() + '\'');
     }
     if (!AsmSaveRoomPalettes(dir))
     {
-        throw std::runtime_error(std::string("Unable to save palette data to \'") + m_palette_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save palette data to \'") + m_palette_data_filename.string() + '\'');
     }
     if (!AsmSaveMiscPaletteData(dir))
     {
@@ -271,39 +271,39 @@ bool RoomData::Save(const filesystem::path& dir)
     }
     if (!AsmSaveBlocksetData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save blockset data to \'") + m_blockset_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save blockset data to \'") + m_blockset_data_filename.string() + '\'');
     }
     if (!AsmSaveBlocksetPointerData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save blockset pointer data to \'") + m_blockset_pri_ptr_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save blockset pointer data to \'") + m_blockset_pri_ptr_filename.string() + '\'');
     }
     if (!AsmSaveTilesetData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save tileset data to \'") + m_tileset_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save tileset data to \'") + m_tileset_data_filename.string() + '\'');
     }
     if (!AsmSaveTilesetPointerData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save tileset pointer data to \'") + m_tileset_ptrtab_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save tileset pointer data to \'") + m_tileset_ptrtab_filename.string() + '\'');
     }
     if (!AsmSaveAnimatedTilesetData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save animated tileset data to \'") + m_tileset_anim_filename.string() + '\'');
     }
     if (!AsmSaveChestData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save chest data to \'") + m_chest_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save chest data to \'") + m_chest_data_filename.string() + '\'');
     }
     if (!AsmSaveDoorData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save door data to \'") + m_door_table_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save door data to \'") + m_door_table_data_filename.string() + '\'');
     }
     if (!AsmSaveGfxSwapData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save tile swap data to \'") + m_gfxswap_table_data_filename.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save tile swap data to \'") + m_gfxswap_table_data_filename.string() + '\'');
     }
     if (!AsmSaveMiscData(dir))
     {
-        throw std::runtime_error(std::string("Unable to save miscellaneous room data to \'") + directory.str() + '\'');
+        throw std::runtime_error(std::string("Unable to save miscellaneous room data to \'") + directory.string() + '\'');
     }
     CommitAllChanges();
     return true;
@@ -1233,7 +1233,7 @@ bool RoomData::LoadAsmFilenames()
     try
     {
         bool retval = true;
-        AsmFile f(GetAsmFilename().str());
+        AsmFile f(GetAsmFilename().string());
         retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_DATA, m_room_data_filename);
         retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::MAP_DATA, m_map_data_filename);
         retval = retval && GetFilenameFromAsm(f, RomLabels::Rooms::ROOM_EXITS, m_warp_data_filename);
@@ -1302,7 +1302,7 @@ void RoomData::SetDefaultFilenames()
     if (m_lantern_flag_data_filename.empty())             m_lantern_flag_data_filename             = RomLabels::Rooms::LANTERN_ROOM_FILE;
 }
 
-bool RoomData::CreateDirectoryStructure(const filesystem::path& dir)
+bool RoomData::CreateDirectoryStructure(const std::filesystem::path& dir)
 {
     bool retval = true;
 
@@ -1442,7 +1442,7 @@ bool RoomData::AsmLoadWarpData()
 
 bool RoomData::AsmLoadMiscPaletteData()
 {
-    auto load_pal_array = [&](const std::string& name, const filesystem::path& fname, const Palette::Type& ptype)
+    auto load_pal_array = [&](const std::string& name, const std::filesystem::path& fname, const Palette::Type& ptype)
     {
         auto path = GetBasePath() / fname;
         auto data = ReadBytes(path);
@@ -1823,7 +1823,7 @@ bool RoomData::RomLoadWarpData(const Rom& rom)
 
 bool RoomData::RomLoadMiscPaletteData(const Rom& rom)
 {
-    auto load_pal_array = [&](const std::string& name, const filesystem::path& fname, const Palette::Type& ptype)
+    auto load_pal_array = [&](const std::string& name, const std::filesystem::path& fname, const Palette::Type& ptype)
     {
         uint32_t addr = rom.get_section(name).begin;
         uint32_t end = rom.get_section(name).end;
@@ -1898,7 +1898,7 @@ bool RoomData::RomLoadBlocksetData(const Rom& rom)
 bool RoomData::RomLoadBlockset(const Rom& rom, uint8_t pri, uint8_t sec, uint32_t begin, uint32_t end)
 {
     std::string name = StrPrintf(RomLabels::Blocksets::BLOCKSET_LABEL, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
-    filesystem::path filename = StrPrintf(RomLabels::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
+    std::filesystem::path filename = StrPrintf(RomLabels::Blocksets::BLOCKSET_FILE, (pri & 0x1F) + 1, sec + 10 * (pri >> 5));
     auto e = BlocksetEntry::Create(this, rom.read_array<uint8_t>(begin, end - begin), name, filename);
     e->SetStartAddress(begin);
     e->SetIndex({ pri, sec });
@@ -2103,7 +2103,7 @@ bool RoomData::RomLoadMiscData(const Rom& rom)
     return true;
 }
 
-bool RoomData::AsmSaveMaps(const filesystem::path& dir)
+bool RoomData::AsmSaveMaps(const std::filesystem::path& dir)
 {
     try
     {
@@ -2126,7 +2126,7 @@ bool RoomData::AsmSaveMaps(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveRoomData(const filesystem::path& dir)
+bool RoomData::AsmSaveRoomData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2147,7 +2147,7 @@ bool RoomData::AsmSaveRoomData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveWarpData(const filesystem::path& dir)
+bool RoomData::AsmSaveWarpData(const std::filesystem::path& dir)
 {
     auto warp_bytes = m_warps.GetWarpBytes();
     auto fall_bytes = m_warps.GetFallBytes();
@@ -2162,7 +2162,7 @@ bool RoomData::AsmSaveWarpData(const filesystem::path& dir)
     return true;
 }
 
-bool RoomData::AsmSaveRoomPalettes(const filesystem::path& dir)
+bool RoomData::AsmSaveRoomPalettes(const std::filesystem::path& dir)
 {
     try
     {
@@ -2185,7 +2185,7 @@ bool RoomData::AsmSaveRoomPalettes(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveMiscPaletteData(const filesystem::path& dir)
+bool RoomData::AsmSaveMiscPaletteData(const std::filesystem::path& dir)
 {
     m_labrynth_lit_palette->Save(dir);
 
@@ -2207,7 +2207,7 @@ bool RoomData::AsmSaveMiscPaletteData(const filesystem::path& dir)
     return true;
 }
 
-bool RoomData::AsmSaveBlocksetPointerData(const filesystem::path& dir)
+bool RoomData::AsmSaveBlocksetPointerData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2256,7 +2256,7 @@ bool RoomData::AsmSaveBlocksetPointerData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveBlocksetData(const filesystem::path& dir)
+bool RoomData::AsmSaveBlocksetData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2277,7 +2277,7 @@ bool RoomData::AsmSaveBlocksetData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveTilesetData(const filesystem::path& dir)
+bool RoomData::AsmSaveTilesetData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2306,7 +2306,7 @@ bool RoomData::AsmSaveTilesetData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveTilesetPointerData(const filesystem::path& dir)
+bool RoomData::AsmSaveTilesetPointerData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2345,7 +2345,7 @@ bool RoomData::AsmSaveTilesetPointerData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
+bool RoomData::AsmSaveAnimatedTilesetData(const std::filesystem::path& dir)
 {
     try
     {
@@ -2378,7 +2378,7 @@ bool RoomData::AsmSaveAnimatedTilesetData(const filesystem::path& dir)
     return false;
 }
 
-bool RoomData::AsmSaveChestData(const filesystem::path& dir)
+bool RoomData::AsmSaveChestData(const std::filesystem::path& dir)
 {
     auto result = m_chests.GetData(GetRoomCount());
     WriteBytes(result.first, dir / m_chest_offset_data_filename);
@@ -2386,7 +2386,7 @@ bool RoomData::AsmSaveChestData(const filesystem::path& dir)
     return true;
 }
 
-bool RoomData::AsmSaveDoorData(const filesystem::path& dir)
+bool RoomData::AsmSaveDoorData(const std::filesystem::path& dir)
 {
     auto result = m_doors.GetData(GetRoomCount());
     WriteBytes(result.first, dir / m_door_offset_data_filename);
@@ -2394,7 +2394,7 @@ bool RoomData::AsmSaveDoorData(const filesystem::path& dir)
     return true;
 }
 
-bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
+bool RoomData::AsmSaveGfxSwapData(const std::filesystem::path& dir)
 {
     WriteBytes(EncodeGfxSwap(m_gfxswap_flags), dir / m_gfxswap_flag_data_filename);
     WriteBytes(EncodeGfxSwap(m_gfxswap_locked_door_flags), dir / m_gfxswap_locked_door_flag_data_filename);
@@ -2403,7 +2403,7 @@ bool RoomData::AsmSaveGfxSwapData(const filesystem::path& dir)
     return true;
 }
 
-bool RoomData::AsmSaveMiscData(const filesystem::path& dir)
+bool RoomData::AsmSaveMiscData(const std::filesystem::path& dir)
 {
     WriteBytes(EncodeFromSet(m_shop_list, true), dir / m_shop_table_data_filename);
     WriteBytes(EncodeFromMap(m_lifestock_sold_flags), dir / m_lifestock_sold_flag_data_filename);

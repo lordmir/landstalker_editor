@@ -38,7 +38,7 @@ private:
 
 	std::shared_ptr<GameData> m_gd;
 	int m_behaviour_script;
-	std::string orig;
+	std::wstring orig;
 	bool dirty;
 
 	wxDECLARE_EVENT_TABLE();

@@ -11,7 +11,16 @@ namespace RomLabels
 		extern const std::string SCRIPT_END;
 		extern const std::string SCRIPT_STRINGS_BEGIN;
 
+		extern const std::string CUTSCENE_TABLE_SECTION;
+		extern const std::string CHAR_TABLE_SECTION;
+		extern const std::string SHOP_TABLE_SECTION;
+		extern const std::string ITEM_TABLE_SECTION;
+
 		extern const std::string SCRIPT_FILE;
+		extern const std::string CUTSCENE_TABLE_FILE;
+		extern const std::string CHAR_TABLE_FILE;
+		extern const std::string SHOP_TABLE_FILE;
+		extern const std::string ITEM_TABLE_FILE;
 	}
 
 	namespace Sprites
