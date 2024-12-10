@@ -35,6 +35,8 @@ private:
 	void OnMoveDown();
 
 	mutable bool m_reset_props = false;
+	ScriptTableDataViewModel::Mode m_mode = ScriptTableDataViewModel::Mode::CUTSCENE;
+	unsigned int m_index = 0;
 
 	mutable wxAuiManager m_mgr;
 	ScriptTableEditorCtrl* m_editor = nullptr;

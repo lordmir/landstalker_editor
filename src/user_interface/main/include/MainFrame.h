@@ -20,6 +20,7 @@
 #include <user_interface/sprites/include/EntityViewerFrame.h>
 #include <user_interface/behaviours/include/BehaviourScriptEditorFrame.h>
 #include <user_interface/script/include/ScriptEditorFrame.h>
+#include <user_interface/script/include/ScriptTableEditorFrame.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/misc/include/Labels.h>
 
@@ -69,7 +70,8 @@ private:
         SPRITE,
         ENTITY,
         BEHAVIOUR_SCRIPT,
-        SCRIPT
+        SCRIPT,
+        SCRIPT_TABLE
     };
 
     enum class EditorType
@@ -85,6 +87,7 @@ private:
         ENTITY,
         BEHAVIOUR_SCRIPT,
         SCRIPT,
+        SCRIPT_TABLE,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -139,6 +142,7 @@ private:
     EntityViewerFrame* GetEntityViewer();
     BehaviourScriptEditorFrame* GetBehaviourScriptEditor();
     ScriptEditorFrame* GetScriptEditor();
+    ScriptTableEditorFrame* GetScriptTableEditor();
     
     Mode m_mode;
     ImageList* m_imgs;

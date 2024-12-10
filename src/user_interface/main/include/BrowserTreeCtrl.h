@@ -20,7 +20,8 @@ public:
         SPRITE_FRAME,
         ENTITY,
         BEHAVIOUR_SCRIPT,
-        SCRIPT
+        SCRIPT,
+        SCRIPT_TABLE
     };
     TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0, int img = -1, bool no_delete = true)
         : m_nodeType(nodeType), m_value(value), m_img(img), m_no_delete(no_delete) {}
