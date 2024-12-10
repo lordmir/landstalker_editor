@@ -197,8 +197,9 @@ bool AsmFile::WriteFile(const std::filesystem::path& filename, FileType type)
 	catch (const std::exception& e)
 	{
 		Debug(e.what());
+		return false;
 	}
-	return false;
+	return true;
 }
 
 bool AsmFile::WriteFile(const std::filesystem::path& filename)

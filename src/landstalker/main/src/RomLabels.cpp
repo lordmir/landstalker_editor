@@ -8,7 +8,16 @@ namespace RomLabels
 		const std::string SCRIPT_END("ScriptEnd");
 		const std::string SCRIPT_STRINGS_BEGIN("SCRIPT_STRINGS_BEGIN");
 
+		const std::string CUTSCENE_TABLE_SECTION("CutsceneScriptTable");
+		const std::string CHAR_TABLE_SECTION("CharacterScriptTable");
+		const std::string SHOP_TABLE_SECTION("ShopScript");
+		const std::string ITEM_TABLE_SECTION("ShopSpecialItemsScript");
+
 		const std::string SCRIPT_FILE("assets_packed/script/script.bin");
+		const std::string CUTSCENE_TABLE_FILE("code/script/cutscenes/script_cutscenetable.asm");
+		const std::string CHAR_TABLE_FILE("code/script/characters/script_charactertable.asm");
+		const std::string SHOP_TABLE_FILE("code/script/shops/shoptable.asm");
+		const std::string ITEM_TABLE_FILE("code/script/shops/shoptable_specialitems.asm");
 	}
 
 	namespace Sprites
