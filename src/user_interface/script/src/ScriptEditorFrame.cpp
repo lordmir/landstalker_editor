@@ -158,8 +158,8 @@ void ScriptEditorFrame::OnExportYml()
 {
 	if (m_gd)
 	{
-		const wxString default_file = "script.yml";
-		wxFileDialog fd(this, _("Export Script as YAML"), "", default_file, "YAML file (*.yml)|*.yml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+		const wxString default_file = "script.yaml";
+		wxFileDialog fd(this, _("Export Script as YAML"), "", default_file, "YAML file (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 		if (fd.ShowModal() != wxID_CANCEL)
 		{
 			std::wstring yaml(m_gd->GetScriptData()->GetScript()->ToYaml(m_gd));

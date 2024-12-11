@@ -3,6 +3,8 @@
 #include <landstalker/misc/include/Literals.h>
 #include <landstalker/misc/include/Utils.h>
 
+#include <yaml-cpp/yaml.h>
+
 static std::vector<ScriptTable::Action> ParseAsmBody(AsmFile& file)
 {
 	AsmFile::ScriptAction action;
@@ -156,4 +158,215 @@ bool ScriptTable::WriteItemTable(const std::filesystem::path& prefix, const std:
 	}
 	file << 0xFFFF_u16;
 	return file.WriteFile(prefix / path);
+}
+
+static std::ostringstream& ActionsToYaml(std::ostringstream& ss, const std::vector<ScriptTable::Action>& actions, std::size_t indent = 1)
+{
+	for (const auto& action : actions)
+	{
+		std::visit([&](const auto& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, uint16_t>)
+				{
+					ss << std::setw(indent * 2) << "- " << "ScriptID:   " << Hex(arg) << std::endl;
+				}
+				else if constexpr (std::is_same_v<T, std::string>)
+				{
+					ss << std::setw(indent * 2) << "- " << "ScriptJump: " << arg << std::endl;
+				}
+			}, action);
+	}
+	return ss;
+}
+
+std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<Action>> table)
+{
+	std::ostringstream ss;
+	ActionsToYaml(ss, *table);
+	return ss.str();
+}
+
+std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<ScriptTable::Shop>> table)
+{
+	std::ostringstream ss;
+	for (const auto& shop : *table)
+	{
+		ss << "- Shop:                   " << Hex(shop.room) << std::endl;
+		ss << "  ItemMarkupPercent:      " << (shop.markup * 6.25 - 100.0) << std::endl;
+		ss << "  LifestockMarkupPercent: " << (shop.lifestock_markup * 6.25 - 100.0) << std::endl;
+		ss << "  Script: " << std::endl;
+		ActionsToYaml(ss, std::vector<ScriptTable::Action>(shop.actions.cbegin(), shop.actions.cend()), 2) << std::endl;
+	}
+	return ss.str();
+}
+
+std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<ScriptTable::Item>> table)
+{
+	std::ostringstream ss;
+	for (const auto& item : *table)
+	{
+		ss << "- Item:      " << Hex(item.item) << std::endl;
+		if (item.shop != 0xFFFF)
+		{
+			ss << "  Shop:      " << Hex(item.shop) << std::endl;
+		}
+		if (item.other.has_value())
+		{
+			ss << "  ExtraData: " << Hex(*item.other) << std::endl;
+		}
+		ss << "  Script:    " << std::endl;
+		ActionsToYaml(ss, item.actions, 2) << std::endl;
+	}
+	return ss.str();
+}
+
+static void ParseTable(const YAML::Node& node, std::vector<ScriptTable::Action>& actions, std::size_t& counter)
+{
+	try
+	{
+		if (node.IsSequence())
+		{
+			for (YAML::const_iterator it = node.begin(); it != node.end(); ++it)
+			{
+				if (it->IsMap() && it->size() >= 1 && it->begin()->first.IsScalar())
+				{
+					const std::string label = it->begin()->first.as<std::string>();
+					if (label == "ScriptID")
+					{
+						actions.push_back(it->begin()->second.as<uint16_t>());
+					}
+					else if (label == "ScriptJump")
+					{
+						actions.push_back(it->begin()->second.as<std::string>());
+					}
+					else
+					{
+						throw std::runtime_error(StrPrintf("Bad element \"%s\" on line %d.", label.c_str(), counter));
+					}
+				}
+				else
+				{
+					throw std::runtime_error(StrPrintf("Unexpected Type on line %d.", counter));
+				}
+			}
+			counter++;
+		}
+		else
+		{
+			throw std::runtime_error("Expected Sequence.");
+		}
+	}
+	catch (const std::exception& e)
+	{
+		throw std::runtime_error(StrPrintf("Malformed YAML: Element %d: %s", counter, e.what()));
+	}
+}
+
+std::vector<ScriptTable::Action> ScriptTable::TableFromYaml(const std::string& yaml)
+{
+	std::vector<ScriptTable::Action> actions{};
+	YAML::Node node = YAML::Load(yaml);
+	std::size_t counter = 1;
+	ParseTable(node, actions, counter);
+	return actions;
+}
+
+std::vector<ScriptTable::Shop> ScriptTable::ShopTableFromYaml(const std::string& yaml)
+{
+	std::vector<Shop> shops{};
+	std::size_t counter = 1;
+	try
+	{
+		YAML::Node node = YAML::Load(yaml);
+		if (node.IsSequence())
+		{
+			for (YAML::const_iterator it = node.begin(); it != node.end(); ++it)
+			{
+				if (it->IsMap() && it->size() >= 1 && it->begin()->first.IsScalar())
+				{
+					Shop shop;
+					for (YAML::const_iterator it2 = it->begin(); it2 != it->end(); ++it2)
+					{
+						const std::string label = it2->first.as<std::string>();
+						if (label == "Shop")
+						{
+							shop.room = it2->second.as<uint16_t>();
+						}
+						if (label == "ItemMarkupPercent")
+						{
+							shop.markup = static_cast<uint8_t>(it2->second.as<double>() * 0.16) + 16;
+						}
+						if (label == "LifestockMarkupPercent")
+						{
+							shop.lifestock_markup = static_cast<uint8_t>(it2->second.as<double>() * 0.16) + 16;
+						}
+						if (label == "Script")
+						{
+							std::vector<Action> actions;
+							ParseTable(it2->second, actions, counter);
+							if (actions.size() == shop.actions.size())
+							{
+								std::copy(actions.cbegin(), actions.cend(), shop.actions.begin());
+							}
+						}
+						++counter;
+					}
+					shops.push_back(shop);
+				}
+			}
+		}
+	}
+	catch (const std::exception& e)
+	{
+		throw std::runtime_error(StrPrintf("Malformed YAML: Element %d: %s", counter, e.what()));
+	}
+	return shops;
+}
+
+std::vector<ScriptTable::Item> ScriptTable::ItemTableFromYaml(const std::string& yaml)
+{
+	std::vector<ScriptTable::Item> items{};
+	std::size_t counter = 1;
+	try
+	{
+		YAML::Node node = YAML::Load(yaml);
+		if (node.IsSequence())
+		{
+			for (YAML::const_iterator it = node.begin(); it != node.end(); ++it)
+			{
+				if (it->IsMap() && it->size() >= 1 && it->begin()->first.IsScalar())
+				{
+					Item item;
+					for (YAML::const_iterator it2 = it->begin(); it2 != it->end(); ++it2)
+					{
+						const std::string label = it2->first.as<std::string>();
+						if (label == "Item")
+						{
+							item.item = it2->second.as<uint8_t>();
+						}
+						if (label == "Shop")
+						{
+							item.shop = it2->second.as<uint16_t>();
+						}
+						if (label == "ExtraData")
+						{
+							item.other = it2->second.as<uint16_t>();
+						}
+						if (label == "Script")
+						{
+							ParseTable(it2->second, item.actions, counter);
+						}
+						++counter;
+					}
+					items.push_back(item);
+				}
+			}
+		}
+	}
+	catch (const std::exception& e)
+	{
+		throw std::runtime_error(StrPrintf("Malformed YAML: Element %d: %s", counter, e.what()));
+	}
+	return items;
 }

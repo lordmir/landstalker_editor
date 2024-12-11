@@ -34,7 +34,7 @@ namespace ScriptTable
 	};
 	struct Item
 	{
-		Item() : item(0), shop(0), other(std::nullopt) {}
+		Item() : item(0), shop(0xFFFF), other(std::nullopt) {}
 		uint8_t item;
 		uint16_t shop;
 		std::optional<uint16_t> other;
@@ -57,6 +57,12 @@ namespace ScriptTable
 	bool WriteTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Action>> table);
 	bool WriteShopTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Shop>> table);
 	bool WriteItemTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Item>> table);
+	std::string TableToYaml(std::shared_ptr<std::vector<Action>> table);
+	std::string TableToYaml(std::shared_ptr<std::vector<Shop>> table);
+	std::string TableToYaml(std::shared_ptr<std::vector<Item>> table);
+	std::vector<Action> TableFromYaml(const std::string& yaml);
+	std::vector<Shop>  ShopTableFromYaml(const std::string& yaml);
+	std::vector<Item> ItemTableFromYaml(const std::string& yaml);
 }
 
 #endif // _SCRIPT_TABLE_

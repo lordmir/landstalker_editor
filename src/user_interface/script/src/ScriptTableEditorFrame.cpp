@@ -206,14 +206,17 @@ void ScriptTableEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetName() == "Room")
 		{
 			shop.room = static_cast<uint16_t>(property->GetValue().GetLong());
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		else if (property->GetName() == "Discount/Markup")
 		{
 			shop.markup = static_cast<uint8_t>((property->GetValue().GetDouble() + 100.0) * 0.16);
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		else if (property->GetName() == "Lifestock Discount/Markup")
 		{
 			shop.lifestock_markup = static_cast<uint8_t>((property->GetValue().GetDouble() + 100.0) * 0.16);
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}
 	else if (m_mode == ScriptTableDataViewModel::Mode::ITEM && m_index < m_gd->GetScriptData()->GetItemTable()->size())
@@ -222,10 +225,12 @@ void ScriptTableEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (property->GetName() == "Shop")
 		{
 			item.shop = static_cast<uint16_t>(property->GetValue().GetLong());
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		else if (property->GetName() == "Item")
 		{
 			item.item = static_cast<uint8_t>(property->GetValue().GetLong());
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 		else if (property->GetName() == "Extra" || property->GetName() == "Extra Data")
 		{
@@ -240,6 +245,7 @@ void ScriptTableEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 				item.other = std::nullopt;
 				ctrl->GetGrid()->GetPropertyByName("Extra Data")->Enable(false);
 			}
+			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}
 	ctrl->GetGrid()->Thaw();
@@ -299,15 +305,29 @@ void ScriptTableEditorFrame::ClearMenu(wxMenuBar& menu) const
 
 void ScriptTableEditorFrame::OnExportYml()
 {
-	if (m_gd)
+	const std::array<wxString, 4> DEFAULT_FILENAMES{ "cutscene_table.yaml", "character_table.yaml", "shop_table.yaml", "item_table.yaml" };
+	if (m_gd && m_gd->GetScriptData()->HasTables())
 	{
-		const wxString default_file = "script.yml";
-		wxFileDialog fd(this, _("Export Script as YAML"), "", default_file, "YAML file (*.yml)|*.yml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+		wxFileDialog fd(this, _("Export Script as YAML"), "", DEFAULT_FILENAMES.at(static_cast<std::size_t>(m_mode)),
+			"YAML file (*.yaml, *.yml)|*.yaml;*.yml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 		if (fd.ShowModal() != wxID_CANCEL)
 		{
-			std::wstring yaml(m_gd->GetScriptData()->GetScript()->ToYaml(m_gd));
 			std::ofstream ofs(fd.GetPath().ToStdString(), std::ios::binary | std::ios::out);
-			ofs << wstr_to_utf8(yaml);
+			switch (m_mode)
+			{
+			case ScriptTableDataViewModel::Mode::CUTSCENE:
+				ofs << ScriptTable::TableToYaml(m_gd->GetScriptData()->GetCutsceneTable());
+				break;
+			case ScriptTableDataViewModel::Mode::CHARACTER:
+				ofs << ScriptTable::TableToYaml(m_gd->GetScriptData()->GetCharTable());
+				break;
+			case ScriptTableDataViewModel::Mode::SHOP:
+				ofs << ScriptTable::TableToYaml(m_gd->GetScriptData()->GetShopTable());
+				break;
+			case ScriptTableDataViewModel::Mode::ITEM:
+				ofs << ScriptTable::TableToYaml(m_gd->GetScriptData()->GetItemTable());
+				break;
+			}
 		}
 	}
 }
@@ -324,7 +344,22 @@ void ScriptTableEditorFrame::OnImportYml()
 				std::ifstream ifs(fd.GetPath().ToStdString());
 				std::stringstream yaml;
 				yaml << ifs.rdbuf();
-				m_gd->GetScriptData()->GetScript()->FromYaml(m_gd, yaml.str());
+				switch (m_mode)
+				{
+				case ScriptTableDataViewModel::Mode::CUTSCENE:
+					*m_gd->GetScriptData()->GetCutsceneTable() = ScriptTable::TableFromYaml(yaml.str());
+					break;
+				case ScriptTableDataViewModel::Mode::CHARACTER:
+					*m_gd->GetScriptData()->GetCharTable() = ScriptTable::TableFromYaml(yaml.str());
+					break;
+				case ScriptTableDataViewModel::Mode::SHOP:
+					*m_gd->GetScriptData()->GetShopTable() = ScriptTable::ShopTableFromYaml(yaml.str());
+					break;
+				case ScriptTableDataViewModel::Mode::ITEM:
+					*m_gd->GetScriptData()->GetItemTable() = ScriptTable::ItemTableFromYaml(yaml.str());
+					break;
+				}
+				FireEvent(EVT_PROPERTIES_UPDATE);
 				m_editor->RefreshData();
 			}
 			catch (std::exception& e)
