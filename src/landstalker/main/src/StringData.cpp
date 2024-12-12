@@ -382,9 +382,13 @@ const LSString::StringType& StringData::GetMainString(std::size_t index) const
 	return m_decompressed_strings[index];
 }
 
-const LSString::StringType& StringData::GetOrigMainString(std::size_t index) const
+LSString::StringType StringData::GetOrigMainString(std::size_t index) const
 {
-	assert(index < m_decompressed_strings_orig.size());
+	assert(index < m_decompressed_strings.size());
+	if (index >= m_decompressed_strings_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_decompressed_strings_orig[index];
 }
 
@@ -402,7 +406,11 @@ void StringData::InsertMainString(std::size_t index, const LSString::StringType&
 
 bool StringData::HasMainStringChanged(std::size_t index) const
 {
-	assert(index <= m_decompressed_strings.size());
+	assert(index < m_decompressed_strings.size());
+	if (index >= m_decompressed_strings_orig.size())
+	{
+		return true;
+	}
 	return m_decompressed_strings_orig[index] != m_decompressed_strings[index];
 }
 
@@ -458,7 +466,7 @@ const LSString::StringType& StringData::GetString(Type type, std::size_t index) 
 	}
 }
 
-const LSString::StringType& StringData::GetOrigString(Type type, std::size_t index) const
+LSString::StringType StringData::GetOrigString(Type type, std::size_t index) const
 {
 	switch (type)
 	{
@@ -673,9 +681,13 @@ const LSString::StringType& StringData::GetSystemString(std::size_t index) const
 	return m_system_strings[index];
 }
 
-const LSString::StringType& StringData::GetOrigSystemString(std::size_t index) const
+LSString::StringType StringData::GetOrigSystemString(std::size_t index) const
 {
-	assert(index < m_system_strings_orig.size());
+	assert(index < m_system_strings.size());
+	if (index >= m_system_strings_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_system_strings_orig[index];
 }
 
@@ -688,6 +700,10 @@ void StringData::SetSystemString(std::size_t index, const LSString::StringType& 
 bool StringData::HasSystemStringChanged(std::size_t index) const
 {
 	assert(index <= m_system_strings.size());
+	if (index >= m_system_strings_orig.size())
+	{
+		return true;
+	}
 	return m_system_strings_orig[index] != m_system_strings[index];
 }
 
@@ -702,9 +718,13 @@ const LSString::StringType& StringData::GetCharName(std::size_t index) const
 	return m_character_names[index];
 }
 
-const LSString::StringType& StringData::GetOrigCharName(std::size_t index) const
+LSString::StringType StringData::GetOrigCharName(std::size_t index) const
 {
-	assert(index < m_character_names_orig.size());
+	assert(index < m_character_names.size());
+	if (index >= m_character_names_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_character_names_orig[index];
 }
 
@@ -717,6 +737,10 @@ void StringData::SetCharName(std::size_t index, const LSString::StringType& valu
 bool StringData::HasCharNameChanged(std::size_t index) const
 {
 	assert(index <= m_character_names.size());
+	if (index >= m_character_names_orig.size())
+	{
+		return true;
+	}
 	return m_character_names_orig[index] != m_character_names[index];
 }
 
@@ -731,9 +755,13 @@ const LSString::StringType& StringData::GetSpecialCharName(std::size_t index) co
 	return m_special_character_names[index];
 }
 
-const LSString::StringType& StringData::GetOrigSpecialCharName(std::size_t index) const
+LSString::StringType StringData::GetOrigSpecialCharName(std::size_t index) const
 {
-	assert(index < m_special_character_names_orig.size());
+	assert(index < m_special_character_names.size());
+	if (index >= m_special_character_names_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_special_character_names_orig[index];
 }
 
@@ -746,6 +774,10 @@ void StringData::SetSpecialCharName(std::size_t index, const LSString::StringTyp
 bool StringData::HasSpecialCharNameChanged(std::size_t index) const
 {
 	assert(index <= m_special_character_names.size());
+	if (index >= m_special_character_names_orig.size())
+	{
+		return true;
+	}
 	return m_special_character_names_orig[index] != m_special_character_names[index];
 }
 
@@ -780,9 +812,13 @@ const LSString::StringType& StringData::GetItemName(std::size_t index) const
 	return m_item_names[index];
 }
 
-const LSString::StringType& StringData::GetOrigItemName(std::size_t index) const
+LSString::StringType StringData::GetOrigItemName(std::size_t index) const
 {
-	assert(index < m_item_names_orig.size());
+	assert(index < m_item_names.size());
+	if (index >= m_item_names_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_item_names_orig[index];
 }
 
@@ -795,6 +831,10 @@ void StringData::SetItemName(std::size_t index, const LSString::StringType& valu
 bool StringData::HasItemNameChanged(std::size_t index) const
 {
 	assert(index <= m_item_names.size());
+	if (index >= m_item_names_orig.size())
+	{
+		return true;
+	}
 	return m_item_names_orig[index] != m_item_names[index];
 }
 
@@ -809,9 +849,13 @@ const LSString::StringType& StringData::GetMenuStr(std::size_t index) const
 	return m_menu_strings[index];
 }
 
-const LSString::StringType& StringData::GetOrigMenuStr(std::size_t index) const
+LSString::StringType StringData::GetOrigMenuStr(std::size_t index) const
 {
-	assert(index < m_menu_strings_orig.size());
+	assert(index < m_menu_strings.size());
+	if (index >= m_menu_strings_orig.size())
+	{
+		return LSString::StringType();
+	}
 	return m_menu_strings_orig[index];
 }
 
@@ -824,6 +868,10 @@ void StringData::SetMenuStr(std::size_t index, const LSString::StringType& value
 bool StringData::HasMenuStrChanged(std::size_t index) const
 {
 	assert(index <= m_menu_strings.size());
+	if (index >= m_menu_strings_orig.size())
+	{
+		return true;
+	}
 	return m_menu_strings_orig[index] != m_menu_strings[index];
 }
 
@@ -838,9 +886,13 @@ const IntroString& StringData::GetIntroString(std::size_t index) const
 	return m_intro_strings[index];
 }
 
-const IntroString& StringData::GetOrigIntroString(std::size_t index) const
+IntroString StringData::GetOrigIntroString(std::size_t index) const
 {
-	assert(index < m_intro_strings_orig.size());
+	assert(index < m_intro_strings.size());
+	if (index >= m_intro_strings_orig.size())
+	{
+		return IntroString();
+	}
 	return m_intro_strings_orig[index];
 }
 
@@ -853,6 +905,10 @@ void StringData::SetIntroString(std::size_t index, const IntroString& value)
 bool StringData::HasIntroStringChanged(std::size_t index) const
 {
 	assert(index <= m_intro_strings.size());
+	if (index >= m_intro_strings_orig.size())
+	{
+		return true;
+	}
 	return m_intro_strings_orig[index] != m_intro_strings[index];
 }
 
@@ -867,9 +923,13 @@ const EndCreditString& StringData::GetEndCreditString(std::size_t index) const
 	return m_ending_strings[index];
 }
 
-const EndCreditString& StringData::GetOrigEndCreditString(std::size_t index) const
+EndCreditString StringData::GetOrigEndCreditString(std::size_t index) const
 {
-	assert(index < m_ending_strings_orig.size());
+	assert(index < m_ending_strings.size());
+	if (index >= m_ending_strings_orig.size())
+	{
+		return EndCreditString();
+	}
 	return m_ending_strings_orig[index];
 }
 
@@ -882,6 +942,10 @@ void StringData::SetEndCreditString(std::size_t index, const EndCreditString& va
 bool StringData::HasEndCreditStringChanged(std::size_t index) const
 {
 	assert(index <= m_ending_strings.size());
+	if (index >= m_ending_strings_orig.size())
+	{
+		return true;
+	}
 	return m_ending_strings_orig[index] != m_ending_strings[index];
 }
 

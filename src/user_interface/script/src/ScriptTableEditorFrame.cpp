@@ -1,14 +1,18 @@
 #include <user_interface/script/include/ScriptTableEditorFrame.h>
 #include <user_interface/script/include/ScriptTableEditorCtrl.h>
+#include <user_interface/main/include/BrowserTreeCtrl.h>
 
 #include <wx/propgrid/advprops.h>
 
 enum TOOL_IDS
 {
-	ID_INSERT = 30000,
+	ID_APPEND = 30000,
+	ID_INSERT,
 	ID_DELETE,
 	ID_MOVE_UP,
-	ID_MOVE_DOWN
+	ID_MOVE_DOWN,
+	ID_NEW_COLLECTION,
+	ID_DELETE_COLLECTION
 };
 
 enum MENU_IDS
@@ -66,10 +70,15 @@ void ScriptTableEditorFrame::ClearGameData()
 
 void ScriptTableEditorFrame::UpdateUI() const
 {
+	EnableToolbarItem("Script", ID_APPEND, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP);
 	EnableToolbarItem("Script", ID_INSERT, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP);
 	EnableToolbarItem("Script", ID_DELETE, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP && m_editor->IsRowSelected());
 	EnableToolbarItem("Script", ID_MOVE_UP, m_gd != nullptr && m_editor->IsRowSelected() && !m_editor->IsSelTop());
 	EnableToolbarItem("Script", ID_MOVE_DOWN, m_gd != nullptr && m_editor->IsRowSelected() && !m_editor->IsSelBottom());
+	EnableToolbarItem("Script", ID_NEW_COLLECTION, m_gd != nullptr && (m_mode == ScriptTableDataViewModel::Mode::SHOP || m_mode == ScriptTableDataViewModel::Mode::ITEM));
+	EnableToolbarItem("Script", ID_DELETE_COLLECTION, m_gd != nullptr && 
+		((m_mode == ScriptTableDataViewModel::Mode::SHOP && m_index < m_gd->GetScriptData()->GetShopTable()->size() && m_gd->GetScriptData()->GetShopTable()->size() > 1)
+		|| (m_mode == ScriptTableDataViewModel::Mode::ITEM && m_index < m_gd->GetScriptData()->GetItemTable()->size() && m_gd->GetScriptData()->GetItemTable()->size() > 1)));
 }
 
 void ScriptTableEditorFrame::InitProperties(wxPropertyGridManager& props) const
@@ -261,11 +270,15 @@ void ScriptTableEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
 
 	wxAuiToolBar* script_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	script_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Entry");
 	script_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
 	script_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
 	script_tb->AddSeparator();
 	script_tb->AddTool(ID_MOVE_UP, "Move Up", ilist.GetImage("up"), "Move Up");
 	script_tb->AddTool(ID_MOVE_DOWN, "Move Down", ilist.GetImage("down"), "Move Down");
+	script_tb->AddSeparator();
+	script_tb->AddTool(ID_NEW_COLLECTION, "New", ilist.GetImage("new"), "New Element");
+	script_tb->AddTool(ID_DELETE_COLLECTION, "Delete", ilist.GetImage("delete"), "Delete Element");
 	AddToolbar(m_mgr, *script_tb, "Script", "Script Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
 
 	m_mgr.Update();
@@ -282,6 +295,9 @@ void ScriptTableEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	case ID_FILE_IMPORT_YML:
 		OnImportYml();
 		break;
+	case ID_APPEND:
+		OnAppend();
+		break;
 	case ID_INSERT:
 		OnInsert();
 		break;
@@ -293,6 +309,12 @@ void ScriptTableEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_MOVE_DOWN:
 		OnMoveDown();
+		break;
+	case ID_NEW_COLLECTION:
+		OnNewCollection();
+		break;
+	case ID_DELETE_COLLECTION:
+		OnDeleteCollection();
 		break;
 	}
 	UpdateUI();
@@ -370,6 +392,11 @@ void ScriptTableEditorFrame::OnImportYml()
 	}
 }
 
+void ScriptTableEditorFrame::OnAppend()
+{
+	m_editor->AppendRow();
+}
+
 void ScriptTableEditorFrame::OnInsert()
 {
 	m_editor->InsertRow();
@@ -388,4 +415,72 @@ void ScriptTableEditorFrame::OnMoveUp()
 void ScriptTableEditorFrame::OnMoveDown()
 {
 	m_editor->MoveRowDown();
+}
+
+void ScriptTableEditorFrame::OnNewCollection()
+{
+	if (m_mode == ScriptTableDataViewModel::Mode::SHOP)
+	{
+		ScriptTable::Shop shop;
+		std::string new_item = StrPrintf("Script/Script Tables/Shop Tables/ShopTable%d", m_gd->GetScriptData()->GetShopTable()->size());
+		FireEvent(EVT_ADD_NAV_ITEM, new_item, (static_cast<uint32_t>(m_mode) << 16) | m_gd->GetScriptData()->GetShopTable()->size(),
+			m_imglst->GetIdx("script"), static_cast<uint32_t>(TreeNodeData::Node::SCRIPT_TABLE));
+		m_gd->GetScriptData()->GetShopTable()->push_back(shop);
+		FireEvent(EVT_GO_TO_NAV_ITEM, new_item);
+	}
+	else if (m_mode == ScriptTableDataViewModel::Mode::ITEM)
+	{
+		ScriptTable::Item item;
+		std::string new_item = StrPrintf("Script/Script Tables/Item Tables/ItemTable%d", m_gd->GetScriptData()->GetItemTable()->size());
+		FireEvent(EVT_ADD_NAV_ITEM, new_item, (static_cast<uint32_t>(m_mode) << 16) | m_gd->GetScriptData()->GetItemTable()->size(),
+			m_imglst->GetIdx("script"), static_cast<uint32_t>(TreeNodeData::Node::SCRIPT_TABLE));
+		m_gd->GetScriptData()->GetItemTable()->push_back(item);
+		FireEvent(EVT_GO_TO_NAV_ITEM, new_item);
+	}
+}
+
+void ScriptTableEditorFrame::OnDeleteCollection()
+{
+	if (m_mode == ScriptTableDataViewModel::Mode::SHOP)
+	{
+		std::shared_ptr<std::vector<ScriptTable::Shop>> shop_table = m_gd->GetScriptData()->GetShopTable();
+		if (shop_table->size() == 0)
+		{
+			return;
+		}
+		std::string item_to_remove = StrPrintf("Script/Script Tables/Shop Tables/ShopTable%d", shop_table->size() - 1);
+		std::string item_to_select = "Script/Script Tables/Character Table";
+		if (m_index < shop_table->size() - 1)
+		{
+			item_to_select = StrPrintf("Script/Script Tables/Shop Tables/ShopTable%d", m_index);
+		}
+		else if (m_index > 0)
+		{
+			item_to_select = StrPrintf("Script/Script Tables/Shop Tables/ShopTable%d", m_index - 1);
+		}
+		shop_table->erase(shop_table->begin() + m_index);
+		FireEvent(EVT_DELETE_NAV_ITEM, item_to_remove);
+		FireEvent(EVT_GO_TO_NAV_ITEM, item_to_select);
+	}
+	else if (m_mode == ScriptTableDataViewModel::Mode::ITEM)
+	{
+		std::shared_ptr<std::vector<ScriptTable::Item>> item_table = m_gd->GetScriptData()->GetItemTable();
+		if (item_table->size() == 0)
+		{
+			return;
+		}
+		std::string item_to_remove = StrPrintf("Script/Script Tables/Item Tables/ItemTable%d", item_table->size() - 1);
+		std::string item_to_select = "Script/Script Tables/Character Table";
+		if (m_index < item_table->size() - 1)
+		{
+			item_to_select = StrPrintf("Script/Script Tables/Item Tables/ItemTable%d", m_index);
+		}
+		else if (m_index > 0)
+		{
+			item_to_select = StrPrintf("Script/Script Tables/Item Tables/ItemTable%d", m_index - 1);
+		}
+		item_table->erase(item_table->begin() + m_index);
+		FireEvent(EVT_DELETE_NAV_ITEM, item_to_remove);
+		FireEvent(EVT_GO_TO_NAV_ITEM, item_to_select);
+	}
 }

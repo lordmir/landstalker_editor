@@ -48,7 +48,7 @@ public:
 
     std::size_t GetStringCount(Type type) const;
     const LSString::StringType& GetString(Type type, std::size_t index) const;
-    const LSString::StringType& GetOrigString(Type type, std::size_t index) const;
+    LSString::StringType GetOrigString(Type type, std::size_t index) const;
     void SetString(Type type, std::size_t index, const LSString::StringType& value);
     void InsertString(Type type, std::size_t index, const LSString::StringType& value);
     void DeleteString(Type type, std::size_t index);
@@ -57,26 +57,26 @@ public:
 
     std::size_t GetMainStringCount() const;
     const LSString::StringType& GetMainString(std::size_t index) const;
-    const LSString::StringType& GetOrigMainString(std::size_t index) const;
+    LSString::StringType GetOrigMainString(std::size_t index) const;
     void SetMainString(std::size_t index, const LSString::StringType& value);
     void InsertMainString(std::size_t index, const LSString::StringType& value);
     bool HasMainStringChanged(std::size_t index) const;
 
     std::size_t GetSystemStringCount() const;
     const LSString::StringType& GetSystemString(std::size_t index) const;
-    const LSString::StringType& GetOrigSystemString(std::size_t index) const;
+    LSString::StringType GetOrigSystemString(std::size_t index) const;
     void SetSystemString(std::size_t index, const LSString::StringType& value);
     bool HasSystemStringChanged(std::size_t index) const;
 
     std::size_t GetCharNameCount() const;
     const LSString::StringType& GetCharName(std::size_t index) const;
-    const LSString::StringType& GetOrigCharName(std::size_t index) const;
+    LSString::StringType GetOrigCharName(std::size_t index) const;
     void SetCharName(std::size_t index, const LSString::StringType& value);
     bool HasCharNameChanged(std::size_t index) const;
 
     std::size_t GetSpecialCharNameCount() const;
     const LSString::StringType& GetSpecialCharName(std::size_t index) const;
-    const LSString::StringType& GetOrigSpecialCharName(std::size_t index) const;
+    LSString::StringType GetOrigSpecialCharName(std::size_t index) const;
     void SetSpecialCharName(std::size_t index, const LSString::StringType& value);
     bool HasSpecialCharNameChanged(std::size_t index) const;
 
@@ -87,25 +87,25 @@ public:
 
     std::size_t GetItemNameCount() const;
     const LSString::StringType& GetItemName(std::size_t index) const;
-    const LSString::StringType& GetOrigItemName(std::size_t index) const;
+    LSString::StringType GetOrigItemName(std::size_t index) const;
     void SetItemName(std::size_t index, const LSString::StringType& value);
     bool HasItemNameChanged(std::size_t index) const;
 
     std::size_t GetMenuStrCount() const;
     const LSString::StringType& GetMenuStr(std::size_t index) const;
-    const LSString::StringType& GetOrigMenuStr(std::size_t index) const;
+    LSString::StringType GetOrigMenuStr(std::size_t index) const;
     void SetMenuStr(std::size_t index, const LSString::StringType& value);
     bool HasMenuStrChanged(std::size_t index) const;
 
     std::size_t GetIntroStringCount() const;
     const IntroString& GetIntroString(std::size_t index) const;
-    const IntroString& GetOrigIntroString(std::size_t index) const;
+    IntroString GetOrigIntroString(std::size_t index) const;
     void SetIntroString(std::size_t index, const IntroString& value);
     bool HasIntroStringChanged(std::size_t index) const;
 
     std::size_t GetEndCreditStringCount() const;
     const EndCreditString& GetEndCreditString(std::size_t index) const;
-    const EndCreditString& GetOrigEndCreditString(std::size_t index) const;
+    EndCreditString GetOrigEndCreditString(std::size_t index) const;
     void SetEndCreditString(std::size_t index, const EndCreditString& value);
     bool HasEndCreditStringChanged(std::size_t index) const;
 

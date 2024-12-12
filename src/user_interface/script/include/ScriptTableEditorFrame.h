@@ -30,10 +30,13 @@ private:
 
 	void OnExportYml();
 	void OnImportYml();
+	void OnAppend();
 	void OnInsert();
 	void OnDelete();
 	void OnMoveUp();
 	void OnMoveDown();
+	void OnNewCollection();
+	void OnDeleteCollection();
 
 	mutable bool m_reset_props = false;
 	ScriptTableDataViewModel::Mode m_mode = ScriptTableDataViewModel::Mode::CUTSCENE;

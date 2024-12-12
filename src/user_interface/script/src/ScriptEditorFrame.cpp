@@ -4,7 +4,8 @@
 
 enum TOOL_IDS
 {
-	ID_INSERT = 30000,
+	ID_APPEND = 30000,
+	ID_INSERT,
 	ID_DELETE,
 	ID_MOVE_UP,
 	ID_MOVE_DOWN
@@ -112,6 +113,7 @@ void ScriptEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
 
 	wxAuiToolBar* script_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+	script_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Entry To End");
 	script_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
 	script_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
 	script_tb->AddSeparator();
@@ -132,6 +134,9 @@ void ScriptEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_FILE_IMPORT_YML:
 		OnImportYml();
+		break;
+	case ID_APPEND:
+		OnAppend();
 		break;
 	case ID_INSERT:
 		OnInsert();
@@ -193,6 +198,11 @@ void ScriptEditorFrame::OnImportYml()
 	}
 }
 
+void ScriptEditorFrame::OnAppend()
+{
+	m_editor->AppendRow();
+}
+
 void ScriptEditorFrame::OnInsert()
 {
 	m_editor->InsertRow();
@@ -215,6 +225,7 @@ void ScriptEditorFrame::OnMoveDown()
 
 void ScriptEditorFrame::UpdateUI() const
 {
+	EnableToolbarItem("Script", ID_APPEND, true);
 	EnableToolbarItem("Script", ID_INSERT, true);
 	EnableToolbarItem("Script", ID_DELETE, m_editor->IsRowSelected());
 	EnableToolbarItem("Script", ID_MOVE_UP, m_editor->IsRowSelected() && !m_editor->IsSelTop());

@@ -44,8 +44,7 @@ protected:
 	void SetToolbarVisibility(const std::string& name, bool visible);
 	bool IsToolbarVisible(const std::string& name) const;
 	bool ArePropsInitialised() const;
-	void FireEvent(const wxEventType& e, const std::string& data);
-	void FireEvent(const wxEventType& e);
+	void FireEvent(const wxEventType& e, const wxString& data = wxEmptyString, long numeric_data = 0, long extra_numeric_data = 0, long extra_extra_numeric_data = 0);
 	wxMenu& AddMenu(wxMenuBar& parent, int position, int id, const std::string& name) const;
 	wxMenuItem& AddMenuItem(wxMenu& parent, int position, int id, const std::string& name, wxItemKind kind = wxITEM_NORMAL, const std::string& help = std::string()) const;
 	wxAuiToolBar& AddToolbar(wxAuiManager& mgr, wxAuiToolBar& tb, const std::string& name, const std::string title, wxAuiPaneInfo& position) const;
@@ -57,6 +56,7 @@ protected:
 	void OnPaneClose(wxAuiManagerEvent& event);
 
 	std::shared_ptr<GameData> m_gd;
+	ImageList* m_imglst;
 
 private:
 	mutable bool m_props_init;
@@ -65,7 +65,6 @@ private:
 	static std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> m_menuitems;
 	mutable std::unordered_map<std::string, wxAuiToolBar*> m_toolbars;
 
-	ImageList* m_imglst;
 };
 
 wxDECLARE_EVENT(EVT_STATUSBAR_INIT, wxCommandEvent);

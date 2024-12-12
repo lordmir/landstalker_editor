@@ -21,6 +21,7 @@ public:
 	void Open();
 	void RefreshData();
 
+	void AppendRow();
 	void InsertRow();
 	void DeleteRow();
 	void MoveRowUp();

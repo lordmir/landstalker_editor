@@ -22,6 +22,7 @@ public:
 	void Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0);
 	void RefreshData();
 
+	void AppendRow();
 	void InsertRow();
 	void DeleteRow();
 	void MoveRowUp();

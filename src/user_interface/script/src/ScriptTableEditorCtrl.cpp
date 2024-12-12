@@ -64,6 +64,14 @@ void ScriptTableEditorCtrl::RefreshData()
 	UpdateUI();
 }
 
+void ScriptTableEditorCtrl::AppendRow()
+{
+	m_model->AddRow(m_model->GetRowCount());
+	UpdateUI();
+	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
+}
+
 void ScriptTableEditorCtrl::InsertRow()
 {
 	if (IsRowSelected())
@@ -73,6 +81,8 @@ void ScriptTableEditorCtrl::InsertRow()
 	else
 	{
 		m_model->AddRow(0);
+		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(1)));
+		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 	}
 	UpdateUI();
 }
@@ -86,10 +96,12 @@ void ScriptTableEditorCtrl::DeleteRow()
 		if (m_model->GetRowCount() > sel)
 		{
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 		else if (m_model->GetRowCount() != 0)
 		{
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();
@@ -104,6 +116,7 @@ void ScriptTableEditorCtrl::MoveRowUp()
 		{
 			m_model->SwapRows(sel - 1, sel);
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();
@@ -118,6 +131,7 @@ void ScriptTableEditorCtrl::MoveRowDown()
 		{
 			m_model->SwapRows(sel, sel + 1);
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();

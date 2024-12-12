@@ -336,7 +336,7 @@ std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable()
 		}
 		break;
 	case Mode::ITEM:
-		if (m_item_script && m_index >= 0 && m_index < m_item_script->size())
+		if (m_item_script && m_index < m_item_script->size())
 		{
 			return &(m_item_script->at(m_index).actions);
 		}
@@ -365,7 +365,7 @@ const std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable() con
 		}
 		break;
 	case Mode::ITEM:
-		if (m_item_script && m_index >= 0 && m_index < m_item_script->size())
+		if (m_item_script && m_index < m_item_script->size())
 		{
 			return &(m_item_script->at(m_index).actions);
 		}
@@ -395,7 +395,7 @@ const ScriptTable::Action* ScriptTableDataViewModel::GetCell(unsigned int row) c
 ScriptTable::Action* ScriptTableDataViewModel::GetCell(unsigned int row)
 {
 	auto table = GetTable();
-	if (m_mode == Mode::SHOP && m_shop_script && m_index >= 0 && m_index < m_shop_script->size()
+	if (m_mode == Mode::SHOP && m_shop_script && m_index < m_shop_script->size()
 		&& row < m_shop_script->at(m_index).actions.size())
 	{
 		return &m_shop_script->at(m_index).actions.at(row);

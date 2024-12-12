@@ -28,6 +28,7 @@ private:
 
 	void OnExportYml();
 	void OnImportYml();
+	void OnAppend();
 	void OnInsert();
 	void OnDelete();
 	void OnMoveUp();

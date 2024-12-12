@@ -273,17 +273,13 @@ bool EditorFrame::ArePropsInitialised() const
 	return m_props_init;
 }
 
-void EditorFrame::FireEvent(const wxEventType& e, const std::string& data)
+void EditorFrame::FireEvent(const wxEventType& e, const wxString& data, long numeric_data, long extra_numeric_data, long extra_extra_numeric_data)
 {
 	wxCommandEvent evt(e);
 	evt.SetString(data);
-	evt.SetClientData(this);
-	wxPostEvent(this->GetParent(), evt);
-}
-
-void EditorFrame::FireEvent(const wxEventType& e)
-{
-	wxCommandEvent evt(e);
+	evt.SetInt(numeric_data);
+	evt.SetExtraLong(extra_numeric_data);
+	evt.SetId(extra_extra_numeric_data);
 	evt.SetClientData(this);
 	wxPostEvent(this->GetParent(), evt);
 }
