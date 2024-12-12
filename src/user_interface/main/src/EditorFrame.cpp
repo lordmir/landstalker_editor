@@ -19,8 +19,8 @@ std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> EditorFrame::m_menuitem
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize(), wxWANTS_CHARS),
-	  m_props_init(false),
-	  m_imglst(imglst)
+	  m_imglst(imglst),
+	  m_props_init(false)
 {
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }
@@ -273,17 +273,13 @@ bool EditorFrame::ArePropsInitialised() const
 	return m_props_init;
 }
 
-void EditorFrame::FireEvent(const wxEventType& e, const std::string& data)
+void EditorFrame::FireEvent(const wxEventType& e, const wxString& data, long numeric_data, long extra_numeric_data, long extra_extra_numeric_data)
 {
 	wxCommandEvent evt(e);
 	evt.SetString(data);
-	evt.SetClientData(this);
-	wxPostEvent(this->GetParent(), evt);
-}
-
-void EditorFrame::FireEvent(const wxEventType& e)
-{
-	wxCommandEvent evt(e);
+	evt.SetInt(numeric_data);
+	evt.SetExtraLong(extra_numeric_data);
+	evt.SetId(extra_extra_numeric_data);
 	evt.SetClientData(this);
 	wxPostEvent(this->GetParent(), evt);
 }

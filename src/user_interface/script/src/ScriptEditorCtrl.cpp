@@ -43,14 +43,27 @@ void ScriptEditorCtrl::ClearGameData()
 	m_dvc_ctrl->ClearColumns();
 }
 
-void ScriptEditorCtrl::Open()
+void ScriptEditorCtrl::Open(int row)
 {
+	if (row != -1)
+	{
+		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(row + 1)));
+		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
+	}
 }
 
 void ScriptEditorCtrl::RefreshData()
 {
 	m_model->Reset(m_model->GetRowCount());
 	UpdateUI();
+}
+
+void ScriptEditorCtrl::AppendRow()
+{
+	m_model->AddRow(m_model->GetRowCount());
+	UpdateUI();
+	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 }
 
 void ScriptEditorCtrl::InsertRow()
@@ -62,6 +75,8 @@ void ScriptEditorCtrl::InsertRow()
 	else
 	{
 		m_model->AddRow(0);
+		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(1)));
+		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 	}
 	UpdateUI();
 }
@@ -75,10 +90,12 @@ void ScriptEditorCtrl::DeleteRow()
 		if (m_model->GetRowCount() > sel)
 		{
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 		else if (m_model->GetRowCount() != 0)
 		{
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();
@@ -93,6 +110,7 @@ void ScriptEditorCtrl::MoveRowUp()
 		{
 			m_model->SwapRows(sel - 1, sel);
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();
@@ -107,6 +125,7 @@ void ScriptEditorCtrl::MoveRowDown()
 		{
 			m_model->SwapRows(sel, sel + 1);
 			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
 	UpdateUI();

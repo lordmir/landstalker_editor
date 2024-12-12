@@ -666,6 +666,7 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
 		props.Append(new wxStringProperty("Name", "Name", _(sd->GetSpriteDisplayName(sprite_index))));
+		props.Append(new wxStringProperty("Label", "Label", _(sd->GetSpriteName(sprite_index))))->Enable(false);
 		props.Append(new wxIntProperty("ID", "ID", sprite_index))->Enable(false);
 		props.Append(new wxStringProperty("Start Address", "Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress()))))->Enable(false);
 		props.Append(new wxStringProperty("End Address", "End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress()))))->Enable(false);
@@ -809,7 +810,8 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		int sprite_index = m_sprite->GetSprite();
 		int entity_index = sd->GetEntitiesFromSprite(sprite_index)[0];
 
-		props.GetGrid()->SetPropertyValue("Name", _(sd->GetSpriteName(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Name", _(sd->GetSpriteDisplayName(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Label", _(sd->GetSpriteName(sprite_index)));
 		props.GetGrid()->SetPropertyValue("ID", static_cast<int>(sprite_index));
 		props.GetGrid()->SetPropertyValue("Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress())));
 		props.GetGrid()->SetPropertyValue("End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress())));

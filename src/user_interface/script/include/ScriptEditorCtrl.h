@@ -18,9 +18,10 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void Open();
+	void Open(int row = -1);
 	void RefreshData();
 
+	void AppendRow();
 	void InsertRow();
 	void DeleteRow();
 	void MoveRowUp();

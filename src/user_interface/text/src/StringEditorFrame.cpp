@@ -11,7 +11,8 @@ enum MENU_IDS
 
 enum TOOL_IDS
 {
-    ID_INSERT = 30000,
+    ID_APPEND = 30000,
+    ID_INSERT,
     ID_DELETE,
     ID_MOVE_UP,
     ID_MOVE_DOWN
@@ -125,6 +126,9 @@ void StringEditorFrame::OnMenuClick(wxMenuEvent& evt)
         case ID_FILE_IMPORT:
             OnMenuImport();
             break;
+        case ID_APPEND:
+            OnAppend();
+            break;
         case ID_INSERT:
             OnInsert();
             break;
@@ -181,6 +185,14 @@ void StringEditorFrame::OnMenuExport()
     }
 }
 
+void StringEditorFrame::OnAppend()
+{
+    m_model->AddRow(m_model->GetRowCount());
+    UpdateUI();
+    m_stringView->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+    m_stringView->EnsureVisible(m_stringView->GetSelection());
+}
+
 void StringEditorFrame::OnInsert()
 {
     if (m_stringView->HasSelection())
@@ -190,6 +202,8 @@ void StringEditorFrame::OnInsert()
     else
     {
         m_model->AddRow(0);
+        m_stringView->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(1)));
+        m_stringView->EnsureVisible(m_stringView->GetSelection());
     }
     UpdateUI();
 }
@@ -203,10 +217,12 @@ void StringEditorFrame::OnDelete()
         if (m_model->GetRowCount() > sel)
         {
             m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 1)));
+            m_stringView->EnsureVisible(m_stringView->GetSelection());
         }
         else if (m_model->GetRowCount() != 0)
         {
             m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+            m_stringView->EnsureVisible(m_stringView->GetSelection());
         }
     }
     UpdateUI();
@@ -221,6 +237,7 @@ void StringEditorFrame::OnMoveUp()
         {
             m_model->SwapRows(sel - 1, sel);
             m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel)));
+            m_stringView->EnsureVisible(m_stringView->GetSelection());
         }
     }
     UpdateUI();
@@ -235,6 +252,7 @@ void StringEditorFrame::OnMoveDown()
         {
             m_model->SwapRows(sel, sel + 1);
             m_stringView->Select(wxDataViewItem(reinterpret_cast<void*>(sel + 2)));
+            m_stringView->EnsureVisible(m_stringView->GetSelection());
         }
     }
     UpdateUI();
@@ -363,6 +381,7 @@ bool StringEditorFrame::ImportStrings(const std::filesystem::path& filename, Str
 
 void StringEditorFrame::UpdateUI() const
 {
+    EnableToolbarItem("Strings", ID_APPEND, IsAddRemoveAllowed());
     EnableToolbarItem("Strings", ID_INSERT, IsAddRemoveAllowed());
     EnableToolbarItem("Strings", ID_DELETE, m_stringView->HasSelection() && IsAddRemoveAllowed());
     EnableToolbarItem("Strings", ID_MOVE_UP, m_stringView->HasSelection() && !IsSelTop());
@@ -385,6 +404,7 @@ void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Strings...");
 
     wxAuiToolBar* strings_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
+    strings_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Entry");
     strings_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
     strings_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
     strings_tb->AddSeparator();

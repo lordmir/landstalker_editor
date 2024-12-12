@@ -31,6 +31,7 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void OnMenuImport();
 	void OnMenuExport();
+	void OnAppend();
 	void OnInsert();
 	void OnDelete();
 	void OnMoveUp();

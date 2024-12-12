@@ -1,24 +1,26 @@
-#ifndef _SCRIPT_EDITOR_FRAME_H_
-#define _SCRIPT_EDITOR_FRAME_H_
+#ifndef _SCRIPT_TABLE_EDITOR_FRAME_H_
+#define _SCRIPT_TABLE_EDITOR_FRAME_H_
 
 #include <landstalker/main/include/GameData.h>
 #include <user_interface/main/include/EditorFrame.h>
-#include <user_interface/script/include/ScriptEditorCtrl.h>
+#include <user_interface/script/include/ScriptTableEditorCtrl.h>
 
 
-class ScriptEditorFrame : public EditorFrame
+class ScriptTableEditorFrame : public EditorFrame
 {
 public:
-	ScriptEditorFrame(wxWindow* parent, ImageList* imglst);
-	virtual ~ScriptEditorFrame();
 
-	bool Open(int row = -1);
+	ScriptTableEditorFrame(wxWindow* parent, ImageList* imglst);
+	virtual ~ScriptTableEditorFrame();
+
+	bool Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0, int row = -1);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
 	void UpdateUI() const;
 private:
 	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
@@ -33,11 +35,19 @@ private:
 	void OnDelete();
 	void OnMoveUp();
 	void OnMoveDown();
+	void OnNewCollection();
+	void OnDeleteCollection();
 
 	mutable bool m_reset_props = false;
+	ScriptTableDataViewModel::Mode m_mode = ScriptTableDataViewModel::Mode::CUTSCENE;
+	unsigned int m_index = 0;
+
+	mutable wxPGChoices m_rooms;
+	mutable wxPGChoices m_rooms_plus_empty;
+	mutable wxPGChoices m_items;
 
 	mutable wxAuiManager m_mgr;
-	ScriptEditorCtrl* m_editor = nullptr;
+	ScriptTableEditorCtrl* m_editor = nullptr;
 };
 
-#endif // _SCRIPT_EDITOR_FRAME_H_
+#endif // _SCRIPT_TABLE_EDITOR_FRAME_H_

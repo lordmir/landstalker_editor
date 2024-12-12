@@ -46,6 +46,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::ENTITY, new EntityViewerFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT, new ScriptEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -79,8 +80,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
     this->Connect(EVT_RENAME_NAV_ITEM, wxCommandEventHandler(MainFrame::OnRenameNavItem), nullptr, this);
-    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
-    this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
+    this->Connect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
+    this->Connect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -97,6 +98,8 @@ MainFrame::~MainFrame()
     this->Disconnect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Disconnect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
+    this->Disconnect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
+    this->Disconnect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
 
     delete m_imgs;
     delete m_imgs32;
@@ -220,6 +223,22 @@ void MainFrame::InitUI()
     InsertNavItem(L"Sprites", spr_img);
 
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
+    if (m_g->GetScriptData()->HasTables())
+    {
+        auto nodeST = m_browser->AppendItem(nodeScript, "Script Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE));
+        m_browser->AppendItem(nodeST, "Cutscene Table", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::CUTSCENE) << 16));
+        m_browser->AppendItem(nodeST, "Character Table", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::CHARACTER) << 16));
+        auto nodeSTS = m_browser->AppendItem(nodeST, "Shop Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::SHOP) << 16));
+        for (std::size_t i = 0; i < m_g->GetScriptData()->GetShopTable()->size(); ++i)
+        {
+            m_browser->AppendItem(nodeSTS, StrPrintf("ShopTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::SHOP) << 16) | i, scr_img, false));
+        }
+        auto nodeSTI = m_browser->AppendItem(nodeST, "Item Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM)));
+        for (std::size_t i = 0; i < m_g->GetScriptData()->GetItemTable()->size(); ++i)
+        {
+            m_browser->AppendItem(nodeSTI, StrPrintf("ItemTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM) << 16) | i, scr_img, false));
+        }
+    }
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
@@ -606,7 +625,7 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 
 void MainFrame::OnGoToNavItem(wxCommandEvent& event)
 {
-    GoToNavItem(std::wstring(event.GetString()));
+    GoToNavItem(std::wstring(event.GetString()), event.GetInt());
 }
 
 void MainFrame::OnRenameNavItem(wxCommandEvent& event)
@@ -626,7 +645,7 @@ void MainFrame::OnDeleteNavItem(wxCommandEvent& event)
 
 void MainFrame::OnAddNavItem(wxCommandEvent& event)
 {
-    AddNavItem(event.GetString().ToStdWstring(), event.GetInt(), static_cast<TreeNodeData::Node>(event.GetExtraLong()), event.GetSelection());
+    AddNavItem(event.GetString().ToStdWstring(), event.GetExtraLong(), static_cast<TreeNodeData::Node>(event.GetId()), event.GetInt(), false);
 }
 
 std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
@@ -830,13 +849,13 @@ std::wstring MainFrame::GetNavItemParent(const std::wstring& path)
     return path.substr(0, path.find_last_of(L'/'));
 }
 
-void MainFrame::GoToNavItem(const std::wstring& path)
+void MainFrame::GoToNavItem(const std::wstring& path, int data)
 {
     auto item = FindNavItem(path);
     if (item)
     {
         m_browser->SelectItem(*item);
-        ProcessSelectedBrowserItem(*item);
+        ProcessSelectedBrowserItem(*item, data);
     }
 }
 
@@ -1114,13 +1133,18 @@ void MainFrame::Refresh()
         break;
     case Mode::BEHAVIOUR_SCRIPT:
         // Display entity
-        GetBehaviourScriptEditor()->Open();
+        GetBehaviourScriptEditor()->Open(m_extradata);
         ShowEditor(EditorType::BEHAVIOUR_SCRIPT);
         break;
     case Mode::SCRIPT:
         // Display script
-        GetScriptEditor()->Open();
+        GetScriptEditor()->Open(m_extradata);
         ShowEditor(EditorType::SCRIPT);
+        break;
+    case Mode::SCRIPT_TABLE:
+        // Display script table
+        GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF, m_extradata);
+        ShowEditor(EditorType::SCRIPT_TABLE);
         break;
     case Mode::NONE:
     default:
@@ -1140,11 +1164,12 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
     event.Skip();
 }
 
-void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
+void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
 {
     m_selname = m_browser->GetItemText(item);
     TreeNodeData* item_data = static_cast<TreeNodeData*>(m_browser->GetItemData(item));
     m_seldata = item_data->GetValue();
+    m_extradata = data;
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::Node::STRING:
@@ -1179,6 +1204,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
         break;
     case TreeNodeData::Node::SCRIPT:
         SetMode(Mode::SCRIPT);
+        break;
+    case TreeNodeData::Node::SCRIPT_TABLE:
+        SetMode(Mode::SCRIPT_TABLE);
         break;
     default:
         // do nothing
@@ -1234,6 +1262,11 @@ BehaviourScriptEditorFrame* MainFrame::GetBehaviourScriptEditor()
 ScriptEditorFrame* MainFrame::GetScriptEditor()
 {
     return static_cast<ScriptEditorFrame*>(m_editors.at(EditorType::SCRIPT));
+}
+
+ScriptTableEditorFrame* MainFrame::GetScriptTableEditor()
+{
+    return static_cast<ScriptTableEditorFrame*>(m_editors.at(EditorType::SCRIPT_TABLE));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)
