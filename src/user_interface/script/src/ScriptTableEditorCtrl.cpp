@@ -16,10 +16,14 @@ ScriptTableEditorCtrl::ScriptTableEditorCtrl(wxWindow* parent)
 	hsizer->Add(m_dvc_ctrl, 1, wxALL | wxEXPAND, 5);
 
 	GetSizer()->Fit(this);
+	m_dvc_ctrl->GetMainWindow()->Bind(wxEVT_MOTION, &ScriptTableEditorCtrl::OnMotion, this);
+	m_dvc_ctrl->GetMainWindow()->Bind(wxEVT_LEFT_DOWN, &ScriptTableEditorCtrl::OnLClick, this);
 }
 
 ScriptTableEditorCtrl::~ScriptTableEditorCtrl()
 {
+	m_dvc_ctrl->GetMainWindow()->Unbind(wxEVT_LEFT_DOWN, &ScriptTableEditorCtrl::OnLClick, this);
+	m_dvc_ctrl->GetMainWindow()->Unbind(wxEVT_MOTION, &ScriptTableEditorCtrl::OnMotion, this);
 }
 
 void ScriptTableEditorCtrl::SetGameData(std::shared_ptr<GameData> gd)
@@ -43,7 +47,7 @@ void ScriptTableEditorCtrl::ClearGameData()
 	m_dvc_ctrl->ClearColumns();
 }
 
-void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index)
+void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index, int row)
 {
 	if (m_model)
 	{
@@ -52,6 +56,11 @@ void ScriptTableEditorCtrl::Open(const ScriptTableDataViewModel::Mode& mode, uns
 		for (unsigned int i = 0; i < m_dvc_ctrl->GetColumnCount(); ++i)
 		{
 			m_dvc_ctrl->GetColumn(i)->SetTitle(m_model->GetColumnHeader(i));
+		}
+		if (row != -1)
+		{
+			m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(row + 1)));
+			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 		Thaw();
 		UpdateUI();
@@ -161,4 +170,69 @@ void ScriptTableEditorCtrl::OnSelectionChange(wxDataViewEvent& evt)
 {
 	UpdateUI();
 	evt.Skip();
+}
+
+void ScriptTableEditorCtrl::OnMotion(wxMouseEvent& evt)
+{
+	HandleMouseMove(evt.GetPosition());
+	evt.Skip();
+}
+
+void ScriptTableEditorCtrl::OnLClick(wxMouseEvent& evt)
+{
+	HandleMouseMove(evt.GetPosition());
+	if (m_last_tooltip_item != -1)
+	{
+		ScriptTable::Action action = m_model->GetAction(m_last_tooltip_item);
+		if (std::holds_alternative<uint16_t>(action))
+		{
+			FireEvent(EVT_GO_TO_NAV_ITEM, "Script/Main Script", std::get<uint16_t>(action));
+		}
+	}
+	evt.Skip();
+}
+
+void ScriptTableEditorCtrl::HandleMouseMove(const wxPoint& mouse_pos)
+{
+	wxDataViewItem item(nullptr);
+	wxDataViewColumn* col = nullptr;
+	wxPoint pos = m_dvc_ctrl->ScreenToClient(m_dvc_ctrl->GetMainWindow()->ClientToScreen(mouse_pos));
+	m_dvc_ctrl->HitTest(pos, item, col);
+	int hovered = -1;
+	if (col && item.IsOk() && col->GetModelColumn() == 2)
+	{
+		auto rect = m_dvc_ctrl->GetItemRect(item, col);
+		rect.x += 152;
+		rect.width -= 152;
+		if (rect.Contains(pos))
+		{
+			hovered = reinterpret_cast<int>(item.GetID()) - 1;
+		}
+	}
+	if (hovered != m_last_tooltip_item)
+	{
+		std::wstring text;
+		if (hovered != -1 && m_gd)
+		{
+			text = ScriptTable::GetActionDescription(m_model->GetAction(hovered), m_gd);
+			if (text.find(L"\n") == std::string::npos)
+			{
+				text.clear();
+			}
+		}
+		m_dvc_ctrl->GetMainWindow()->SetToolTip(text);
+		m_last_tooltip_item = hovered;
+		m_dvc_ctrl->GetMainWindow()->SetCursor((hovered == -1 || !std::holds_alternative<uint16_t>(m_model->GetAction(hovered))) ? wxCURSOR_ARROW : wxCURSOR_HAND);
+	}
+}
+
+void ScriptTableEditorCtrl::FireEvent(const wxEventType& e, const wxString& data, long numeric_data, long extra_numeric_data, long extra_extra_numeric_data)
+{
+	wxCommandEvent evt(e);
+	evt.SetString(data);
+	evt.SetInt(numeric_data);
+	evt.SetExtraLong(extra_numeric_data);
+	evt.SetId(extra_extra_numeric_data);
+	evt.SetClientData(this);
+	wxPostEvent(this->GetParent(), evt);
 }

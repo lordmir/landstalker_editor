@@ -47,6 +47,8 @@ public:
     virtual bool SwapRows(unsigned int r1, unsigned int r2);
 
     virtual void InitControl(wxDataViewCtrl* ctrl) const override;
+
+    ScriptTable::Action GetAction(unsigned int row) const;
 private:
     std::vector<ScriptTable::Action>* GetTable();
     ScriptTable::Action* GetCell(unsigned int row);

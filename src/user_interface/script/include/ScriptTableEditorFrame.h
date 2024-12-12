@@ -13,7 +13,7 @@ public:
 	ScriptTableEditorFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~ScriptTableEditorFrame();
 
-	bool Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0);
+	bool Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0, int row = -1);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 

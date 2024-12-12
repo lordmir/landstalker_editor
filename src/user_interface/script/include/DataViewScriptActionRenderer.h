@@ -21,8 +21,6 @@ public:
     virtual wxWindow* CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value) override;
     virtual bool GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value) override;
 private:
-    std::string ToString(const ScriptTable::Action& action) const;
-    ScriptTable::Action FromString(const wxString& string) const;
     ScriptTable::Action m_value;
     long m_index;
     std::shared_ptr<GameData> m_gd;

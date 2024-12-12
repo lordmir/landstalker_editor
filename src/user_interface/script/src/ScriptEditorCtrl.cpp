@@ -43,8 +43,13 @@ void ScriptEditorCtrl::ClearGameData()
 	m_dvc_ctrl->ClearColumns();
 }
 
-void ScriptEditorCtrl::Open()
+void ScriptEditorCtrl::Open(int row)
 {
+	if (row != -1)
+	{
+		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(row + 1)));
+		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
+	}
 }
 
 void ScriptEditorCtrl::RefreshData()

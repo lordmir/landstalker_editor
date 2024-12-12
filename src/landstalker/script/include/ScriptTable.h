@@ -10,6 +10,8 @@
 #include <memory>
 #include <filesystem>
 
+class GameData;
+
 namespace ScriptTable
 {
 	using Action = std::variant<uint16_t, std::string>;
@@ -57,12 +59,18 @@ namespace ScriptTable
 	bool WriteTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Action>> table);
 	bool WriteShopTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Shop>> table);
 	bool WriteItemTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Item>> table);
+
 	std::string TableToYaml(std::shared_ptr<std::vector<Action>> table);
 	std::string TableToYaml(std::shared_ptr<std::vector<Shop>> table);
 	std::string TableToYaml(std::shared_ptr<std::vector<Item>> table);
 	std::vector<Action> TableFromYaml(const std::string& yaml);
 	std::vector<Shop>  ShopTableFromYaml(const std::string& yaml);
 	std::vector<Item> ItemTableFromYaml(const std::string& yaml);
+
+	std::wstring GetActionDescription(const Action& action, std::shared_ptr<GameData> gd);
+	std::wstring GetActionSummary(const Action& action, std::shared_ptr<GameData> gd);
+	std::string ToString(const Action& action);
+	Action FromString(const std::string& string);
 }
 
 #endif // _SCRIPT_TABLE_

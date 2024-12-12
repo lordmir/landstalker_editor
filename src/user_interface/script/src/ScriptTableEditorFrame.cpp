@@ -38,11 +38,11 @@ ScriptTableEditorFrame::~ScriptTableEditorFrame()
 {
 }
 
-bool ScriptTableEditorFrame::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index)
+bool ScriptTableEditorFrame::Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index, int row)
 {
 	if (m_gd)
 	{
-		m_editor->Open(mode, index);
+		m_editor->Open(mode, index, row);
 		m_mode = mode;
 		m_index = index;
 		m_reset_props = true;

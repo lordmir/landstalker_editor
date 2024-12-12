@@ -625,7 +625,7 @@ void MainFrame::OnPaneClose(wxAuiManagerEvent& event)
 
 void MainFrame::OnGoToNavItem(wxCommandEvent& event)
 {
-    GoToNavItem(std::wstring(event.GetString()));
+    GoToNavItem(std::wstring(event.GetString()), event.GetInt());
 }
 
 void MainFrame::OnRenameNavItem(wxCommandEvent& event)
@@ -849,13 +849,13 @@ std::wstring MainFrame::GetNavItemParent(const std::wstring& path)
     return path.substr(0, path.find_last_of(L'/'));
 }
 
-void MainFrame::GoToNavItem(const std::wstring& path)
+void MainFrame::GoToNavItem(const std::wstring& path, int data)
 {
     auto item = FindNavItem(path);
     if (item)
     {
         m_browser->SelectItem(*item);
-        ProcessSelectedBrowserItem(*item);
+        ProcessSelectedBrowserItem(*item, data);
     }
 }
 
@@ -1133,17 +1133,17 @@ void MainFrame::Refresh()
         break;
     case Mode::BEHAVIOUR_SCRIPT:
         // Display entity
-        GetBehaviourScriptEditor()->Open();
+        GetBehaviourScriptEditor()->Open(m_extradata);
         ShowEditor(EditorType::BEHAVIOUR_SCRIPT);
         break;
     case Mode::SCRIPT:
         // Display script
-        GetScriptEditor()->Open();
+        GetScriptEditor()->Open(m_extradata);
         ShowEditor(EditorType::SCRIPT);
         break;
     case Mode::SCRIPT_TABLE:
         // Display script table
-        GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF);
+        GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF, m_extradata);
         ShowEditor(EditorType::SCRIPT_TABLE);
         break;
     case Mode::NONE:
@@ -1164,11 +1164,12 @@ void MainFrame::OnBrowserSelect(wxTreeEvent& event)
     event.Skip();
 }
 
-void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item)
+void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
 {
     m_selname = m_browser->GetItemText(item);
     TreeNodeData* item_data = static_cast<TreeNodeData*>(m_browser->GetItemData(item));
     m_seldata = item_data->GetValue();
+    m_extradata = data;
     switch (item_data->GetNodeType())
     {
     case TreeNodeData::Node::STRING:

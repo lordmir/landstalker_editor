@@ -28,6 +28,8 @@ public:
 	void SwapScriptLines(std::size_t line1, std::size_t line2);
 
 	std::wstring GetScriptString(std::size_t line, std::shared_ptr<GameData> gd) const;
+	std::wstring GetScriptSummaryAtLine(std::size_t line, std::shared_ptr<GameData> gd) const;
+	std::wstring GetScriptAtLine(std::size_t line, std::shared_ptr<GameData> gd) const;
 	std::wstring GetAllScriptStrings(std::shared_ptr<GameData> gd) const;
 
 	std::wstring ToYaml(std::shared_ptr<GameData> gd) const;

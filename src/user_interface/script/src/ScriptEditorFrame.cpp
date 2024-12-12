@@ -34,11 +34,11 @@ ScriptEditorFrame::~ScriptEditorFrame()
 {
 }
 
-bool ScriptEditorFrame::Open()
+bool ScriptEditorFrame::Open(int row)
 {
 	if (m_gd)
 	{
-		m_editor->Open();
+		m_editor->Open(row);
 		return true;
 	}
 	return false;

@@ -68,25 +68,7 @@ void DataViewScriptActionEditorControl::SetValue(const ScriptTable::Action& valu
 		}
 	}, m_entry);
 
-	m_comment->SetLabelText(std::visit([this](const auto& arg)
-		{
-			using T = std::decay_t<decltype(arg)>;
-			if constexpr (std::is_same_v<T, uint16_t>)
-			{
-				if (arg < m_gd->GetScriptData()->GetScript()->GetScriptLineCount())
-				{
-					return _(m_gd->GetScriptData()->GetScript()->GetScriptLine(arg).ToString(m_gd));
-				}
-				else
-				{
-					return _("Invalid Script ID");
-				}
-			}
-			else if constexpr (std::is_same_v<T, std::string>)
-			{
-				return _(StrPrintf("Jump to function %s", arg.c_str()));
-			}
-		}, m_entry));
+	m_comment->SetLabelText(ScriptTable::GetActionSummary(m_entry, m_gd));
 	SetFocus();
 	Thaw();
 }
@@ -145,35 +127,9 @@ void DataViewScriptActionEditorControl::Update() const
 		return;
 	}
 
-	unsigned long val = 0;
-	if (text.ToULong(&val, 0))
-	{
-		m_entry = static_cast<uint16_t>(val);
-	}
-	else
-	{
-		m_entry = text.ToStdString();
-	}
+	m_entry = ScriptTable::FromString(text.ToStdString());
 
-	m_comment->SetLabelText(std::visit([this](const auto& arg)
-		{
-			using T = std::decay_t<decltype(arg)>;
-			if constexpr (std::is_same_v<T, uint16_t>)
-			{
-				if (arg < m_gd->GetScriptData()->GetScript()->GetScriptLineCount())
-				{
-					return _(m_gd->GetScriptData()->GetScript()->GetScriptLine(arg).ToString(m_gd));
-				}
-				else
-				{
-					return _("Invalid Script ID");
-				}
-			}
-			else if constexpr (std::is_same_v<T, std::string>)
-			{
-				return _(StrPrintf("Jump to function %s", arg.c_str()));
-			}
-		}, m_entry));
+	m_comment->SetLabelText(ScriptTable::GetActionSummary(m_entry, m_gd));
 }
 
 void DataViewScriptActionEditorControl::SetFocus()

@@ -168,39 +168,10 @@ void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int ro
 			}, *cell);
 		break;
 	case 2:
-		variant = std::visit([](const auto& arg)
-			{
-				using T = std::decay_t<decltype(arg)>;
-				if constexpr (std::is_same_v<T, uint16_t>)
-				{
-					return _(std::to_string(arg));
-				}
-				else if constexpr (std::is_same_v<T, std::string>)
-				{
-					return _(arg);
-				}
-			}, *cell);
+		variant = ScriptTable::ToString(*cell);
 		break;
 	case 3:
-		variant = std::visit([this](const auto& arg)
-			{
-				using T = std::decay_t<decltype(arg)>;
-				if constexpr (std::is_same_v<T, uint16_t>)
-				{
-					if (arg < m_gd->GetScriptData()->GetScript()->GetScriptLineCount())
-					{
-						return _(m_gd->GetScriptData()->GetScript()->GetScriptLine(arg).ToString(m_gd));
-					}
-					else
-					{
-						return _("Invalid Script ID");
-					}
-				}
-				else if constexpr (std::is_same_v<T, std::string>)
-				{
-					return _(StrPrintf("Jump to function %s", arg.c_str()));
-				}
-			}, *cell);
+		variant = ScriptTable::GetActionSummary(*cell, m_gd);
 		break;
 	}
 }
@@ -230,17 +201,7 @@ bool ScriptTableDataViewModel::SetValueByRow(const wxVariant& variant, unsigned 
 		}
 		break;
 	case 2:
-		{
-			unsigned long val = 0;
-			if(variant.GetString().ToULong(&val, 0))
-			{
-				*cell = static_cast<uint16_t>(val);
-			}
-			else
-			{
-				*cell = variant.GetString().ToStdString();
-			}
-		}
+		*cell = ScriptTable::FromString(variant.GetString().ToStdString());
 		break;
 	}
 	return false;
@@ -307,6 +268,19 @@ void ScriptTableDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 	// Value
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new DataViewScriptActionRenderer(wxDATAVIEW_CELL_EDITABLE, m_gd), 2, -1, wxALIGN_LEFT));
+}
+
+ScriptTable::Action ScriptTableDataViewModel::GetAction(unsigned int row) const
+{
+	auto cell = GetCell(row);
+	if (cell)
+	{
+		return *GetCell(row);
+	}
+	else
+	{
+		return 0xFFFF;
+	}
 }
 
 std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable()

@@ -104,6 +104,68 @@ std::wstring Script::GetScriptString(std::size_t line, std::shared_ptr<GameData>
 	return m_table.at(line)->ToString(gd);
 }
 
+std::wstring Script::GetScriptAtLine(std::size_t line, std::shared_ptr<GameData> gd) const
+{
+	std::wstring script;
+	if (line >= m_table.size())
+	{
+		return StrWPrintf(L"Invalid Script ID: %d", line);
+	}
+	for (; line < m_table.size(); ++line)
+	{
+		if (!script.empty())
+		{
+			script += L"\n";
+		}
+		script += GetScriptString(line, gd);
+		if (GetScriptLine(line).GetType() == ScriptTableEntryType::PLAY_CUTSCENE)
+		{
+			break;
+		}
+		if (GetScriptLine(line).GetType() == ScriptTableEntryType::STRING)
+		{
+			if (static_cast<const ScriptStringEntry&>(GetScriptLine(line)).end)
+			{
+				break;
+			}
+		}
+	}
+	return script;
+}
+
+std::wstring Script::GetScriptSummaryAtLine(std::size_t line, std::shared_ptr<GameData> gd) const
+{
+	std::wstring script;
+	if (line >= m_table.size())
+	{
+		return StrWPrintf(L"Invalid Script ID: %d", line);
+	}
+	for (; line < m_table.size(); ++line)
+	{
+		if (!script.empty())
+		{
+			script += L", ";
+		}
+		script += GetScriptString(line, gd);
+		if (script.size() > 120)
+		{
+			return script.substr(0, 117) + L"...";
+		}
+		if (GetScriptLine(line).GetType() == ScriptTableEntryType::PLAY_CUTSCENE)
+		{
+			break;
+		}
+		if (GetScriptLine(line).GetType() == ScriptTableEntryType::STRING)
+		{
+			if (static_cast<const ScriptStringEntry&>(GetScriptLine(line)).end)
+			{
+				break;
+			}
+		}
+	}
+	return script;
+}
+
 std::wstring Script::GetAllScriptStrings(std::shared_ptr<GameData> gd) const
 {
 	std::wstring lines;

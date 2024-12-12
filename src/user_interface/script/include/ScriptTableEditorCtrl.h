@@ -20,7 +20,7 @@ public:
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 
-	void Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0);
+	void Open(const ScriptTableDataViewModel::Mode& mode, unsigned int index = 0, int row = -1);
 	void RefreshData();
 
 	void AppendRow();
@@ -37,11 +37,17 @@ private:
 	void UpdateUI();
 
 	void OnSelectionChange(wxDataViewEvent& evt);
+	void OnMotion(wxMouseEvent& evt);
+	void OnLClick(wxMouseEvent& evt);
+	void HandleMouseMove(const wxPoint& mouse_pos);
+	void FireEvent(const wxEventType& e, const wxString& data = wxEmptyString, long numeric_data = 0, long extra_numeric_data = 0, long extra_extra_numeric_data = 0);
 
 	wxDataViewCtrl* m_dvc_ctrl;
 	ScriptTableDataViewModel* m_model;
 
 	std::shared_ptr<GameData> m_gd;
+
+	int m_last_tooltip_item = -1;
 
 	wxDECLARE_EVENT_TABLE();
 };

@@ -147,7 +147,7 @@ uint16_t ScriptStringEntry::ToBytes() const
 
 std::wstring ScriptStringEntry::ToString(std::shared_ptr<const GameData> gd) const
 {
-	LSString::StringType formatted_string = StrWPrintf(L"Message %04d %ls %ls", string, clear_box ? L"[Clear]" : L"       ", end ? L"[End]" : L"     ");
+	LSString::StringType formatted_string = StrWPrintf(L"Message %04d %ls%ls", string, clear_box ? L"[Clear] " : L"", end ? L"[End] " : L"");
 	if (gd)
 	{
 		std::size_t string_idx = gd->GetScriptData()->GetStringStart() + string;
@@ -390,7 +390,7 @@ std::wstring ScriptSetSpeakerEntry::ToString(std::shared_ptr<const GameData> gd)
 	{
 		char_name = gd->GetStringData()->GetCharName(chr);
 	}
-	return StrWPrintf(L"Set talking character to %03d (%ls)", chr, char_name.c_str());
+	return StrWPrintf(L"Set speaker to regular character %03d (%ls)", chr, char_name.c_str());
 }
 
 std::wstring ScriptSetSpeakerEntry::ToYaml(std::shared_ptr<const GameData> gd) const
@@ -428,7 +428,7 @@ std::wstring ScriptSetGlobalSpeakerEntry::ToString(std::shared_ptr<const GameDat
 	{
 		char_name = gd->GetStringData()->GetSpecialCharName(chr);
 	}
-	return StrWPrintf(L"Set talking character to global character %03d (%ls)", chr, char_name.c_str());
+	return StrWPrintf(L"Set speaker to global character %03d (%ls)", chr, char_name.c_str());
 }
 
 std::wstring ScriptSetGlobalSpeakerEntry::ToYaml(std::shared_ptr<const GameData> gd) const

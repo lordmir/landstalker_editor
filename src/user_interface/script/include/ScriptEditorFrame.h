@@ -12,7 +12,7 @@ public:
 	ScriptEditorFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~ScriptEditorFrame();
 
-	bool Open();
+	bool Open(int row = -1);
 	virtual void SetGameData(std::shared_ptr<GameData> gd);
 	virtual void ClearGameData();
 

@@ -109,7 +109,7 @@ private:
     std::optional<wxTreeItemId> InsertNavItem(const std::wstring& path, int img = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     void SortNavItems(const wxTreeItemId& parent);
     bool RemoveNavItem(const std::wstring& path);
-    void GoToNavItem(const std::wstring& path);
+    void GoToNavItem(const std::wstring& path, int data = 0);
     bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);
     bool AddNavItem(const std::wstring& path, int image = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     bool DeleteNavItem(const std::wstring& path);
@@ -131,7 +131,7 @@ private:
     void SetMode(const Mode& mode);
     void Refresh();
 	ImageList& GetImageList();
-    void ProcessSelectedBrowserItem(const wxTreeItemId& item);
+    void ProcessSelectedBrowserItem(const wxTreeItemId& item, int data = 0);
     TilesetEditorFrame* GetTilesetEditor();
     StringEditorFrame* GetStringEditor();
     PaletteListFrame* GetPaletteEditor();
@@ -161,6 +161,7 @@ private:
     wxString m_built_rom;
 
     std::string m_selname;
-    int m_seldata;
+    int m_seldata = 0;
+    int m_extradata = 0;
 };
 #endif // MAINFRAME_H
