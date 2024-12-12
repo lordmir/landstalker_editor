@@ -206,7 +206,7 @@ void ScriptTableEditorCtrl::HandleMouseMove(const wxPoint& mouse_pos)
 		rect.width -= 152;
 		if (rect.Contains(pos))
 		{
-			hovered = reinterpret_cast<int>(item.GetID()) - 1;
+			hovered = static_cast<int>(reinterpret_cast<std::intptr_t>(item.GetID())) - 1;
 		}
 	}
 	if (hovered != m_last_tooltip_item)
