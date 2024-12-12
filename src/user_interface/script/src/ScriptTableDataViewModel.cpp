@@ -279,7 +279,7 @@ ScriptTable::Action ScriptTableDataViewModel::GetAction(unsigned int row) const
 	}
 	else
 	{
-		return 0xFFFF;
+		return 0xFFFF_u16;
 	}
 }
 

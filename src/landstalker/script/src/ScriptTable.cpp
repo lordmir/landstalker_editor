@@ -10,10 +10,10 @@
 namespace ScriptTable
 {
 
-	static std::vector<ScriptTable::Action> ParseAsmBody(AsmFile& file)
+	static std::vector<Action> ParseAsmBody(AsmFile& file)
 	{
 		AsmFile::ScriptAction action;
-		std::vector<ScriptTable::Action> actions;
+		std::vector<Action> actions;
 		try
 		{
 			while (file.IsGood() && file.Read(action))
@@ -58,16 +58,16 @@ namespace ScriptTable
 		}
 	}
 
-	std::shared_ptr<std::vector<ScriptTable::Action>> ScriptTable::ReadTable(const std::string& path)
+	std::shared_ptr<std::vector<Action>> ReadTable(const std::string& path)
 	{
 		AsmFile file(path);
-		return std::make_shared<std::vector<ScriptTable::Action>>(ParseAsmBody(file));
+		return std::make_shared<std::vector<Action>>(ParseAsmBody(file));
 	}
 
-	std::shared_ptr<std::vector<ScriptTable::Shop>> ScriptTable::ReadShopTable(const std::string& path)
+	std::shared_ptr<std::vector<Shop>> ReadShopTable(const std::string& path)
 	{
 		AsmFile file(path);
-		std::shared_ptr<std::vector<ScriptTable::Shop>> shops = std::make_shared<std::vector<ScriptTable::Shop>>();
+		std::shared_ptr<std::vector<Shop>> shops = std::make_shared<std::vector<Shop>>();
 		try
 		{
 			while (file.IsGood())
@@ -91,10 +91,10 @@ namespace ScriptTable
 		return shops;
 	}
 
-	std::shared_ptr<std::vector<ScriptTable::Item>> ScriptTable::ReadItemTable(const std::string& path)
+	std::shared_ptr<std::vector<Item>> ReadItemTable(const std::string& path)
 	{
 		AsmFile file(path);
-		std::shared_ptr<std::vector<ScriptTable::Item>> items = std::make_shared<std::vector<ScriptTable::Item>>();
+		std::shared_ptr<std::vector<Item>> items = std::make_shared<std::vector<Item>>();
 		try
 		{
 			while (file.IsGood())
@@ -122,7 +122,7 @@ namespace ScriptTable
 		return items;
 	}
 
-	bool ScriptTable::WriteTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<ScriptTable::Action>> table)
+	bool WriteTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Action>> table)
 	{
 		std::size_t offset = 0;
 		AsmFile file;
@@ -131,7 +131,7 @@ namespace ScriptTable
 		return file.WriteFile(prefix / path);
 	}
 
-	bool ScriptTable::WriteShopTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<ScriptTable::Shop>> table)
+	bool WriteShopTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Shop>> table)
 	{
 		std::size_t offset = 0;
 		AsmFile file;
@@ -146,7 +146,7 @@ namespace ScriptTable
 		return file.WriteFile(prefix / path);
 	}
 
-	bool ScriptTable::WriteItemTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<ScriptTable::Item>> table)
+	bool WriteItemTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Item>> table)
 	{
 		AsmFile file;
 		file.WriteFileHeader(path, description);
@@ -165,7 +165,7 @@ namespace ScriptTable
 		return file.WriteFile(prefix / path);
 	}
 
-	static std::ostringstream& ActionsToYaml(std::ostringstream& ss, const std::vector<ScriptTable::Action>& actions, std::size_t indent = 1)
+	static std::ostringstream& ActionsToYaml(std::ostringstream& ss, const std::vector<Action>& actions, std::size_t indent = 1)
 	{
 		for (const auto& action : actions)
 		{
@@ -185,14 +185,14 @@ namespace ScriptTable
 		return ss;
 	}
 
-	std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<Action>> table)
+	std::string TableToYaml(std::shared_ptr<std::vector<Action>> table)
 	{
 		std::ostringstream ss;
 		ActionsToYaml(ss, *table);
 		return ss.str();
 	}
 
-	std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<ScriptTable::Shop>> table)
+	std::string TableToYaml(std::shared_ptr<std::vector<Shop>> table)
 	{
 		std::ostringstream ss;
 		for (const auto& shop : *table)
@@ -201,12 +201,12 @@ namespace ScriptTable
 			ss << "  ItemMarkupPercent:      " << (shop.markup * 6.25 - 100.0) << std::endl;
 			ss << "  LifestockMarkupPercent: " << (shop.lifestock_markup * 6.25 - 100.0) << std::endl;
 			ss << "  Script: " << std::endl;
-			ActionsToYaml(ss, std::vector<ScriptTable::Action>(shop.actions.cbegin(), shop.actions.cend()), 2) << std::endl;
+			ActionsToYaml(ss, std::vector<Action>(shop.actions.cbegin(), shop.actions.cend()), 2) << std::endl;
 		}
 		return ss.str();
 	}
 
-	std::string ScriptTable::TableToYaml(std::shared_ptr<std::vector<ScriptTable::Item>> table)
+	std::string TableToYaml(std::shared_ptr<std::vector<Item>> table)
 	{
 		std::ostringstream ss;
 		for (const auto& item : *table)
@@ -226,7 +226,7 @@ namespace ScriptTable
 		return ss.str();
 	}
 
-	static void ParseTable(const YAML::Node& node, std::vector<ScriptTable::Action>& actions, std::size_t& counter)
+	static void ParseTable(const YAML::Node& node, std::vector<Action>& actions, std::size_t& counter)
 	{
 		try
 		{
@@ -268,16 +268,16 @@ namespace ScriptTable
 		}
 	}
 
-	std::vector<ScriptTable::Action> ScriptTable::TableFromYaml(const std::string& yaml)
+	std::vector<Action> TableFromYaml(const std::string& yaml)
 	{
-		std::vector<ScriptTable::Action> actions{};
+		std::vector<Action> actions{};
 		YAML::Node node = YAML::Load(yaml);
 		std::size_t counter = 1;
 		ParseTable(node, actions, counter);
 		return actions;
 	}
 
-	std::vector<ScriptTable::Shop> ScriptTable::ShopTableFromYaml(const std::string& yaml)
+	std::vector<Shop> ShopTableFromYaml(const std::string& yaml)
 	{
 		std::vector<Shop> shops{};
 		std::size_t counter = 1;
@@ -329,9 +329,9 @@ namespace ScriptTable
 		return shops;
 	}
 
-	std::vector<ScriptTable::Item> ScriptTable::ItemTableFromYaml(const std::string& yaml)
+	std::vector<Item> ItemTableFromYaml(const std::string& yaml)
 	{
-		std::vector<ScriptTable::Item> items{};
+		std::vector<Item> items{};
 		std::size_t counter = 1;
 		try
 		{
@@ -376,7 +376,7 @@ namespace ScriptTable
 		return items;
 	}
 
-	std::wstring GetActionDescription(const ScriptTable::Action& action, std::shared_ptr<GameData> gd)
+	std::wstring GetActionDescription(const Action& action, std::shared_ptr<GameData> gd)
 	{
 		return std::visit([&gd](const auto& arg)
 			{
@@ -392,7 +392,7 @@ namespace ScriptTable
 			}, action);
 	}
 
-	std::wstring GetActionSummary(const ScriptTable::Action& action, std::shared_ptr<GameData> gd)
+	std::wstring GetActionSummary(const Action& action, std::shared_ptr<GameData> gd)
 	{
 		return std::visit([&gd](const auto& arg)
 			{
@@ -408,7 +408,7 @@ namespace ScriptTable
 			}, action);
 	}
 
-	std::string ToString(const ScriptTable::Action& action)
+	std::string ToString(const Action& action)
 	{
 		return std::visit([](const auto& arg) {
 			using T = std::decay_t<decltype(arg)>;
@@ -423,7 +423,7 @@ namespace ScriptTable
 			}, action);
 	}
 
-	ScriptTable::Action FromString(const std::string& string)
+	Action FromString(const std::string& string)
 	{
 		std::size_t len = 0;
 		try

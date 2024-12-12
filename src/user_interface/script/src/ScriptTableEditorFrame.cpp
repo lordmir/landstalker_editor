@@ -70,13 +70,13 @@ void ScriptTableEditorFrame::ClearGameData()
 
 void ScriptTableEditorFrame::UpdateUI() const
 {
-	EnableToolbarItem("Script", ID_APPEND, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP);
-	EnableToolbarItem("Script", ID_INSERT, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP);
-	EnableToolbarItem("Script", ID_DELETE, m_gd != nullptr && m_mode != ScriptTableDataViewModel::Mode::SHOP && m_editor->IsRowSelected());
-	EnableToolbarItem("Script", ID_MOVE_UP, m_gd != nullptr && m_editor->IsRowSelected() && !m_editor->IsSelTop());
-	EnableToolbarItem("Script", ID_MOVE_DOWN, m_gd != nullptr && m_editor->IsRowSelected() && !m_editor->IsSelBottom());
-	EnableToolbarItem("Script", ID_NEW_COLLECTION, m_gd != nullptr && (m_mode == ScriptTableDataViewModel::Mode::SHOP || m_mode == ScriptTableDataViewModel::Mode::ITEM));
-	EnableToolbarItem("Script", ID_DELETE_COLLECTION, m_gd != nullptr && 
+	EnableToolbarItem("Script", ID_APPEND, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && m_mode != ScriptTableDataViewModel::Mode::SHOP);
+	EnableToolbarItem("Script", ID_INSERT, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && m_mode != ScriptTableDataViewModel::Mode::SHOP);
+	EnableToolbarItem("Script", ID_DELETE, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && m_mode != ScriptTableDataViewModel::Mode::SHOP && m_editor->IsRowSelected());
+	EnableToolbarItem("Script", ID_MOVE_UP, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && !m_editor->IsSelTop());
+	EnableToolbarItem("Script", ID_MOVE_DOWN, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && !m_editor->IsSelBottom());
+	EnableToolbarItem("Script", ID_NEW_COLLECTION, m_gd != nullptr && m_gd->GetScriptData()->HasTables() && (m_mode == ScriptTableDataViewModel::Mode::SHOP || m_mode == ScriptTableDataViewModel::Mode::ITEM));
+	EnableToolbarItem("Script", ID_DELETE_COLLECTION, m_gd != nullptr && m_gd->GetScriptData()->HasTables() &&
 		((m_mode == ScriptTableDataViewModel::Mode::SHOP && m_index < m_gd->GetScriptData()->GetShopTable()->size() && m_gd->GetScriptData()->GetShopTable()->size() > 1)
 		|| (m_mode == ScriptTableDataViewModel::Mode::ITEM && m_index < m_gd->GetScriptData()->GetItemTable()->size() && m_gd->GetScriptData()->GetItemTable()->size() > 1)));
 }
