@@ -1,4 +1,5 @@
 #include <user_interface/script/include/ScriptTableDataViewModel.h>
+#include <user_interface/script/include/DataViewScriptActionRenderer.h>
 
 static const std::array<std::string, 5> SHOP_ACTIONS{ "On Enter", "On Exit", "On Pick Up", "On Pay", "On Steal" };
 static const std::array<std::string, 3> ITEM_ACTIONS{ "On Pick Up", "On Pay", "On Steal" };
@@ -230,16 +231,8 @@ bool ScriptTableDataViewModel::SetValueByRow(const wxVariant& variant, unsigned 
 		break;
 	case 2:
 		{
-			int val = -1;
-			try
-			{
-				val = std::stoi(variant.GetString().ToStdString(), nullptr, 0);
-			}
-			catch (const std::exception&)
-			{
-				val = -1;
-			}
-			if (val >= 0 && val < 65536)
+			unsigned long val = 0;
+			if(variant.GetString().ToULong(&val, 0))
 			{
 				*cell = static_cast<uint16_t>(val);
 			}
@@ -313,10 +306,7 @@ void ScriptTableDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 		new wxDataViewChoiceByIndexRenderer(GetColumnChoices(1)), 1, 100, wxALIGN_LEFT));
 	// Value
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewTextRenderer(GetColumnType(2), wxDATAVIEW_CELL_EDITABLE), 2, 170, wxALIGN_LEFT));
-	// Comment
-	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
-		new wxDataViewTextRenderer(GetColumnType(3)), 3, -1, wxALIGN_LEFT));
+		new DataViewScriptActionRenderer(wxDATAVIEW_CELL_EDITABLE, m_gd), 2, -1, wxALIGN_LEFT));
 }
 
 std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable()
@@ -380,7 +370,7 @@ const std::vector<ScriptTable::Action>* ScriptTableDataViewModel::GetTable() con
 const ScriptTable::Action* ScriptTableDataViewModel::GetCell(unsigned int row) const
 {
 	auto table = GetTable();
-	if (m_mode == Mode::SHOP && m_shop_script && m_index >= 0 && m_index < m_shop_script->size()
+	if (m_mode == Mode::SHOP && m_shop_script && m_index < m_shop_script->size()
 		&& row < m_shop_script->at(m_index).actions.size())
 	{
 		return &m_shop_script->at(m_index).actions.at(row);

@@ -19,8 +19,8 @@ std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> EditorFrame::m_menuitem
 
 EditorFrame::EditorFrame(wxWindow* parent, wxWindowID id, ImageList* imglst)
 	: wxWindow(parent, id, wxDefaultPosition, parent->GetSize(), wxWANTS_CHARS),
-	  m_props_init(false),
-	  m_imglst(imglst)
+	  m_imglst(imglst),
+	  m_props_init(false)
 {
 	this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(EditorFrame::OnPaneClose), nullptr, this);
 }

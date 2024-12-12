@@ -8,6 +8,7 @@
 
 #include <landstalker/main/include/GameData.h>
 #include <user_interface/script/include/ScriptTableDataViewModel.h>
+#include <user_interface/script/include/DataViewScriptActionEditorControl.h>
 
 class ScriptTableEditorCtrl : public wxPanel
 {

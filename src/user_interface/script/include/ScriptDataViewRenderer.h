@@ -8,7 +8,8 @@
 class ScriptDataViewRenderer : public wxDataViewCustomRenderer
 {
 public:
-    explicit ScriptDataViewRenderer(wxDataViewCellMode model, std::shared_ptr<GameData> gd);
+    ScriptDataViewRenderer(wxDataViewCellMode mode, std::shared_ptr<GameData> gd);
+    virtual ~ScriptDataViewRenderer() {}
     virtual bool Render(wxRect rect, wxDC* dc, int state) override;
     bool RenderLabel(wxRect rect, wxDC* dc, int state);
 
