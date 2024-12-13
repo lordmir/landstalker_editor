@@ -620,7 +620,7 @@ bool AsmFile::ParseLine(AsmFile::AsmLine& line, const std::string& str)
 
 int64_t AsmFile::ParseValue(std::string val)
 {
-	const std::unordered_map<char, int> bases{ {'$', 16}, {'@', 8}, {'%', 2} };
+	const std::unordered_map<char, int> bases{ {'$', 16}, {'@', 8}, {'%', 2}, {'^', 32}, {'"', 256}, {'\'', 256} };
 
 	val.erase(std::remove_if(val.begin(), val.end(), ::isspace), val.end());
 	int64_t num = -1;
@@ -642,13 +642,66 @@ int64_t AsmFile::ParseValue(std::string val)
 	}
 	if (bases.find(val[0]) != bases.end())
 	{
-		int base = bases.find(val[0])->second;
+		char basesym = val[0];
+		int base = bases.find(basesym)->second;
 		val.erase(0, 1);
-		num = std::stoull(val, nullptr, base);
+		if (base < 32)
+		{
+			// Numeric, not base 10
+			std::size_t len = 0;
+			num = std::stoul(val, &len, base);
+			if (len != val.size())
+			{
+				return -1;
+			}
+		}
+		else if (base == 256)
+		{
+			// String literal
+			if (val.back() != basesym)
+			{
+				return -1;
+			}
+			for (std::size_t i = 0; i < val.size() - 1; ++i)
+			{
+				if (val[i] == basesym)
+				{
+					if (i == val.size() - 2)
+					{
+						// bad string
+						return -1;
+					}
+					else if (val[i + 1] == basesym)
+					{
+						// Double quoted
+						++i;
+						num <<= 8;
+						num |= val[i];
+					}
+					else
+					{
+						// EOS
+						break;
+					}
+				}
+				num <<= 8;
+				num |= val[i];
+			}
+		}
+		else
+		{
+			// Control character
+			num = static_cast<int64_t>(val[0] - '@');
+		}
 	}
 	else if (std::isdigit(val[0]))
 	{
-		num = std::stoull(val, nullptr);
+		std::size_t len = 0;
+		num = std::stoull(val, &len);
+		if (len != val.size())
+		{
+			return -1;
+		}
 	}
 	else
 	{
@@ -687,7 +740,7 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DC>(const AsmFile::AsmLine& line)
 		auto result = ParseValue(word);
 		if (result != -1)
 		{
-			for (int i = 0; i < width; ++i)
+			for (std::size_t i = 0; i < width; ++i)
 			{
 				uint8_t byte = (result >> ((width - i - 1) * 8)) & 0xFF;
 				m_data.push_back(byte);
@@ -725,7 +778,7 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DCB>(const AsmFile::AsmLine& line)
 	{
 		if (val != -1)
 		{
-			for (int j = 0; j < width; ++j)
+			for (std::size_t j = 0; j < width; ++j)
 			{
 				uint8_t byte = (val >> ((width - j - 1) * 8)) & 0xFF;
 				m_data.push_back(byte);
