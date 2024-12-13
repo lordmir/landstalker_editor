@@ -90,12 +90,27 @@ public:
 		std::size_t offset;
 	};
 
+	struct Instruction
+	{
+		Instruction(const std::string& p_mnemonic, std::size_t p_width = 0, const std::vector<std::variant<std::string, int64_t>>& p_operands = {})
+			: mnemonic(p_mnemonic), width(p_width), operands(p_operands) {}
+		std::string mnemonic;
+		std::size_t width;
+		std::vector<std::variant<std::string, int64_t>> operands;
+	};
+
 	struct NewLine {};
 
 	using ScriptAction = std::optional<std::variant<ScriptId, ScriptJump>>;
 
 	AsmFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
+	AsmFile(const std::filesystem::path& filename, const std::vector<std::string>& inc_files);
+	AsmFile(const std::filesystem::path& filename, const std::map<std::string, std::string>& defines);
 	AsmFile(FileType type = FileType::ASSEMBLER);
+
+	void SetDefines(const std::map<std::string, std::string>& definitions);
+	void SetDefines(const std::string& inc_file);
+	const std::map<std::string, std::string>& GetDefines() const;
 
 	template<typename T>
 	AsmFile& operator<<(const T& data);
@@ -154,6 +169,7 @@ public:
 	bool Write(const Align&);
 	bool Write(const ScriptId&);
 	bool Write(const ScriptJump&);
+	bool Write(const Instruction&);
 	template<typename T, typename... Args>
 	bool Write(const T& first, Args&&... args);
 	template<typename Iter>
@@ -181,6 +197,7 @@ private:
 
 	enum class Inst
 	{
+		GENERIC,
 		DC,
 		DCB,
 		INCLUDE,
@@ -192,7 +209,7 @@ private:
 
 	bool ParseLine(AsmLine& line, const std::string& str);
 	int64_t ParseValue(std::string val);
-	int GetWidth(const AsmLine& line);
+	std::size_t GetWidth(const AsmLine& line);
 	std::string PrintCentered(const std::string& str);
 
 	template<AsmFile::Inst>
@@ -228,7 +245,7 @@ private:
 	static const std::unordered_map<std::string, std::size_t> WIDTHS;
 	static const std::size_t MAX_ELEMENTS_ON_LINE = 8;
 
-	using AsmData = std::variant<uint8_t, std::string, IncludeFile, ScriptId, ScriptJump>;
+	using AsmData = std::variant<uint8_t, std::string, IncludeFile, ScriptId, ScriptJump, Instruction>;
 	bool m_good;
 	FileType m_type;
 	std::filesystem::path m_filename;
@@ -238,6 +255,7 @@ private:
 	std::vector<AsmData>::const_iterator m_readptr;
 	std::map<std::string, std::size_t> m_labels;
 	std::map<std::size_t, std::string> m_labelpos;
+	std::map<std::string, std::string> m_defines;
 };
 
 std::ostream& operator<<(std::ostream& stream, AsmFile& file);
