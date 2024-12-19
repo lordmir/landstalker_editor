@@ -28,12 +28,12 @@ void YesNoPrompt::ToAsm(AsmFile& file) const
 std::string YesNoPrompt::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Question:" << std::endl;
-    ss << prompt.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnYes:" << std::endl;
-    ss << on_yes.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnNo:" << std::endl;
-    ss << on_no.ToYaml(indent + 6);
+    ss << std::string(indent, ' ') << "- Question:" << std::endl;
+    ss << prompt.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnYes:" << std::endl;
+    ss << on_yes.ActionToYaml(indent + 3);
+    ss << std::string(indent + 2, ' ') << "OnNo:" << std::endl;
+    ss << on_no.ActionToYaml(indent + 4);
     return ss.str();
 }
 
@@ -80,11 +80,11 @@ void SetFlagOnTalk::ToAsm(AsmFile& file) const
 std::string SetFlagOnTalk::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- SetFlag: " << Hex(flag) << std::endl;
-    ss << std::string(indent + 4, ' ') << "OnClear:" << std::endl;
-    ss << on_clear.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnSet:" << std::endl;
-    ss << on_set.ToYaml(indent + 6);
+    ss << std::string(indent, ' ') << "- SetFlag: " << Hex(flag) << std::endl;
+    ss << std::string(indent + 2, ' ') << "OnClear:" << std::endl;
+    ss << on_clear.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnSet:" << std::endl;
+    ss << on_set.ActionToYaml(indent + 4);
     return ss.str();
 }
 
@@ -130,11 +130,11 @@ void IsFlagSet::ToAsm(AsmFile& file) const
 std::string IsFlagSet::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- CheckFlag: " << Hex(flag) << std::endl;
-    ss << std::string(indent + 4, ' ') << "OnClear:" << std::endl;
-    ss << on_clear.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnSet:" << std::endl;
-    ss << on_set.ToYaml(indent + 6);
+    ss << std::string(indent, ' ') << "- CheckFlag: " << Hex(flag) << std::endl;
+    ss << std::string(indent + 2, ' ') << "OnClear:" << std::endl;
+    ss << on_clear.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnSet:" << std::endl;
+    ss << on_set.ActionToYaml(indent + 4);
     return ss.str();
 }
 
@@ -173,7 +173,7 @@ void PlaySound::ToAsm(AsmFile& file) const
 std::string PlaySound::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- PlaySound: " << Hex(sound) << std::endl;
+    ss << std::string(indent, ' ') << "- PlaySound: " << Hex(sound) << std::endl;
     return ss.str();
 }
 
@@ -207,7 +207,7 @@ void CustomItemScript::ToAsm(AsmFile& file) const
 std::string CustomItemScript::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- CustomItemAction: " << Hex(custom_item_script) << std::endl;
+    ss << std::string(indent, ' ') << "- CustomItemAction: " << Hex(custom_item_script) << std::endl;
     return ss.str();
 }
 
@@ -241,7 +241,7 @@ void Sleep::ToAsm(AsmFile& file) const
 std::string Sleep::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Sleep: " << ticks << std::endl;
+    ss << std::string(indent, ' ') << "- Sleep: " << ticks << std::endl;
     return ss.str();
 }
 
@@ -271,15 +271,15 @@ DisplayPrice::DisplayPrice(const YAML::Node::const_iterator& it)
 
 void DisplayPrice::ToAsm(AsmFile& file) const
 {
-    file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "Sleep_0" });
+    file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "DisplayItemPriceMessage" });
     display_price.ActionToAsm(file, 0);
 }
 
 std::string DisplayPrice::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent, ' ') << "Check Flag:" << std::endl;
-    ss << display_price.ToYaml(indent + 4);
+    ss << std::string(indent, ' ') << "- DisplayPriceMessage:" << std::endl;
+    ss << display_price.ActionToYaml(indent + 2);
     return ss.str();
 }
 
@@ -299,7 +299,7 @@ bool DisplayPrice::IsEndOfFunction() const
 
 Branch::Branch(const AsmFile::Instruction& ins)
 {
-    if (ins.mnemonic != "bra" || ins.operands.size() != 1 || !std::holds_alternative<std::string>(ins.operands.at(1)))
+    if (ins.mnemonic != "bra" || ins.operands.size() != 1 || !std::holds_alternative<std::string>(ins.operands.at(0)))
     {
         throw std::runtime_error("Branch: Unexpected instruction " + Trim(ins.ToLine()));
     }
@@ -321,10 +321,10 @@ void Branch::ToAsm(AsmFile& file) const
 std::string Branch::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Branch: " << label << std::endl;
+    ss << std::string(indent, ' ') << "- Branch: " << label << std::endl;
     if (wide)
     {
-        ss << std::string(indent + 4, ' ') << "Wide: True" << std::endl;
+        ss << std::string(indent + 2, ' ') << "Wide: True" << std::endl;
     }
     return ss.str();
 }
@@ -371,15 +371,15 @@ void ShopInteraction::ToAsm(AsmFile& file) const
 std::string ShopInteraction::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Shop:" <<  std::endl;
-    ss << std::string(indent + 4, ' ') << "OnSalePrompt:" << std::endl;
-    ss << on_sale_prompt.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnSaleConfirm:" << std::endl;
-    ss << on_sale_confirm.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnNoMoney:" << std::endl;
-    ss << on_no_money.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "OnSaleDecline:" << std::endl;
-    ss << on_sale_decline.ToYaml(indent + 6);
+    ss << std::string(indent, ' ') << "- Shop:" <<  std::endl;
+    ss << std::string(indent + 2, ' ') << "OnSalePrompt:" << std::endl;
+    ss << on_sale_prompt.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnSaleConfirm:" << std::endl;
+    ss << on_sale_confirm.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnNoMoney:" << std::endl;
+    ss << on_no_money.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "OnSaleDecline:" << std::endl;
+    ss << on_sale_decline.ActionToYaml(indent + 4);
     return ss.str();
 }
 
@@ -427,11 +427,11 @@ void ChurchInteraction::ToAsm(AsmFile& file) const
 std::string ChurchInteraction::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Church:" << std::endl;
-    ss << std::string(indent + 4, ' ') << "NormalPriest:" << std::endl;
-    ss << script_normal_priest.ToYaml(indent + 6);
-    ss << std::string(indent + 4, ' ') << "SkeletonPriest:" << std::endl;
-    ss << script_skeleton_priest.ToYaml(indent + 6);
+    ss << std::string(indent, ' ') << "- Church:" << std::endl;
+    ss << std::string(indent + 2, ' ') << "NormalPriest:" << std::endl;
+    ss << script_normal_priest.ActionToYaml(indent + 4);
+    ss << std::string(indent + 2, ' ') << "SkeletonPriest:" << std::endl;
+    ss << script_skeleton_priest.ActionToYaml(indent + 4);
     return ss.str();
 }
 
@@ -467,7 +467,7 @@ void Rts::ToAsm(AsmFile& file) const
 std::string Rts::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Return" << std::endl;
+    ss << std::string(indent, ' ') << "- Return" << std::endl;
     return ss.str();
 }
 
@@ -519,10 +519,10 @@ void CustomAsm::ToAsm(AsmFile& file) const
 std::string CustomAsm::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- Asm: |" << std::endl;
+    ss << std::string(indent, ' ') << "- Asm: |" << std::endl;
     for (const auto& line : instructions)
     {
-        ss << std::string(indent + 6, ' ') << Trim(line.ToLine()) << std::endl;
+        ss << std::string(indent + 4, ' ') << Trim(line.ToLine()) << std::endl;
     }
     return ss.str();
 }
@@ -587,13 +587,13 @@ void ProgressList::ToAsm(AsmFile& file) const
 std::string ProgressList::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- ProgressDependent:" << std::endl;
+    ss << std::string(indent, ' ') << "- ProgressDependent:" << std::endl;
     for (const auto& line : progress)
     {
-        ss << std::string(indent + 4, ' ') << "- Quest: " << static_cast<int>(line.first.quest) << std::endl;
-        ss << std::string(indent + 6, ' ') << "Progress: " << static_cast<int>(line.first.progress) << std::endl;
-        ss << std::string(indent + 6, ' ') << "Action:" << std::endl;
-        ss << line.second.ToYaml(indent + 6);
+        ss << std::string(indent + 2, ' ') << "- Quest: " << static_cast<int>(line.first.quest) << std::endl;
+        ss << std::string(indent + 4, ' ') << "Progress: " << static_cast<int>(line.first.progress) << std::endl;
+        ss << std::string(indent + 4, ' ') << "Action:" << std::endl;
+        ss << line.second.ActionToYaml(indent + 4);
     }
     return ss.str();
 }
@@ -644,6 +644,7 @@ ProgressFlagMapping::ProgressFlagMapping(const YAML::Node::const_iterator& it)
 
 void ProgressFlagMapping::ToAsm(AsmFile& file) const
 {
+    file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "PickValueBasedOnFlags" });
     for (const auto& p : mapping)
     {
         file << std::vector<uint16_t>{p.second, static_cast<uint16_t>(p.first << 8)};
@@ -654,11 +655,11 @@ void ProgressFlagMapping::ToAsm(AsmFile& file) const
 std::string ProgressFlagMapping::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- QuestProgress:" << std::endl;
+    ss << std::string(indent, ' ') << "- QuestProgress:" << std::endl;
     for (const auto& line : mapping)
     {
-        ss << std::string(indent + 4, ' ') << "- OnFlagSet: " << Hex(line.second) << std::endl;
-        ss << std::string(indent + 6, ' ') << "SetProgress: " << static_cast<int>(line.first) << std::endl;
+        ss << std::string(indent + 2, ' ') << "- OnFlagSet: " << Hex(line.second) << std::endl;
+        ss << std::string(indent + 4, ' ') << "SetProgress: " << static_cast<int>(line.first) << std::endl;
     }
     return ss.str();
 }
@@ -695,7 +696,7 @@ ActionTable::ActionTable(AsmFile& file)
 
 ActionTable::ActionTable(const YAML::Node::const_iterator& it)
 {
-    for (auto ait = (*it)["ActionTable"].begin(); it != (*it)["ActionTable"].end(); ++ait)
+    for (auto ait = (*it)["ActionTable"].begin(); ait != (*it)["ActionTable"].end(); ++ait)
     {
         actions.push_back(Action(ait));
     }
@@ -713,10 +714,10 @@ void ActionTable::ToAsm(AsmFile& file) const
 std::string ActionTable::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent + 2, ' ') << "- ActionTable:" << std::endl;
+    ss << std::string(indent, ' ') << "- ActionTable:" << std::endl;
     for (const auto& action : actions)
     {
-        ss << action.ToYaml(indent + 4);
+        ss << action.ActionToYaml(indent + 2);
     }
     return ss.str();
 }
@@ -767,8 +768,9 @@ Action::Action(AsmFile& file)
         }, *s_action);
 }
 
-Action::Action(const YAML::Node::const_iterator& it)
+Action::Action(const YAML::Node::const_iterator& it_in)
 {
+    YAML::Node::const_iterator it = it_in;
     std::string type = it->begin()->first.as<std::string>();
     if (type == "ScriptID")
     {
@@ -781,6 +783,10 @@ Action::Action(const YAML::Node::const_iterator& it)
     else if (type == "Function")
     {
         action = ScriptFunction(it);
+    }
+    else
+    {
+        throw std::runtime_error("Bad Script Action Type: " + type);
     }
 }
 
@@ -839,6 +845,14 @@ void Action::ActionToAsm(AsmFile& file, int p_offset) const
 }
 
 std::string Action::ToYaml(int indent) const
+{
+    std::ostringstream ss;
+    ss << std::string(indent, ' ') << "- Action:" << std::endl;
+    ss << ActionToYaml(indent + 2);
+    return ss.str();
+}
+
+std::string Action::ActionToYaml(int indent) const
 {
     std::ostringstream ss;
     if (!action)
@@ -954,6 +968,7 @@ ScriptFunction::ScriptFunction(const YAML::Node::const_iterator& it)
         {
             statement_type = statement_it->begin()->first.as<std::string>();
         }
+        Debug(statement_type);
 
         if (statement_type == "PlaySound")
         {
@@ -961,7 +976,7 @@ ScriptFunction::ScriptFunction(const YAML::Node::const_iterator& it)
         }
         else if (statement_type == "Action")
         {
-            statements.push_back(Action(statement_it));
+            statements.push_back(Action(statement_it->begin()->second.begin()));
         }
         else if (statement_type == "CustomItemAction")
         {
@@ -1041,7 +1056,8 @@ void ScriptFunction::ToAsm(AsmFile& file) const
 std::string ScriptFunction::ToYaml(int indent) const
 {
     std::ostringstream ss;
-    ss << std::string(indent, ' ') << "Function: " << name << std::endl;
+    ss << std::string(indent, ' ') << "- Function: " << name << std::endl;
+    ss << std::string(indent + 2, ' ') << "Statements:" << std::endl;
     for (const auto& statement : statements)
     {
         std::visit([&](const auto& arg)
@@ -1182,6 +1198,11 @@ ScriptFunctionTable::ScriptFunctionTable(AsmFile& file)
     ReadAsm(file);
 }
 
+ScriptFunctionTable::ScriptFunctionTable(AsmFile&& file)
+{
+    ReadAsm(file);
+}
+
 ScriptFunctionTable::ScriptFunctionTable(const std::string& yaml)
 {
     YAML::Node node = YAML::Load(yaml);
@@ -1232,7 +1253,7 @@ std::string ScriptFunctionTable::Print() const
     ss << "Function Mapping:" << std::endl;
     for (const auto& funcname : funcnames)
     {
-        function_mapping.at(funcname).Print(2);
+        ss << function_mapping.at(funcname).Print(2);
     }
     return ss.str();
 }
@@ -1243,7 +1264,7 @@ std::string ScriptFunctionTable::ToYaml(const std::string& name) const
     ss << name << ":" << std::endl;
     for (const auto& funcname : funcnames)
     {
-        function_mapping.at(funcname).ToYaml(2);
+        ss << function_mapping.at(funcname).ToYaml(2);
     }
     return ss.str();
 }

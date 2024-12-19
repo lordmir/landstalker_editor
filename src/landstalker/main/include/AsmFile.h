@@ -129,6 +129,7 @@ public:
 	AsmFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	AsmFile(const std::filesystem::path& filename, const std::vector<std::string>& inc_files);
 	AsmFile(const std::filesystem::path& filename, const std::map<std::string, std::string>& defines);
+	AsmFile(const std::filesystem::path& filename, const std::filesystem::path& defines_file);
 	AsmFile(FileType type = FileType::ASSEMBLER);
 
 	void SetDefines(const std::map<std::string, std::string>& definitions);

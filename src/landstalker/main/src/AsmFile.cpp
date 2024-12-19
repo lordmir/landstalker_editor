@@ -111,6 +111,17 @@ AsmFile::AsmFile(const std::filesystem::path& filename, const std::map<std::stri
 	}
 }
 
+AsmFile::AsmFile(const std::filesystem::path& filename, const std::filesystem::path& defines_file)
+	: m_type(FileType::ASSEMBLER),
+	  m_filename(filename)
+{
+	SetDefines(defines_file.string());
+	if (!ReadFile(m_filename, m_type))
+	{
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+	}
+}
+
 AsmFile::AsmFile(FileType type)
 	: m_type(type)
 {

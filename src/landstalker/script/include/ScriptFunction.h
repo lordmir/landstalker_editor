@@ -63,6 +63,7 @@ class ScriptFunctionTable
 public:
 	ScriptFunctionTable() {}
 	ScriptFunctionTable(AsmFile& file);
+	ScriptFunctionTable(AsmFile&& file);
 	ScriptFunctionTable(const std::string& yaml);
 	bool ReadAsm(AsmFile& file);
 	bool WriteAsm(AsmFile& file);
@@ -91,6 +92,7 @@ struct Action : public Statement
 	virtual void ToAsm(AsmFile& file) const override;
 	void ActionToAsm(AsmFile& file, int offset = 0) const;
 	virtual std::string ToYaml(int indent = 0) const override;
+	std::string ActionToYaml(int indent = 0) const;
 	virtual std::string Print(int indent = 0) const override;
 	virtual bool IsEndOfFunction() const override;
 	std::optional<std::variant<AsmFile::ScriptId, AsmFile::ScriptJump, ScriptFunction>> action;
