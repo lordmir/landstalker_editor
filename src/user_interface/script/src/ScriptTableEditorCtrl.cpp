@@ -17,12 +17,12 @@ ScriptTableEditorCtrl::ScriptTableEditorCtrl(wxWindow* parent)
 
 	GetSizer()->Fit(this);
 	m_dvc_ctrl->GetMainWindow()->Bind(wxEVT_MOTION, &ScriptTableEditorCtrl::OnMotion, this);
-	m_dvc_ctrl->GetMainWindow()->Bind(wxEVT_LEFT_DOWN, &ScriptTableEditorCtrl::OnLClick, this);
+	m_dvc_ctrl->GetMainWindow()->Bind(wxEVT_RIGHT_DOWN, &ScriptTableEditorCtrl::OnRClick, this);
 }
 
 ScriptTableEditorCtrl::~ScriptTableEditorCtrl()
 {
-	m_dvc_ctrl->GetMainWindow()->Unbind(wxEVT_LEFT_DOWN, &ScriptTableEditorCtrl::OnLClick, this);
+	m_dvc_ctrl->GetMainWindow()->Unbind(wxEVT_RIGHT_DOWN, &ScriptTableEditorCtrl::OnRClick, this);
 	m_dvc_ctrl->GetMainWindow()->Unbind(wxEVT_MOTION, &ScriptTableEditorCtrl::OnMotion, this);
 }
 
@@ -178,7 +178,7 @@ void ScriptTableEditorCtrl::OnMotion(wxMouseEvent& evt)
 	evt.Skip();
 }
 
-void ScriptTableEditorCtrl::OnLClick(wxMouseEvent& evt)
+void ScriptTableEditorCtrl::OnRClick(wxMouseEvent& evt)
 {
 	HandleMouseMove(evt.GetPosition());
 	if (m_last_tooltip_item != -1)

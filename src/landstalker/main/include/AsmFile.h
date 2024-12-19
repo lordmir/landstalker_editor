@@ -15,7 +15,11 @@
 
 class AsmFile
 {
+private:
+	struct AsmLine;
 public:
+
+
 	enum class FileType
 	{
 		ASSEMBLER,
@@ -28,6 +32,15 @@ public:
 		OCT = 8,
 		DEC = 10,
 		HEX = 16
+	};
+
+	enum class Width
+	{
+		NONE = 0,
+		B = 1,
+		W = 2,
+		L = 4,
+		S
 	};
 
 	struct IncludeFile
@@ -76,7 +89,7 @@ public:
 
 	struct ScriptId
 	{
-		ScriptId(std::size_t p_script_id, std::size_t p_offset)
+		ScriptId(std::size_t p_script_id, std::size_t p_offset = 0)
 			: script_id(p_script_id), offset(p_offset) {}
 		std::size_t script_id;
 		std::size_t offset;
@@ -84,24 +97,34 @@ public:
 
 	struct ScriptJump
 	{
-		ScriptJump(std::string p_func, std::size_t p_offset)
+		ScriptJump(std::string p_func, std::size_t p_offset = 0)
 			: func(p_func), offset(p_offset) {}
 		std::string func;
 		std::size_t offset;
 	};
 
-	struct Instruction
+	class Instruction
 	{
-		Instruction(const std::string& p_mnemonic, std::size_t p_width = 0, const std::vector<std::variant<std::string, int64_t>>& p_operands = {})
+	public:
+		Instruction(const std::string& p_mnemonic, Width p_width = Width::NONE, const std::vector<std::variant<std::string, int64_t>>& p_operands = {})
 			: mnemonic(p_mnemonic), width(p_width), operands(p_operands) {}
+		Instruction() : mnemonic("invalid"), width(Width::NONE), operands({}) {}
+		static Instruction FromLine(const std::string& line, const std::map<std::string, std::string>& defines = {});
+		std::string ToLine(const std::string& label = std::string(), const std::string& comment = std::string()) const;
 		std::string mnemonic;
-		std::size_t width;
+		Width width;
 		std::vector<std::variant<std::string, int64_t>> operands;
+		
+		friend class AsmFile;
+	private:
+		AsmFile::AsmLine ToAsmLine(const std::string& label = std::string(), const std::string& comment = std::string()) const;
+		static Instruction FromAsmLine(const AsmFile::AsmLine& line, const std::map<std::string, std::string>& defines = {});
 	};
 
 	struct NewLine {};
 
 	using ScriptAction = std::optional<std::variant<ScriptId, ScriptJump>>;
+	using AsmData = std::variant<uint8_t, std::string, IncludeFile, ScriptId, ScriptJump, Instruction>;
 
 	AsmFile(const std::filesystem::path& filename, FileType type = FileType::ASSEMBLER);
 	AsmFile(const std::filesystem::path& filename, const std::vector<std::string>& inc_files);
@@ -110,6 +133,7 @@ public:
 
 	void SetDefines(const std::map<std::string, std::string>& definitions);
 	void SetDefines(const std::string& inc_file);
+	static std::map<std::string, std::string> ParseDefines(const std::string& inc_file);
 	const std::map<std::string, std::string>& GetDefines() const;
 
 	template<typename T>
@@ -145,6 +169,8 @@ public:
 
 	void WriteFileHeader(const std::filesystem::path& p, const std::string& short_description);
 
+	const AsmData& Peek() const;
+
 	template<typename T>
 	bool Read(T& value);
 	bool Read(const GotoLabel& label);
@@ -170,6 +196,7 @@ public:
 	bool Write(const ScriptId&);
 	bool Write(const ScriptJump&);
 	bool Write(const Instruction&);
+	bool Write(const ScriptAction&);
 	template<typename T, typename... Args>
 	bool Write(const T& first, Args&&... args);
 	template<typename Iter>
@@ -180,8 +207,10 @@ public:
 	bool Write(const C<T, N>& val);
 	template<template <typename, typename ...> typename C, typename T, typename... Rest>
 	bool Write(const C<T, Rest...>& container);
+	static int64_t ParseValue(std::string val, const std::map<std::string, std::string>& defines);
 
 	friend std::ostream& operator<<(std::ostream& stream, AsmFile& file);
+	friend class Instruction;
 private:
 	struct AsmLine
 	{
@@ -207,45 +236,44 @@ private:
 		SCRIPTJUMP
 	};
 
-	bool ParseLine(AsmLine& line, const std::string& str);
+	static bool ParseLine(AsmLine& line, const std::string& str);
 	int64_t ParseValue(std::string val);
-	std::size_t GetWidth(const AsmLine& line);
-	std::string PrintCentered(const std::string& str);
+	static Width GetWidth(const AsmLine& line);
+	static std::string PrintCentered(const std::string& str);
 
 	template<AsmFile::Inst>
 	bool ProcessInst(const AsmFile::AsmLine& line);
 	bool ProcessLine(const AsmFile::AsmLine& line);
-	std::string ToAsmLine(const AsmFile::AsmLine& line);
+	static std::string ToAsmLine(const AsmFile::AsmLine& line);
 	template<typename T>
-	std::string ToAsmValue(T value, Base base);
+	static std::string ToAsmValue(T value, Base base);
 	template<typename T>
-	std::string ToAsmValue(const T& value);
-	std::string ToAsmValue(const std::string& value);
-	std::string ToAsmValue(uint64_t value);
-	std::string ToAsmValue(int64_t value);
-	std::string ToAsmValue(uint32_t value);
-	std::string ToAsmValue(int32_t value);
-	std::string ToAsmValue(uint16_t value);
-	std::string ToAsmValue(int16_t value);
-	std::string ToAsmValue(uint8_t value);
-	std::string ToAsmValue(int8_t value);
+	static std::string ToAsmValue(const T& value);
+	static std::string ToAsmValue(const std::string& value);
+	static std::string ToAsmValue(uint64_t value);
+	static std::string ToAsmValue(int64_t value);
+	static std::string ToAsmValue(uint32_t value);
+	static std::string ToAsmValue(int32_t value);
+	static std::string ToAsmValue(uint16_t value);
+	static std::string ToAsmValue(int16_t value);
+	static std::string ToAsmValue(uint8_t value);
+	static std::string ToAsmValue(int8_t value);
 	template<std::size_t N>
-	std::string ToAsmValue(const char(&val)[N]);
+	static std::string ToAsmValue(const char(&val)[N]);
 	template<typename Iter>
-	std::string ToAsmValue(Iter begin, Iter end);
+	static std::string ToAsmValue(Iter begin, Iter end);
 	template<typename T, std::size_t N>
-	std::string ToAsmValue(const T(&val)[N]);
+	static std::string ToAsmValue(const T(&val)[N]);
 	template<template <typename, typename ...> typename C, typename T, typename... Rest>
-	std::string ToAsmValue(const C<T, Rest...>& container);
+	static std::string ToAsmValue(const C<T, Rest...>& container);
 	template<template <typename, std::size_t> typename C, typename T, std::size_t N>
-	std::string ToAsmValue(const C<T, N>& val);
+	static std::string ToAsmValue(const C<T, N>& val);
 	void PushNextLine();
 
 	static const std::unordered_map<std::string, Inst> INSTRUCTIONS;
-	static const std::unordered_map<std::string, std::size_t> WIDTHS;
+	static const std::unordered_map<std::string, Width> WIDTHS;
 	static const std::size_t MAX_ELEMENTS_ON_LINE = 8;
 
-	using AsmData = std::variant<uint8_t, std::string, IncludeFile, ScriptId, ScriptJump, Instruction>;
 	bool m_good;
 	FileType m_type;
 	std::filesystem::path m_filename;

@@ -52,6 +52,7 @@
     <ClCompile Include="..\src\landstalker\rooms\src\RoomDialogueTable.cpp" />
     <ClCompile Include="..\src\landstalker\rooms\src\WarpList.cpp" />
     <ClCompile Include="..\src\landstalker\script\src\Script.cpp" />
+    <ClCompile Include="..\src\landstalker\script\src\ScriptFunction.cpp" />
     <ClCompile Include="..\src\landstalker\script\src\ScriptTableEntry.cpp" />
     <ClCompile Include="..\src\landstalker\sprites\src\SpriteFrame.cpp" />
     <ClCompile Include="..\src\landstalker\text\src\EndCreditString.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h" />
     <ClInclude Include="..\src\landstalker\rooms\include\WarpList.h" />
     <ClInclude Include="..\src\landstalker\script\include\Script.h" />
+    <ClInclude Include="..\src\landstalker\script\include\ScriptFunction.h" />
     <ClInclude Include="..\src\landstalker\script\include\ScriptTable.h" />
     <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h" />
     <ClInclude Include="..\src\landstalker\sprites\include\SpriteFrame.h" />

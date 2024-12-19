@@ -38,7 +38,7 @@ private:
 
 	void OnSelectionChange(wxDataViewEvent& evt);
 	void OnMotion(wxMouseEvent& evt);
-	void OnLClick(wxMouseEvent& evt);
+	void OnRClick(wxMouseEvent& evt);
 	void HandleMouseMove(const wxPoint& mouse_pos);
 	void FireEvent(const wxEventType& e, const wxString& data = wxEmptyString, long numeric_data = 0, long extra_numeric_data = 0, long extra_extra_numeric_data = 0);
 
