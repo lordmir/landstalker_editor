@@ -54,8 +54,8 @@ public:
 	bool ProcessScriptTrap(const AsmFile::Instruction& ins, AsmFile& file);
 	bool ProcessScriptMiscInstructions(const AsmFile::Instruction& ins);
 
-	std::vector<ScriptStatement> statements;
 	std::string name;
+	std::vector<ScriptStatement> statements;
 };
 
 class ScriptFunctionTable
@@ -119,8 +119,8 @@ struct SetFlagOnTalk : public Statement
 	virtual std::string Print(int indent = 0) const override;
 	virtual bool IsEndOfFunction() const override;
 	uint16_t flag;
-	Action on_set;
 	Action on_clear;
+	Action on_set;
 };
 
 struct IsFlagSet : public Statement

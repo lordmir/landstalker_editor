@@ -1021,7 +1021,7 @@ ScriptFunction::ScriptFunction(const YAML::Node::const_iterator& it)
         }
         else
         {
-            std::runtime_error(std::string("Unexpected label ") + statement_type);
+            throw std::runtime_error(std::string("Unexpected label ") + statement_type);
         }
     }
 }
@@ -1223,6 +1223,7 @@ bool ScriptFunctionTable::WriteAsm(AsmFile& file)
         function_mapping.at(funcname).ToAsm(file);
     }
     Consolidate();
+    return true;
 }
 
 std::string ScriptFunctionTable::Print() const
@@ -1249,10 +1250,285 @@ std::string ScriptFunctionTable::ToYaml(const std::string& name) const
 
 void ScriptFunctionTable::Consolidate()
 {
+    std::map<std::string, int> func_call_counts;
+    std::set<std::string> non_relocatable_funcs;
+    auto Increment = [&func_call_counts](const Action& action)
+    {
+        if (action.action.has_value() && std::holds_alternative<AsmFile::ScriptJump>(*action.action))
+        {
+            func_call_counts[std::get<AsmFile::ScriptJump>(*action.action).func]++;
+        }
+    };
+    auto MarkNonRelocatable = [&](const std::string& funcname)
+    {
+        non_relocatable_funcs.insert(funcname);
+        // We also can't relocate the function that is fallen into
+        auto next = std::find(funcnames.cbegin(), funcnames.cend(), funcname);
+        next = next != funcnames.cend() ? std::next(next) : next;
+        if (next != funcnames.cend())
+        {
+            non_relocatable_funcs.insert(*next);
+        }
+    };
+    for (const auto& func : function_mapping)
+    {
+        for (const auto& statement : func.second.statements)
+        {
+            std::visit([&](const auto& arg)
+                {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, Action>)
+                    {
+                        Increment(arg);
+                    }
+                    else if constexpr (std::is_same_v<T, ActionTable>)
+                    {
+                        for (const auto& action : arg.actions)
+                        {
+                            Increment(action);
+                        }
+                    }
+                    else if constexpr (std::is_same_v<T, ProgressList>)
+                    {
+                        for (const auto& flagaction : arg.progress)
+                        {
+                            Increment(flagaction.second);
+                        }
+                    }
+                    else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                    {
+                        Increment(arg.prompt);
+                        Increment(arg.on_yes);
+                        Increment(arg.on_no);
+                    }
+                    else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                    {
+                        Increment(arg.on_set);
+                        Increment(arg.on_clear);
+                    }
+                    else if constexpr (std::is_same_v<T, IsFlagSet>)
+                    {
+                        Increment(arg.on_set);
+                        Increment(arg.on_clear);
+                    }
+                    else if constexpr (std::is_same_v<T, DisplayPrice>)
+                    {
+                        Increment(arg.display_price);
+                    }
+                    else if constexpr (std::is_same_v<T, ShopInteraction>)
+                    {
+                        Increment(arg.on_sale_prompt);
+                        Increment(arg.on_sale_confirm);
+                        Increment(arg.on_no_money);
+                        Increment(arg.on_sale_decline);
+                    }
+                    else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                    {
+                        Increment(arg.script_normal_priest);
+                        Increment(arg.script_skeleton_priest);
+                    }
+                }, statement);
+        }
+    }
+    for (const auto& func : function_mapping)
+    {
+        if (func.second.statements.size() == 0)
+        {
+            continue;
+        }
+        const auto& last_statement = func.second.statements.back();
+        std::visit([&](const auto& arg)
+            {
+                if (!arg.IsEndOfFunction())
+                {
+                    MarkNonRelocatable(func.first);
+                }
+            }, last_statement);
+    }
+    std::vector<std::pair<std::string, Action&>> action_list;
+    auto Replace = [&](Action& action)
+    {
+        if (action.action.has_value() && std::holds_alternative<AsmFile::ScriptJump>(*action.action))
+        {
+            std::string func_name = std::get<AsmFile::ScriptJump>(*action.action).func;
+            if (func_call_counts.find(func_name) != func_call_counts.cend() && func_call_counts.at(func_name) == 1
+                && function_mapping.find(func_name) != function_mapping.cend()
+                && non_relocatable_funcs.find(func_name) == non_relocatable_funcs.cend())
+            {
+                action.action = function_mapping.at(func_name);
+                action_list.push_back({ func_name, action });
+            }
+        }
+    };
+    do
+    {
+        action_list.clear();
+        for (auto& func : function_mapping)
+        {
+            for (auto& statement : func.second.statements)
+            {
+                std::visit([&](auto& arg)
+                    {
+                        using T = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_same_v<T, Action>)
+                        {
+                            Replace(arg);
+                        }
+                        else if constexpr (std::is_same_v<T, ActionTable>)
+                        {
+                            for (auto& action : arg.actions)
+                            {
+                                Replace(action);
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, ProgressList>)
+                        {
+                            for (auto& flagaction : arg.progress)
+                            {
+                                Replace(flagaction.second);
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                        {
+                            Replace(arg.prompt);
+                            Replace(arg.on_yes);
+                            Replace(arg.on_no);
+                        }
+                        else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                        {
+                            Replace(arg.on_set);
+                            Replace(arg.on_clear);
+                        }
+                        else if constexpr (std::is_same_v<T, IsFlagSet>)
+                        {
+                            Replace(arg.on_set);
+                            Replace(arg.on_clear);
+                        }
+                        else if constexpr (std::is_same_v<T, DisplayPrice>)
+                        {
+                            Replace(arg.display_price);
+                        }
+                        else if constexpr (std::is_same_v<T, ShopInteraction>)
+                        {
+                            Replace(arg.on_sale_prompt);
+                            Replace(arg.on_sale_confirm);
+                            Replace(arg.on_no_money);
+                            Replace(arg.on_sale_decline);
+                        }
+                        else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                        {
+                            Replace(arg.script_normal_priest);
+                            Replace(arg.script_skeleton_priest);
+                        }
+                    }, statement);
+            }
+        }
+        for (const auto& action : action_list)
+        {
+            action.second.action = ScriptFunction(action.first, function_mapping.at(action.first).statements);
+        }
+        for (const auto& action : action_list)
+        {
+            function_mapping.erase(action.first);
+            funcnames.erase(std::find(funcnames.cbegin(), funcnames.cend(), action.first));
+        }
+    } while (!action_list.empty());
 }
 
 void ScriptFunctionTable::Unconsolidate()
 {
+    std::map<std::string, ScriptFunction> insert_list;
+    std::vector<std::string> new_funcnames;
+    auto Insert = [&](Action& action)
+    {
+        if (action.action.has_value() && std::holds_alternative<ScriptFunction>(*action.action))
+        {
+            ScriptFunction consolidated_func = std::get<ScriptFunction>(*action.action);
+            std::string func_name = consolidated_func.name;
+            action.action = AsmFile::ScriptJump(func_name, action.offset);
+            if (std::find(new_funcnames.cbegin(), new_funcnames.cend(), func_name) == new_funcnames.cend() &&
+                std::find(funcnames.cbegin(), funcnames.cend(), func_name) == funcnames.cend())
+            {
+                new_funcnames.push_back(func_name);
+                insert_list.insert({ func_name, consolidated_func });
+            }
+        }
+    };
+    while (true)
+    {
+        for (auto& funcname : funcnames)
+        {
+            new_funcnames.push_back(funcname);
+            for (auto& statement : function_mapping.at(funcname).statements)
+            {
+                std::visit([&](auto& arg)
+                    {
+                        using T = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_same_v<T, Action>)
+                        {
+                            Insert(arg);
+                        }
+                        else if constexpr (std::is_same_v<T, ActionTable>)
+                        {
+                            for (auto& action : arg.actions)
+                            {
+                                Insert(action);
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, ProgressList>)
+                        {
+                            for (auto& flagaction : arg.progress)
+                            {
+                                Insert(flagaction.second);
+                            }
+                        }
+                        else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                        {
+                            Insert(arg.prompt);
+                            Insert(arg.on_yes);
+                            Insert(arg.on_no);
+                        }
+                        else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                        {
+                            Insert(arg.on_set);
+                            Insert(arg.on_clear);
+                        }
+                        else if constexpr (std::is_same_v<T, IsFlagSet>)
+                        {
+                            Insert(arg.on_set);
+                            Insert(arg.on_clear);
+                        }
+                        else if constexpr (std::is_same_v<T, DisplayPrice>)
+                        {
+                            Insert(arg.display_price);
+                        }
+                        else if constexpr (std::is_same_v<T, ShopInteraction>)
+                        {
+                            Insert(arg.on_sale_prompt);
+                            Insert(arg.on_sale_confirm);
+                            Insert(arg.on_no_money);
+                            Insert(arg.on_sale_decline);
+                        }
+                        else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                        {
+                            Insert(arg.script_normal_priest);
+                            Insert(arg.script_skeleton_priest);
+                        }
+                    }, statement);
+            }
+        }
+        if (insert_list.empty())
+        {
+            break;
+        }
+        for (const auto& item : insert_list)
+        {
+            function_mapping.emplace(item);
+        }
+        insert_list.clear();
+        funcnames = new_funcnames;
+        new_funcnames.clear();
+    }
 }
 
 std::ostream& operator<<(std::ostream& lhs, const Statement& rhs)
