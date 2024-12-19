@@ -5,6 +5,7 @@
 #include <landstalker/main/include/DataTypes.h>
 #include <landstalker/script/include/Script.h>
 #include <landstalker/script/include/ScriptTable.h>
+#include <landstalker/script/include/ScriptFunction.h>
 
 class ScriptData : public DataManager
 {
@@ -50,19 +51,28 @@ private:
 
     bool AsmLoadScript();
     bool AsmLoadScriptTables();
+    bool AsmLoadScriptFunctions();
 
     bool RomLoadScript(const Rom& rom);
 
     bool AsmSaveScript(const std::filesystem::path& dir);
     bool AsmSaveScriptTables(const std::filesystem::path& dir);
+    bool AsmSaveScriptFunctions(const std::filesystem::path& dir);
 
     bool RomPrepareInjectScript(const Rom& rom);
 
+    std::filesystem::path m_defines_filename;
     std::filesystem::path m_script_filename;
     std::filesystem::path m_cutscene_table_filename;
     std::filesystem::path m_char_table_filename;
     std::filesystem::path m_shop_table_filename;
     std::filesystem::path m_item_table_filename;
+
+    std::filesystem::path m_char_funcs_filename;
+    std::filesystem::path m_cutscene_funcs_filename;
+    std::filesystem::path m_shop_funcs_filename;
+    std::filesystem::path m_item_funcs_filename;
+    std::filesystem::path m_flag_progress_filename;
 
     std::shared_ptr<Script> m_script;
     Script m_script_orig;
@@ -77,6 +87,17 @@ private:
     std::shared_ptr<std::vector<ScriptTable::Shop>> m_shoptable_orig;
     std::shared_ptr<std::vector<ScriptTable::Item>> m_itemtable;
     std::shared_ptr<std::vector<ScriptTable::Item>> m_itemtable_orig;
+
+    std::shared_ptr<ScriptFunctionTable> m_charfuncs;
+    std::shared_ptr<ScriptFunctionTable> m_charfuncs_orig;
+    std::shared_ptr<ScriptFunctionTable> m_cutscenefuncs;
+    std::shared_ptr<ScriptFunctionTable> m_cutscenefuncs_orig;
+    std::shared_ptr<ScriptFunctionTable> m_shopfuncs;
+    std::shared_ptr<ScriptFunctionTable> m_shopfuncs_orig;
+    std::shared_ptr<ScriptFunctionTable> m_itemfuncs;
+    std::shared_ptr<ScriptFunctionTable> m_itemfuncs_orig;
+    std::shared_ptr<ScriptFunctionTable> m_flagprogress;
+    std::shared_ptr<ScriptFunctionTable> m_flagprogress_orig;
 };
 
 #endif // _SCRIPT_DATA_H_

@@ -1,6 +1,9 @@
 #include <landstalker/script/include/ScriptFunction.h>
 #include <landstalker/misc/include/Literals.h>
 
+namespace Statements
+{
+
 YesNoPrompt::YesNoPrompt(AsmFile& file)
 {
     AsmFile::ScriptAction s_prompt, s_on_yes, s_on_no;
@@ -15,6 +18,16 @@ YesNoPrompt::YesNoPrompt(const YAML::Node::const_iterator& it)
       on_yes((*it)["OnYes"].begin()),
       on_no((*it)["OnNo"].begin())
 {
+}
+
+bool YesNoPrompt::operator==(const YesNoPrompt& rhs) const
+{
+    return this->prompt == rhs.prompt && this->on_yes == rhs.on_yes && this->on_no == rhs.on_no;
+}
+
+bool YesNoPrompt::operator!=(const YesNoPrompt& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void YesNoPrompt::ToAsm(AsmFile& file) const
@@ -70,6 +83,16 @@ SetFlagOnTalk::SetFlagOnTalk(const YAML::Node::const_iterator& it)
 {
 }
 
+bool SetFlagOnTalk::operator==(const SetFlagOnTalk& rhs) const
+{
+    return this->flag == rhs.flag && this->on_clear == rhs.on_clear && this->on_set == rhs.on_set;
+}
+
+bool SetFlagOnTalk::operator!=(const SetFlagOnTalk& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void SetFlagOnTalk::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "SetFlagBitOnTalking" }) << flag;
@@ -120,6 +143,16 @@ IsFlagSet::IsFlagSet(const YAML::Node::const_iterator& it)
 {
 }
 
+bool IsFlagSet::operator==(const IsFlagSet& rhs) const
+{
+    return this->flag == rhs.flag && this->on_clear == rhs.on_clear && this->on_set == rhs.on_set;
+}
+
+bool IsFlagSet::operator!=(const IsFlagSet& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void IsFlagSet::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "CheckFlagAndDisplayMessage" }) << flag;
@@ -165,6 +198,16 @@ PlaySound::PlaySound(const YAML::Node::const_iterator& it)
 {
 }
 
+bool PlaySound::operator==(const PlaySound& rhs) const
+{
+    return this->sound == rhs.sound;
+}
+
+bool PlaySound::operator!=(const PlaySound& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void PlaySound::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("trap", AsmFile::Width::NONE, { "#$00" }) << sound;
@@ -197,6 +240,16 @@ CustomItemScript::CustomItemScript(AsmFile& file)
 CustomItemScript::CustomItemScript(const YAML::Node::const_iterator& it)
     : custom_item_script((*it)["CustomItemAction"].as<uint16_t>())
 {
+}
+
+bool CustomItemScript::operator==(const CustomItemScript& rhs) const
+{
+    return this->custom_item_script == rhs.custom_item_script;
+}
+
+bool CustomItemScript::operator!=(const CustomItemScript& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void CustomItemScript::ToAsm(AsmFile& file) const
@@ -233,6 +286,16 @@ Sleep::Sleep(const YAML::Node::const_iterator& it)
 {
 }
 
+bool Sleep::operator==(const Sleep& rhs) const
+{
+    return this->ticks == rhs.ticks;
+}
+
+bool Sleep::operator!=(const Sleep& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void Sleep::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "Sleep_0" }) << ticks;
@@ -267,6 +330,16 @@ DisplayPrice::DisplayPrice(AsmFile& file)
 DisplayPrice::DisplayPrice(const YAML::Node::const_iterator& it)
     : display_price((*it)["DisplayPriceMessage"].begin())
 {
+}
+
+bool DisplayPrice::operator==(const DisplayPrice& rhs) const
+{
+    return this->display_price == rhs.display_price;
+}
+
+bool DisplayPrice::operator!=(const DisplayPrice& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void DisplayPrice::ToAsm(AsmFile& file) const
@@ -313,6 +386,16 @@ Branch::Branch(const YAML::Node::const_iterator& it)
 {
 }
 
+bool Branch::operator==(const Branch& rhs) const
+{
+    return this->label == rhs.label && this->wide == rhs.wide;
+}
+
+bool Branch::operator!=(const Branch& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void Branch::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bra", wide ? AsmFile::Width::W : AsmFile::Width::S, { label });
@@ -357,6 +440,19 @@ ShopInteraction::ShopInteraction(const YAML::Node::const_iterator& it)
       on_no_money((*it)["OnNoMoney"].begin()),
       on_sale_decline((*it)["OnSaleDecline"].begin())
 {
+}
+
+bool ShopInteraction::operator==(const ShopInteraction& rhs) const
+{
+    return this->on_sale_prompt == rhs.on_sale_prompt
+        && this->on_sale_confirm == rhs.on_sale_confirm
+        && this->on_sale_decline == rhs.on_sale_decline
+        && this->on_no_money == rhs.on_no_money;
+}
+
+bool ShopInteraction::operator!=(const ShopInteraction& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void ShopInteraction::ToAsm(AsmFile& file) const
@@ -417,6 +513,17 @@ ChurchInteraction::ChurchInteraction(const YAML::Node::const_iterator& it)
 {
 }
 
+bool ChurchInteraction::operator==(const ChurchInteraction& rhs) const
+{
+    return this->script_normal_priest == rhs.script_normal_priest
+        && this->script_skeleton_priest == rhs.script_skeleton_priest;
+}
+
+bool ChurchInteraction::operator!=(const ChurchInteraction& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void ChurchInteraction::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bsr", AsmFile::Width::S, { "HandleChurchInterraction" });
@@ -457,6 +564,16 @@ Rts::Rts()
 
 Rts::Rts(const YAML::Node::const_iterator& /*it*/)
 {
+}
+
+bool Rts::operator==(const Rts& /*rhs*/) const
+{
+    return true;
+}
+
+bool Rts::operator!=(const Rts& /*rhs*/) const
+{
+    return false;
 }
 
 void Rts::ToAsm(AsmFile& file) const
@@ -501,6 +618,16 @@ CustomAsm::CustomAsm(const YAML::Node::const_iterator& it)
         }
         instructions.push_back(AsmFile::Instruction::FromLine("\t" + line));
     }
+}
+
+bool CustomAsm::operator==(const CustomAsm& rhs) const
+{
+    return this->instructions == rhs.instructions;
+}
+
+bool CustomAsm::operator!=(const CustomAsm& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void CustomAsm::Append(const AsmFile::Instruction& ins)
@@ -569,6 +696,16 @@ ProgressList::ProgressList(const YAML::Node::const_iterator& it)
         auto action = Action(elem["Action"].begin());
         progress.insert({ Flag(quest, prog), action});
     }
+}
+
+bool ProgressList::operator==(const ProgressList& rhs) const
+{
+    return this->progress == rhs.progress;
+}
+
+bool ProgressList::operator!=(const ProgressList& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void ProgressList::ToAsm(AsmFile& file) const
@@ -642,6 +779,16 @@ ProgressFlagMapping::ProgressFlagMapping(const YAML::Node::const_iterator& it)
     }
 }
 
+bool ProgressFlagMapping::operator==(const ProgressFlagMapping& rhs) const
+{
+    return this->mapping == rhs.mapping;
+}
+
+bool ProgressFlagMapping::operator!=(const ProgressFlagMapping& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void ProgressFlagMapping::ToAsm(AsmFile& file) const
 {
     file << AsmFile::Instruction("bsr", AsmFile::Width::W, { "PickValueBasedOnFlags" });
@@ -700,6 +847,16 @@ ActionTable::ActionTable(const YAML::Node::const_iterator& it)
     {
         actions.push_back(Action(ait));
     }
+}
+
+bool ActionTable::operator==(const ActionTable& rhs) const
+{
+    return this->actions == rhs.actions;
+}
+
+bool ActionTable::operator!=(const ActionTable& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void ActionTable::ToAsm(AsmFile& file) const
@@ -788,6 +945,16 @@ Action::Action(const YAML::Node::const_iterator& it_in)
     {
         throw std::runtime_error("Bad Script Action Type: " + type);
     }
+}
+
+bool Action::operator==(const Action& rhs) const
+{
+    return this->action == rhs.action;
+}
+
+bool Action::operator!=(const Action& rhs) const
+{
+    return !(*this == rhs);
 }
 
 Action::operator AsmFile::ScriptAction() const
@@ -912,6 +1079,8 @@ bool Action::IsEndOfFunction() const
     return (action && !std::holds_alternative<AsmFile::ScriptId>(*action));
 }
 
+}
+
 ScriptFunction::ScriptFunction(const std::string& p_name, const std::vector<ScriptStatement>& p_statements)
     : name(p_name), statements(p_statements)
 {
@@ -944,7 +1113,7 @@ ScriptFunction::ScriptFunction(AsmFile& file)
         }
         else if (std::holds_alternative<AsmFile::ScriptId>(file.Peek()) || std::holds_alternative<AsmFile::ScriptJump>(file.Peek()))
         {
-            statements.push_back(ActionTable(file));
+            statements.push_back(Statements::ActionTable(file));
         }
         if (std::visit([](const auto& arg) { return arg.IsEndOfFunction(); }, statements.back()))
         {
@@ -972,73 +1141,83 @@ ScriptFunction::ScriptFunction(const YAML::Node::const_iterator& it)
 
         if (statement_type == "PlaySound")
         {
-            statements.push_back(PlaySound(statement_it));
+            statements.push_back(Statements::PlaySound(statement_it));
         }
         else if (statement_type == "Action")
         {
-            statements.push_back(Action(statement_it->begin()->second.begin()));
+            statements.push_back(Statements::Action(statement_it->begin()->second.begin()));
         }
         else if (statement_type == "CustomItemAction")
         {
-            statements.push_back(CustomItemScript(statement_it));
+            statements.push_back(Statements::CustomItemScript(statement_it));
         }
         else if (statement_type == "Sleep")
         {
-            statements.push_back(Sleep(statement_it));
+            statements.push_back(Statements::Sleep(statement_it));
         }
         else if (statement_type == "DisplayPriceMessage")
         {
-            statements.push_back(DisplayPrice(statement_it));
+            statements.push_back(Statements::DisplayPrice(statement_it));
         }
         else if (statement_type == "Branch")
         {
-            statements.push_back(Branch(statement_it));
+            statements.push_back(Statements::Branch(statement_it));
         }
         else if (statement_type == "ActionTable")
         {
-            statements.push_back(ActionTable(statement_it));
+            statements.push_back(Statements::ActionTable(statement_it));
         }
         else if (statement_type == "Question")
         {
-            statements.push_back(YesNoPrompt(statement_it));
+            statements.push_back(Statements::YesNoPrompt(statement_it));
         }
         else if (statement_type == "ProgressDependent")
         {
-            statements.push_back(ProgressList(statement_it));
+            statements.push_back(Statements::ProgressList(statement_it));
         }
         else if (statement_type == "SetFlag")
         {
-            statements.push_back(SetFlagOnTalk(statement_it));
+            statements.push_back(Statements::SetFlagOnTalk(statement_it));
         }
         else if (statement_type == "CheckFlag")
         {
-            statements.push_back(IsFlagSet(statement_it));
+            statements.push_back(Statements::IsFlagSet(statement_it));
         }
         else if (statement_type == "Shop")
         {
-            statements.push_back(ShopInteraction(statement_it));
+            statements.push_back(Statements::ShopInteraction(statement_it));
         }
         else if (statement_type == "Church")
         {
-            statements.push_back(ChurchInteraction(statement_it));
+            statements.push_back(Statements::ChurchInteraction(statement_it));
         }
         else if (statement_type == "Return")
         {
-            statements.push_back(Rts());
+            statements.push_back(Statements::Rts());
         }
         else if (statement_type == "Asm")
         {
-            statements.push_back(CustomAsm(statement_it));
+            statements.push_back(Statements::CustomAsm(statement_it));
         }
         else if (statement_type == "QuestProgress")
         {
-            statements.push_back(ProgressFlagMapping(statement_it));
+            statements.push_back(Statements::ProgressFlagMapping(statement_it));
         }
         else
         {
             throw std::runtime_error(std::string("Unexpected label ") + statement_type);
         }
     }
+}
+
+bool ScriptFunction::operator==(const ScriptFunction& rhs) const
+{
+    return this->name == rhs.name && this->statements == rhs.statements;
+}
+
+bool ScriptFunction::operator!=(const ScriptFunction& rhs) const
+{
+    return !(*this == rhs);
 }
 
 void ScriptFunction::ToAsm(AsmFile& file) const
@@ -1092,47 +1271,47 @@ bool ScriptFunction::ProcessScriptFunction(const AsmFile::Instruction& ins, AsmF
 
     if (funcname == "HandleYesNoPrompt")
     {
-        statements.push_back(YesNoPrompt(file));
+        statements.push_back(Statements::YesNoPrompt(file));
         return true;
     }
     else if (funcname == "HandleProgressDependentDialogue")
     {
-        statements.push_back(ProgressList(file));
+        statements.push_back(Statements::ProgressList(file));
         return true;
     }
     else if (funcname == "SetFlagBitOnTalking")
     {
-        statements.push_back(SetFlagOnTalk(file));
+        statements.push_back(Statements::SetFlagOnTalk(file));
         return true;
     }
     else if (funcname == "CheckFlagAndDisplayMessage")
     {
-        statements.push_back(IsFlagSet(file));
+        statements.push_back(Statements::IsFlagSet(file));
         return true;
     }
     else if (funcname == "Sleep_0")
     {
-        statements.push_back(Sleep(file));
+        statements.push_back(Statements::Sleep(file));
         return true;
     }
     else if (funcname == "DisplayItemPriceMessage")
     {
-        statements.push_back(DisplayPrice(file));
+        statements.push_back(Statements::DisplayPrice(file));
         return true;
     }
     else if (funcname == "HandleShopInterraction")
     {
-        statements.push_back(ShopInteraction(file));
+        statements.push_back(Statements::ShopInteraction(file));
         return true;
     }
     else if (funcname == "HandleChurchInterraction")
     {
-        statements.push_back(ChurchInteraction(file));
+        statements.push_back(Statements::ChurchInteraction(file));
         return true;
     }
     else if (funcname == "PickValueBasedOnFlags")
     {
-        statements.push_back(ProgressFlagMapping(file));
+        statements.push_back(Statements::ProgressFlagMapping(file));
         return true;
     }
     return false;
@@ -1154,13 +1333,13 @@ bool ScriptFunction::ProcessScriptTrap(const AsmFile::Instruction& ins, AsmFile&
     switch (trap_number)
     {
     case 0:
-        statements.push_back(PlaySound(file));
+        statements.push_back(Statements::PlaySound(file));
         return true;
     case 1:
-        statements.push_back(Action(file));
+        statements.push_back(Statements::Action(file));
         return true;
     case 2:
-        statements.push_back(CustomItemScript(file));
+        statements.push_back(Statements::CustomItemScript(file));
         return true;
     default:
         return false;
@@ -1171,23 +1350,23 @@ bool ScriptFunction::ProcessScriptMiscInstructions(const AsmFile::Instruction& i
 {
     if (ins.mnemonic == "bra" && ins.operands.size() == 1 && std::holds_alternative<std::string>(ins.operands[0]))
     {
-        statements.push_back(Branch(ins));
+        statements.push_back(Statements::Branch(ins));
         return true;
     }
     else if (ins.mnemonic == "rts")
     {
-        statements.push_back(Rts());
+        statements.push_back(Statements::Rts());
         return true;
     }
     else
     {
-        if (!statements.empty() && std::holds_alternative<CustomAsm>(statements.back()))
+        if (!statements.empty() && std::holds_alternative<Statements::CustomAsm>(statements.back()))
         {
-            std::get<CustomAsm>(statements.back()).Append(ins);
+            std::get<Statements::CustomAsm>(statements.back()).Append(ins);
         }
         else
         {
-            statements.push_back(CustomAsm(ins));
+            statements.push_back(Statements::CustomAsm(ins));
         }
         return true;
     }
@@ -1218,6 +1397,16 @@ ScriptFunctionTable::ScriptFunctionTable(const std::string& yaml)
         funcnames.push_back(func.name);
     }
     Consolidate();
+}
+
+bool ScriptFunctionTable::operator==(const ScriptFunctionTable& rhs) const
+{
+    return this->function_mapping == rhs.function_mapping && this->funcnames == rhs.funcnames;
+}
+
+bool ScriptFunctionTable::operator!=(const ScriptFunctionTable& rhs) const
+{
+    return !(*this == rhs);
 }
 
 bool ScriptFunctionTable::ReadAsm(AsmFile& file)
@@ -1273,7 +1462,7 @@ void ScriptFunctionTable::Consolidate()
 {
     std::map<std::string, int> func_call_counts;
     std::set<std::string> non_relocatable_funcs;
-    auto Increment = [&func_call_counts](const Action& action)
+    auto Increment = [&func_call_counts](const Statements::Action& action)
     {
         if (action.action.has_value() && std::holds_alternative<AsmFile::ScriptJump>(*action.action))
         {
@@ -1298,52 +1487,52 @@ void ScriptFunctionTable::Consolidate()
             std::visit([&](const auto& arg)
                 {
                     using T = std::decay_t<decltype(arg)>;
-                    if constexpr (std::is_same_v<T, Action>)
+                    if constexpr (std::is_same_v<T, Statements::Action>)
                     {
                         Increment(arg);
                     }
-                    else if constexpr (std::is_same_v<T, ActionTable>)
+                    else if constexpr (std::is_same_v<T, Statements::ActionTable>)
                     {
                         for (const auto& action : arg.actions)
                         {
                             Increment(action);
                         }
                     }
-                    else if constexpr (std::is_same_v<T, ProgressList>)
+                    else if constexpr (std::is_same_v<T, Statements::ProgressList>)
                     {
                         for (const auto& flagaction : arg.progress)
                         {
                             Increment(flagaction.second);
                         }
                     }
-                    else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                    else if constexpr (std::is_same_v<T, Statements::YesNoPrompt>)
                     {
                         Increment(arg.prompt);
                         Increment(arg.on_yes);
                         Increment(arg.on_no);
                     }
-                    else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                    else if constexpr (std::is_same_v<T, Statements::SetFlagOnTalk>)
                     {
                         Increment(arg.on_set);
                         Increment(arg.on_clear);
                     }
-                    else if constexpr (std::is_same_v<T, IsFlagSet>)
+                    else if constexpr (std::is_same_v<T, Statements::IsFlagSet>)
                     {
                         Increment(arg.on_set);
                         Increment(arg.on_clear);
                     }
-                    else if constexpr (std::is_same_v<T, DisplayPrice>)
+                    else if constexpr (std::is_same_v<T, Statements::DisplayPrice>)
                     {
                         Increment(arg.display_price);
                     }
-                    else if constexpr (std::is_same_v<T, ShopInteraction>)
+                    else if constexpr (std::is_same_v<T, Statements::ShopInteraction>)
                     {
                         Increment(arg.on_sale_prompt);
                         Increment(arg.on_sale_confirm);
                         Increment(arg.on_no_money);
                         Increment(arg.on_sale_decline);
                     }
-                    else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                    else if constexpr (std::is_same_v<T, Statements::ChurchInteraction>)
                     {
                         Increment(arg.script_normal_priest);
                         Increment(arg.script_skeleton_priest);
@@ -1366,8 +1555,8 @@ void ScriptFunctionTable::Consolidate()
                 }
             }, last_statement);
     }
-    std::vector<std::pair<std::string, Action&>> action_list;
-    auto Replace = [&](Action& action)
+    std::vector<std::pair<std::string, Statements::Action&>> action_list;
+    auto Replace = [&](Statements::Action& action)
     {
         if (action.action.has_value() && std::holds_alternative<AsmFile::ScriptJump>(*action.action))
         {
@@ -1391,52 +1580,52 @@ void ScriptFunctionTable::Consolidate()
                 std::visit([&](auto& arg)
                     {
                         using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_same_v<T, Action>)
+                        if constexpr (std::is_same_v<T, Statements::Action>)
                         {
                             Replace(arg);
                         }
-                        else if constexpr (std::is_same_v<T, ActionTable>)
+                        else if constexpr (std::is_same_v<T, Statements::ActionTable>)
                         {
                             for (auto& action : arg.actions)
                             {
                                 Replace(action);
                             }
                         }
-                        else if constexpr (std::is_same_v<T, ProgressList>)
+                        else if constexpr (std::is_same_v<T, Statements::ProgressList>)
                         {
                             for (auto& flagaction : arg.progress)
                             {
                                 Replace(flagaction.second);
                             }
                         }
-                        else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                        else if constexpr (std::is_same_v<T, Statements::YesNoPrompt>)
                         {
                             Replace(arg.prompt);
                             Replace(arg.on_yes);
                             Replace(arg.on_no);
                         }
-                        else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                        else if constexpr (std::is_same_v<T, Statements::SetFlagOnTalk>)
                         {
                             Replace(arg.on_set);
                             Replace(arg.on_clear);
                         }
-                        else if constexpr (std::is_same_v<T, IsFlagSet>)
+                        else if constexpr (std::is_same_v<T, Statements::IsFlagSet>)
                         {
                             Replace(arg.on_set);
                             Replace(arg.on_clear);
                         }
-                        else if constexpr (std::is_same_v<T, DisplayPrice>)
+                        else if constexpr (std::is_same_v<T, Statements::DisplayPrice>)
                         {
                             Replace(arg.display_price);
                         }
-                        else if constexpr (std::is_same_v<T, ShopInteraction>)
+                        else if constexpr (std::is_same_v<T, Statements::ShopInteraction>)
                         {
                             Replace(arg.on_sale_prompt);
                             Replace(arg.on_sale_confirm);
                             Replace(arg.on_no_money);
                             Replace(arg.on_sale_decline);
                         }
-                        else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                        else if constexpr (std::is_same_v<T, Statements::ChurchInteraction>)
                         {
                             Replace(arg.script_normal_priest);
                             Replace(arg.script_skeleton_priest);
@@ -1460,7 +1649,7 @@ void ScriptFunctionTable::Unconsolidate()
 {
     std::map<std::string, ScriptFunction> insert_list;
     std::vector<std::string> new_funcnames;
-    auto Insert = [&](Action& action)
+    auto Insert = [&](Statements::Action& action)
     {
         if (action.action.has_value() && std::holds_alternative<ScriptFunction>(*action.action))
         {
@@ -1485,52 +1674,52 @@ void ScriptFunctionTable::Unconsolidate()
                 std::visit([&](auto& arg)
                     {
                         using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_same_v<T, Action>)
+                        if constexpr (std::is_same_v<T, Statements::Action>)
                         {
                             Insert(arg);
                         }
-                        else if constexpr (std::is_same_v<T, ActionTable>)
+                        else if constexpr (std::is_same_v<T, Statements::ActionTable>)
                         {
                             for (auto& action : arg.actions)
                             {
                                 Insert(action);
                             }
                         }
-                        else if constexpr (std::is_same_v<T, ProgressList>)
+                        else if constexpr (std::is_same_v<T, Statements::ProgressList>)
                         {
                             for (auto& flagaction : arg.progress)
                             {
                                 Insert(flagaction.second);
                             }
                         }
-                        else if constexpr (std::is_same_v<T, YesNoPrompt>)
+                        else if constexpr (std::is_same_v<T, Statements::YesNoPrompt>)
                         {
                             Insert(arg.prompt);
                             Insert(arg.on_yes);
                             Insert(arg.on_no);
                         }
-                        else if constexpr (std::is_same_v<T, SetFlagOnTalk>)
+                        else if constexpr (std::is_same_v<T, Statements::SetFlagOnTalk>)
                         {
                             Insert(arg.on_set);
                             Insert(arg.on_clear);
                         }
-                        else if constexpr (std::is_same_v<T, IsFlagSet>)
+                        else if constexpr (std::is_same_v<T, Statements::IsFlagSet>)
                         {
                             Insert(arg.on_set);
                             Insert(arg.on_clear);
                         }
-                        else if constexpr (std::is_same_v<T, DisplayPrice>)
+                        else if constexpr (std::is_same_v<T, Statements::DisplayPrice>)
                         {
                             Insert(arg.display_price);
                         }
-                        else if constexpr (std::is_same_v<T, ShopInteraction>)
+                        else if constexpr (std::is_same_v<T, Statements::ShopInteraction>)
                         {
                             Insert(arg.on_sale_prompt);
                             Insert(arg.on_sale_confirm);
                             Insert(arg.on_no_money);
                             Insert(arg.on_sale_decline);
                         }
-                        else if constexpr (std::is_same_v<T, ChurchInteraction>)
+                        else if constexpr (std::is_same_v<T, Statements::ChurchInteraction>)
                         {
                             Insert(arg.script_normal_priest);
                             Insert(arg.script_skeleton_priest);
@@ -1552,7 +1741,7 @@ void ScriptFunctionTable::Unconsolidate()
     }
 }
 
-std::ostream& operator<<(std::ostream& lhs, const Statement& rhs)
+std::ostream& operator<<(std::ostream& lhs, const Statements::Statement& rhs)
 {
     lhs << rhs.Print();
     return lhs;

@@ -87,10 +87,16 @@ public:
 		std::size_t amount;
 	};
 
+	struct ScriptJump;
+
 	struct ScriptId
 	{
 		ScriptId(std::size_t p_script_id, std::size_t p_offset = 0)
 			: script_id(p_script_id), offset(p_offset) {}
+
+		bool operator== (const ScriptId& rhs) const;
+		bool operator!= (const ScriptId& rhs) const;
+
 		std::size_t script_id;
 		std::size_t offset;
 	};
@@ -99,6 +105,10 @@ public:
 	{
 		ScriptJump(std::string p_func, std::size_t p_offset = 0)
 			: func(p_func), offset(p_offset) {}
+
+		bool operator== (const ScriptJump& rhs) const;
+		bool operator!= (const ScriptJump& rhs) const;
+
 		std::string func;
 		std::size_t offset;
 	};
@@ -109,6 +119,8 @@ public:
 		Instruction(const std::string& p_mnemonic, Width p_width = Width::NONE, const std::vector<std::variant<std::string, int64_t>>& p_operands = {})
 			: mnemonic(p_mnemonic), width(p_width), operands(p_operands) {}
 		Instruction() : mnemonic("invalid"), width(Width::NONE), operands({}) {}
+		bool operator==(const Instruction& ins) const;
+		bool operator!=(const Instruction& ins) const;
 		static Instruction FromLine(const std::string& line, const std::map<std::string, std::string>& defines = {});
 		std::string ToLine(const std::string& label = std::string(), const std::string& comment = std::string()) const;
 		std::string mnemonic;

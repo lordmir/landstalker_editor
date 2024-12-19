@@ -42,6 +42,16 @@ AsmFile::AsmLine AsmFile::Instruction::ToAsmLine(const std::string& label, const
 	return asmline;
 }
 
+bool AsmFile::Instruction::operator==(const Instruction& rhs) const
+{
+	return this->mnemonic == rhs.mnemonic && this->operands == rhs.operands && this->width == rhs.width;
+}
+
+bool AsmFile::Instruction::operator!=(const Instruction& rhs) const
+{
+	return !(*this == rhs);
+}
+
 AsmFile::Instruction AsmFile::Instruction::FromLine(const std::string& line, const std::map<std::string, std::string>& defines)
 {
 	AsmFile::AsmLine asm_line;
@@ -1127,4 +1137,24 @@ void AsmFile::AsmLine::Clear()
 std::ostream& operator<<(std::ostream& stream, AsmFile& file)
 {
 	return file.PrintFile(stream);
+}
+
+bool AsmFile::ScriptId::operator==(const ScriptId& rhs) const
+{
+	return this->script_id == rhs.script_id;
+}
+
+bool AsmFile::ScriptId::operator!=(const ScriptId& rhs) const
+{
+	return !(*this == rhs);
+}
+
+bool AsmFile::ScriptJump::operator==(const ScriptJump& rhs) const
+{
+	return this->func == rhs.func;
+}
+
+bool AsmFile::ScriptJump::operator!=(const ScriptJump& rhs) const
+{
+	return !(*this == rhs);
 }
