@@ -206,28 +206,6 @@ static std::unique_ptr<ScriptTableEntry> DecodeYamlEntry(std::shared_ptr<GameDat
 				{
 					auto& string_entry = dynamic_cast<ScriptStringEntry&>(*entry);
 					string_entry.string = static_cast<uint16_t>(node[type.c_str()].as<uint16_t>() - gd->GetScriptData()->GetStringStart()) & 0x1FFF_u16;
-					if (node["Clear"])
-					{
-						if (node["Clear"].IsScalar())
-						{
-							string_entry.clear_box = node["Clear"].as<bool>();
-						}
-						else
-						{
-							string_entry.clear_box = true;
-						}
-					}
-					if (node["End"])
-					{
-						if (node["End"].IsScalar())
-						{
-							string_entry.end = node["End"].as<bool>();
-						}
-						else
-						{
-							string_entry.end = true;
-						}
-					}
 				}
 				break;
 			case ScriptTableEntryType::ITEM_LOAD:
@@ -296,6 +274,28 @@ static std::unique_ptr<ScriptTableEntry> DecodeYamlEntry(std::shared_ptr<GameDat
 			case ScriptTableEntryType::GIVE_MONEY:
 			default:
 				break;
+			}
+			if (node["Clear"])
+			{
+				if (node["Clear"].IsScalar())
+				{
+					entry->clear_box = node["Clear"].as<bool>();
+				}
+				else
+				{
+					entry->clear_box = true;
+				}
+			}
+			if (node["End"])
+			{
+				if (node["End"].IsScalar())
+				{
+					entry->end = node["End"].as<bool>();
+				}
+				else
+				{
+					entry->end = true;
+				}
 			}
 		}
 	}
