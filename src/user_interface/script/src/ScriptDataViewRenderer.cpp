@@ -6,6 +6,7 @@
 #include <landstalker/main/include/GameData.h>
 
 static const int LABEL_WIDTH = 180;
+static const int COLUMN_WIDTH = 80;
 
 ScriptDataViewRenderer::ScriptDataViewRenderer(wxDataViewCellMode mode, std::shared_ptr<GameData> gd)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
@@ -18,8 +19,8 @@ bool ScriptDataViewRenderer::Render(wxRect rect, wxDC* dc, int state)
 {
 	if (m_value)
 	{
-		rect.y += 2;
-		if (RenderLabel(rect, dc, state))
+		RenderLabel(rect, dc, state);
+		if (m_value && m_value->GetEnd())
 		{
 			auto win = GetOwner()->GetOwner();
 			dc->SetPen(wxPen(wxColour(128, 128, 128), 1, wxPENSTYLE_SHORT_DASH));
@@ -32,6 +33,7 @@ bool ScriptDataViewRenderer::Render(wxRect rect, wxDC* dc, int state)
 
 bool ScriptDataViewRenderer::RenderLabel(wxRect rect, wxDC* dc, int state)
 {
+	rect.y += 2;
 	switch (m_value->GetType())
 	{
 	case ScriptTableEntryType::STRING:
@@ -157,9 +159,7 @@ bool ScriptDataViewRenderer::RenderStringProperties(wxRect& rect, wxDC * dc, int
 		string_preview = m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_gd->GetScriptData()->GetStringStart() + string.string);
 	}
 	InsertRenderBubble(rect, dc, state, "STRING", *wxCYAN, LABEL_WIDTH, &font);
-	InsertRenderCheckbox(rect, dc, state, "Clear:", string.clear_box, 40);
-	InsertRenderCheckbox(rect, dc, state, "End:", string.end, 40);
-	InsertRenderLabel(rect, dc, state, "String:", 60, &font);
+	InsertRenderLabel(rect, dc, state, "String:", COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrWPrintf(L"%04d", string.string + m_gd->GetScriptData()->GetStringStart()), 40);
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
@@ -175,11 +175,11 @@ bool ScriptDataViewRenderer::RenderCutsceneProperties(wxRect& rect, wxDC* dc, in
 	dc->SetTextForeground(*wxWHITE);
 	InsertRenderBubble(rect, dc, state, "PLAY CUTSCENE", *wxBLUE, LABEL_WIDTH, &font);
 	dc->SetTextForeground(orig_col);
-	InsertRenderLabel(rect, dc, state, _("Cutscene Index: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Cutscene Index: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", cutscene.cutscene), 40);
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	InsertRenderLabel(rect, dc, state, m_gd->GetScriptData()->GetCutsceneDisplayName(cutscene.cutscene), 0, &font);
+	InsertRenderLabel(rect, dc, state, ScriptData::GetCutsceneDisplayName(cutscene.cutscene), 0, &font);
 	return true;
 }
 
@@ -192,7 +192,7 @@ bool ScriptDataViewRenderer::RenderSetItemProperties(wxRect& rect, wxDC* dc, int
 	dc->SetTextForeground(*wxWHITE);
 	InsertRenderBubble(rect, dc, state, "SET ITEM", wxColour("DARK ORCHID"), LABEL_WIDTH, &font);
 	dc->SetTextForeground(orig_col);
-	InsertRenderLabel(rect, dc, state, _("Item Slot: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Item Slot: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", item_set.slot + 1), 40);
 	InsertRenderLabel(rect, dc, state, _("Item: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", item_set.item), 40);
@@ -210,7 +210,7 @@ bool ScriptDataViewRenderer::RenderSetNumberProperties(wxRect& rect, wxDC* dc, i
 	dc->SetTextForeground(*wxWHITE);
 	InsertRenderBubble(rect, dc, state, "SET NUMBER", wxColour("MAROON"), LABEL_WIDTH, &font);
 	dc->SetTextForeground(orig_col);
-	InsertRenderLabel(rect, dc, state, _("Number: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Number: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%d", num_set.num), 40);
 	return false;
 }
@@ -241,11 +241,11 @@ bool ScriptDataViewRenderer::RenderSetFlagProperties(wxRect& rect, wxDC* dc, int
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	InsertRenderBubble(rect, dc, state, "SET FLAG", wxColour("MEDIUM SPRING GREEN"), LABEL_WIDTH, &font);
-	InsertRenderLabel(rect, dc, state, _("Flag: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Flag: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%04d", flag_set.flag), 0);
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
-	InsertRenderLabel(rect, dc, state, m_gd->GetScriptData()->GetFlagDisplayName(flag_set.flag), 0, &font);
+	InsertRenderLabel(rect, dc, state, ScriptData::GetFlagDisplayName(flag_set.flag), 0, &font);
 	return false;
 }
 
@@ -255,7 +255,7 @@ bool ScriptDataViewRenderer::RenderPlayBGMProperties(wxRect& rect, wxDC* dc, int
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	InsertRenderBubble(rect, dc, state, "PLAY BGM", wxColour("LIGHT STEEL BLUE"), LABEL_WIDTH, &font);
-	InsertRenderLabel(rect, dc, state, _("BGM: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("BGM: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", bgm.bgm), 40);
 	if (bgm.bgm < ScriptPlayBgmEntry::BGMS.size() && Labels::Get(Labels::C_SOUNDS, ScriptPlayBgmEntry::BGMS.at(bgm.bgm)))
 	{
@@ -274,7 +274,7 @@ bool ScriptDataViewRenderer::RenderSetSpeakerProperties(wxRect& rect, wxDC* dc, 
 	dc->SetTextForeground(*wxWHITE);
 	InsertRenderBubble(rect, dc, state, "SET SPEAKER", wxColour("DARK GREEN"), LABEL_WIDTH, &font);
 	dc->SetTextForeground(orig_col);
-	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Character: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
@@ -288,7 +288,7 @@ bool ScriptDataViewRenderer::RenderSetGlobalSpeakerProperties(wxRect& rect, wxDC
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	InsertRenderBubble(rect, dc, state, "SET GLOBAL SPEAKER", wxColour("ORANGE"), LABEL_WIDTH, &font);
-	InsertRenderLabel(rect, dc, state, _("Speaker: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Speaker: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%03d", speaker.chr), 40);
 	font = dc->GetFont().Italic();
 	font.SetFamily(wxFONTFAMILY_TELETYPE);
@@ -302,7 +302,7 @@ bool ScriptDataViewRenderer::RenderLoadGlobalSpeakerProperties(wxRect& rect, wxD
 	wxFont font = dc->GetFont().Bold();
 	wxColour orig_col = dc->GetTextForeground();
 	InsertRenderBubble(rect, dc, state, "LOAD GLOBAL CHAR", wxColour("GOLD"), LABEL_WIDTH, &font);
-	InsertRenderLabel(rect, dc, state, _("Slot: "), 0, &font);
+	InsertRenderLabel(rect, dc, state, _("Slot: "), COLUMN_WIDTH, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%01d", chr.slot + 1), 40);
 	InsertRenderLabel(rect, dc, state, _("Character: "), 0, &font);
 	InsertRenderLabel(rect, dc, state, StrPrintf("%02d", chr.chr), 40);
@@ -319,12 +319,12 @@ bool ScriptDataViewRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewMode
 
 wxSize ScriptDataViewRenderer::GetSize() const
 {
-	return { GetOwner()->GetOwner()->GetSize().GetWidth(), GetTextExtent(m_value->ToString(m_gd)).GetHeight()};
+	return { GetOwner()->GetOwner()->GetSize().GetWidth(), GetTextExtent(m_value->ToString(m_gd)).GetHeight() };
 }
 
 bool ScriptDataViewRenderer::SetValue(const wxVariant& value)
 {
-	m_value = ScriptTableEntry::FromBytes(static_cast<uint16_t>(value.GetLong()));
+	m_value = ScriptTableEntry::FromBytes(m_gd->GetScriptData()->GetScript()->GetScriptLine(static_cast<uint16_t>(value.GetLong())).ToBytes());
 	m_index = value.GetLong();
 	return true;
 }

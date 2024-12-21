@@ -23,6 +23,12 @@ public:
 	std::size_t GetScriptLineCount() const;
 	const ScriptTableEntry& GetScriptLine(std::size_t line) const;
 	void SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
+	void SetScriptLineClear(std::size_t line, bool clear);
+	void SetScriptLineEnd(std::size_t line, bool end);
+	void SetScriptLineData(std::size_t line, uint16_t data);
+	bool GetScriptLineClear(std::size_t line) const;
+	bool GetScriptLineEnd(std::size_t line) const;
+	uint16_t GetScriptLineData(std::size_t line) const;
 	void AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content);
 	void DeleteScriptLine(std::size_t line);
 	void SwapScriptLines(std::size_t line1, std::size_t line2);

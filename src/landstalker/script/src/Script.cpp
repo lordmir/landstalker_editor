@@ -81,6 +81,36 @@ void Script::SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> c
 	}
 }
 
+void Script::SetScriptLineClear(std::size_t line, bool clear)
+{
+	m_table[line]->clear_box = clear;
+}
+
+void Script::SetScriptLineEnd(std::size_t line, bool end)
+{
+	m_table[line]->end = end;
+}
+
+void Script::SetScriptLineData(std::size_t line, uint16_t data)
+{
+	m_table[line]->SetData(data);
+}
+
+bool Script::GetScriptLineClear(std::size_t line) const
+{
+	return m_table.at(line)->GetClear();
+}
+
+bool Script::GetScriptLineEnd(std::size_t line) const
+{
+	return m_table.at(line)->GetEnd();
+}
+
+uint16_t Script::GetScriptLineData(std::size_t line) const
+{
+	return m_table.at(line)->GetData();
+}
+
 void Script::AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content)
 {
 	m_table.insert(m_table.cbegin() + line, std::move(content));

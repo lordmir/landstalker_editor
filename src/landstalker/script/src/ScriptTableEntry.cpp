@@ -197,6 +197,16 @@ std::wstring ScriptStringEntry::ToYaml(std::shared_ptr<const GameData> gd) const
 	return yaml;
 }
 
+uint16_t ScriptStringEntry::GetData() const
+{
+	return string & 0x1FFF;
+}
+
+void ScriptStringEntry::SetData(uint16_t data)
+{
+	string = data & 0x1FFF;
+}
+
 uint16_t ScriptItemLoadEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (slot << 10) | item;
@@ -234,6 +244,17 @@ std::wstring ScriptItemLoadEntry::ToYaml(std::shared_ptr<const GameData> gd) con
 	}
 
 	return yaml;
+}
+
+uint16_t ScriptItemLoadEntry::GetData() const
+{
+	return (slot << 10) | (item & 0x3F);
+}
+
+void ScriptItemLoadEntry::SetData(uint16_t data)
+{
+	slot = (data >> 10) & 0x03;
+	item = data & 0x3F;
 }
 
 uint16_t ScriptGlobalCharLoadEntry::ToBytes() const
@@ -280,6 +301,17 @@ std::wstring ScriptGlobalCharLoadEntry::ToYaml(std::shared_ptr<const GameData> g
 	return yaml;
 }
 
+uint16_t ScriptGlobalCharLoadEntry::GetData() const
+{
+	return (slot << 10) | std::clamp<uint16_t>(chr, 0_u16, 23_u16);
+}
+
+void ScriptGlobalCharLoadEntry::SetData(uint16_t data)
+{
+	slot = (data >> 10) & 0x03;
+	chr = std::clamp<uint8_t>(static_cast<uint8_t>(data & 0x3FF), 0_u8, 23_u8);
+}
+
 uint16_t ScriptNumLoadEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (4 << 10) | num;
@@ -303,6 +335,16 @@ std::wstring ScriptNumLoadEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) 
 	}
 
 	return yaml;
+}
+
+uint16_t ScriptNumLoadEntry::GetData() const
+{
+	return std::clamp(num, 0_u16, 999_u16);
+}
+
+void ScriptNumLoadEntry::SetData(uint16_t data)
+{
+	num = std::clamp(data, 0_u16, 999_u16);
 }
 
 uint16_t ScriptSetFlagEntry::ToBytes() const
@@ -330,6 +372,16 @@ std::wstring ScriptSetFlagEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) 
 	return yaml;
 }
 
+uint16_t ScriptSetFlagEntry::GetData() const
+{
+	return std::clamp(flag, 0_u16, 999_u16);
+}
+
+void ScriptSetFlagEntry::SetData(uint16_t data)
+{
+	flag = std::clamp(data, 0_u16, 999_u16);
+}
+
 uint16_t ScriptGiveItemEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (5 << 10) | 1000;
@@ -355,6 +407,15 @@ std::wstring ScriptGiveItemEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/)
 	return yaml;
 }
 
+uint16_t ScriptGiveItemEntry::GetData() const
+{
+	return 0;
+}
+
+void ScriptGiveItemEntry::SetData(uint16_t /*data*/)
+{
+}
+
 uint16_t ScriptGiveMoneyEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (5 << 10) | 1001;
@@ -378,6 +439,15 @@ std::wstring ScriptGiveMoneyEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/
 	}
 
 	return yaml;
+}
+
+uint16_t ScriptGiveMoneyEntry::GetData() const
+{
+	return 0;
+}
+
+void ScriptGiveMoneyEntry::SetData(uint16_t /*data*/)
+{
 }
 
 uint16_t ScriptPlayBgmEntry::ToBytes() const
@@ -413,6 +483,16 @@ std::wstring ScriptPlayBgmEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) 
 	}
 
 	return yaml;
+}
+
+uint16_t ScriptPlayBgmEntry::GetData() const
+{
+	return std::clamp<uint16_t>(bgm, 0, static_cast<uint16_t>(BGMS.size()));
+}
+
+void ScriptPlayBgmEntry::SetData(uint16_t data)
+{
+	bgm = std::clamp<uint8_t>(static_cast<uint8_t>(data), 0, static_cast<uint8_t>(BGMS.size()));
 }
 
 uint16_t ScriptSetSpeakerEntry::ToBytes() const
@@ -458,6 +538,16 @@ std::wstring ScriptSetSpeakerEntry::ToYaml(std::shared_ptr<const GameData> gd) c
 	return yaml;
 }
 
+uint16_t ScriptSetSpeakerEntry::GetData() const
+{
+	return std::clamp<uint16_t>(chr, 0_u16, 999_u16);
+}
+
+void ScriptSetSpeakerEntry::SetData(uint16_t data)
+{
+	chr = std::clamp<uint16_t>(data, 0_u16, 999_u16);
+}
+
 uint16_t ScriptSetGlobalSpeakerEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | (6 << 10) | (chr + 1000);
@@ -501,6 +591,16 @@ std::wstring ScriptSetGlobalSpeakerEntry::ToYaml(std::shared_ptr<const GameData>
 	return yaml;
 }
 
+uint16_t ScriptSetGlobalSpeakerEntry::GetData() const
+{
+	return std::clamp<uint16_t>(chr, 0_u16, 23_u16);
+}
+
+void ScriptSetGlobalSpeakerEntry::SetData(uint16_t data)
+{
+	chr = std::clamp<uint8_t>(static_cast<uint8_t>(data), 0_u8, 23_u8);
+}
+
 uint16_t ScriptInvalidEntry::ToBytes() const
 {
 	return (clear_box ? 0x4000 : 0) | (end ? 0x2000 : 0) | bits;
@@ -524,6 +624,16 @@ std::wstring ScriptInvalidEntry::ToYaml(std::shared_ptr<const GameData> /*gd*/) 
 	}
 
 	return yaml;
+}
+
+uint16_t ScriptInvalidEntry::GetData() const
+{
+	return bits & 0x9FFF;
+}
+
+void ScriptInvalidEntry::SetData(uint16_t data)
+{
+	bits = data & 0x9FFF;
 }
 
 uint16_t ScriptInitiateCutsceneEntry::ToBytes() const
@@ -551,6 +661,16 @@ std::wstring ScriptInitiateCutsceneEntry::ToYaml(std::shared_ptr<const GameData>
 	return yaml;
 }
 
+uint16_t ScriptInitiateCutsceneEntry::GetData() const
+{
+	return cutscene & 0x3FF;
+}
+
+void ScriptInitiateCutsceneEntry::SetData(uint16_t data)
+{
+	cutscene = data & 0x3FF;
+}
+
 std::string ScriptTableEntry::GetName() const
 {
 	if (ENTRY_NAMES.find(GetType()) != ENTRY_NAMES.cend())
@@ -564,4 +684,24 @@ std::wstring ScriptTableEntry::GetWName() const
 {
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
 	return cvt.from_bytes(GetName());
+}
+
+bool ScriptTableEntry::GetClear() const
+{
+	return clear_box;
+}
+
+void ScriptTableEntry::SetClear(bool p_clear)
+{
+	clear_box = p_clear;
+}
+
+bool ScriptTableEntry::GetEnd() const
+{
+	return end;
+}
+
+void ScriptTableEntry::SetEnd(bool p_end)
+{
+	end = p_end;
 }

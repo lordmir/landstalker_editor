@@ -36,6 +36,12 @@ public:
 	ScriptTableEntryType GetType() const { return type; }
 	std::string GetName() const;
 	std::wstring GetWName() const;
+	virtual uint16_t GetData() const = 0;
+	virtual void SetData(uint16_t data) = 0;
+	bool GetClear() const;
+	void SetClear(bool p_clear);
+	bool GetEnd() const;
+	void SetEnd(bool p_end);
 
 	static std::unique_ptr<ScriptTableEntry> MakeEntry(const ScriptTableEntryType& ntype);
 	static std::unique_ptr<ScriptTableEntry> MakeEntry(const std::string& ntype);
@@ -62,6 +68,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 
 	uint16_t string;
 };
@@ -79,6 +87,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 
 	uint8_t item;
 	uint8_t slot;
@@ -97,6 +107,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 
 	uint8_t chr;
 	uint8_t slot;
@@ -115,6 +127,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 
 	uint16_t num;
 };
@@ -132,6 +146,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 
 	uint16_t flag;
 };
@@ -149,6 +165,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 };
 
 class ScriptGiveMoneyEntry : public ScriptTableEntry
@@ -164,6 +182,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 };
 
 class ScriptPlayBgmEntry : public ScriptTableEntry
@@ -179,6 +199,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t bits) override;
 
 	uint8_t bgm;
 
@@ -198,6 +220,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 
 	uint16_t chr;
 };
@@ -215,6 +239,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 
 	uint8_t chr;
 };
@@ -232,6 +258,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 
 	uint16_t cutscene;
 };
@@ -249,6 +277,8 @@ public:
 	virtual uint16_t ToBytes() const override;
 	virtual std::wstring ToString(std::shared_ptr<const GameData> gd) const override;
 	virtual std::wstring ToYaml(std::shared_ptr<const GameData> gd) const override;
+	virtual uint16_t GetData() const override;
+	virtual void SetData(uint16_t data) override;
 
 	uint16_t bits;
 };
