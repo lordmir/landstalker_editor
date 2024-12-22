@@ -208,9 +208,9 @@ void ProgressFlagsEditorFrame::OnExportYml()
 
 void ProgressFlagsEditorFrame::OnImportYml()
 {
-	if (m_gd)
+	if (m_gd && m_gd->GetScriptData()->HasTables())
 	{
-		wxFileDialog fd(this, _("Import Script from YAML"), "", "", "YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+		wxFileDialog fd(this, _("Import Flags from YAML"), "", "", "YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 		if (fd.ShowModal() != wxID_CANCEL)
 		{
 			try

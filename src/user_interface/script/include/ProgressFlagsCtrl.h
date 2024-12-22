@@ -8,7 +8,6 @@
 
 #include <landstalker/main/include/GameData.h>
 #include <user_interface/script/include/ProgressFlagsDataViewModel.h>
-#include <user_interface/script/include/DataViewScriptActionEditorControl.h>
 
 class ProgressFlagsEditorCtrl : public wxPanel
 {

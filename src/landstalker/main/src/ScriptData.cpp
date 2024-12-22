@@ -6,7 +6,7 @@
 #include <landstalker/misc/include/Labels.h>
 
 ScriptData::ScriptData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file),
+	: DataManager("Script Data", asm_file),
 	  m_is_asm(true)
 {
 	if (!LoadAsmFilenames())
@@ -30,7 +30,7 @@ ScriptData::ScriptData(const std::filesystem::path& asm_file)
 }
 
 ScriptData::ScriptData(const Rom& rom)
-	: DataManager(rom),
+	: DataManager("Script Data", rom),
 	  m_is_asm(false)
 {
 	SetDefaultFilenames();

@@ -8,6 +8,8 @@
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/main/include/AsmFile.h>
 #include <filesystem>
+#include <atomic>
+#include <mutex>
 
 using ByteVector = std::vector<uint8_t>;
 using ByteVectorPtr = std::shared_ptr<ByteVector>;
@@ -63,8 +65,19 @@ public:
 		DataManager* m_owner;
 	};
 
-	DataManager(const std::filesystem::path& asm_file) : m_asm_filename(asm_file), m_base_path(asm_file.parent_path()) {}
-	DataManager(const Rom&) {}
+	DataManager(const std::string& content_description, const std::filesystem::path& asm_file) : m_ready(false), m_status("Waiting"), m_progress(0.0), m_asm_filename(asm_file),
+		m_base_path(asm_file.parent_path()), m_content_description(content_description) {}
+	DataManager(const std::string& content_description, const Rom&) : m_ready(false), m_status("Waiting"), m_progress(0.0), m_content_description(content_description) {}
+	DataManager(const std::string& content_description) : m_ready(false), m_status("Waiting"), m_progress(0.0), m_content_description(content_description) {}
+	DataManager() : m_ready(false), m_status("Waiting"), m_progress(0.0) {}
+
+	virtual bool Open(const std::filesystem::path& asm_file)
+	{
+		m_asm_filename = asm_file;
+		m_base_path = asm_file.parent_path();
+		return true;
+	}
+	virtual bool Open(const Rom&) { return true; }
 
 	virtual ~DataManager() {}
 
@@ -76,18 +89,40 @@ public:
 	virtual bool Save(const std::filesystem::path& dir);
 	virtual bool Save();
 	virtual void RefreshPendingWrites(const Rom& rom);
+	const std::string& GetContentDescription() const { return m_content_description; }
+
+	bool IsReady() const { return m_ready; }
+	std::pair<std::string, double> GetProgress() const
+	{
+		std::lock_guard<std::mutex> guard(m_status_lock);
+		return std::pair{ std::string(m_status), double(m_progress) };
+	}
 
 	std::filesystem::path GetBasePath() const { return m_base_path; }
 	std::filesystem::path GetAsmFilename() const { return m_asm_filename; }
 protected:
+	void SetProgress(const std::string& status, double progress) const
+	{
+		std::lock_guard<std::mutex> guard(m_status_lock);
+		m_status = status;
+		m_progress = progress;
+	}
+	mutable std::mutex m_busy_lock;
+	std::atomic<bool> m_ready;
+
 	virtual void CommitAllChanges();
 	
 	virtual bool GetFilenameFromAsm(AsmFile& file, const std::string& label, std::filesystem::path& path);
 
+
 	mutable PendingWrites m_pending_writes;
 private:
+	mutable std::mutex m_status_lock;
+	mutable double m_progress;
+	mutable std::string m_status;
 	std::filesystem::path m_asm_filename;
 	std::filesystem::path m_base_path;
+	std::string m_content_description;
 };
 
 template<class T>

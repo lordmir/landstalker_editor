@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <list>
+#include <atomic>
 
 #include <landstalker/main/include/DataManager.h>
 #include <landstalker/main/include/RoomData.h>
@@ -16,10 +17,14 @@
 class GameData : public DataManager
 {
 public:
+    GameData();
     GameData(const std::filesystem::path& asm_file);
     GameData(const Rom& rom);
 
     virtual ~GameData() {}
+
+    bool Open(const std::filesystem::path& asm_file);
+    bool Open(const Rom& rom);
 
     virtual bool Save(const std::filesystem::path& dir);
     virtual bool Save();
@@ -30,11 +35,11 @@ public:
     virtual bool InjectIntoRom(Rom& rom);
     virtual void RefreshPendingWrites(const Rom& rom);
 
-    std::shared_ptr<RoomData> GetRoomData() const { return m_rd; }
-    std::shared_ptr<GraphicsData> GetGraphicsData() const { return m_gd; }
-    std::shared_ptr<StringData> GetStringData() const { return m_sd; }
-    std::shared_ptr<SpriteData> GetSpriteData() const { return m_spd; }
-    std::shared_ptr<ScriptData> GetScriptData() const { return m_scd; }
+    std::shared_ptr<RoomData> GetRoomData() const { return m_ready ? m_rd : nullptr; }
+    std::shared_ptr<GraphicsData> GetGraphicsData() const { return m_ready ? m_gd : nullptr; }
+    std::shared_ptr<StringData> GetStringData() const { return m_ready ? m_sd : nullptr; }
+    std::shared_ptr<SpriteData> GetSpriteData() const { return m_ready ? m_spd : nullptr; }
+    std::shared_ptr<ScriptData> GetScriptData() const { return m_ready ? m_scd : nullptr; }
 
     const std::map<std::string, std::shared_ptr<PaletteEntry>>& GetAllPalettes() const;
     const std::map<std::string, std::shared_ptr<TilesetEntry>>& GetAllTilesets() const;

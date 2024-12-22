@@ -8,6 +8,8 @@ class BaseDataViewModel : public wxDataViewVirtualListModel
 public:
     BaseDataViewModel() : wxDataViewVirtualListModel() {}
 
+    virtual ~BaseDataViewModel() {}
+
     virtual void Initialise() = 0;
 
     virtual void CommitData() = 0;

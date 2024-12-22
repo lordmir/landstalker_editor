@@ -4,14 +4,20 @@
 
 #include <landstalker/main/include/RomLabels.h>
 
+GameData::GameData()
+	: DataManager("Game Data")
+{
+}
+
 GameData::GameData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file),
+	: DataManager("Game Data", asm_file),
 	  m_rd(std::make_shared<RoomData>(asm_file)),
 	  m_gd(std::make_shared<GraphicsData>(asm_file)),
 	  m_sd(std::make_shared<StringData>(asm_file)),
 	  m_spd(std::make_shared<SpriteData>(asm_file)),
 	  m_scd(std::make_shared<ScriptData>(asm_file))
 {
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
 	m_data.push_back(m_sd);
@@ -19,16 +25,18 @@ GameData::GameData(const std::filesystem::path& asm_file)
 	m_data.push_back(m_scd);
 	CacheData();
 	SetDefaults();
+	m_ready = true;
 }
 
 GameData::GameData(const Rom& rom)
-	: DataManager(rom),
+	: DataManager("Game Data", rom),
 	  m_rd(std::make_shared<RoomData>(rom)),
 	  m_gd(std::make_shared<GraphicsData>(rom)),
 	  m_sd(std::make_shared<StringData>(rom)),
 	  m_spd(std::make_shared<SpriteData>(rom)),
 	  m_scd(std::make_shared<ScriptData>(rom))
 {
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	m_data.push_back(m_rd);
 	m_data.push_back(m_gd);
 	m_data.push_back(m_sd);
@@ -36,27 +44,128 @@ GameData::GameData(const Rom& rom)
 	m_data.push_back(m_scd);
 	CacheData();
 	SetDefaults();
+	m_ready = true;
+}
+
+bool GameData::Open(const std::filesystem::path& asm_file)
+{
+	std::lock_guard<std::mutex> guard(m_busy_lock);
+	if (m_ready)
+	{
+		return false;
+	}
+	try
+	{
+		SetProgress("Opening ASM project...", 0.0);
+		DataManager::Open(asm_file);
+		SetProgress("Loading Room data from ASM...", 0.0);
+		m_rd = std::make_shared<RoomData>(asm_file);
+		m_data.push_back(m_rd);
+		SetProgress("Loading Graphics data from ASM...", 1.0 / 5.0);
+		m_gd = std::make_shared<GraphicsData>(asm_file);
+		m_data.push_back(m_gd);
+		SetProgress("Loading String data from ASM...", 2.0 / 5.0);
+		m_sd = std::make_shared<StringData>(asm_file);
+		m_data.push_back(m_sd);
+		SetProgress("Loading Sprite data from ASM...", 3.0 / 5.0);
+		m_spd = std::make_shared<SpriteData>(asm_file);
+		m_data.push_back(m_spd);
+		SetProgress("Loading Script data from ASM...", 4.0 / 5.0);
+		m_scd = std::make_shared<ScriptData>(asm_file);
+		m_data.push_back(m_scd);
+		SetProgress("Done", 1.0);
+		m_ready = true;
+	}
+	catch (const std::exception& e)
+	{
+		m_ready = false;
+		SetProgress(std::string("Error: ") + e.what(), GetProgress().second);
+		throw;
+	}
+	return true;
+}
+
+bool GameData::Open(const Rom& rom)
+{
+	std::lock_guard<std::mutex> guard(m_busy_lock);
+	if (m_ready)
+	{
+		return false;
+	}
+	try
+	{
+		SetProgress("Opening ROM project...", 0.0);
+		DataManager::Open(rom);
+		SetProgress("Loading Room data from ROM...", 0.0);
+		m_rd = std::make_shared<RoomData>(rom);
+		m_data.push_back(m_rd);
+		SetProgress("Loading Graphics data from ROM...", 1.0 / 5.0);
+		m_gd = std::make_shared<GraphicsData>(rom);
+		m_data.push_back(m_gd);
+		SetProgress("Loading String data from ROM...", 2.0 / 5.0);
+		m_sd = std::make_shared<StringData>(rom);
+		m_data.push_back(m_sd);
+		SetProgress("Loading Sprite data from ROM...", 3.0 / 5.0);
+		m_spd = std::make_shared<SpriteData>(rom);
+		m_data.push_back(m_spd);
+		SetProgress("Loading Script data from ASM...", 4.0 / 5.0);
+		m_scd = std::make_shared<ScriptData>(rom);
+		m_data.push_back(m_scd);
+		SetProgress("Done", 1.0);
+		m_ready = true;
+	}
+	catch (const std::exception& e)
+	{
+		m_ready = false;
+		SetProgress(std::string("Error: ") + e.what(), GetProgress().second);
+		throw;
+	}
+	return true;
 }
 
 bool GameData::Save(const std::filesystem::path& dir)
 {
+	if (!m_ready)
+	{
+		return false;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
+	double count = 0.0;
 	auto success = std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{
+			SetProgress("Saving " + d->GetContentDescription(), count / static_cast<double>(m_data.size()));
+			count += 1.0;
 			return d->Save(dir);
 		});
+	SetProgress("Done", 1.0);
 	return success;
 }
 
 bool GameData::Save()
 {
-	return std::all_of(m_data.begin(), m_data.end(), [](auto& d)
+	if (!m_ready)
+	{
+		return false;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
+	double count = 0.0;
+	bool success = std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{
+			SetProgress("Saving " + d->GetContentDescription(), count / static_cast<double>(m_data.size()));
+			count += 1.0;
 			return d->Save();
 		});
+	SetProgress("Done", 1.0);
+	return success;
 }
 
 PendingWrites GameData::GetPendingWrites() const
 {
+	if (!m_ready)
+	{
+		return {};
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	PendingWrites retval;
 	std::for_each(m_data.begin(), m_data.end(), [&](auto& d)
 		{
@@ -68,14 +177,26 @@ PendingWrites GameData::GetPendingWrites() const
 
 bool GameData::WillFitInRom(const Rom& rom) const
 {
+	if (!m_ready)
+	{
+		return false;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
+	double count = 0.0;
 	return std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{
+			SetProgress("Preparing " + d->GetContentDescription(), count / static_cast<double>(m_data.size()));
 			return d->WillFitInRom(rom);
 		});
 }
 
 bool GameData::HasBeenModified() const
 {
+	if (!m_ready)
+	{
+		return false;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	return std::any_of(m_data.begin(), m_data.end(), [](auto& d)
 		{
 			return d->HasBeenModified();
@@ -84,6 +205,11 @@ bool GameData::HasBeenModified() const
 
 bool GameData::InjectIntoRom(Rom& rom)
 {
+	if (!m_ready)
+	{
+		return false;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	return std::all_of(m_data.begin(), m_data.end(), [&](auto& d)
 		{
 			return d->InjectIntoRom(rom);
@@ -92,6 +218,11 @@ bool GameData::InjectIntoRom(Rom& rom)
 
 void GameData::RefreshPendingWrites(const Rom& rom)
 {
+	if (!m_ready)
+	{
+		return;
+	}
+	std::lock_guard<std::mutex> guard(m_busy_lock);
 	std::for_each(m_data.begin(), m_data.end(), [&](auto& d)
 		{
 			d->RefreshPendingWrites(rom);
@@ -120,6 +251,10 @@ const std::map<std::string, std::shared_ptr<Tilemap2DEntry>>& GameData::GetAllTi
 
 std::shared_ptr<PaletteEntry> GameData::GetPalette(const std::string& name) const
 {
+	if (!m_ready)
+	{
+		return nullptr;
+	}
 	if (m_palettes.find(name) == m_palettes.cend())
 	{
 		return nullptr;
@@ -129,16 +264,28 @@ std::shared_ptr<PaletteEntry> GameData::GetPalette(const std::string& name) cons
 
 std::shared_ptr<TilesetEntry> GameData::GetTileset(const std::string& name) const
 {
+	if (!m_ready)
+	{
+		return nullptr;
+	}
 	return m_tilesets.at(name);
 }
 
 std::shared_ptr<AnimatedTilesetEntry> GameData::GetAnimatedTileset(const std::string& name) const
 {
+	if (!m_ready)
+	{
+		return nullptr;
+	}
 	return m_anim_tilesets.at(name);
 }
 
 std::shared_ptr<Tilemap2DEntry> GameData::GetTilemap(const std::string& name) const
 {
+	if (!m_ready)
+	{
+		return nullptr;
+	}
 	return m_tilemaps.at(name);
 }
 

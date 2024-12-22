@@ -79,6 +79,10 @@ public:
     LSString::StringType GetOrigSpecialCharName(std::size_t index) const;
     void SetSpecialCharName(std::size_t index, const LSString::StringType& value);
     bool HasSpecialCharNameChanged(std::size_t index) const;
+    uint8_t GetSpecialCharTalkSfx(std::size_t index) const;
+    void SetSpecialCharTalkSfx(std::size_t index, uint8_t sound);
+    std::string ExportSpecialCharTalkSfxYaml() const;
+    void ImportSpecialCharTalkSfxYaml(std::string yaml);
 
     const LSString::StringType& GetDefaultCharName() const;
     const LSString::StringType& GetOrigDefaultCharName() const;

@@ -22,6 +22,7 @@
 #include <user_interface/script/include/ScriptEditorFrame.h>
 #include <user_interface/script/include/ScriptTableEditorFrame.h>
 #include <user_interface/script/include/ProgressFlagsFrame.h>
+#include <user_interface/script/include/CharacterSfxFrame.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/misc/include/Labels.h>
 
@@ -159,6 +160,7 @@ private:
     ScriptEditorFrame* GetScriptEditor();
     ScriptTableEditorFrame* GetScriptTableEditor();
     ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
+    CharacterSfxEditorFrame* GetCharacterSfxEditorFrame();
     
     Mode m_mode;
     ImageList* m_imgs;

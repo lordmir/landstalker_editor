@@ -11,6 +11,8 @@ public:
 
     ProgressFlagsDataViewModel(std::shared_ptr<GameData> gd);
 
+    virtual ~ProgressFlagsDataViewModel();
+
     virtual void Initialise();
 
     virtual void CommitData();

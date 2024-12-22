@@ -7,6 +7,10 @@ ProgressFlagsDataViewModel::ProgressFlagsDataViewModel(std::shared_ptr<GameData>
 	Initialise();
 }
 
+ProgressFlagsDataViewModel::~ProgressFlagsDataViewModel()
+{
+}
+
 void ProgressFlagsDataViewModel::Initialise()
 {
 	if (m_gd && m_gd->GetScriptData()->HasTables())
