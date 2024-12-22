@@ -633,6 +633,11 @@ CustomAsm::CustomAsm(const std::string& inst)
     }
 }
 
+CustomAsm::CustomAsm(const std::vector<AsmFile::Instruction>& inst)
+    : instructions(inst)
+{
+}
+
 bool CustomAsm::operator==(const CustomAsm& rhs) const
 {
     return this->instructions == rhs.instructions;

@@ -303,6 +303,7 @@ namespace Statements
 		CustomAsm(const AsmFile::Instruction& ins);
 		CustomAsm(const YAML::Node::const_iterator& it);
 		CustomAsm(const std::string& inst);
+		CustomAsm(const std::vector<AsmFile::Instruction>& inst);
 
 		bool operator== (const CustomAsm& rhs) const;
 		bool operator!= (const CustomAsm& rhs) const;

@@ -59,7 +59,6 @@ void ProgressFlagsEditorCtrl::Open(int /*quest*/, int /*prog*/)
 
 void ProgressFlagsEditorCtrl::RefreshData()
 {
-	m_model->CommitData();
 	m_model->Reset(m_model->GetRowCount());
 	UpdateUI();
 }
@@ -67,7 +66,7 @@ void ProgressFlagsEditorCtrl::RefreshData()
 void ProgressFlagsEditorCtrl::AppendRow()
 {
 	m_model->AddRow(m_model->GetRowCount());
-	RefreshData();
+	UpdateUI();
 	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
 	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 }
@@ -84,7 +83,7 @@ void ProgressFlagsEditorCtrl::InsertRow()
 		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(1)));
 		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 	}
-	RefreshData();
+	UpdateUI();
 }
 
 void ProgressFlagsEditorCtrl::DeleteRow()
@@ -104,7 +103,7 @@ void ProgressFlagsEditorCtrl::DeleteRow()
 			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
-	RefreshData();
+	UpdateUI();
 }
 
 void ProgressFlagsEditorCtrl::MoveRowUp()
@@ -119,7 +118,7 @@ void ProgressFlagsEditorCtrl::MoveRowUp()
 			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
-	RefreshData();
+	UpdateUI();
 }
 
 void ProgressFlagsEditorCtrl::MoveRowDown()
@@ -134,7 +133,7 @@ void ProgressFlagsEditorCtrl::MoveRowDown()
 			m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 		}
 	}
-	RefreshData();
+	UpdateUI();
 }
 
 bool ProgressFlagsEditorCtrl::IsRowSelected() const
@@ -154,12 +153,13 @@ bool ProgressFlagsEditorCtrl::IsSelBottom() const
 
 void ProgressFlagsEditorCtrl::OnSelectionChange(wxDataViewEvent& evt)
 {
-	RefreshData();
+	UpdateUI();
 	evt.Skip();
 }
 
 void ProgressFlagsEditorCtrl::UpdateUI()
 {
+	m_model->CommitData();
 	static_cast<ProgressFlagsEditorFrame*>(GetParent())->UpdateUI();
 }
 

@@ -43,10 +43,11 @@ ProgressFlags::Flags ProgressFlags::GetFlags(ScriptFunctionTable& table)
 ScriptFunctionTable ProgressFlags::MakeAsm(const ProgressFlags::Flags& flags)
 {
     ScriptFunctionTable table;
-    ScriptFunction func("GetFlagProgress", {Statements::CustomAsm(
-        "    move.l   a0,-(sp)\n"
-        "    lea      (g_GameFlagProgress1).l,a0"
-    )});
+    ScriptFunction func("GetFlagProgress", { Statements::CustomAsm(
+        {
+            AsmFile::Instruction("move", AsmFile::Width::L, {"a0", "-(sp)"}),
+            AsmFile::Instruction("lea", AsmFile::Width::NONE, {"(g_GameFlagProgress1).l", "a0"})
+        }) });
 
     uint8_t last_quest = flags.rbegin()->first.quest;
     
@@ -63,10 +64,10 @@ ScriptFunctionTable ProgressFlags::MakeAsm(const ProgressFlags::Flags& flags)
         func.statements.emplace_back(Statements::ProgressFlagMapping(std::move(quest_flags)));
         if (quest < last_quest)
         {
-            func.statements.push_back(Statements::CustomAsm("    addq.l   #$01,a0"));
+            func.statements.push_back(Statements::CustomAsm({AsmFile::Instruction("addq", AsmFile::Width::L, {AsmFile::Immediate(1), "a0"})}));
         }
     }
-    func.statements.push_back(Statements::CustomAsm("    movea.l  (sp)+,a0"));
+    func.statements.push_back(Statements::CustomAsm({ AsmFile::Instruction("movea", AsmFile::Width::L, {"(sp)+", "a0"}) }));
     func.statements.push_back(Statements::Rts());
     
     table.AddFunction(std::move(func));
