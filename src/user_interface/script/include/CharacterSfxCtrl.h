@@ -1,0 +1,4 @@
+#ifndef _CHARACTER_SFX_CTRL_H_
+#define _CHARACTER_SFX_CTRL_H_
+
+#endif // _CHARACTER_SFX_CTRL_H_

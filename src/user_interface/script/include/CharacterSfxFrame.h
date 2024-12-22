@@ -1,0 +1,5 @@
+#ifndef _CHARACTER_SFX_FRAME_H_
+#define _CHARACTER_SFX_FRAME_H_
+
+
+#endif // _CHARACTER_SFX_FRAME_H_
