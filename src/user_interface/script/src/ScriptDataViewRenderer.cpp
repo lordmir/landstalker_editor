@@ -24,7 +24,7 @@ bool ScriptDataViewRenderer::Render(wxRect rect, wxDC* dc, int state)
 		{
 			auto win = GetOwner()->GetOwner();
 			dc->SetPen(wxPen(wxColour(128, 128, 128), 1, wxPENSTYLE_SHORT_DASH));
-			dc->DrawLine(rect.GetLeft(), rect.GetBottom() + 4, rect.GetLeft() + win->GetSize().GetWidth(), rect.GetBottom() + 4);
+			dc->DrawLine(rect.GetLeft(), rect.GetBottom() + 6, rect.GetLeft() + win->GetSize().GetWidth(), rect.GetBottom() + 6);
 			dc->SetPen(*wxTRANSPARENT_PEN);
 		}
 	}

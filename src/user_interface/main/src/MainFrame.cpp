@@ -47,6 +47,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT, new ScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -199,10 +200,13 @@ void MainFrame::InitUI()
     const int ent_img = m_imgs->GetIdx("entity");
     const int scr_img = m_imgs->GetIdx("script");
     const int bscr_img = m_imgs->GetIdx("bscript");
+    const int data_img = m_imgs->GetIdx("data");
+    const int dtable_img = m_imgs->GetIdx("data_table");
 
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
+    /*wxTreeItemId nodeData =*/ m_browser->AppendItem(nodeRoot, "Data", data_img, data_img, new TreeNodeData());
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
@@ -238,6 +242,7 @@ void MainFrame::InitUI()
         {
             m_browser->AppendItem(nodeSTI, StrPrintf("ItemTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM) << 16) | i, scr_img, false));
         }
+        m_browser->AppendItem(nodeScript, "Progress Flags", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::PROGRESS_FLAGS));
     }
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
 
@@ -284,7 +289,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const std::wstring spr_name = m_g->GetSpriteData()->GetSpriteDisplayName(i);
+        const std::wstring spr_name = SpriteData::GetSpriteDisplayName(i);
         InsertNavItem(L"Sprites/" + spr_name, spr_img, TreeNodeData::Node::SPRITE, i, false);
     }
     for (int i = 0; i < 255; ++i)
@@ -293,7 +298,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const std::wstring ent_name = m_g->GetSpriteData()->GetEntityDisplayName(i);
+        const std::wstring ent_name = SpriteData::GetEntityDisplayName(i);
         InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
     }
 
@@ -1146,6 +1151,11 @@ void MainFrame::Refresh()
         GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF, m_extradata);
         ShowEditor(EditorType::SCRIPT_TABLE);
         break;
+    case Mode::PROGRESS_FLAGS:
+        // Display flags
+        GetProgressFlagsEditorFrame()->Open(m_seldata & 0xFFFF, m_extradata);
+        ShowEditor(EditorType::PROGRESS_FLAGS);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -1208,6 +1218,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
     case TreeNodeData::Node::SCRIPT_TABLE:
         SetMode(Mode::SCRIPT_TABLE);
         break;
+    case TreeNodeData::Node::PROGRESS_FLAGS:
+        SetMode(Mode::PROGRESS_FLAGS);
+        break;
     default:
         // do nothing
         break;
@@ -1267,6 +1280,11 @@ ScriptEditorFrame* MainFrame::GetScriptEditor()
 ScriptTableEditorFrame* MainFrame::GetScriptTableEditor()
 {
     return static_cast<ScriptTableEditorFrame*>(m_editors.at(EditorType::SCRIPT_TABLE));
+}
+
+ProgressFlagsEditorFrame* MainFrame::GetProgressFlagsEditorFrame()
+{
+    return static_cast<ProgressFlagsEditorFrame*>(m_editors.at(EditorType::PROGRESS_FLAGS));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

@@ -113,10 +113,18 @@ public:
 		std::size_t offset;
 	};
 
+	struct Immediate
+	{
+		Immediate(int64_t p_val) : val(p_val) {}
+		operator int64_t() const { return val; }
+		int64_t val;
+	};
+
 	class Instruction
 	{
 	public:
-		Instruction(const std::string& p_mnemonic, Width p_width = Width::NONE, const std::vector<std::variant<std::string, int64_t>>& p_operands = {})
+		using Operand = std::variant<std::string, int64_t, Immediate>;
+		Instruction(const std::string& p_mnemonic, Width p_width = Width::NONE, const std::vector<Operand>& p_operands = {})
 			: mnemonic(p_mnemonic), width(p_width), operands(p_operands) {}
 		Instruction() : mnemonic("invalid"), width(Width::NONE), operands({}) {}
 		bool operator==(const Instruction& ins) const;
@@ -125,7 +133,7 @@ public:
 		std::string ToLine(const std::string& label = std::string(), const std::string& comment = std::string()) const;
 		std::string mnemonic;
 		Width width;
-		std::vector<std::variant<std::string, int64_t>> operands;
+		std::vector<Operand> operands;
 		
 		friend class AsmFile;
 	private:
@@ -263,6 +271,7 @@ private:
 	template<typename T>
 	static std::string ToAsmValue(const T& value);
 	static std::string ToAsmValue(const std::string& value);
+	static std::string ToAsmValue(const Immediate& value);
 	static std::string ToAsmValue(uint64_t value);
 	static std::string ToAsmValue(int64_t value);
 	static std::string ToAsmValue(uint32_t value);

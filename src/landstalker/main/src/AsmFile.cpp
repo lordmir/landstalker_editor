@@ -78,6 +78,18 @@ AsmFile::Instruction AsmFile::Instruction::FromAsmLine(const AsmFile::AsmLine& l
 		{
 			ins.operands.push_back(result);
 		}
+		else if (param.size() > 0 && param[0] == '#')
+		{
+			result = ParseValue(Trim(param.substr(1)), defines);
+			if (result != -1)
+			{
+				ins.operands.push_back(Immediate(result));
+			}
+			else
+			{
+				ins.operands.push_back(param);
+			}
+		}
 		else
 		{
 			ins.operands.push_back(param);
@@ -1065,6 +1077,11 @@ std::string AsmFile::ToAsmLine(const AsmFile::AsmLine& line)
 std::string AsmFile::ToAsmValue(const std::string& value)
 {
 	return value;
+}
+
+std::string AsmFile::ToAsmValue(const Immediate& value)
+{
+	return "#" + ToAsmValue(value.val, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint64_t value)

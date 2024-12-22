@@ -22,6 +22,7 @@ ImageList::ImageList(bool img32x32)
 	{
 		m_images["alpha"] = wxBITMAP_PNG_FROM_DATA(alpha_16x16);
 		m_images["append_tile"] = wxBITMAP_PNG_FROM_DATA(append_tile_16x16);
+		m_images["asm"] = wxBITMAP_PNG_FROM_DATA(asm_16x16);
 		m_images["ats"] = wxBITMAP_PNG_FROM_DATA(ats_16x16);
 		m_images["bscript"] = wxBITMAP_PNG_FROM_DATA(bscript_16x16);
 		m_images["big_tiles"] = wxBITMAP_PNG_FROM_DATA(bigtiles_16x16);
@@ -30,6 +31,8 @@ ImageList::ImageList(bool img32x32)
 		m_images["compress"] = wxBITMAP_PNG_FROM_DATA(compress_16x16);
 		m_images["copy"] = wxBITMAP_PNG_FROM_DATA(COPY_16x16);
 		m_images["cut"] = wxBITMAP_PNG_FROM_DATA(CUT_16x16);
+		m_images["data"] = wxBITMAP_PNG_FROM_DATA(data_16x16);
+		m_images["data_table"] = wxBITMAP_PNG_FROM_DATA(datatable_16x16);
 		m_images["delete"] = wxBITMAP_PNG_FROM_DATA(DELETE_16x16);
 		m_images["delete_column"] = wxBITMAP_PNG_FROM_DATA(delete_col_16x16);
 		m_images["delete_row"] = wxBITMAP_PNG_FROM_DATA(delete_row_16x16);

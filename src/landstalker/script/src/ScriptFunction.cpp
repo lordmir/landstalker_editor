@@ -620,6 +620,19 @@ CustomAsm::CustomAsm(const YAML::Node::const_iterator& it)
     }
 }
 
+CustomAsm::CustomAsm(const std::string& inst)
+{
+    std::stringstream ss(inst);
+    std::string line;
+    while (std::getline(ss, line))
+    {
+        if (!Trim(line).empty())
+        {
+            instructions.push_back(AsmFile::Instruction::FromLine(line));
+        }
+    }
+}
+
 bool CustomAsm::operator==(const CustomAsm& rhs) const
 {
     return this->instructions == rhs.instructions;
@@ -683,7 +696,7 @@ ProgressList::ProgressList(AsmFile& file)
             break;
         }
         file >> action;
-        progress.emplace(std::pair{Flag(quest, progress_count), action });
+        progress.emplace(std::pair{QuestProgress(quest, progress_count), action });
     }
 }
 
@@ -694,7 +707,7 @@ ProgressList::ProgressList(const YAML::Node::const_iterator& it)
         uint8_t quest = elem["Quest"].as<uint8_t>();
         uint8_t prog = elem["Progress"].as<uint8_t>();
         auto action = Action(elem["Action"].begin());
-        progress.insert({ Flag(quest, prog), action});
+        progress.insert({ QuestProgress(quest, prog), action});
     }
 }
 
@@ -1319,17 +1332,12 @@ bool ScriptFunction::ProcessScriptFunction(const AsmFile::Instruction& ins, AsmF
 
 bool ScriptFunction::ProcessScriptTrap(const AsmFile::Instruction& ins, AsmFile& file)
 {
-    if (!(ins.mnemonic == "trap" && ins.operands.size() == 1 && std::holds_alternative<std::string>(ins.operands.front())))
+    if (!(ins.mnemonic == "trap" && ins.operands.size() == 1 && std::holds_alternative<AsmFile::Immediate>(ins.operands.front())))
     {
         return false;
     }
 
-    std::string trap = Trim(std::get<std::string>(ins.operands.front()));
-    int trap_number = -1;
-    if (trap.size() > 0 && trap[0] == '#')
-    {
-        trap_number = static_cast<int>(AsmFile::ParseValue(trap.substr(1), file.GetDefines()));
-    }
+    int trap_number = static_cast<int>(std::get<AsmFile::Immediate>(ins.operands.front()));
     switch (trap_number)
     {
     case 0:
@@ -1456,6 +1464,40 @@ std::string ScriptFunctionTable::ToYaml(const std::string& name) const
         ss << function_mapping.at(funcname).ToYaml(2);
     }
     return ss.str();
+}
+
+const std::vector<std::string>& ScriptFunctionTable::GetFunctionNames() const
+{
+    return funcnames;
+}
+
+const ScriptFunction* ScriptFunctionTable::GetMapping(const std::string& funcname) const
+{
+    if (function_mapping.find(funcname) == function_mapping.cend())
+    {
+        return nullptr;
+    }
+    return &function_mapping.find(funcname)->second;
+}
+
+ScriptFunction* ScriptFunctionTable::GetMapping(const std::string& funcname)
+{
+    if (function_mapping.find(funcname) == function_mapping.cend())
+    {
+        return nullptr;
+    }
+    return &function_mapping.find(funcname)->second;
+}
+
+bool ScriptFunctionTable::AddFunction(ScriptFunction&& func)
+{
+    if (function_mapping.find(func.name) != function_mapping.cend())
+    {
+        return false;
+    }
+    funcnames.push_back(func.name);
+    function_mapping.emplace(func.name, func);
+    return true;
 }
 
 void ScriptFunctionTable::Consolidate()

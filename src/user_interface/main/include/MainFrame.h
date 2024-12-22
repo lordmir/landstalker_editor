@@ -21,6 +21,7 @@
 #include <user_interface/behaviours/include/BehaviourScriptEditorFrame.h>
 #include <user_interface/script/include/ScriptEditorFrame.h>
 #include <user_interface/script/include/ScriptTableEditorFrame.h>
+#include <user_interface/script/include/ProgressFlagsFrame.h>
 #include <landstalker/main/include/GameData.h>
 #include <landstalker/misc/include/Labels.h>
 
@@ -71,7 +72,14 @@ private:
         ENTITY,
         BEHAVIOUR_SCRIPT,
         SCRIPT,
-        SCRIPT_TABLE
+        SCRIPT_TABLE,
+        SCRIPT_FUNCTIONS,
+        PROGRESS_FLAGS,
+        CHARACTER_SFX,
+        ROM_DATA,
+        CHARSET,
+        INVENTORY_LAYOUT,
+        FRIDAY_ANIMATION
     };
 
     enum class EditorType
@@ -88,6 +96,13 @@ private:
         BEHAVIOUR_SCRIPT,
         SCRIPT,
         SCRIPT_TABLE,
+        SCRIPT_FUNCTIONS,
+        PROGRESS_FLAGS,
+        CHARACTER_SFX,
+        ROM_DATA,
+        CHARSET,
+        INVENTORY_LAYOUT,
+        FRIDAY_ANIMATION,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -143,6 +158,7 @@ private:
     BehaviourScriptEditorFrame* GetBehaviourScriptEditor();
     ScriptEditorFrame* GetScriptEditor();
     ScriptTableEditorFrame* GetScriptTableEditor();
+    ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
     
     Mode m_mode;
     ImageList* m_imgs;

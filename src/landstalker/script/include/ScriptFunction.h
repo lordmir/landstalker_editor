@@ -82,6 +82,12 @@ public:
 	bool WriteAsm(AsmFile& file);
 	std::string Print() const;
 	std::string ToYaml(const std::string& name = std::string("Script")) const;
+
+	const std::vector<std::string>& GetFunctionNames() const;
+	const ScriptFunction* GetMapping(const std::string& funcname) const;
+	ScriptFunction* GetMapping(const std::string& funcname);
+
+	bool AddFunction(ScriptFunction&& func);
 private:
 	void Consolidate();
 	void Unconsolidate();
@@ -296,6 +302,7 @@ namespace Statements
 	{
 		CustomAsm(const AsmFile::Instruction& ins);
 		CustomAsm(const YAML::Node::const_iterator& it);
+		CustomAsm(const std::string& inst);
 
 		bool operator== (const CustomAsm& rhs) const;
 		bool operator!= (const CustomAsm& rhs) const;
@@ -320,22 +327,25 @@ namespace Statements
 		virtual std::string ToYaml(int indent = 0) const override;
 		virtual std::string Print(int indent = 0) const override;
 		virtual bool IsEndOfFunction() const override;
-		struct Flag
+		struct QuestProgress
 		{
-			Flag(uint8_t p_quest, uint8_t p_progress) : quest(p_quest), progress(p_progress) {}
+			QuestProgress(uint8_t p_quest, uint8_t p_progress) : quest(p_quest), progress(p_progress) {}
 
-			uint8_t quest;
-			uint8_t progress;
+			QuestProgress() = delete;
+			QuestProgress(const QuestProgress&) = default;
+			QuestProgress(QuestProgress&&) = default;
+			QuestProgress& operator= (const QuestProgress&) = default;
+			QuestProgress& operator= (QuestProgress&&) = default;
 
-			bool operator==(const Flag& rhs) const
+			bool operator==(const QuestProgress& rhs) const
 			{
 				return this->quest == rhs.quest && this->progress == rhs.progress;
 			}
-			bool operator!=(const Flag& rhs) const
+			bool operator!=(const QuestProgress& rhs) const
 			{
 				return !(*this == rhs);
 			}
-			bool operator<(const Flag& rhs) const
+			bool operator<(const QuestProgress& rhs) const
 			{
 				if (this->quest == rhs.quest)
 				{
@@ -346,14 +356,18 @@ namespace Statements
 					return this->quest < rhs.quest;
 				}
 			}
+
+			uint8_t quest;
+			uint8_t progress;
 		};
-		std::map<Flag, Action> progress;
+		std::map<QuestProgress, Action> progress;
 	};
 
 	struct ProgressFlagMapping : public Statement
 	{
 		ProgressFlagMapping(AsmFile& file);
 		ProgressFlagMapping(const YAML::Node::const_iterator& it);
+		ProgressFlagMapping(std::map<uint8_t, uint16_t, std::greater<uint8_t>>&& p_mapping) : mapping(p_mapping) {}
 
 		bool operator== (const ProgressFlagMapping& rhs) const;
 		bool operator!= (const ProgressFlagMapping& rhs) const;

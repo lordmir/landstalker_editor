@@ -217,6 +217,81 @@ std::shared_ptr<std::vector<ScriptTable::Item>> ScriptData::GetItemTable()
 	return m_itemtable;
 }
 
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetCharFuncs() const
+{
+	return m_charfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetCharFuncs()
+{
+	return m_charfuncs;
+}
+
+void ScriptData::SetCharFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_charfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetCutsceneFuncs() const
+{
+	return m_cutscenefuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetCutsceneFuncs()
+{
+	return m_cutscenefuncs;
+}
+
+void ScriptData::SetCutsceneFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_cutscenefuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetShopFuncs() const
+{
+	return m_shopfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetShopFuncs()
+{
+	return m_shopfuncs;
+}
+
+void ScriptData::SetShopFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_shopfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetItemFuncs() const
+{
+	return m_itemfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetItemFuncs()
+{
+	return m_itemfuncs;
+}
+
+void ScriptData::SetItemFuncs(ScriptFunctionTable& funcs)
+{
+	*m_itemfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetProgressFlagsFuncs() const
+{
+	return m_flagprogress;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetProgressFlagsFuncs()
+{
+	return m_flagprogress;
+}
+
+void ScriptData::SetProgressFlagsFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_flagprogress = funcs;
+}
+
 void ScriptData::CommitAllChanges()
 {
 	m_pending_writes.clear();

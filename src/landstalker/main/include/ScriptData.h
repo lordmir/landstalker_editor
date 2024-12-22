@@ -41,6 +41,21 @@ public:
     std::shared_ptr<const std::vector<ScriptTable::Item>> GetItemTable() const;
     std::shared_ptr<std::vector<ScriptTable::Item>> GetItemTable();
 
+    std::shared_ptr<const ScriptFunctionTable> GetCharFuncs() const;
+    std::shared_ptr<ScriptFunctionTable> GetCharFuncs();
+    void SetCharFuncs(const ScriptFunctionTable& funcs);
+    std::shared_ptr<const ScriptFunctionTable> GetCutsceneFuncs() const;
+    std::shared_ptr<ScriptFunctionTable> GetCutsceneFuncs();
+    void SetCutsceneFuncs(const ScriptFunctionTable& funcs);
+    std::shared_ptr<const ScriptFunctionTable> GetShopFuncs() const;
+    std::shared_ptr<ScriptFunctionTable> GetShopFuncs();
+    void SetShopFuncs(const ScriptFunctionTable& funcs);
+    std::shared_ptr<const ScriptFunctionTable> GetItemFuncs() const;
+    std::shared_ptr<ScriptFunctionTable> GetItemFuncs();
+    void SetItemFuncs(ScriptFunctionTable& funcs); 
+    std::shared_ptr<const ScriptFunctionTable> GetProgressFlagsFuncs() const;
+    std::shared_ptr<ScriptFunctionTable> GetProgressFlagsFuncs();
+    void SetProgressFlagsFuncs(const ScriptFunctionTable& funcs);
 protected:
     virtual void CommitAllChanges();
 private:

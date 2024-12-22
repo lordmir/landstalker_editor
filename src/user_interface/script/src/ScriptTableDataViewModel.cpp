@@ -137,7 +137,7 @@ void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int ro
 		switch (m_mode)
 		{
 		case Mode::CUTSCENE:
-			variant = _(m_gd->GetScriptData()->GetCutsceneDisplayName(row));
+			variant = _(ScriptData::GetCutsceneDisplayName(row));
 			break;
 		case Mode::CHARACTER:
 			variant = _(StrWPrintf("[%03d] %ls",row, m_gd->GetStringData()->GetCharacterDisplayName(row).c_str()));
