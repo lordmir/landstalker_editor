@@ -22,6 +22,8 @@ public:
 	void Open(int quest = -1, int prog = -1);
 	void RefreshData();
 
+	void AddQuest();
+	void DeleteQuest();
 	void AppendRow();
 	void InsertRow();
 	void DeleteRow();
@@ -31,6 +33,8 @@ public:
 	bool IsRowSelected() const;
 	bool IsSelTop() const;
 	bool IsSelBottom() const;
+	std::pair<int, int> GetSelectedQuestProgress() const;
+	const ProgressFlagsDataViewModel* GetModel() const;
 
 private:
 	void OnSelectionChange(wxDataViewEvent& evt);

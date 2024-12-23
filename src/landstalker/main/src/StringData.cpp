@@ -152,10 +152,6 @@ bool StringData::Save(const std::filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save end credit strings to \'") + directory.string() + '\'');
 	}
-	if (!AsmSaveEndCreditStrings(dir))
-	{
-		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.string() + '\'');
-	}
 	if (!AsmSaveTalkSfx(dir))
 	{
 		throw std::runtime_error(std::string("Unable to save talk SFX data to \'") + directory.string() + '\'');

@@ -21,6 +21,18 @@ public:
 
     virtual unsigned int GetRowCount() const;
 
+    std::pair<int, int> GetQuestProgressFromRow(int row) const;
+
+    int GetTotalQuests() const;
+
+    int GetMaxQuest() const;
+
+    int GetNextFreeQuest() const;
+
+    int GetRowFromQuestProgress(int quest, int progress) const;
+
+    int GetTotalProgressInQuest(int quest) const;
+
     virtual wxString GetColumnHeader(unsigned int col) const;
 
     virtual wxArrayString GetColumnChoices(unsigned int col) const;
@@ -36,6 +48,12 @@ public:
     virtual bool DeleteRow(unsigned int row);
 
     virtual bool AddRow(unsigned int row);
+
+    virtual bool AppendRow(unsigned int row);
+
+    virtual bool DeleteQuest(unsigned int row);
+
+    virtual bool AddQuest();
 
     virtual bool SwapRows(unsigned int r1, unsigned int r2);
 

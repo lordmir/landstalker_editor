@@ -59,15 +59,57 @@ void ProgressFlagsEditorCtrl::Open(int /*quest*/, int /*prog*/)
 
 void ProgressFlagsEditorCtrl::RefreshData()
 {
-	m_model->Reset(m_model->GetRowCount());
+	m_model->Initialise();
 	UpdateUI();
+}
+
+void ProgressFlagsEditorCtrl::AddQuest()
+{
+	int quest = m_model->GetNextFreeQuest();
+	if (quest == -1)
+	{
+		return;
+	}
+	m_model->AddQuest();
+	int row = m_model->GetRowFromQuestProgress(quest, 0);
+	UpdateUI();
+	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(row + 1)));
+	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
+}
+
+void ProgressFlagsEditorCtrl::DeleteQuest()
+{
+	std::intptr_t row;
+	if (IsRowSelected() && m_model->GetTotalQuests() > 1)
+	{
+		row = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
+		auto [q, p] = m_model->GetQuestProgressFromRow(row);
+		m_model->DeleteQuest(row);
+		int new_row = m_model->GetRowFromQuestProgress(std::max(q - 1, 0), 0);
+		if (new_row < 0)
+		{
+			new_row = 1;
+		}
+		m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(new_row + 1)));
+		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
+	}
 }
 
 void ProgressFlagsEditorCtrl::AppendRow()
 {
-	m_model->AddRow(m_model->GetRowCount());
+	std::intptr_t row;
+	if (IsRowSelected())
+	{
+		row = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
+	}
+	else
+	{
+		return;
+	}
+	m_model->AppendRow(row);
 	UpdateUI();
-	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowCount())));
+	auto [q, p] = m_model->GetQuestProgressFromRow(reinterpret_cast<int>(m_dvc_ctrl->GetSelection().GetID()));
+	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(m_model->GetRowFromQuestProgress(q, m_model->GetTotalProgressInQuest(q) - 1) + 1)));
 	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 }
 
@@ -75,12 +117,10 @@ void ProgressFlagsEditorCtrl::InsertRow()
 {
 	if (IsRowSelected())
 	{
-		m_model->AddRow(reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1);
-	}
-	else
-	{
-		m_model->AddRow(0);
-		m_dvc_ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(1)));
+		std::intptr_t row = reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) - 1;
+		m_model->AddRow(row);
+		std::intptr_t new_row = std::clamp<int>(row, 0, m_model->GetRowCount());
+		m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(new_row + 1)));
 		m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 	}
 	UpdateUI();
@@ -143,12 +183,32 @@ bool ProgressFlagsEditorCtrl::IsRowSelected() const
 
 bool ProgressFlagsEditorCtrl::IsSelTop() const
 {
-	return reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) < 2;
+	int row = static_cast<int>(reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID())) - 1;
+	auto [q, p] = m_model->GetQuestProgressFromRow(row);
+	return p + 1 >= m_model->GetTotalProgressInQuest(q);
 }
 
 bool ProgressFlagsEditorCtrl::IsSelBottom() const
 {
-	return reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID()) >= static_cast<intptr_t>(m_model->GetRowCount());
+	int row = static_cast<int>(reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID())) - 1;
+	auto [q, p] = m_model->GetQuestProgressFromRow(row);
+	return p == 0;
+}
+
+std::pair<int, int> ProgressFlagsEditorCtrl::GetSelectedQuestProgress() const
+{
+	if (m_model)
+	{
+		int row = static_cast<int>(reinterpret_cast<std::intptr_t>(m_dvc_ctrl->GetSelection().GetID())) - 1;
+		auto pq = m_model->GetQuestProgressFromRow(row);
+		return pq;
+	}
+	return { -1, -1 };
+}
+
+const ProgressFlagsDataViewModel* ProgressFlagsEditorCtrl::GetModel() const
+{
+	return m_model;
 }
 
 void ProgressFlagsEditorCtrl::OnSelectionChange(wxDataViewEvent& evt)
