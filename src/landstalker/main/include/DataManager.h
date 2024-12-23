@@ -118,8 +118,8 @@ protected:
 	mutable PendingWrites m_pending_writes;
 private:
 	mutable std::mutex m_status_lock;
-	mutable double m_progress;
 	mutable std::string m_status;
+	mutable double m_progress;
 	std::filesystem::path m_asm_filename;
 	std::filesystem::path m_base_path;
 	std::string m_content_description;
