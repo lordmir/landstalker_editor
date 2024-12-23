@@ -10,41 +10,15 @@ GameData::GameData()
 }
 
 GameData::GameData(const std::filesystem::path& asm_file)
-	: DataManager("Game Data", asm_file),
-	  m_rd(std::make_shared<RoomData>(asm_file)),
-	  m_gd(std::make_shared<GraphicsData>(asm_file)),
-	  m_sd(std::make_shared<StringData>(asm_file)),
-	  m_spd(std::make_shared<SpriteData>(asm_file)),
-	  m_scd(std::make_shared<ScriptData>(asm_file))
+	: DataManager("Game Data", asm_file)
 {
-	std::lock_guard<std::mutex> guard(m_busy_lock);
-	m_data.push_back(m_rd);
-	m_data.push_back(m_gd);
-	m_data.push_back(m_sd);
-	m_data.push_back(m_spd);
-	m_data.push_back(m_scd);
-	CacheData();
-	SetDefaults();
-	m_ready = true;
+	Open(asm_file);
 }
 
 GameData::GameData(const Rom& rom)
-	: DataManager("Game Data", rom),
-	  m_rd(std::make_shared<RoomData>(rom)),
-	  m_gd(std::make_shared<GraphicsData>(rom)),
-	  m_sd(std::make_shared<StringData>(rom)),
-	  m_spd(std::make_shared<SpriteData>(rom)),
-	  m_scd(std::make_shared<ScriptData>(rom))
+	: DataManager("Game Data", rom)
 {
-	std::lock_guard<std::mutex> guard(m_busy_lock);
-	m_data.push_back(m_rd);
-	m_data.push_back(m_gd);
-	m_data.push_back(m_sd);
-	m_data.push_back(m_spd);
-	m_data.push_back(m_scd);
-	CacheData();
-	SetDefaults();
-	m_ready = true;
+	Open(rom);
 }
 
 bool GameData::Open(const std::filesystem::path& asm_file)
@@ -73,6 +47,8 @@ bool GameData::Open(const std::filesystem::path& asm_file)
 		SetProgress("Loading Script data from ASM...", 4.0 / 5.0);
 		m_scd = std::make_shared<ScriptData>(asm_file);
 		m_data.push_back(m_scd);
+		CacheData();
+		SetDefaults();
 		SetProgress("Done", 1.0);
 		m_ready = true;
 	}
@@ -111,6 +87,8 @@ bool GameData::Open(const Rom& rom)
 		SetProgress("Loading Script data from ASM...", 4.0 / 5.0);
 		m_scd = std::make_shared<ScriptData>(rom);
 		m_data.push_back(m_scd);
+		CacheData();
+		SetDefaults();
 		SetProgress("Done", 1.0);
 		m_ready = true;
 	}

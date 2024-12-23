@@ -387,7 +387,7 @@ namespace ScriptTable
 				}
 				else if constexpr (std::is_same_v<T, std::string>)
 				{
-					return StrWPrintf(L"Jump to function %s", utf8_to_wstr(arg).c_str());
+					return StrWPrintf(L"Jump to function %ls", utf8_to_wstr(arg).c_str());
 				}
 			}, action);
 	}
@@ -403,7 +403,7 @@ namespace ScriptTable
 				}
 				else if constexpr (std::is_same_v<T, std::string>)
 				{
-					return StrWPrintf(L"Jump to function %s", utf8_to_wstr(arg).c_str());
+					return StrWPrintf(L"Jump to function %ls", utf8_to_wstr(arg).c_str());
 				}
 			}, action);
 	}
