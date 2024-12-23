@@ -128,7 +128,7 @@ ByteVector EncodeFromSet(const std::set<uint16_t>& data, bool terminate = true)
 }
 
 RoomData::RoomData(const std::filesystem::path& asm_file)
-    : DataManager(asm_file)
+    : DataManager("Room Data", asm_file)
 {
     if (!LoadAsmFilenames())
     {
@@ -191,7 +191,7 @@ RoomData::RoomData(const std::filesystem::path& asm_file)
 }
 
 RoomData::RoomData(const Rom& rom)
-    : DataManager(rom)
+    : DataManager("Room Data", rom)
 {
     SetDefaultFilenames();
     if (!RomLoadRoomData(rom))

@@ -7,7 +7,7 @@
 #include <landstalker/main/include/RomLabels.h>
 
 GraphicsData::GraphicsData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file)
+	: DataManager("Graphics Data", asm_file)
 {
 	if (!LoadAsmFilenames())
 	{
@@ -71,7 +71,7 @@ GraphicsData::GraphicsData(const std::filesystem::path& asm_file)
 }
 
 GraphicsData::GraphicsData(const Rom& rom)
-	: DataManager(rom)
+	: DataManager("Graphics Data", rom)
 {
 	SetDefaultFilenames();
 	if (!RomLoadInventoryGraphics(rom))

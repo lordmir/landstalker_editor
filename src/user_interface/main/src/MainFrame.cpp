@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <stack>
+#include <future>
 
 #include <wx/wx.h>
 #include <wx/filename.h>
@@ -19,6 +20,7 @@
 #include <wx/richmsgdlg.h>
 #include <wx/colour.h>
 #include <wx/graphics.h>
+#include <wx/progdlg.h>
 
 #include <landstalker/main/include/Rom.h>
 #include <landstalker/2d_maps/include/Blockmap2D.h>
@@ -47,6 +49,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT, new ScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::CHARACTER_SFX, new CharacterSfxEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -138,11 +142,31 @@ void MainFrame::OpenRomFile(const wxString& path)
         }
         OpenLabelsFile(path.ToStdString());
         m_rom.load_from_file(static_cast<std::string>(path));
-        m_g = std::make_shared<GameData>(m_rom);
-        this->SetLabel("Landstalker Editor - " + m_rom.get_description());
-        m_asmfile = false;
-        m_built_rom = path;
-        InitUI();
+        m_g = std::make_shared<GameData>();
+        {
+            auto future = std::async(std::launch::async, [this, &path] { return m_g->Open(m_rom); });
+            auto dialog = wxProgressDialog("Opening ROM", "Reading data from ROM", 100, this);
+            do
+            {
+                wxYield();
+                auto progress = m_g->GetProgress();
+                dialog.Update(static_cast<int>(5.0 + progress.second * 90.0), progress.first);
+
+            } while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready);
+            if (!future.get())
+            {
+                throw std::runtime_error("Error opening ROM");
+            }
+            if (!m_g->IsReady())
+            {
+                throw std::runtime_error("Error opening ROM");
+            }
+            dialog.Update(99, "Preparing User Interface");
+            this->SetLabel("Landstalker Editor - " + m_rom.get_description());
+            m_asmfile = false;
+            m_built_rom = path;
+            InitUI();
+        }
     }
     catch (const std::runtime_error& e)
     {
@@ -161,12 +185,32 @@ void MainFrame::OpenAsmFile(const wxString& path)
             return;
         }
         OpenLabelsFile(std::filesystem::path(path.ToStdString()).parent_path().string());
-        m_g = std::make_shared<GameData>(path.ToStdString());
-        this->SetLabel("Landstalker Editor - " + path);
-        wxFileName name(path);
-        m_asmfile = true;
-        m_last_asm = name.GetPath();
-        InitUI();
+        m_g = std::make_shared<GameData>();
+        {
+            auto future = std::async(std::launch::async, [this, &path] { return m_g->Open(path.ToStdString()); });
+            auto dialog = wxProgressDialog("Opening ASM", "Reading data from ASM", 100, this);
+            do
+            {
+                wxYield();
+                auto progress = m_g->GetProgress();
+                dialog.Update(static_cast<int>(5.0 + progress.second * 90.0), progress.first);
+
+            } while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready);
+            if (!future.get())
+            {
+                throw std::runtime_error("Error opening ASM");
+            }
+            if (!m_g->IsReady())
+            {
+                throw std::runtime_error("Error opening ASM");
+            }
+            dialog.Update(99, "Preparing User Interface");
+            this->SetLabel("Landstalker Editor - " + path);
+            wxFileName name(path);
+            m_asmfile = true;
+            m_last_asm = name.GetPath();
+            InitUI();
+        }
     }
     catch (const std::runtime_error& e)
     {
@@ -199,10 +243,13 @@ void MainFrame::InitUI()
     const int ent_img = m_imgs->GetIdx("entity");
     const int scr_img = m_imgs->GetIdx("script");
     const int bscr_img = m_imgs->GetIdx("bscript");
+    const int data_img = m_imgs->GetIdx("data");
+    const int dtable_img = m_imgs->GetIdx("data_table");
 
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
+    wxTreeItemId nodeData = m_browser->AppendItem(nodeRoot, "Data", data_img, data_img, new TreeNodeData());
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
@@ -238,8 +285,11 @@ void MainFrame::InitUI()
         {
             m_browser->AppendItem(nodeSTI, StrPrintf("ItemTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM) << 16) | i, scr_img, false));
         }
+        m_browser->AppendItem(nodeScript, "Progress Flags", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::PROGRESS_FLAGS));
     }
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
+
+    m_browser->AppendItem(nodeData, "Character Sound Effects", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::CHARACTER_SFX));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(StringData::Type::MAIN)));
@@ -284,7 +334,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const std::wstring spr_name = m_g->GetSpriteData()->GetSpriteDisplayName(i);
+        const std::wstring spr_name = SpriteData::GetSpriteDisplayName(i);
         InsertNavItem(L"Sprites/" + spr_name, spr_img, TreeNodeData::Node::SPRITE, i, false);
     }
     for (int i = 0; i < 255; ++i)
@@ -293,7 +343,7 @@ void MainFrame::InitUI()
         {
             continue;
         }
-        const std::wstring ent_name = m_g->GetSpriteData()->GetEntityDisplayName(i);
+        const std::wstring ent_name = SpriteData::GetEntityDisplayName(i);
         InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
     }
 
@@ -1146,6 +1196,16 @@ void MainFrame::Refresh()
         GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF, m_extradata);
         ShowEditor(EditorType::SCRIPT_TABLE);
         break;
+    case Mode::PROGRESS_FLAGS:
+        // Display flags
+        GetProgressFlagsEditorFrame()->Open(m_seldata & 0xFFFF, m_extradata);
+        ShowEditor(EditorType::PROGRESS_FLAGS);
+        break;
+    case Mode::CHARACTER_SFX:
+        // Display character SFX
+        GetCharacterSfxEditorFrame()->Open(m_extradata);
+        ShowEditor(EditorType::CHARACTER_SFX);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -1208,6 +1268,12 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
     case TreeNodeData::Node::SCRIPT_TABLE:
         SetMode(Mode::SCRIPT_TABLE);
         break;
+    case TreeNodeData::Node::PROGRESS_FLAGS:
+        SetMode(Mode::PROGRESS_FLAGS);
+        break;
+    case TreeNodeData::Node::CHARACTER_SFX:
+        SetMode(Mode::CHARACTER_SFX);
+        break;
     default:
         // do nothing
         break;
@@ -1267,6 +1333,16 @@ ScriptEditorFrame* MainFrame::GetScriptEditor()
 ScriptTableEditorFrame* MainFrame::GetScriptTableEditor()
 {
     return static_cast<ScriptTableEditorFrame*>(m_editors.at(EditorType::SCRIPT_TABLE));
+}
+
+ProgressFlagsEditorFrame* MainFrame::GetProgressFlagsEditorFrame()
+{
+    return static_cast<ProgressFlagsEditorFrame*>(m_editors.at(EditorType::PROGRESS_FLAGS));
+}
+
+CharacterSfxEditorFrame* MainFrame::GetCharacterSfxEditorFrame()
+{
+    return static_cast<CharacterSfxEditorFrame*>(m_editors.at(EditorType::CHARACTER_SFX));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

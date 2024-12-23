@@ -558,6 +558,28 @@
     <ClCompile Include="..\src\user_interface\script\src\DataViewScriptActionRenderer.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\ScriptFunction.cpp" />
+    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsDataViewModel.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsCtrl.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsFrame.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxDataViewModel.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxCtrl.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxFrame.cpp">
+      <Filter>src\UI\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\ProgressFlags.cpp">
+      <Filter>src\Data\Script</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
@@ -925,6 +947,28 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\script\include\DataViewScriptActionRenderer.h">
       <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\ScriptFunction.h" />
+    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsDataViewModel.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsCtrl.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsFrame.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxDataViewModel.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxCtrl.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxFrame.h">
+      <Filter>include\UI\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\ProgressFlags.h">
+      <Filter>include\Data\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

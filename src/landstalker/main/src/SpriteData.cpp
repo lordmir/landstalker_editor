@@ -242,7 +242,7 @@ void SetFlagsForRoom(uint16_t room, const std::vector<T>& src, std::vector<T>& d
 }
 
 SpriteData::SpriteData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file)
+	: DataManager("Sprite Data", asm_file)
 {
 	if (!LoadAsmFilenames())
 	{
@@ -268,7 +268,7 @@ SpriteData::SpriteData(const std::filesystem::path& asm_file)
 }
 
 SpriteData::SpriteData(const Rom& rom)
-	: DataManager(rom)
+	: DataManager("Sprite Data", rom)
 {
 	SetDefaultFilenames();
 	if (!RomLoadSpriteFrames(rom))

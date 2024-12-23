@@ -1,6 +1,9 @@
 #include <user_interface/misc/include/AssemblyBuilderDialog.h>
 #include <user_interface/wxresource/include/wxcrafter.h>
 
+#include <future>
+#include <wx/progdlg.h>
+
 static wxString init_clonecmd = "git clone {URL} --branch {TAG} --single-branch .";
 static wxString init_cloneurl = "https://github.com/lordmir/landstalker_disasm.git";
 static wxString init_clonetag = "0.3";
@@ -413,7 +416,20 @@ bool AssemblyBuilderDialog::DoSave()
     Log("Updating assembly...\n", *wxBLUE);
     try
     {
-        if (m_gd->Save(m_dir.ToStdString()))
+        auto future = std::async(std::launch::async, [this] { return m_gd->Save(m_dir.ToStdString()); });
+        double prog_value = -1.0;
+        do
+        {
+            wxYield();
+            auto progress = m_gd->GetProgress();
+            if (progress.second != prog_value)
+            {
+                prog_value = progress.second;
+                Log(StrPrintf("%s... (%d%% complete)\n", progress.first.c_str(), static_cast<int>(prog_value * 100.0)));
+            }
+
+        } while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready);
+        if (future.get())
         {
             Log("Done!\n", wxColor(0, 128, 0));
             return true;
@@ -526,7 +542,17 @@ bool AssemblyBuilderDialog::DoSaveToRom()
     }
     std::ostringstream message, details;
     Rom output(*m_rom);
-    m_gd->RefreshPendingWrites(output);
+    {
+        auto future = std::async(std::launch::async, [this, &output] { m_gd->RefreshPendingWrites(output); });
+        double prog_value = -1.0;
+        do
+        {
+            wxYield();
+            auto progress = m_gd->GetProgress();
+            Log(StrPrintf("%s... (%d%% complete)\n", progress.first.c_str(), static_cast<int>(prog_value * 100.0)));
+
+        } while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready);
+    }
     auto result = m_gd->GetPendingWrites();
     bool warning = false;
     try

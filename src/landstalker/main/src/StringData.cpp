@@ -7,8 +7,10 @@
 #include <landstalker/misc/include/Literals.h>
 #include <landstalker/misc/include/Labels.h>
 
+#include <yaml-cpp/yaml.h>
+
 StringData::StringData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file), m_has_region_check(false)
+	: DataManager("String Data", asm_file), m_has_region_check(false)
 {
 	if (!LoadAsmFilenames())
 	{
@@ -59,7 +61,7 @@ StringData::StringData(const std::filesystem::path& asm_file)
 }
 
 StringData::StringData(const Rom& rom)
-	: DataManager(rom),
+	: DataManager("String Data", rom),
 	  m_region(rom.get_region()),
 	  m_has_region_check(m_region != RomOffsets::Region::JP && m_region != RomOffsets::Region::US_BETA)
 {
@@ -150,9 +152,9 @@ bool StringData::Save(const std::filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save end credit strings to \'") + directory.string() + '\'');
 	}
-	if (!AsmSaveEndCreditStrings(dir))
+	if (!AsmSaveTalkSfx(dir))
 	{
-		throw std::runtime_error(std::string("Unable to save talk sound effects to \'") + directory.string() + '\'');
+		throw std::runtime_error(std::string("Unable to save talk SFX data to \'") + directory.string() + '\'');
 	}
 	if (!AsmSaveScriptData(dir))
 	{
@@ -538,6 +540,7 @@ void StringData::InsertString(Type type, std::size_t index, const LSString::Stri
 	case Type::SPECIAL_NAMES:
 		assert(index <= m_special_character_names.size());
 		m_special_character_names.insert(m_special_character_names.begin() + index, value);
+		m_char_talk_sfx.insert(m_char_talk_sfx.begin() + index, 0);
 		break;
 	case Type::ITEM_NAMES:
 		assert(index <= m_item_names.size());
@@ -577,6 +580,7 @@ void StringData::DeleteString(Type type, std::size_t index)
 	case Type::SPECIAL_NAMES:
 		assert(index < m_special_character_names.size());
 		m_special_character_names.erase(m_special_character_names.begin() + index);
+		m_char_talk_sfx.erase(m_char_talk_sfx.begin() + index);
 		break;
 	case Type::ITEM_NAMES:
 		assert(index < m_item_names.size());
@@ -616,6 +620,7 @@ void StringData::SwapStrings(Type type, std::size_t i1, std::size_t i2)
 	case Type::SPECIAL_NAMES:
 		assert(i1 < m_special_character_names.size() && i2 < m_special_character_names.size());
 		std::iter_swap(m_special_character_names.begin() + i1, m_special_character_names.begin() + i2);
+		std::iter_swap(m_char_talk_sfx.begin() + i1, m_char_talk_sfx.begin() + i2);
 		break;
 	case Type::ITEM_NAMES:
 		assert(i1 < m_item_names.size() && i2 < m_item_names.size());
@@ -779,6 +784,48 @@ bool StringData::HasSpecialCharNameChanged(std::size_t index) const
 		return true;
 	}
 	return m_special_character_names_orig[index] != m_special_character_names[index];
+}
+
+uint8_t StringData::GetSpecialCharTalkSfx(std::size_t index) const
+{
+	assert(index < m_char_talk_sfx.size());
+	return m_char_talk_sfx.at(index);
+}
+
+void StringData::SetSpecialCharTalkSfx(std::size_t index, uint8_t sound)
+{
+	assert(index < m_char_talk_sfx.size());
+	m_char_talk_sfx[index] = sound;
+}
+
+std::string StringData::ExportSpecialCharTalkSfxYaml() const
+{
+	std::wostringstream ss;
+	ss << "SpecialCharTalkSfx:" << std::endl;
+	for (std::size_t i = 0; i < m_char_talk_sfx.size(); ++i)
+	{
+		ss << L"  " << i << ": " << StrWPrintf(L"0x%02X", m_char_talk_sfx.at(i)) << "  # "
+		   << m_special_character_names.at(i) << ": "
+		   << Labels::Get(Labels::C_SOUNDS, m_char_talk_sfx.at(i)).value_or(std::to_wstring(i)) << std::endl;
+	}
+	return wstr_to_utf8(ss.str());
+}
+
+void StringData::ImportSpecialCharTalkSfxYaml(std::string yaml)
+{
+	YAML::Node node = YAML::Load(yaml);
+	std::fill(m_char_talk_sfx.begin(), m_char_talk_sfx.end(), 0_u8);
+	for (const auto& val : node.begin()->second)
+	{
+		uint8_t character = 0;
+		uint8_t sound = 0;
+		sound = val.second.as<uint8_t>();
+		character = val.first.as<uint8_t>();
+		if (character < m_char_talk_sfx.size())
+		{
+			m_char_talk_sfx[character] = sound;
+		}
+	}
 }
 
 const LSString::StringType& StringData::GetDefaultCharName() const

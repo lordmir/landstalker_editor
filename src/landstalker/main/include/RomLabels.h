@@ -5,6 +5,9 @@
 
 namespace RomLabels
 {
+	extern const std::string DEFINES_SECTION;
+	extern const std::string DEFINES_FILE;
+
 	namespace Script
 	{
 		extern const std::string SCRIPT_SECTION;
@@ -16,11 +19,23 @@ namespace RomLabels
 		extern const std::string SHOP_TABLE_SECTION;
 		extern const std::string ITEM_TABLE_SECTION;
 
+		extern const std::string CHAR_FUNCS_SECTION;
+		extern const std::string CUTSCENE_FUNCS_SECTION;
+		extern const std::string SHOP_FUNCS_SECTION;
+		extern const std::string ITEM_FUNCS_SECTION;
+		extern const std::string FLAG_PROGRESS_SECTION;
+
 		extern const std::string SCRIPT_FILE;
 		extern const std::string CUTSCENE_TABLE_FILE;
 		extern const std::string CHAR_TABLE_FILE;
 		extern const std::string SHOP_TABLE_FILE;
 		extern const std::string ITEM_TABLE_FILE;
+
+		extern const std::string CHAR_FUNCS_FILE;
+		extern const std::string CUTSCENE_FUNCS_FILE;
+		extern const std::string SHOP_FUNCS_FILE;
+		extern const std::string ITEM_FUNCS_FILE;
+		extern const std::string FLAG_PROGRESS_FILE;
 	}
 
 	namespace Sprites

@@ -6,7 +6,7 @@
 #include <landstalker/misc/include/Labels.h>
 
 ScriptData::ScriptData(const std::filesystem::path& asm_file)
-	: DataManager(asm_file),
+	: DataManager("Script Data", asm_file),
 	  m_is_asm(true)
 {
 	if (!LoadAsmFilenames())
@@ -21,12 +21,16 @@ ScriptData::ScriptData(const std::filesystem::path& asm_file)
 	{
 		throw std::runtime_error(std::string("Unable to load script tables from \'") + asm_file.string() + '\'');
 	}
+	if (!AsmLoadScriptFunctions())
+	{
+		throw std::runtime_error(std::string("Unable to load script functions from \'") + asm_file.string() + '\'');
+	}
 	m_script_start = 0x4D;
 	InitCache();
 }
 
 ScriptData::ScriptData(const Rom& rom)
-	: DataManager(rom),
+	: DataManager("Script Data", rom),
 	  m_is_asm(false)
 {
 	SetDefaultFilenames();
@@ -56,6 +60,10 @@ bool ScriptData::Save(const std::filesystem::path& dir)
 	{
 		throw std::runtime_error(std::string("Unable to save script tables to \'") + directory.string() + '\'');
 	}
+	if (!AsmSaveScriptFunctions(dir))
+	{
+		throw std::runtime_error(std::string("Unable to save script functions to \'") + directory.string() + '\'');
+	}
 	CommitAllChanges();
 	return true;
 }
@@ -84,6 +92,26 @@ bool ScriptData::HasBeenModified() const
 		return true;
 	}
 	if (m_is_asm && *m_itemtable != *m_itemtable_orig)
+	{
+		return true;
+	}
+	if (m_is_asm && *m_charfuncs != *m_charfuncs_orig)
+	{
+		return true;
+	}
+	if (m_is_asm && *m_cutscenefuncs != *m_cutscenefuncs_orig)
+	{
+		return true;
+	}
+	if (m_is_asm && *m_shopfuncs != *m_shopfuncs_orig)
+	{
+		return true;
+	}
+	if (m_is_asm && *m_itemfuncs != *m_itemfuncs_orig)
+	{
+		return true;
+	}
+	if (m_is_asm && *m_flagprogress != *m_flagprogress_orig)
 	{
 		return true;
 	}
@@ -189,6 +217,81 @@ std::shared_ptr<std::vector<ScriptTable::Item>> ScriptData::GetItemTable()
 	return m_itemtable;
 }
 
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetCharFuncs() const
+{
+	return m_charfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetCharFuncs()
+{
+	return m_charfuncs;
+}
+
+void ScriptData::SetCharFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_charfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetCutsceneFuncs() const
+{
+	return m_cutscenefuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetCutsceneFuncs()
+{
+	return m_cutscenefuncs;
+}
+
+void ScriptData::SetCutsceneFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_cutscenefuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetShopFuncs() const
+{
+	return m_shopfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetShopFuncs()
+{
+	return m_shopfuncs;
+}
+
+void ScriptData::SetShopFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_shopfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetItemFuncs() const
+{
+	return m_itemfuncs;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetItemFuncs()
+{
+	return m_itemfuncs;
+}
+
+void ScriptData::SetItemFuncs(ScriptFunctionTable& funcs)
+{
+	*m_itemfuncs = funcs;
+}
+
+std::shared_ptr<const ScriptFunctionTable> ScriptData::GetProgressFlagsFuncs() const
+{
+	return m_flagprogress;
+}
+
+std::shared_ptr<ScriptFunctionTable> ScriptData::GetProgressFlagsFuncs()
+{
+	return m_flagprogress;
+}
+
+void ScriptData::SetProgressFlagsFuncs(const ScriptFunctionTable& funcs)
+{
+	*m_flagprogress = funcs;
+}
+
 void ScriptData::CommitAllChanges()
 {
 	m_pending_writes.clear();
@@ -200,11 +303,17 @@ bool ScriptData::LoadAsmFilenames()
 	{
 		bool retval = true;
 		AsmFile f(GetAsmFilename().string());
+		retval = retval && GetFilenameFromAsm(f, RomLabels::DEFINES_SECTION, m_defines_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::SCRIPT_SECTION, m_script_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::CUTSCENE_TABLE_SECTION, m_cutscene_table_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::CHAR_TABLE_SECTION, m_char_table_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::SHOP_TABLE_SECTION, m_shop_table_filename);
 		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::ITEM_TABLE_SECTION, m_item_table_filename);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::CHAR_FUNCS_SECTION, m_char_funcs_filename);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::CUTSCENE_FUNCS_SECTION, m_cutscene_funcs_filename);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::SHOP_FUNCS_SECTION, m_shop_funcs_filename);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::ITEM_FUNCS_SECTION, m_item_funcs_filename);
+		retval = retval && GetFilenameFromAsm(f, RomLabels::Script::FLAG_PROGRESS_SECTION, m_flag_progress_filename);
 		return retval;
 	}
 	catch (...)
@@ -215,11 +324,17 @@ bool ScriptData::LoadAsmFilenames()
 
 void ScriptData::SetDefaultFilenames()
 {
+	if (m_defines_filename.empty()) m_defines_filename = RomLabels::DEFINES_FILE;
 	if (m_script_filename.empty()) m_script_filename = RomLabels::Script::SCRIPT_FILE;
 	if (m_cutscene_table_filename.empty()) m_cutscene_table_filename = RomLabels::Script::CUTSCENE_TABLE_FILE;
 	if (m_char_table_filename.empty()) m_char_table_filename = RomLabels::Script::CHAR_TABLE_FILE;
 	if (m_shop_table_filename.empty()) m_shop_table_filename = RomLabels::Script::SHOP_TABLE_FILE;
 	if (m_item_table_filename.empty()) m_item_table_filename = RomLabels::Script::ITEM_TABLE_FILE;
+	if (m_char_funcs_filename.empty()) m_char_funcs_filename = RomLabels::Script::CHAR_FUNCS_FILE;
+	if (m_cutscene_funcs_filename.empty()) m_cutscene_funcs_filename = RomLabels::Script::CUTSCENE_FUNCS_FILE;
+	if (m_shop_funcs_filename.empty()) m_shop_funcs_filename = RomLabels::Script::SHOP_FUNCS_FILE;
+	if (m_item_funcs_filename.empty()) m_item_funcs_filename = RomLabels::Script::ITEM_FUNCS_FILE;
+	if (m_flag_progress_filename.empty()) m_flag_progress_filename = RomLabels::Script::FLAG_PROGRESS_FILE;
 }
 
 bool ScriptData::CreateDirectoryStructure(const std::filesystem::path& dir)
@@ -227,6 +342,18 @@ bool ScriptData::CreateDirectoryStructure(const std::filesystem::path& dir)
 	bool retval = true;
 
 	retval = retval && CreateDirectoryTree(dir / m_script_filename);
+	if (m_is_asm)
+	{
+		retval = retval && CreateDirectoryTree(dir / m_cutscene_table_filename);
+		retval = retval && CreateDirectoryTree(dir / m_char_table_filename);
+		retval = retval && CreateDirectoryTree(dir / m_shop_table_filename);
+		retval = retval && CreateDirectoryTree(dir / m_item_table_filename);
+		retval = retval && CreateDirectoryTree(dir / m_char_funcs_filename);
+		retval = retval && CreateDirectoryTree(dir / m_cutscene_funcs_filename);
+		retval = retval && CreateDirectoryTree(dir / m_shop_funcs_filename);
+		retval = retval && CreateDirectoryTree(dir / m_item_funcs_filename);
+		retval = retval && CreateDirectoryTree(dir / m_flag_progress_filename);
+	}
 
 	return retval;
 }
@@ -240,6 +367,11 @@ void ScriptData::InitCache()
 		m_chartable_orig = std::make_shared<std::vector<ScriptTable::Action>>(*m_chartable);
 		m_shoptable_orig = std::make_shared<std::vector<ScriptTable::Shop>>(*m_shoptable);
 		m_itemtable_orig = std::make_shared<std::vector<ScriptTable::Item>>(*m_itemtable);
+		m_charfuncs_orig = std::make_shared<ScriptFunctionTable>(*m_charfuncs);
+		m_cutscenefuncs_orig = std::make_shared<ScriptFunctionTable>(*m_cutscenefuncs);
+		m_shopfuncs_orig = std::make_shared<ScriptFunctionTable>(*m_shopfuncs);
+		m_itemfuncs_orig = std::make_shared<ScriptFunctionTable>(*m_itemfuncs);
+		m_flagprogress_orig = std::make_shared<ScriptFunctionTable>(*m_flagprogress);
 	}
 }
 
@@ -256,6 +388,16 @@ bool ScriptData::AsmLoadScriptTables()
 	m_chartable = ScriptTable::ReadTable((GetBasePath() / m_char_table_filename).string());
 	m_shoptable = ScriptTable::ReadShopTable((GetBasePath() / m_shop_table_filename).string());
 	m_itemtable = ScriptTable::ReadItemTable((GetBasePath() / m_item_table_filename).string());
+	return true;
+}
+
+bool ScriptData::AsmLoadScriptFunctions()
+{
+	m_charfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_char_funcs_filename, GetBasePath() / m_defines_filename));
+	m_cutscenefuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_cutscene_funcs_filename, GetBasePath() / m_defines_filename));
+	m_shopfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_shop_funcs_filename, GetBasePath() / m_defines_filename));
+	m_itemfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_item_funcs_filename, GetBasePath() / m_defines_filename));
+	m_flagprogress = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_flag_progress_filename, GetBasePath() / m_defines_filename));
 	return true;
 }
 
@@ -282,6 +424,38 @@ bool ScriptData::AsmSaveScriptTables(const std::filesystem::path& dir)
 	retval = retval && ScriptTable::WriteTable(dir, m_char_table_filename, "Character Script Table", m_chartable);
 	retval = retval && ScriptTable::WriteShopTable(dir, m_shop_table_filename, "Shop Script Table", m_shoptable);
 	retval = retval && ScriptTable::WriteItemTable(dir, m_item_table_filename, "Item Script Table", m_itemtable);
+	return retval;
+}
+
+bool ScriptData::AsmSaveScriptFunctions(const std::filesystem::path& dir)
+{
+	bool retval = true;
+	AsmFile char_funcs_asm;
+	AsmFile cutscene_funcs_asm;
+	AsmFile shop_funcs_asm;
+	AsmFile item_funcs_asm;
+	AsmFile flag_progress_asm;
+
+	char_funcs_asm.WriteFileHeader(m_char_funcs_filename, "Character Script Functions");
+	retval = retval && m_charfuncs->WriteAsm(char_funcs_asm);
+	retval = retval && char_funcs_asm.WriteFile(dir / m_char_funcs_filename);
+
+	cutscene_funcs_asm.WriteFileHeader(m_cutscene_funcs_filename, "Cutscene Script Functions");
+	retval = retval && m_cutscenefuncs->WriteAsm(cutscene_funcs_asm);
+	retval = retval && cutscene_funcs_asm.WriteFile(dir / m_cutscene_funcs_filename);
+
+	shop_funcs_asm.WriteFileHeader(m_shop_funcs_filename, "Shop Script Functions");
+	retval = retval && m_shopfuncs->WriteAsm(shop_funcs_asm);
+	retval = retval && shop_funcs_asm.WriteFile(dir / m_shop_funcs_filename);
+
+	item_funcs_asm.WriteFileHeader(m_item_funcs_filename, "Special Shop Item Script Functions");
+	retval = retval && m_itemfuncs->WriteAsm(item_funcs_asm);
+	retval = retval && item_funcs_asm.WriteFile(dir / m_item_funcs_filename);
+
+	flag_progress_asm.WriteFileHeader(m_flag_progress_filename, "Quest Progress Flag Mapping");
+	retval = retval && m_flagprogress->WriteAsm(flag_progress_asm);
+	retval = retval && flag_progress_asm.WriteFile(dir / m_flag_progress_filename);
+
 	return retval;
 }
 

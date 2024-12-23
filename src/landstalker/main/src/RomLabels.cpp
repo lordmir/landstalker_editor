@@ -2,6 +2,9 @@
 
 namespace RomLabels
 {
+	const std::string DEFINES_SECTION("Defines");
+	const std::string DEFINES_FILE("code/include/landstalker.inc");
+
 	namespace Script
 	{
 		const std::string SCRIPT_SECTION("Script");
@@ -13,11 +16,23 @@ namespace RomLabels
 		const std::string SHOP_TABLE_SECTION("ShopScript");
 		const std::string ITEM_TABLE_SECTION("ShopSpecialItemsScript");
 
+		const std::string CHAR_FUNCS_SECTION("CharacterScriptFuncs");
+		const std::string CUTSCENE_FUNCS_SECTION("CutsceneScriptFuncs");
+		const std::string SHOP_FUNCS_SECTION("ShopScriptFuncs");
+		const std::string ITEM_FUNCS_SECTION("ShopSpecialItemsFuncs");
+		const std::string FLAG_PROGRESS_SECTION("ScriptProgressFlags");
+
 		const std::string SCRIPT_FILE("assets_packed/script/script.bin");
 		const std::string CUTSCENE_TABLE_FILE("code/script/cutscenes/script_cutscenetable.asm");
 		const std::string CHAR_TABLE_FILE("code/script/characters/script_charactertable.asm");
 		const std::string SHOP_TABLE_FILE("code/script/shops/shoptable.asm");
 		const std::string ITEM_TABLE_FILE("code/script/shops/shoptable_specialitems.asm");
+
+		const std::string CHAR_FUNCS_FILE("code/script/characters/script_characters.asm");
+		const std::string CUTSCENE_FUNCS_FILE("code/script/cutscenes/script_cutscenes.asm");
+		const std::string SHOP_FUNCS_FILE("code/script/shops/script_shops.asm");
+		const std::string ITEM_FUNCS_FILE("code/script/shops/script_shopspecialitems.asm");
+		const std::string FLAG_PROGRESS_FILE("code/script/scriptflagcheck.asm");
 	}
 
 	namespace Sprites

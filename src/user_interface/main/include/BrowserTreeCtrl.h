@@ -21,7 +21,14 @@ public:
         ENTITY,
         BEHAVIOUR_SCRIPT,
         SCRIPT,
-        SCRIPT_TABLE
+        SCRIPT_TABLE,
+        SCRIPT_FUNCTIONS,
+        PROGRESS_FLAGS,
+        CHARACTER_SFX,
+        ROM_DATA,
+        CHARSET,
+        INVENTORY_LAYOUT,
+        FRIDAY_ANIMATION
     };
     TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0, int img = -1, bool no_delete = true)
         : m_nodeType(nodeType), m_value(value), m_img(img), m_no_delete(no_delete) {}

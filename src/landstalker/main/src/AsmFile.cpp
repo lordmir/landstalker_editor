@@ -13,7 +13,90 @@ const std::unordered_map<std::string, AsmFile::Inst> AsmFile::INSTRUCTIONS
 	{"dc", Inst::DC}, {"dcb", Inst::DCB}, {"include", Inst::INCLUDE}, {"incbin", Inst::INCBIN},
 	{"Align", Inst::ALIGN}, {"ScriptID", Inst::SCRIPTID}, {"ScriptJump", Inst::SCRIPTJUMP}
 };
-const std::unordered_map<std::string, std::size_t> AsmFile::WIDTHS{ {"", 0}, {"b", 1}, {"w", 2}, {"l", 4}, {"s", 99} };
+const std::unordered_map<std::string, AsmFile::Width> AsmFile::WIDTHS{ {"", Width::NONE}, {"b", Width::B}, {"w", Width::W}, {"l", Width::L}, {"s", Width::S} };
+
+std::string AsmFile::Instruction::ToLine(const std::string& label, const std::string& comment) const
+{
+	return AsmFile::ToAsmLine(ToAsmLine(label, comment));
+}
+AsmFile::AsmLine AsmFile::Instruction::ToAsmLine(const std::string& label, const std::string& comment) const
+{
+	std::string line;
+	AsmFile::AsmLine asmline{};
+	asmline.comment = comment;
+	asmline.label = label;
+	asmline.instruction = mnemonic;
+	auto width_chr = FindMapKey(WIDTHS, width);
+	if (width_chr != WIDTHS.cend())
+	{
+		asmline.width = width_chr->first;
+	}
+	for (const auto& operand : operands)
+	{
+		if (!asmline.operand.empty())
+		{
+			asmline.operand += ",";
+		}
+		asmline.operand += std::visit([this](const auto& arg) {return AsmFile::ToAsmValue(arg); }, operand);
+	}
+	return asmline;
+}
+
+bool AsmFile::Instruction::operator==(const Instruction& rhs) const
+{
+	return this->mnemonic == rhs.mnemonic && this->operands == rhs.operands && this->width == rhs.width;
+}
+
+bool AsmFile::Instruction::operator!=(const Instruction& rhs) const
+{
+	return !(*this == rhs);
+}
+
+AsmFile::Instruction AsmFile::Instruction::FromLine(const std::string& line, const std::map<std::string, std::string>& defines)
+{
+	AsmFile::AsmLine asm_line;
+	ParseLine(asm_line, line);
+	return FromAsmLine(asm_line, defines);
+}
+
+AsmFile::Instruction AsmFile::Instruction::FromAsmLine(const AsmFile::AsmLine& line, const std::map<std::string, std::string>& defines)
+{
+	Width width = GetWidth(line);
+	if (line.instruction.empty())
+	{
+		return Instruction();
+	}
+
+	std::string param;
+	std::stringstream ss(line.operand);
+	Instruction ins(line.instruction, width);
+	while (ss.good())
+	{
+		std::getline(ss, param, ',');
+		auto result = ParseValue(param, defines);
+		if (result != -1)
+		{
+			ins.operands.push_back(result);
+		}
+		else if (param.size() > 0 && param[0] == '#')
+		{
+			result = ParseValue(Trim(param.substr(1)), defines);
+			if (result != -1)
+			{
+				ins.operands.push_back(Immediate(result));
+			}
+			else
+			{
+				ins.operands.push_back(param);
+			}
+		}
+		else
+		{
+			ins.operands.push_back(param);
+		}
+	}
+	return ins;
+}
 
 AsmFile::AsmFile(const std::filesystem::path& filename, FileType type)
 	: m_type(type),
@@ -25,10 +108,79 @@ AsmFile::AsmFile(const std::filesystem::path& filename, FileType type)
 	}
 }
 
+AsmFile::AsmFile(const std::filesystem::path& filename, const std::vector<std::string>& inc_files)
+	: m_type(FileType::ASSEMBLER),
+	m_filename(filename)
+{
+	for (const auto& file : inc_files)
+	{
+		SetDefines(file);
+	}
+	if (!ReadFile(m_filename, m_type))
+	{
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+	}
+}
+
+AsmFile::AsmFile(const std::filesystem::path& filename, const std::map<std::string, std::string>& defines)
+	: m_type(FileType::ASSEMBLER),
+	m_filename(filename)
+{
+	SetDefines(defines);
+	if (!ReadFile(m_filename, m_type))
+	{
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+	}
+}
+
+AsmFile::AsmFile(const std::filesystem::path& filename, const std::filesystem::path& defines_file)
+	: m_type(FileType::ASSEMBLER),
+	  m_filename(filename)
+{
+	SetDefines(defines_file.string());
+	if (!ReadFile(m_filename, m_type))
+	{
+		throw std::runtime_error(std::string("File \'") + m_filename.string() + ("\' cannot be read!"));
+	}
+}
+
 AsmFile::AsmFile(FileType type)
 	: m_type(type)
 {
 	Clear();
+}
+
+void AsmFile::SetDefines(const std::map<std::string, std::string>& defines)
+{
+	m_defines.insert(defines.cbegin(), defines.cend());
+}
+
+void AsmFile::SetDefines(const std::string& file)
+{
+	auto defines = ParseDefines(file);
+	m_defines.insert(defines.cbegin(), defines.cend());
+}
+
+const std::map<std::string, std::string>& AsmFile::GetDefines() const
+{
+	return m_defines;
+}
+
+std::map<std::string, std::string> AsmFile::ParseDefines(const std::string& inc_file)
+{
+	std::map<std::string, std::string> defines;
+	std::ifstream ifs(inc_file);
+	std::string line;
+	std::regex def_re("^(\\w+):\\s+equ\\s+(\\S+)", std::regex_constants::ECMAScript | std::regex_constants::icase);
+	std::smatch matches;
+	while (ifs.good() && std::getline(ifs, line))
+	{
+		if (std::regex_search(line, matches, def_re))
+		{
+			defines[matches[1].str()] = matches[2].str();
+		}
+	}
+	return defines;
 }
 
 std::vector<uint8_t> AsmFile::ToBinary()
@@ -51,6 +203,10 @@ std::vector<uint8_t> AsmFile::ToBinary()
 std::string AsmFile::ToAssembly()
 {
 	std::string ass;
+	if (!m_nextline.instruction.empty())
+	{
+		PushNextLine();
+	}
 	for (const auto& line : m_asm)
 	{
 		ass += ToAsmLine(line) + "\n";
@@ -278,6 +434,11 @@ void AsmFile::WriteFileHeader(const std::filesystem::path& p, const std::string&
 	*this << AsmFile::NewLine() << AsmFile::NewLine();
 }
 
+const AsmFile::AsmData& AsmFile::Peek() const
+{
+	return *m_readptr;
+}
+
 bool AsmFile::Read(const GotoLabel& label)
 {
 	if (m_labels.find(label.label) == m_labels.end())
@@ -396,6 +557,21 @@ bool AsmFile::Read(ScriptAction& value)
 	return ret;
 }
 
+template <>
+bool AsmFile::Read(Instruction& value)
+{
+	bool ret = false;
+	if (m_readptr != m_data.end())
+	{
+		if (std::holds_alternative<Instruction>(*m_readptr))
+		{
+			value = std::get<Instruction>(*m_readptr++);
+			ret = true;
+		}
+	}
+	return ret;
+}
+
 bool AsmFile::Write(const std::string& data)
 {
 	if (!m_nextline.instruction.empty())
@@ -403,7 +579,7 @@ bool AsmFile::Write(const std::string& data)
 		PushNextLine();
 	}
 	m_nextline.instruction = FindMapKey(INSTRUCTIONS, Inst::DC)->first;
-	m_nextline.width = FindMapKey(WIDTHS, sizeof(uint32_t))->first;
+	m_nextline.width = FindMapKey(WIDTHS, Width::L)->first;
 	m_nextline.operand = data;
 	return true;
 }
@@ -481,6 +657,29 @@ bool AsmFile::Write(const ScriptJump& jump)
 	return true;
 }
 
+bool AsmFile::Write(const ScriptAction& action)
+{
+	if (!action)
+	{
+		return false;
+	}
+	return std::visit([this](const auto& arg) {return Write(arg); }, *action);
+}
+
+bool AsmFile::Write(const Instruction& ins)
+{
+	AsmLine newline = ins.ToAsmLine();
+	if (!m_nextline.instruction.empty())
+	{
+		PushNextLine();
+	}
+	newline.comment = m_nextline.comment;
+	newline.label = m_nextline.label;
+	m_nextline = newline;
+
+	return true;
+}
+
 bool AsmFile::ParseLine(AsmFile::AsmLine& line, const std::string& str)
 {
 	std::string s(str);
@@ -515,7 +714,12 @@ bool AsmFile::ParseLine(AsmFile::AsmLine& line, const std::string& str)
 	}
 	else
 	{
-		return false;
+		line.instruction = s;
+		s = std::string();
+	}
+	if (INSTRUCTIONS.find(line.instruction) == INSTRUCTIONS.cend())
+	{
+		line.instruction = str_to_lower(line.instruction);
 	}
 	line.operand = Trim(s);
 	end = line.instruction.find_first_of(".");
@@ -531,11 +735,22 @@ bool AsmFile::ParseLine(AsmFile::AsmLine& line, const std::string& str)
 
 int64_t AsmFile::ParseValue(std::string val)
 {
-	const std::unordered_map<char, int> bases{ {'$', 16}, {'@', 8}, {'%', 2} };
+	return ParseValue(val, m_defines);
+}
+
+int64_t AsmFile::ParseValue(std::string val, const std::map<std::string, std::string>& defines)
+{
+	const std::unordered_map<char, int> bases{ {'$', 16}, {'@', 8}, {'%', 2}, {'^', 32}, {'"', 256}, {'\'', 256} };
 
 	val.erase(std::remove_if(val.begin(), val.end(), ::isspace), val.end());
 	int64_t num = -1;
 	bool neg = false;
+
+	if (defines.count(val) > 0)
+	{
+		val = defines.at(val);
+	}
+
 	if (val.length() == 0)
 	{
 		return num;
@@ -547,17 +762,69 @@ int64_t AsmFile::ParseValue(std::string val)
 	}
 	if (bases.find(val[0]) != bases.end())
 	{
-		int base = bases.find(val[0])->second;
+		char basesym = val[0];
+		int base = bases.find(basesym)->second;
 		val.erase(0, 1);
-		num = std::stoull(val, nullptr, base);
+		if (base < 32)
+		{
+			// Numeric, not base 10
+			std::size_t len = 0;
+			num = std::stoul(val, &len, base);
+			if (len != val.size())
+			{
+				return -1;
+			}
+		}
+		else if (base == 256)
+		{
+			// String literal
+			if (val.back() != basesym)
+			{
+				return -1;
+			}
+			for (std::size_t i = 0; i < val.size() - 1; ++i)
+			{
+				if (val[i] == basesym)
+				{
+					if (i == val.size() - 2)
+					{
+						// bad string
+						return -1;
+					}
+					else if (val[i + 1] == basesym)
+					{
+						// Double quoted
+						++i;
+						num <<= 8;
+						num |= val[i];
+					}
+					else
+					{
+						// EOS
+						break;
+					}
+				}
+				num <<= 8;
+				num |= val[i];
+			}
+		}
+		else
+		{
+			// Control character
+			num = static_cast<int64_t>(val[0] - '@');
+		}
 	}
 	else if (std::isdigit(val[0]))
 	{
-		num = std::stoull(val, nullptr);
+		std::size_t len = 0;
+		num = std::stoull(val, &len);
+		if (len != val.size())
+		{
+			return -1;
+		}
 	}
 	else
 	{
-		m_data.push_back(val);
 		return -1;
 	}
 	if (neg)
@@ -567,22 +834,21 @@ int64_t AsmFile::ParseValue(std::string val)
 	return num;
 }
 
-int AsmFile::GetWidth(const AsmLine& line)
+AsmFile::Width AsmFile::GetWidth(const AsmLine& line)
 {
-	const std::unordered_map<std::string, int> widths{ {"b", 1}, {"w", 2}, {"l", 4} };
-
-	if (widths.find(line.width) == widths.end())
+	auto it = WIDTHS.find(line.width);
+	if (it == WIDTHS.end())
 	{
-		return 0;
+		return Width::NONE;
 	}
-	return widths.find(line.width)->second;
+	return it->second;
 }
 
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::DC>(const AsmFile::AsmLine& line)
 {
-	int width = GetWidth(line);
-	if (width == 0)
+	Width width = GetWidth(line);
+	if (width == Width::NONE)
 	{
 		return false;
 	}
@@ -594,11 +860,15 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DC>(const AsmFile::AsmLine& line)
 		auto result = ParseValue(word);
 		if (result != -1)
 		{
-			for (int i = 0; i < width; ++i)
+			for (std::size_t i = 0; i < static_cast<std::size_t>(width); ++i)
 			{
-				uint8_t byte = (result >> ((width - i - 1) * 8)) & 0xFF;
+				uint8_t byte = (result >> ((static_cast<std::size_t>(width) - i - 1) * 8)) & 0xFF;
 				m_data.push_back(byte);
 			}
+		}
+		else
+		{
+			m_data.push_back(word);
 		}
 	}
 	return true;
@@ -607,8 +877,8 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DC>(const AsmFile::AsmLine& line)
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::DCB>(const AsmFile::AsmLine& line)
 {
-	int width = GetWidth(line);
-	if (width == 0)
+	Width width = GetWidth(line);
+	if (width == Width::NONE)
 	{
 		return false;
 	}
@@ -618,17 +888,25 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DCB>(const AsmFile::AsmLine& line)
 	std::stringstream ss(line.operand);
 	std::getline(ss, word, ',');
 	auto repeats = ParseValue(word);
+	if (repeats < 1)
+	{
+		return false;
+	}
 	std::getline(ss, word, ',');
+	auto val = ParseValue(word);
 	for (int i = 0; i < repeats; ++i)
 	{
-		auto val = ParseValue(word);
 		if (val != -1)
 		{
-			for (int j = 0; j < width; ++j)
+			for (std::size_t j = 0; j < static_cast<std::size_t>(width); ++j)
 			{
-				uint8_t byte = (val >> ((width - j - 1) * 8)) & 0xFF;
+				uint8_t byte = (val >> ((static_cast<std::size_t>(width) - j - 1) * 8)) & 0xFF;
 				m_data.push_back(byte);
 			}
+		}
+		else
+		{
+			m_data.push_back(word);
 		}
 	}
 
@@ -658,8 +936,8 @@ bool AsmFile::ProcessInst<AsmFile::Inst::ALIGN>(const AsmFile::AsmLine& /*line*/
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTID>(const AsmFile::AsmLine& line)
 {
-	int width = GetWidth(line);
-	if (width != 0)
+	Width width = GetWidth(line);
+	if (width != Width::NONE)
 	{
 		return false;
 	}
@@ -667,9 +945,19 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTID>(const AsmFile::AsmLine& line)
 	std::string word;
 	std::stringstream ss(line.operand);
 	std::getline(ss, word, ',');
-	uint16_t id = static_cast<uint16_t>(ParseValue(word));
+	int64_t val = ParseValue(word);
+	if (val < 0)
+	{
+		return false;
+	}
+	uint16_t id = static_cast<uint16_t>(val);
 	std::getline(ss, word, ',');
-	uint16_t pos = static_cast<uint16_t>(ParseValue(word));
+	val = ParseValue(word);
+	if (val < 0)
+	{
+		return false;
+	}
+	uint16_t pos = static_cast<uint16_t>(val);
 
 	m_data.push_back(ScriptId(id, pos));
 	
@@ -679,8 +967,8 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTID>(const AsmFile::AsmLine& line)
 template<>
 bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTJUMP>(const AsmFile::AsmLine& line)
 {
-	int width = GetWidth(line);
-	if (width != 0)
+	Width width = GetWidth(line);
+	if (width != Width::NONE)
 	{
 		return false;
 	}
@@ -688,9 +976,14 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTJUMP>(const AsmFile::AsmLine& lin
 	std::string word;
 	std::stringstream ss(line.operand);
 	std::getline(ss, word, ',');
-	auto func = word;
+	std::string func = word;
 	std::getline(ss, word, ',');
-	uint16_t pos = static_cast<uint16_t>(ParseValue(word));
+	int64_t val = ParseValue(word);
+	if (val < 0)
+	{
+		return false;
+	}
+	uint16_t pos = static_cast<uint16_t>(val);
 
 	if (func.empty() == false)
 	{
@@ -699,13 +992,25 @@ bool AsmFile::ProcessInst<AsmFile::Inst::SCRIPTJUMP>(const AsmFile::AsmLine& lin
 	return true;
 }
 
+template<>
+bool AsmFile::ProcessInst<AsmFile::Inst::GENERIC>(const AsmFile::AsmLine& line)
+{
+	auto ins = Instruction::FromAsmLine(line);
+	if (ins.mnemonic != "invalid")
+	{
+		m_data.push_back(ins);
+		return true;
+	}
+	return false;
+}
+
 
 bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 {
 	auto it = INSTRUCTIONS.find(line.instruction);
 	if (it == INSTRUCTIONS.end())
 	{
-		return false;
+		return ProcessInst<Inst::GENERIC>(line);
 	}
 	switch (it->second)
 	{
@@ -716,7 +1021,7 @@ bool AsmFile::ProcessLine(const AsmFile::AsmLine& line)
 	case Inst::ALIGN:      return ProcessInst<Inst::ALIGN>(line);
 	case Inst::SCRIPTID:   return ProcessInst<Inst::SCRIPTID>(line);
 	case Inst::SCRIPTJUMP: return ProcessInst<Inst::SCRIPTJUMP>(line);
-	default:               return false;
+	default:			   return false;
 	}
 }
 
@@ -772,6 +1077,11 @@ std::string AsmFile::ToAsmLine(const AsmFile::AsmLine& line)
 std::string AsmFile::ToAsmValue(const std::string& value)
 {
 	return value;
+}
+
+std::string AsmFile::ToAsmValue(const Immediate& value)
+{
+	return "#" + ToAsmValue(value.val, Base::HEX);
 }
 
 std::string AsmFile::ToAsmValue(uint64_t value)
@@ -844,4 +1154,24 @@ void AsmFile::AsmLine::Clear()
 std::ostream& operator<<(std::ostream& stream, AsmFile& file)
 {
 	return file.PrintFile(stream);
+}
+
+bool AsmFile::ScriptId::operator==(const ScriptId& rhs) const
+{
+	return this->script_id == rhs.script_id;
+}
+
+bool AsmFile::ScriptId::operator!=(const ScriptId& rhs) const
+{
+	return !(*this == rhs);
+}
+
+bool AsmFile::ScriptJump::operator==(const ScriptJump& rhs) const
+{
+	return this->func == rhs.func;
+}
+
+bool AsmFile::ScriptJump::operator!=(const ScriptJump& rhs) const
+{
+	return !(*this == rhs);
 }

@@ -16,10 +16,16 @@ public:
 	void SetValue(uint16_t value);
 	uint16_t GetValue() const;
 private:
+	enum class EditorMode
+	{
+		STRING,
+		SLOT_AND_VALUE,
+		VALUE,
+		BGM,
+		NONE
+	};
 	void OnClick(wxMouseEvent& evt);
 	void OnKeyDown(wxKeyEvent& evt);
-	void OnClearCheck(wxCommandEvent& evt);
-	void OnEndCheck(wxCommandEvent& evt);
 	void OnSpin(wxSpinEvent& evt);
 	void OnTextEnter(wxCommandEvent& evt);
 	void OnChangeType(wxCommandEvent& evt);
@@ -30,45 +36,31 @@ private:
 	void ShowEditor(const ScriptTableEntryType& type);
 
 	ScriptTableEntryType m_type = ScriptTableEntryType::INVALID;
+	EditorMode m_mode = EditorMode::NONE;
 	std::unique_ptr<ScriptTableEntry> m_entry = nullptr;
 	std::shared_ptr<const GameData> m_gd;
 
 	wxBoxSizer* m_main_sizer = nullptr;
 	wxBoxSizer* m_type_ctrl_sizer = nullptr;
-	std::map<ScriptTableEntryType, wxPanel*> m_panels;
-	std::map<ScriptTableEntryType, wxBoxSizer*> m_panel_sizers;
+	std::map<EditorMode, wxPanel*> m_panels;
+	std::map<EditorMode, wxBoxSizer*> m_panel_sizers;
 	wxChoice* m_type_select = nullptr;
 
 	wxTextCtrl* m_string_preview = nullptr;
 	wxSpinCtrl* m_string_select = nullptr;
-	wxCheckBox* m_string_clear = nullptr;
-	wxCheckBox* m_string_end = nullptr;
 
-	wxChoice* m_load_global_char_slot = nullptr;
-	wxSpinCtrl* m_load_global_char_select = nullptr;
-	wxStaticText* m_load_global_char_name = nullptr;
+	wxChoice* m_slot_select = nullptr;
+	wxStaticText* m_slot_value_label = nullptr;
+	wxSpinCtrl* m_slot_value_select = nullptr;
+	wxStaticText* m_slot_value_preview = nullptr;
 
-	wxChoice* m_item_slot = nullptr;
-	wxSpinCtrl* m_item_select = nullptr;
-	wxStaticText* m_item_name = nullptr;
+	wxStaticText* m_value_label = nullptr;
+	wxSpinCtrl* m_value_select = nullptr;
+	wxStaticText* m_value_preview = nullptr;
 
-	wxSpinCtrl* m_num_select = nullptr;
+	wxStaticText* m_null_preview = nullptr;
 
 	wxChoice* m_bgm_select = nullptr;
-
-	wxSpinCtrl* m_cutscene_select = nullptr;
-	wxStaticText* m_cutscene_name = nullptr;
-
-	wxSpinCtrl* m_flag_select = nullptr;
-	wxStaticText* m_flag_name = nullptr;
-
-	wxSpinCtrl* m_set_global_char_select = nullptr;
-	wxStaticText* m_set_global_char_name = nullptr;
-
-	wxSpinCtrl* m_set_char_select = nullptr;
-	wxStaticText* m_set_char_name = nullptr;
-
-	wxSpinCtrl* m_custom_value = nullptr;
 
 	wxDECLARE_EVENT_TABLE();
 };

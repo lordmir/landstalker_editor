@@ -81,6 +81,36 @@ void Script::SetScriptLine(std::size_t line, std::unique_ptr<ScriptTableEntry> c
 	}
 }
 
+void Script::SetScriptLineClear(std::size_t line, bool clear)
+{
+	m_table[line]->clear_box = clear;
+}
+
+void Script::SetScriptLineEnd(std::size_t line, bool end)
+{
+	m_table[line]->end = end;
+}
+
+void Script::SetScriptLineData(std::size_t line, uint16_t data)
+{
+	m_table[line]->SetData(data);
+}
+
+bool Script::GetScriptLineClear(std::size_t line) const
+{
+	return m_table.at(line)->GetClear();
+}
+
+bool Script::GetScriptLineEnd(std::size_t line) const
+{
+	return m_table.at(line)->GetEnd();
+}
+
+uint16_t Script::GetScriptLineData(std::size_t line) const
+{
+	return m_table.at(line)->GetData();
+}
+
 void Script::AddScriptLineBefore(std::size_t line, std::unique_ptr<ScriptTableEntry> content)
 {
 	m_table.insert(m_table.cbegin() + line, std::move(content));
@@ -206,28 +236,6 @@ static std::unique_ptr<ScriptTableEntry> DecodeYamlEntry(std::shared_ptr<GameDat
 				{
 					auto& string_entry = dynamic_cast<ScriptStringEntry&>(*entry);
 					string_entry.string = static_cast<uint16_t>(node[type.c_str()].as<uint16_t>() - gd->GetScriptData()->GetStringStart()) & 0x1FFF_u16;
-					if (node["Clear"])
-					{
-						if (node["Clear"].IsScalar())
-						{
-							string_entry.clear_box = node["Clear"].as<bool>();
-						}
-						else
-						{
-							string_entry.clear_box = true;
-						}
-					}
-					if (node["End"])
-					{
-						if (node["End"].IsScalar())
-						{
-							string_entry.end = node["End"].as<bool>();
-						}
-						else
-						{
-							string_entry.end = true;
-						}
-					}
 				}
 				break;
 			case ScriptTableEntryType::ITEM_LOAD:
@@ -296,6 +304,28 @@ static std::unique_ptr<ScriptTableEntry> DecodeYamlEntry(std::shared_ptr<GameDat
 			case ScriptTableEntryType::GIVE_MONEY:
 			default:
 				break;
+			}
+			if (node["Clear"])
+			{
+				if (node["Clear"].IsScalar())
+				{
+					entry->clear_box = node["Clear"].as<bool>();
+				}
+				else
+				{
+					entry->clear_box = true;
+				}
+			}
+			if (node["End"])
+			{
+				if (node["End"].IsScalar())
+				{
+					entry->end = node["End"].as<bool>();
+				}
+				else
+				{
+					entry->end = true;
+				}
 			}
 		}
 	}

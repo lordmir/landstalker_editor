@@ -86,6 +86,9 @@ bool AsmFile::Read(std::filesystem::path& label);
 template<>
 bool AsmFile::Read(ScriptAction& action);
 
+template<>
+bool AsmFile::Read(Instruction& inst);
+
 template<template<typename, typename...> class C, typename T, typename... Rest>
 bool AsmFile::Read(C<T, Rest...>& container)
 {
@@ -134,10 +137,10 @@ bool AsmFile::Read(T(&array)[N])
 template<typename T>
 bool AsmFile::Write(const T& value)
 {
-	std::size_t w = 4;
+	Width w = Width::L;
 	if constexpr (std::is_integral<T>::value && sizeof(T) < 4)
 	{
-		w = sizeof(T);
+		w = static_cast<Width>(sizeof(T));
 	}
 	if (!m_nextline.instruction.empty())
 	{
@@ -164,10 +167,10 @@ inline bool AsmFile::Write(const T& first, Args && ...args)
 template<typename Iter>
 inline bool AsmFile::Write(Iter begin, Iter end)
 {
-	std::size_t w = 4;
+	Width w = Width::L;
 	if constexpr (sizeof(decltype(*begin)) < 4)
 	{
-		w = sizeof(decltype(*begin));
+		w = static_cast<Width>(sizeof(decltype(*begin)));
 	}
 	Iter start = begin;
 	Iter next = begin;
@@ -220,19 +223,21 @@ std::string AsmFile::ToAsmValue(T value, AsmFile::Base base)
 {
 	const char bases[] = "  %     @       $";
 	const char digits[] = "0123456789ABCDEF";
-	std::unordered_map<Base, std::array<int, 5>> places_u =
+	std::unordered_map<Base, std::array<int, 6>> places_u =
 	{
-		{Base::BIN, {0, 8, 16, 24, 32}},
-		{Base::OCT, {0, 3,  6,  8, 11}},
-		{Base::DEC, {0, 3,  5,  8, 10}},
-		{Base::HEX, {0, 2,  4,  6,  8}}
+		// Width     N  B   W       L  S
+		{Base::BIN, {0, 8, 16, 24, 32, 8}},
+		{Base::OCT, {0, 3,  6,  8, 11, 3}},
+		{Base::DEC, {0, 3,  5,  8, 10, 3}},
+		{Base::HEX, {0, 2,  4,  6,  8, 2}}
 	};
-	std::unordered_map<Base, std::array<int, 5>> places_s =
+	std::unordered_map<Base, std::array<int, 6>> places_s =
 	{
-		{Base::BIN, {0, 7, 15, 23, 31}},
-		{Base::OCT, {0, 3,  5,  8, 11}},
-		{Base::DEC, {0, 3,  5,  7, 10}},
-		{Base::HEX, {0, 2,  4,  6,  8}}
+		// Width     N  B   W       L  S
+		{Base::BIN, {0, 7, 15, 23, 31, 7}},
+		{Base::OCT, {0, 3,  5,  8, 11, 3}},
+		{Base::DEC, {0, 3,  5,  7, 10, 3}},
+		{Base::HEX, {0, 2,  4,  6,  8, 2}}
 	};
 	std::string num;
 	bool neg = false;
