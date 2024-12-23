@@ -817,8 +817,10 @@ void StringData::ImportSpecialCharTalkSfxYaml(std::string yaml)
 	std::fill(m_char_talk_sfx.begin(), m_char_talk_sfx.end(), 0_u8);
 	for (const auto& val : node.begin()->second)
 	{
-		uint8_t character = val.first.as<uint8_t>();
-		uint8_t sound = val.second.as<uint8_t>();
+		uint8_t character = 0;
+		uint8_t sound = 0;
+		sound = val.second.as<uint8_t>();
+		character = val.first.as<uint8_t>();
 		if (character < m_char_talk_sfx.size())
 		{
 			m_char_talk_sfx[character] = sound;

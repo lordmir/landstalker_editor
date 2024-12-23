@@ -108,9 +108,9 @@ void ProgressFlagsEditorCtrl::AppendRow()
 	}
 	m_model->AppendRow(row);
 	UpdateUI();
-	auto [q, p] = m_model->GetQuestProgressFromRow(reinterpret_cast<int>(m_dvc_ctrl->GetSelection().GetID()));
-	int row = m_model->GetRowFromQuestProgress(q, m_model->GetTotalProgressInQuest(q) - 1) + 1;
-	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(static_cast<std::intptr_t>(row))));
+	auto [q, p] = m_model->GetQuestProgressFromRow(static_cast<int>(row));
+	int new_row = m_model->GetRowFromQuestProgress(q, m_model->GetTotalProgressInQuest(q) - 1) + 1;
+	m_dvc_ctrl->SetCurrentItem(wxDataViewItem(reinterpret_cast<void*>(new_row)));
 	m_dvc_ctrl->EnsureVisible(m_dvc_ctrl->GetSelection());
 }
 
