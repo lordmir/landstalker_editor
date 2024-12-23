@@ -85,7 +85,7 @@ bool IsHex(const std::string& str)
 
 std::string Trim(const std::string& str)
 {
-	const auto whitespace = " \t";
+	const auto whitespace = " \t\r";
 	const auto start = str.find_first_not_of(whitespace);
 	if (start == std::string::npos)
 		return ""; // no content
