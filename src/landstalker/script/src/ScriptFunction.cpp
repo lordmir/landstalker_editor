@@ -1398,7 +1398,7 @@ ScriptFunctionTable::ScriptFunctionTable(AsmFile&& file)
 ScriptFunctionTable::ScriptFunctionTable(const std::string& yaml)
 {
     YAML::Node node = YAML::Load(yaml);
-    const auto& funclist = node.begin()->second;
+    const auto funclist = node.begin()->second;
     for (auto it = funclist.begin(); it != funclist.end(); ++it)
     {
         ScriptFunction func(it);

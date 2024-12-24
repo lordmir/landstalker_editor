@@ -863,12 +863,12 @@ bool AsmFile::ProcessInst<AsmFile::Inst::DC>(const AsmFile::AsmLine& line)
 			for (std::size_t i = 0; i < static_cast<std::size_t>(width); ++i)
 			{
 				uint8_t byte = (result >> ((static_cast<std::size_t>(width) - i - 1) * 8)) & 0xFF;
-				m_data.push_back(byte);
+				m_data.emplace_back(byte);
 			}
 		}
 		else
 		{
-			m_data.push_back(word);
+			m_data.emplace_back(word);
 		}
 	}
 	return true;

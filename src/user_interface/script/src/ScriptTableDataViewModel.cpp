@@ -224,7 +224,7 @@ bool ScriptTableDataViewModel::AddRow(unsigned int row)
 	auto table = GetTable();
 	if (table && row <= table->size())
 	{
-		table->insert(table->begin() + row, 0_u16);
+		table->emplace(table->begin() + row, 0_u16);
 		RowInserted(row);
 		return true;
 	}
