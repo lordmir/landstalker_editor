@@ -30,7 +30,7 @@ private:
 	void OnChange(wxCommandEvent& evt);
 	void OnSpin(wxSpinEvent& evt);
 	void OnTextEnter(wxCommandEvent& evt);
-	void Update() const;
+	void UpdateControls() const;
 	virtual void SetFocus() override;
 
 	

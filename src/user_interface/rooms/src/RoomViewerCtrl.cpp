@@ -1107,23 +1107,28 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
     {
         if (d.x < map->GetHeightmapWidth() && d.y < map->GetHeightmapHeight())
         {
-            auto lines = d.GetMapRegionPoly(map, CELL_WIDTH, CELL_HEIGHT);
+            auto [valid, lines] = d.GetMapRegionPoly(map, CELL_WIDTH, CELL_HEIGHT);
             auto wxpoints = ToWxPoints2DDouble(lines);
             auto pos = GetScreenPosition(d.GetTileOffset(map, Tilemap3D::Layer::FG), roomnum, Tilemap3D::Layer::FG);
-            m_door_regions.push_back(ToWxPoints2DDouble(Door::OffsetRegionPoly(lines, pos)));
+            m_door_regions.emplace_back(valid, ToWxPoints2DDouble(Door::OffsetRegionPoly(lines, pos)));
         }
     }
-    auto draw_poly = [this, &gc](int index, const std::vector<wxPoint2DDouble>& points)
+    auto draw_poly = [this, &gc](int index, const std::vector<wxPoint2DDouble>& points, bool valid)
         {
             bool hovered = (m_hovered == index);
             bool selected = (m_selected == index);
             bool preview = (std::find(m_preview_doors.cbegin(), m_preview_doors.cend(), index - DOOR_IDX_OFFSET) != m_preview_doors.cend());
-            gc.SetPen(wxPen(hovered ? wxColor(255, 128, 255) : wxColor(255, 0, 255), selected ? 3 : 2, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
+            wxColor colour = valid ? wxColor(255, 0, 255) : wxColor(255, 0, 0);
+            if(hovered)
+            {
+                colour = colour.ChangeLightness(150);
+            }
+            gc.SetPen(wxPen(colour, selected ? 3 : 2, preview ? wxPENSTYLE_SOLID : wxPENSTYLE_SHORT_DASH));
             gc.DrawLines(points.size(), points.data());
         };
     int hovered_poly = NO_SELECTION;
     int selected_poly = NO_SELECTION;
-    for (const auto& r : m_door_regions)
+    for (const auto& [valid, r] : m_door_regions)
     {
         ++di;
         bool hovered = (m_hovered == di);
@@ -1138,16 +1143,18 @@ void RoomViewerCtrl::DrawDoors(wxGraphicsContext& gc, uint16_t roomnum)
         }
         if (!hovered && !selected)
         {
-            draw_poly(di, r);
+            draw_poly(di, r, valid);
         }
     }
     if (selected_poly != NO_SELECTION)
     {
-        draw_poly(selected_poly, m_door_regions[selected_poly - DOOR_IDX_OFFSET - 1]);
+        const auto& [valid, region] = m_door_regions[selected_poly - DOOR_IDX_OFFSET - 1];
+        draw_poly(selected_poly, region, valid);
     }
     if (hovered_poly != NO_SELECTION)
     {
-        draw_poly(hovered_poly, m_door_regions[hovered_poly - DOOR_IDX_OFFSET - 1]);
+        const auto& [valid, region] = m_door_regions[hovered_poly - DOOR_IDX_OFFSET - 1];
+        draw_poly(hovered_poly, region, valid);
     }
 }
 
@@ -1423,7 +1430,7 @@ void RoomViewerCtrl::DeleteSelectedWarp()
     }
 }
 
-void RoomViewerCtrl::SelectTileSwap(int selection)
+void RoomViewerCtrl::SelectTileSwap(int selection, bool fire_event)
 {
     bool swap_currently_selected = (m_selected > SWAP_IDX_OFFSET && m_selected <= static_cast<int>(m_warps.size() + SWAP_IDX_OFFSET));
     int cur_sel = swap_currently_selected ? m_selected : NO_SELECTION;
@@ -1447,7 +1454,10 @@ void RoomViewerCtrl::SelectTileSwap(int selection)
         {
             m_layers[Layer::SWAPS] = DrawRoomSwaps(m_roomnum);
             ForceRedraw();
-            FireEvent(EVT_TILESWAP_SELECT, new_sel - SWAP_IDX_OFFSET);
+            if (fire_event)
+            {
+                FireEvent(EVT_TILESWAP_SELECT, new_sel - SWAP_IDX_OFFSET);
+            }
         }
     }
 }
@@ -2766,7 +2776,7 @@ bool RoomViewerCtrl::CheckMousePosForLink(const std::pair<int, int>& xy, std::ws
     }
     for (i = 0; i < static_cast<int>(m_door_regions.size()); ++i)
     {
-        const auto& dp = m_door_regions.at(i);
+        const auto& [valid, dp] = m_door_regions.at(i);
         if (Pnpoly(dp, xy.first, xy.second))
         {
             m_hovered = DOOR_IDX_OFFSET + i + 1;

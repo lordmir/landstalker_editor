@@ -75,7 +75,7 @@ void DataViewScriptActionEditorControl::SetValue(const ScriptTable::Action& valu
 
 ScriptTable::Action DataViewScriptActionEditorControl::GetValue() const
 {
-	Update();
+	UpdateControls();
 	return m_entry;
 }
 
@@ -83,7 +83,7 @@ void DataViewScriptActionEditorControl::OnKeyDown(wxKeyEvent& evt)
 {
 	if (evt.GetKeyCode() == WXK_RETURN)
 	{
-		Update();
+		UpdateControls();
 		evt.Skip();
 	}
 	else
@@ -94,23 +94,23 @@ void DataViewScriptActionEditorControl::OnKeyDown(wxKeyEvent& evt)
 
 void DataViewScriptActionEditorControl::OnChange(wxCommandEvent& evt)
 {
-	Update();
+	UpdateControls();
 	evt.Skip();
 }
 
 void DataViewScriptActionEditorControl::OnSpin(wxSpinEvent& evt)
 {
-	Update();
+	UpdateControls();
 	evt.Skip();
 }
 
 void DataViewScriptActionEditorControl::OnTextEnter(wxCommandEvent& evt)
 {
-	Update();
+	UpdateControls();
 	evt.Skip();
 }
 
-void DataViewScriptActionEditorControl::Update() const
+void DataViewScriptActionEditorControl::UpdateControls() const
 {
 	wxString text;
 	if (m_editor == Editor::COMBO_CTRL)

@@ -227,15 +227,6 @@ uint16_t ScriptDataViewEditorControl::GetValue() const
 {
 	if (m_entry)
 	{
-		if (m_entry->GetType() == ScriptTableEntryType::STRING)
-		{
-			const auto& string_entry = dynamic_cast<const ScriptStringEntry&>(*m_entry);
-			std::size_t string_idx = string_entry.string + m_gd->GetScriptData()->GetStringStart();
-			if (m_string_preview->GetValue().ToStdWstring() != m_gd->GetStringData()->GetString(StringData::Type::MAIN, string_idx))
-			{
-				m_gd->GetStringData()->SetString(StringData::Type::MAIN, string_idx, m_string_preview->GetValue().ToStdWstring());
-			}
-		}
 		return m_entry->ToBytes();
 	}
 	return 0xFFFF;
@@ -312,6 +303,10 @@ void ScriptDataViewEditorControl::Update()
 			if (string_idx < m_gd->GetStringData()->GetStringCount(StringData::Type::MAIN))
 			{
 				string_entry.string = string_idx;
+			}
+			if (m_string_preview->GetValue().ToStdWstring() != m_gd->GetStringData()->GetString(StringData::Type::MAIN, m_string_select->GetValue()))
+			{
+				m_gd->GetStringData()->SetString(StringData::Type::MAIN, m_string_select->GetValue(), m_string_preview->GetValue().ToStdWstring());
 			}
 		}
 		break;

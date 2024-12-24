@@ -103,6 +103,13 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 	lantern_room_property->AddAttribute("value", roomData->HasLanternFlag(roomnum) ? "true" : "false");
 	properties->AddChild(lantern_room_property);
 
+	auto lantern_flags_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
+	lantern_flags_property->AddAttribute("name", "FlagLantern");
+	lantern_flags_property->AddAttribute("type", "int");
+	lantern_flags_property->AddAttribute("value", std::to_string(roomData->GetLanternFlag(roomnum)));
+	properties->AddChild(lantern_flags_property);
+	tmx.GetRoot()->AddChild(properties);
+
 	// Misc Properties
 	auto shop_room_property = new wxXmlNode(wxXML_ELEMENT_NODE, "property");
 	shop_room_property->AddAttribute("name", "FlagIsShopChurchInn");
@@ -121,7 +128,6 @@ bool RoomToTmx::ExportToTmx(const std::string& fname, int roomnum, std::shared_p
 	lifestock_sale_flags_property->AddAttribute("type", "int");
 	lifestock_sale_flags_property->AddAttribute("value", std::to_string(roomData->GetLifestockSaleFlag(roomnum)));
 	properties->AddChild(lifestock_sale_flags_property);
-
 	tmx.GetRoot()->AddChild(properties);
 
 

@@ -23,11 +23,11 @@ namespace ScriptTable
 						using T = std::decay_t<decltype(arg)>;
 						if constexpr (std::is_same_v<T, AsmFile::ScriptJump>)
 						{
-							actions.push_back(arg.func);
+							actions.emplace_back(arg.func);
 						}
 						else if constexpr (std::is_same_v<T, AsmFile::ScriptId>)
 						{
-							actions.push_back(static_cast<uint16_t>(arg.script_id));
+							actions.emplace_back(static_cast<uint16_t>(arg.script_id));
 						}
 					}, *action);
 			}
@@ -239,11 +239,11 @@ namespace ScriptTable
 						const std::string label = it->begin()->first.as<std::string>();
 						if (label == "ScriptID")
 						{
-							actions.push_back(it->begin()->second.as<uint16_t>());
+							actions.emplace_back(it->begin()->second.as<uint16_t>());
 						}
 						else if (label == "ScriptJump")
 						{
-							actions.push_back(it->begin()->second.as<std::string>());
+							actions.emplace_back(it->begin()->second.as<std::string>());
 						}
 						else
 						{

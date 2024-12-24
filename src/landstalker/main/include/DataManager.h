@@ -46,7 +46,7 @@ public:
 		std::string GetName() const;
 		void SetName(const std::string& val);
 		std::filesystem::path GetFilename() const;
-		void SetFilename(const std::filesystem::path& val) const;
+		void SetFilename(const std::filesystem::path& val);
 		uint32_t GetStartAddress() const;
 		uint32_t GetDataLength();
 		uint32_t GetEndAddress();
@@ -245,7 +245,7 @@ inline std::filesystem::path DataManager::Entry<T>::GetFilename() const
 }
 
 template<class T>
-inline void DataManager::Entry<T>::SetFilename(const std::filesystem::path& val) const
+inline void DataManager::Entry<T>::SetFilename(const std::filesystem::path& val)
 {
 	m_filename = val;
 }

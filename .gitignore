@@ -4,7 +4,7 @@ bin/
 *.exe
 *.bak
 ~Autorecover*.*
-landstalker_gfx
+landstalker_editor
 VC2019/Debug
 VC2019/Release
 VC2019/.vs

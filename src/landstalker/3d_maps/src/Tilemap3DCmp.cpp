@@ -1149,9 +1149,9 @@ IsoPoint2D Tilemap3D::ToIsometric(const Point2D& p, Layer layer) const
     return IsoPoint2D{ x, y };
 }
 
-IsoPoint2D Tilemap3D::PixelToIsometric(const PixelPoint2D& pix, Layer layer) const
+IsoPoint2D Tilemap3D::PixelToIsometric(const PixelPoint2D& /*pix*/, Layer /*layer*/) const
 {
-    if (IsPixelPointValid(pix, layer) == false) return { -1, -1 };
+    // TODO
     return IsoPoint2D{ -1, -1 };
 }
 

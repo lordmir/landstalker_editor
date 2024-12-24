@@ -87,7 +87,7 @@ std::vector<Behaviours::Command> BehaviourYamlConverter::FromYaml(const std::str
     {
         if (c.IsScalar())
         {
-            const auto& cmddef = Behaviours::GetCommandByName(c.as<std::string>());
+            const Behaviours::CommandDefinition cmddef = Behaviours::GetCommandByName(c.as<std::string>());
             if (!cmddef.params.empty())
             {
                 std::string err("#" + std::to_string(cmd_index) + ": Expected parameters for command \"" + cmddef.aliases.front() + "\"");
@@ -102,7 +102,7 @@ std::vector<Behaviours::Command> BehaviourYamlConverter::FromYaml(const std::str
         }
         else if (c.IsMap() && c.size() >= 1)
         {
-            const auto& cmddef = Behaviours::GetCommandByName(c.begin()->first.as<std::string>());
+            const Behaviours::CommandDefinition cmddef = Behaviours::GetCommandByName(c.begin()->first.as<std::string>());
             Behaviours::Command cmd;
             cmd.command = cmddef.id;
             std::vector<bool> params_set(cmddef.params.size());
@@ -111,7 +111,8 @@ std::vector<Behaviours::Command> BehaviourYamlConverter::FromYaml(const std::str
             {
                 cmd.params.push_back({ p.first, -1, Behaviours::ParamType::NONE });
             }
-            for (const auto& p : c.begin()->second)
+            auto params = c.begin()->second;
+            for (const auto& p : params)
             {
                 const auto& pname = p.first.as<std::string>();
                 auto pdef = std::find_if(cmddef.params.cbegin(), cmddef.params.cend(), [&pname](const auto& v)
