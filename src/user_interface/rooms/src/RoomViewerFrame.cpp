@@ -4,6 +4,7 @@
 #include <sstream>
 #include <wx/busyinfo.h>
 #include <wx/dir.h>
+#include <wx/progdlg.h>
 #include <user_interface/rooms/include/FlagDialog.h>
 #include <user_interface/rooms/include/ChestDialog.h>
 #include <user_interface/rooms/include/CharacterDialog.h>
@@ -389,11 +390,20 @@ bool RoomViewerFrame::ExportAllCsv(const std::string& dir)
 {
 	wxSetWorkingDirectory(dir);
 
+	auto dialog = wxProgressDialog("Export", "Exporting Maps", m_g->GetRoomData()->GetRoomCount(), this);
+	std::set<std::string> exported;
+
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		m_roomnum = i;
 		
 		auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
+		if (exported.find(rd->map) != exported.cend())
+		{
+			continue;
+		}
+		dialog.Update(i, "Exporting " + rd->map + "...");
+		wxYield();
 
 		const std::string background = rd->map + "_background.csv";
 		const std::string heightmap =  rd->map + "_heightmap.csv";
@@ -401,6 +411,7 @@ bool RoomViewerFrame::ExportAllCsv(const std::string& dir)
 		
 		std::array<std::string, 3> paths = {background, foreground, heightmap};
 		ExportCsv(paths);
+		exported.insert(rd->map);
 	}
 
 	return true;
@@ -441,20 +452,28 @@ bool RoomViewerFrame::ExportTmx(const std::string& tmx_path, const std::string& 
 
 bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 {
-	wxBusyInfo wait("Exporting...");
 	wxString curdir = wxGetCwd();
 	wxSetWorkingDirectory(dir);
 	std::filesystem::path mappath(dir);
 	std::filesystem::path bspath(mappath / "blocksets");
 	std::filesystem::create_directories(bspath);
+	auto dialog = wxProgressDialog("Export", "Exporting Maps", m_g->GetRoomData()->GetRoomCount(), this);
+	std::set<std::string> exported;
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		auto rd = m_g->GetRoomData()->GetRoom(i);
 		std::string mapfile = rd->map + ".tmx";
+		if (exported.find(rd->map) != exported.cend())
+		{
+			continue;
+		}
 		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
 		std::string blkpath = "blocksets";
 		blkpath += wxFileName::GetPathSeparator() + blkname;
+		dialog.Update(i, "Exporting " + rd->map + "...");
+		wxYield();
 		ExportTmx(mapfile, blkpath, i);
+		exported.insert(rd->map);
 	}
 	wxSetWorkingDirectory(curdir);
 	return true;
@@ -502,6 +521,7 @@ bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
 	std::filesystem::path mappath(dir);
 	std::filesystem::path bspath(mappath / "blocksets");
 	std::filesystem::create_directories(bspath);
+	auto dialog = wxProgressDialog("Export", "Exporting Rooms", m_g->GetRoomData()->GetRoomCount(), this);
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
 	{
 		auto rd = m_g->GetRoomData()->GetRoom(i);
@@ -509,6 +529,8 @@ bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
 		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
 		std::string blkpath = "blocksets";
 		blkpath += wxFileName::GetPathSeparator() + blkname;
+		dialog.Update(i, "Exporting " + m_g->GetRoomData()->GetRoomDisplayName(i) + "...");
+		wxYield();
 		ExportRoomTmx(roomfile, blkpath, i);
 	}
 	wxSetWorkingDirectory(curdir);
@@ -551,7 +573,6 @@ bool RoomViewerFrame::ImportTmx(const std::string& paths, uint16_t roomnum)
 
 bool RoomViewerFrame::ImportAllTmx(const std::string& dir)
 {
-	wxBusyInfo wait("Importing...");
 	wxDir d;
 
 	wxString curdir = wxGetCwd();
@@ -560,9 +581,11 @@ bool RoomViewerFrame::ImportAllTmx(const std::string& dir)
 	{
 		wxString file;
 		bool cont = d.GetFirst(&file, "*.tmx");
+		auto dialog = wxProgressDialog("Import", "Importing Rooms", 1, this);
 		while (cont)
 		{
 			wxFileName name(file);
+			dialog.Pulse("Importing " + file);
 			auto map = m_g->GetRoomData()->GetMap(name.GetName().ToStdString());
 			if (map)
 			{
