@@ -2321,7 +2321,7 @@ void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 	{
 		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
-		m_roomview->SelectTileSwap(evt.GetInt());
+		m_roomview->SelectTileSwap(evt.GetInt(), false);
 		m_fgedit->SetSelectedSwap(evt.GetInt());
 		m_bgedit->SetSelectedSwap(evt.GetInt());
 		m_hmedit->SetSelectedSwap(evt.GetInt());

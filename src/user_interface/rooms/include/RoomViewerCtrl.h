@@ -73,7 +73,7 @@ public:
 	void AddWarp();
 	void DeleteSelectedWarp();
 
-	void SelectTileSwap(int selection);
+	void SelectTileSwap(int selection, bool fire_event = true);
 	bool IsTileSwapSelected() const;
 	const TileSwap& GetSelectedTileSwap() const;
 	int GetSelectedTileSwapIndex() const;
@@ -220,7 +220,7 @@ private:
 	std::vector<Door> m_doors;
 	std::vector<TileSwap> m_swaps;
 	std::vector<std::pair<std::vector<wxPoint2DDouble>, std::vector<wxPoint2DDouble>>> m_swap_regions;
-	std::vector<std::vector<wxPoint2DDouble>> m_door_regions;
+	std::vector<std::pair<bool, std::vector<wxPoint2DDouble>>> m_door_regions;
 	std::list<int> m_preview_swaps;
 	std::list<int> m_preview_doors;
 

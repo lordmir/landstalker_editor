@@ -113,7 +113,7 @@ std::pair<uint8_t, uint8_t> Door::GetBytes() const
 			 static_cast<uint8_t>(((x + 12) & 0x3F) | ((sz & 0x03) << 6)) };
 }
 
-std::vector<std::pair<int, int>> Door::GetMapRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, int tile_width, int tile_height) const
+std::pair<bool, std::vector<std::pair<int, int>>> Door::GetMapRegionPoly(std::shared_ptr<const Tilemap3D> tilemap, int tile_width, int tile_height) const
 {
 	Tilemap3D::FloorType type = Tilemap3D::FloorType::NORMAL;
 	TileSwap ts;
@@ -123,16 +123,17 @@ std::vector<std::pair<int, int>> Door::GetMapRegionPoly(std::shared_ptr<const Ti
 	ts.map.dst_y = 0;
 	ts.map.width = SIZES.at(size).first;
 	ts.map.height = SIZES.at(size).second;
+	bool valid = true;
 	if (tilemap)
 	{
 		type = static_cast<Tilemap3D::FloorType>(tilemap->GetCellType({ x, y }));
 	}
 	if (type != Tilemap3D::FloorType::DOOR_NE && type != Tilemap3D::FloorType::DOOR_NW)
 	{
-		return {};
+		valid = false;
 	}
 	ts.mode = (type == Tilemap3D::FloorType::DOOR_NE) ? TileSwap::Mode::WALL_NE : TileSwap::Mode::WALL_NW;
-	return ts.GetMapRegionPoly(TileSwap::Region::UNDEFINED, tile_width, tile_height);
+	return {valid, ts.GetMapRegionPoly(TileSwap::Region::UNDEFINED, tile_width, tile_height)};
 }
 
 std::vector<std::pair<int, int>> Door::OffsetRegionPoly(const std::vector<std::pair<int, int>>& points, const std::pair<int, int>& offset)
