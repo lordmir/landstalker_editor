@@ -15,17 +15,12 @@ TileSwaps::TileSwaps(const std::vector<uint8_t>& bytes)
 		{
 			break;
 		}
-		uint8_t idx = bytes[i + 14] >> 3;
 		TileSwap swap(std::vector<uint8_t>(bytes.cbegin() + i, bytes.cbegin() + i + 16));
 		if (m_swaps.count(room) == 0)
 		{
-			m_swaps.insert({ idx, {} });
+			m_swaps.insert({ room, {} });
 		}
-		if (idx >= m_swaps[room].size())
-		{
-			m_swaps[room].resize(idx + 1);
-		}
-		m_swaps[room][idx] = swap;
+		m_swaps[room].push_back(swap);
 	}
 }
 
@@ -106,6 +101,7 @@ TileSwap::TileSwap(const std::vector<uint8_t>& in)
 	heightmap.dst_y = std::clamp<uint8_t>(in[9] - 12, 0, 0x3F);
 	heightmap.width = in[10] + 1;
 	heightmap.height = in[11] + 1;
+	trigger = in[14] >> 3;
 	mode = static_cast<Mode>(in[15]);
 }
 
@@ -349,7 +345,8 @@ bool TileSwap::IsHeightmapPointInSwap(int x, int y) const
 
 bool TileSwap::operator==(const TileSwap& rhs) const
 {
-	return (this->map.src_x == rhs.map.src_x &&
+	return (this->trigger == rhs.trigger &&
+		    this->map.src_x == rhs.map.src_x &&
 		    this->map.src_y == rhs.map.src_y &&
 		    this->map.dst_x == rhs.map.dst_x &&
 		    this->map.dst_y == rhs.map.dst_y &&
