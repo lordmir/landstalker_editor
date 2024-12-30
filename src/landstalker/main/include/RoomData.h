@@ -278,10 +278,10 @@ private:
     TileSwaps m_gfxswaps;
     TileSwaps m_gfxswaps_orig;
 
-    std::vector<TileSwapFlag> m_gfxswap_flags;
-    std::vector<TileSwapFlag> m_gfxswap_flags_orig;
-    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags;
-    std::vector<TileSwapFlag> m_gfxswap_locked_door_flags_orig;
+    std::map<uint16_t, std::vector<TileSwapFlag>> m_gfxswap_flags;
+    std::map<uint16_t, std::vector<TileSwapFlag>> m_gfxswap_flags_orig;
+    std::map<uint16_t, std::vector<TileSwapFlag>> m_gfxswap_locked_door_flags;
+    std::map<uint16_t, std::vector<TileSwapFlag>> m_gfxswap_locked_door_flags_orig;
     std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags;
     std::vector<TreeWarpFlag> m_gfxswap_big_tree_flags_orig;
     std::set<uint16_t> m_shop_list;

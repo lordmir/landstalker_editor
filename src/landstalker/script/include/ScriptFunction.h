@@ -86,6 +86,7 @@ public:
 	const std::vector<std::string>& GetFunctionNames() const;
 	const ScriptFunction* GetMapping(const std::string& funcname) const;
 	ScriptFunction* GetMapping(const std::string& funcname);
+	ScriptFunction* GetMapping(std::size_t index);
 
 	bool AddFunction(ScriptFunction&& func);
 private:

@@ -1398,7 +1398,7 @@ ScriptFunctionTable::ScriptFunctionTable(AsmFile&& file)
 ScriptFunctionTable::ScriptFunctionTable(const std::string& yaml)
 {
     YAML::Node node = YAML::Load(yaml);
-    const auto& funclist = node.begin()->second;
+    const auto funclist = node.begin()->second;
     for (auto it = funclist.begin(); it != funclist.end(); ++it)
     {
         ScriptFunction func(it);
@@ -1492,6 +1492,15 @@ ScriptFunction* ScriptFunctionTable::GetMapping(const std::string& funcname)
         return nullptr;
     }
     return &function_mapping.find(funcname)->second;
+}
+
+ScriptFunction* ScriptFunctionTable::GetMapping(std::size_t index)
+{
+    if (index >= funcnames.size())
+    {
+        return nullptr;
+    }
+    return &function_mapping.find(funcnames.at(index))->second;
 }
 
 bool ScriptFunctionTable::AddFunction(ScriptFunction&& func)

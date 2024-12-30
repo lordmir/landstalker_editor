@@ -11,28 +11,36 @@
 #include <landstalker/misc/include/Literals.h>
 #include <landstalker/misc/include/Labels.h>
 
-std::vector<TileSwapFlag> DecodeGfxSwap(const ByteVector& data)
+std::map<uint16_t, std::vector<TileSwapFlag>> DecodeGfxSwap(const ByteVector& data)
 {
-    std::vector<TileSwapFlag> flags;
+    std::map<uint16_t, std::vector<TileSwapFlag>> flags;
     assert(data.size() % (sizeof(uint16_t) * 2) == 2);
     for (std::size_t i = 0; i < data.size() && data[i] != 0xFF; i += 4)
     {
-        flags.push_back(TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] }));
+        auto flag = TileSwapFlag({ data[i], data[i + 1], data[i + 2], data[i + 3] });
+        if (flags.find(flag.room) == flags.cend())
+        {
+            flags.insert({ flag.room, { flag } });
+        }
+        else
+        {
+            flags[flag.room].push_back(flag);
+        }
     }
-    std::sort(flags.begin(), flags.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
-        });
     return flags;
 }
 
-ByteVector EncodeGfxSwap(const std::vector<TileSwapFlag>& data)
+ByteVector EncodeGfxSwap(const std::map<uint16_t, std::vector<TileSwapFlag>>& data)
 {
     ByteVector ret;
     ret.reserve(data.size() * 4 + 2);
-    for (const auto& e : data)
+    for (const auto& room : data)
     {
-        auto bytes = e.GetData();
-        ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
+        for (const auto& e : room.second)
+        {
+            auto bytes = e.GetData();
+            ret.insert(ret.end(), bytes.cbegin(), bytes.cend());
+        }
     }
     ret.push_back(0xFF);
     ret.push_back(0xFF);
@@ -1098,63 +1106,53 @@ void RoomData::ClearTreeWarp(uint16_t room)
 
 bool RoomData::HasNormalTileSwaps(uint16_t room) const
 {
-    return std::any_of(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(), [&](const auto& f) {
-        return f.room == room;
-    });
+    return m_gfxswap_flags.find(room) != m_gfxswap_flags.cend();
 }
 
 std::vector<TileSwapFlag> RoomData::GetNormalTileSwaps(uint16_t room) const
 {
-    std::vector<TileSwapFlag> ret;
-    std::copy_if(m_gfxswap_flags.cbegin(), m_gfxswap_flags.cend(),
-        std::back_inserter(ret), [&](const auto& f) {
-        return f.room == room;
-        });
-    return ret;
+    if (m_gfxswap_flags.find(room) != m_gfxswap_flags.cend())
+    {
+        return m_gfxswap_flags.at(room);
+    }
+    return std::vector<TileSwapFlag>();
 }
 
 void RoomData::SetNormalTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
 {
-    m_gfxswap_flags.erase(std::remove_if(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [&](const auto& f) {
-        return f.room == room;
-        }), m_gfxswap_flags.end());
     if (swaps.empty() == false)
     {
-        m_gfxswap_flags.insert(m_gfxswap_flags.end(), swaps.cbegin(), swaps.cend());
-        std::sort(m_gfxswap_flags.begin(), m_gfxswap_flags.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
-            });
+        m_gfxswap_flags[room] = swaps;
+    }
+    else
+    {
+        m_gfxswap_flags.erase(room);
     }
 }
 
 bool RoomData::HasLockedDoorTileSwaps(uint16_t room) const
 {
-    return std::any_of(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(), [&](const auto& f) {
-        return f.room == room;
-        });
+    return m_gfxswap_locked_door_flags.find(room) != m_gfxswap_locked_door_flags.cend();
 }
 
 std::vector<TileSwapFlag> RoomData::GetLockedDoorTileSwaps(uint16_t room) const
 {
-    std::vector<TileSwapFlag> ret;
-    std::copy_if(m_gfxswap_locked_door_flags.cbegin(), m_gfxswap_locked_door_flags.cend(),
-        std::back_inserter(ret), [&](const auto& f) {
-        return f.room == room;
-    });
-    return ret;
+    if (m_gfxswap_locked_door_flags.find(room) != m_gfxswap_locked_door_flags.cend())
+    {
+        return m_gfxswap_locked_door_flags.at(room);
+    }
+    return std::vector<TileSwapFlag>();
 }
 
 void RoomData::SetLockedDoorTileSwaps(uint16_t room, const std::vector<TileSwapFlag>& swaps)
 {
-    m_gfxswap_locked_door_flags.erase(std::remove_if(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [&](const auto& f) {
-        return f.room == room;
-        }), m_gfxswap_locked_door_flags.end());
     if (swaps.empty() == false)
     {
-        m_gfxswap_locked_door_flags.insert(m_gfxswap_locked_door_flags.end(), swaps.cbegin(), swaps.cend());
-        std::sort(m_gfxswap_locked_door_flags.begin(), m_gfxswap_locked_door_flags.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.room < rhs.room || (lhs.room == rhs.room && lhs.index < rhs.index);
-            });
+        m_gfxswap_locked_door_flags[room] = swaps;
+    }
+    else
+    {
+        m_gfxswap_locked_door_flags.erase(room);
     }
 }
 

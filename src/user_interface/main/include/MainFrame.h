@@ -145,7 +145,7 @@ private:
     ReturnCode SaveAsAsm(std::string path = std::string());
     ReturnCode SaveToRom(std::string path = std::string());
     void SetMode(const Mode& mode);
-    void Refresh();
+    void RefreshEditor();
 	ImageList& GetImageList();
     void ProcessSelectedBrowserItem(const wxTreeItemId& item, int data = 0);
     TilesetEditorFrame* GetTilesetEditor();

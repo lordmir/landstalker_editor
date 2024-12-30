@@ -64,7 +64,7 @@ const std::unordered_map<Behaviours::CommandType, Behaviours::CommandDefinition>
     { CommandType::JUMP                      , {  CommandType::JUMP                      , {"Jump"},                     {} }},
     { CommandType::ENABLE_FRAME_UPDATE       , {  CommandType::ENABLE_FRAME_UPDATE       , {"EnableFrameUpdate"},        {} }},
     { CommandType::DISABLE_FRAME_UPDATE      , {  CommandType::DISABLE_FRAME_UPDATE      , {"DisableFrameUpdate"},       {} }},
-    { CommandType::MOVE_RANDOM_TIMED         , {  CommandType::MOVE_RANDOM_TIMED         , {"MoveRandomTimed"},          {{"Ticks", ParamType::UINT8}} }},
+    { CommandType::MOVE_RANDOM_TIMED         , {  CommandType::MOVE_RANDOM_TIMED         , {"MoveRandomTimed"},          {{"Ticks", ParamType::UINT8}, {"BaseTicks", ParamType::UINT8}} }},
     { CommandType::LOAD_SPECIAL_AI           , {  CommandType::LOAD_SPECIAL_AI           , {"LoadSpecialAI"},            {} }},
     { CommandType::FOLLOW_PLAYER_NO_JUMP     , {  CommandType::FOLLOW_PLAYER_NO_JUMP     , {"FollowPlayerNoJump"},       {{"Unknown", ParamType::UINT8}} }},
     { CommandType::UNKNOWN_B2D               , {  CommandType::UNKNOWN_B2D               , {"UnknownB2D"},               {} }},

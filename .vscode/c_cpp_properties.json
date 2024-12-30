@@ -10,8 +10,10 @@
                 "/usr/local/lib/wx/include/gtk3-unicode-static-3.2",
                 "/usr/local/include/wx-3.2"
             ],
-            "defines": ["__WXGTK__"],
-            "compilerPath": "/usr/bin/gcc",
+            "defines": [
+                "__WXGTK__"
+            ],
+            "compilerPath": null,
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "linux-gcc-x64"

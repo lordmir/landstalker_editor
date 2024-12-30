@@ -1129,10 +1129,10 @@ void MainFrame::OnMRUFile(wxCommandEvent& event)
 void MainFrame::SetMode(const Mode& mode)
 {
     m_mode = mode;
-    Refresh();
+    RefreshEditor();
 }
 
-void MainFrame::Refresh()
+void MainFrame::RefreshEditor()
 {
     switch (m_mode)
     {

@@ -558,7 +558,6 @@
     <ClCompile Include="..\src\user_interface\script\src\DataViewScriptActionRenderer.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\ScriptFunction.cpp" />
     <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsDataViewModel.cpp">
       <Filter>src\UI\Script</Filter>
     </ClCompile>
@@ -578,6 +577,9 @@
       <Filter>src\UI\Script</Filter>
     </ClCompile>
     <ClCompile Include="..\src\landstalker\script\src\ProgressFlags.cpp">
+      <Filter>src\Data\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\landstalker\script\src\ScriptFunction.cpp">
       <Filter>src\Data\Script</Filter>
     </ClCompile>
   </ItemGroup>
@@ -737,9 +739,6 @@
     </ClInclude>
     <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorFrame.h">
       <Filter>include\UI\Blockset</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\EditorFrame.h">
-      <Filter>include\UI\Main</Filter>
     </ClInclude>
     <ClInclude Include="..\src\user_interface\main\include\Icons.h">
       <Filter>include\UI\Main</Filter>
@@ -948,7 +947,6 @@
     <ClInclude Include="..\src\user_interface\script\include\DataViewScriptActionRenderer.h">
       <Filter>include\UI\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\ScriptFunction.h" />
     <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsDataViewModel.h">
       <Filter>include\UI\Script</Filter>
     </ClInclude>
@@ -969,6 +967,12 @@
     </ClInclude>
     <ClInclude Include="..\src\landstalker\script\include\ProgressFlags.h">
       <Filter>include\Data\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\user_interface\main\include\EditorFrame.h">
+      <Filter>include\UI\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\landstalker\script\include\ScriptFunction.h">
+      <Filter>include\UI\Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1129,13 +1129,17 @@ void Map3DEditor::DrawDoors(wxDC& dc)
     {
         if (m_map_disp && d.x < m_map_disp->GetHeightmapWidth() && d.y < m_map_disp->GetHeightmapHeight())
         {
-            auto lines = d.GetMapRegionPoly(m_map_disp, TILE_WIDTH, TILE_HEIGHT);
+            auto [valid, lines] = d.GetMapRegionPoly(m_map_disp, TILE_WIDTH, TILE_HEIGHT);
             auto wxpoints = ToWxPoints(lines);
             auto pos = GetScreenPosition(d.GetTileOffset(m_map_disp, m_layer));
             auto [hx, hy] = GetScreenPosition(m_hovered);
             m_door_regions.push_back(ToWxPoints(Door::OffsetRegionPoly(lines, pos)));
-            dc.SetPen(wxPen(Pnpoly(m_door_regions.back(), hx, hy) ? wxColor(255, 128, 255) : wxColor(255, 0, 255),
-                di == m_selected_region ? 3 : 1));
+            wxColor colour = valid ? wxColour(255, 0, 255) : wxColour(255, 0, 255);
+            if (Pnpoly(m_door_regions.back(), hx, hy))
+            {
+                colour = colour.ChangeLightness(150);
+            }
+            dc.SetPen(wxPen(colour, di == m_selected_region ? 3 : 1, wxPENSTYLE_SHORT_DASH));
             dc.DrawPolygon(wxpoints.size(), wxpoints.data(), pos.first, pos.second);
             ++di;
         }
