@@ -1494,6 +1494,15 @@ ScriptFunction* ScriptFunctionTable::GetMapping(const std::string& funcname)
     return &function_mapping.find(funcname)->second;
 }
 
+ScriptFunction* ScriptFunctionTable::GetMapping(std::size_t index)
+{
+    if (index >= funcnames.size())
+    {
+        return nullptr;
+    }
+    return &function_mapping.find(funcnames.at(index))->second;
+}
+
 bool ScriptFunctionTable::AddFunction(ScriptFunction&& func)
 {
     if (function_mapping.find(func.name) != function_mapping.cend())

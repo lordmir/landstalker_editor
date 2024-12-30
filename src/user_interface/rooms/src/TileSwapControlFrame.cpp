@@ -165,7 +165,7 @@ std::wstring TileSwapControlFrame::MakeLabel(int index) const
 					offsety = map->GetData()->GetTop();
 				}
 			}
-			return StrWPrintf(L"%02d: M%01d (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
+			return StrWPrintf(L"%02d: M%01d (%02d, %02d) -> (%02d, %02d) %02dx%02d", m_swaps[index].trigger,
 				static_cast<int>(m_swaps[index].mode),
 				m_swaps[index].map.src_x - offsetx, m_swaps[index].map.src_y - offsety,
 				m_swaps[index].map.dst_x - offsetx, m_swaps[index].map.dst_y - offsety,
@@ -173,7 +173,7 @@ std::wstring TileSwapControlFrame::MakeLabel(int index) const
 		}
 		else
 		{
-			return StrWPrintf(L"%02d: H (%02d, %02d) -> (%02d, %02d) %02dx%02d", index + 1,
+			return StrWPrintf(L"%02d: H (%02d, %02d) -> (%02d, %02d) %02dx%02d", m_swaps[index].trigger,
 				m_swaps[index].heightmap.src_x, m_swaps[index].heightmap.src_y,
 				m_swaps[index].heightmap.dst_x, m_swaps[index].heightmap.dst_y,
 				m_swaps[index].heightmap.width, m_swaps[index].heightmap.height);

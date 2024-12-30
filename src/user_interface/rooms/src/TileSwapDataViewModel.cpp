@@ -34,7 +34,7 @@ wxString TileSwapDataViewModel::GetColumnHeader(unsigned int col) const
 	switch (col)
 	{
 	case 0:
-		return "Index";
+		return "Trigger";
 	case 1:
 		return "Active";
 	case 2:
@@ -87,14 +87,13 @@ wxString TileSwapDataViewModel::GetColumnType(unsigned int /*col*/) const
 
 void TileSwapDataViewModel::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
-	if (col == 0)
-	{
-		variant = static_cast<long>(row);
-	}
-	else if (row < m_swaps.size())
+	if (row < m_swaps.size())
 	{
 		switch (col)
 		{
+		case 0:
+			variant = static_cast<long>(m_swaps.at(row).trigger);
+			break;
 		case 1:
 			variant = static_cast<bool>(m_swaps.at(row).active);
 			break;
@@ -156,6 +155,8 @@ bool TileSwapDataViewModel::SetValueByRow(const wxVariant& variant, unsigned int
 		switch (col)
 		{
 		case 0:
+			m_swaps[row].trigger = std::clamp<uint8_t>(variant.GetLong(), 0, 0x1F);
+			updated = true;
 			break;
 		case 1:
 			m_swaps[row].active = variant.GetBool();
@@ -233,9 +234,25 @@ bool TileSwapDataViewModel::DeleteRow(unsigned int row)
 
 bool TileSwapDataViewModel::AddRow(unsigned int row)
 {
-	if (row <= m_swaps.size())
+	if (row <= m_swaps.size() && m_swaps.size() < 0x20)
 	{
-		m_swaps.insert(m_swaps.begin() + row, TileSwap());
+		uint8_t next_free = 0;
+		bool found = false;
+		while (!found)
+		{
+			found = true;
+			for (const auto& elem : m_swaps)
+			{
+				if (elem.trigger == next_free)
+				{
+					++next_free;
+					found = false;
+					break;
+				}
+			}
+		}
+		auto it = m_swaps.insert(m_swaps.begin() + row, TileSwap());
+		it->trigger = next_free;
 		Reset(GetRowCount());
 		return true;
 	}
@@ -254,9 +271,9 @@ bool TileSwapDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
 
 void TileSwapDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 {
-	// Index
+	// Trigger
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewTextRenderer("long"), 0, 64, wxALIGN_LEFT));
+		new wxDataViewSpinRenderer(0, 0x1F, wxDATAVIEW_CELL_EDITABLE), 0, 64, wxALIGN_LEFT));
 	// Active
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 40, wxALIGN_LEFT));

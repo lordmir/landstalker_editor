@@ -2334,9 +2334,24 @@ void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
 	if (m_g)
 	{
 		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
-		if (swaps.size() < 64UL)
+		if (swaps.size() < 32UL)
 		{
-			swaps.push_back(TileSwap({20,20,22,22,1,1}, {10,10,12,12,1,1}, TileSwap::Mode::FLOOR));
+			uint8_t next_free = 0;
+			bool found = false;
+			while (!found)
+			{
+				found = true;
+				for (const auto& elem : swaps)
+				{
+					if (elem.trigger == next_free)
+					{
+						++next_free;
+						found = false;
+						break;
+					}
+				}
+			}
+			swaps.push_back(TileSwap(next_free, { 20, 20, 22, 22, 1, 1 }, {10,10,12,12,1,1}, TileSwap::Mode::FLOOR));
 			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
 			TileSwapRefresh();
 			FireEvent(EVT_TILESWAP_SELECT, swaps.size());
