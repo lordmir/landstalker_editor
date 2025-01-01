@@ -6,6 +6,7 @@
 #include <variant>
 #include <array>
 #include <vector>
+#include <map>
 #include <optional>
 #include <memory>
 #include <filesystem>
@@ -53,9 +54,9 @@ namespace ScriptTable
 		}
 	};
 
-	std::shared_ptr<std::vector<Action>> ReadTable(const std::string& path);
-	std::shared_ptr<std::vector<Shop>> ReadShopTable(const std::string& path);
-	std::shared_ptr<std::vector<Item>> ReadItemTable(const std::string& path);
+	std::shared_ptr<std::vector<Action>> ReadTable(const std::string& path, const std::map<std::string, std::string>& defines = {});
+	std::shared_ptr<std::vector<Shop>> ReadShopTable(const std::string& path, const std::map<std::string, std::string>& defines = {});
+	std::shared_ptr<std::vector<Item>> ReadItemTable(const std::string& path, const std::map<std::string, std::string>& defines = {});
 	bool WriteTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Action>> table);
 	bool WriteShopTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Shop>> table);
 	bool WriteItemTable(const std::filesystem::path& prefix, const std::filesystem::path& path, const std::string& description, std::shared_ptr<std::vector<Item>> table);

@@ -384,20 +384,21 @@ bool ScriptData::AsmLoadScript()
 
 bool ScriptData::AsmLoadScriptTables()
 {
-	m_cutscene_table = ScriptTable::ReadTable((GetBasePath() / m_cutscene_table_filename).string());
-	m_chartable = ScriptTable::ReadTable((GetBasePath() / m_char_table_filename).string());
-	m_shoptable = ScriptTable::ReadShopTable((GetBasePath() / m_shop_table_filename).string());
-	m_itemtable = ScriptTable::ReadItemTable((GetBasePath() / m_item_table_filename).string());
+	m_defines = AsmFile::ParseDefines((GetBasePath() / m_defines_filename).string());
+	m_cutscene_table = ScriptTable::ReadTable((GetBasePath() / m_cutscene_table_filename).string(), m_defines);
+	m_chartable = ScriptTable::ReadTable((GetBasePath() / m_char_table_filename).string(), m_defines);
+	m_shoptable = ScriptTable::ReadShopTable((GetBasePath() / m_shop_table_filename).string(), m_defines);
+	m_itemtable = ScriptTable::ReadItemTable((GetBasePath() / m_item_table_filename).string(), m_defines);
 	return true;
 }
 
 bool ScriptData::AsmLoadScriptFunctions()
 {
-	m_charfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_char_funcs_filename, GetBasePath() / m_defines_filename));
-	m_cutscenefuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_cutscene_funcs_filename, GetBasePath() / m_defines_filename));
-	m_shopfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_shop_funcs_filename, GetBasePath() / m_defines_filename));
-	m_itemfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_item_funcs_filename, GetBasePath() / m_defines_filename));
-	m_flagprogress = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_flag_progress_filename, GetBasePath() / m_defines_filename));
+	m_charfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_char_funcs_filename, m_defines));
+	m_cutscenefuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_cutscene_funcs_filename, m_defines));
+	m_shopfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_shop_funcs_filename, m_defines));
+	m_itemfuncs = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_item_funcs_filename, m_defines));
+	m_flagprogress = std::make_shared<ScriptFunctionTable>(AsmFile(GetBasePath() / m_flag_progress_filename, m_defines));
 	return true;
 }
 

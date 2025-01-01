@@ -58,15 +58,15 @@ namespace ScriptTable
 		}
 	}
 
-	std::shared_ptr<std::vector<Action>> ReadTable(const std::string& path)
+	std::shared_ptr<std::vector<Action>> ReadTable(const std::string& path, const std::map<std::string, std::string>& defines)
 	{
-		AsmFile file(path);
+		AsmFile file(path, defines);
 		return std::make_shared<std::vector<Action>>(ParseAsmBody(file));
 	}
 
-	std::shared_ptr<std::vector<Shop>> ReadShopTable(const std::string& path)
+	std::shared_ptr<std::vector<Shop>> ReadShopTable(const std::string& path, const std::map<std::string, std::string>& defines)
 	{
-		AsmFile file(path);
+		AsmFile file(path, defines);
 		std::shared_ptr<std::vector<Shop>> shops = std::make_shared<std::vector<Shop>>();
 		try
 		{
@@ -91,9 +91,9 @@ namespace ScriptTable
 		return shops;
 	}
 
-	std::shared_ptr<std::vector<Item>> ReadItemTable(const std::string& path)
+	std::shared_ptr<std::vector<Item>> ReadItemTable(const std::string& path, const std::map<std::string, std::string>& defines)
 	{
-		AsmFile file(path);
+		AsmFile file(path, defines);
 		std::shared_ptr<std::vector<Item>> items = std::make_shared<std::vector<Item>>();
 		try
 		{
