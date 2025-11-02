@@ -89,6 +89,7 @@ private:
     std::filesystem::path m_item_funcs_filename;
     std::filesystem::path m_flag_progress_filename;
 
+    std::map<std::string, std::string> m_defines;
     std::shared_ptr<Script> m_script;
     Script m_script_orig;
     uint16_t m_script_start;
