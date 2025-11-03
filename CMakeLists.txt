@@ -4,6 +4,7 @@ project(${MODULE_NAME} VERSION 0.4.0 DESCRIPTION "Landstalker Editor Application
 set(CMAKE_CXX_STANDARD 20)
 
 option(LANDSTALKER_BUILD_SHARED "Build liblandstalker as a shared library" OFF)
+option(INSTALL_DEPS "Automatically download and build dependencies" ON)
 
 include(dependencies.cmake)
 

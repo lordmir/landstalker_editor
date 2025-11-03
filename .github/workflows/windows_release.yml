@@ -31,15 +31,15 @@ jobs:
         working-directory: ${{github.workspace}}/landstalker_editor
         run: |
           cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release
-          cmake --build build -j32
-          cmake --install build --prefix ./release
+          cmake --build build -j32 --config Release
+          cmake --install build --prefix ./release --config Release
 
       - name: 'Build Debug'
         working-directory: ${{github.workspace}}/landstalker_editor
         run: |
           cmake -S . -B build_debug -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Debug
-          cmake --build build_debug -j32
-          cmake --install build_debug --prefix ./debug
+          cmake --build build_debug -j32 --config Debug
+          cmake --install build_debug --prefix ./debug --config Debug
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
