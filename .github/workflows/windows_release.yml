@@ -20,108 +20,25 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.30.x'
-     
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
 
-      - name: Checkout sources
-        uses: actions/checkout@v4
-        with:
-          path: landstalker_editor
-
-      - name: Compress sources
-        working-directory: ${{github.workspace}}
-        run: Compress-Archive -Path landstalker_editor\* -Destination landstalker_editor_sources.zip
-
-      - name: Checkout zlib
-        uses: actions/checkout@v4
-        with:
-          repository: madler/zlib
-          ref: refs/tags/v1.2.13
-          path: zlib
-
-      - name: Checkout libpng
-        uses: actions/checkout@v4
-        with:
-          repository: glennrp/libpng
-          ref: refs/tags/v1.6.40
-          submodules: recursive
-          path: libpng
-
-      - name: Checkout wxWidgets
-        uses: actions/checkout@v4
-        with:
-          repository: wxWidgets/wxWidgets
-          ref: refs/tags/v3.2.5
-          submodules: recursive
-          path: wxwidgets
-
-      - name: Checkout yaml-cpp
-        uses: actions/checkout@v4
-        with:
-          repository: jbeder/yaml-cpp
-          ref: refs/tags/yaml-cpp-0.7.0
-          submodules: recursive
-          path: yaml-cpp
-
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Install MSVC Dev
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64_x86
-
-      - name: Build zlib
-        working-directory: ${{github.workspace}}/zlib
-        shell: cmd
-        run: |
-          nmake /f win32/Makefile.msc
-
-      - name: Build libpng
-        working-directory: ${{github.workspace}}/libpng
-        shell: cmd
-        run: |
-          MKDIR  zlib
-          COPY ..\zlib\zlib.lib zlib\
-          COPY ..\zlib\zlib.h zlib\
-          nmake /f scripts\makefile.vcwin32
-          COPY libpng.lib libpng16.lib
-
-      - name: Build wxWidgets
-        working-directory: ${{github.workspace}}/wxwidgets/build/msw
-        shell: cmd
-        run: nmake /f makefile.vc BUILD=release SHARED=0 TARGET_CPU=X86
-
-      - name: Configure yaml-cpp
-        working-directory: ${{github.workspace}}/yaml-cpp
-        shell: cmd
-        run: |
-          MKDIR build
-          CD build
-          cmake -G "Visual Studio 17 2022" -A Win32 ..
-
-      - name: Build yaml-cpp
-        working-directory: ${{github.workspace}}/yaml-cpp/build
-        shell: cmd
-        run: cmake --build . --target ALL_BUILD --config Release --parallel 8
-
-      - name: Build Landstalker Editor
+      - name: 'Build Release'
         working-directory: ${{github.workspace}}/landstalker_editor
-        shell: cmd
-        env:
-            ZLIB_PATH: ${{github.workspace}}/zlib
-            LIBPNG_PATH: ${{github.workspace}}/libpng
-            WX_WIN: ${{github.workspace}}/wxWidgets
-            YAMLCPP_PATH: ${{github.workspace}}/yaml-cpp
-        run: msbuild .\VC2019\landstalker_edit.sln /t:build /property:Configuration=Release /property:Platform=x86 /m
+        run: |
+          cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j32
+          cmake --install build --prefix ./release
 
-      - name: Compress artifacts
-        working-directory: ${{github.workspace}}/landstalker_editor/VC2019/Release
-        run: Compress-Archive -Path landstalker_editor.exe -Destination ..\..\..\landstalker_editor.zip
+      - name: 'Build Debug'
+        working-directory: ${{github.workspace}}/landstalker_editor
+        run: |
+          cmake -S . -B build_debug -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build_debug -j32
+          cmake --install build_debug --prefix ./debug
 
-      - name: Archive build
+      - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: landstalker_editor_binary_windows
-          path: ${{github.workspace}}/landstalker_editor.zip
+          name: liblandstalker_binary_windows
+          path: |
+            ${{github.workspace}}/landstalker_editor/release
+            ${{github.workspace}}/landstalker_editor/debug

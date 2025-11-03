@@ -20,11 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: landstalker_editor
-
-      - name: Archive sources
-        working-directory: ${{github.workspace}}/
-        shell: bash
-        run: tar zvcf landstalker_editor_sources.tar.gz landstalker_editor/
+          submodules: 'recursive'
 
       - name: Install Dependencies
         shell: bash
@@ -43,77 +39,24 @@ jobs:
              sudo apt-get remove libunwind-*
              sudo apt-get install -y --no-install-recommends libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
-      - name: Checkout wxWidgets
-        uses: actions/checkout@v4
-        with:
-          repository: wxWidgets/wxWidgets
-          ref: refs/tags/v3.2.5
-          submodules: recursive
-          path: wxwidgets
-
-      - shell: bash
-        working-directory: ${{github.workspace}}/wxwidgets
-        run: mkdir gtkbuild
-
-      - name: Configure wxWidgets
-        working-directory: ${{github.workspace}}/wxwidgets/gtkbuild
-        shell: bash
-        run: ../configure --with-gtk --disable-shared
-
-      - name: Build wxWidgets
-        working-directory: ${{github.workspace}}/wxwidgets/gtkbuild
-        shell: bash
-        run: make -j8
-
-      - name: Install wxWidgets
-        working-directory: ${{github.workspace}}/wxwidgets/gtkbuild
-        shell: bash
-        run: | 
-            sudo make install
-            sudo ldconfig
-
-      - name: Checkout yaml-cpp
-        uses: actions/checkout@v4
-        with:
-          repository: jbeder/yaml-cpp
-          ref: refs/tags/yaml-cpp-0.7.0
-          submodules: recursive
-          path: yaml-cpp
-
-      - shell: bash
-        working-directory: ${{github.workspace}}/yaml-cpp
-        run: mkdir build
-
-      - name: Configure yaml-cpp
-        working-directory: ${{github.workspace}}/yaml-cpp/build
-        shell: bash
-        run: cmake -DYAML_CPP_BUILD_TESTS=OFF ..
-
-      - name: Build yaml-cpp
-        working-directory: ${{github.workspace}}/yaml-cpp/build
-        shell: bash
-        run: make -j8
-
-      - name: Install yaml-cpp
-        working-directory: ${{github.workspace}}/yaml-cpp/build
-        shell: bash
-        run: | 
-            sudo make install
-            sudo ldconfig
-
-      - name: Build Landstalker Editor
+      - name: 'Build Release'
         working-directory: ${{github.workspace}}/landstalker_editor
-        shell: bash
-        run: make -j8
+        run: |
+          cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j32
+          cmake --install build --prefix ./release
 
-      - name: Compress artifacts
+      - name: 'Build Debug'
         working-directory: ${{github.workspace}}/landstalker_editor
-        shell: bash
-        run: tar zvcf landstalker_editor.tar.gz landstalker_editor
+        run: |
+          cmake -S . -B build_debug -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build_debug -j32
+          cmake --install build_debug --prefix ./debug
 
-      - name: Archive build
+      - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: landstalker_editor_binary_ubuntu
-          path: ${{github.workspace}}/landstalker_editor/landstalker_editor.tar.gz
-
+          name: liblandstalker_binary_ubuntu
+          path: |
+            ${{github.workspace}}/landstalker_editor/release
+            ${{github.workspace}}/landstalker_editor/debug
