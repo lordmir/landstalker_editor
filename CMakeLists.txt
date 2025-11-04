@@ -17,7 +17,6 @@ add_executable(${CMAKE_PROJECT_NAME} WIN32)
 
 add_subdirectory("src")
 
-
 if(WIN32)
     add_custom_command (
         TARGET "${CMAKE_PROJECT_NAME}" POST_BUILD

@@ -49,15 +49,32 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 
 # Build
 
+## CMake
+
+[CMake](https://cmake.org/) is a cross-platform build tool, allowing for (in theory) a more straightforward build process, regardless of the platform. All that is required is [CMake Version 3.28 or later](https://cmake.org/download/) and a C++ compiler / build environment (GCC and `build-essential` on Linux, and [Visual Studio Community Edition 2022](https://visualstudio.microsoft.com/vs/community/) on Windows).
+
+To build, run the following commands from the top level directory of the source:
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j32
+cmake --install build --prefix ./install
+```
+(Replace `Release` with `Debug` for a debug build.)
+
+The build executable will be put in the `install/bin` directory.
+
+Note: this will automatically attempt to download and build all of the required dependencies. If you don't want this to happen, pass in the `-DINSTALL_DEPS=OFF` parameter to CMake - CMake will then attempt to locate the same dependencies from the system.
+
 ## Linux
 
 ### Packages
 
 In addition to build-essential (compiler and make), the following libraries are required:
 - [wxWidgets](https://www.wxwidgets.org/downloads/) (at least v3.2.2)
-- [yaml-cpp](https://github.com/jbeder/yaml-cpp) (at least v0.7.0)
-- libpng
-- zlib
+- [yaml-cpp](https://github.com/jbeder/yaml-cpp) (`libyaml-cpp-dev` via `apt get` on Ubuntu`) (at least v0.7.0)
+- libpng (`libpng-dev` via `apt get` on Ubuntu`)
+- zlib (`libz1g-dev` via `apt get` on Ubuntu`)
+- pugixml (`libpugixml-dev` via `apt get` on Ubuntu`)
 - cmake
 
 It is recommended to have the following installed in addition to the above, in order to build assemblies:
@@ -186,6 +203,30 @@ Make sure that Visual Studio has been restarted so that it picks up the new envi
 
  9. Finally, we need to add an environment variable to tell Visual Studio where to find the yaml-cpp libraries. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named YAMLCPP_PATH, and set its value equal to the full path to yaml-cpp (e.g. "C:\libraries\yaml-cpp"). Click OK and exit out of the system properties windows.
  
+#### PugiXML
+
+ 10. Download and install CMake from the [CMake Website](https://cmake.org/download/).
+ 11. Download the pugixml source as a zip file from [the PugiXML website](https://pugixml.org/).
+ 12. Extract the contents of the zip file to a suitable location (e.g. C:\libraries). Rename the pugixml folder to `pugixml` (i.e. remove the version from the folder name).
+ 13. Open a command prompt window and navigate to the extracted files:
+    `cd \libraries\pugixml`
+ 14. Create a build directory:
+    ```bat
+	mkdir build
+	cd build
+    ```
+ 15. Run cmake as follows:
+    ```bat
+    cmake -G "Visual Studio 17 2022" -A Win32 ..
+    ```
+ 16. Build the Debug and Release versions of the library:
+	```bat
+	cmake --build . --target ALL_BUILD --config Debug --parallel 8
+	cmake --build . --target ALL_BUILD --config Release --parallel 8
+	```
+ 17. Go to the "Build" menu and select "Batch Build...". In the batch build window, select the first four `ALL_BUILD` configurations and then click "Build" (note that this will take some time). Once all files have been built, exit out of Visual Studio.
+
+ 18. Finally, we need to add an environment variable to tell Visual Studio where to find the yaml-cpp libraries. Open the Start menu, right click on "Computer" and select "Properties". Click on "Advanced System Settings" and then "Environment Variables". Add a new System Environment Variable named YAMLCPP_PATH, and set its value equal to the full path to yaml-cpp (e.g. "C:\libraries\yaml-cpp"). Click OK and exit out of the system properties windows.
 
 ### Build
 
