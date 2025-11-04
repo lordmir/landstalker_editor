@@ -1,0 +1,3 @@
+[submodule "modules/liblandstalker"]
+	path = modules/liblandstalker
+	url = git@github.com:lordmir/liblandstalker

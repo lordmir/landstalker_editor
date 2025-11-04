@@ -7,988 +7,556 @@
     <Filter Include="include">
       <UniqueIdentifier>{9aa39da6-805f-412d-96a2-f9bf20acba11}</UniqueIdentifier>
     </Filter>
-    <Filter Include="wxcrafter">
-      <UniqueIdentifier>{fb71374d-92c8-4ff3-ac1c-213934f78321}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI">
-      <UniqueIdentifier>{068928b7-0c7e-411c-aebe-3515782fcdfb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data">
-      <UniqueIdentifier>{7388e24a-bb64-48df-ac93-9f017e285330}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Tileset">
-      <UniqueIdentifier>{f42609e8-5327-4951-85d6-26b33755b325}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Main">
-      <UniqueIdentifier>{b90da4bd-3c33-4fda-a661-1bdf0baf23df}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Main">
-      <UniqueIdentifier>{ba71b140-b0cd-4e11-baac-7f1cbe0a9da2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Miscellaneous">
-      <UniqueIdentifier>{a0d21aad-8745-4e43-bad5-a3235eef6a60}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Blockset">
-      <UniqueIdentifier>{c0a376cf-67bf-4ba6-a6b1-5f5ef210c3d7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\2D Maps">
-      <UniqueIdentifier>{abcdf6c3-2c2a-480f-9614-09dea9e6c271}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\3D Maps">
-      <UniqueIdentifier>{8137e8ca-84eb-4401-93ea-5b66b2de1f64}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Blockset">
-      <UniqueIdentifier>{6546ed74-838e-43b3-b363-f242f63567f5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Text">
-      <UniqueIdentifier>{55a9aba9-c5ad-4b7e-afa2-fc3af33f08d2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Palette">
-      <UniqueIdentifier>{3872058b-662a-4ad7-9b55-65999aff43fa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Rooms">
-      <UniqueIdentifier>{82474f24-c964-45d5-9f5d-12a2ac72110e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Rooms">
-      <UniqueIdentifier>{71963b05-e982-471e-8bdf-442569d95fc6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\2D Maps">
-      <UniqueIdentifier>{0a4f6924-8195-44eb-963a-0204441bbb5f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Palettes">
-      <UniqueIdentifier>{df5bff53-8501-4fd2-a5af-2160ddd9924c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Miscellaneous">
-      <UniqueIdentifier>{f2d2c2a5-2915-4c69-a1e8-f3702af32ebf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Sprites">
-      <UniqueIdentifier>{eadfb3c8-215d-4cae-9b27-a664a03ce4f1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\Sprites">
-      <UniqueIdentifier>{5cce17b8-2e40-4569-ae14-5979f28947c1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data">
-      <UniqueIdentifier>{49289520-a6bd-4176-bdff-c725ccda0cb5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI">
-      <UniqueIdentifier>{f95bb788-3fbe-4e40-8c19-6902fefbebea}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Main">
-      <UniqueIdentifier>{e1f708be-8d15-48ce-8ca4-ee07e9f10e66}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Miscellaneous">
-      <UniqueIdentifier>{ae17d1c5-2108-4661-8c1f-04e18f65106c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Blockset">
-      <UniqueIdentifier>{652f323d-6340-48f4-9475-259f08105d9f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\2D Maps">
-      <UniqueIdentifier>{8ea91b93-cf5e-4e82-810f-fbb32f4bae51}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Sprites">
-      <UniqueIdentifier>{e29568f1-0473-48b0-b633-6af122b43bf6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Palettes">
-      <UniqueIdentifier>{c4ab4308-e018-49cb-9ad7-b8ce470d1c15}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Rooms">
-      <UniqueIdentifier>{0eaeb842-6764-4479-bafb-858e36266754}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Text">
-      <UniqueIdentifier>{141ba220-6c16-4a11-9dc3-0bf4ac9d0ab0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Tileset">
-      <UniqueIdentifier>{c13fd3de-23ad-49ce-9600-02024f125914}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Main">
-      <UniqueIdentifier>{8459cf41-cd9c-4142-86c8-1fa205354e3e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Blockset">
-      <UniqueIdentifier>{cb10c7dd-013d-4578-bcaa-d82eb674797b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\2D Maps">
+    <Filter Include="include\2D Maps">
       <UniqueIdentifier>{b61b7668-62fe-4f54-b171-c8955a78678e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Miscellaneous">
-      <UniqueIdentifier>{9594b60d-fca3-4cb0-9cdd-aa638f2a4243}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Text">
-      <UniqueIdentifier>{57fac5c6-9fdc-4f74-a2bd-e326e4d07f7c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Sprites">
-      <UniqueIdentifier>{98794792-b6b7-420f-883b-a251a4cee7cd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Rooms">
-      <UniqueIdentifier>{09d4eb59-0a16-4291-9888-7bc1bca18366}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Palette">
-      <UniqueIdentifier>{41d52e0a-4c0e-497a-b946-32dae02bc7a0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Tileset">
-      <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\3D Maps">
-      <UniqueIdentifier>{5c8e60f9-8f02-471b-9d7f-f4d2c522c189}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\WX Resources">
-      <UniqueIdentifier>{d82c677d-286f-4857-83ff-027959b5e882}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\UI\WX Resources">
-      <UniqueIdentifier>{bf1bf039-ca9f-46eb-af68-b53496731074}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\Data\Behaviours">
-      <UniqueIdentifier>{263218d6-5db5-4634-ab63-630d91f607da}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Data\Behaviours">
-      <UniqueIdentifier>{d9b5c1a3-eb74-4132-9f5a-504ccbb94851}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Behaviours">
+    <Filter Include="include\Behaviours">
       <UniqueIdentifier>{ac4a45cd-4e12-4bed-b40e-b1e651c5aac3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Behaviours">
-      <UniqueIdentifier>{e9a77bdd-3c90-4660-9b3a-16ea91575dcc}</UniqueIdentifier>
+    <Filter Include="include\Blockset">
+      <UniqueIdentifier>{cb10c7dd-013d-4578-bcaa-d82eb674797b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Tileset">
-      <UniqueIdentifier>{71e0b0c9-8b72-45fb-bb7e-42fbd70adfb1}</UniqueIdentifier>
+    <Filter Include="include\Main">
+      <UniqueIdentifier>{8459cf41-cd9c-4142-86c8-1fa205354e3e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Data\Script">
-      <UniqueIdentifier>{32318ba6-a9a2-4939-a4b3-7997f1325e8b}</UniqueIdentifier>
+    <Filter Include="include\Miscellaneous">
+      <UniqueIdentifier>{9594b60d-fca3-4cb0-9cdd-aa638f2a4243}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\Data\Script">
-      <UniqueIdentifier>{c228e525-a1fe-4925-9a55-0a05911159fd}</UniqueIdentifier>
+    <Filter Include="include\Palette">
+      <UniqueIdentifier>{41d52e0a-4c0e-497a-b946-32dae02bc7a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Script">
-      <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
+    <Filter Include="include\Rooms">
+      <UniqueIdentifier>{09d4eb59-0a16-4291-9888-7bc1bca18366}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Script">
-      <UniqueIdentifier>{b3bc73ba-2b88-486f-8d94-02ebec7de3bd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\UI\Rooms\CharacterEditor">
+    <Filter Include="include\Rooms\CharacterEditor">
       <UniqueIdentifier>{688e4244-fdf8-4a86-881b-ad271ec66943}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Rooms\ChestEditor">
+    <Filter Include="include\Rooms\ChestEditor">
       <UniqueIdentifier>{839f4aae-1388-4b38-b5c0-c22fc22c8615}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Rooms\EntityEditor">
+    <Filter Include="include\Rooms\EntityEditor">
       <UniqueIdentifier>{4b4334d6-8031-4104-bd19-3d0efb7c2561}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Rooms\FlagEditor">
+    <Filter Include="include\Rooms\FlagEditor">
       <UniqueIdentifier>{fa9b1f5e-30fe-4b0f-8771-97e1a3b06f0c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Rooms\DoorSwapEditor">
+    <Filter Include="include\Rooms\DoorSwapEditor">
       <UniqueIdentifier>{fb82b22a-c3f4-4aaf-9d23-9738100d1646}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\UI\Rooms\WarpEditor">
+    <Filter Include="include\Rooms\WarpEditor">
       <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Text">
-      <UniqueIdentifier>{798fc907-3a71-4dc0-9898-411de987af9b}</UniqueIdentifier>
+    <Filter Include="include\Script">
+      <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\CharacterEditor">
-      <UniqueIdentifier>{68de2def-adca-48ec-8906-0700bb3c2ab4}</UniqueIdentifier>
+    <Filter Include="include\Sprites">
+      <UniqueIdentifier>{98794792-b6b7-420f-883b-a251a4cee7cd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\ChestEditor">
-      <UniqueIdentifier>{a90d8013-396f-4c28-932e-1d7790ecfa46}</UniqueIdentifier>
+    <Filter Include="include\Text">
+      <UniqueIdentifier>{57fac5c6-9fdc-4f74-a2bd-e326e4d07f7c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\DoorSwapEditor">
-      <UniqueIdentifier>{36b851f3-64af-419f-8b17-83914e5e6d05}</UniqueIdentifier>
+    <Filter Include="include\Tileset">
+      <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\EntityEditor">
-      <UniqueIdentifier>{add910db-0953-4d3b-b4f7-5e5dfb8077fe}</UniqueIdentifier>
+    <Filter Include="src\2D Maps">
+      <UniqueIdentifier>{b61b7668-62fe-4f54-b171-c8955a78678e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\FlagEditor">
-      <UniqueIdentifier>{a6f7a102-cbad-4844-afd7-09e443777fa3}</UniqueIdentifier>
+    <Filter Include="src\Behaviours">
+      <UniqueIdentifier>{ac4a45cd-4e12-4bed-b40e-b1e651c5aac3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\UI\Rooms\WarpEditor">
-      <UniqueIdentifier>{6533a7a0-2bfb-47b5-8ed9-67e56b7a210b}</UniqueIdentifier>
+    <Filter Include="src\Blockset">
+      <UniqueIdentifier>{cb10c7dd-013d-4578-bcaa-d82eb674797b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Main">
+      <UniqueIdentifier>{8459cf41-cd9c-4142-86c8-1fa205354e3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Miscellaneous">
+      <UniqueIdentifier>{9594b60d-fca3-4cb0-9cdd-aa638f2a4243}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Palette">
+      <UniqueIdentifier>{41d52e0a-4c0e-497a-b946-32dae02bc7a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms">
+      <UniqueIdentifier>{09d4eb59-0a16-4291-9888-7bc1bca18366}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\CharacterEditor">
+      <UniqueIdentifier>{688e4244-fdf8-4a86-881b-ad271ec66943}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\ChestEditor">
+      <UniqueIdentifier>{839f4aae-1388-4b38-b5c0-c22fc22c8615}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\EntityEditor">
+      <UniqueIdentifier>{4b4334d6-8031-4104-bd19-3d0efb7c2561}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\FlagEditor">
+      <UniqueIdentifier>{fa9b1f5e-30fe-4b0f-8771-97e1a3b06f0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\DoorSwapEditor">
+      <UniqueIdentifier>{fb82b22a-c3f4-4aaf-9d23-9738100d1646}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\WarpEditor">
+      <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Script">
+      <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Sprites">
+      <UniqueIdentifier>{98794792-b6b7-420f-883b-a251a4cee7cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Text">
+      <UniqueIdentifier>{57fac5c6-9fdc-4f74-a2bd-e326e4d07f7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Tileset">
+      <UniqueIdentifier>{5e107c31-7916-4c17-b79e-2b4ae4927401}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\WX Resources">
+      <UniqueIdentifier>{d82c677d-286f-4857-83ff-027959b5e882}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\landstalker\2d_maps\src\Blockmap2D.cpp">
-      <Filter>src\Data\2D Maps</Filter>
+    <ClCompile Include="..\src\sprites\AnimationControlFrame.cpp">
+      <Filter>src\Tileset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\2d_maps\src\Tilemap.cpp">
-      <Filter>src\Data\2D Maps</Filter>
+    <ClCompile Include="..\src\sprites\AnimationFrameControlFrame.cpp">
+      <Filter>src\Tileset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\2d_maps\src\Tilemap2DRLE.cpp">
-      <Filter>src\Data\2D Maps</Filter>
+    <ClCompile Include="..\src\misc\AssemblyBuilderDialog.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\BlockmapIsometric.cpp">
-      <Filter>src\Data\3D Maps</Filter>
+    <ClCompile Include="..\src\behaviours\BehaviourScriptEditorCtrl.cpp">
+      <Filter>src\Behaviours</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\Doors.cpp">
-      <Filter>src\Data\3D Maps</Filter>
+    <ClCompile Include="..\src\behaviours\BehaviourScriptEditorFrame.cpp">
+      <Filter>src\Behaviours</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\MapToTmx.cpp">
-      <Filter>src\Data\3D Maps</Filter>
+    <ClCompile Include="..\src\blockset\BlocksetEditorCtrl.cpp">
+      <Filter>src\Blockset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\Tilemap3DCmp.cpp">
-      <Filter>src\Data\3D Maps</Filter>
+    <ClCompile Include="..\src\blockset\BlocksetEditorFrame.cpp">
+      <Filter>src\Blockset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\TileSwaps.cpp">
-      <Filter>src\Data\3D Maps</Filter>
+    <ClCompile Include="..\src\main\BrowserTreeCtrl.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\blockset\src\Block.cpp">
-      <Filter>src\Data\Blockset</Filter>
+    <ClCompile Include="..\src\rooms\CharacterDialog.cpp">
+      <Filter>src\Rooms\CharacterEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\blockset\src\BlocksetCmp.cpp">
-      <Filter>src\Data\Blockset</Filter>
+    <ClCompile Include="..\src\script\CharacterSfxCtrl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\AsmFile.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\script\CharacterSfxDataViewModel.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\AsmUtils.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\script\CharacterSfxFrame.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\DataManager.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\rooms\ChestDialog.cpp">
+      <Filter>src\Rooms\ChestEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\DataTypes.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\palettes\DataViewCtrlPaletteModel.cpp">
+      <Filter>src\Palette</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\EntryPreferences.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\palettes\DataViewCtrlPaletteRenderer.cpp">
+      <Filter>src\Palette</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\GameData.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\script\DataViewScriptActionEditorControl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\GraphicsData.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\script\DataViewScriptActionRenderer.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\Rom.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\rooms\DoorDataViewModel.cpp">
+      <Filter>src\Rooms\DoorSwapEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\RomLabels.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\main\EditorFrame.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\RomOffsets.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\sprites\EntityViewerCtrl.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\RoomData.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\sprites\EntityViewerFrame.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\SpriteData.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\rooms\EntityPropertiesWindow.cpp">
+      <Filter>src\Rooms\EntityEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\StringData.cpp">
-      <Filter>src\Data\Main</Filter>
+    <ClCompile Include="..\src\rooms\EntityControlFrame.cpp">
+      <Filter>src\Rooms\EntityEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\BitBarrel.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
+    <ClCompile Include="..\src\misc\ExecutorThread.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\BitBarrelWriter.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
+    <ClCompile Include="..\src\rooms\FlagDataViewModel.cpp">
+      <Filter>src\Rooms\FlagEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\LZ77.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
+    <ClCompile Include="..\src\rooms\FlagDialog.cpp">
+      <Filter>src\Rooms\FlagEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\Utils.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
+    <ClCompile Include="..\src\sprites\FrameControlFrame.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\palettes\src\Palette.cpp">
-      <Filter>src\Data\Palettes</Filter>
+    <ClCompile Include="..\src\rooms\HeightmapEditorCtrl.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\Chests.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\main\ImageBufferWx.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\Entity.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\main\ImageList.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\Flags.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\rooms\LayerControlFrame.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\Room.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\main\main.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\RoomDialogueTable.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\main\MainFrame.cpp">
+      <Filter>src\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\rooms\src\WarpList.cpp">
-      <Filter>src\Data\Rooms</Filter>
+    <ClCompile Include="..\src\2d_maps\Map2DEditorFrame.cpp">
+      <Filter>src\2D Maps</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\sprites\src\SpriteFrame.cpp">
-      <Filter>src\Data\Sprites</Filter>
+    <ClCompile Include="..\src\2d_maps\Map2DEditor.cpp">
+      <Filter>src\2D Maps</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\EndCreditString.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\rooms\RoomViewerCtrl.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\HuffmanString.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\HuffmanTree.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\rooms\Map3DEditor.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\HuffmanTrees.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\rooms\WarpControlFrame.cpp">
+      <Filter>src\Rooms\WarpEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\IntroString.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\rooms\WarpPropertyWindow.cpp">
+      <Filter>src\Rooms\WarpEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\text\src\LSString.cpp">
-      <Filter>src\Data\Text</Filter>
+    <ClCompile Include="..\src\palettes\PaletteEditor.cpp">
+      <Filter>src\Palette</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\tileset\src\AnimatedTileset.cpp">
-      <Filter>src\Data\Tileset</Filter>
+    <ClCompile Include="..\src\palettes\PaletteListFrame.cpp">
+      <Filter>src\Palette</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\tileset\src\Tile.cpp">
-      <Filter>src\Data\Tileset</Filter>
+    <ClCompile Include="..\src\misc\PreferencesDialog.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\tileset\src\TileAttributes.cpp">
-      <Filter>src\Data\Tileset</Filter>
+    <ClCompile Include="..\src\script\ProgressFlagsCtrl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\landstalker\tileset\src\Tileset.cpp">
-      <Filter>src\Data\Tileset</Filter>
+    <ClCompile Include="..\src\script\ProgressFlagsDataViewModel.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditor.cpp">
-      <Filter>src\UI\2D Maps</Filter>
+    <ClCompile Include="..\src\script\ProgressFlagsFrame.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\2d_maps\src\Map2DEditorFrame.cpp">
-      <Filter>src\UI\2D Maps</Filter>
+    <ClCompile Include="..\src\misc\ResizeableGrid.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorCtrl.cpp">
-      <Filter>src\UI\Blockset</Filter>
+    <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp">
+      <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\blockset\src\BlocksetEditorFrame.cpp">
-      <Filter>src\UI\Blockset</Filter>
+    <ClCompile Include="..\src\script\ScriptDataViewEditorControl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\EditorFrame.cpp">
-      <Filter>src\UI\Main</Filter>
+    <ClCompile Include="..\src\script\ScriptDataViewModel.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\ImageList.cpp">
-      <Filter>src\UI\Main</Filter>
+    <ClCompile Include="..\src\script\ScriptDataViewRenderer.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\main.cpp">
-      <Filter>src\UI\Main</Filter>
+    <ClCompile Include="..\src\script\ScriptEditorCtrl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\MainFrame.cpp">
-      <Filter>src\UI\Main</Filter>
+    <ClCompile Include="..\src\script\ScriptEditorFrame.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\misc\src\AssemblyBuilderDialog.cpp">
-      <Filter>src\UI\Miscellaneous</Filter>
+    <ClCompile Include="..\src\script\ScriptTableDataViewModel.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\misc\src\ExecutorThread.cpp">
-      <Filter>src\UI\Miscellaneous</Filter>
+    <ClCompile Include="..\src\script\ScriptTableEditorCtrl.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\misc\src\PreferencesDialog.cpp">
-      <Filter>src\UI\Miscellaneous</Filter>
+    <ClCompile Include="..\src\script\ScriptTableEditorFrame.cpp">
+      <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\misc\src\ResizeableGrid.cpp">
-      <Filter>src\UI\Miscellaneous</Filter>
+    <ClCompile Include="..\src\misc\SelectionControlFrame.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\misc\src\SelectionControlFrame.cpp">
-      <Filter>src\UI\Miscellaneous</Filter>
+    <ClCompile Include="..\src\sprites\SpriteEditorFrame.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\palettes\src\DataViewCtrlPaletteModel.cpp">
-      <Filter>src\UI\Palette</Filter>
+    <ClCompile Include="..\src\sprites\SpriteFrameEditorCtrl.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\palettes\src\DataViewCtrlPaletteRenderer.cpp">
-      <Filter>src\UI\Palette</Filter>
+    <ClCompile Include="..\src\sprites\SubspriteControlFrame.cpp">
+      <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\palettes\src\PaletteEditor.cpp">
-      <Filter>src\UI\Palette</Filter>
+    <ClCompile Include="..\src\text\StringDataViewModel.cpp">
+      <Filter>src\Text</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\palettes\src\PaletteListFrame.cpp">
-      <Filter>src\UI\Palette</Filter>
+    <ClCompile Include="..\src\text\StringEditorFrame.cpp">
+      <Filter>src\Text</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\HeightmapEditorCtrl.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\tileset\TileEditor.cpp">
+      <Filter>src\Tileset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\LayerControlFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\tileset\TilesetEditor.cpp">
+      <Filter>src\Tileset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\Map3DEditor.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\tileset\TilesetEditorFrame.cpp">
+      <Filter>src\Tileset</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\RoomErrorDialog.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\rooms\TileSwapDialog.cpp">
+      <Filter>src\Rooms\DoorSwapEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\RoomViewerCtrl.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\rooms\TileSwapControlFrame.cpp">
+      <Filter>src\Rooms\DoorSwapEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\RoomViewerFrame.cpp">
-      <Filter>src\UI\Rooms</Filter>
+    <ClCompile Include="..\src\rooms\TileSwapDataViewModel.cpp">
+      <Filter>src\Rooms\DoorSwapEditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\AnimationControlFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
+    <ClCompile Include="..\src\wxresource\wxcrafter.cpp">
+      <Filter>src\WX Resources</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\AnimationFrameControlFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerCtrl.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\EntityViewerFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\FrameControlFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\SpriteEditorFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\SpriteFrameEditorCtrl.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\sprites\src\SubspriteControlFrame.cpp">
-      <Filter>src\UI\Sprites</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\text\src\StringDataViewModel.cpp">
-      <Filter>src\UI\Text</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\text\src\StringEditorFrame.cpp">
-      <Filter>src\UI\Text</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\tileset\src\TileEditor.cpp">
-      <Filter>src\UI\Tileset</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditor.cpp">
-      <Filter>src\UI\Tileset</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\tileset\src\TilesetEditorFrame.cpp">
-      <Filter>src\UI\Tileset</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\ImageBuffer.cpp">
-      <Filter>src\Data\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter.cpp">
-      <Filter>src\UI\WX Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\wxresource\src\wxcrafter_bitmaps.cpp">
-      <Filter>src\UI\WX Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\behaviours\src\Behaviours.cpp">
-      <Filter>src\Data\Behaviours</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorFrame.cpp">
-      <Filter>src\UI\Behaviours</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\behaviours\src\BehaviourScriptEditorCtrl.cpp">
-      <Filter>src\UI\Behaviours</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\main\src\ScriptData.cpp">
-      <Filter>src\Data\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\Script.cpp">
-      <Filter>src\Data\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\ScriptTableEntry.cpp">
-      <Filter>src\Data\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorCtrl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptEditorFrame.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\CharacterDialog.cpp">
-      <Filter>src\UI\Rooms\CharacterEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\ChestDialog.cpp">
-      <Filter>src\UI\Rooms\ChestEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\EntityControlFrame.cpp">
-      <Filter>src\UI\Rooms\EntityEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\EntityPropertiesWindow.cpp">
-      <Filter>src\UI\Rooms\EntityEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\DoorDataViewModel.cpp">
-      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\FlagDataViewModel.cpp">
-      <Filter>src\UI\Rooms\FlagEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\FlagDialog.cpp">
-      <Filter>src\UI\Rooms\FlagEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapControlFrame.cpp">
-      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDataViewModel.cpp">
-      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\TileSwapDialog.cpp">
-      <Filter>src\UI\Rooms\DoorSwapEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\WarpControlFrame.cpp">
-      <Filter>src\UI\Rooms\WarpEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\rooms\src\WarpPropertyWindow.cpp">
-      <Filter>src\UI\Rooms\WarpEditor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewModel.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewRenderer.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptDataViewEditorControl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\Labels.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\3d_maps\src\RoomToTmx.cpp">
-      <Filter>src\Data\3D Maps</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\misc\src\DefaultLabels.cpp">
-      <Filter>src\Data\Miscellaneous</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\main\src\BrowserTreeCtrl.cpp">
-      <Filter>src\UI\Main</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\behaviours\src\BehaviourYamlConverter.cpp">
-      <Filter>src\Data\Behaviours</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\ScriptTable.cpp">
-      <Filter>src\Data\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorCtrl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptTableEditorFrame.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ScriptTableDataViewModel.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\DataViewScriptActionEditorControl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\DataViewScriptActionRenderer.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsDataViewModel.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsCtrl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\ProgressFlagsFrame.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxDataViewModel.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxCtrl.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\user_interface\script\src\CharacterSfxFrame.cpp">
-      <Filter>src\UI\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\ProgressFlags.cpp">
-      <Filter>src\Data\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\landstalker\script\src\ScriptFunction.cpp">
-      <Filter>src\Data\Script</Filter>
+    <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp">
+      <Filter>src\WX Resources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\landstalker\2d_maps\include\Blockmap2D.h">
-      <Filter>include\Data\2D Maps</Filter>
+    <ClInclude Include="..\src\landstalker\tileset\include\AnimatedTileset.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\2d_maps\include\Tilemap.h">
-      <Filter>include\Data\2D Maps</Filter>
+    <ClInclude Include="..\src\sprites\AnimationControlFrame.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\2d_maps\include\Tilemap2DRLE.h">
-      <Filter>include\Data\2D Maps</Filter>
+    <ClInclude Include="..\src\sprites\AnimationFrameControlFrame.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\BlockmapIsometric.h">
-      <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\misc\AssemblyBuilderDialog.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\Doors.h">
-      <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\behaviours\BehaviourScriptEditorCtrl.h">
+      <Filter>include\Behaviours</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\MapToTmx.h">
-      <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\behaviours\BehaviourScriptEditorFrame.h">
+      <Filter>include\Behaviours</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\Tilemap3DCmp.h">
-      <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\blockset\BlocksetEditorCtrl.h">
+      <Filter>include\Blockset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\TileSwaps.h">
-      <Filter>include\Data\3D Maps</Filter>
+    <ClInclude Include="..\src\blockset\BlocksetEditorFrame.h">
+      <Filter>include\Blockset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\blockset\include\Block.h">
-      <Filter>include\Data\Blockset</Filter>
+    <ClInclude Include="..\src\main\BrowserTreeCtrl.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\blockset\include\BlocksetCmp.h">
-      <Filter>include\Data\Blockset</Filter>
+    <ClInclude Include="..\src\rooms\CharacterDialog.h">
+      <Filter>include\Rooms\CharacterEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\AsmFile.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\script\CharacterSfxCtrl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\AsmFile_inl.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\script\CharacterSfxDataViewModel.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\AsmUtils.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\script\CharacterSfxFrame.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\DataManager.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\rooms\ChestDialog.h">
+      <Filter>include\Rooms\ChestEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\DataTypes.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\palettes\DataViewCtrlPaletteModel.h">
+      <Filter>include\Palette</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\EntryPreferences.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\palettes\DataViewCtrlPaletteRenderer.h">
+      <Filter>include\Palette</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\GameData.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\script\DataViewScriptActionEditorControl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\GraphicsData.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\script\DataViewScriptActionRenderer.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\Rom.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\rooms\DoorDataViewModel.h">
+      <Filter>include\Rooms\DoorSwapEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\RomLabels.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\main\EditorFrame.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\RomOffsets.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\rooms\EntityControlFrame.h">
+      <Filter>include\Rooms\EntityEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\RoomData.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\rooms\EntityPropertiesWindow.h">
+      <Filter>include\Rooms\EntityEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\SpriteData.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\sprites\EntityViewerCtrl.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\StringData.h">
-      <Filter>include\Data\Main</Filter>
+    <ClInclude Include="..\src\sprites\EntityViewerFrame.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\BitBarrel.h">
-      <Filter>include\Data\Miscellaneous</Filter>
+    <ClInclude Include="..\src\misc\BaseDataViewModel.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\BitBarrelWriter.h">
-      <Filter>include\Data\Miscellaneous</Filter>
+    <ClInclude Include="..\src\misc\ExecutorThread.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\Literals.h">
-      <Filter>include\Data\Miscellaneous</Filter>
+    <ClInclude Include="..\src\rooms\FlagDataViewModel.h">
+      <Filter>include\Rooms\FlagEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\LZ77.h">
-      <Filter>include\Data\Miscellaneous</Filter>
+    <ClInclude Include="..\src\rooms\FlagDialog.h">
+      <Filter>include\Rooms\FlagEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\Utils.h">
-      <Filter>include\Data\Miscellaneous</Filter>
+    <ClInclude Include="..\src\sprites\FrameControlFrame.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\palettes\include\Palette.h">
-      <Filter>include\Data\Palettes</Filter>
+    <ClInclude Include="..\src\rooms\HeightmapEditorCtrl.h">
+      <Filter>include\Rooms</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\Chests.h">
-      <Filter>include\Data\Rooms</Filter>
+    <ClInclude Include="..\src\main\Icons.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\Entity.h">
-      <Filter>include\Data\Rooms</Filter>
+    <ClInclude Include="..\src\main\ImageBufferWx.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\Flags.h">
-      <Filter>include\Data\Rooms</Filter>
+    <ClInclude Include="..\src\main\ImageList.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\Room.h">
-      <Filter>include\Data\Rooms</Filter>
+    <ClInclude Include="..\src\rooms\LayerControlFrame.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main\MainFrame.h">
+      <Filter>include\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\2d_maps\Map2DEditor.h">
+      <Filter>include\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\2d_maps\Map2DEditorFrame.h">
+      <Filter>include\2D Maps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\Map3DEditor.h">
+      <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h">
-      <Filter>include\Data\Rooms</Filter>
+      <Filter>include\Rooms</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\WarpList.h">
-      <Filter>include\Data\Rooms</Filter>
+    <ClInclude Include="..\src\rooms\RoomErrorDialog.h">
+      <Filter>include\Rooms</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\sprites\include\SpriteFrame.h">
-      <Filter>include\Data\Sprites</Filter>
+    <ClInclude Include="..\src\rooms\RoomViewerCtrl.h">
+      <Filter>include\Rooms</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\Charset.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\rooms\RoomViewerFrame.h">
+      <Filter>include\Rooms</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\EndCreditString.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\palettes\PaletteEditor.h">
+      <Filter>include\Palette</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\HuffmanString.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\palettes\PaletteListFrame.h">
+      <Filter>include\Palette</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\HuffmanTree.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\misc\PreferencesDialog.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\HuffmanTrees.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\script\ProgressFlagsCtrl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\IntroString.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\script\ProgressFlagsFrame.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\text\include\LSString.h">
-      <Filter>include\Data\Text</Filter>
+    <ClInclude Include="..\src\script\ProgressFlagsDataViewModel.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\tileset\include\AnimatedTileset.h">
-      <Filter>include\Data\Tileset</Filter>
+    <ClInclude Include="..\src\misc\ResizeableGrid.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\tileset\include\Tile.h">
-      <Filter>include\Data\Tileset</Filter>
+    <ClInclude Include="..\src\main\resource.h">
+      <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\tileset\include\TileAttributes.h">
-      <Filter>include\Data\Tileset</Filter>
+    <ClInclude Include="..\src\script\ScriptDataViewEditorControl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\landstalker\tileset\include\Tileset.h">
-      <Filter>include\Data\Tileset</Filter>
+    <ClInclude Include="..\src\script\ScriptDataViewModel.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditor.h">
-      <Filter>include\UI\2D Maps</Filter>
+    <ClInclude Include="..\src\script\ScriptDataViewRenderer.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\2d_maps\include\Map2DEditorFrame.h">
-      <Filter>include\UI\2D Maps</Filter>
+    <ClInclude Include="..\src\script\ScriptEditorCtrl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorCtrl.h">
-      <Filter>include\UI\Blockset</Filter>
+    <ClInclude Include="..\src\script\ScriptEditorFrame.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\blockset\include\BlocksetEditorFrame.h">
-      <Filter>include\UI\Blockset</Filter>
+    <ClInclude Include="..\src\script\ScriptTableDataViewModel.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\Icons.h">
-      <Filter>include\UI\Main</Filter>
+    <ClInclude Include="..\src\script\ScriptTableEditorCtrl.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\ImageList.h">
-      <Filter>include\UI\Main</Filter>
+    <ClInclude Include="..\src\script\ScriptTableEditorFrame.h">
+      <Filter>include\Script</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\MainFrame.h">
-      <Filter>include\UI\Main</Filter>
+    <ClInclude Include="..\src\misc\SelectionControlFrame.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\resource.h">
-      <Filter>include\UI\Main</Filter>
+    <ClInclude Include="..\src\sprites\SpriteEditorFrame.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\AssemblyBuilderDialog.h">
-      <Filter>include\UI\Miscellaneous</Filter>
+    <ClInclude Include="..\src\sprites\SpriteFrameEditorCtrl.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\ExecutorThread.h">
-      <Filter>include\UI\Miscellaneous</Filter>
+    <ClInclude Include="..\src\sprites\SubspriteControlFrame.h">
+      <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\PreferencesDialog.h">
-      <Filter>include\UI\Miscellaneous</Filter>
+    <ClInclude Include="..\src\text\StringDataViewModel.h">
+      <Filter>include\Text</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\ResizeableGrid.h">
-      <Filter>include\UI\Miscellaneous</Filter>
+    <ClInclude Include="..\src\text\StringEditorFrame.h">
+      <Filter>include\Text</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\SelectionControlFrame.h">
-      <Filter>include\UI\Miscellaneous</Filter>
+    <ClInclude Include="..\src\tileset\TileEditor.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\palettes\include\DataViewCtrlPaletteModel.h">
-      <Filter>include\UI\Palette</Filter>
+    <ClInclude Include="..\src\tileset\TilesetEditorFrame.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\palettes\include\DataViewCtrlPaletteRenderer.h">
-      <Filter>include\UI\Palette</Filter>
+    <ClInclude Include="..\src\tileset\TilesetEditor.h">
+      <Filter>include\Tileset</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\palettes\include\PaletteEditor.h">
-      <Filter>include\UI\Palette</Filter>
+    <ClInclude Include="..\src\rooms\TileSwapControlFrame.h">
+      <Filter>include\Rooms\DoorSwapEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\palettes\include\PaletteListFrame.h">
-      <Filter>include\UI\Palette</Filter>
+    <ClInclude Include="..\src\rooms\TileSwapDataViewModel.h">
+      <Filter>include\Rooms\DoorSwapEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\HeightmapEditorCtrl.h">
-      <Filter>include\UI\Rooms</Filter>
+    <ClInclude Include="..\src\rooms\TileSwapDialog.h">
+      <Filter>include\Rooms\DoorSwapEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\LayerControlFrame.h">
-      <Filter>include\UI\Rooms</Filter>
+    <ClInclude Include="..\src\rooms\WarpControlFrame.h">
+      <Filter>include\Rooms\WarpEditor</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\Map3DEditor.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\RoomErrorDialog.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\RoomViewerCtrl.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\RoomViewerFrame.h">
-      <Filter>include\UI\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\AnimationControlFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\AnimationFrameControlFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerCtrl.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\EntityViewerFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\FrameControlFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\SpriteEditorFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\SpriteFrameEditorCtrl.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\sprites\include\SubspriteControlFrame.h">
-      <Filter>include\UI\Sprites</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\text\include\StringDataViewModel.h">
-      <Filter>include\UI\Text</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\text\include\StringEditorFrame.h">
-      <Filter>include\UI\Text</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\tileset\include\TileEditor.h">
-      <Filter>include\UI\Tileset</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\tileset\include\TilesetEditor.h">
-      <Filter>include\UI\Tileset</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\tileset\include\TilesetEditorFrame.h">
-      <Filter>include\UI\Tileset</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\ImageBuffer.h">
-      <Filter>include\Data\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\misc\include\BaseDataViewModel.h">
-      <Filter>include\UI\Miscellaneous</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\wxcrafter.h">
-      <Filter>include\UI\WX Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\behaviours\include\Behaviours.h">
-      <Filter>include\Data\Behaviours</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorFrame.h">
-      <Filter>include\UI\Behaviours</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\behaviours\include\BehaviourScriptEditorCtrl.h">
-      <Filter>include\UI\Behaviours</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\main\include\ScriptData.h">
-      <Filter>include\Data\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\Script.h">
-      <Filter>include\Data\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\ScriptTableEntry.h">
-      <Filter>include\Data\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorCtrl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptEditorFrame.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewModel.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewRenderer.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptDataViewEditorControl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\Labels.h">
-      <Filter>include\Data\Miscellaneous</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\3d_maps\include\RoomToTmx.h">
-      <Filter>include\Data\3D Maps</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\misc\include\DefaultLabels.h">
-      <Filter>include\Data\Miscellaneous</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\BrowserTreeCtrl.h">
-      <Filter>include\UI\Main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\behaviours\include\BehaviourYamlConverter.h">
-      <Filter>include\Data\Behaviours</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\CharacterDialog.h">
-      <Filter>include\UI\Rooms\CharacterEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\ChestDialog.h">
-      <Filter>include\UI\Rooms\ChestEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\DoorDataViewModel.h">
-      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapControlFrame.h">
-      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDataViewModel.h">
-      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\TileSwapDialog.h">
-      <Filter>include\UI\Rooms\DoorSwapEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\EntityControlFrame.h">
-      <Filter>include\UI\Rooms\EntityEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\EntityPropertiesWindow.h">
-      <Filter>include\UI\Rooms\EntityEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\FlagDataViewModel.h">
-      <Filter>include\UI\Rooms\FlagEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\FlagDialog.h">
-      <Filter>include\UI\Rooms\FlagEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\WarpControlFrame.h">
-      <Filter>include\UI\Rooms\WarpEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\rooms\include\WarpPropertyWindow.h">
-      <Filter>include\UI\Rooms\WarpEditor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\ScriptTable.h">
-      <Filter>include\Data\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorCtrl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptTableEditorFrame.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ScriptTableDataViewModel.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\DataViewScriptActionEditorControl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\DataViewScriptActionRenderer.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsDataViewModel.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsCtrl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\ProgressFlagsFrame.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxDataViewModel.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxCtrl.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\script\include\CharacterSfxFrame.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\ProgressFlags.h">
-      <Filter>include\Data\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\script\include\ScriptFunction.h">
-      <Filter>include\UI\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\user_interface\main\include\EditorFrame.h">
-      <Filter>include\UI\Main</Filter>
+    <ClInclude Include="..\src\rooms\WarpPropertyWindow.h">
+      <Filter>include\Rooms\WarpEditor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\src\user_interface\wxresource\resource\win_resources.rc">
-      <Filter>wxcrafter</Filter>
+    <None Include="..\src\wxresource\resource\wxcrafter.wxcp">
+      <Filter>src\WX Resources</Filter>
+    </None>
+    <None Include="..\src\wxresource\resource\wxcrafter.xrc">
+      <Filter>src\WX Resources</Filter>
+    </None>
+    <None Include="..\src\wxresource\resource\wxcrafter_bitmaps.xrc">
+      <Filter>src\WX Resources</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\src\wxresource\resource\win_resources.rc">
+      <Filter>src\WX Resources</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.wxcp">
-      <Filter>wxcrafter</Filter>
-    </None>
-    <None Include="..\src\user_interface\wxresource\resource\wxcrafter.xrc">
-      <Filter>wxcrafter</Filter>
-    </None>
-    <None Include="..\src\user_interface\wxresource\resource\wxcrafter_bitmaps.xrc">
-      <Filter>wxcrafter</Filter>
-    </None>
   </ItemGroup>
 </Project>

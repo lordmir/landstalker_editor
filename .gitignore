@@ -11,3 +11,7 @@ VC2019/.vs
 VC2019/*.user
 .vs/
 VC2019/landstal.*/*
+install/
+CMakeFiles/
+CMakeCache.txt
+build*/

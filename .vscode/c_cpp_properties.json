@@ -5,10 +5,10 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/src/*",
-                "${workspaceFolder}/src/include/*",
+                "${workspaceFolder}/src/*",
                 "${workspaceFolder}/third_party/*",
-                "/usr/local/lib/wx/include/gtk3-unicode-static-3.2",
-                "/usr/local/include/wx-3.2"
+                "/usr/local/lib/wx/gtk3-unicode-static-3.2",
+                "/usr/local/wx-3.2"
             ],
             "defines": [
                 "__WXGTK__"

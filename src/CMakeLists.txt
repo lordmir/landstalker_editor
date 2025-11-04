@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.28)
+
+target_include_directories(${MODULE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_subdirectory("2d_maps")
+add_subdirectory("behaviours")
+add_subdirectory("blockset")
+add_subdirectory("main")
+add_subdirectory("misc")
+add_subdirectory("palettes")
+add_subdirectory("rooms")
+add_subdirectory("script")
+add_subdirectory("sprites")
+add_subdirectory("text")
+add_subdirectory("tileset")
+add_subdirectory("wxresource")
