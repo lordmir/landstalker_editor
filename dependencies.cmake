@@ -126,13 +126,10 @@ function(InstallWxwidgets)
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
-    set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "Root for the zlib library, used by libpng")
-    set(ZLIB_LIBRARY zlibshared CACHE INTERNAL "" FORCE)
     set(wxBUILD_SHARED ${LANDSTALKER_BUILD_SHARED} CACHE BOOL "" FORCE)
     set(wxBUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(wxBUILD_DEMOS OFF CACHE BOOL "" FORCE)
     set(wxBUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-    find_package(ZLIB REQUIRED)
     message("Configuring wxWidgets...")
     FetchContent_MakeAvailable(wx)
 endfunction()

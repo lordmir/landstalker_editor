@@ -27,7 +27,7 @@ if(WIN32)
 endif()
 
 if(${LANDSTALKER_BUILD_SHARED})
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE png_shared zlibshared)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE png_shared zlib)
 else()
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE png_static zlibstatic)
 endif()
