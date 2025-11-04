@@ -34,7 +34,7 @@ function(InstallZlib)
     FetchContent_Declare(
         zlib
         GIT_REPOSITORY https://github.com/madler/zlib.git
-        GIT_TAG "51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf" # "v1.3.1"
+        GIT_TAG "5a82f71ed1dfc0bec044d9702463dbdf84ea3b71" # "master"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -43,7 +43,6 @@ function(InstallZlib)
     set(ZLIB_BUILD_STATIC ${LANDSTALKER_BUILD_STATIC} CACHE BOOL "" FORCE)
     set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
     set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(ZLIB_ENABLE_INSTALL OFF)
     message("Configuring ZLIB...")
     FetchContent_MakeAvailable(zlib)
     add_library(ZLIB::ZLIB ALIAS zlib)
@@ -89,7 +88,7 @@ function(InstallYamlcpp)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG "0579ae3d976091d7d664aa9d2527e0d0cff25763" # "yaml-cpp-0.7.0"
+        GIT_TAG "a83cd31548b19d50f3f983b069dceb4f4d50756d" # "master"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -127,10 +126,22 @@ function(InstallWxwidgets)
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
+    install(
+        TARGETS zlib 
+        EXPORT ${PROJECT_NAME}Targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+        RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/
+        PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/
+    )
+    set(ZLIB_ROOT "${zlib_SOURCE_DIR}" CACHE INTERNAL "Root for the zlib library, used by libpng")
+    set(ZLIB_LIBRARY zlibshared CACHE INTERNAL "" FORCE)
     set(wxBUILD_SHARED ${LANDSTALKER_BUILD_SHARED} CACHE BOOL "" FORCE)
     set(wxBUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(wxBUILD_DEMOS OFF CACHE BOOL "" FORCE)
     set(wxBUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+    find_package(ZLIB REQUIRED)
     message("Configuring wxWidgets...")
     FetchContent_MakeAvailable(wx)
 endfunction()

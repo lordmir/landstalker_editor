@@ -1,12 +1,13 @@
 CXX	= g++
 LD	= g++
+MAKE = make
 WXCONFIG	= wx-config
 
 CXXFLAGS	= `$(WXCONFIG) --cxxflags` -std=c++2a -Wall -Wextra
 CPPFLAGS	= `$(WXCONFIG) --cppflags`
 
 EXEC		:= $(notdir $(CURDIR))
-LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base,xml` -lpng -lyaml-cpp -lpugi -llandstalker
+LIBS		:= `$(WXCONFIG) --libs xrc,propgrid,aui,adv,core,base,xml` -llandstalker -lpng -lyaml-cpp -lpugixml
 SRCDIR  	:= ./src
 BUILDDIR	:= build
 BINDIR		:= bin
@@ -39,13 +40,16 @@ $(BUILDDIR):
 
 clean:
 	@rm -rf $(BUILDDIR)
+	@$(MAKE) -C ./modules/liblandstalker clean
 
 clean-all: clean
-	@rm -rf $(EXEC)
+
+lib:
+	@$(MAKE) -C ./modules/liblandstalker
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
-$(EXEC): $(OBJ) $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp))
-	$(LD) $^ -o $@ $(LIBS) $(LIBPATH)
+$(EXEC): $(OBJ) $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(wildcard $(SRCDIR)/*.cpp)) lib
+	$(LD) $(filter-out lib,$^) -o $@ $(LIBPATH) $(LIBS)

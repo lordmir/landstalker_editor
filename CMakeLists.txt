@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.28)
 set(MODULE_NAME "landstalker_editor")
 project(${MODULE_NAME} VERSION 0.4.0 DESCRIPTION "Landstalker Editor Application")
 set(CMAKE_CXX_STANDARD 20)
