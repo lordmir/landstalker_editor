@@ -148,6 +148,23 @@ To build with debug symbols, use pass the DEBUG=yes parameter to make
 $ make DEBUG=yes
 ```
 
+## Docker
+
+### Build the image
+
+``` 
+docker build -t landstalker_editor .
+```
+
+### Run a container 
+
+Open bash inside the container
+```
+docker run --rm -it -v "$PWD":/workspace landstalker_editor bash
+```
+
+When inside the container the application can be build using `cmake . && make`, see `Linux build` step. 
+
 ## Windows
 
 ### Visual Studio 2019 (Community)
