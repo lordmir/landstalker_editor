@@ -52,6 +52,7 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 ## Init git submodule
 
 ```
+git submodule sync
 git submodule update --init --recursive
 ```
 
