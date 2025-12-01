@@ -12,6 +12,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_VDPMAP,
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_EXPORT_PNG_ANIMATION,
+	ID_FILE_EXPORT_ALL_PNG_ANIMATION,
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
@@ -333,10 +334,11 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_VDPMAP, "Export VDP Sprite Map as CSV...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
-	AddMenuItem(fileMenu, 5, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 6, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
-	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
-	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PNG_ANIMATION, "Export Sprite All Animations as PNG...");
+	AddMenuItem(fileMenu, 6, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
+	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
+	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
 	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
@@ -415,6 +417,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_FILE_EXPORT_PNG_ANIMATION:
 		OnExportPngAnimation();
+		break;
+	case ID_FILE_EXPORT_ALL_PNG_ANIMATION:
+		OnExportAllPngAnimation();
 		break;
 	case ID_FILE_IMPORT_FRM:
 		OnImportFrm();
@@ -582,6 +587,21 @@ void SpriteEditorFrame::ExportPngAnimation(const std::string& filename) const
 	}
 
 	buf.WritePNG(filename, { m_palette }, true);
+}
+
+void SpriteEditorFrame::ExportAllPngAnimation(const std::string& dir)
+{
+    wxString curdir = wxGetCwd();
+    wxSetWorkingDirectory(dir);
+
+	for (std::size_t i = 0; i < m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()); ++i)
+	{
+		m_anim = i;
+		const std::string filename = Landstalker::StrPrintf("SpriteGfx%03dAnim%03d.png", m_sprite->GetSprite(), m_anim);
+		ExportPngAnimation(filename);
+	}
+
+    wxSetWorkingDirectory(curdir);
 }
 
 void SpriteEditorFrame::ImportFrm(const std::string& filename)
@@ -1493,6 +1513,15 @@ void SpriteEditorFrame::OnExportPngAnimation()
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		ExportPngAnimation(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportAllPngAnimation()
+{
+	wxDirDialog dd(this, "Select PNG Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllPngAnimation(dd.GetPath().ToStdString());
 	}
 }
 
