@@ -13,6 +13,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_EXPORT_PNG_ANIMATION,
 	ID_FILE_EXPORT_ALL_PNG_ANIMATION,
+	ID_FILE_EXPORT_ALL_PROPERTIES_YAML,
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
@@ -335,6 +336,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PNG_ANIMATION, "Export Sprite All Animations as PNG...");
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
 	AddMenuItem(fileMenu, 6, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
 	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
@@ -420,6 +422,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_FILE_EXPORT_ALL_PNG_ANIMATION:
 		OnExportAllPngAnimation();
+		break;
+	case ID_FILE_EXPORT_ALL_PROPERTIES_YAML:
+		OnExportPropertiesYaml();
 		break;
 	case ID_FILE_IMPORT_FRM:
 		OnImportFrm();
@@ -602,6 +607,49 @@ void SpriteEditorFrame::ExportAllPngAnimation(const std::string& dir)
 	}
 
     wxSetWorkingDirectory(curdir);
+}
+
+void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
+{   
+    auto sd = m_gd->GetSpriteData();
+    std::ostringstream ss;
+    
+    int sprite_index = m_sprite->GetSprite();
+    
+    // Main properties
+    ss << "ID: " << sprite_index << std::endl;
+    ss << "Name: " << Landstalker::wstr_to_utf8(sd->GetSpriteDisplayName(sprite_index)) << std::endl;
+    ss << "Label: " << sd->GetSpriteName(sprite_index) << std::endl;
+    ss << "StartAddress: " << Landstalker::StrPrintf("0x%06X", m_sprite->GetStartAddress()) << std::endl;
+    ss << "EndAddress: " << Landstalker::StrPrintf("0x%06X", m_sprite->GetEndAddress()) << std::endl;
+    ss << "Size: " << m_sprite->GetDataLength() << std::endl;
+    ss << "Compressed: " << (m_sprite->GetData()->GetCompressed() ? "true" : "false") << std::endl;
+    
+    // Animation properties
+    auto flags = sd->GetSpriteAnimationFlags(sprite_index);
+    ss << std::endl << "Animation:" << std::endl;
+    ss << "  IdleAnimationFrameCount: " << static_cast<int>(flags.walk_animation_frame_count) << std::endl;
+    ss << "  IdleAnimationSource: " << static_cast<int>(flags.idle_animation_source) << std::endl;
+    ss << "  JumpAnimationSource: " << static_cast<int>(flags.jump_animation_source) << std::endl;
+    ss << "  WalkCycleFrameCount: " << static_cast<int>(flags.walk_animation_frame_count) << std::endl;
+    ss << "  TakeDamageAnimationSource: " << static_cast<int>(flags.take_damage_animation_source) << std::endl;
+    ss << "  DoNotRotate: " << (flags.do_not_rotate ? "true" : "false") << std::endl;
+    ss << "  FullAnimations: " << (flags.has_full_animations ? "true" : "false") << std::endl;
+    
+    // Hitbox properties
+    auto hitbox = sd->GetSpriteHitbox(sprite_index);
+    ss << std::endl << "Hitbox:" << std::endl;
+    ss << "  Width: " << std::fixed << std::setprecision(2) << (hitbox.first / 8.0) << std::endl;
+    ss << "  Height: " << std::fixed << std::setprecision(2) << (hitbox.second / 16.0) << std::endl;
+    ss << "  Volume: " << std::fixed << std::setprecision(2) << (sd->GetSpriteVolume(sprite_index) / 16.0) << std::endl;
+    
+    // Write to file
+	std::ofstream file(filename);
+	if (file.is_open())
+	{
+	    file << ss.str();
+	    file.close();
+	}
 }
 
 void SpriteEditorFrame::ImportFrm(const std::string& filename)
@@ -1522,6 +1570,16 @@ void SpriteEditorFrame::OnExportAllPngAnimation()
 	if (dd.ShowModal() != wxID_CANCEL)
 	{
 		ExportAllPngAnimation(dd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportPropertiesYaml()
+{
+	const wxString default_file = Landstalker::StrPrintf("Sprite%03dProperties.yaml", m_sprite->GetSprite());
+	wxFileDialog fd(this, _("Export Sprite Properties As YAML"), "", default_file, "YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPropertiesYaml(fd.GetPath().ToStdString());
 	}
 }
 
