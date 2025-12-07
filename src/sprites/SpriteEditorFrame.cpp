@@ -336,11 +336,11 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PNG_ANIMATION, "Export Sprite All Animations as PNG...");
-	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
-	AddMenuItem(fileMenu, 6, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
-	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
-	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	AddMenuItem(fileMenu, 6, ID_FILE_EXPORT_ALL_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
+	AddMenuItem(fileMenu, 7, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
+	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
+	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
 	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
