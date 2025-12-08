@@ -13,7 +13,7 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_EXPORT_PNG_ANIMATION,
 	ID_FILE_EXPORT_ALL_PNG_ANIMATION,
-	ID_FILE_EXPORT_ALL_PROPERTIES_YAML,
+	ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML,
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
@@ -336,7 +336,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
 	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PNG_ANIMATION, "Export Sprite All Animations as PNG...");
-	AddMenuItem(fileMenu, 6, ID_FILE_EXPORT_ALL_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
+	AddMenuItem(fileMenu, 6, ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
 	AddMenuItem(fileMenu, 7, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
 	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
@@ -423,7 +423,7 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_FILE_EXPORT_ALL_PNG_ANIMATION:
 		OnExportAllPngAnimation();
 		break;
-	case ID_FILE_EXPORT_ALL_PROPERTIES_YAML:
+	case ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML:
 		OnExportPropertiesYaml();
 		break;
 	case ID_FILE_IMPORT_FRM:
