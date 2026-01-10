@@ -613,7 +613,6 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
 {   
     auto sd = m_gd->GetSpriteData();
     std::ostringstream ss;
-    
     int sprite_index = m_sprite->GetSprite();
     
     // Main properties
@@ -628,11 +627,25 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
     // Animation properties
     auto flags = sd->GetSpriteAnimationFlags(sprite_index);
     ss << std::endl << "Animation:" << std::endl;
-    ss << "  IdleAnimationFrameCount: " << static_cast<int>(flags.walk_animation_frame_count) << std::endl;
-    ss << "  IdleAnimationSource: " << static_cast<int>(flags.idle_animation_source) << std::endl;
-    ss << "  JumpAnimationSource: " << static_cast<int>(flags.jump_animation_source) << std::endl;
-    ss << "  WalkCycleFrameCount: " << static_cast<int>(flags.walk_animation_frame_count) << std::endl;
-    ss << "  TakeDamageAnimationSource: " << static_cast<int>(flags.take_damage_animation_source) << std::endl;
+    
+    ss << "  IdleAnimationFrameCount: " << 
+        (flags.idle_animation_frames == Landstalker::SpriteData::AnimationFlags::IdleAnimationFrameCount::TWO_FRAMES ? 2 : 1) << std::endl;
+    
+    ss << "  IdleAnimationSource: " << 
+        (flags.idle_animation_source == Landstalker::SpriteData::AnimationFlags::IdleAnimationSource::USE_WALK_FRAMES ? 
+            "UseWalkFrames" : "Dedicated") << std::endl;
+    
+    ss << "  JumpAnimationSource: " << 
+        (flags.jump_animation_source == Landstalker::SpriteData::AnimationFlags::JumpAnimationSource::USE_IDLE_FRAMES ? 
+            "UseIdleFrames" : "Dedicated") << std::endl;
+    
+    ss << "  WalkCycleFrameCount: " << 
+        (flags.walk_animation_frame_count == Landstalker::SpriteData::AnimationFlags::WalkAnimationFrameCount::FOUR_FRAMES ? 4 : 2) << std::endl;
+    
+    ss << "  TakeDamageAnimationSource: " << 
+        (flags.take_damage_animation_source == Landstalker::SpriteData::AnimationFlags::TakeDamageAnimationSource::USE_IDLE_FRAMES ? 
+            "UseIdleFrames" : "Dedicated") << std::endl;
+    
     ss << "  DoNotRotate: " << (flags.do_not_rotate ? "true" : "false") << std::endl;
     ss << "  FullAnimations: " << (flags.has_full_animations ? "true" : "false") << std::endl;
     
@@ -644,12 +657,12 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
     ss << "  Volume: " << std::fixed << std::setprecision(2) << (sd->GetSpriteVolume(sprite_index) / 16.0) << std::endl;
     
     // Write to file
-	std::ofstream file(filename);
-	if (file.is_open())
-	{
-	    file << ss.str();
-	    file.close();
-	}
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        file << ss.str();
+        file.close();
+    }
 }
 
 void SpriteEditorFrame::ImportFrm(const std::string& filename)

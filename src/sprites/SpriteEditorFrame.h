@@ -21,6 +21,7 @@
 #include <sprites/AnimationControlFrame.h>
 #include <sprites/AnimationFrameControlFrame.h>
 #include <landstalker/misc/Utils.h>
+#include <landstalker/main/SpriteData.h>
 
 class SpriteEditorFrame : public EditorFrame
 {
