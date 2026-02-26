@@ -775,13 +775,13 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		prop_fa->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
 		props.Append(prop_fa);
 		props.Append(new wxPropertyCategory("Hitbox", "Hitbox"));
-		wxPGProperty* base_prop = new wxFloatProperty("Width/Length", "Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
+		wxPGProperty* base_prop = new wxFloatProperty("Width/Length", "Width/Length", sd->GetSpriteHitbox(sprite_index).base / 8.0);
 		base_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
 		base_prop->SetAttribute(wxPG_ATTR_MAX, 31.875);
 		base_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.125);
 		base_prop->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(base_prop);
-		wxPGProperty* height_prop = new wxFloatProperty("Height", "Height", sd->GetSpriteHitbox(sprite_index).second / 16.0);
+		wxPGProperty* height_prop = new wxFloatProperty("Height", "Height", sd->GetSpriteHitbox(sprite_index).height / 16.0);
 		height_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
 		height_prop->SetAttribute(wxPG_ATTR_MAX, 15.9375);
 		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
@@ -919,8 +919,8 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->GetProperty("Take Damage Animation Source")->SetChoiceSelection(static_cast<int>(flags.take_damage_animation_source));
 		props.GetGrid()->SetPropertyValue("Do Not Rotate", flags.do_not_rotate);
 		props.GetGrid()->SetPropertyValue("Full Animations", flags.has_full_animations);
-		props.GetGrid()->SetPropertyValue("Width/Length", sd->GetSpriteHitbox(sprite_index).first / 8.0);
-		props.GetGrid()->SetPropertyValue("Height", sd->GetSpriteHitbox(sprite_index).second / 16.0);
+		props.GetGrid()->SetPropertyValue("Width/Length", sd->GetSpriteHitbox(sprite_index).base / 8.0);
+		props.GetGrid()->SetPropertyValue("Height", sd->GetSpriteHitbox(sprite_index).height / 16.0);
 		props.GetGrid()->Thaw();
 	}
 }
@@ -955,10 +955,10 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		auto hitbox = sd->GetSpriteHitbox(sprite_index);
 		int value = static_cast<int>(property->GetValuePlain().GetDouble() * 8.0);
-		if (value != hitbox.first)
+		if (value != hitbox.base)
 		{
-			hitbox.first = std::clamp<uint8_t>(value, 0, 255);
-			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
+			hitbox.base = std::clamp<uint8_t>(value, 0, 255);
+			sd->SetSpriteHitbox(sprite_index, {hitbox.base, hitbox.height});
 			FireEvent(EVT_PROPERTIES_UPDATE);
 			if (m_spriteeditor->GetHitboxEnabled())
 			{
@@ -970,10 +970,10 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		auto hitbox = sd->GetSpriteHitbox(sprite_index);
 		int value = static_cast<int>(property->GetValuePlain().GetDouble() * 16.0);
-		if (value != hitbox.second)
+		if (value != hitbox.height)
 		{
-			hitbox.second = std::clamp<uint8_t>(value, 0, 255);
-			sd->SetSpriteHitbox(sprite_index, hitbox.first, hitbox.second);
+			hitbox.height = std::clamp<uint8_t>(value, 0, 255);
+			sd->SetSpriteHitbox(sprite_index, {hitbox.base, hitbox.height});
 			FireEvent(EVT_PROPERTIES_UPDATE);
 			if (m_spriteeditor->GetHitboxEnabled())
 			{
