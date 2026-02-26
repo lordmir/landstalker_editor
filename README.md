@@ -49,6 +49,12 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 
 # Build
 
+## Init git submodule
+
+```
+git submodule update --init --recursive
+```
+
 ## CMake
 
 [CMake](https://cmake.org/) is a cross-platform build tool, allowing for (in theory) a more straightforward build process, regardless of the platform. All that is required is [CMake Version 3.28 or later](https://cmake.org/download/) and a C++ compiler / build environment (GCC and `build-essential` on Linux, and [Visual Studio Community Edition 2022](https://visualstudio.microsoft.com/vs/community/) on Windows).
@@ -146,6 +152,29 @@ To build with debug symbols, use pass the DEBUG=yes parameter to make
 
 ```sh
 $ make DEBUG=yes
+```
+
+## Docker
+
+### Build the image
+
+``` 
+docker build -t landstalker_editor .
+```
+
+### Run a container 
+
+Open bash inside the container
+
+```
+docker run --rm -it -v "$PWD":/workspace landstalker_editor bash
+```
+
+When inside the container the application can be build using `cmake . && make` (see `Linux build`)
+or in one step:  
+
+```
+docker run --rm -it -v "$PWD":/workspace landstalker_editor sh -c "cmake . && make"
 ```
 
 ## Windows
