@@ -617,21 +617,21 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 			auto hitbox = m_gd->GetSpriteData()->GetSpriteHitbox(m_sprite_id);
 			m_memdc.SetPen(wxPen(*wxYELLOW, 1));
 			wxPoint hitbox_fg_points[] = {
-				SpriteToScreenXY({ hitbox.first * 2, 0}),
-				SpriteToScreenXY({ 0, hitbox.first}),
-				SpriteToScreenXY({ -hitbox.first * 2, 0}),
-				SpriteToScreenXY({ -hitbox.first * 2, -hitbox.second}),
-				SpriteToScreenXY({ 0, hitbox.first - hitbox.second}),
-				SpriteToScreenXY({ 0, hitbox.first}),
-				SpriteToScreenXY({ 0, hitbox.first - hitbox.second}),
-				SpriteToScreenXY({ hitbox.first * 2, 0 - hitbox.second}),
-				SpriteToScreenXY({ hitbox.first * 2, 0}),
-				SpriteToScreenXY({ hitbox.first * 2, 0 - hitbox.second}),
-				SpriteToScreenXY({ 0, -hitbox.first - hitbox.second}),
-				SpriteToScreenXY({ -hitbox.first * 2, -hitbox.second}),
-				SpriteToScreenXY({ -hitbox.first * 2, 0}),
-				SpriteToScreenXY({ 0, hitbox.first}),
-				SpriteToScreenXY({ hitbox.first * 2, 0}),
+				SpriteToScreenXY({ hitbox.base * 2, 0}),
+				SpriteToScreenXY({ 0, hitbox.base}),
+				SpriteToScreenXY({ -hitbox.base * 2, 0}),
+				SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
+				SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
+				SpriteToScreenXY({ 0, hitbox.base}),
+				SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
+				SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
+				SpriteToScreenXY({ hitbox.base * 2, 0}),
+				SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
+				SpriteToScreenXY({ 0, -hitbox.base - hitbox.height}),
+				SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
+				SpriteToScreenXY({ -hitbox.base * 2, 0}),
+				SpriteToScreenXY({ 0, hitbox.base}),
+				SpriteToScreenXY({ hitbox.base * 2, 0}),
 			};
 			m_memdc.DrawPolygon(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), &hitbox_fg_points[0]);
 		}

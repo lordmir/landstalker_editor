@@ -1576,7 +1576,7 @@ void HeightmapEditorCtrl::DrawEntities(wxDC& dc)
         dc.SetBrush(*m_entity_brush1);
         //DrawCellRange(dc, entity.GetXDbl() - 12.5, entity.GetYDbl() - 12.5, hitbox.first / 8.0, hitbox.first / 8.0, 2);
         dc.SetBrush(*m_entity_brush2);
-        DrawCellRange(dc, entity.GetXDbl() - 12.5, entity.GetYDbl() - 12.5, hitbox.first / 8.0, hitbox.first / 8.0, 2);
+        DrawCellRange(dc, entity.GetXDbl() - 12.5, entity.GetYDbl() - 12.5, hitbox.base / 8.0, hitbox.base / 8.0, 2);
     }
 }
 

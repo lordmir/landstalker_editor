@@ -680,7 +680,8 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
         int y = entity.GetY() - 0x080;
         int z = entity.GetZ();
 
-        if (hitbox.first >= 0x0C)
+        // Adjust for entities with larger hitboxes
+        if (hitbox.base >= 0x0C)
         {
             x += 0x80;
             y += 0x80;
@@ -702,22 +703,22 @@ std::vector<RoomViewerCtrl::SpriteQ> RoomViewerCtrl::PrepareSprites(uint16_t roo
             // Draw objects furthest away from camera first
             auto hitbox_lhs = m_g->GetSpriteData()->GetEntityHitbox(lhs.entity.GetType());
             auto hitbox_rhs = m_g->GetSpriteData()->GetEntityHitbox(rhs.entity.GetType());
-            int dist_lhs = lhs.entity.GetX() + lhs.entity.GetY() + hitbox_lhs.first;
-            int dist_rhs = rhs.entity.GetX() + rhs.entity.GetY() + hitbox_rhs.first;
+            int dist_lhs = lhs.entity.GetX() + lhs.entity.GetY() + hitbox_lhs.base;
+            int dist_rhs = rhs.entity.GetX() + rhs.entity.GetY() + hitbox_rhs.base;
             if (dist_lhs != dist_rhs)
             {
                 return dist_lhs < dist_rhs;
             }
             // Next draw left-most objects
-            int left_lhs = lhs.entity.GetY() - hitbox_lhs.first;
-            int left_rhs = rhs.entity.GetY() - hitbox_rhs.first;
+            int left_lhs = lhs.entity.GetY() - hitbox_lhs.base;
+            int left_rhs = rhs.entity.GetY() - hitbox_rhs.base;
             if (left_lhs != left_rhs)
             {
                 return left_lhs < left_rhs;
             }
             // Finally, sort by height
-            int height_lhs = lhs.entity.GetZ() + hitbox_lhs.second;
-            int height_rhs = rhs.entity.GetZ() + hitbox_rhs.second;
+            int height_lhs = lhs.entity.GetZ() + hitbox_lhs.height;
+            int height_rhs = rhs.entity.GetZ() + hitbox_rhs.height;
             return height_lhs < height_rhs;
         });
     return sprites;
@@ -755,18 +756,18 @@ void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
             wxPoint2DDouble(s.x + hitbox.first * 2, s.y)
         }; */
         wxPoint2DDouble hitbox_fg_points[] = {
-            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
-            wxPoint2DDouble(s.x, s.y + hitbox.first),
-            wxPoint2DDouble(s.x - hitbox.first * 2, s.y),
-            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second),
-            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
-            wxPoint2DDouble(s.x, s.y + hitbox.first),
-            wxPoint2DDouble(s.x, s.y + hitbox.first - hitbox.second),
-            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
-            wxPoint2DDouble(s.x + hitbox.first * 2, s.y),
-            wxPoint2DDouble(s.x + hitbox.first * 2, s.y - hitbox.second),
-            wxPoint2DDouble(s.x, s.y - hitbox.first - hitbox.second),
-            wxPoint2DDouble(s.x - hitbox.first * 2, s.y - hitbox.second)
+            wxPoint2DDouble(s.x + hitbox.base * 2, s.y),
+            wxPoint2DDouble(s.x, s.y + hitbox.base),
+            wxPoint2DDouble(s.x - hitbox.base * 2, s.y),
+            wxPoint2DDouble(s.x - hitbox.base * 2, s.y - hitbox.height),
+            wxPoint2DDouble(s.x, s.y + hitbox.base - hitbox.height),
+            wxPoint2DDouble(s.x, s.y + hitbox.base),
+            wxPoint2DDouble(s.x, s.y + hitbox.base - hitbox.height),
+            wxPoint2DDouble(s.x + hitbox.base * 2, s.y - hitbox.height),
+            wxPoint2DDouble(s.x + hitbox.base * 2, s.y),
+            wxPoint2DDouble(s.x + hitbox.base * 2, s.y - hitbox.height),
+            wxPoint2DDouble(s.x, s.y - hitbox.base - hitbox.height),
+            wxPoint2DDouble(s.x - hitbox.base * 2, s.y - hitbox.height)
         };
 
         auto fg_ctx = s.background ? ctxs[Layer::BG_SPRITES_WIREFRAME_FG] : ctxs[Layer::FG_SPRITES_WIREFRAME_FG];
@@ -775,9 +776,9 @@ void RoomViewerCtrl::DrawSpriteHitboxes(const std::vector<SpriteQ>& q)
         {
             auto dotted_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_DOT));
             bg_ctx->SetPen(dotted_pen);
-            bg_ctx->StrokeLine(s.x + hitbox.first * 2, s.y, s.x, s.y - hitbox.first);
-            bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x - hitbox.first * 2, s.y);
-            bg_ctx->StrokeLine(s.x, s.y - hitbox.first, s.x, s.y - hitbox.first - hitbox.second);
+            bg_ctx->StrokeLine(s.x + hitbox.base * 2, s.y, s.x, s.y - hitbox.base);
+            bg_ctx->StrokeLine(s.x, s.y - hitbox.base, s.x - hitbox.base * 2, s.y);
+            bg_ctx->StrokeLine(s.x, s.y - hitbox.base, s.x, s.y - hitbox.base - hitbox.height);
             auto solid_pen = bg_ctx->CreatePen(wxGraphicsPenInfo(s.selected ? wxColor(0xFF, 50, 50) : wxColor(0xA0, 0xA0, 0xA0)).Style(wxPENSTYLE_SOLID));
             fg_ctx->SetPen(solid_pen);
             fg_ctx->StrokeLines(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), hitbox_fg_points);
@@ -1755,13 +1756,13 @@ void RoomViewerCtrl::AddEntityClickRegions(const std::vector<SpriteQ>& q)
 
 
         m_entity_poly.push_back({ s.id, {
-            {(double)(s.x + hitbox.first * 2), (double)(s.y)},
-            {(double)(s.x + hitbox.first * 2), (double)(s.y - hitbox.second)},
-            {(double)(s.x), (double)(s.y - hitbox.first - hitbox.second)},
-            {(double)(s.x - hitbox.first * 2), (double)(s.y - hitbox.second)},
-            {(double)(s.x - hitbox.first * 2), (double)(s.y)},
-            {(double)(s.x), (double)(s.y + hitbox.first)},
-            {(double)(s.x + hitbox.first * 2), (double)(s.y)}
+            {(double)(s.x + hitbox.base * 2), (double)(s.y)},
+            {(double)(s.x + hitbox.base * 2), (double)(s.y - hitbox.height)},
+            {(double)(s.x), (double)(s.y - hitbox.base - hitbox.height)},
+            {(double)(s.x - hitbox.base * 2), (double)(s.y - hitbox.height)},
+            {(double)(s.x - hitbox.base * 2), (double)(s.y)},
+            {(double)(s.x), (double)(s.y + hitbox.base)},
+            {(double)(s.x + hitbox.base * 2), (double)(s.y)}
         } });
     }
 }
