@@ -34,7 +34,7 @@ function(InstallZlib)
     FetchContent_Declare(
         zlib
         GIT_REPOSITORY https://github.com/madler/zlib.git
-        GIT_TAG "5a82f71ed1dfc0bec044d9702463dbdf84ea3b71" # "master"
+        GIT_TAG "da607da739fa6047df13e66a2af6b8bec7c2a498" # "v1.3.2"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -93,7 +93,7 @@ function(InstallYamlcpp)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG "a83cd31548b19d50f3f983b069dceb4f4d50756d" # "master"
+        GIT_TAG "56e3bb550c91fd7005566f19c079cb7a503223cf" # "yaml-cpp-0.9.0"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
