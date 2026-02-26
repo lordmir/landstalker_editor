@@ -2,6 +2,7 @@
 #define _SPRITEEDITORFRAME_H_
 
 #include <wx/wx.h>
+#include <wx/progdlg.h>
 
 #include <vector>
 #include <cstdint>
@@ -19,6 +20,8 @@
 #include <sprites/FrameControlFrame.h>
 #include <sprites/AnimationControlFrame.h>
 #include <sprites/AnimationFrameControlFrame.h>
+#include <landstalker/misc/Utils.h>
+#include <landstalker/main/SpriteData.h>
 
 class SpriteEditorFrame : public EditorFrame
 {
@@ -49,6 +52,8 @@ public:
 	void ExportVdpSpritemap(const std::string& filename) const;
 	void ExportPng(const std::string& filename) const;
 	void ExportPngAnimation(const std::string& filename) const;
+	void ExportAllPngAnimation(const std::string& dir);
+	void ExportPropertiesYaml(const std::string& dir);
 	void ImportFrm(const std::string& filename);
 	void ImportTiles(const std::string& filename);
 	void ImportVdpSpritemap(const std::string& filename);
@@ -103,6 +108,8 @@ private:
 	void OnExportVdpSpritemap();
 	void OnExportPng();
 	void OnExportPngAnimation();
+	void OnExportAllPngAnimation();
+	void OnExportPropertiesYaml();
 	void OnImportFrm();
 	void OnImportTiles();
 	void OnImportVdpSpritemap();

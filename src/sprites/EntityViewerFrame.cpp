@@ -1,6 +1,11 @@
 #include <sprites/EntityViewerFrame.h>
 #include <wx/propgrid/advprops.h>
 
+enum MENU_IDS
+{
+	ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML = 20000
+};
+
 EntityViewerFrame::EntityViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst)
 {
@@ -477,4 +482,93 @@ void EntityViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, con
 	std::wstring lbl(L"Entities/" + old_name + L"\1Entities/" + new_name);
 	evt.SetString(lbl);
 	wxPostEvent(this, evt);
+}
+
+void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+{
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML, "Export Entity Properties as YAML...");
+
+	UpdateUI();
+
+	m_mgr.Update();
+}
+
+void EntityViewerFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	ProcessEvent(evt.GetId());
+	evt.Skip();
+}
+
+void EntityViewerFrame::ProcessEvent(int id)
+{
+	switch (id)
+	{
+	case ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML:
+		OnExportPropertiesYaml();
+		break;
+	}
+}
+
+void EntityViewerFrame::OnExportPropertiesYaml()
+{
+	const wxString default_file = Landstalker::StrPrintf("Entity%03dProperties.yaml", m_entity_id);
+	wxFileDialog fd(this, _("Export Entity Properties As YAML"), "", default_file, "YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportPropertiesYaml(fd.GetPath().ToStdString());
+	}
+}
+
+void EntityViewerFrame::ExportPropertiesYaml(const std::string& filename)
+{   
+    std::ostringstream ss;
+    auto sd = m_gd->GetSpriteData();
+    int sprite_index = sd->GetSpriteFromEntity(m_entity_id);
+    bool is_item = sd->IsEntityItem(m_entity_id);
+    bool is_enemy = sd->IsEntityEnemy(m_entity_id);
+    auto palette_idxs = sd->GetEntityPaletteIdxs(m_entity_id);
+    
+    // Main properties
+    ss << "Name: " << Landstalker::wstr_to_utf8(sd->GetEntityDisplayName(m_entity_id)) << std::endl;
+    ss << "ID: " << m_entity_id << std::endl;
+    ss << "SpriteID: " << sprite_index << std::endl;
+    ss << "LowPalette: " << palette_idxs.first << std::endl;
+    ss << "HighPalette: " << palette_idxs.second << std::endl;
+    ss << "TalkSoundFX: " << static_cast<int>(m_gd->GetStringData()->GetEntityTalkSound(m_entity_id)) << std::endl;
+    
+    // Item properties
+    ss << "IsItem: " << (is_item ? "true" : "false") << std::endl;
+    if (is_item)
+    {
+        auto item_props = sd->GetItemProperties(m_entity_id);
+        ss << "Item:" << std::endl;
+        ss << "  UseText: " << static_cast<int>(item_props.verb) << std::endl;
+        ss << "  MaximumQuantity: " << static_cast<int>(item_props.max_quantity) << std::endl;
+        ss << "  EquipmentIndex: " << static_cast<int>(item_props.equipment_index) << std::endl;
+        ss << "  NormalBuyPrice: " << static_cast<int>(item_props.price) << std::endl;
+    }
+    
+    // Enemy properties
+    ss << "IsEnemy: " << (is_enemy ? "true" : "false") << std::endl;
+    if (is_enemy)
+    {
+        auto enemy_stats = sd->GetEnemyStats(m_entity_id);
+        ss << "Enemy:" << std::endl;
+        ss << "  Health: " << static_cast<int>(enemy_stats.health) << std::endl;
+        ss << "  Defence: " << static_cast<int>(enemy_stats.defence) << std::endl;
+        ss << "  Attack: " << static_cast<int>(enemy_stats.attack) << std::endl;
+        ss << "  GoldDrop: " << static_cast<int>(enemy_stats.gold_drop) << std::endl;
+        ss << "  ItemDrop: " << static_cast<int>(enemy_stats.item_drop) << std::endl;
+        ss << "  DropProbability: " << static_cast<int>(enemy_stats.drop_probability) << std::endl;
+    }
+    
+    // Write to file
+    std::ofstream file(filename);
+    if (file.is_open())
+    {
+        file << ss.str();
+        file.close();
+    }
 }
