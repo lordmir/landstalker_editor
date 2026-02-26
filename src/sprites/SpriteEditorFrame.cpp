@@ -652,8 +652,8 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
     // Hitbox properties
     auto hitbox = sd->GetSpriteHitbox(sprite_index);
     ss << std::endl << "Hitbox:" << std::endl;
-    ss << "  Width: " << std::fixed << std::setprecision(2) << (hitbox.first / 8.0) << std::endl;
-    ss << "  Height: " << std::fixed << std::setprecision(2) << (hitbox.second / 16.0) << std::endl;
+    ss << "  Width: " << std::fixed << std::setprecision(2) << (hitbox.base / 8.0) << std::endl;
+    ss << "  Height: " << std::fixed << std::setprecision(2) << (hitbox.height / 16.0) << std::endl;
     ss << "  Volume: " << std::fixed << std::setprecision(2) << (sd->GetSpriteVolume(sprite_index) / 16.0) << std::endl;
     
     // Write to file
