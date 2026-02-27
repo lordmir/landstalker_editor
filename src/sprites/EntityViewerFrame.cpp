@@ -484,7 +484,7 @@ void EntityViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, con
 	wxPostEvent(this, evt);
 }
 
-void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
