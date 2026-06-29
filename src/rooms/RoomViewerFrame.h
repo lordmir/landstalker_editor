@@ -2,6 +2,7 @@
 #define _ROOM_VIEWER_FRAME_H_
 
 #include <memory>
+#include <vector>
 
 #include <landstalker/main/GameData.h>
 #include <main/EditorFrame.h>
@@ -9,12 +10,10 @@
 #include <rooms/EntityControlFrame.h>
 #include <rooms/WarpControlFrame.h>
 #include <rooms/TileSwapControlFrame.h>
-#include <rooms/HeightmapEditorCtrl.h>
 #include <blockset/BlocksetEditorCtrl.h>
-#include <rooms/Map3DEditor.h>
 #include <rooms/TileSwapDialog.h>
 
-class RoomViewerCtrl;
+class MyGLCanvas;
 
 namespace RoomEdit
 {
@@ -58,7 +57,6 @@ public:
 	bool ImportAllTmx(const std::string& dir);
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
-	bool HandleKeyUp(unsigned int key, unsigned int modifiers);
 
 	void ShowFlagDialog();
 	void ShowChestsDialog();
@@ -76,14 +74,6 @@ private:
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
 
-	void OnTmClear();
-	void OnTmDeleteRow();
-	void OnTmDeleteColumn();
-	void OnTmInsertRowBefore();
-	void OnTmInsertRowAfter();
-	void OnTmInsertColumnBefore();
-	void OnTmInsertColumnAfter();
-
 	void OnExportBin();
 	void OnExportCsv();
 	void OnExportAllCsv();
@@ -99,7 +89,6 @@ private:
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);
-	void OnKeyUp(wxKeyEvent& evt);
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnOpacityChange(wxCommandEvent& evt);
 
@@ -133,35 +122,35 @@ private:
 	void OnDoorMoveDown(wxCommandEvent& evt);
 	void OnDoorProperties(wxCommandEvent& evt);
 
-	void OnHeightmapUpdate(wxCommandEvent& evt);
-	void OnHeightmapMove(wxCommandEvent& evt);
-	void OnHeightmapSelect(wxCommandEvent& evt);
 	void OnHMTypeSelect(wxCommandEvent& evt);
 	void OnHMZoom(wxCommandEvent& evt);
 
 	void OnBlockSelect(wxCommandEvent& evt);
-	void OnMapUpdate(wxCommandEvent& evt);
-	void OnMapCellSelect(wxCommandEvent& evt);
+	void OnGpuEditorModeChange(wxCommandEvent& evt);
+	void OnGpuLayerOpacityChange(wxCommandEvent& evt);
+	void OnGpuLayerBlockSelect(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
-	void OnTabChange(wxAuiNotebookEvent& evt);
 
-	void FireUpdateStatusEvent(const std::string& data, int pane = 0);
 	void FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name);
 	void FireEvent(const wxEventType& e);
 	void FireEvent(const wxEventType& e, const std::string& userdata);
 	void FireEvent(const wxEventType& e, int userdata);
 
-	void SetPaneSizes();
+	void SyncGpuViewControls();
+	void SyncGpuViewLayerControls();
+	bool IsGpuViewSelected() const;
+	void SetGpuEditorMode(RoomEdit::Mode mode, bool select_gpu_page = true);
+	void SyncFrameModeFromGpuView();
+	std::vector<Landstalker::Entity> GetRoomEntities() const;
+	std::vector<Landstalker::WarpList::Warp> GetRoomWarps() const;
+	void UpdateEntityProperties(int entity);
+	void UpdateWarpProperties(int warp);
 
 	RoomEdit::Mode m_mode;
 	mutable wxAuiManager m_mgr;
-	mutable wxAuiNotebook* m_nb;
 	std::string m_title;
-	RoomViewerCtrl* m_roomview;
-	HeightmapEditorCtrl* m_hmedit;
-	Map3DEditor* m_bgedit;
-	Map3DEditor* m_fgedit;
+	MyGLCanvas* m_gpuview;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;
@@ -170,15 +159,7 @@ private:
 
 	std::shared_ptr<Landstalker::GameData> m_g;
 	uint16_t m_roomnum;
-	double m_zoom;
 
-	bool m_layerctrl_visible;
-	bool m_entityctrl_visible;
-	bool m_warpctrl_visible;
-	bool m_swapctrl_visible;
-	bool m_blkctrl_visible;
-
-	mutable bool m_sizes_set;
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;
 	mutable wxPGChoices m_bgms;
@@ -191,5 +172,8 @@ private:
 
 	wxDECLARE_EVENT_TABLE();
 };
+
+wxDECLARE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_WARP_UPDATE, wxCommandEvent);
 
 #endif // _ROOM_VIEWER_FRAME_H_

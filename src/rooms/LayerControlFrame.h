@@ -11,8 +11,7 @@ class LayerControlFrame : public wxWindow
 public:
 	enum Layer
 	{
-		BG1,
-		BG2,
+		BG,
 		FG,
 		SPRITES,
 		HM
@@ -46,10 +45,10 @@ private:
 	wxSlider* m_zoom_slider;
 
 	double m_zoom;
-	std::array<uint8_t, 5> m_opacities;
-	std::array<bool, 5> m_visibilities;
+	std::array<uint8_t, 4> m_opacities;
+	std::array<bool, 4> m_visibilities;
 	bool m_zoom_enabled;
-	std::array<bool, 5> m_layers_enabled;
+	std::array<bool, 4> m_layers_enabled;
 };
 
 wxDECLARE_EVENT(EVT_ZOOM_CHANGE, wxCommandEvent);

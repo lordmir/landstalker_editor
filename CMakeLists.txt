@@ -11,6 +11,8 @@ include(dependencies.cmake)
 UpdateSubmodules()
 InstallDependencies()
 
+find_package(OpenGL REQUIRED)
+
 add_subdirectory(modules/liblandstalker EXCLUDE_FROM_ALL)
 
 add_executable(${CMAKE_PROJECT_NAME} WIN32)
@@ -34,11 +36,14 @@ endif()
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     wx::base
     wx::core
+    wx::gl
     wx::adv
     wx::xrc
     wx::propgrid
     wx::aui
     wx::xml
+    OpenGL::GL
+    GLEW::GLEW
     yaml-cpp::yaml-cpp
     pugixml::static
     landstalker

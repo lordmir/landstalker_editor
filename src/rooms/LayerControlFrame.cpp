@@ -3,7 +3,7 @@
 #include <array>
 #include <landstalker/misc/Utils.h>
 
-static const std::vector<std::string> LABELS = { "Background 1", "Background 2", "Foreground", "Sprites", "Heightmap" };
+static const std::vector<std::string> LABELS = { "Background", "Foreground", "Sprites", "Heightmap" };
 static const std::array<double, 7> ZOOM_LEVELS = { 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0 };
 
 wxDEFINE_EVENT(EVT_ZOOM_CHANGE, wxCommandEvent);
@@ -14,10 +14,10 @@ LayerControlFrame::LayerControlFrame(wxWindow* parent)
       m_zoom_label(nullptr),
       m_zoom_slider(nullptr),
       m_zoom(1.0),
-      m_opacities{ 0xFF, 0xFF, 0xFF, 0xFF, 0x80 },
-      m_visibilities{ true, true, true, true, false },
+      m_opacities{ 0xFF, 0xFF, 0xFF, 0x80 },
+      m_visibilities{ true, true, true, false },
       m_zoom_enabled(true),
-      m_layers_enabled{ true, true, true, true, true }
+      m_layers_enabled{ true, true, true, true }
 {
     wxBoxSizer* vboxsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* hboxsizer = new wxBoxSizer(wxHORIZONTAL);

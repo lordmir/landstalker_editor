@@ -1,19 +1,26 @@
 #include <rooms/RoomViewerFrame.h>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <wx/busyinfo.h>
 #include <wx/dir.h>
 #include <wx/progdlg.h>
+#include <main/ImageBufferWx.h>
 #include <rooms/FlagDialog.h>
 #include <rooms/ChestDialog.h>
 #include <rooms/CharacterDialog.h>
+#include <rooms/EntityPropertiesWindow.h>
 #include <rooms/RoomErrorDialog.h>
 #include <rooms/TileSwapDialog.h>
+#include <rooms/WarpPropertyWindow.h>
 #include <landstalker/misc/Labels.h>
 #include <landstalker/3d_maps/MapToTmx.h>
 #include <landstalker/3d_maps/RoomToTmx.h>
-#include <rooms/RoomViewerCtrl.h>
+#include <rooms/gpu/GLCanvas.h>
+
+wxDEFINE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_WARP_UPDATE, wxCommandEvent);
 
 enum MENU_IDS
 {
@@ -43,12 +50,17 @@ enum MENU_IDS
 	ID_TOOLS_SWAPS,
 	ID_TOOLS_BLOCKS,
 	ID_VIEW,
+	ID_VIEW_ROOM,
+	ID_VIEW_HEIGHTMAP,
+	ID_VIEW_BACKGROUND,
+	ID_VIEW_FOREGROUND,
+	ID_VIEW_SEP1,
 	ID_VIEW_ALPHA,
 	ID_VIEW_ENTITIES,
 	ID_VIEW_ENTITY_HITBOX,
 	ID_VIEW_WARPS,
 	ID_VIEW_SWAPS,
-	ID_VIEW_SEP1,
+	ID_VIEW_SEP2,
 	ID_VIEW_ERRORS
 };
 
@@ -93,12 +105,16 @@ enum TOOL_IDS
 	TM_DELETE_ROW,
 	TM_INSERT_COLUMN_BEFORE,
 	TM_INSERT_COLUMN_AFTER,
-	TM_DELETE_COLUMN
+	TM_DELETE_COLUMN,
+	TM_TOGGLE_PRIORITY_HIGHLIGHT,
+	MODE_ROOM,
+	MODE_HEIGHTMAP,
+	MODE_BACKGROUND,
+	MODE_FOREGROUND
 };
 
 wxBEGIN_EVENT_TABLE(RoomViewerFrame, wxWindow)
 EVT_KEY_DOWN(RoomViewerFrame::OnKeyDown)
-EVT_KEY_UP(RoomViewerFrame::OnKeyUp)
 EVT_COMMAND(wxID_ANY, EVT_ZOOM_CHANGE, RoomViewerFrame::OnZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_OPACITY_CHANGE, RoomViewerFrame::OnOpacityChange)
 EVT_COMMAND(wxID_ANY, EVT_ENTITY_UPDATE, RoomViewerFrame::OnEntityUpdate)
@@ -113,12 +129,10 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_SELECT, RoomViewerFrame::OnWarpSelect)
 EVT_COMMAND(wxID_ANY, EVT_WARP_OPEN_PROPERTIES, RoomViewerFrame::OnWarpOpenProperties)
 EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
-EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_UPDATE, RoomViewerFrame::OnHeightmapUpdate)
-EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_MOVE, RoomViewerFrame::OnHeightmapMove)
-EVT_COMMAND(wxID_ANY, EVT_HEIGHTMAP_CELL_SELECTED, RoomViewerFrame::OnHeightmapSelect)
 EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, RoomViewerFrame::OnBlockSelect)
-EVT_COMMAND(wxID_ANY, EVT_MAPLAYER_UPDATE, RoomViewerFrame::OnMapUpdate)
-EVT_COMMAND(wxID_ANY, EVT_MAPLAYER_CELL_SELECT, RoomViewerFrame::OnMapCellSelect)
+EVT_COMMAND(wxID_ANY, EVT_GPU_EDITOR_MODE_CHANGE, RoomViewerFrame::OnGpuEditorModeChange)
+EVT_COMMAND(wxID_ANY, EVT_GPU_LAYER_OPACITY_CHANGE, RoomViewerFrame::OnGpuLayerOpacityChange)
+EVT_COMMAND(wxID_ANY, EVT_GPU_LAYER_BLOCK_SELECT, RoomViewerFrame::OnGpuLayerBlockSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_UPDATE, RoomViewerFrame::OnSwapUpdate)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_SELECT, RoomViewerFrame::OnSwapSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILESWAP_ADD, RoomViewerFrame::OnSwapAdd)
@@ -135,21 +149,56 @@ EVT_COMMAND(wxID_ANY, EVT_DOOR_MOVE_DOWN, RoomViewerFrame::OnDoorMoveDown)
 EVT_COMMAND(wxID_ANY, EVT_DOOR_OPEN_PROPERTIES, RoomViewerFrame::OnDoorProperties)
 EVT_SLIDER(HM_ZOOM, RoomViewerFrame::OnHMZoom)
 EVT_CHOICE(HM_TYPE_DROPDOWN, RoomViewerFrame::OnHMTypeSelect)
-EVT_AUINOTEBOOK_PAGE_CHANGED(wxID_ANY, RoomViewerFrame::OnTabChange)
 EVT_SIZE(RoomViewerFrame::OnSize)
 wxEND_EVENT_TABLE()
 
 using namespace Landstalker;
 
+namespace
+{
+float LayerOpacityToFloat(uint8_t opacity)
+{
+	return static_cast<float>(opacity) / 255.0f;
+}
+
+MyGLCanvas::EditorMode ToGpuEditorMode(RoomEdit::Mode mode)
+{
+	switch (mode)
+	{
+	case RoomEdit::Mode::HEIGHTMAP:
+		return MyGLCanvas::EditorMode::Heightmap;
+	case RoomEdit::Mode::BACKGROUND:
+		return MyGLCanvas::EditorMode::BackgroundLayer;
+	case RoomEdit::Mode::FOREGROUND:
+		return MyGLCanvas::EditorMode::ForegroundLayer;
+	case RoomEdit::Mode::NORMAL:
+	default:
+		return MyGLCanvas::EditorMode::Room;
+	}
+}
+
+RoomEdit::Mode ToRoomEditMode(MyGLCanvas::EditorMode mode)
+{
+	switch (mode)
+	{
+	case MyGLCanvas::EditorMode::Heightmap:
+		return RoomEdit::Mode::HEIGHTMAP;
+	case MyGLCanvas::EditorMode::BackgroundLayer:
+		return RoomEdit::Mode::BACKGROUND;
+	case MyGLCanvas::EditorMode::ForegroundLayer:
+		return RoomEdit::Mode::FOREGROUND;
+	case MyGLCanvas::EditorMode::Room:
+	default:
+		return RoomEdit::Mode::NORMAL;
+	}
+}
+}
+
 RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_mode(RoomEdit::Mode::NORMAL),
-	  m_nb(nullptr),
 	  m_title(""),
-	  m_roomview(nullptr),
-	  m_hmedit(nullptr),
-	  m_bgedit(nullptr),
-	  m_fgedit(nullptr),
+	  m_gpuview(nullptr),
 	  m_layerctrl(nullptr),
 	  m_entityctrl(nullptr),
 	  m_warpctrl(nullptr),
@@ -157,13 +206,6 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_blkctrl(nullptr),
 	  m_g(nullptr),
 	  m_roomnum(0),
-	  m_zoom(1.0),
-	  m_layerctrl_visible(true),
-	  m_entityctrl_visible(true),
-	  m_warpctrl_visible(true),
-	  m_swapctrl_visible(true),
-	  m_blkctrl_visible(true),
-	  m_sizes_set(false),
 	  m_reset_props(false)
 {
 	m_mgr.SetManagedWindow(this);
@@ -183,38 +225,15 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Swaps"));
 	m_mgr.AddPane(m_blkctrl, wxAuiPaneInfo().Bottom().Layer(1).Movable(true).Resizable(true).MinSize(400, 200)
 		.BestSize(800, 300).FloatingSize(400, 400).Caption("Blocks"));
-	m_nb = new wxAuiNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_NB_TAB_SPLIT);
-	m_nb->Freeze();
-	m_roomview = new RoomViewerCtrl(m_nb, this);
-	m_hmedit = new HeightmapEditorCtrl(m_nb, this);
-	m_bgedit = new Map3DEditor(m_nb, this, Landstalker::Tilemap3D::Layer::BG);
-	m_fgedit = new Map3DEditor(m_nb, this, Landstalker::Tilemap3D::Layer::FG);
-	m_nb->AddPage(m_roomview, "Room", true);
-	m_nb->AddPage(m_hmedit, "Heightmap");
-	m_nb->AddPage(m_bgedit, "Background");
-	m_nb->AddPage(m_fgedit, "Foreground");
-	m_nb->Thaw();
-	m_mgr.AddPane(m_nb, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();
 
-	m_roomview->SetZoom(m_layerctrl->GetZoom());
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BACKGROUND1, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::BG1));
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BACKGROUND2, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::BG2));
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG));
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES));
-	m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM));
 	this->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_roomview->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_swapctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_hmedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_bgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_fgedit->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_blkctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
@@ -222,18 +241,18 @@ RoomViewerFrame::~RoomViewerFrame()
 {
 	this->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 
-	m_roomview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_entityctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_warpctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_swapctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_hmedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_bgedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
-	m_fgedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 	m_blkctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(RoomViewerFrame::OnKeyDown), nullptr, this);
 }
 
 void RoomViewerFrame::SetMode(RoomEdit::Mode mode)
 {
+	if (m_mode == mode)
+	{
+		return;
+	}
 	m_mode = mode;
 	m_swapctrl->SetMode(m_mode);
 	UpdateUI();
@@ -244,10 +263,10 @@ void RoomViewerFrame::UpdateFrame()
 {
 	m_layerctrl->EnableLayers(m_mode == RoomEdit::Mode::NORMAL);
 	m_blkctrl->OpenRoom(m_roomnum);
-	m_roomview->SetRoomNum(m_roomnum);
-	m_hmedit->SetRoomNum(m_roomnum);
-	m_bgedit->SetRoomNum(m_roomnum);
-	m_fgedit->SetRoomNum(m_roomnum);
+	if (m_gpuview)
+	{
+		m_gpuview->SetRoomNum(m_roomnum);
+	}
 	TileSwapRefresh();
 	UpdateUI();
 	FireEvent(EVT_STATUSBAR_UPDATE);
@@ -257,21 +276,13 @@ void RoomViewerFrame::UpdateFrame()
 void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 {
 	m_g = gd;
-	if (m_roomview)
+	if (m_gpuview == nullptr && gd != nullptr)
 	{
-		m_roomview->SetGameData(gd);
-	}
-	if (m_hmedit)
-	{
-		m_hmedit->SetGameData(gd);
-	}
-	if (m_bgedit)
-	{
-		m_bgedit->SetGameData(gd);
-	}
-	if (m_fgedit)
-	{
-		m_fgedit->SetGameData(gd);
+		m_gpuview = new MyGLCanvas(this, gd);
+		m_mgr.AddPane(m_gpuview, wxAuiPaneInfo().CenterPane().PaneBorder(false));
+		m_mgr.Update();
+		m_gpuview->SetFocus();
+		SyncGpuViewControls();
 	}
 	if (m_blkctrl)
 	{
@@ -288,21 +299,12 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 void RoomViewerFrame::ClearGameData()
 {
 	m_g = nullptr;
-	if (m_roomview)
+	if (m_gpuview != nullptr)
 	{
-		m_roomview->ClearGameData();
-	}
-	if (m_hmedit)
-	{
-		m_hmedit->ClearGameData();
-	}
-	if (m_bgedit)
-	{
-		m_bgedit->ClearGameData();
-	}
-	if (m_fgedit)
-	{
-		m_fgedit->ClearGameData();
+		m_mgr.DetachPane(m_gpuview);
+		m_gpuview->Destroy();
+		m_gpuview = nullptr;
+		m_mgr.Update();
 	}
 	if (m_blkctrl)
 	{
@@ -320,10 +322,6 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 {
 	if (m_g != nullptr)
 	{
-		m_nb->SetPageText(0, m_g->GetRoomData()->GetRoom(roomnum)->GetDisplayName());
-		m_nb->SetPageText(1, wxString("Heightmap: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
-		m_nb->SetPageText(2, wxString("Background: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
-		m_nb->SetPageText(3, wxString("Foreground: ") + m_g->GetRoomData()->GetRoom(roomnum)->map);
 		m_g->GetRoomData()->CleanupChests(*m_g);
 	}
 	if (m_roomnum != roomnum)
@@ -332,10 +330,10 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 	}
 	m_roomnum = roomnum;
 	m_blkctrl->SetBlockSelection(0);
-	m_bgedit->SetSelectedBlock(0);
-	m_fgedit->SetSelectedBlock(0);
-	m_bgedit->SetSelectedCell({ -1,-1 });
-	m_fgedit->SetSelectedCell({ -1,-1 });
+	if (m_gpuview)
+	{
+		m_gpuview->SetSelectedBlockId(0);
+	}
 	UpdateUI();
 	UpdateFrame();
 }
@@ -553,7 +551,7 @@ bool RoomViewerFrame::ExportPng(const std::string& path)
 
 	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::BG, map, tileset, blockset);
 	buf.Insert3DMapLayer(0, 0, 0, Tilemap3D::Layer::FG, map, tileset, blockset);
-	return buf.WritePNG(path, palette, m_roomview->GetAlpha());
+	return buf.WritePNG(path, palette, m_gpuview != nullptr && m_gpuview->GetAlpha());
 }
 
 bool RoomViewerFrame::ImportBin(const std::string& path)
@@ -698,43 +696,8 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 
 bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
-	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
-	{
-		return m_roomview->HandleKeyDown(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
-	{
-		return m_hmedit->HandleKeyDown(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
-	{
-		return m_fgedit->HandleKeyDown(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
-	{
-		return m_bgedit->HandleKeyDown(key, modifiers);
-	}
-	return false;
-}
-
-bool RoomViewerFrame::HandleKeyUp(unsigned int key, unsigned int modifiers)
-{
-	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
-	{
-		return m_roomview->HandleKeyUp(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::HEIGHTMAP && m_hmedit != nullptr)
-	{
-		return m_hmedit->HandleKeyUp(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
-	{
-		return m_fgedit->HandleKeyUp(key, modifiers);
-	}
-	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
-	{
-		return m_bgedit->HandleKeyUp(key, modifiers);
-	}
+	(void)key;
+	(void)modifiers;
 	return false;
 }
 
@@ -780,7 +743,7 @@ void RoomViewerFrame::ShowTileswapDialog(bool force, TileSwapDialog::PageType pa
 
 void RoomViewerFrame::ShowErrorDialog()
 {
-	RoomErrorDialog dlg(this, m_roomview->GetErrors());
+	RoomErrorDialog dlg(this, {});
 	dlg.ShowModal();
 }
 
@@ -1038,7 +1001,12 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	wxPGProperty* property = evt.GetProperty();
 	if (property == nullptr)
 	{
+		ctrl->GetGrid()->Thaw();
 		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
 	}
 	const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 	auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
@@ -1050,7 +1018,6 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (Labels::IsValid(new_name))
 		{
 			FireRenameNavItemEvent(new_name, rd->GetDisplayName());
-			m_nb->SetPageText(0, new_name);
 			Labels::Update(Labels::C_ROOMS, m_roomnum, new_name);
 		}
 		else
@@ -1342,6 +1309,12 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		}
 	}
 	ctrl->GetGrid()->Thaw();
+	if (m_gpuview)
+	{
+		m_gpuview->ReloadCurrentRoomFromGameData();
+	}
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
@@ -1371,13 +1344,18 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
-	AddMenuItem(viewMenu, 0, ID_VIEW_ALPHA, "Toggle Alpha", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 1, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 2, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 3, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 4, ID_VIEW_SWAPS, "Show Tile Swaps / Doors", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 5, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(viewMenu, 6, ID_VIEW_ERRORS, "Errors...");
+	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 1, ID_VIEW_HEIGHTMAP, "Heightmap Edit Mode", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 2, ID_VIEW_BACKGROUND, "Background Edit Mode", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 3, ID_VIEW_FOREGROUND, "Foreground Edit Mode", wxITEM_RADIO);
+	AddMenuItem(viewMenu, 4, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 5, ID_VIEW_ALPHA, "Toggle Alpha", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 6, ID_VIEW_ENTITIES, "Show Entities", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 7, ID_VIEW_ENTITY_HITBOX, "Show Entity Hitboxes", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 8, ID_VIEW_WARPS, "Show Warps", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 9, ID_VIEW_SWAPS, "Show Tile Swaps / Doors", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 10, ID_VIEW_SEP2, "", wxITEM_SEPARATOR);
+	AddMenuItem(viewMenu, 11, ID_VIEW_ERRORS, "Errors...");
 
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_LAYERS, "Layers", wxITEM_CHECK);
@@ -1405,6 +1383,11 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_WARPS_PANE, "Warps Pane", ilist.GetImage("wpanel"), "Warps Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_TILESWAP_PANE, "Tile Swap / Doors Pane", ilist.GetImage("spanel"), "Tile Swap / Doors Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_BLOCKS_PANE, "Blocks Pane", ilist.GetImage("big_tiles"), "Blocks Pane", wxITEM_CHECK);
+	main_tb->AddSeparator();
+	main_tb->AddTool(MODE_ROOM, "Room Edit Mode", ilist.GetImage("map_edit_room"), "Room Edit Mode", wxITEM_CHECK);
+	main_tb->AddTool(MODE_HEIGHTMAP, "Heightmap Edit Mode", ilist.GetImage("map_edit_heightmap"), "Heightmap Edit Mode", wxITEM_CHECK);
+	main_tb->AddTool(MODE_BACKGROUND, "Background Edit Mode", ilist.GetImage("map_edit_background"), "Background Edit Mode", wxITEM_CHECK);
+	main_tb->AddTool(MODE_FOREGROUND, "Foreground Edit Mode", ilist.GetImage("map_edit_foreground"), "Foreground Edit Mode", wxITEM_CHECK);
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_ERRORS, "Show Errors", ilist.GetImage("warning"), "Show Errors");
 	AddToolbar(m_mgr, *main_tb, "Main", "Main Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
@@ -1494,6 +1477,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tm_tb->AddTool(TM_INSERT_COLUMN_BEFORE, "Insert Column Before", ilist.GetImage("map_insert_sw"), "Insert Column Before", wxITEM_NORMAL);
 	tm_tb->AddTool(TM_INSERT_COLUMN_AFTER, "Insert Column After", ilist.GetImage("map_insert_ne"), "Insert Column After", wxITEM_NORMAL);
 	tm_tb->AddTool(TM_DELETE_COLUMN, "Delete Column", ilist.GetImage("map_delete_nwse"), "Delete Column", wxITEM_NORMAL);
+	tm_tb->AddSeparator();
+	tm_tb->AddTool(TM_TOGGLE_PRIORITY_HIGHLIGHT, "Highlight Priority Tiles", ilist.GetImage("priority"), "Highlight Priority Tiles", wxITEM_CHECK);
 	AddToolbar(m_mgr, *tm_tb, "Tilemap", "Tilemap Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(3));
 
 	UpdateUI();
@@ -1544,25 +1529,56 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_FILE_IMPORT_ALL_TMX:
 			OnImportAllTmx();
 			break;
+		case ID_VIEW_ROOM:
+		case MODE_ROOM:
+			SetGpuEditorMode(RoomEdit::Mode::NORMAL);
+			break;
+		case ID_VIEW_HEIGHTMAP:
+		case MODE_HEIGHTMAP:
+			SetGpuEditorMode(RoomEdit::Mode::HEIGHTMAP);
+			break;
+		case ID_VIEW_BACKGROUND:
+		case MODE_BACKGROUND:
+			SetGpuEditorMode(RoomEdit::Mode::BACKGROUND);
+			break;
+		case ID_VIEW_FOREGROUND:
+		case MODE_FOREGROUND:
+			SetGpuEditorMode(RoomEdit::Mode::FOREGROUND);
+			break;
 		case ID_VIEW_ALPHA:
 		case TOOL_TOGGLE_ALPHA:
-			m_roomview->SetAlpha(!m_roomview->GetAlpha());
+			if (m_gpuview)
+			{
+				m_gpuview->SetAlpha(!m_gpuview->GetAlpha());
+			}
 			break;
 		case ID_VIEW_ENTITIES:
 		case TOOL_TOGGLE_ENTITIES:
-			m_roomview->SetEntitiesVisible(!m_roomview->GetEntitiesVisible());
+			if (m_gpuview)
+			{
+				m_gpuview->SetEntitiesVisible(!m_gpuview->GetEntitiesVisible());
+			}
 			break;
 		case ID_VIEW_ENTITY_HITBOX:
 		case TOOL_TOGGLE_ENTITY_HITBOX:
-			m_roomview->SetEntitiesHitboxVisible(!m_roomview->GetEntitiesHitboxVisible());
+			if (m_gpuview)
+			{
+				m_gpuview->SetEntitiesHitboxVisible(!m_gpuview->GetEntitiesHitboxVisible());
+			}
 			break;
 		case ID_VIEW_WARPS:
 		case TOOL_TOGGLE_WARPS:
-			m_roomview->SetWarpsVisible(!m_roomview->GetWarpsVisible());
+			if (m_gpuview)
+			{
+				m_gpuview->SetWarpsVisible(!m_gpuview->GetWarpsVisible());
+			}
 			break;
 		case ID_VIEW_SWAPS:
 		case TOOL_TOGGLE_SWAPS:
-			m_roomview->SetTileSwapsVisible(!m_roomview->GetTileSwapsVisible());
+			if (m_gpuview)
+			{
+				m_gpuview->SetTileSwapsVisible(!m_gpuview->GetTileSwapsVisible());
+			}
 			break;
 		case ID_TOOLS_LAYERS:
 		case TOOL_SHOW_LAYERS_PANE:
@@ -1586,23 +1602,38 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
-			if (m_roomview->IsEntitySelected())
+		{
+			const int selected_entity = m_gpuview ? m_gpuview->GetSelectedEntityIndex() : -1;
+			const int selected_warp = m_gpuview ? m_gpuview->GetSelectedWarpIndex() : -1;
+			const int selected_swap = m_gpuview ? m_gpuview->GetSelectedTileSwapIndex() : -1;
+			const int selected_door = m_gpuview ? m_gpuview->GetSelectedDoorIndex() : -1;
+
+			if (selected_entity > 0)
 			{
-				m_roomview->UpdateEntityProperties(m_roomview->GetSelectedEntityIndex());
+				UpdateEntityProperties(selected_entity);
 			}
-			else if (m_roomview->IsWarpSelected())
+			else if (selected_warp > 0)
 			{
-				m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+				UpdateWarpProperties(selected_warp);
 			}
-			else if (m_roomview->IsTileSwapSelected())
+			else if (selected_swap > 0)
 			{
-				ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, m_roomview->GetSelectedTileSwapIndex());
+				ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, selected_swap);
+				if (m_gpuview)
+				{
+					m_gpuview->SelectTileSwapByIndex(selected_swap);
+				}
 			}
-			else if (m_roomview->IsDoorSelected())
+			else if (selected_door > 0)
 			{
-				ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS, m_roomview->GetSelectedDoorIndex());
+				ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS, selected_door);
+				if (m_gpuview)
+				{
+					m_gpuview->SelectDoorByIndex(selected_door);
+				}
 			}
 			break;
+		}
 		case ID_EDIT_FLAGS:
 		case TOOL_SHOW_FLAGS:
 			ShowFlagDialog();
@@ -1624,70 +1655,73 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			ShowErrorDialog();
 			break;
 		case HM_INSERT_ROW_BEFORE:
-			m_hmedit->InsertRowBelow();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedHeightmapRowBefore();
 			break;
 		case HM_INSERT_ROW_AFTER:
-			m_hmedit->InsertRowAbove();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedHeightmapRowAfter();
 			break;
 		case HM_DELETE_ROW:
-			m_hmedit->DeleteRow();
+			if (IsGpuViewSelected()) m_gpuview->DeleteSelectedHeightmapRow();
 			break;
 		case HM_INSERT_COLUMN_BEFORE:
-			m_hmedit->InsertColumnLeft();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedHeightmapColumnBefore();
 			break;
 		case HM_INSERT_COLUMN_AFTER:
-			m_hmedit->InsertColumnRight();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedHeightmapColumnAfter();
 			break;
 		case HM_DELETE_COLUMN:
-			m_hmedit->DeleteColumn();
+			if (IsGpuViewSelected()) m_gpuview->DeleteSelectedHeightmapColumn();
 			break;
 		case HM_TOGGLE_PLAYER:
-			m_hmedit->ToggleSelectedPlayerPassable();
+			if (IsGpuViewSelected()) m_gpuview->ToggleSelectedHeightmapPlayerPassable();
 			break;
 		case HM_TOGGLE_NPC:
-			m_hmedit->ToggleSelectedNPCPassable();
+			if (IsGpuViewSelected()) m_gpuview->ToggleSelectedHeightmapNpcPassable();
 			break;
 		case HM_TOGGLE_RAFT:
-			m_hmedit->ToggleSelectedRaftTrack();
+			if (IsGpuViewSelected()) m_gpuview->ToggleSelectedHeightmapRaftTrack();
 			break;
 		case HM_INCREASE_HEIGHT:
-			m_hmedit->IncreaseHeight();
+			if (IsGpuViewSelected()) m_gpuview->AdjustSelectedHeightmapHeight(1);
 			break;
 		case HM_DECREASE_HEIGHT:
-			m_hmedit->DecreaseSelectedHeight();
+			if (IsGpuViewSelected()) m_gpuview->AdjustSelectedHeightmapHeight(-1);
 			break;
 		case HM_NUDGE_HM_NE:
-			m_hmedit->NudgeHeightmapDown();
+			if (IsGpuViewSelected()) m_gpuview->NudgeHeightmap(0, 1);
 			break;
 		case HM_NUDGE_HM_NW:
-			m_hmedit->NudgeHeightmapRight();
+			if (IsGpuViewSelected()) m_gpuview->NudgeHeightmap(1, 0);
 			break;
 		case HM_NUDGE_HM_SE:
-			m_hmedit->NudgeHeightmapLeft();
+			if (IsGpuViewSelected()) m_gpuview->NudgeHeightmap(-1, 0);
 			break;
 		case HM_NUDGE_HM_SW:
-			m_hmedit->NudgeHeightmapUp();
+			if (IsGpuViewSelected()) m_gpuview->NudgeHeightmap(0, -1);
 			break;
 		case TM_CLEAR:
-			OnTmClear();
+			if (IsGpuViewSelected()) m_gpuview->ClearCurrentTilemap();
 			break;
 		case TM_DELETE_COLUMN:
-			OnTmDeleteColumn();
+			if (IsGpuViewSelected()) m_gpuview->DeleteSelectedTilemapColumn();
 			break;
 		case TM_DELETE_ROW:
-			OnTmDeleteRow();
+			if (IsGpuViewSelected()) m_gpuview->DeleteSelectedTilemapRow();
 			break;
 		case TM_INSERT_COLUMN_BEFORE:
-			OnTmInsertColumnBefore();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedTilemapColumnBefore();
 			break;
 		case TM_INSERT_COLUMN_AFTER:
-			OnTmInsertColumnAfter();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedTilemapColumnAfter();
 			break;
 		case TM_INSERT_ROW_BEFORE:
-			OnTmInsertRowBefore();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedTilemapRowBefore();
 			break;
 		case TM_INSERT_ROW_AFTER:
-			OnTmInsertRowAfter();
+			if (IsGpuViewSelected()) m_gpuview->InsertSelectedTilemapRowAfter();
+			break;
+		case TM_TOGGLE_PRIORITY_HIGHLIGHT:
+			if (IsGpuViewSelected()) m_gpuview->ToggleLayerPriorityHighlight();
 			break;
 		case HM_TYPE_DROPDOWN:
 		case HM_ZOOM:
@@ -1696,85 +1730,6 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
 		}
 		UpdateUI();
-	}
-}
-
-void RoomViewerFrame::OnTmClear()
-{
-	auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-	map->GetData()->ClearTilemap();
-	UpdateFrame();
-}
-
-void RoomViewerFrame::OnTmDeleteRow()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->DeleteTilemapRow(sel.first);
-		UpdateFrame();
-	}
-}
-
-void RoomViewerFrame::OnTmDeleteColumn()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->DeleteTilemapColumn(sel.second);
-		UpdateFrame();
-	}
-}
-
-void RoomViewerFrame::OnTmInsertRowBefore()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->InsertTilemapRow(sel.first);
-		++sel.first;
-		m_bgedit->SetSelectedCell(sel);
-		m_fgedit->SetSelectedCell(sel);
-		UpdateFrame();
-	}
-}
-
-void RoomViewerFrame::OnTmInsertRowAfter()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->InsertTilemapRow(sel.first + 1);
-		UpdateFrame();
-	}
-}
-
-void RoomViewerFrame::OnTmInsertColumnBefore()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->InsertTilemapColumn(sel.second);
-		++sel.second;
-		m_bgedit->SetSelectedCell(sel);
-		m_fgedit->SetSelectedCell(sel);
-		UpdateFrame();
-	}
-}
-
-void RoomViewerFrame::OnTmInsertColumnAfter()
-{
-	if (m_bgedit->IsCellSelected())
-	{
-		auto sel = m_bgedit->GetSelectedCell();
-		auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-		map->GetData()->InsertTilemapColumn(sel.second + 1);
-		UpdateFrame();
 	}
 }
 
@@ -1939,6 +1894,45 @@ void RoomViewerFrame::OnImportAllTmx()
 	}
 }
 
+bool RoomViewerFrame::IsGpuViewSelected() const
+{
+	return m_gpuview != nullptr;
+}
+
+void RoomViewerFrame::SetGpuEditorMode(RoomEdit::Mode mode, bool select_gpu_page)
+{
+	(void)select_gpu_page;
+	if (m_gpuview == nullptr)
+	{
+		SetMode(mode);
+		return;
+	}
+
+	m_gpuview->SetEditorMode(ToGpuEditorMode(mode));
+	m_gpuview->SetFocus();
+	m_mode = mode;
+	m_swapctrl->SetMode(m_mode);
+	m_layerctrl->EnableLayers(m_mode == RoomEdit::Mode::NORMAL);
+	UpdateUI();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
+void RoomViewerFrame::SyncFrameModeFromGpuView()
+{
+	if (m_gpuview == nullptr)
+	{
+		return;
+	}
+
+	m_mode = ToRoomEditMode(m_gpuview->GetEditorMode());
+	m_gpuview->SetFocus();
+	m_swapctrl->SetMode(m_mode);
+	m_layerctrl->EnableLayers(m_mode == RoomEdit::Mode::NORMAL);
+	UpdateUI();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
 
 void RoomViewerFrame::UpdateUI() const
 {
@@ -1976,34 +1970,51 @@ void RoomViewerFrame::UpdateUI() const
 	CheckMenuItem(ID_TOOLS_BLOCKS, IsPaneVisible(m_blkctrl));
 	CheckToolbarItem("Main", TOOL_SHOW_BLOCKS_PANE, IsPaneVisible(m_blkctrl));
 
+	const bool gpu_selected = IsGpuViewSelected();
+	const RoomEdit::Mode active_mode = gpu_selected ? ToRoomEditMode(m_gpuview->GetEditorMode()) : m_mode;
+	CheckMenuItem(ID_VIEW_ROOM, active_mode == RoomEdit::Mode::NORMAL);
+	CheckToolbarItem("Main", MODE_ROOM, active_mode == RoomEdit::Mode::NORMAL);
+	CheckMenuItem(ID_VIEW_HEIGHTMAP, active_mode == RoomEdit::Mode::HEIGHTMAP);
+	CheckToolbarItem("Main", MODE_HEIGHTMAP, active_mode == RoomEdit::Mode::HEIGHTMAP);
+	CheckMenuItem(ID_VIEW_BACKGROUND, active_mode == RoomEdit::Mode::BACKGROUND);
+	CheckToolbarItem("Main", MODE_BACKGROUND, active_mode == RoomEdit::Mode::BACKGROUND);
+	CheckMenuItem(ID_VIEW_FOREGROUND, active_mode == RoomEdit::Mode::FOREGROUND);
+	CheckToolbarItem("Main", MODE_FOREGROUND, active_mode == RoomEdit::Mode::FOREGROUND);
+
 	if (m_mode == RoomEdit::Mode::NORMAL)
 	{
-		CheckMenuItem(ID_VIEW_ALPHA, m_roomview->GetAlpha());
-		CheckToolbarItem("Main", TOOL_TOGGLE_ALPHA, m_roomview->GetAlpha());
+		const bool alpha = m_gpuview != nullptr && m_gpuview->GetAlpha();
+		const bool entities_visible = m_gpuview == nullptr || m_gpuview->GetEntitiesVisible();
+		const bool hitboxes_visible = m_gpuview == nullptr || m_gpuview->GetEntitiesHitboxVisible();
+		const bool warps_visible = m_gpuview == nullptr || m_gpuview->GetWarpsVisible();
+		const bool swaps_visible = m_gpuview == nullptr || m_gpuview->GetTileSwapsVisible();
+
+		CheckMenuItem(ID_VIEW_ALPHA, alpha);
+		CheckToolbarItem("Main", TOOL_TOGGLE_ALPHA, alpha);
 		EnableMenuItem(ID_VIEW_ALPHA, true);
 		EnableToolbarItem("Main", TOOL_TOGGLE_ALPHA, true);
 
 		EnableMenuItem(ID_VIEW_ENTITIES, true);
-		CheckMenuItem(ID_VIEW_ENTITIES, m_roomview->GetEntitiesVisible());
+		CheckMenuItem(ID_VIEW_ENTITIES, entities_visible);
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITIES, true);
-		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, m_roomview->GetEntitiesVisible());
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITIES, entities_visible);
 
 		EnableMenuItem(ID_VIEW_ENTITY_HITBOX, true);
-		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
+		CheckMenuItem(ID_VIEW_ENTITY_HITBOX, hitboxes_visible);
 		EnableToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, true);
-		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, m_roomview->GetEntitiesHitboxVisible());
+		CheckToolbarItem("Main", TOOL_TOGGLE_ENTITY_HITBOX, hitboxes_visible);
 
 		EnableMenuItem(ID_VIEW_WARPS, true);
-		CheckMenuItem(ID_VIEW_WARPS, m_roomview->GetWarpsVisible());
+		CheckMenuItem(ID_VIEW_WARPS, warps_visible);
 		EnableToolbarItem("Main", TOOL_TOGGLE_WARPS, true);
-		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, m_roomview->GetWarpsVisible());
+		CheckToolbarItem("Main", TOOL_TOGGLE_WARPS, warps_visible);
 
 		EnableMenuItem(ID_VIEW_SWAPS, true);
-		CheckMenuItem(ID_VIEW_SWAPS, m_roomview->GetTileSwapsVisible());
+		CheckMenuItem(ID_VIEW_SWAPS, swaps_visible);
 		EnableToolbarItem("Main", TOOL_TOGGLE_SWAPS, true);
-		CheckToolbarItem("Main", TOOL_TOGGLE_SWAPS, m_roomview->GetTileSwapsVisible());
+		CheckToolbarItem("Main", TOOL_TOGGLE_SWAPS, swaps_visible);
 		
-		bool object_selected = m_roomview->IsEntitySelected() || m_roomview->IsWarpSelected() || m_roomview->IsDoorSelected() || m_roomview->IsTileSwapSelected();
+		bool object_selected = m_gpuview != nullptr && m_gpuview->HasObjectSelection();
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, object_selected);
 		EnableToolbarItem("Main", TOOL_SHOW_SELECTION_PROPERTIES, object_selected);
 
@@ -2036,6 +2047,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, false);
 		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, false);
 		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, false);
+		CheckToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, m_gpuview != nullptr && m_gpuview->GetLayerPriorityHighlight());
 	}
 	else if (m_mode == RoomEdit::Mode::HEIGHTMAP)
 	{
@@ -2067,47 +2080,31 @@ void RoomViewerFrame::UpdateUI() const
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
 
-		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_DELETE_ROW, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, m_hmedit->IsSingleSelection());
-		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, !m_hmedit->IsSelectionEmpty());
-		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, !m_hmedit->IsSelectionEmpty());
-		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, !m_hmedit->IsSelectionEmpty());
-		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, !m_hmedit->IsSelectionEmpty() && m_hmedit->AnySelectedMaxHeight());
-		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, !m_hmedit->IsSelectionEmpty() && m_hmedit->AnySelectedMinHeight());
-		if (hmcell != nullptr && hmzoom != nullptr)
-		{
-			hmcell->Enable(m_hmedit->IsSelectionEmpty());
-			hmzoom->Enable(true);
-		}
+		const bool has_hm_selection = gpu_selected && m_gpuview->HasSelectedHeightmapCell();
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, gpu_selected && m_gpuview->CanInsertSelectedHeightmapRow());
+		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, gpu_selected && m_gpuview->CanInsertSelectedHeightmapRow());
+		EnableToolbarItem("Heightmap", HM_DELETE_ROW, gpu_selected && m_gpuview->CanDeleteSelectedHeightmapRow());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_BEFORE, gpu_selected && m_gpuview->CanInsertSelectedHeightmapColumn());
+		EnableToolbarItem("Heightmap", HM_INSERT_COLUMN_AFTER, gpu_selected && m_gpuview->CanInsertSelectedHeightmapColumn());
+		EnableToolbarItem("Heightmap", HM_DELETE_COLUMN, gpu_selected && m_gpuview->CanDeleteSelectedHeightmapColumn());
+		EnableToolbarItem("Heightmap", HM_TOGGLE_PLAYER, has_hm_selection);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_NPC, has_hm_selection);
+		EnableToolbarItem("Heightmap", HM_TOGGLE_RAFT, has_hm_selection);
+		EnableToolbarItem("Heightmap", HM_INCREASE_HEIGHT, gpu_selected && m_gpuview->CanIncreaseSelectedHeightmapHeight());
+		EnableToolbarItem("Heightmap", HM_DECREASE_HEIGHT, gpu_selected && m_gpuview->CanDecreaseSelectedHeightmapHeight());
+		EnableToolbarItem("Heightmap", HM_NUDGE_HM_NE, gpu_selected && m_gpuview->CanNudgeHeightmap(0, 1));
+		EnableToolbarItem("Heightmap", HM_NUDGE_HM_NW, gpu_selected && m_gpuview->CanNudgeHeightmap(1, 0));
+		EnableToolbarItem("Heightmap", HM_NUDGE_HM_SE, gpu_selected && m_gpuview->CanNudgeHeightmap(-1, 0));
+		EnableToolbarItem("Heightmap", HM_NUDGE_HM_SW, gpu_selected && m_gpuview->CanNudgeHeightmap(0, -1));
 
-		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, !m_hmedit->IsSelectionEmpty() && m_hmedit->IsSelectedPlayerPassable());
-		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, !m_hmedit->IsSelectionEmpty() && !m_hmedit->IsSelectedNPCPassable());
-		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, !m_hmedit->IsSelectionEmpty() && m_hmedit->IsSelectedRaftTrack());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_PLAYER, has_hm_selection && m_gpuview->IsSelectedHeightmapPlayerPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_NPC, has_hm_selection && !m_gpuview->IsSelectedHeightmapNpcPassable());
+		CheckToolbarItem("Heightmap", HM_TOGGLE_RAFT, has_hm_selection && m_gpuview->IsSelectedHeightmapRaftTrack());
 		if (hmcell != nullptr && hmzoom != nullptr)
 		{
-			hmzoom->Enable(true);
-			if (!m_hmedit->IsSelectionEmpty())
-			{
-				if(m_hmedit->IsMultipleSelection())
-				{
-					hmcell->Enable(false);
-					hmcell->SetSelection(0);
-				}
-				else
-				{
-					hmcell->Enable(true);
-					hmcell->SetSelection(m_hmedit->GetSelectedType(0) > 0x2F ? 0x30 : m_hmedit->GetSelectedType(0));
-				}
-			}
-			else
-			{
-				hmcell->Enable(true);
-				hmcell->SetSelection(0);
-			}
+			hmzoom->Enable(false);
+			hmcell->Enable(has_hm_selection);
+			hmcell->SetSelection(has_hm_selection ? std::min<int>(m_gpuview->GetSelectedHeightmapType(), 0x30) : 0);
 		}
 		EnableToolbarItem("Tilemap", TM_CLEAR, false);
 		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, false);
@@ -2116,6 +2113,8 @@ void RoomViewerFrame::UpdateUI() const
 		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, false);
 		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, false);
 		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, false);
+		EnableToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, false);
+		CheckToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, m_gpuview != nullptr && m_gpuview->GetLayerPriorityHighlight());
 	}
 	else if (m_mode == RoomEdit::Mode::FOREGROUND || m_mode == RoomEdit::Mode::BACKGROUND)
 	{
@@ -2169,138 +2168,357 @@ void RoomViewerFrame::UpdateUI() const
 			hmzoom->Enable(false);
 		}
 		EnableToolbarItem("Tilemap", TM_CLEAR, true);
-		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, m_bgedit->IsCellSelected());
-		EnableToolbarItem("Tilemap", TM_DELETE_ROW, m_bgedit->IsCellSelected());
-		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_AFTER, m_bgedit->IsCellSelected());
-		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, m_bgedit->IsCellSelected());
-		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, m_bgedit->IsCellSelected());
-		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, m_bgedit->IsCellSelected());
+		const bool has_layer_selection = gpu_selected && m_gpuview->HasSelectedLayerCell();
+		EnableToolbarItem("Tilemap", TM_DELETE_COLUMN, gpu_selected && m_gpuview->CanDeleteSelectedTilemapColumn());
+		EnableToolbarItem("Tilemap", TM_DELETE_ROW, gpu_selected && m_gpuview->CanDeleteSelectedTilemapRow());
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_AFTER, has_layer_selection);
+		EnableToolbarItem("Tilemap", TM_INSERT_COLUMN_BEFORE, has_layer_selection);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_AFTER, has_layer_selection);
+		EnableToolbarItem("Tilemap", TM_INSERT_ROW_BEFORE, has_layer_selection);
+		EnableToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, gpu_selected);
+		CheckToolbarItem("Tilemap", TM_TOGGLE_PRIORITY_HIGHLIGHT, gpu_selected && m_gpuview->GetLayerPriorityHighlight());
 	}
 }
 
 void RoomViewerFrame::OnKeyDown(wxKeyEvent& evt)
 {
+	if (IsGpuViewSelected())
+	{
+		evt.Skip(!m_gpuview->HandleKeyDown(evt));
+		return;
+	}
 	evt.Skip(!HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()));
 }
 
-void RoomViewerFrame::OnKeyUp(wxKeyEvent& evt)
+void RoomViewerFrame::SyncGpuViewControls()
 {
-	evt.Skip(!HandleKeyUp(evt.GetKeyCode(), evt.GetModifiers()));
+	SyncGpuViewLayerControls();
+}
+
+void RoomViewerFrame::SyncGpuViewLayerControls()
+{
+	if (!m_gpuview || !m_layerctrl)
+	{
+		return;
+	}
+
+	const uint8_t bg_opacity = m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::BG);
+	const uint8_t fg_opacity = m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::FG);
+	const uint8_t sprite_opacity = m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::SPRITES);
+	const uint8_t heightmap_opacity = m_layerctrl->GetLayerOpacity(LayerControlFrame::Layer::HM);
+
+	m_gpuview->SetZoom(m_layerctrl->GetZoom());
+	m_gpuview->SetBackgroundOpacity(LayerOpacityToFloat(bg_opacity));
+	m_gpuview->SetForegroundOpacity(LayerOpacityToFloat(fg_opacity));
+	m_gpuview->SetSpriteOpacity(LayerOpacityToFloat(sprite_opacity));
+	m_gpuview->SetHeightmapVisible(heightmap_opacity > 0);
 }
 
 void RoomViewerFrame::OnZoomChange(wxCommandEvent& /*evt*/)
 {
-	m_roomview->SetZoom(m_layerctrl->GetZoom());
+	if (m_gpuview)
+	{
+		m_gpuview->SetZoom(m_layerctrl->GetZoom());
+	}
 }
 
 void RoomViewerFrame::OnOpacityChange(wxCommandEvent& evt)
 {
 	LayerControlFrame::Layer layer = static_cast<LayerControlFrame::Layer>(reinterpret_cast<intptr_t>(evt.GetClientData()));
+	const uint8_t opacity = m_layerctrl->GetLayerOpacity(layer);
 	switch (layer)
 	{
-	case LayerControlFrame::Layer::BG1:
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BACKGROUND1, m_layerctrl->GetLayerOpacity(layer));
-		break;
-	case LayerControlFrame::Layer::BG2:
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BACKGROUND2, m_layerctrl->GetLayerOpacity(layer));
+	case LayerControlFrame::Layer::BG:
+		if (m_gpuview)
+		{
+			m_gpuview->SetBackgroundOpacity(LayerOpacityToFloat(opacity));
+		}
 		break;
 	case LayerControlFrame::Layer::FG:
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FOREGROUND, m_layerctrl->GetLayerOpacity(layer));
+		if (m_gpuview)
+		{
+			m_gpuview->SetForegroundOpacity(LayerOpacityToFloat(opacity));
+		}
 		break;
 	case LayerControlFrame::Layer::SPRITES:
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::BG_SPRITES, m_layerctrl->GetLayerOpacity(layer));
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::FG_SPRITES, m_layerctrl->GetLayerOpacity(layer));
+		if (m_gpuview)
+		{
+			m_gpuview->SetSpriteOpacity(LayerOpacityToFloat(opacity));
+		}
 		break;
 	case LayerControlFrame::Layer::HM:
-		m_roomview->SetLayerOpacity(RoomViewerCtrl::Layer::HEIGHTMAP, m_layerctrl->GetLayerOpacity(layer));
+		if (m_gpuview)
+		{
+			m_gpuview->SetHeightmapVisible(opacity > 0);
+		}
 		break;
 	}
-	m_roomview->RefreshGraphics();
 }
 
-void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnGpuLayerOpacityChange(wxCommandEvent& /*evt*/)
 {
-	m_hmedit->UpdateEntities(m_roomview->GetEntities());
-	m_entityctrl->SetEntities(m_roomview->GetEntities());
-	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
+	if (!m_gpuview || !m_layerctrl)
+	{
+		return;
+	}
+
+	m_layerctrl->SetLayerOpacity(LayerControlFrame::Layer::BG, m_gpuview->GetBackgroundOpacityByte());
+	m_layerctrl->SetLayerOpacity(LayerControlFrame::Layer::FG, m_gpuview->GetForegroundOpacityByte());
+	m_layerctrl->SetLayerOpacity(LayerControlFrame::Layer::SPRITES, m_gpuview->GetSpriteOpacityByte());
+}
+
+void RoomViewerFrame::OnGpuLayerBlockSelect(wxCommandEvent& evt)
+{
+	if (evt.GetClientData() == m_gpuview && m_blkctrl != nullptr)
+	{
+		m_blkctrl->SetBlockSelection(evt.GetInt());
+	}
+	evt.Skip();
+}
+
+std::vector<Entity> RoomViewerFrame::GetRoomEntities() const
+{
+	if (!m_g)
+	{
+		return {};
+	}
+	return m_g->GetSpriteData()->GetRoomEntities(m_roomnum);
+}
+
+std::vector<WarpList::Warp> RoomViewerFrame::GetRoomWarps() const
+{
+	if (!m_g)
+	{
+		return {};
+	}
+	return m_g->GetRoomData()->GetWarpsForRoom(m_roomnum);
+}
+
+void RoomViewerFrame::UpdateEntityProperties(int entity)
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	auto entities = GetRoomEntities();
+	if (entity <= 0 || entity > static_cast<int>(entities.size()))
+	{
+		return;
+	}
+
+	const std::vector<uint16_t> chars = m_g->GetStringData()->GetRoomCharacters(m_roomnum);
+	std::vector<std::wstring> char_names;
+	std::transform(chars.cbegin(), chars.cend(), std::back_inserter(char_names),
+		[this](uint16_t chr) { return m_g->GetStringData()->GetCharacterDisplayName(chr); });
+	EntityPropertiesWindow dlg(this, entity, &entities[entity - 1], char_names);
+	if (dlg.ShowModal() == wxID_OK)
+	{
+		m_g->GetSpriteData()->SetRoomEntities(m_roomnum, entities);
+		if (m_gpuview)
+		{
+			m_gpuview->ReloadCurrentRoomFromGameData();
+			m_gpuview->SelectEntityByIndex(entity);
+		}
+		FireEvent(EVT_ENTITY_UPDATE, entity);
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+}
+
+void RoomViewerFrame::UpdateWarpProperties(int warp)
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	auto warps = GetRoomWarps();
+	if (warp <= 0 || warp > static_cast<int>(warps.size()))
+	{
+		return;
+	}
+
+	WarpPropertyWindow dlg(this, m_roomnum, warp, &warps[warp - 1], *m_g);
+	if (dlg.ShowModal() == wxID_OK)
+	{
+		m_g->GetRoomData()->SetWarpsForRoom(m_roomnum, warps);
+		if (m_gpuview)
+		{
+			m_gpuview->ReloadCurrentRoomFromGameData();
+			m_gpuview->SelectWarpByIndex(warp);
+		}
+		FireEvent(EVT_WARP_UPDATE, warp);
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+}
+
+void RoomViewerFrame::OnEntityUpdate(wxCommandEvent& evt)
+{
+	m_entityctrl->SetEntities(GetRoomEntities());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_entityctrl->SetSelected(evt.GetInt());
+		m_warpctrl->SetSelected(-1);
+	}
+	else if (m_gpuview)
+	{
+		m_entityctrl->SetSelected(m_gpuview->GetSelectedEntityIndex());
+		m_warpctrl->SetSelected(m_gpuview->GetSelectedWarpIndex());
+	}
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnEntitySelect(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnEntitySelect(wxCommandEvent& evt)
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->SelectEntity(m_entityctrl->GetSelected());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_entityctrl->SetSelected(evt.GetInt());
+		m_warpctrl->SetSelected(-1);
+		m_swapctrl->SetSelected(-1);
+		UpdateUI();
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->SelectEntityByIndex(m_entityctrl->GetSelected());
+		m_warpctrl->SetSelected(m_gpuview->GetSelectedWarpIndex());
+	}
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnEntityOpenProperties(wxCommandEvent& evt)
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->SelectEntity(m_entityctrl->GetSelected());
-	m_roomview->UpdateEntityProperties(m_entityctrl->GetSelected());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_warpctrl->SetSelected(-1);
+		m_entityctrl->SetSelected(evt.GetInt());
+		UpdateEntityProperties(evt.GetInt());
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->SelectEntityByIndex(m_entityctrl->GetSelected());
+		m_warpctrl->SetSelected(m_gpuview->GetSelectedWarpIndex());
+	}
+	UpdateEntityProperties(m_entityctrl->GetSelected());
 }
 
 void RoomViewerFrame::OnEntityAdd(wxCommandEvent& /*evt*/)
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->AddEntity();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_warpctrl->SetSelected(m_gpuview->GetSelectedWarpIndex());
+	m_gpuview->AddEntity();
 }
 
 void RoomViewerFrame::OnEntityDelete(wxCommandEvent& /*evt*/)
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->SelectEntity(m_entityctrl->GetSelected());
-	m_roomview->DeleteSelectedEntity();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_gpuview->SelectEntityByIndex(m_entityctrl->GetSelected());
+	m_gpuview->DeleteSelectedObject();
 }
 
 void RoomViewerFrame::OnEntityMoveUp(wxCommandEvent& /*evt*/)
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->SelectEntity(m_entityctrl->GetSelected());
-	m_roomview->MoveSelectedEntityUp();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_gpuview->SelectEntityByIndex(m_entityctrl->GetSelected());
+	m_gpuview->ReorderSelectedObject(-1);
 }
 
 void RoomViewerFrame::OnEntityMoveDown(wxCommandEvent& /*evt*/ )
 {
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_roomview->SelectEntity(m_entityctrl->GetSelected());
-	m_roomview->MoveSelectedEntityDown();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_gpuview->SelectEntityByIndex(m_entityctrl->GetSelected());
+	m_gpuview->ReorderSelectedObject(1);
 }
 
-void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& /*evt*/ )
+void RoomViewerFrame::OnWarpUpdate(wxCommandEvent& evt)
 {
-	m_warpctrl->SetWarps(m_roomview->GetWarps());
-	m_hmedit->UpdateWarps(m_roomview->GetWarps());
-	m_warpctrl->SetSelected(m_roomview->GetSelectedWarpIndex());
-	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	m_warpctrl->SetWarps(GetRoomWarps());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_warpctrl->SetSelected(evt.GetInt());
+		m_entityctrl->SetSelected(-1);
+	}
+	else if (m_gpuview)
+	{
+		m_warpctrl->SetSelected(m_gpuview->GetSelectedWarpIndex());
+		m_entityctrl->SetSelected(m_gpuview->GetSelectedEntityIndex());
+	}
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnWarpSelect(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnWarpSelect(wxCommandEvent& evt)
 {
-	m_roomview->SelectWarp(m_warpctrl->GetSelected());
-	m_entityctrl->SetSelected(m_roomview->GetSelectedEntityIndex());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_warpctrl->SetSelected(evt.GetInt());
+		m_entityctrl->SetSelected(-1);
+		m_swapctrl->SetSelected(-1);
+		UpdateUI();
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->SelectWarpByIndex(m_warpctrl->GetSelected());
+		m_entityctrl->SetSelected(m_gpuview->GetSelectedEntityIndex());
+	}
 	UpdateUI();
 }
 
-void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnWarpOpenProperties(wxCommandEvent& evt)
 {
-	m_roomview->SelectWarp(m_warpctrl->GetSelected());
-	m_roomview->UpdateWarpProperties(m_roomview->GetSelectedWarpIndex());
+	if (evt.GetClientData() == m_gpuview)
+	{
+		m_entityctrl->SetSelected(-1);
+		m_warpctrl->SetSelected(evt.GetInt());
+		UpdateWarpProperties(evt.GetInt());
+		UpdateUI();
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->SelectWarpByIndex(m_warpctrl->GetSelected());
+	}
+	UpdateWarpProperties(m_warpctrl->GetSelected());
 	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpAdd(wxCommandEvent& /*evt*/)
 {
-	m_roomview->AddWarp();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_gpuview->AddWarpHalf();
 	UpdateUI();
 }
 
 void RoomViewerFrame::OnWarpDelete(wxCommandEvent& /*evt*/)
 {
-	m_roomview->SelectWarp(m_warpctrl->GetSelected());
-	m_roomview->DeleteSelectedWarp();
+	if (!m_gpuview)
+	{
+		return;
+	}
+	m_gpuview->SelectWarpByIndex(m_warpctrl->GetSelected());
+	m_gpuview->DeleteSelectedObject();
 	UpdateUI();
 }
 
@@ -2309,47 +2527,42 @@ void RoomViewerFrame::TileSwapRefresh()
 	if (m_g != nullptr)
 	{
 		m_swapctrl->SetSwaps(m_g->GetRoomData()->GetTileSwaps(m_roomnum), m_g->GetRoomData()->GetDoors(m_roomnum), m_roomnum);
-		m_roomview->UpdateSwaps();
-		m_fgedit->UpdateSwaps();
-		m_bgedit->UpdateSwaps();
-		m_hmedit->UpdateSwaps();
-		m_roomview->UpdateDoors();
-		m_hmedit->UpdateDoors();
-		m_fgedit->UpdateDoors();
-		m_bgedit->UpdateDoors();
 		UpdateUI();
 	}
 }
 
-void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnSwapUpdate(wxCommandEvent& evt)
 {
 	//OnSwapSelect(evt);
 	TileSwapRefresh();
-	m_roomview->Refresh();
-	m_fgedit->Refresh();
-	m_bgedit->Refresh();
-	m_hmedit->Refresh();
+	if (m_gpuview && evt.GetClientData() != m_gpuview)
+	{
+		m_gpuview->ReloadCurrentRoomFromGameData();
+	}
 	UpdateUI();
 }
 
 void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 {
+	const bool gpu_selection = evt.GetClientData() == m_gpuview;
 	if (evt.GetInt() > 0 && m_swapctrl->GetPage() != TileSwapControlFrame::ID::TILESWAP)
 	{
 		m_swapctrl->SetPage(TileSwapControlFrame::ID::TILESWAP);
 	}
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
-		m_roomview->GetSelectedTileSwapIndex() != evt.GetInt() ||
-		m_fgedit->GetSelectedSwap() != evt.GetInt() ||
-		m_bgedit->GetSelectedSwap() != evt.GetInt() ||
-		m_hmedit->GetSelectedSwap() != evt.GetInt())
+		(m_gpuview && m_gpuview->GetSelectedTileSwapIndex() != evt.GetInt()))
 	{
 		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
-		m_roomview->SelectTileSwap(evt.GetInt(), false);
-		m_fgedit->SetSelectedSwap(evt.GetInt());
-		m_bgedit->SetSelectedSwap(evt.GetInt());
-		m_hmedit->SetSelectedSwap(evt.GetInt());
+		if (m_gpuview && !gpu_selection)
+		{
+			m_gpuview->SelectTileSwapByIndex(evt.GetInt());
+		}
+		if (gpu_selection)
+		{
+			m_entityctrl->SetSelected(-1);
+			m_warpctrl->SetSelected(-1);
+		}
 		UpdateUI();
 	}
 }
@@ -2358,6 +2571,10 @@ void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
 		if (swaps.size() < 32UL)
 		{
@@ -2379,6 +2596,10 @@ void RoomViewerFrame::OnSwapAdd(wxCommandEvent& /*evt*/)
 			swaps.push_back(TileSwap(next_free, { 20, 20, 22, 22, 1, 1 }, {10,10,12,12,1,1}, TileSwap::Mode::FLOOR));
 			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_TILESWAP_SELECT, swaps.size());
 		}
 	}
@@ -2388,12 +2609,20 @@ void RoomViewerFrame::OnSwapDelete(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
 		if (!swaps.empty() && evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(swaps.size()))
 		{
 			swaps.erase(swaps.begin() + evt.GetInt() - 1);
 			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() - 1);
 		}
 	}
@@ -2403,12 +2632,20 @@ void RoomViewerFrame::OnSwapMoveUp(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
 		if (swaps.size() > 1 && evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(swaps.size()))
 		{
 			std::iter_swap(swaps.begin() + evt.GetInt() - 2, swaps.begin() + evt.GetInt() - 1);
 			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() - 1);
 		}
 	}
@@ -2418,12 +2655,20 @@ void RoomViewerFrame::OnSwapMoveDown(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto swaps = m_g->GetRoomData()->GetTileSwaps(m_roomnum);
 		if (swaps.size() > 1 && evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(swaps.size()))
 		{
 			std::iter_swap(swaps.begin() + evt.GetInt() - 1, swaps.begin() + evt.GetInt());
 			m_g->GetRoomData()->SetTileSwaps(m_roomnum, swaps);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_TILESWAP_SELECT, evt.GetInt() + 1);
 		}
 	}
@@ -2434,33 +2679,38 @@ void RoomViewerFrame::OnSwapProperties(wxCommandEvent& evt)
 	ShowTileswapDialog(true, TileSwapDialog::PageType::SWAPS, evt.GetInt());
 }
 
-void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& /*evt*/)
+void RoomViewerFrame::OnDoorUpdate(wxCommandEvent& evt)
 {
 	//OnDoorSelect(evt);
 	TileSwapRefresh();
-	m_roomview->Refresh();
-	m_fgedit->Refresh();
-	m_bgedit->Refresh();
+	if (m_gpuview && evt.GetClientData() != m_gpuview)
+	{
+		m_gpuview->ReloadCurrentRoomFromGameData();
+	}
 }
 
 void RoomViewerFrame::OnDoorSelect(wxCommandEvent& evt)
 {
+	const bool gpu_selection = evt.GetClientData() == m_gpuview;
 	if (evt.GetInt() > 0 && m_swapctrl->GetPage() != TileSwapControlFrame::ID::DOOR)
 	{
 		m_swapctrl->SetPage(TileSwapControlFrame::ID::DOOR);
 	}
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
-		m_roomview->GetSelectedDoorIndex() != evt.GetInt() ||
-		m_fgedit->GetSelectedDoor() != evt.GetInt() ||
-		m_bgedit->GetSelectedDoor() != evt.GetInt() ||
-		m_hmedit->GetSelectedDoor() != evt.GetInt())
+		(m_gpuview && m_gpuview->GetSelectedDoorIndex() != evt.GetInt()))
 	{
 		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
-		m_roomview->SelectDoor(evt.GetInt());
-		m_fgedit->SetSelectedDoor(evt.GetInt());
-		m_bgedit->SetSelectedDoor(evt.GetInt());
-		m_hmedit->SetSelectedDoor(evt.GetInt());
+		if (m_gpuview && !gpu_selection)
+		{
+			m_gpuview->SelectDoorByIndex(evt.GetInt());
+		}
+		if (gpu_selection)
+		{
+			m_entityctrl->SetSelected(-1);
+			m_warpctrl->SetSelected(-1);
+		}
+		UpdateUI();
 	}
 }
 
@@ -2468,12 +2718,20 @@ void RoomViewerFrame::OnDoorAdd(wxCommandEvent& /*evt*/)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
 		if (doors.size() < 64UL)
 		{
 			doors.push_back(Door(20_u8, 20_u8, Door::Size::DOOR_1X4));
 			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_DOOR_SELECT, doors.size());
 		}
 	}
@@ -2483,12 +2741,20 @@ void RoomViewerFrame::OnDoorDelete(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
 		if (!doors.empty() && evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(doors.size()))
 		{
 			doors.erase(doors.begin() + evt.GetInt() - 1);
 			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_DOOR_SELECT, evt.GetInt() - 1);
 		}
 	}
@@ -2498,12 +2764,20 @@ void RoomViewerFrame::OnDoorMoveUp(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
 		if (doors.size() > 1 && evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(doors.size()))
 		{
 			std::iter_swap(doors.begin() + evt.GetInt() - 2, doors.begin() + evt.GetInt() - 1);
 			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_DOOR_SELECT, evt.GetInt() - 1);
 		}
 	}
@@ -2513,12 +2787,20 @@ void RoomViewerFrame::OnDoorMoveDown(wxCommandEvent& evt)
 {
 	if (m_g)
 	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
 		auto doors = m_g->GetRoomData()->GetDoors(m_roomnum);
 		if (doors.size() > 1 && evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(doors.size()))
 		{
 			std::iter_swap(doors.begin() + evt.GetInt() - 1, doors.begin() + evt.GetInt());
 			m_g->GetRoomData()->SetDoors(m_roomnum, doors);
 			TileSwapRefresh();
+			if (m_gpuview)
+			{
+				m_gpuview->ReloadCurrentRoomFromGameData();
+			}
 			FireEvent(EVT_DOOR_SELECT, evt.GetInt() + 1);
 		}
 	}
@@ -2529,28 +2811,12 @@ void RoomViewerFrame::OnDoorProperties(wxCommandEvent& evt)
 	ShowTileswapDialog(true, TileSwapDialog::PageType::DOORS, evt.GetInt());
 }
 
-void RoomViewerFrame::OnHeightmapUpdate(wxCommandEvent& /*evt*/)
-{
-	m_roomview->RefreshHeightmap();
-}
-
-void RoomViewerFrame::OnHeightmapMove(wxCommandEvent& evt)
-{
-	m_roomview->RefreshGraphics();
-	evt.Skip();
-}
-
-void RoomViewerFrame::OnHeightmapSelect(wxCommandEvent& /*evt*/)
-{
-	UpdateUI();
-}
-
 void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 {
 	wxChoice* ctrl = static_cast<wxChoice*>(evt.GetEventObject());
-	if (ctrl != nullptr)
+	if (ctrl != nullptr && IsGpuViewSelected())
 	{
-		m_hmedit->SetSelectedType(0, ctrl->GetSelection());
+		m_gpuview->SetSelectedHeightmapType(static_cast<uint8_t>(ctrl->GetSelection()));
 	}
 	UpdateUI();
 	evt.Skip();
@@ -2558,24 +2824,15 @@ void RoomViewerFrame::OnHMTypeSelect(wxCommandEvent& evt)
 
 void RoomViewerFrame::OnHMZoom(wxCommandEvent& evt)
 {
-	wxSlider* ctrl = static_cast<wxSlider*>(evt.GetEventObject());
-	if (ctrl != nullptr)
-	{
-		m_hmedit->SetZoom(static_cast<double>(ctrl->GetValue()) * 0.5);
-	}
 	evt.Skip();
 }
 
 void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
 {
 	auto block = evt.GetInt();
-	if (m_bgedit != nullptr)
+	if (m_gpuview != nullptr)
 	{
-		m_bgedit->SetSelectedBlock(block);
-	}
-	if (m_fgedit != nullptr)
-	{
-		m_fgedit->SetSelectedBlock(block);
+		m_gpuview->SetSelectedBlockId(block);
 	}
 	if (m_blkctrl != nullptr)
 	{
@@ -2584,51 +2841,18 @@ void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
 	evt.Skip();
 }
 
-void RoomViewerFrame::OnMapUpdate(wxCommandEvent& evt)
+void RoomViewerFrame::OnGpuEditorModeChange(wxCommandEvent& evt)
 {
-	if (m_roomview)
+	if (evt.GetClientData() == m_gpuview)
 	{
-		m_roomview->RefreshLayers();
+		SyncFrameModeFromGpuView();
 	}
-	if (m_fgedit && static_cast<Tilemap3D::Layer>(evt.GetInt()) == Tilemap3D::Layer::BG)
-	{
-		m_fgedit->RefreshGraphics();
-	}
-	evt.Skip();
-}
-
-void RoomViewerFrame::OnMapCellSelect(wxCommandEvent& evt)
-{
-	if (m_bgedit)
-	{
-		m_bgedit->SetSelectedCell({ evt.GetInt(), evt.GetExtraLong() });
-	}
-	if (m_fgedit)
-	{
-		m_fgedit->SetSelectedCell({ evt.GetInt(), evt.GetExtraLong() });
-	}
-	UpdateUI();
 	evt.Skip();
 }
 
 void RoomViewerFrame::OnSize(wxSizeEvent& evt)
 {
 	evt.Skip();
-}
-
-void RoomViewerFrame::OnTabChange(wxAuiNotebookEvent& evt)
-{
-	SetMode(static_cast<RoomEdit::Mode>(evt.GetSelection()));
-	evt.Skip();
-}
-
-void RoomViewerFrame::FireUpdateStatusEvent(const std::string& data, int pane)
-{
-	wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
-	evt.SetString(data); 
-	evt.SetInt(pane);
-	evt.SetClientData(this);
-	wxPostEvent(this, evt);
 }
 
 void RoomViewerFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)
@@ -2660,26 +2884,4 @@ void RoomViewerFrame::FireEvent(const wxEventType& e, int userdata)
 	evt.SetInt(userdata);
 	evt.SetClientData(this);
 	wxPostEvent(this, evt);
-}
-
-void RoomViewerFrame::SetPaneSizes()
-{
-	int w, h;
-	if (!m_sizes_set)
-	{
-		w = GetClientSize().GetWidth() * 7 / 10;
-		h = GetClientSize().GetHeight();
-		wxMessageBox(std::to_string(w));
-
-		//wxAUI hack: set minimum height to desired value, then call wxAuiPaneInfo::Fixed() to apply it
-		m_mgr.GetPane(m_hmedit).BestSize(w, h);
-		m_mgr.GetPane(m_hmedit).Fixed();
-		m_mgr.Update();
-
-		//now make resizable again
-		m_mgr.GetPane(m_hmedit).Resizable();
-		m_mgr.Update();
-
-		m_sizes_set = true;
-	}
 }

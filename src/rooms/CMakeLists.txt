@@ -8,11 +8,8 @@ target_sources(${MODULE_NAME} PRIVATE
     "EntityPropertiesWindow.cpp"
     "FlagDataViewModel.cpp"
     "FlagDialog.cpp"
-    "HeightmapEditorCtrl.cpp"
     "LayerControlFrame.cpp"
-    "Map3DEditor.cpp"
     "RoomErrorDialog.cpp"
-    "RoomViewerCtrl.cpp"
     "RoomViewerFrame.cpp"
     "TileSwapControlFrame.cpp"
     "TileSwapDataViewModel.cpp"
@@ -20,3 +17,5 @@ target_sources(${MODULE_NAME} PRIVATE
     "WarpControlFrame.cpp"
     "WarpPropertyWindow.cpp"
 )
+
+add_subdirectory("gpu")
