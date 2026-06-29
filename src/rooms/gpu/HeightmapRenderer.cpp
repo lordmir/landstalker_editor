@@ -158,14 +158,15 @@ void DrawVerticalFaceFill(
 
 void DrawTopFace(const HeightmapCell& cell)
 {
+    if (IsInvalidHeightmapCell(cell)) {
+        return;
+    }
+
     float px = cell.center.x;
     float py = cell.center.y;
-    const bool invalid_cell = IsInvalidHeightmapCell(cell);
-    HeightmapColor color = invalid_cell
-        ? HeightmapColor{0.0f, 0.0f, 0.0f}
-        : ApplyLight(RestrictionColor(cell.restriction), HeightLight(cell.z) * 1.08f);
+    HeightmapColor color = ApplyLight(RestrictionColor(cell.restriction), HeightLight(cell.z) * 1.08f);
 
-    glColor4f(color.r, color.g, color.b, invalid_cell ? 0.9f : 0.4f);
+    glColor4f(color.r, color.g, color.b, 0.4f);
     glBegin(GL_QUADS);
     glVertex2f(px, py - 16.0f); glVertex2f(px + 32.0f, py);
     glVertex2f(px, py + 16.0f); glVertex2f(px - 32.0f, py);

@@ -46,6 +46,9 @@
     <Filter Include="include\Rooms\WarpEditor">
       <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\Rooms\GPU">
+      <UniqueIdentifier>{787fd670-0948-4af8-9eeb-fbb20b4ac54c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include\Script">
       <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
     </Filter>
@@ -96,6 +99,9 @@
     </Filter>
     <Filter Include="src\Rooms\WarpEditor">
       <UniqueIdentifier>{f40d5e36-7f6e-4a45-9225-e06b95b8812c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Rooms\GPU">
+      <UniqueIdentifier>{3acb7134-988a-41f5-8cc6-7ccca84b19f2}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Script">
       <UniqueIdentifier>{d88d5c71-abb3-4869-a200-c5daf2d1d487}</UniqueIdentifier>
@@ -195,9 +201,6 @@
     <ClCompile Include="..\src\sprites\FrameControlFrame.cpp">
       <Filter>src\Sprites</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\rooms\HeightmapEditorCtrl.cpp">
-      <Filter>src\Rooms</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\main\ImageBufferWx.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
@@ -219,14 +222,47 @@
     <ClCompile Include="..\src\2d_maps\Map2DEditor.cpp">
       <Filter>src\2D Maps</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\rooms\RoomViewerCtrl.cpp">
-      <Filter>src\Rooms</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp">
       <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\rooms\Map3DEditor.cpp">
-      <Filter>src\Rooms</Filter>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasEntityEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasHeightmapMode.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasLayerEditMode.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectCoordinator.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectSupport.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomMode.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasWarpEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLLoader.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\HeightmapRenderer.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\MapRenderer.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\SpriteRenderer.cpp">
+      <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\WarpControlFrame.cpp">
       <Filter>src\Rooms\WarpEditor</Filter>
@@ -326,9 +362,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\landstalker\tileset\include\AnimatedTileset.h">
-      <Filter>include\Tileset</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h">
       <Filter>include\Tileset</Filter>
     </ClInclude>
@@ -413,10 +446,10 @@
     <ClInclude Include="..\src\sprites\FrameControlFrame.h">
       <Filter>include\Sprites</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\rooms\HeightmapEditorCtrl.h">
-      <Filter>include\Rooms</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\main\Icons.h">
+      <Filter>include\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main\Images.h">
       <Filter>include\Main</Filter>
     </ClInclude>
     <ClInclude Include="..\src\main\ImageBufferWx.h">
@@ -437,20 +470,59 @@
     <ClInclude Include="..\src\2d_maps\Map2DEditorFrame.h">
       <Filter>include\2D Maps</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\rooms\Map3DEditor.h">
-      <Filter>include\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h">
-      <Filter>include\Rooms</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h">
-      <Filter>include\Rooms</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\rooms\RoomViewerCtrl.h">
       <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h">
       <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvas.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasEntityEditor.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasHeightmapMode.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasLayerEditMode.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectCoordinator.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectSupport.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomMode.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasWarpEditor.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLLoader.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\HeightmapRenderer.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\MapRenderer.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\PixelFont.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\ShaderSources.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\SpriteInstance.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\SpriteRenderer.h">
+      <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\src\palettes\PaletteEditor.h">
       <Filter>include\Palette</Filter>
@@ -542,6 +614,17 @@
     <ClInclude Include="..\src\rooms\WarpPropertyWindow.h">
       <Filter>include\Rooms\WarpEditor</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\wxresource\wxcrafter.h">
+      <Filter>src\WX Resources</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\src\wxresource\resource\images\map.ico">
+      <Filter>src\WX Resources</Filter>
+    </Image>
+    <Image Include="..\src\wxresource\resource\images\msword.ico">
+      <Filter>src\WX Resources</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\wxresource\resource\wxcrafter.wxcp">

@@ -265,6 +265,7 @@ private:
     int SelectedHeightmapCellX() const;
     int SelectedHeightmapCellY() const;
     uint16_t SelectedHeightmapCellValue() const;
+    void UpdateHeightmapClipboardFromSelectedCell();
     void CopySelectedBackgroundBlock();
     void CopySelectedHeightmapCell();
     void ClearBackgroundClipboard();

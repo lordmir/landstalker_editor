@@ -331,7 +331,7 @@ protected:
         m_list[0].clear();
         for (std::size_t i = 0; i < 0x400; ++i)
         {
-            m_list[0].Add(Landstalker::StrWPrintf("[%03X] %ls", i, m_gd->GetStringData()->GetCharacterDisplayName(i)));
+            m_list[0].Add(Landstalker::StrWPrintf("[%03X] %ls", i, m_gd->GetStringData()->GetCharacterDisplayName(i).c_str()));
         }
     }
 };

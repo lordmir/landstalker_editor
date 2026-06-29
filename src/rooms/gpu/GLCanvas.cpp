@@ -2422,6 +2422,7 @@ void MyGLCanvas::SetSelectedHeightmapType(uint8_t type) {
         return;
     }
     map->SetCellType({x, y}, type);
+    UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     NotifyHeightmapChanged(false);
     Refresh();
@@ -2436,6 +2437,7 @@ void MyGLCanvas::ToggleSelectedHeightmapPlayerPassable() {
     }
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapPlayerPassable() ? (props | 0x04) : (props & ~0x04));
+    UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
@@ -2451,6 +2453,7 @@ void MyGLCanvas::ToggleSelectedHeightmapNpcPassable() {
     }
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapNpcPassable() ? (props | 0x02) : (props & ~0x02));
+    UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
@@ -2466,6 +2469,7 @@ void MyGLCanvas::ToggleSelectedHeightmapRaftTrack() {
     }
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapRaftTrack() ? (props | 0x01) : (props & ~0x01));
+    UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
@@ -2481,6 +2485,7 @@ void MyGLCanvas::AdjustSelectedHeightmapHeight(int delta) {
     }
     int height = std::clamp(static_cast<int>(map->GetHeight({x, y})) + delta, 0, 15);
     map->SetHeight({x, y}, static_cast<uint8_t>(height));
+    UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
@@ -2640,6 +2645,14 @@ void MyGLCanvas::CopySelectedHeightmapCell() {
         return;
     }
     m_heightmap_clipboard_cell = value;
+    m_heightmap_clipboard_valid = true;
+}
+
+void MyGLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
+    if (!HasSelectedHeightmapCell()) {
+        return;
+    }
+    m_heightmap_clipboard_cell = SelectedHeightmapCellValue();
     m_heightmap_clipboard_valid = true;
 }
 
@@ -4188,7 +4201,7 @@ bool MyGLCanvas::ShadowOccludedByHeightmap(float min_x, float min_y, float max_x
     float shadow_back_depth = hm_min_x + hm_min_y;
     float shadow_front_depth = hm_max_x + hm_max_y;
 
-    auto visible_cell = [&](int x, int y, uint8_t height, uint8_t restriction) {
+    auto visible_cell = [&](int /*x*/, int /*y*/, uint8_t height, uint8_t restriction) {
         return height != 0xFF && !(restriction == 4 && height == 0) && height > z;
     };
     auto overlaps_shadow = [&](int x, int y) {

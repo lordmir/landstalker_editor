@@ -39,12 +39,22 @@
     <ClCompile Include="..\src\rooms\EntityPropertiesWindow.cpp" />
     <ClCompile Include="..\src\rooms\FlagDataViewModel.cpp" />
     <ClCompile Include="..\src\rooms\FlagDialog.cpp" />
-    <ClCompile Include="..\src\rooms\HeightmapEditorCtrl.cpp" />
     <ClCompile Include="..\src\rooms\LayerControlFrame.cpp" />
-    <ClCompile Include="..\src\rooms\Map3DEditor.cpp" />
     <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp" />
-    <ClCompile Include="..\src\rooms\RoomViewerCtrl.cpp" />
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasEntityEditor.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasHeightmapMode.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasLayerEditMode.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectCoordinator.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectSupport.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomMode.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasWarpEditor.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLLoader.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\HeightmapRenderer.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\MapRenderer.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\SpriteRenderer.cpp" />
     <ClCompile Include="..\src\rooms\TileSwapControlFrame.cpp" />
     <ClCompile Include="..\src\rooms\TileSwapDataViewModel.cpp" />
     <ClCompile Include="..\src\rooms\TileSwapDialog.cpp" />
@@ -83,8 +93,6 @@
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\landstalker\rooms\include\RoomDialogueTable.h" />
-    <ClInclude Include="..\src\landstalker\tileset\include\AnimatedTileset.h" />
     <ClInclude Include="..\src\2d_maps\Map2DEditor.h" />
     <ClInclude Include="..\src\2d_maps\Map2DEditorFrame.h" />
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorCtrl.h" />
@@ -94,6 +102,7 @@
     <ClInclude Include="..\src\main\BrowserTreeCtrl.h" />
     <ClInclude Include="..\src\main\EditorFrame.h" />
     <ClInclude Include="..\src\main\Icons.h" />
+    <ClInclude Include="..\src\main\Images.h" />
     <ClInclude Include="..\src\main\ImageBufferWx.h" />
     <ClInclude Include="..\src\main\ImageList.h" />
     <ClInclude Include="..\src\main\MainFrame.h" />
@@ -115,12 +124,25 @@
     <ClInclude Include="..\src\rooms\EntityPropertiesWindow.h" />
     <ClInclude Include="..\src\rooms\FlagDataViewModel.h" />
     <ClInclude Include="..\src\rooms\FlagDialog.h" />
-    <ClInclude Include="..\src\rooms\HeightmapEditorCtrl.h" />
     <ClInclude Include="..\src\rooms\LayerControlFrame.h" />
-    <ClInclude Include="..\src\rooms\Map3DEditor.h" />
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h" />
-    <ClInclude Include="..\src\rooms\RoomViewerCtrl.h" />
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvas.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasEntityEditor.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasHeightmapMode.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasLayerEditMode.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectCoordinator.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectSupport.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomMode.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasWarpEditor.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLLoader.h" />
+    <ClInclude Include="..\src\rooms\gpu\HeightmapRenderer.h" />
+    <ClInclude Include="..\src\rooms\gpu\MapRenderer.h" />
+    <ClInclude Include="..\src\rooms\gpu\PixelFont.h" />
+    <ClInclude Include="..\src\rooms\gpu\ShaderSources.h" />
+    <ClInclude Include="..\src\rooms\gpu\SpriteInstance.h" />
+    <ClInclude Include="..\src\rooms\gpu\SpriteRenderer.h" />
     <ClInclude Include="..\src\rooms\TileSwapControlFrame.h" />
     <ClInclude Include="..\src\rooms\TileSwapDataViewModel.h" />
     <ClInclude Include="..\src\rooms\TileSwapDialog.h" />
@@ -155,6 +177,11 @@
     <ClInclude Include="..\src\tileset\TileEditor.h" />
     <ClInclude Include="..\src\tileset\TilesetEditor.h" />
     <ClInclude Include="..\src\tileset\TilesetEditorFrame.h" />
+    <ClInclude Include="..\src\wxresource\wxcrafter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\src\wxresource\resource\images\map.ico" />
+    <Image Include="..\src\wxresource\resource\images\msword.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\wxresource\resource\win_resources.rc">
@@ -208,6 +235,14 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="DependencyDefaults">
+    <LIBPNG_PATH Condition="'$(LIBPNG_PATH)'==''">C:\libraries\lpng1637</LIBPNG_PATH>
+    <WX_WIN Condition="'$(WX_WIN)'==''">C:\libraries\wxwidgets-3.3.2</WX_WIN>
+    <ZLIB_PATH Condition="'$(ZLIB_PATH)'==''">C:\libraries\zlib</ZLIB_PATH>
+    <PUGIXML_PATH Condition="'$(PUGIXML_PATH)'==''">C:\libraries\pugixml-1.16</PUGIXML_PATH>
+    <GLEW_PATH Condition="'$(GLEW_PATH)'==''">C:\libraries\glew-2.3.1</GLEW_PATH>
+    <YAMLCPP_PATH Condition="'$(YAMLCPP_PATH)'==''">C:\libraries\yaml-cpp-0.9.0</YAMLCPP_PATH>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -216,9 +251,9 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\debug\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\debug\include;$(PUGIXML_PATH)\src;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -227,8 +262,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Debug;$(PUGIXML_PATH)\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>landstalkerd.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cppd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Debug;$(PUGIXML_PATH)\debug\lib;$(PUGIXML_PATH)\build\Debug;$(GLEW_PATH)\build\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalkerd.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cppd.lib;libglew32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -238,9 +273,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\release\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\release\include;$(PUGIXML_PATH)\src;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -251,8 +286,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\modules\liblandstalker\build\Release\;$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Release;$(PUGIXML_PATH)\release\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>landstalker.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);..\modules\liblandstalker\build\Release\;$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(YAMLCPP_PATH)\build\Release;$(PUGIXML_PATH)\release\lib;$(PUGIXML_PATH)\build\Release;$(GLEW_PATH)\build\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalker.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cpp.lib;libglew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>

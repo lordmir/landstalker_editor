@@ -175,12 +175,12 @@ void GLCanvasLayerEditMode::Render(int width, int height)
             preview_y = m_canvas.m_background_selected_y;
         }
 
-        const int width = m_canvas.m_mapRenderer.GetRoomWidth();
-        const int height = m_canvas.m_mapRenderer.GetRoomHeight();
-        const int block_index = preview_y * width + preview_x;
+        const int w = m_canvas.m_mapRenderer.GetRoomWidth();
+        const int h = m_canvas.m_mapRenderer.GetRoomHeight();
+        const int block_index = preview_y * w + preview_x;
         auto map = m_canvas.CurrentRoomMap();
         const bool valid_preview_cell = map && preview_x >= 0 && preview_y >= 0 &&
-            preview_x < width && preview_y < height &&
+            preview_x < w && preview_y < h &&
             block_index >= 0 && block_index < map->GetWidth() * map->GetHeight();
         const uint16_t current_block = valid_preview_cell ?
             map->GetBlock(static_cast<uint16_t>(block_index), m_canvas.CurrentEditLayer()).value : 0;
