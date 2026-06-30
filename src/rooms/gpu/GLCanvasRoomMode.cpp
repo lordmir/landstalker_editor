@@ -84,6 +84,10 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             }
             break;
         case WXK_ESCAPE:
+            if (m_canvas.HasPendingObjectAdd()) {
+                m_canvas.CancelPendingObjectAdd();
+                return true;
+            }
             m_canvas.m_selected_entity_idx = -1;
             m_canvas.m_selected_warp_idx = -1;
             m_canvas.m_selected_tileswap_region_idx = -1;
@@ -334,6 +338,13 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
 
 void GLCanvasRoomMode::HandleMouseMove(const wxMouseEvent& evt)
 {
+    if (m_canvas.HasPendingObjectAdd()) {
+        m_canvas.UpdatePendingObjectAddHover();
+        m_canvas.SetCursor(wxCursor(wxCURSOR_CROSS));
+        m_canvas.Refresh();
+        return;
+    }
+
     if (m_canvas.m_dragging_entity) {
         m_canvas.UpdateEntityDrag(evt);
         return;
@@ -404,6 +415,12 @@ void GLCanvasRoomMode::HandleMouseMove(const wxMouseEvent& evt)
 
 void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
 {
+    if (m_canvas.HasPendingObjectAdd()) {
+        m_canvas.CommitPendingObjectAdd();
+        m_canvas.Refresh();
+        return;
+    }
+
     int room_info_room = m_canvas.HitTestRoomInfoLink(evt.GetPosition());
     if (room_info_room >= 0) {
         m_canvas.NavigateToRoom(static_cast<uint16_t>(room_info_room));
@@ -477,6 +494,11 @@ void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
 
 void GLCanvasRoomMode::HandleRightDown(const wxMouseEvent& evt)
 {
+    if (m_canvas.HasPendingObjectAdd()) {
+        m_canvas.CancelPendingObjectAdd();
+        return;
+    }
+
     int room_info_room = m_canvas.HitTestRoomInfoLink(evt.GetPosition());
     if (room_info_room >= 0) {
         m_canvas.NavigateToRoom(static_cast<uint16_t>(room_info_room));
@@ -651,6 +673,7 @@ void GLCanvasRoomMode::Render(int width, int height)
         m_canvas.RenderSelectedDoorTooltip();
         m_canvas.RenderSelectedTileSwapRegionTooltip();
     }
+    m_canvas.RenderPendingObjectAddOverlay();
 
     if (m_canvas.m_debug_occlusion &&
         m_canvas.m_selected_entity_idx >= 0 &&
@@ -731,4 +754,5 @@ void GLCanvasRoomMode::Render(int width, int height)
 
     m_canvas.RenderRoomInfoTable(width, height);
     m_canvas.SwapBuffers();
+    m_canvas.RecordRenderedFrame();
 }

@@ -33,7 +33,8 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
             return true;
         case 'h':
         case 'H':
-            m_canvas.ToggleLayerPriorityHighlight();
+            m_canvas.m_layer_heightmap_overlay = !m_canvas.m_layer_heightmap_overlay;
+            m_canvas.Refresh();
             return true;
         case 'b':
         case 'B':
@@ -43,7 +44,7 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
             }
             return true;
         case WXK_ESCAPE:
-            m_canvas.ClearBackgroundClipboard();
+            m_canvas.ClearEditSelection();
             m_canvas.Refresh();
             return true;
         case 'c':
@@ -129,14 +130,37 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
     } else {
         m_canvas.m_background_has_hover = false;
     }
+    if (m_canvas.m_layer_dragging_draw &&
+        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&
+        m_canvas.m_background_has_hover &&
+        (m_canvas.m_background_hover_x != m_canvas.m_layer_last_draw_x ||
+         m_canvas.m_background_hover_y != m_canvas.m_layer_last_draw_y)) {
+        m_canvas.m_background_selected_x = m_canvas.m_background_hover_x;
+        m_canvas.m_background_selected_y = m_canvas.m_background_hover_y;
+        m_canvas.m_background_has_selection = true;
+        if (m_canvas.PasteBackgroundBlockAt(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y, true)) {
+            m_canvas.m_layer_last_draw_x = m_canvas.m_background_hover_x;
+            m_canvas.m_layer_last_draw_y = m_canvas.m_background_hover_y;
+        }
+    }
     m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 
 void GLCanvasLayerEditMode::HandleLeftDown(const wxMouseEvent& evt)
 {
-    m_canvas.SelectBackgroundCellAt(evt.GetPosition());
-    m_canvas.PasteSelectedBackgroundBlock();
+    if (!m_canvas.SelectBackgroundCellAt(evt.GetPosition())) {
+        return;
+    }
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw) {
+        m_canvas.m_layer_dragging_draw = true;
+        m_canvas.m_layer_last_draw_x = m_canvas.m_background_selected_x;
+        m_canvas.m_layer_last_draw_y = m_canvas.m_background_selected_y;
+        m_canvas.PasteBackgroundBlockAt(m_canvas.m_background_selected_x, m_canvas.m_background_selected_y, true);
+        if (!m_canvas.HasCapture()) {
+            m_canvas.CaptureMouse();
+        }
+    }
     m_canvas.Refresh();
 }
 
@@ -164,7 +188,13 @@ void GLCanvasLayerEditMode::Render(int width, int height)
         }
     }
 
-    if (m_canvas.m_background_clipboard_valid) {
+    if (m_canvas.m_layer_heightmap_overlay) {
+        m_canvas.m_heightmapRenderer.RenderOverlay(0.55f);
+    }
+
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&
+        m_canvas.m_background_clipboard_valid &&
+        !m_canvas.m_layer_dragging_draw) {
         int preview_x = -1;
         int preview_y = -1;
         if (m_canvas.m_background_has_hover) {
@@ -220,4 +250,5 @@ void GLCanvasLayerEditMode::Render(int width, int height)
 
     m_canvas.RenderBackgroundEditorOverlay(width, height);
     m_canvas.SwapBuffers();
+    m_canvas.RecordRenderedFrame();
 }

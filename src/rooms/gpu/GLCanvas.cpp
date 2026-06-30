@@ -93,6 +93,10 @@ uint8_t OpacityByteForIndex(int idx) {
 }
 
 constexpr std::array<float, 5> kZoomSteps = {0.5f, 1.0f, 2.0f, 3.0f, 4.0f};
+constexpr float kHeightmapEditorMaxZExtent = 32.0f;
+constexpr float kHeightmapEditorZScaleStep = 0.25f;
+constexpr long kTargetFrameMs = 1000 / 60;
+constexpr std::size_t kMaxUndoStates = 100;
 
 const char* OcclusionModeName(int idx) {
     static constexpr const char* names[] = {"TOP", "GHOST", "HIDE"};
@@ -1032,10 +1036,10 @@ void DrawOverlayText(const std::string& text, float x, float y, float scale)
 wxDEFINE_EVENT(EVT_GPU_EDITOR_MODE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_GPU_LAYER_OPACITY_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_GPU_LAYER_BLOCK_SELECT, wxCommandEvent);
+wxDEFINE_EVENT(EVT_GPU_HEIGHTMAP_TARGET_CHANGE, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MyGLCanvas, wxGLCanvas)
     EVT_PAINT(MyGLCanvas::OnPaint)
-    EVT_TIMER(wxID_ANY, MyGLCanvas::OnTimer)
     EVT_KEY_DOWN(MyGLCanvas::OnKeyDown)
     EVT_MOTION(MyGLCanvas::OnMouseMove)
     EVT_LEFT_DOWN(MyGLCanvas::OnLeftDown)
@@ -1048,6 +1052,7 @@ wxBEGIN_EVENT_TABLE(MyGLCanvas, wxGLCanvas)
     EVT_LEAVE_WINDOW(MyGLCanvas::OnMouseLeave)
     EVT_MOUSEWHEEL(MyGLCanvas::OnMouseWheel)
     EVT_SIZE(MyGLCanvas::OnSize)
+    EVT_IDLE(MyGLCanvas::OnIdle)
 wxEND_EVENT_TABLE()
 
 MyGLCanvas::MyGLCanvas(wxWindow* parent, std::shared_ptr<GameData> gd)
@@ -1069,19 +1074,35 @@ MyGLCanvas::MyGLCanvas(wxWindow* parent, std::shared_ptr<GameData> gd)
       m_drag_tileswap_start_x(0), m_drag_tileswap_start_y(0), m_drag_tileswap_start_width(1), m_drag_tileswap_start_height(1),
     m_dragging_pan(false), m_drag_pan_start_mouse(wxDefaultPosition), m_drag_pan_start_cam_x(0.0f), m_drag_pan_start_cam_y(0.0f),
     m_bg_opacity_idx(0), m_fg_opacity_idx(0), m_sprite_opacity_idx(0), m_entity_occlusion_idx(1),
-        m_debug_occlusion(false), m_show_hitboxes(true), m_editor_mode(EditorMode::Room), m_heightmap_view_mode(HeightmapViewMode::Flat), m_non_heightmap_z_extent(32.0f), m_foreground_show_background_underlay(true), m_background_show_block_ids(false), m_layer_priority_highlight(true),
+        m_debug_occlusion(false), m_show_hitboxes(true), m_editor_mode(EditorMode::Room), m_drawing_tool(DrawingTool::Select), m_heightmap_view_mode(HeightmapViewMode::Flat), m_non_heightmap_z_extent(32.0f), m_heightmap_z_scale(0.0f), m_heightmap_tilemap_underlay(false), m_layer_heightmap_overlay(false), m_foreground_show_background_underlay(true), m_background_show_block_ids(false), m_layer_priority_highlight(true),
             m_background_has_selection(false), m_background_selected_x(0), m_background_selected_y(0),
             m_background_has_hover(false), m_background_hover_x(0), m_background_hover_y(0),
             m_background_clipboard_valid(false), m_background_clipboard_block_id(0),
+            m_layer_dragging_draw(false), m_layer_draw_dirty(false), m_layer_last_draw_x(-1), m_layer_last_draw_y(-1),
             m_heightmap_clipboard_valid(false), m_heightmap_clipboard_cell(0),
+            m_heightmap_dragging_select(false), m_heightmap_dragging_draw(false), m_heightmap_dragging_line(false), m_heightmap_dragging_selection_move(false), m_heightmap_draw_dirty(false),
+            m_heightmap_selection_add(false), m_heightmap_selection_subtract(false),
+            m_heightmap_selection_anchor_x(0), m_heightmap_selection_anchor_y(0),
+            m_heightmap_selection_drag_anchor_x(0), m_heightmap_selection_drag_anchor_y(0),
+            m_heightmap_last_draw_x(-1), m_heightmap_last_draw_y(-1),
+            m_heightmap_line_start_x(-1), m_heightmap_line_start_y(-1),
+            m_heightmap_line_end_x(-1), m_heightmap_line_end_y(-1),
+            m_heightmap_selection_move_anchor_x(-1), m_heightmap_selection_move_anchor_y(-1),
+            m_heightmap_selection_move_delta_x(0), m_heightmap_selection_move_delta_y(0),
             m_tileswap_preview_active(false), m_tileswap_preview_swap_index(-1),
-      m_door_preview_active(false), m_door_preview_idx(-1),
-      m_timer(this), m_pending_warp_half(false), m_pending_warp_room(0xFFFF), m_pending_warp_instance_id(0),
-    m_entity_clipboard_valid(false), m_zoom_step_idx(1), m_gl_init_failed(false), m_initialized(false), m_last_mouse_pos(wxDefaultPosition)
+    m_door_preview_active(false), m_door_preview_idx(-1),
+      m_pending_warp_half(false), m_pending_warp_room(0xFFFF), m_pending_warp_instance_id(0),
+    m_entity_clipboard_valid(false), m_zoom_step_idx(1), m_gl_init_failed(false), m_initialized(false), m_last_mouse_pos(wxDefaultPosition),
+    m_last_anim_ms(0), m_last_frame_ms(0), m_animation_update_count(0), m_render_deferred(false),
+    m_restoring_history(false), m_pending_add_type(PendingObjectAddType::None),
+    m_pending_tileswap_part(PendingTileSwapPart::MapSource), m_pending_add_hover_x(-1), m_pending_add_hover_y(-1),
+    m_pending_add_swap_index(-1)
 {
     m_current_room = 0;
     m_fps_stopwatch.Start();
-    m_timer.Start(1000.0 / 60.0);
+    m_anim_stopwatch.Start();
+    m_last_anim_ms = m_anim_stopwatch.Time();
+    m_last_frame_ms = m_last_anim_ms;
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -1126,6 +1147,27 @@ void MyGLCanvas::SetZoom(double zoom) {
     GetClientSize(&width, &height);
     ChangeZoomStep(best_idx - old_idx, static_cast<float>(width) * 0.5f, static_cast<float>(height) * 0.5f);
     Refresh();
+}
+
+void MyGLCanvas::SetHeightmapZScale(float scale) {
+    float clamped = std::clamp(scale, 0.0f, 1.0f);
+    clamped = std::round(clamped / kHeightmapEditorZScaleStep) * kHeightmapEditorZScaleStep;
+    clamped = std::clamp(clamped, 0.0f, 1.0f);
+    if (std::abs(m_heightmap_z_scale - clamped) < 0.001f) {
+        return;
+    }
+
+    m_heightmap_z_scale = clamped;
+    if (IsHeightmapEditMode()) {
+        ApplyHeightmapViewMode();
+        RefreshObjectPlacementsFromHeightmap();
+        UpdateStatusBar();
+        Refresh();
+    }
+}
+
+void MyGLCanvas::AdjustHeightmapZScale(int delta) {
+    SetHeightmapZScale(m_heightmap_z_scale + static_cast<float>(delta) * kHeightmapEditorZScaleStep);
 }
 
 void MyGLCanvas::SetAlpha(bool visible) {
@@ -1221,6 +1263,41 @@ void MyGLCanvas::SetLayerPriorityHighlight(bool enabled) {
 
 void MyGLCanvas::ToggleLayerPriorityHighlight() {
     SetLayerPriorityHighlight(!m_layer_priority_highlight);
+}
+
+void MyGLCanvas::SetDrawingTool(DrawingTool tool) {
+    if (m_drawing_tool == tool) {
+        return;
+    }
+    m_drawing_tool = tool;
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    if (HasCapture()) {
+        ReleaseMouse();
+    }
+    Refresh();
+    wxWindow* target = EventTarget();
+    if (target) {
+        wxCommandEvent evt(EVT_GPU_EDITOR_MODE_CHANGE);
+        evt.SetInt(static_cast<int>(m_editor_mode));
+        evt.SetClientData(this);
+        wxPostEvent(target, evt);
+    }
 }
 
 void MyGLCanvas::LoadRoom(uint16_t roomnum) {
@@ -1450,6 +1527,10 @@ void MyGLCanvas::CancelActiveDrag() {
     m_dragging_door = false;
     m_dragging_tileswap_region = false;
     m_dragging_pan = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
     if (HasCapture()) {
         ReleaseMouse();
     }
@@ -1559,6 +1640,17 @@ void MyGLCanvas::NotifyHeightmapChanged(bool /*moved*/) {
     wxPostEvent(target, props_evt);
 }
 
+void MyGLCanvas::NotifyHeightmapTargetChanged() {
+    wxWindow* target = EventTarget();
+    if (!target) {
+        return;
+    }
+
+    wxCommandEvent evt(EVT_GPU_HEIGHTMAP_TARGET_CHANGE);
+    evt.SetClientData(this);
+    wxPostEvent(target, evt);
+}
+
 void MyGLCanvas::NotifyLayerOpacityChanged() {
     wxWindow* target = EventTarget();
     if (!target) {
@@ -1601,6 +1693,9 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
     m_tileswap_preview_map.reset();
     m_heightmapRenderer.ClearPreviewMap();
     m_current_room = roomnum;
+    if (room_changed && !m_restoring_history) {
+        ClearUndoRedoHistory();
+    }
     m_mapRenderer.LoadRoom(roomnum);
     m_heightmapRenderer.LoadRoom(roomnum);
     m_spriteRenderer.LoadRoom(roomnum);
@@ -1614,12 +1709,38 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
     m_selected_tileswap_region_idx = -1;
     m_hovered_door_idx = -1;
     m_selected_door_idx = -1;
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_selection_add = false;
+    m_heightmap_selection_subtract = false;
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_selection_drag_base.clear();
     if (room_changed) {
         m_background_has_selection = false;
         m_background_selected_x = 0;
         m_background_selected_y = 0;
+        m_heightmap_selection_anchor_x = 0;
+        m_heightmap_selection_anchor_y = 0;
+        m_heightmap_selection_drag_anchor_x = 0;
+        m_heightmap_selection_drag_anchor_y = 0;
+        m_heightmap_selected_cells.clear();
         m_heightmap_clipboard_valid = false;
         m_heightmap_clipboard_cell = 0;
+        NotifyHeightmapTargetChanged();
     }
     m_dragging_entity = false;
     m_dragging_warp = false;
@@ -1810,14 +1931,37 @@ std::set<uint32_t> MyGLCanvas::FindCollidedEntityIds() const {
     return FindCollidedEntities(m_instances);
 }
 
-void MyGLCanvas::OnTimer(wxTimerEvent&) {
+void MyGLCanvas::OnIdle(wxIdleEvent& evt)
+{
     if (!m_initialized || !m_gd || !IsShownOnScreen()) {
         return;
     }
 
+    long now_ms = m_anim_stopwatch.Time();
+    const bool frame_due = now_ms - m_last_frame_ms >= kTargetFrameMs;
+
+    if (frame_due || m_render_deferred) {
+        if (!frame_due) {
+            evt.RequestMore();
+            return;
+        }
+
+        float dt = std::clamp((now_ms - m_last_anim_ms) / 1000.0f, 0.0f, 0.1f);
+        m_last_anim_ms = now_ms;
+        m_render_deferred = false;
+
+        UpdateAnimations(dt);
+        Refresh(false);
+    }
+
+    evt.RequestMore();
+}
+
+void MyGLCanvas::UpdateAnimations(float dt)
+{
     // Recompute floors/projections periodically instead of every paint.
     // This avoids heavy per-frame work, which is especially noticeable at high zoom.
-    if ((m_frame_count & 0x07) == 0) {
+    if ((m_animation_update_count & 0x07) == 0) {
         RefreshObjectPlacementsFromHeightmap();
     }
 
@@ -1836,21 +1980,41 @@ void MyGLCanvas::OnTimer(wxTimerEvent&) {
         if (aid >= (int)anims.size()) aid = 0;
         const auto& frames = sd->GetSpriteAnimationFrames(anims[aid]);
         if (!frames.empty() && !sd->IsEntityItem(inst.entity_id)) { 
-            inst.anim_timer += inst.anim_speed / 60.0f * 12.0f; 
-            if (inst.anim_timer >= frames.size()) inst.anim_timer -= frames.size(); 
+            inst.anim_timer += inst.anim_speed * 8.0f * dt;
+            while (inst.anim_timer >= frames.size()) inst.anim_timer -= frames.size();
         }
     }
+
+    ++m_animation_update_count;
+}
+
+void MyGLCanvas::RecordRenderedFrame()
+{
+    m_last_frame_ms = m_anim_stopwatch.Time();
     m_frame_count++;
     if (m_fps_stopwatch.Time() >= 1000) {
         m_fps = (m_frame_count*1000.0f)/m_fps_stopwatch.Time();
         m_frame_count = 0;
         m_fps_stopwatch.Start();
+        UpdateStatusBar();
     }
-    UpdateStatusBar();
-    Refresh();
 }
 
 bool MyGLCanvas::HandleKeyDown(wxKeyEvent& evt) {
+    if (evt.ControlDown() && !evt.AltDown()) {
+        int key = evt.GetKeyCode();
+        if (key == 'Z') {
+            Undo();
+            UpdateStatusBar();
+            return true;
+        }
+        if (key == 'Y') {
+            Redo();
+            UpdateStatusBar();
+            return true;
+        }
+    }
+
     if (!IsAnyEditMode() && evt.GetKeyCode() == WXK_RETURN) {
         if (OpenSelectedObjectProperties()) {
             return true;
@@ -1867,6 +2031,277 @@ bool MyGLCanvas::HandleKeyDown(wxKeyEvent& evt) {
     }
     UpdateStatusBar();
     return handled;
+}
+
+bool MyGLCanvas::CanUndo() const {
+    return IsObjectHistoryMode() ? !m_object_undo_stack.empty() : !m_map_undo_stack.empty();
+}
+
+bool MyGLCanvas::CanRedo() const {
+    return IsObjectHistoryMode() ? !m_object_redo_stack.empty() : !m_map_redo_stack.empty();
+}
+
+void MyGLCanvas::CaptureUndoState() {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    m_map_undo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+    if (m_map_undo_stack.size() > kMaxUndoStates) {
+        m_map_undo_stack.erase(m_map_undo_stack.begin());
+    }
+    m_map_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
+    auto map = CurrentRoomMap();
+    if (!map || !state) {
+        return;
+    }
+
+    *map = *state;
+    m_tileswap_preview_active = false;
+    m_tileswap_preview_swap_index = -1;
+    m_door_preview_active = false;
+    m_door_preview_idx = -1;
+    m_tileswap_preview_map.reset();
+    m_heightmapRenderer.ClearPreviewMap();
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_selection_drag_base.clear();
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+
+    ClampBackgroundSelection();
+    ReloadCurrentRoomMapView();
+    m_heightmapRenderer.LoadRoom(m_current_room);
+    RefreshObjectPlacementsFromHeightmap();
+    UpdateHeightmapClipboardFromSelectedCell();
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+    NotifyLayerBlockSelected();
+    UpdateStatusBar();
+    Refresh();
+}
+
+bool MyGLCanvas::IsObjectHistoryMode() const {
+    return m_editor_mode == EditorMode::Room;
+}
+
+std::vector<Entity> MyGLCanvas::BuildCurrentRoomEntities() const {
+    if (m_instances.empty()) {
+        return m_room_entities;
+    }
+
+    std::vector<Entity> entities(m_instances.size());
+    for (const auto& inst : m_instances) {
+        std::size_t idx = inst.instance_id > 0 ? std::size_t(inst.instance_id - 1) : entities.size();
+        if (idx >= entities.size()) {
+            continue;
+        }
+        Entity entity = idx < m_room_entities.size() ? m_room_entities[idx] : Entity{};
+        entity.SetType(inst.entity_id);
+        entity.SetPalette(std::min<uint8_t>(inst.palette, 3));
+        entity.SetOrientation(inst.orientation);
+        entity.SetXDbl(inst.map_x);
+        entity.SetYDbl(inst.map_y);
+        entity.SetZDbl(inst.map_z);
+        entities[idx] = entity;
+    }
+    return entities;
+}
+
+std::vector<WarpList::Warp> MyGLCanvas::BuildCurrentRoomWarps() const {
+    std::vector<WarpList::Warp> warps;
+    std::map<uint32_t, std::size_t> warp_slots;
+    for (const auto& inst : m_warps) {
+        uint32_t key = inst.warp_key != 0 ? inst.warp_key : inst.instance_id;
+        auto slot_it = warp_slots.find(key);
+        if (slot_it == warp_slots.end()) {
+            warp_slots[key] = warps.size();
+            warps.push_back(inst.warp);
+            slot_it = warp_slots.find(key);
+        }
+        WarpList::Warp& warp = warps[slot_it->second];
+        if (inst.current_room_is_room1) {
+            warp.room1 = m_current_room;
+            warp.x1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+            warp.y1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+        } else {
+            warp.room2 = m_current_room;
+            warp.x2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+            warp.y2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+        }
+        warp.x_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.width)), 1, 63));
+        warp.y_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.height)), 1, 63));
+    }
+    warps.erase(
+        std::remove_if(
+            warps.begin(),
+            warps.end(),
+            [](const auto& warp) {
+                return warp.room1 == 0xFFFF || warp.room2 == 0xFFFF || !warp.IsValid();
+            }),
+        warps.end());
+    return warps;
+}
+
+MyGLCanvas::ObjectUndoState MyGLCanvas::BuildObjectUndoState() const {
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    ObjectUndoState state{};
+    state.entities = BuildCurrentRoomEntities();
+    state.warps = BuildCurrentRoomWarps();
+    state.swaps = rd ? rd->GetTileSwaps(m_current_room) : std::vector<TileSwap>{};
+    state.doors = rd ? rd->GetDoors(m_current_room) : std::vector<Door>{};
+    state.pending_warp_half = m_pending_warp_half;
+    state.pending_warp_room = m_pending_warp_room;
+    state.pending_warp_instance_id = m_pending_warp_instance_id;
+    state.pending_warp = m_pending_warp;
+    state.selected_entity = SelectedEntityListIndex();
+    state.selected_warp = SelectedWarpListIndex();
+    state.selected_tileswap = SelectedTileSwapListIndex();
+    state.selected_door = SelectedDoorListIndex();
+    return state;
+}
+
+void MyGLCanvas::CaptureObjectUndoState() {
+    if (!m_gd) {
+        return;
+    }
+
+    m_object_undo_stack.push_back(BuildObjectUndoState());
+    if (m_object_undo_stack.size() > kMaxUndoStates) {
+        m_object_undo_stack.erase(m_object_undo_stack.begin());
+    }
+    m_object_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
+    auto sd = m_gd ? m_gd->GetSpriteData() : nullptr;
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    if (!sd || !rd) {
+        return;
+    }
+
+    sd->SetRoomEntities(m_current_room, state.entities);
+    rd->SetWarpsForRoom(m_current_room, state.warps);
+    rd->SetTileSwaps(m_current_room, state.swaps);
+    rd->SetDoors(m_current_room, state.doors);
+
+    m_restoring_history = true;
+    LoadRoomFromGameData(m_current_room, false, false);
+    m_restoring_history = false;
+
+    m_pending_warp_half = state.pending_warp_half;
+    m_pending_warp_room = state.pending_warp_room;
+    m_pending_warp_instance_id = state.pending_warp_instance_id;
+    m_pending_warp = state.pending_warp;
+    if (m_pending_warp_half && m_pending_warp_room == m_current_room) {
+        uint32_t instance_id = m_pending_warp_instance_id != 0
+            ? m_pending_warp_instance_id
+            : static_cast<uint32_t>(m_warps.size() + 1);
+        WarpInstance inst = GLCanvasObjectSupport::MakeWarpInstance(
+            m_pending_warp,
+            m_current_room,
+            instance_id,
+            float(m_mapRenderer.GetRoomLeft()),
+            float(m_mapRenderer.GetRoomTop()),
+            m_heightmapRenderer.GetZExtent());
+        UpdateWarpFloor(inst);
+        m_warps.push_back(inst);
+    }
+
+    ClearObjectSelection();
+    if (state.selected_entity > 0) {
+        SelectEntityByIndex(state.selected_entity);
+    } else if (state.selected_warp > 0) {
+        SelectWarpByIndex(state.selected_warp);
+    } else if (state.selected_tileswap > 0) {
+        SelectTileSwapByIndex(state.selected_tileswap);
+    } else if (state.selected_door > 0) {
+        SelectDoorByIndex(state.selected_door);
+    }
+
+    NotifyRoomDataChanged(true, true, true, true);
+    NotifySelectionChanged();
+    UpdateStatusBar();
+    Refresh();
+}
+
+void MyGLCanvas::ClearUndoRedoHistory() {
+    m_map_undo_stack.clear();
+    m_map_redo_stack.clear();
+    m_object_undo_stack.clear();
+    m_object_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::Undo() {
+    if (!CanUndo()) {
+        return;
+    }
+
+    if (IsObjectHistoryMode()) {
+        m_object_redo_stack.push_back(BuildObjectUndoState());
+        auto previous = m_object_undo_stack.back();
+        m_object_undo_stack.pop_back();
+        RestoreObjectUndoState(previous);
+    } else {
+        auto map = CurrentRoomMap();
+        if (!map) {
+            return;
+        }
+        m_map_redo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+        auto previous = m_map_undo_stack.back();
+        m_map_undo_stack.pop_back();
+        RestoreUndoState(previous);
+    }
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::Redo() {
+    if (!CanRedo()) {
+        return;
+    }
+
+    if (IsObjectHistoryMode()) {
+        m_object_undo_stack.push_back(BuildObjectUndoState());
+        if (m_object_undo_stack.size() > kMaxUndoStates) {
+            m_object_undo_stack.erase(m_object_undo_stack.begin());
+        }
+        auto next = m_object_redo_stack.back();
+        m_object_redo_stack.pop_back();
+        RestoreObjectUndoState(next);
+    } else {
+        auto map = CurrentRoomMap();
+        if (!map) {
+            return;
+        }
+        m_map_undo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+        if (m_map_undo_stack.size() > kMaxUndoStates) {
+            m_map_undo_stack.erase(m_map_undo_stack.begin());
+        }
+        auto next = m_map_redo_stack.back();
+        m_map_redo_stack.pop_back();
+        RestoreUndoState(next);
+    }
+    NotifyHeightmapTargetChanged();
 }
 
 void MyGLCanvas::OnKeyDown(wxKeyEvent& evt) {
@@ -1986,7 +2421,36 @@ void MyGLCanvas::OnLeftDClick(wxMouseEvent& evt) {
 }
 
 void MyGLCanvas::OnLeftUp(wxMouseEvent& evt) {
-    if (m_dragging_entity) {
+    if (m_heightmap_dragging_select || m_heightmap_dragging_draw || m_heightmap_dragging_line || m_heightmap_dragging_selection_move) {
+        if (m_heightmap_dragging_select) {
+            FinishHeightmapSelectionDrag();
+        }
+        if (m_heightmap_dragging_draw) {
+            CommitHeightmapDrawStroke();
+        }
+        if (m_heightmap_dragging_line) {
+            CommitHeightmapLineDrag();
+        }
+        if (m_heightmap_dragging_selection_move) {
+            CommitHeightmapSelectionMoveDrag();
+        }
+        m_heightmap_dragging_draw = false;
+        m_heightmap_last_draw_x = -1;
+        m_heightmap_last_draw_y = -1;
+        if (HasCapture()) {
+            ReleaseMouse();
+        }
+        Refresh();
+    } else if (m_layer_dragging_draw) {
+        CommitLayerDrawStroke();
+        m_layer_dragging_draw = false;
+        m_layer_last_draw_x = -1;
+        m_layer_last_draw_y = -1;
+        if (HasCapture()) {
+            ReleaseMouse();
+        }
+        Refresh();
+    } else if (m_dragging_entity) {
         EndEntityDrag();
     } else if (m_dragging_warp) {
         EndWarpDrag();
@@ -2032,6 +2496,20 @@ void MyGLCanvas::OnMiddleUp(wxMouseEvent& evt) {
 void MyGLCanvas::OnRightDown(wxMouseEvent& evt) {
     SetFocus();
     m_last_mouse_pos = evt.GetPosition();
+    if (m_heightmap_dragging_line || m_heightmap_dragging_selection_move) {
+        if (m_heightmap_dragging_line) {
+            CancelHeightmapLineDrag();
+        }
+        if (m_heightmap_dragging_selection_move) {
+            CancelHeightmapSelectionMoveDrag();
+        }
+        if (HasCapture()) {
+            ReleaseMouse();
+        }
+        Refresh();
+        UpdateStatusBar();
+        return;
+    }
     if (IsHeightmapEditMode()) {
         GLCanvasHeightmapMode(*this).HandleRightDown(evt);
         UpdateStatusBar();
@@ -2055,7 +2533,8 @@ void MyGLCanvas::OnRightUp(wxMouseEvent& evt) {
 }
 
 void MyGLCanvas::OnMouseLeave(wxMouseEvent& evt) {
-    if (m_dragging_entity || m_dragging_warp || m_dragging_door || m_dragging_tileswap_region || m_dragging_pan) {
+    if (m_dragging_entity || m_dragging_warp || m_dragging_door || m_dragging_tileswap_region || m_dragging_pan ||
+        m_heightmap_dragging_select || m_heightmap_dragging_draw || m_heightmap_dragging_line || m_heightmap_dragging_selection_move) {
         evt.Skip();
         return;
     }
@@ -2084,6 +2563,7 @@ void MyGLCanvas::StartEntityDrag(int entity_idx, const wxMouseEvent& evt, bool z
         return;
     }
 
+    CaptureObjectUndoState();
     SpriteInstance& inst = m_instances[static_cast<std::size_t>(entity_idx)];
     m_dragging_entity = true;
     m_drag_z_axis_only = z_axis_only;
@@ -2126,18 +2606,7 @@ Tilemap3D::Layer MyGLCanvas::CurrentEditLayer() const {
 }
 
 void MyGLCanvas::ApplyHeightmapViewMode() {
-    switch (m_heightmap_view_mode) {
-        case HeightmapViewMode::Flat:
-            m_heightmapRenderer.SetZExtent(0.0f);
-            break;
-        case HeightmapViewMode::Raised:
-            m_heightmapRenderer.SetZExtent(10.0f);
-            break;
-        case HeightmapViewMode::Full:
-        case HeightmapViewMode::FullWithTilemap:
-            m_heightmapRenderer.SetZExtent(32.0f);
-            break;
-    }
+    m_heightmapRenderer.SetZExtent(m_heightmap_z_scale * kHeightmapEditorMaxZExtent);
 }
 
 void MyGLCanvas::SetEditorMode(EditorMode mode) {
@@ -2180,6 +2649,24 @@ void MyGLCanvas::SetEditorMode(EditorMode mode) {
 }
 
 bool MyGLCanvas::SelectHeightmapCellAt(const wxPoint& point) {
+    int hover_x = -1;
+    int hover_y = -1;
+    if (!HeightmapCellAt(point, hover_x, hover_y)) {
+        return false;
+    }
+
+    m_background_selected_x = hover_x;
+    m_background_selected_y = hover_y;
+    m_heightmap_selection_anchor_x = hover_x;
+    m_heightmap_selection_anchor_y = hover_y;
+    m_background_has_selection = true;
+    m_heightmap_selected_cells.clear();
+    m_heightmap_selected_cells.insert({hover_x, hover_y});
+    NotifyHeightmapTargetChanged();
+    return true;
+}
+
+bool MyGLCanvas::HeightmapCellAt(const wxPoint& point, int& cell_x, int& cell_y) {
     auto map = CurrentRoomMap();
     if (!map || point == wxDefaultPosition) {
         return false;
@@ -2192,9 +2679,8 @@ bool MyGLCanvas::SelectHeightmapCellAt(const wxPoint& point) {
         return false;
     }
 
-    m_background_selected_x = hover_x;
-    m_background_selected_y = hover_y;
-    m_background_has_selection = true;
+    cell_x = hover_x;
+    cell_y = hover_y;
     return true;
 }
 
@@ -2251,9 +2737,579 @@ bool MyGLCanvas::SelectBackgroundCellAt(const wxPoint& point) {
 
     m_background_selected_x = cell_x;
     m_background_selected_y = cell_y;
+    m_heightmap_selection_anchor_x = cell_x;
+    m_heightmap_selection_anchor_y = cell_y;
     m_background_has_selection = true;
     NotifyLayerBlockSelected();
     return true;
+}
+
+void MyGLCanvas::ClearEditSelection() {
+    m_background_has_selection = false;
+    m_background_selected_x = 0;
+    m_background_selected_y = 0;
+    m_heightmap_selection_anchor_x = 0;
+    m_heightmap_selection_anchor_y = 0;
+    m_heightmap_selection_drag_anchor_x = 0;
+    m_heightmap_selection_drag_anchor_y = 0;
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_selection_add = false;
+    m_heightmap_selection_subtract = false;
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_selected_cells.clear();
+    m_heightmap_selection_drag_base.clear();
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    if (HasCapture()) {
+        ReleaseMouse();
+    }
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection) {
+    m_heightmap_dragging_select = true;
+    m_heightmap_selection_add = add_to_selection && !subtract_from_selection;
+    m_heightmap_selection_subtract = subtract_from_selection;
+    m_heightmap_selection_drag_base = m_heightmap_selected_cells;
+    m_heightmap_selection_drag_anchor_x = x;
+    m_heightmap_selection_drag_anchor_y = y;
+
+    if (!m_heightmap_selection_add && !m_heightmap_selection_subtract) {
+        m_heightmap_selection_drag_base.clear();
+    }
+
+    if (!m_heightmap_selection_subtract) {
+        m_heightmap_selection_anchor_x = x;
+        m_heightmap_selection_anchor_y = y;
+    }
+    m_background_selected_x = x;
+    m_background_selected_y = y;
+    UpdateHeightmapSelectionDrag(x, y);
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::UpdateHeightmapSelectionDrag(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    m_background_selected_x = std::clamp(x, 0, map->GetHeightmapWidth() - 1);
+    m_background_selected_y = std::clamp(y, 0, map->GetHeightmapHeight() - 1);
+    m_background_has_selection = true;
+
+    int min_x = std::min(m_heightmap_selection_drag_anchor_x, m_background_selected_x);
+    int max_x = std::max(m_heightmap_selection_drag_anchor_x, m_background_selected_x);
+    int min_y = std::min(m_heightmap_selection_drag_anchor_y, m_background_selected_y);
+    int max_y = std::max(m_heightmap_selection_drag_anchor_y, m_background_selected_y);
+
+    m_heightmap_selected_cells = m_heightmap_selection_drag_base;
+    for (int cell_y = min_y; cell_y <= max_y; ++cell_y) {
+        for (int cell_x = min_x; cell_x <= max_x; ++cell_x) {
+            if (m_heightmap_selection_subtract) {
+                m_heightmap_selected_cells.erase({cell_x, cell_y});
+            } else {
+                m_heightmap_selected_cells.insert({cell_x, cell_y});
+            }
+        }
+    }
+
+    if (m_heightmap_selected_cells.empty()) {
+        ClearEditSelection();
+        return;
+    }
+
+    if (m_heightmap_selected_cells.find({m_heightmap_selection_anchor_x, m_heightmap_selection_anchor_y}) == m_heightmap_selected_cells.end()) {
+        const auto& primary = *m_heightmap_selected_cells.begin();
+        m_heightmap_selection_anchor_x = primary.first;
+        m_heightmap_selection_anchor_y = primary.second;
+    }
+}
+
+void MyGLCanvas::FinishHeightmapSelectionDrag() {
+    m_heightmap_dragging_select = false;
+    m_heightmap_selection_add = false;
+    m_heightmap_selection_subtract = false;
+    m_heightmap_selection_drag_base.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+bool MyGLCanvas::IsHeightmapCellSelected(int x, int y) const {
+    return m_heightmap_selected_cells.find({x, y}) != m_heightmap_selected_cells.end();
+}
+
+void MyGLCanvas::BeginHeightmapSelectionMoveDrag(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map || !IsHeightmapCellSelected(x, y)) {
+        return;
+    }
+
+    m_heightmap_dragging_selection_move = true;
+    m_heightmap_selection_move_anchor_x = x;
+    m_heightmap_selection_move_anchor_y = y;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_line_preview_cells.clear();
+
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int cell_x = cell.first;
+        int cell_y = cell.second;
+        if (cell_x < 0 || cell_y < 0 || cell_x >= map->GetHeightmapWidth() || cell_y >= map->GetHeightmapHeight()) {
+            continue;
+        }
+        m_heightmap_selection_move_values[cell] = map->GetHeightmapCell({cell_x, cell_y});
+        m_heightmap_line_preview_cells.push_back(cell);
+    }
+}
+
+void MyGLCanvas::UpdateHeightmapSelectionMoveDrag(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map || !m_heightmap_dragging_selection_move) {
+        return;
+    }
+
+    int dx = x - m_heightmap_selection_move_anchor_x;
+    int dy = y - m_heightmap_selection_move_anchor_y;
+    int min_dx = 0;
+    int max_dx = 0;
+    int min_dy = 0;
+    int max_dy = 0;
+    bool first = true;
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int cell_x = cell.first;
+        int cell_y = cell.second;
+        int cell_min_dx = -cell_x;
+        int cell_max_dx = map->GetHeightmapWidth() - 1 - cell_x;
+        int cell_min_dy = -cell_y;
+        int cell_max_dy = map->GetHeightmapHeight() - 1 - cell_y;
+        if (first) {
+            min_dx = cell_min_dx;
+            max_dx = cell_max_dx;
+            min_dy = cell_min_dy;
+            max_dy = cell_max_dy;
+            first = false;
+        } else {
+            min_dx = std::max(min_dx, cell_min_dx);
+            max_dx = std::min(max_dx, cell_max_dx);
+            min_dy = std::max(min_dy, cell_min_dy);
+            max_dy = std::min(max_dy, cell_max_dy);
+        }
+    }
+
+    m_heightmap_selection_move_delta_x = std::clamp(dx, min_dx, max_dx);
+    m_heightmap_selection_move_delta_y = std::clamp(dy, min_dy, max_dy);
+    m_heightmap_line_preview_cells.clear();
+    for (const auto& cell : m_heightmap_selected_cells) {
+        m_heightmap_line_preview_cells.push_back({
+            cell.first + m_heightmap_selection_move_delta_x,
+            cell.second + m_heightmap_selection_move_delta_y
+        });
+    }
+}
+
+void MyGLCanvas::CommitHeightmapSelectionMoveDrag() {
+    auto map = CurrentRoomMap();
+    if (!map || !m_heightmap_dragging_selection_move) {
+        CancelHeightmapSelectionMoveDrag();
+        return;
+    }
+
+    int dx = m_heightmap_selection_move_delta_x;
+    int dy = m_heightmap_selection_move_delta_y;
+    if (dx == 0 && dy == 0) {
+        CancelHeightmapSelectionMoveDrag();
+        return;
+    }
+
+    CaptureUndoState();
+
+    static constexpr uint16_t kClearedHeightmapCell = 0x4000;
+    for (const auto& source : m_heightmap_selection_move_values) {
+        int x = source.first.first;
+        int y = source.first.second;
+        map->SetHeightmapCell({x, y}, kClearedHeightmapCell);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, kClearedHeightmapCell);
+        }
+    }
+
+    std::set<std::pair<int, int>> moved_selection;
+    for (const auto& source : m_heightmap_selection_move_values) {
+        int x = source.first.first + dx;
+        int y = source.first.second + dy;
+        map->SetHeightmapCell({x, y}, source.second);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, source.second);
+        }
+        moved_selection.insert({x, y});
+    }
+
+    m_heightmap_selected_cells = std::move(moved_selection);
+    if (!m_heightmap_selected_cells.empty()) {
+        auto primary = m_heightmap_selected_cells.find({
+            m_heightmap_selection_anchor_x + dx,
+            m_heightmap_selection_anchor_y + dy
+        });
+        if (primary == m_heightmap_selected_cells.end()) {
+            primary = m_heightmap_selected_cells.begin();
+        }
+        m_heightmap_selection_anchor_x = primary->first;
+        m_heightmap_selection_anchor_y = primary->second;
+        m_background_selected_x = primary->first;
+        m_background_selected_y = primary->second;
+        m_background_has_selection = true;
+    }
+
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    ReloadCurrentRoomMapView();
+    RefreshObjectPlacementsFromHeightmap();
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::CancelHeightmapSelectionMoveDrag() {
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_line_preview_cells.clear();
+}
+
+bool MyGLCanvas::IsHeightmapBrushTool() const {
+    return m_drawing_tool == DrawingTool::Draw ||
+           m_drawing_tool == DrawingTool::FloodFill ||
+           IsHeightmapShapeTool();
+}
+
+bool MyGLCanvas::IsHeightmapShapeTool() const {
+    return m_drawing_tool == DrawingTool::Line ||
+           m_drawing_tool == DrawingTool::FilledRect ||
+           m_drawing_tool == DrawingTool::OutlineRect ||
+           m_drawing_tool == DrawingTool::FilledCircle ||
+           m_drawing_tool == DrawingTool::OutlineCircle;
+}
+
+bool MyGLCanvas::IsHeightmapPreviewTool() const {
+    return IsHeightmapBrushTool() || m_drawing_tool == DrawingTool::Stamp;
+}
+
+std::pair<int, int> MyGLCanvas::SnapHeightmapLineEnd(int start_x, int start_y, int end_x, int end_y) const {
+    int dx = end_x - start_x;
+    int dy = end_y - start_y;
+    int abs_dx = std::abs(dx);
+    int abs_dy = std::abs(dy);
+
+    if (abs_dx == 0 && abs_dy == 0) {
+        return {end_x, end_y};
+    }
+    if (abs_dx * 2 < abs_dy) {
+        return {start_x, end_y};
+    }
+    if (abs_dy * 2 < abs_dx) {
+        return {end_x, start_y};
+    }
+
+    int distance = std::max(abs_dx, abs_dy);
+    int snapped_x = start_x + (dx < 0 ? -distance : distance);
+    int snapped_y = start_y + (dy < 0 ? -distance : distance);
+    return {snapped_x, snapped_y};
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapLineCells(int start_x, int start_y, int end_x, int end_y) const {
+    std::vector<std::pair<int, int>> cells;
+    int dx = std::abs(end_x - start_x);
+    int sx = start_x < end_x ? 1 : -1;
+    int dy = -std::abs(end_y - start_y);
+    int sy = start_y < end_y ? 1 : -1;
+    int err = dx + dy;
+
+    while (true) {
+        cells.push_back({start_x, start_y});
+        if (start_x == end_x && start_y == end_y) {
+            break;
+        }
+        int twice_err = 2 * err;
+        if (twice_err >= dy) {
+            err += dy;
+            start_x += sx;
+        }
+        if (twice_err <= dx) {
+            err += dx;
+            start_y += sy;
+        }
+    }
+
+    return cells;
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapRectCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
+    std::vector<std::pair<int, int>> cells;
+    int min_x = std::min(start_x, end_x);
+    int max_x = std::max(start_x, end_x);
+    int min_y = std::min(start_y, end_y);
+    int max_y = std::max(start_y, end_y);
+
+    for (int y = min_y; y <= max_y; ++y) {
+        for (int x = min_x; x <= max_x; ++x) {
+            if (filled || x == min_x || x == max_x || y == min_y || y == max_y) {
+                cells.push_back({x, y});
+            }
+        }
+    }
+    return cells;
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
+    std::vector<std::pair<int, int>> cells;
+    int min_x = std::min(start_x, end_x);
+    int max_x = std::max(start_x, end_x);
+    int min_y = std::min(start_y, end_y);
+    int max_y = std::max(start_y, end_y);
+
+    float radius_x = std::max(0.5f, (static_cast<float>(max_x - min_x) + 1.0f) * 0.5f);
+    float radius_y = std::max(0.5f, (static_cast<float>(max_y - min_y) + 1.0f) * 0.5f);
+    float center_x = (static_cast<float>(min_x) + static_cast<float>(max_x) + 1.0f) * 0.5f;
+    float center_y = (static_cast<float>(min_y) + static_cast<float>(max_y) + 1.0f) * 0.5f;
+
+    auto inside = [&](int x, int y) {
+        float dx = (static_cast<float>(x) + 0.5f - center_x) / radius_x;
+        float dy = (static_cast<float>(y) + 0.5f - center_y) / radius_y;
+        return dx * dx + dy * dy <= 1.0f;
+    };
+
+    for (int y = min_y; y <= max_y; ++y) {
+        for (int x = min_x; x <= max_x; ++x) {
+            if (!inside(x, y)) {
+                continue;
+            }
+            bool outline = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+            if (filled || outline) {
+                cells.push_back({x, y});
+            }
+        }
+    }
+    return cells;
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapFloodFillCells(int x, int y) const {
+    std::vector<std::pair<int, int>> cells;
+    auto map = CurrentRoomMap();
+    if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+        return cells;
+    }
+
+    uint16_t target = map->GetHeightmapCell({x, y});
+    std::set<std::pair<int, int>> visited;
+    std::deque<std::pair<int, int>> queue;
+    queue.push_back({x, y});
+    visited.insert({x, y});
+
+    while (!queue.empty()) {
+        auto cell = queue.front();
+        queue.pop_front();
+        cells.push_back(cell);
+
+        static constexpr std::array<std::pair<int, int>, 4> kNeighbors = {{
+            {-1, 0}, {1, 0}, {0, -1}, {0, 1}
+        }};
+        for (const auto& delta : kNeighbors) {
+            int nx = cell.first + delta.first;
+            int ny = cell.second + delta.second;
+            std::pair<int, int> next{nx, ny};
+            if (nx < 0 || ny < 0 || nx >= map->GetHeightmapWidth() || ny >= map->GetHeightmapHeight() ||
+                visited.find(next) != visited.end() ||
+                map->GetHeightmapCell({nx, ny}) != target) {
+                continue;
+            }
+            visited.insert(next);
+            queue.push_back(next);
+        }
+    }
+
+    return cells;
+}
+
+std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildHeightmapStampCells(int x, int y) const {
+    std::map<std::pair<int, int>, uint16_t> cells;
+    auto map = CurrentRoomMap();
+    int primary_x = PrimaryHeightmapCellX();
+    int primary_y = PrimaryHeightmapCellY();
+    if (!map || primary_x < 0 || primary_y < 0) {
+        return cells;
+    }
+
+    int dx = x - primary_x;
+    int dy = y - primary_y;
+    for (const auto& source : m_heightmap_selected_cells) {
+        int source_x = source.first;
+        int source_y = source.second;
+        int target_x = source_x + dx;
+        int target_y = source_y + dy;
+        if (source_x < 0 || source_y < 0 ||
+            source_x >= map->GetHeightmapWidth() || source_y >= map->GetHeightmapHeight() ||
+            target_x < 0 || target_y < 0 ||
+            target_x >= map->GetHeightmapWidth() || target_y >= map->GetHeightmapHeight()) {
+            continue;
+        }
+        cells[{target_x, target_y}] = map->GetHeightmapCell({source_x, source_y});
+    }
+
+    return cells;
+}
+
+void MyGLCanvas::ApplyHeightmapStampAt(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    bool changed = false;
+    for (const auto& cell : BuildHeightmapStampCells(x, y)) {
+        int target_x = cell.first.first;
+        int target_y = cell.first.second;
+        if (map->GetHeightmapCell({target_x, target_y}) == cell.second) {
+            continue;
+        }
+        if (!changed) {
+            CaptureUndoState();
+        }
+        map->SetHeightmapCell({target_x, target_y}, cell.second);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({target_x, target_y}, cell.second);
+        }
+        changed = true;
+    }
+
+    if (!changed) {
+        return;
+    }
+    m_heightmap_draw_dirty = true;
+    CommitHeightmapDrawStroke();
+}
+
+void MyGLCanvas::ApplyHeightmapFloodFillAt(int x, int y) {
+    if (!m_heightmap_clipboard_valid) {
+        return;
+    }
+
+    bool changed = false;
+    for (const auto& cell : BuildHeightmapFloodFillCells(x, y)) {
+        changed = PasteHeightmapCellAt(cell.first, cell.second, true) || changed;
+    }
+    if (changed) {
+        CommitHeightmapDrawStroke();
+    }
+}
+
+void MyGLCanvas::BeginHeightmapLineDrag(int x, int y, bool shift_down) {
+    m_heightmap_dragging_line = true;
+    m_heightmap_line_start_x = x;
+    m_heightmap_line_start_y = y;
+    UpdateHeightmapLineDrag(x, y, shift_down);
+}
+
+void MyGLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
+    auto map = CurrentRoomMap();
+    if (!map || m_heightmap_line_start_x < 0 || m_heightmap_line_start_y < 0) {
+        m_heightmap_line_preview_cells.clear();
+        return;
+    }
+
+    x = std::clamp(x, 0, map->GetHeightmapWidth() - 1);
+    y = std::clamp(y, 0, map->GetHeightmapHeight() - 1);
+    std::pair<int, int> end{x, y};
+    if (m_drawing_tool == DrawingTool::Line) {
+        end = shift_down ? end : SnapHeightmapLineEnd(m_heightmap_line_start_x, m_heightmap_line_start_y, x, y);
+    } else if (shift_down) {
+        int dx = x - m_heightmap_line_start_x;
+        int dy = y - m_heightmap_line_start_y;
+        int size = std::max(std::abs(dx), std::abs(dy));
+        int step_x = dx < 0 ? -1 : 1;
+        int step_y = dy < 0 ? -1 : 1;
+        int max_x_size = step_x < 0 ? m_heightmap_line_start_x : map->GetHeightmapWidth() - 1 - m_heightmap_line_start_x;
+        int max_y_size = step_y < 0 ? m_heightmap_line_start_y : map->GetHeightmapHeight() - 1 - m_heightmap_line_start_y;
+        size = std::min(size, std::min(max_x_size, max_y_size));
+        end = {
+            m_heightmap_line_start_x + step_x * size,
+            m_heightmap_line_start_y + step_y * size
+        };
+    }
+    auto [end_x, end_y] = end;
+    end_x = std::clamp(end_x, 0, map->GetHeightmapWidth() - 1);
+    end_y = std::clamp(end_y, 0, map->GetHeightmapHeight() - 1);
+
+    m_heightmap_line_end_x = end_x;
+    m_heightmap_line_end_y = end_y;
+    switch (m_drawing_tool) {
+        case DrawingTool::FilledRect:
+            m_heightmap_line_preview_cells = BuildHeightmapRectCells(m_heightmap_line_start_x, m_heightmap_line_start_y, end_x, end_y, true);
+            break;
+        case DrawingTool::OutlineRect:
+            m_heightmap_line_preview_cells = BuildHeightmapRectCells(m_heightmap_line_start_x, m_heightmap_line_start_y, end_x, end_y, false);
+            break;
+        case DrawingTool::FilledCircle:
+            m_heightmap_line_preview_cells = BuildHeightmapCircleCells(m_heightmap_line_start_x, m_heightmap_line_start_y, end_x, end_y, true);
+            break;
+        case DrawingTool::OutlineCircle:
+            m_heightmap_line_preview_cells = BuildHeightmapCircleCells(m_heightmap_line_start_x, m_heightmap_line_start_y, end_x, end_y, false);
+            break;
+        default:
+            m_heightmap_line_preview_cells = BuildHeightmapLineCells(m_heightmap_line_start_x, m_heightmap_line_start_y, end_x, end_y);
+            break;
+    }
+}
+
+void MyGLCanvas::CommitHeightmapLineDrag() {
+    if (!m_heightmap_dragging_line || !m_heightmap_clipboard_valid) {
+        CancelHeightmapLineDrag();
+        return;
+    }
+
+    bool changed = false;
+    for (const auto& cell : m_heightmap_line_preview_cells) {
+        changed = PasteHeightmapCellAt(cell.first, cell.second, true) || changed;
+    }
+    m_heightmap_dragging_line = false;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    if (changed) {
+        CommitHeightmapDrawStroke();
+    } else {
+        m_heightmap_draw_dirty = false;
+    }
+}
+
+void MyGLCanvas::CancelHeightmapLineDrag() {
+    m_heightmap_dragging_line = false;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_draw_dirty = false;
 }
 
 void MyGLCanvas::ClampBackgroundSelection() {
@@ -2268,6 +3324,20 @@ void MyGLCanvas::ClampBackgroundSelection() {
     }
     m_background_selected_x = std::clamp(m_background_selected_x, 0, width - 1);
     m_background_selected_y = std::clamp(m_background_selected_y, 0, height - 1);
+    m_heightmap_selection_anchor_x = std::clamp(m_heightmap_selection_anchor_x, 0, width - 1);
+    m_heightmap_selection_anchor_y = std::clamp(m_heightmap_selection_anchor_y, 0, height - 1);
+    if (IsHeightmapEditMode() && map) {
+        for (auto it = m_heightmap_selected_cells.begin(); it != m_heightmap_selected_cells.end(); ) {
+            if (it->first < 0 || it->second < 0 || it->first >= width || it->second >= height) {
+                it = m_heightmap_selected_cells.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        if (m_heightmap_selected_cells.empty()) {
+            m_heightmap_selected_cells.insert({m_heightmap_selection_anchor_x, m_heightmap_selection_anchor_y});
+        }
+    }
     m_background_has_selection = true;
 }
 
@@ -2275,11 +3345,20 @@ void MyGLCanvas::MoveBackgroundSelection(int dx, int dy) {
     if (!m_background_has_selection) {
         m_background_selected_x = 0;
         m_background_selected_y = 0;
+        m_heightmap_selection_anchor_x = 0;
+        m_heightmap_selection_anchor_y = 0;
         m_background_has_selection = true;
     }
     m_background_selected_x += dx;
     m_background_selected_y += dy;
     ClampBackgroundSelection();
+    m_heightmap_selection_anchor_x = m_background_selected_x;
+    m_heightmap_selection_anchor_y = m_background_selected_y;
+    if (IsHeightmapEditMode()) {
+        m_heightmap_selected_cells.clear();
+        m_heightmap_selected_cells.insert({m_heightmap_selection_anchor_x, m_heightmap_selection_anchor_y});
+        NotifyHeightmapTargetChanged();
+    }
     NotifyLayerBlockSelected();
 }
 
@@ -2324,14 +3403,65 @@ int MyGLCanvas::SelectedHeightmapCellY() const {
     return m_background_selected_y;
 }
 
-uint16_t MyGLCanvas::SelectedHeightmapCellValue() const {
+int MyGLCanvas::PrimaryHeightmapCellX() const {
     auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
-        return 0;
+    if (!map || !m_background_has_selection) {
+        return -1;
     }
-    return map->GetHeightmapCell({x, y});
+    if (m_heightmap_selection_anchor_x < 0 || m_heightmap_selection_anchor_x >= map->GetHeightmapWidth()) {
+        return -1;
+    }
+    return m_heightmap_selection_anchor_x;
+}
+
+int MyGLCanvas::PrimaryHeightmapCellY() const {
+    auto map = CurrentRoomMap();
+    if (!map || !m_background_has_selection) {
+        return -1;
+    }
+    if (m_heightmap_selection_anchor_y < 0 || m_heightmap_selection_anchor_y >= map->GetHeightmapHeight()) {
+        return -1;
+    }
+    return m_heightmap_selection_anchor_y;
+}
+
+namespace {
+uint8_t HeightmapCellType(uint16_t value) {
+    return static_cast<uint8_t>(value & 0x00FF);
+}
+
+uint8_t HeightmapCellHeight(uint16_t value) {
+    return static_cast<uint8_t>((value >> 8) & 0x0F);
+}
+
+uint8_t HeightmapCellProps(uint16_t value) {
+    return static_cast<uint8_t>((value >> 12) & 0x0F);
+}
+
+uint16_t WithHeightmapCellType(uint16_t value, uint8_t type) {
+    return static_cast<uint16_t>((value & 0xFF00) | type);
+}
+
+uint16_t WithHeightmapCellHeight(uint16_t value, uint8_t height) {
+    return static_cast<uint16_t>((value & 0xF0FF) | ((height & 0x0F) << 8));
+}
+
+uint16_t WithHeightmapCellProps(uint16_t value, uint8_t props) {
+    return static_cast<uint16_t>((value & 0x0FFF) | ((props & 0x0F) << 12));
+}
+}
+
+uint16_t MyGLCanvas::SelectedHeightmapCellValue() const {
+    if (IsHeightmapBrushTool() && m_heightmap_clipboard_valid) {
+        return m_heightmap_clipboard_cell;
+    }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (map && x >= 0 && y >= 0) {
+        return map->GetHeightmapCell({x, y});
+    }
+    return 0;
 }
 
 bool MyGLCanvas::HasSelectedLayerCell() const {
@@ -2339,7 +3469,11 @@ bool MyGLCanvas::HasSelectedLayerCell() const {
 }
 
 bool MyGLCanvas::HasSelectedHeightmapCell() const {
-    return SelectedHeightmapCellX() >= 0 && SelectedHeightmapCellY() >= 0;
+    return !m_heightmap_selected_cells.empty() && PrimaryHeightmapCellX() >= 0 && PrimaryHeightmapCellY() >= 0;
+}
+
+bool MyGLCanvas::HasHeightmapEditTarget() const {
+    return HasSelectedHeightmapCell() || (IsHeightmapBrushTool() && m_heightmap_clipboard_valid);
 }
 
 bool MyGLCanvas::CanInsertSelectedHeightmapRow() const {
@@ -2363,17 +3497,29 @@ bool MyGLCanvas::CanDeleteSelectedHeightmapColumn() const {
 }
 
 bool MyGLCanvas::CanIncreaseSelectedHeightmapHeight() const {
+    if (IsHeightmapBrushTool()) {
+        return m_heightmap_clipboard_valid && HeightmapCellHeight(m_heightmap_clipboard_cell) < 15;
+    }
     auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 && map->GetHeight({x, y}) < 15;
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (map && x >= 0 && y >= 0) {
+        return map->GetHeight({x, y}) < 15;
+    }
+    return false;
 }
 
 bool MyGLCanvas::CanDecreaseSelectedHeightmapHeight() const {
+    if (IsHeightmapBrushTool()) {
+        return m_heightmap_clipboard_valid && HeightmapCellHeight(m_heightmap_clipboard_cell) > 0;
+    }
     auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 && map->GetHeight({x, y}) > 0;
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (map && x >= 0 && y >= 0) {
+        return map->GetHeight({x, y}) > 0;
+    }
+    return false;
 }
 
 bool MyGLCanvas::CanDeleteSelectedTilemapRow() const {
@@ -2387,108 +3533,185 @@ bool MyGLCanvas::CanDeleteSelectedTilemapColumn() const {
 }
 
 uint8_t MyGLCanvas::GetSelectedHeightmapType() const {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 ? map->GetCellType({x, y}) : 0;
+    return HeightmapCellType(SelectedHeightmapCellValue());
 }
 
 bool MyGLCanvas::IsSelectedHeightmapPlayerPassable() const {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 && (map->GetCellProps({x, y}) & 0x04) == 0;
+    return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x04) == 0;
 }
 
 bool MyGLCanvas::IsSelectedHeightmapNpcPassable() const {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 && (map->GetCellProps({x, y}) & 0x02) == 0;
+    return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x02) == 0;
 }
 
 bool MyGLCanvas::IsSelectedHeightmapRaftTrack() const {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    return map && x >= 0 && y >= 0 && (map->GetCellProps({x, y}) & 0x01) == 0;
+    return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x01) == 0;
 }
 
 void MyGLCanvas::SetSelectedHeightmapType(uint8_t type) {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
+    if (IsHeightmapBrushTool()) {
+        if (m_heightmap_clipboard_valid) {
+            m_heightmap_clipboard_cell = WithHeightmapCellType(m_heightmap_clipboard_cell, type);
+            NotifyHeightmapTargetChanged();
+            Refresh();
+        }
         return;
     }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (!map || x < 0 || y < 0) return;
+    CaptureUndoState();
     map->SetCellType({x, y}, type);
+    ApplyPrimaryHeightmapTypeToSelection();
     UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
 void MyGLCanvas::ToggleSelectedHeightmapPlayerPassable() {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
+    if (IsHeightmapBrushTool()) {
+        if (m_heightmap_clipboard_valid) {
+            uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
+            m_heightmap_clipboard_cell = WithHeightmapCellProps(m_heightmap_clipboard_cell, IsSelectedHeightmapPlayerPassable() ? (props | 0x04) : (props & ~0x04));
+            NotifyHeightmapTargetChanged();
+            Refresh();
+        }
         return;
     }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (!map || x < 0 || y < 0) return;
+    CaptureUndoState();
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapPlayerPassable() ? (props | 0x04) : (props & ~0x04));
+    ApplyPrimaryHeightmapPropsToSelection();
     UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
 void MyGLCanvas::ToggleSelectedHeightmapNpcPassable() {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
+    if (IsHeightmapBrushTool()) {
+        if (m_heightmap_clipboard_valid) {
+            uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
+            m_heightmap_clipboard_cell = WithHeightmapCellProps(m_heightmap_clipboard_cell, IsSelectedHeightmapNpcPassable() ? (props | 0x02) : (props & ~0x02));
+            NotifyHeightmapTargetChanged();
+            Refresh();
+        }
         return;
     }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (!map || x < 0 || y < 0) return;
+    CaptureUndoState();
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapNpcPassable() ? (props | 0x02) : (props & ~0x02));
+    ApplyPrimaryHeightmapPropsToSelection();
     UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
 void MyGLCanvas::ToggleSelectedHeightmapRaftTrack() {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
+    if (IsHeightmapBrushTool()) {
+        if (m_heightmap_clipboard_valid) {
+            uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
+            m_heightmap_clipboard_cell = WithHeightmapCellProps(m_heightmap_clipboard_cell, IsSelectedHeightmapRaftTrack() ? (props | 0x01) : (props & ~0x01));
+            NotifyHeightmapTargetChanged();
+            Refresh();
+        }
         return;
     }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (!map || x < 0 || y < 0) return;
+    CaptureUndoState();
     uint8_t props = map->GetCellProps({x, y});
     map->SetCellProps({x, y}, IsSelectedHeightmapRaftTrack() ? (props | 0x01) : (props & ~0x01));
+    ApplyPrimaryHeightmapPropsToSelection();
     UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
 void MyGLCanvas::AdjustSelectedHeightmapHeight(int delta) {
-    auto map = CurrentRoomMap();
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
+    if (IsHeightmapBrushTool()) {
+        if (m_heightmap_clipboard_valid) {
+            int height = std::clamp(static_cast<int>(HeightmapCellHeight(m_heightmap_clipboard_cell)) + delta, 0, 15);
+            m_heightmap_clipboard_cell = WithHeightmapCellHeight(m_heightmap_clipboard_cell, static_cast<uint8_t>(height));
+            NotifyHeightmapTargetChanged();
+            Refresh();
+        }
         return;
     }
+    auto map = CurrentRoomMap();
+    int x = PrimaryHeightmapCellX();
+    int y = PrimaryHeightmapCellY();
+    if (!map || x < 0 || y < 0) return;
+    CaptureUndoState();
     int height = std::clamp(static_cast<int>(map->GetHeight({x, y})) + delta, 0, 15);
     map->SetHeight({x, y}, static_cast<uint8_t>(height));
+    ApplyPrimaryHeightmapHeightToSelection();
     UpdateHeightmapClipboardFromSelectedCell();
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+    Refresh();
+}
+
+void MyGLCanvas::ClearSelectedHeightmapCells() {
+    if (!HasSelectedHeightmapCell()) {
+        return;
+    }
+
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    bool changed = false;
+    static constexpr uint16_t kClearedHeightmapCell = 0x4000;
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int x = cell.first;
+        int y = cell.second;
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight() ||
+            map->GetHeightmapCell({x, y}) == kClearedHeightmapCell) {
+            continue;
+        }
+        if (!changed) {
+            CaptureUndoState();
+        }
+        map->SetHeightmapCell({x, y}, kClearedHeightmapCell);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, kClearedHeightmapCell);
+        }
+        changed = true;
+    }
+
+    if (!changed) {
+        return;
+    }
+    UpdateHeightmapClipboardFromSelectedCell();
+    ReloadCurrentRoomMapView();
+    RefreshObjectPlacementsFromHeightmap();
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
@@ -2507,6 +3730,7 @@ void MyGLCanvas::NudgeHeightmap(int left_delta, int top_delta) {
     if (!map || !CanNudgeHeightmap(left_delta, top_delta)) {
         return;
     }
+    CaptureUndoState();
     map->SetLeft(static_cast<uint8_t>(static_cast<int>(map->GetLeft()) + left_delta));
     map->SetTop(static_cast<uint8_t>(static_cast<int>(map->GetTop()) + top_delta));
     ReloadCurrentRoomMapView();
@@ -2522,6 +3746,7 @@ void MyGLCanvas::InsertSelectedHeightmapRowBefore() {
     if (!map || x < 0 || map->GetHeightmapWidth() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertHeightmapRow(static_cast<uint8_t>(x));
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2536,6 +3761,7 @@ void MyGLCanvas::InsertSelectedHeightmapRowAfter() {
     if (!map || x < 0 || map->GetHeightmapWidth() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertHeightmapRow(static_cast<uint8_t>(x));
     ++m_background_selected_x;
     ClampBackgroundSelection();
@@ -2551,6 +3777,7 @@ void MyGLCanvas::DeleteSelectedHeightmapRow() {
     if (!map || x < 0 || map->GetHeightmapWidth() <= 1) {
         return;
     }
+    CaptureUndoState();
     map->DeleteHeightmapRow(static_cast<uint8_t>(x));
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2565,6 +3792,7 @@ void MyGLCanvas::InsertSelectedHeightmapColumnBefore() {
     if (!map || y < 0 || map->GetHeightmapHeight() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertHeightmapColumn(static_cast<uint8_t>(y));
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2579,6 +3807,7 @@ void MyGLCanvas::InsertSelectedHeightmapColumnAfter() {
     if (!map || y < 0 || map->GetHeightmapHeight() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertHeightmapColumn(static_cast<uint8_t>(y));
     ++m_background_selected_y;
     ClampBackgroundSelection();
@@ -2594,6 +3823,7 @@ void MyGLCanvas::DeleteSelectedHeightmapColumn() {
     if (!map || y < 0 || map->GetHeightmapHeight() <= 1) {
         return;
     }
+    CaptureUndoState();
     map->DeleteHeightmapColumn(static_cast<uint8_t>(y));
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2646,6 +3876,121 @@ void MyGLCanvas::CopySelectedHeightmapCell() {
     }
     m_heightmap_clipboard_cell = value;
     m_heightmap_clipboard_valid = true;
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::SetSelectedHeightmapCell(uint16_t value, bool refresh_object_placements) {
+    if (IsHeightmapBrushTool()) {
+        m_heightmap_clipboard_cell = value;
+        m_heightmap_clipboard_valid = true;
+        NotifyHeightmapTargetChanged();
+        Refresh();
+        return;
+    }
+    if (!HasSelectedHeightmapCell()) {
+        return;
+    }
+
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    bool changed = false;
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int x = cell.first;
+        int y = cell.second;
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+            continue;
+        }
+        if (map->GetHeightmapCell({x, y}) == value) {
+            continue;
+        }
+        if (!changed) {
+            CaptureUndoState();
+        }
+        map->SetHeightmapCell({x, y}, value);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, value);
+        }
+        changed = true;
+    }
+
+    if (!changed) {
+        return;
+    }
+    UpdateHeightmapClipboardFromSelectedCell();
+    ReloadCurrentRoomMapView();
+    if (refresh_object_placements) {
+        RefreshObjectPlacementsFromHeightmap();
+    }
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+    Refresh();
+}
+
+void MyGLCanvas::ApplyPrimaryHeightmapTypeToSelection() {
+    auto map = CurrentRoomMap();
+    int primary_x = PrimaryHeightmapCellX();
+    int primary_y = PrimaryHeightmapCellY();
+    if (!map || primary_x < 0 || primary_y < 0) return;
+
+    uint8_t type = map->GetCellType({primary_x, primary_y});
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int x = cell.first;
+        int y = cell.second;
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) continue;
+        map->SetCellType({x, y}, type);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, map->GetHeightmapCell({x, y}));
+        }
+    }
+}
+
+void MyGLCanvas::ApplyPrimaryHeightmapPropsToSelection() {
+    auto map = CurrentRoomMap();
+    int primary_x = PrimaryHeightmapCellX();
+    int primary_y = PrimaryHeightmapCellY();
+    if (!map || primary_x < 0 || primary_y < 0) return;
+
+    uint8_t props = map->GetCellProps({primary_x, primary_y});
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int x = cell.first;
+        int y = cell.second;
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) continue;
+        map->SetCellProps({x, y}, props);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, map->GetHeightmapCell({x, y}));
+        }
+    }
+}
+
+void MyGLCanvas::ApplyPrimaryHeightmapHeightToSelection() {
+    auto map = CurrentRoomMap();
+    int primary_x = PrimaryHeightmapCellX();
+    int primary_y = PrimaryHeightmapCellY();
+    if (!map || primary_x < 0 || primary_y < 0) return;
+
+    uint8_t height = map->GetHeight({primary_x, primary_y});
+    for (const auto& cell : m_heightmap_selected_cells) {
+        int x = cell.first;
+        int y = cell.second;
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) continue;
+        map->SetHeight({x, y}, height);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetHeightmapCell({x, y}, map->GetHeightmapCell({x, y}));
+        }
+    }
+}
+
+void MyGLCanvas::CopyHeightmapCellAt(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+        return;
+    }
+    m_heightmap_clipboard_cell = map->GetHeightmapCell({x, y});
+    m_heightmap_clipboard_valid = true;
+    NotifyHeightmapTargetChanged();
 }
 
 void MyGLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
@@ -2654,6 +3999,7 @@ void MyGLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
     }
     m_heightmap_clipboard_cell = SelectedHeightmapCellValue();
     m_heightmap_clipboard_valid = true;
+    NotifyHeightmapTargetChanged();
 }
 
 void MyGLCanvas::ClearBackgroundClipboard() {
@@ -2661,6 +4007,7 @@ void MyGLCanvas::ClearBackgroundClipboard() {
     m_background_clipboard_block_id = 0;
     m_heightmap_clipboard_valid = false;
     m_heightmap_clipboard_cell = 0;
+    NotifyHeightmapTargetChanged();
 }
 
 void MyGLCanvas::ReloadCurrentRoomMapView() {
@@ -2672,33 +4019,96 @@ void MyGLCanvas::ReloadCurrentRoomMapView() {
 }
 
 void MyGLCanvas::PasteSelectedBackgroundBlock() {
+    PasteBackgroundBlockAt(m_background_selected_x, m_background_selected_y);
+}
+
+bool MyGLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
     auto map = CurrentRoomMap();
-    int block_index = SelectedBackgroundBlockIndex();
-    if (!m_background_clipboard_valid || !map || block_index < 0) {
-        return;
+    if (!m_background_clipboard_valid || !map || x < 0 || y < 0 ||
+        x >= m_mapRenderer.GetRoomWidth() || y >= m_mapRenderer.GetRoomHeight()) {
+        return false;
     }
+
+    int block_index = y * m_mapRenderer.GetRoomWidth() + x;
+    if (block_index < 0 || block_index >= map->GetWidth() * map->GetHeight()) {
+        return false;
+    }
+
     Tilemap3D::Layer layer = CurrentEditLayer();
+    if (map->GetBlock(static_cast<uint16_t>(block_index), layer).value == m_background_clipboard_block_id) {
+        return false;
+    }
+    if (!defer_updates || !m_layer_draw_dirty) {
+        CaptureUndoState();
+    }
     map->SetBlock(m_background_clipboard_block_id, static_cast<uint16_t>(block_index), layer);
     if (m_tileswap_preview_map) {
         m_tileswap_preview_map->SetBlock(m_background_clipboard_block_id, static_cast<uint16_t>(block_index), layer);
     }
+    if (defer_updates) {
+        m_layer_draw_dirty = true;
+        return true;
+    }
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
+    return true;
+}
+
+void MyGLCanvas::CommitLayerDrawStroke() {
+    if (!m_layer_draw_dirty) {
+        return;
+    }
+    m_layer_draw_dirty = false;
+    ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
 }
 
 void MyGLCanvas::PasteSelectedHeightmapCell() {
     auto map = CurrentRoomMap();
     int x = SelectedHeightmapCellX();
     int y = SelectedHeightmapCellY();
-    if (!m_heightmap_clipboard_valid || !map || x < 0 || y < 0) {
+    if (!map || x < 0 || y < 0) {
         return;
+    }
+    PasteHeightmapCellAt(x, y);
+}
+
+bool MyGLCanvas::PasteHeightmapCellAt(int x, int y, bool defer_updates) {
+    auto map = CurrentRoomMap();
+    if (!m_heightmap_clipboard_valid || !map || x < 0 || y < 0 ||
+        x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+        return false;
+    }
+    if (map->GetHeightmapCell({x, y}) == m_heightmap_clipboard_cell) {
+        return false;
+    }
+    if (!defer_updates || !m_heightmap_draw_dirty) {
+        CaptureUndoState();
     }
     map->SetHeightmapCell({x, y}, m_heightmap_clipboard_cell);
     if (m_tileswap_preview_map) {
         m_tileswap_preview_map->SetHeightmapCell({x, y}, m_heightmap_clipboard_cell);
     }
+    if (defer_updates) {
+        m_heightmap_draw_dirty = true;
+        return true;
+    }
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+    return true;
+}
+
+void MyGLCanvas::CommitHeightmapDrawStroke() {
+    if (!m_heightmap_draw_dirty) {
+        return;
+    }
+    m_heightmap_draw_dirty = false;
+    ReloadCurrentRoomMapView();
+    RefreshObjectPlacementsFromHeightmap();
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
 }
 
 void MyGLCanvas::ClearCurrentTilemap() {
@@ -2706,6 +4116,7 @@ void MyGLCanvas::ClearCurrentTilemap() {
     if (!map) {
         return;
     }
+    CaptureUndoState();
     map->ClearTilemap();
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2717,6 +4128,7 @@ void MyGLCanvas::InsertSelectedTilemapRowBefore() {
     if (!map || !HasSelectedLayerCell() || map->GetWidth() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertTilemapRow(m_background_selected_x);
     ++m_background_selected_x;
     ClampBackgroundSelection();
@@ -2729,6 +4141,7 @@ void MyGLCanvas::InsertSelectedTilemapRowAfter() {
     if (!map || !HasSelectedLayerCell() || map->GetWidth() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertTilemapRow(m_background_selected_x + 1);
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2740,6 +4153,7 @@ void MyGLCanvas::DeleteSelectedTilemapRow() {
     if (!map || !CanDeleteSelectedTilemapRow()) {
         return;
     }
+    CaptureUndoState();
     map->DeleteTilemapRow(m_background_selected_x);
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2751,6 +4165,7 @@ void MyGLCanvas::InsertSelectedTilemapColumnBefore() {
     if (!map || !HasSelectedLayerCell() || map->GetHeight() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertTilemapColumn(m_background_selected_y);
     ++m_background_selected_y;
     ClampBackgroundSelection();
@@ -2763,6 +4178,7 @@ void MyGLCanvas::InsertSelectedTilemapColumnAfter() {
     if (!map || !HasSelectedLayerCell() || map->GetHeight() >= 64) {
         return;
     }
+    CaptureUndoState();
     map->InsertTilemapColumn(m_background_selected_y + 1);
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2774,6 +4190,7 @@ void MyGLCanvas::DeleteSelectedTilemapColumn() {
     if (!map || !CanDeleteSelectedTilemapColumn()) {
         return;
     }
+    CaptureUndoState();
     map->DeleteTilemapColumn(m_background_selected_y);
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -2929,30 +4346,59 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
 
 void MyGLCanvas::RenderHeightmapEditorOverlay(int width, int height) {
     auto map = CurrentRoomMap();
-    if (!map || !m_background_has_selection) {
+    if (!map) {
         return;
     }
 
-    int x = SelectedHeightmapCellX();
-    int y = SelectedHeightmapCellY();
-    if (x < 0 || y < 0) {
+    std::vector<std::pair<int, int>> preview_cells;
+    std::map<std::pair<int, int>, uint16_t> preview_values;
+    if (m_heightmap_dragging_selection_move) {
+        for (const auto& source : m_heightmap_selection_move_values) {
+            std::pair<int, int> target{
+                source.first.first + m_heightmap_selection_move_delta_x,
+                source.first.second + m_heightmap_selection_move_delta_y
+            };
+            preview_cells.push_back(target);
+            preview_values[target] = source.second;
+        }
+    } else if (!m_heightmap_dragging_draw && IsHeightmapPreviewTool()) {
+        if (m_heightmap_dragging_line) {
+            preview_cells = m_heightmap_line_preview_cells;
+        } else if (m_drawing_tool == DrawingTool::FloodFill && m_heightmap_clipboard_valid) {
+            preview_cells = BuildHeightmapFloodFillCells(
+                m_heightmapRenderer.GetHoverX(),
+                m_heightmapRenderer.GetHoverY());
+        } else if (m_drawing_tool == DrawingTool::Stamp) {
+            for (const auto& cell : BuildHeightmapStampCells(
+                     m_heightmapRenderer.GetHoverX(),
+                     m_heightmapRenderer.GetHoverY())) {
+                preview_cells.push_back(cell.first);
+                preview_values[cell.first] = cell.second;
+            }
+        } else {
+            int hover_x = m_heightmapRenderer.GetHoverX();
+            int hover_y = m_heightmapRenderer.GetHoverY();
+            if (m_heightmap_clipboard_valid &&
+                hover_x >= 0 && hover_y >= 0 &&
+                hover_x < map->GetHeightmapWidth() && hover_y < map->GetHeightmapHeight()) {
+                preview_cells.push_back({hover_x, hover_y});
+            }
+        }
+    }
+
+    bool has_selection = m_background_has_selection && !m_heightmap_selected_cells.empty();
+    int primary_x = has_selection ? PrimaryHeightmapCellX() : -1;
+    int primary_y = has_selection ? PrimaryHeightmapCellY() : -1;
+    has_selection = has_selection && primary_x >= 0 && primary_y >= 0;
+
+    if (!has_selection && preview_cells.empty()) {
         return;
     }
 
-    uint8_t z = map->GetHeight({x, y});
     float room_left = static_cast<float>(m_mapRenderer.GetRoomLeft());
     float room_top = static_cast<float>(m_mapRenderer.GetRoomTop());
-    PickPoint center = ProjectHeightmapGridPoint(
-        static_cast<float>(x) + 0.5f,
-        static_cast<float>(y) + 0.5f,
-        z,
-        room_left,
-        room_top,
-        m_heightmapRenderer.GetZExtent());
 
     float zoom = std::max(ZoomFactor(), 0.0001f);
-    float cx = center.x * zoom + m_cam_x;
-    float cy = center.y * zoom + m_cam_y;
 
     glUseProgram(0);
     for (int i = 0; i <= 5; ++i) {
@@ -2969,15 +4415,75 @@ void MyGLCanvas::RenderHeightmapEditorOverlay(int width, int height) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    glColor4f(1.0f, 1.0f, 1.0f, 0.98f);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-    glVertex2f(cx, cy - 16.0f * zoom);
-    glVertex2f(cx + 32.0f * zoom, cy);
-    glVertex2f(cx, cy + 16.0f * zoom);
-    glVertex2f(cx - 32.0f * zoom, cy);
-    glEnd();
+    auto draw_cell_diamond = [&](int x, int y, float fill_alpha, float line_width, int z_override = -1) {
+        if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+            return;
+        }
+        uint8_t z = z_override >= 0 ? static_cast<uint8_t>(z_override) : map->GetHeight({x, y});
+        PickPoint center = ProjectHeightmapGridPoint(
+            static_cast<float>(x) + 0.5f,
+            static_cast<float>(y) + 0.5f,
+            z,
+            room_left,
+            room_top,
+            m_heightmapRenderer.GetZExtent());
+        float cx = center.x * zoom + m_cam_x;
+        float cy = center.y * zoom + m_cam_y;
+        if (fill_alpha > 0.0f) {
+            glBegin(GL_QUADS);
+            glVertex2f(cx, cy - 16.0f * zoom);
+            glVertex2f(cx + 32.0f * zoom, cy);
+            glVertex2f(cx, cy + 16.0f * zoom);
+            glVertex2f(cx - 32.0f * zoom, cy);
+            glEnd();
+        }
+        glLineWidth(line_width);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(cx, cy - 16.0f * zoom);
+        glVertex2f(cx + 32.0f * zoom, cy);
+        glVertex2f(cx, cy + 16.0f * zoom);
+        glVertex2f(cx - 32.0f * zoom, cy);
+        glEnd();
+    };
 
+    auto preview_cell_z = [&](const std::pair<int, int>& cell) {
+        auto it = preview_values.find(cell);
+        if (it != preview_values.end()) {
+            return static_cast<int>(HeightmapCellHeight(it->second));
+        }
+        return static_cast<int>(HeightmapCellHeight(m_heightmap_clipboard_cell));
+    };
+
+    if (!preview_cells.empty()) {
+        glColor4f(1.0f, 1.0f, 1.0f, 0.18f);
+        for (const auto& preview_cell : preview_cells) {
+            draw_cell_diamond(preview_cell.first, preview_cell.second, 0.18f, 2.5f, preview_cell_z(preview_cell));
+        }
+        glColor4f(1.0f, 1.0f, 1.0f, 0.9f);
+        for (const auto& preview_cell : preview_cells) {
+            draw_cell_diamond(preview_cell.first, preview_cell.second, 0.0f, 2.5f, preview_cell_z(preview_cell));
+        }
+    }
+
+    if (!has_selection) {
+        glLineWidth(1.0f);
+        return;
+    }
+
+    const bool inactive_selection = IsHeightmapBrushTool();
+    for (const auto& selected_cell : m_heightmap_selected_cells) {
+        int x = selected_cell.first;
+        int y = selected_cell.second;
+        bool primary = x == primary_x && y == primary_y;
+        if (inactive_selection) {
+            glColor4f(primary ? 0.55f : 0.42f, primary ? 0.46f : 0.42f, primary ? 0.12f : 0.42f, primary ? 0.72f : 0.58f);
+        } else {
+            glColor4f(primary ? 1.0f : 1.0f, primary ? 0.82f : 1.0f, primary ? 0.1f : 1.0f, primary ? 1.0f : 0.92f);
+        }
+        draw_cell_diamond(x, y, 0.0f, 2.0f);
+    }
+
+    glLineWidth(1.0f);
 }
 
 void MyGLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
@@ -3052,6 +4558,7 @@ void MyGLCanvas::StartWarpDrag(int warp_idx, const wxMouseEvent& evt) {
         return;
     }
 
+    CaptureObjectUndoState();
     WarpInstance& warp = m_warps[static_cast<std::size_t>(warp_idx)];
     m_dragging_warp = true;
     m_drag_warp_instance_id = warp.instance_id;
@@ -3073,6 +4580,7 @@ void MyGLCanvas::StartWarpResizeDrag(int warp_idx, int axis, const wxMouseEvent&
         return;
     }
 
+    CaptureObjectUndoState();
     WarpInstance& warp = m_warps[static_cast<std::size_t>(warp_idx)];
     m_dragging_warp = true;
     m_drag_warp_instance_id = warp.instance_id;
@@ -3166,6 +4674,7 @@ void MyGLCanvas::StartDoorDrag(int door_idx, const wxMouseEvent& evt) {
         return;
     }
 
+    CaptureObjectUndoState();
     ClearTileSwapPreview();
     const Door& door = doors[static_cast<std::size_t>(door_idx)];
     m_dragging_door = true;
@@ -3240,6 +4749,7 @@ void MyGLCanvas::StartTileSwapRegionDrag(int region_idx, int resize_axis, const 
         return;
     }
 
+    CaptureObjectUndoState();
     const auto& region = regions[static_cast<std::size_t>(region_idx)];
     TileSwapRegionMetrics metrics = MetricsForTileSwapRegion(region.swap, region.part);
     m_dragging_tileswap_region = true;
@@ -3703,13 +5213,215 @@ void MyGLCanvas::PersistCurrentRoomEdits() {
     m_gd->GetRoomData()->SetWarpsForRoom(m_current_room, warps);
 }
 
+bool MyGLCanvas::HasPendingObjectAdd() const {
+    return m_pending_add_type != PendingObjectAddType::None;
+}
+
+void MyGLCanvas::UpdatePendingObjectAddHover() {
+    if (!HasPendingObjectAdd()) {
+        return;
+    }
+
+    if (m_pending_add_type == PendingObjectAddType::TileSwap &&
+        (m_pending_tileswap_part == PendingTileSwapPart::MapSource ||
+         m_pending_tileswap_part == PendingTileSwapPart::MapDestination)) {
+        PickPoint point = ScreenToMapPoint(
+            ScreenToWorldX(m_last_mouse_pos.x),
+            ScreenToWorldY(m_last_mouse_pos.y),
+            0.0f,
+            static_cast<float>(m_mapRenderer.GetRoomLeft()),
+            static_cast<float>(m_mapRenderer.GetRoomTop()));
+        m_pending_add_hover_x = std::clamp(static_cast<int>(std::floor(point.x)), 0, 63);
+        m_pending_add_hover_y = std::clamp(static_cast<int>(std::floor(point.y)), 0, 63);
+        return;
+    }
+
+    auto [x, y] = MouseHeightmapCell();
+    m_pending_add_hover_x = x;
+    m_pending_add_hover_y = y;
+}
+
+void MyGLCanvas::CancelPendingObjectAdd() {
+    m_pending_add_type = PendingObjectAddType::None;
+    m_pending_tileswap_part = PendingTileSwapPart::MapSource;
+    m_pending_add_hover_x = -1;
+    m_pending_add_hover_y = -1;
+    m_pending_add_swap = TileSwap{};
+    m_pending_add_swap_index = -1;
+    SetCursor(wxCursor(wxCURSOR_ARROW));
+    Refresh();
+}
+
+void MyGLCanvas::CommitPendingObjectAdd() {
+    if (!HasPendingObjectAdd()) {
+        return;
+    }
+
+    UpdatePendingObjectAddHover();
+    switch (m_pending_add_type) {
+        case PendingObjectAddType::Entity:
+            if (m_room_entities.size() < 15) {
+                CaptureObjectUndoState();
+                GLCanvasEntityEditor(*this).AddEntity();
+                NotifyRoomDataChanged(true, false, false, false);
+                NotifySelectionChanged();
+            }
+            CancelPendingObjectAdd();
+            return;
+        case PendingObjectAddType::Warp:
+            CaptureObjectUndoState();
+            GLCanvasWarpEditor(*this).AddWarpHalf();
+            NotifyRoomDataChanged(false, true, false, false);
+            NotifySelectionChanged();
+            CancelPendingObjectAdd();
+            return;
+        case PendingObjectAddType::Door:
+            CaptureObjectUndoState();
+            GLCanvasTileDoorEditor(*this).AddDoor();
+            NotifyRoomDataChanged(false, false, false, true);
+            NotifySelectionChanged();
+            CancelPendingObjectAdd();
+            return;
+        case PendingObjectAddType::TileSwap:
+            break;
+        case PendingObjectAddType::None:
+            return;
+    }
+
+    uint8_t x = static_cast<uint8_t>(std::clamp(m_pending_add_hover_x, 0, 63));
+    uint8_t y = static_cast<uint8_t>(std::clamp(m_pending_add_hover_y, 0, 63));
+    switch (m_pending_tileswap_part) {
+        case PendingTileSwapPart::MapSource:
+            m_pending_add_swap.map.src_x = x;
+            m_pending_add_swap.map.src_y = y;
+            m_pending_tileswap_part = PendingTileSwapPart::MapDestination;
+            Refresh();
+            return;
+        case PendingTileSwapPart::MapDestination:
+            m_pending_add_swap.map.dst_x = x;
+            m_pending_add_swap.map.dst_y = y;
+            m_pending_tileswap_part = PendingTileSwapPart::HeightmapSource;
+            Refresh();
+            return;
+        case PendingTileSwapPart::HeightmapSource:
+            m_pending_add_swap.heightmap.src_x = x;
+            m_pending_add_swap.heightmap.src_y = y;
+            m_pending_tileswap_part = PendingTileSwapPart::HeightmapDestination;
+            Refresh();
+            return;
+        case PendingTileSwapPart::HeightmapDestination:
+            m_pending_add_swap.heightmap.dst_x = x;
+            m_pending_add_swap.heightmap.dst_y = y;
+            break;
+    }
+
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    if (!rd) {
+        CancelPendingObjectAdd();
+        return;
+    }
+    auto swaps = rd->GetTileSwaps(m_current_room);
+    CaptureObjectUndoState();
+    swaps.push_back(m_pending_add_swap);
+    rd->SetTileSwaps(m_current_room, swaps);
+    m_selected_entity_idx = -1;
+    m_selected_warp_idx = -1;
+    m_selected_door_idx = -1;
+    m_selected_tileswap_region_idx = static_cast<int>((swaps.size() - 1) * 4);
+    m_hovered_tileswap_region_idx = m_selected_tileswap_region_idx;
+    NotifyRoomDataChanged(false, false, true, false);
+    NotifySelectionChanged();
+    CancelPendingObjectAdd();
+}
+
+void MyGLCanvas::RenderPendingObjectAddOverlay() {
+    if (!HasPendingObjectAdd() || m_pending_add_hover_x < 0 || m_pending_add_hover_y < 0) {
+        return;
+    }
+
+    float zoom = std::max(ZoomFactor(), 0.0001f);
+    float room_left = static_cast<float>(m_mapRenderer.GetRoomLeft());
+    float room_top = static_cast<float>(m_mapRenderer.GetRoomTop());
+    auto height_at = [&](int x, int y) {
+        auto map = CurrentRoomMap();
+        if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+            return 0.0f;
+        }
+        uint8_t height = map->GetHeight({x, y});
+        return height == 0xFF ? 0.0f : static_cast<float>(height);
+    };
+    auto draw_diamond = [&](int x, int y, bool heightmap, float r, float g, float b, float a) {
+        PickPoint center = heightmap
+            ? ProjectHeightmapGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, height_at(x, y), room_left, room_top, m_heightmapRenderer.GetZExtent())
+            : ProjectRoomGridPoint(room_left + static_cast<float>(x) + 0.5f, room_top + static_cast<float>(y) + 0.5f, 0.0f, room_left, room_top);
+        float cx = center.x * zoom + m_cam_x;
+        float cy = center.y * zoom + m_cam_y;
+        glColor4f(r, g, b, a * 0.32f);
+        glBegin(GL_QUADS);
+        glVertex2f(cx, cy - 16.0f * zoom);
+        glVertex2f(cx + 32.0f * zoom, cy);
+        glVertex2f(cx, cy + 16.0f * zoom);
+        glVertex2f(cx - 32.0f * zoom, cy);
+        glEnd();
+        glColor4f(r, g, b, a);
+        glLineWidth(2.5f);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(cx, cy - 16.0f * zoom);
+        glVertex2f(cx + 32.0f * zoom, cy);
+        glVertex2f(cx, cy + 16.0f * zoom);
+        glVertex2f(cx - 32.0f * zoom, cy);
+        glEnd();
+    };
+
+    glUseProgram(0);
+    for (int i = 0; i <= 5; ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glDisable(GL_TEXTURE_2D);
+    }
+    glActiveTexture(GL_TEXTURE0);
+    glDisable(GL_STENCIL_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    int width = 0;
+    int height = 0;
+    GetClientSize(&width, &height);
+    glOrtho(0, width, height, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    if (m_pending_add_type == PendingObjectAddType::TileSwap) {
+        if (m_pending_tileswap_part != PendingTileSwapPart::MapSource) {
+            draw_diamond(m_pending_add_swap.map.src_x, m_pending_add_swap.map.src_y, false, 0.25f, 0.75f, 1.0f, 0.95f);
+        }
+        if (m_pending_tileswap_part == PendingTileSwapPart::HeightmapSource ||
+            m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination) {
+            draw_diamond(m_pending_add_swap.map.dst_x, m_pending_add_swap.map.dst_y, false, 0.1f, 1.0f, 0.45f, 0.95f);
+        }
+        if (m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination) {
+            draw_diamond(m_pending_add_swap.heightmap.src_x, m_pending_add_swap.heightmap.src_y, true, 1.0f, 0.75f, 0.2f, 0.95f);
+        }
+        bool current_is_heightmap = m_pending_tileswap_part == PendingTileSwapPart::HeightmapSource ||
+            m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination;
+        draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, current_is_heightmap, 1.0f, 1.0f, 1.0f, 0.95f);
+    } else {
+        draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, true, 1.0f, 1.0f, 1.0f, 0.95f);
+    }
+    glLineWidth(1.0f);
+}
+
 
 // Thin forwarding layer: input handlers stay on MyGLCanvas while edit rules
 // live in dedicated editor/coordinator classes.
 void MyGLCanvas::AddEntity() {
-    GLCanvasEntityEditor(*this).AddEntity();
-    NotifyRoomDataChanged(true, false, false, false);
-    NotifySelectionChanged();
+    if (m_room_entities.size() >= 15) {
+        return;
+    }
+    m_pending_add_type = PendingObjectAddType::Entity;
+    UpdatePendingObjectAddHover();
+    SetCursor(wxCursor(wxCURSOR_CROSS));
+    Refresh();
 }
 
 void MyGLCanvas::CopySelectedEntity() {
@@ -3717,6 +5429,10 @@ void MyGLCanvas::CopySelectedEntity() {
 }
 
 void MyGLCanvas::PasteEntity() {
+    if (!m_entity_clipboard_valid || m_room_entities.size() >= 15) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasEntityEditor(*this).PasteEntity();
     NotifyRoomDataChanged(true, false, false, false);
     NotifySelectionChanged();
@@ -3736,6 +5452,10 @@ void MyGLCanvas::DeleteSelectedObject() {
     const bool had_warp = m_selected_warp_idx >= 0;
     const bool had_swap = m_selected_tileswap_region_idx >= 0;
     const bool had_door = m_selected_door_idx >= 0;
+    if (!had_entity && !had_warp && !had_swap && !had_door) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasObjectCoordinator(*this).DeleteSelectedObject();
     NotifyRoomDataChanged(had_entity, had_warp, had_swap, had_door);
     NotifySelectionChanged();
@@ -3744,9 +5464,14 @@ void MyGLCanvas::DeleteSelectedObject() {
 void MyGLCanvas::ReorderSelectedObject(int delta) {
     const bool had_entity = m_selected_entity_idx >= 0;
     const bool had_warp = m_selected_warp_idx >= 0;
+    const bool had_swap = m_selected_tileswap_region_idx >= 0;
     const bool had_door = m_selected_door_idx >= 0;
+    if (!had_entity && !had_warp && !had_swap && !had_door) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasObjectCoordinator(*this).ReorderSelectedObject(delta);
-    NotifyRoomDataChanged(had_entity, had_warp, false, had_door);
+    NotifyRoomDataChanged(had_entity, had_warp, had_swap, had_door);
     NotifySelectionChanged();
 }
 
@@ -3763,29 +5488,46 @@ void MyGLCanvas::SelectNextTileSwapRegion(int direction) {
 }
 
 void MyGLCanvas::CycleSelectedEntityId(int delta) {
+    if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasEntityEditor(*this).CycleSelectedEntityId(delta);
     NotifyRoomDataChanged(true, false, false, false);
 }
 
 void MyGLCanvas::CycleSelectedEntityPalette() {
+    if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasEntityEditor(*this).CycleSelectedEntityPalette();
     NotifyRoomDataChanged(true, false, false, false);
 }
 
 void MyGLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientation) {
+    if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasEntityEditor(*this).SetSelectedEntityOrientation(orientation);
     NotifyRoomDataChanged(true, false, false, false);
 }
 
 void MyGLCanvas::SetSelectedEntityToFloor() {
+    if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasEntityEditor(*this).SetSelectedEntityToFloor();
     NotifyRoomDataChanged(true, false, false, false);
 }
 
 void MyGLCanvas::AddWarpHalf() {
-    GLCanvasWarpEditor(*this).AddWarpHalf();
-    NotifyRoomDataChanged(false, true, false, false);
-    NotifySelectionChanged();
+    m_pending_add_type = PendingObjectAddType::Warp;
+    UpdatePendingObjectAddHover();
+    SetCursor(wxCursor(wxCURSOR_CROSS));
+    Refresh();
 }
 
 std::pair<float, float> MyGLCanvas::FindNearestFreeWarpCell(float preferred_x, float preferred_y) const {
@@ -3811,48 +5553,107 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
 }
 
 void MyGLCanvas::ResizeSelectedWarp(float dx, float dy) {
+    if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasWarpEditor(*this).ResizeSelectedWarp(dx, dy);
     NotifyRoomDataChanged(false, true, false, false);
 }
 
 void MyGLCanvas::RotateSelectedWarp(float dx, float dy) {
+    if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasWarpEditor(*this).RotateSelectedWarp(dx, dy);
     NotifyRoomDataChanged(false, true, false, false);
 }
 
 void MyGLCanvas::CycleSelectedWarpType(int delta) {
+    if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasWarpEditor(*this).CycleSelectedWarpType(delta);
     NotifyRoomDataChanged(false, true, false, false);
 }
 
 void MyGLCanvas::CycleSelectedDoorSize(int delta) {
+    if (m_selected_door_idx < 0) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasTileDoorEditor(*this).CycleSelectedDoorSize(delta);
     NotifyRoomDataChanged(false, false, false, true);
 }
 
 void MyGLCanvas::AddDoor() {
-    GLCanvasTileDoorEditor(*this).AddDoor();
-    NotifyRoomDataChanged(false, false, false, true);
-    NotifySelectionChanged();
+    m_pending_add_type = PendingObjectAddType::Door;
+    UpdatePendingObjectAddHover();
+    SetCursor(wxCursor(wxCURSOR_CROSS));
+    Refresh();
 }
 
 void MyGLCanvas::AddTileSwap() {
-    GLCanvasTileDoorEditor(*this).AddTileSwap();
-    NotifyRoomDataChanged(false, false, true, false);
-    NotifySelectionChanged();
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    if (!rd) {
+        return;
+    }
+    auto swaps = rd->GetTileSwaps(m_current_room);
+    if (swaps.size() >= 32UL) {
+        return;
+    }
+    std::set<int> used_triggers;
+    for (const auto& swap : swaps) {
+        used_triggers.insert(static_cast<int>(swap.trigger));
+    }
+    int trigger = -1;
+    for (int candidate = 0; candidate <= 31; ++candidate) {
+        if (used_triggers.count(candidate) == 0) {
+            trigger = candidate;
+            break;
+        }
+    }
+    if (trigger < 0) {
+        return;
+    }
+
+    m_pending_add_swap = TileSwap{};
+    m_pending_add_swap.trigger = static_cast<uint8_t>(trigger);
+    m_pending_add_swap.mode = TileSwap::Mode::FLOOR;
+    m_pending_add_swap.map = {0, 0, 0, 0, 1, 1};
+    m_pending_add_swap.heightmap = {0, 0, 0, 0, 1, 1};
+    m_pending_add_type = PendingObjectAddType::TileSwap;
+    m_pending_tileswap_part = PendingTileSwapPart::MapSource;
+    UpdatePendingObjectAddHover();
+    SetCursor(wxCursor(wxCURSOR_CROSS));
+    Refresh();
 }
 
 void MyGLCanvas::CycleSelectedTileSwapShape(int delta) {
+    if (m_selected_tileswap_region_idx < 0) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasTileDoorEditor(*this).CycleSelectedTileSwapShape(delta);
     NotifyRoomDataChanged(false, false, true, false);
 }
 
 void MyGLCanvas::CycleSelectedTileSwapId(int delta) {
+    if (m_selected_tileswap_region_idx < 0) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasTileDoorEditor(*this).CycleSelectedTileSwapId(delta);
     NotifyRoomDataChanged(false, false, true, false);
 }
 
 void MyGLCanvas::ResizeSelectedTileSwapRegion(float requested_width, float requested_height) {
+    if (m_selected_tileswap_region_idx < 0) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasTileDoorEditor(*this).ResizeSelectedTileSwapRegion(requested_width, requested_height);
     NotifyRoomDataChanged(false, false, true, false);
 }
@@ -3874,6 +5675,10 @@ void MyGLCanvas::NudgeSelectedObject(float dx, float dy, float dz) {
     const bool had_warp = m_selected_warp_idx >= 0;
     const bool had_swap = m_selected_tileswap_region_idx >= 0;
     const bool had_door = m_selected_door_idx >= 0;
+    if (!had_entity && !had_warp && !had_swap && !had_door) {
+        return;
+    }
+    CaptureObjectUndoState();
     GLCanvasObjectCoordinator(*this).NudgeSelectedObject(dx, dy, dz);
     NotifyRoomDataChanged(had_entity, had_warp, had_swap, had_door);
 }
@@ -4537,6 +6342,13 @@ void MyGLCanvas::OnPaint(wxPaintEvent&) {
         LoadRoom(m_current_room);
         m_initialized = true;
     }
+
+    long now_ms = m_anim_stopwatch.Time();
+    if (now_ms - m_last_frame_ms < kTargetFrameMs) {
+        m_render_deferred = true;
+        return;
+    }
+    m_render_deferred = false;
     
     // Set up the viewport and simple orthographic projection.
     // wx reports client size in logical pixels; OpenGL needs the backing framebuffer size.

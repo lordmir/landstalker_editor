@@ -10,6 +10,8 @@
 #include <map>
 #include <set>
 #include <landstalker/main/GameData.h>
+#include <landstalker/3d_maps/Doors.h>
+#include <landstalker/3d_maps/TileSwaps.h>
 #include <landstalker/rooms/WarpList.h>
 #include "SpriteInstance.h"
 #include "MapRenderer.h"
@@ -19,6 +21,7 @@
 wxDECLARE_EVENT(EVT_GPU_EDITOR_MODE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_OPACITY_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_BLOCK_SELECT, wxCommandEvent);
+wxDECLARE_EVENT(EVT_GPU_HEIGHTMAP_TARGET_CHANGE, wxCommandEvent);
 
 struct WarpInstance {
     uint32_t instance_id;
@@ -46,6 +49,19 @@ public:
         Heightmap
     };
 
+    enum class DrawingTool {
+        Select,
+        Draw,
+        Line,
+        FilledRect,
+        OutlineRect,
+        FilledCircle,
+        OutlineCircle,
+        FloodFill,
+        Stamp,
+        Clear
+    };
+
     MyGLCanvas(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd);
     virtual ~MyGLCanvas();
 
@@ -66,6 +82,9 @@ public:
                GetSelectedTileSwapIndex() > 0 || GetSelectedDoorIndex() > 0;
     }
     void SetZoom(double zoom);
+    float GetHeightmapZScale() const { return m_heightmap_z_scale; }
+    void SetHeightmapZScale(float scale);
+    void AdjustHeightmapZScale(int delta);
     void SetAlpha(bool visible);
     bool GetAlpha() const { return m_alpha; }
     void SetBackgroundOpacity(float opacity);
@@ -85,10 +104,17 @@ public:
     bool GetTileSwapsVisible() const { return m_show_tile_swaps; }
     void SetEditorMode(EditorMode mode);
     EditorMode GetEditorMode() const { return m_editor_mode; }
+    void SetDrawingTool(DrawingTool tool);
+    DrawingTool GetDrawingTool() const { return m_drawing_tool; }
     void SetLayerPriorityHighlight(bool enabled);
     bool GetLayerPriorityHighlight() const { return m_layer_priority_highlight; }
     void ToggleLayerPriorityHighlight();
     bool HandleKeyDown(wxKeyEvent& evt);
+    bool CanUndo() const;
+    bool CanRedo() const;
+    void Undo();
+    void Redo();
+    void CaptureObjectUndoState();
     void SetSelectedBlockId(int block);
     bool HasSelectedLayerCell() const;
     bool HasSelectedHeightmapCell() const;
@@ -100,6 +126,7 @@ public:
     bool CanDecreaseSelectedHeightmapHeight() const;
     bool CanDeleteSelectedTilemapRow() const;
     bool CanDeleteSelectedTilemapColumn() const;
+    bool HasHeightmapEditTarget() const;
     uint8_t GetSelectedHeightmapType() const;
     bool IsSelectedHeightmapPlayerPassable() const;
     bool IsSelectedHeightmapNpcPassable() const;
@@ -109,6 +136,7 @@ public:
     void ToggleSelectedHeightmapNpcPassable();
     void ToggleSelectedHeightmapRaftTrack();
     void AdjustSelectedHeightmapHeight(int delta);
+    void ClearSelectedHeightmapCells();
     bool CanNudgeHeightmap(int left_delta, int top_delta) const;
     void NudgeHeightmap(int left_delta, int top_delta);
     void InsertSelectedHeightmapRowBefore();
@@ -129,6 +157,8 @@ public:
     void DeleteSelectedObject();
     void ReorderSelectedObject(int delta);
     void AddWarpHalf();
+    void AddDoor();
+    void AddTileSwap();
 
 private:
 
@@ -139,6 +169,36 @@ private:
         FullWithTilemap = 4
     };
 
+    enum class PendingObjectAddType {
+        None,
+        Entity,
+        Warp,
+        Door,
+        TileSwap
+    };
+
+    enum class PendingTileSwapPart {
+        MapSource,
+        MapDestination,
+        HeightmapSource,
+        HeightmapDestination
+    };
+
+    struct ObjectUndoState {
+        std::vector<Landstalker::Entity> entities;
+        std::vector<Landstalker::WarpList::Warp> warps;
+        std::vector<Landstalker::TileSwap> swaps;
+        std::vector<Landstalker::Door> doors;
+        bool pending_warp_half;
+        uint16_t pending_warp_room;
+        uint32_t pending_warp_instance_id;
+        Landstalker::WarpList::Warp pending_warp;
+        int selected_entity;
+        int selected_warp;
+        int selected_tileswap;
+        int selected_door;
+    };
+
     friend class GLCanvasEntityEditor;
     friend class GLCanvasWarpEditor;
     friend class GLCanvasTileDoorEditor;
@@ -147,7 +207,7 @@ private:
     friend class GLCanvasLayerEditMode;
     friend class GLCanvasRoomMode;
 
-    void OnTimer(wxTimerEvent& evt);
+    void OnIdle(wxIdleEvent& evt);
     void OnKeyDown(wxKeyEvent& evt);
     void OnMouseMove(wxMouseEvent& evt);
     void OnLeftDown(wxMouseEvent& evt);
@@ -168,11 +228,20 @@ private:
     void NotifySelectionChanged();
     void NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors);
     void NotifyHeightmapChanged(bool moved);
+    void NotifyHeightmapTargetChanged();
     void NotifyLayerOpacityChanged();
     void NotifyLayerBlockSelected();
     wxWindow* EventTarget() const;
     bool SelectObjectAt(const wxPoint& point);
     void CancelActiveDrag();
+    void CaptureUndoState();
+    void RestoreUndoState(const std::shared_ptr<Landstalker::Tilemap3D>& state);
+    bool IsObjectHistoryMode() const;
+    std::vector<Landstalker::Entity> BuildCurrentRoomEntities() const;
+    std::vector<Landstalker::WarpList::Warp> BuildCurrentRoomWarps() const;
+    ObjectUndoState BuildObjectUndoState() const;
+    void RestoreObjectUndoState(const ObjectUndoState& state);
+    void ClearUndoRedoHistory();
     int SelectedEntityListIndex() const;
     int SelectedWarpListIndex() const;
     int SelectedTileSwapListIndex() const;
@@ -215,8 +284,11 @@ private:
     void CycleSelectedEntityPalette();
     void SetSelectedEntityOrientation(Landstalker::Orientation orientation);
     void SetSelectedEntityToFloor();
-    void AddDoor();
-    void AddTileSwap();
+    bool HasPendingObjectAdd() const;
+    void UpdatePendingObjectAddHover();
+    void CommitPendingObjectAdd();
+    void CancelPendingObjectAdd();
+    void RenderPendingObjectAddOverlay();
     std::pair<int, int> MouseHeightmapCell() const;
     std::pair<float, float> FindNearestFreeWarpCell(float preferred_x, float preferred_y) const;
     void ResizeSelectedWarp(float dx, float dy);
@@ -255,8 +327,33 @@ private:
     Landstalker::Tilemap3D::Layer CurrentEditLayer() const;
     void ApplyHeightmapViewMode();
     bool BackgroundCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
+    bool HeightmapCellAt(const wxPoint& point, int& cell_x, int& cell_y);
     bool SelectBackgroundCellAt(const wxPoint& point);
     bool SelectHeightmapCellAt(const wxPoint& point);
+    void ClearEditSelection();
+    void BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection);
+    void UpdateHeightmapSelectionDrag(int x, int y);
+    void FinishHeightmapSelectionDrag();
+    bool IsHeightmapCellSelected(int x, int y) const;
+    void BeginHeightmapSelectionMoveDrag(int x, int y);
+    void UpdateHeightmapSelectionMoveDrag(int x, int y);
+    void CommitHeightmapSelectionMoveDrag();
+    void CancelHeightmapSelectionMoveDrag();
+    bool IsHeightmapBrushTool() const;
+    bool IsHeightmapShapeTool() const;
+    bool IsHeightmapPreviewTool() const;
+    std::pair<int, int> SnapHeightmapLineEnd(int start_x, int start_y, int end_x, int end_y) const;
+    std::vector<std::pair<int, int>> BuildHeightmapLineCells(int start_x, int start_y, int end_x, int end_y) const;
+    std::vector<std::pair<int, int>> BuildHeightmapRectCells(int start_x, int start_y, int end_x, int end_y, bool filled) const;
+    std::vector<std::pair<int, int>> BuildHeightmapCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled) const;
+    std::vector<std::pair<int, int>> BuildHeightmapFloodFillCells(int x, int y) const;
+    std::map<std::pair<int, int>, uint16_t> BuildHeightmapStampCells(int x, int y) const;
+    void ApplyHeightmapStampAt(int x, int y);
+    void ApplyHeightmapFloodFillAt(int x, int y);
+    void BeginHeightmapLineDrag(int x, int y, bool shift_down);
+    void UpdateHeightmapLineDrag(int x, int y, bool shift_down);
+    void CommitHeightmapLineDrag();
+    void CancelHeightmapLineDrag();
     void ClampBackgroundSelection();
     void MoveBackgroundSelection(int dx, int dy);
     std::shared_ptr<Landstalker::Tilemap3D> CurrentRoomMap() const;
@@ -264,13 +361,24 @@ private:
     uint16_t SelectedBackgroundBlockId() const;
     int SelectedHeightmapCellX() const;
     int SelectedHeightmapCellY() const;
+    int PrimaryHeightmapCellX() const;
+    int PrimaryHeightmapCellY() const;
     uint16_t SelectedHeightmapCellValue() const;
+    void SetSelectedHeightmapCell(uint16_t value, bool refresh_object_placements);
+    void ApplyPrimaryHeightmapTypeToSelection();
+    void ApplyPrimaryHeightmapPropsToSelection();
+    void ApplyPrimaryHeightmapHeightToSelection();
     void UpdateHeightmapClipboardFromSelectedCell();
     void CopySelectedBackgroundBlock();
     void CopySelectedHeightmapCell();
+    void CopyHeightmapCellAt(int x, int y);
     void ClearBackgroundClipboard();
     void PasteSelectedBackgroundBlock();
+    bool PasteBackgroundBlockAt(int x, int y, bool defer_updates = false);
+    void CommitLayerDrawStroke();
     void PasteSelectedHeightmapCell();
+    bool PasteHeightmapCellAt(int x, int y, bool defer_updates = false);
+    void CommitHeightmapDrawStroke();
     void ReloadCurrentRoomMapView();
     void RenderBackgroundEditorOverlay(int width, int height);
     void RenderHeightmapEditorOverlay(int width, int height);
@@ -280,7 +388,9 @@ private:
     void PanCameraByStep(int dx, int dy, float speed = 20.0f);
     void ChangeZoomStep(int delta, float anchor_x, float anchor_y);
     void ResizeSelectedTileSwapByDelta(int dw, int dh);
+    void UpdateAnimations(float dt);
     void UpdateStatusBar();
+    void RecordRenderedFrame();
     void RenderStencilOverlay(int width, int height, GLint ref, GLint mask, float r, float g, float b, float a) const;
     std::set<uint32_t> FindCollidedEntityIds() const;
 
@@ -300,11 +410,15 @@ private:
     Landstalker::WarpList::Warp m_pending_warp;
     bool m_entity_clipboard_valid;
     Landstalker::Entity m_entity_clipboard;
-    wxTimer m_timer;
     wxStopWatch m_fps_stopwatch;
     wxStopWatch m_room_stopwatch;
+    wxStopWatch m_anim_stopwatch;
+    long m_last_anim_ms;
+    long m_last_frame_ms;
     long m_frame_count;
+    long m_animation_update_count;
     float m_fps;
+    bool m_render_deferred;
     bool m_alpha;
     bool m_show_heightmap;
     bool m_show_entities;
@@ -359,8 +473,12 @@ private:
     bool m_debug_occlusion;
     bool m_show_hitboxes;
     EditorMode m_editor_mode;
+    DrawingTool m_drawing_tool;
     HeightmapViewMode m_heightmap_view_mode;
     float m_non_heightmap_z_extent;
+    float m_heightmap_z_scale;
+    bool m_heightmap_tilemap_underlay;
+    bool m_layer_heightmap_overlay;
     bool m_foreground_show_background_underlay;
     bool m_background_show_block_ids;
     bool m_layer_priority_highlight;
@@ -372,8 +490,48 @@ private:
     int m_background_hover_y;
     bool m_background_clipboard_valid;
     uint16_t m_background_clipboard_block_id;
+    bool m_layer_dragging_draw;
+    bool m_layer_draw_dirty;
+    int m_layer_last_draw_x;
+    int m_layer_last_draw_y;
     bool m_heightmap_clipboard_valid;
     uint16_t m_heightmap_clipboard_cell;
+    bool m_heightmap_dragging_select;
+    bool m_heightmap_dragging_draw;
+    bool m_heightmap_dragging_line;
+    bool m_heightmap_dragging_selection_move;
+    bool m_heightmap_draw_dirty;
+    bool m_heightmap_selection_add;
+    bool m_heightmap_selection_subtract;
+    int m_heightmap_selection_anchor_x;
+    int m_heightmap_selection_anchor_y;
+    int m_heightmap_selection_drag_anchor_x;
+    int m_heightmap_selection_drag_anchor_y;
+    int m_heightmap_last_draw_x;
+    int m_heightmap_last_draw_y;
+    int m_heightmap_line_start_x;
+    int m_heightmap_line_start_y;
+    int m_heightmap_line_end_x;
+    int m_heightmap_line_end_y;
+    int m_heightmap_selection_move_anchor_x;
+    int m_heightmap_selection_move_anchor_y;
+    int m_heightmap_selection_move_delta_x;
+    int m_heightmap_selection_move_delta_y;
+    std::set<std::pair<int, int>> m_heightmap_selected_cells;
+    std::set<std::pair<int, int>> m_heightmap_selection_drag_base;
+    std::vector<std::pair<int, int>> m_heightmap_line_preview_cells;
+    std::map<std::pair<int, int>, uint16_t> m_heightmap_selection_move_values;
+    std::vector<std::shared_ptr<Landstalker::Tilemap3D>> m_map_undo_stack;
+    std::vector<std::shared_ptr<Landstalker::Tilemap3D>> m_map_redo_stack;
+    std::vector<ObjectUndoState> m_object_undo_stack;
+    std::vector<ObjectUndoState> m_object_redo_stack;
+    bool m_restoring_history;
+    PendingObjectAddType m_pending_add_type;
+    PendingTileSwapPart m_pending_tileswap_part;
+    Landstalker::TileSwap m_pending_add_swap;
+    int m_pending_add_hover_x;
+    int m_pending_add_hover_y;
+    int m_pending_add_swap_index;
     bool m_tileswap_preview_active;
     int m_tileswap_preview_swap_index;
     bool m_door_preview_active;

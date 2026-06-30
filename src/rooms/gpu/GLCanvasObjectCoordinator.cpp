@@ -119,6 +119,29 @@ void GLCanvasObjectCoordinator::ReorderSelectedObject(int delta)
 		return;
 	}
 
+	if (m_canvas.m_selected_tileswap_region_idx >= 0) {
+		auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
+		if (!rd) {
+			return;
+		}
+		auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
+		if (m_canvas.m_selected_tileswap_region_idx >= static_cast<int>(regions.size())) {
+			m_canvas.m_selected_tileswap_region_idx = -1;
+			m_canvas.m_hovered_tileswap_region_idx = -1;
+			return;
+		}
+		const auto& region = regions[static_cast<std::size_t>(m_canvas.m_selected_tileswap_region_idx)];
+		auto swaps = rd->GetTileSwaps(m_canvas.m_current_room);
+		int new_idx = std::clamp(region.swap_index + delta, 0, static_cast<int>(swaps.size()) - 1);
+		if (region.swap_index >= 0 && region.swap_index < static_cast<int>(swaps.size()) && new_idx != region.swap_index) {
+			std::iter_swap(swaps.begin() + region.swap_index, swaps.begin() + new_idx);
+			rd->SetTileSwaps(m_canvas.m_current_room, swaps);
+			m_canvas.m_selected_tileswap_region_idx += (new_idx - region.swap_index) * 4;
+			m_canvas.m_hovered_tileswap_region_idx = m_canvas.m_selected_tileswap_region_idx;
+		}
+		return;
+	}
+
 	if (m_canvas.m_selected_door_idx >= 0) {
 		auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 		if (!rd) {

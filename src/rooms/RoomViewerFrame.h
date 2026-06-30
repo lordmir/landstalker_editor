@@ -67,6 +67,7 @@ private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;
+	void RefreshObjectLists();
 	void RefreshLists() const;
 	virtual void UpdateProperties(wxPropertyGridManager& props) const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
@@ -129,6 +130,7 @@ private:
 	void OnGpuEditorModeChange(wxCommandEvent& evt);
 	void OnGpuLayerOpacityChange(wxCommandEvent& evt);
 	void OnGpuLayerBlockSelect(wxCommandEvent& evt);
+	void OnGpuHeightmapTargetChange(wxCommandEvent& evt);
 
 	void OnSize(wxSizeEvent& evt);
 

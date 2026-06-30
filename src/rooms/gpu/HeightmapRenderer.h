@@ -15,6 +15,7 @@ public:
     void SetPreviewMap(std::shared_ptr<Landstalker::Tilemap3D> map);
     void ClearPreviewMap();
     void Render();
+    void RenderOverlay(float opacity);
     void BuildDepthStencil();
     void BuildEntityOcclusionStencil(
         GLint entity_back_depth,
@@ -57,6 +58,7 @@ public:
     float GetZExtent() const { return m_z_extent; }
 
 private:
+    void RenderInternal(float opacity, bool show_cell_text);
     std::shared_ptr<Landstalker::Tilemap3D> CurrentMap() const;
     std::shared_ptr<Landstalker::GameData> m_gd;
     std::shared_ptr<Landstalker::Tilemap3D> m_preview_map;

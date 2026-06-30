@@ -20,25 +20,7 @@ uint8_t GLCanvasHeightmapMode::SelectedRestriction() const
 
 void GLCanvasHeightmapMode::SetSelectedHeightmapCell(uint16_t value, bool refresh_object_placements)
 {
-    auto map = m_canvas.CurrentRoomMap();
-    int x = m_canvas.SelectedHeightmapCellX();
-    int y = m_canvas.SelectedHeightmapCellY();
-    if (!map || x < 0 || y < 0) {
-        return;
-    }
-
-    if (map->GetHeightmapCell({x, y}) == value) {
-        return;
-    }
-
-    map->SetHeightmapCell({x, y}, value);
-    m_canvas.UpdateHeightmapClipboardFromSelectedCell();
-    m_canvas.ReloadCurrentRoomMapView();
-    if (refresh_object_placements) {
-        m_canvas.RefreshObjectPlacementsFromHeightmap();
-    }
-    m_canvas.NotifyHeightmapChanged(false);
-    m_canvas.Refresh();
+    m_canvas.SetSelectedHeightmapCell(value, refresh_object_placements);
 }
 
 void GLCanvasHeightmapMode::AdjustSelectedHeightmapType(int delta)
@@ -68,12 +50,11 @@ void GLCanvasHeightmapMode::CycleSelectedHeightmapRestriction(int direction)
 
 void GLCanvasHeightmapMode::ClearSelectedHeightmapCell()
 {
-    SetSelectedHeightmapCell(0x4000, true);
+    m_canvas.ClearSelectedHeightmapCells();
 }
 
 bool GLCanvasHeightmapMode::HandleKeyDown(wxKeyEvent& evt)
 {
-    bool ctrl = evt.ControlDown();
     bool shift = evt.ShiftDown();
 
     if (shift) {
@@ -119,7 +100,22 @@ bool GLCanvasHeightmapMode::HandleKeyDown(wxKeyEvent& evt)
             m_canvas.Refresh();
             return true;
         case WXK_ESCAPE:
-            m_canvas.ClearBackgroundClipboard();
+            if (m_canvas.m_heightmap_dragging_line || m_canvas.m_heightmap_dragging_selection_move) {
+                m_canvas.CancelHeightmapLineDrag();
+                m_canvas.CancelHeightmapSelectionMoveDrag();
+                if (m_canvas.HasCapture()) {
+                    m_canvas.ReleaseMouse();
+                }
+            } else if (m_canvas.IsHeightmapPreviewTool()) {
+                m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Select);
+            } else {
+                m_canvas.ClearEditSelection();
+            }
+            m_canvas.Refresh();
+            return true;
+        case 'b':
+        case 'B':
+            m_canvas.m_heightmap_tilemap_underlay = !m_canvas.m_heightmap_tilemap_underlay;
             m_canvas.Refresh();
             return true;
         case '[':
@@ -204,23 +200,11 @@ bool GLCanvasHeightmapMode::HandleKeyDown(wxKeyEvent& evt)
         case '+':
         case '=':
         case WXK_NUMPAD_ADD:
-            if (ctrl) {
-                int w = 0;
-                int h = 0;
-                m_canvas.GetClientSize(&w, &h);
-                m_canvas.ChangeZoomStep(1, float(w) * 0.5f, float(h) * 0.5f);
-            }
-            m_canvas.Refresh();
+            m_canvas.AdjustHeightmapZScale(1);
             return true;
         case '-':
         case WXK_NUMPAD_SUBTRACT:
-            if (ctrl) {
-                int w = 0;
-                int h = 0;
-                m_canvas.GetClientSize(&w, &h);
-                m_canvas.ChangeZoomStep(-1, float(w) * 0.5f, float(h) * 0.5f);
-            }
-            m_canvas.Refresh();
+            m_canvas.AdjustHeightmapZScale(-1);
             return true;
     }
 
@@ -232,23 +216,86 @@ void GLCanvasHeightmapMode::HandleMouseMove(const wxMouseEvent& evt)
     m_canvas.m_heightmapRenderer.SetHoverPoint(
         m_canvas.ScreenToWorldX(evt.GetPosition().x),
         m_canvas.ScreenToWorldY(evt.GetPosition().y));
-    m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
+    int x = -1;
+    int y = -1;
+    if (m_canvas.HeightmapCellAt(evt.GetPosition(), x, y)) {
+        if (m_canvas.m_heightmap_dragging_select) {
+            m_canvas.UpdateHeightmapSelectionDrag(x, y);
+        } else if (m_canvas.m_heightmap_dragging_selection_move) {
+            m_canvas.UpdateHeightmapSelectionMoveDrag(x, y);
+        } else if (m_canvas.m_heightmap_dragging_line) {
+            m_canvas.UpdateHeightmapLineDrag(x, y, evt.ShiftDown());
+        } else if (m_canvas.m_heightmap_dragging_draw &&
+                   m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp &&
+                   (x != m_canvas.m_heightmap_last_draw_x || y != m_canvas.m_heightmap_last_draw_y)) {
+            m_canvas.ApplyHeightmapStampAt(x, y);
+            m_canvas.UpdateStatusBar();
+            m_canvas.m_heightmap_last_draw_x = x;
+            m_canvas.m_heightmap_last_draw_y = y;
+        } else if (m_canvas.m_heightmap_dragging_draw &&
+                   (x != m_canvas.m_heightmap_last_draw_x || y != m_canvas.m_heightmap_last_draw_y)) {
+            if (m_canvas.PasteHeightmapCellAt(x, y, true)) {
+                m_canvas.UpdateStatusBar();
+            }
+            m_canvas.m_heightmap_last_draw_x = x;
+            m_canvas.m_heightmap_last_draw_y = y;
+        }
+    }
+    m_canvas.SetCursor(wxCursor(
+        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select && m_canvas.IsHeightmapCellSelected(x, y) ? wxCURSOR_HAND : wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 
 void GLCanvasHeightmapMode::HandleLeftDown(const wxMouseEvent& evt)
 {
-    if (m_canvas.SelectHeightmapCellAt(evt.GetPosition())) {
-        m_canvas.PasteSelectedHeightmapCell();
-        m_canvas.UpdateStatusBar();
+    int x = -1;
+    int y = -1;
+    if (!m_canvas.HeightmapCellAt(evt.GetPosition(), x, y)) {
+        m_canvas.Refresh();
+        return;
     }
+
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select && m_canvas.IsHeightmapCellSelected(x, y)) {
+        m_canvas.BeginHeightmapSelectionMoveDrag(x, y);
+    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw) {
+        m_canvas.m_heightmap_dragging_draw = true;
+        m_canvas.m_heightmap_last_draw_x = x;
+        m_canvas.m_heightmap_last_draw_y = y;
+        m_canvas.PasteHeightmapCellAt(x, y, true);
+    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FloodFill) {
+        m_canvas.ApplyHeightmapFloodFillAt(x, y);
+    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp) {
+        m_canvas.m_heightmap_dragging_draw = true;
+        m_canvas.m_heightmap_last_draw_x = x;
+        m_canvas.m_heightmap_last_draw_y = y;
+        m_canvas.ApplyHeightmapStampAt(x, y);
+    } else if (m_canvas.IsHeightmapShapeTool()) {
+        m_canvas.BeginHeightmapLineDrag(x, y, evt.ShiftDown());
+    } else {
+        m_canvas.BeginHeightmapSelectionDrag(x, y, evt.ShiftDown(), evt.ControlDown());
+    }
+    if ((m_canvas.m_heightmap_dragging_select || m_canvas.m_heightmap_dragging_draw || m_canvas.m_heightmap_dragging_line || m_canvas.m_heightmap_dragging_selection_move) && !m_canvas.HasCapture()) {
+        m_canvas.CaptureMouse();
+    }
+    m_canvas.UpdateStatusBar();
     m_canvas.Refresh();
 }
 
 void GLCanvasHeightmapMode::HandleRightDown(const wxMouseEvent& evt)
 {
-    if (m_canvas.SelectHeightmapCellAt(evt.GetPosition())) {
-        m_canvas.CopySelectedHeightmapCell();
+    int x = -1;
+    int y = -1;
+    if (m_canvas.m_heightmap_dragging_line || m_canvas.m_heightmap_dragging_selection_move) {
+        m_canvas.CancelHeightmapLineDrag();
+        m_canvas.CancelHeightmapSelectionMoveDrag();
+        if (m_canvas.HasCapture()) {
+            m_canvas.ReleaseMouse();
+        }
+        m_canvas.Refresh();
+        return;
+    }
+    if (m_canvas.HeightmapCellAt(evt.GetPosition(), x, y)) {
+        m_canvas.CopyHeightmapCellAt(x, y);
         m_canvas.UpdateStatusBar();
     }
     m_canvas.Refresh();
@@ -258,24 +305,64 @@ void GLCanvasHeightmapMode::Render(int width, int height)
 {
     std::shared_ptr<Landstalker::Tilemap3D> hover_preview;
     bool has_hover_preview = false;
-    if (m_canvas.m_heightmap_clipboard_valid) {
+    if (((m_canvas.IsHeightmapBrushTool() && m_canvas.m_heightmap_clipboard_valid) ||
+         m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp ||
+         m_canvas.m_heightmap_dragging_selection_move) &&
+        !m_canvas.m_heightmap_dragging_draw) {
         auto map = m_canvas.CurrentRoomMap();
-        int x = m_canvas.m_heightmapRenderer.GetHoverX();
-        int y = m_canvas.m_heightmapRenderer.GetHoverY();
-        if (map && x >= 0 && y >= 0 && x < map->GetHeightmapWidth() && y < map->GetHeightmapHeight()) {
-            uint16_t current = map->GetHeightmapCell({x, y});
-            if (current != m_canvas.m_heightmap_clipboard_cell) {
-                hover_preview = std::make_shared<Landstalker::Tilemap3D>(*map);
-                hover_preview->SetHeightmapCell({x, y}, m_canvas.m_heightmap_clipboard_cell);
+        if (map) {
+            auto set_preview_cell = [&](int x, int y, uint16_t value) {
+                if (x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+                    return;
+                }
+                if (!hover_preview) {
+                    hover_preview = std::make_shared<Landstalker::Tilemap3D>(*map);
+                }
+                hover_preview->SetHeightmapCell({x, y}, value);
+            };
+            auto apply_brush_preview_cell = [&](int x, int y) {
+                set_preview_cell(x, y, m_canvas.m_heightmap_clipboard_cell);
+            };
+
+            if (m_canvas.m_heightmap_dragging_selection_move) {
+                static constexpr uint16_t kClearedHeightmapCell = 0x4000;
+                for (const auto& source : m_canvas.m_heightmap_selection_move_values) {
+                    set_preview_cell(source.first.first, source.first.second, kClearedHeightmapCell);
+                    set_preview_cell(
+                        source.first.first + m_canvas.m_heightmap_selection_move_delta_x,
+                        source.first.second + m_canvas.m_heightmap_selection_move_delta_y,
+                        source.second);
+                }
+            } else if (m_canvas.m_heightmap_dragging_line) {
+                for (const auto& cell : m_canvas.m_heightmap_line_preview_cells) {
+                    apply_brush_preview_cell(cell.first, cell.second);
+                }
+            } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FloodFill) {
+                for (const auto& cell : m_canvas.BuildHeightmapFloodFillCells(
+                         m_canvas.m_heightmapRenderer.GetHoverX(),
+                         m_canvas.m_heightmapRenderer.GetHoverY())) {
+                    apply_brush_preview_cell(cell.first, cell.second);
+                }
+            } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp) {
+                for (const auto& cell : m_canvas.BuildHeightmapStampCells(
+                         m_canvas.m_heightmapRenderer.GetHoverX(),
+                         m_canvas.m_heightmapRenderer.GetHoverY())) {
+                    set_preview_cell(cell.first.first, cell.first.second, cell.second);
+                }
+            } else {
+                apply_brush_preview_cell(m_canvas.m_heightmapRenderer.GetHoverX(), m_canvas.m_heightmapRenderer.GetHoverY());
+            }
+
+            if (hover_preview) {
                 m_canvas.m_heightmapRenderer.SetPreviewMap(hover_preview);
                 has_hover_preview = true;
             }
         }
     }
 
-    if (m_canvas.m_heightmap_view_mode == MyGLCanvas::HeightmapViewMode::FullWithTilemap) {
-        m_canvas.m_mapRenderer.RenderBackgroundWithOpacity(0.2f);
-        m_canvas.m_mapRenderer.RenderForegroundWithOpacity(0.2f);
+    if (m_canvas.m_heightmap_tilemap_underlay) {
+        m_canvas.m_mapRenderer.RenderBackgroundWithOpacity(0.35f);
+        m_canvas.m_mapRenderer.RenderForegroundWithOpacity(0.35f);
     }
     m_canvas.m_heightmapRenderer.Render();
     if (has_hover_preview) {
@@ -283,4 +370,5 @@ void GLCanvasHeightmapMode::Render(int width, int height)
     }
     m_canvas.RenderHeightmapEditorOverlay(width, height);
     m_canvas.SwapBuffers();
+    m_canvas.RecordRenderedFrame();
 }

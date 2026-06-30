@@ -118,9 +118,9 @@ HeightmapColor ApplyLight(HeightmapColor color, float light)
     };
 }
 
-void DrawLine(const HeightmapPoint& a, const HeightmapPoint& b, float r, float g, float bl, float alpha, float width)
+void DrawLine(const HeightmapPoint& a, const HeightmapPoint& b, float r, float g, float bl, float alpha, float width, float opacity = 1.0f)
 {
-    glColor4f(r, g, bl, alpha);
+    glColor4f(r, g, bl, alpha * opacity);
     glLineWidth(width);
     glBegin(GL_LINES);
     glVertex2f(a.x, a.y);
@@ -128,9 +128,9 @@ void DrawLine(const HeightmapPoint& a, const HeightmapPoint& b, float r, float g
     glEnd();
 }
 
-void DrawColoredLine(const HeightmapPoint& a, const HeightmapPoint& b, const HeightmapColor& color, float alpha, float width)
+void DrawColoredLine(const HeightmapPoint& a, const HeightmapPoint& b, const HeightmapColor& color, float alpha, float width, float opacity = 1.0f)
 {
-    DrawLine(a, b, color.r, color.g, color.b, alpha, width);
+    DrawLine(a, b, color.r, color.g, color.b, alpha, width, opacity);
 }
 
 void DrawVerticalFaceFill(
@@ -140,14 +140,15 @@ void DrawVerticalFaceFill(
     const HeightmapPoint& d,
     uint8_t z0,
     uint8_t z1,
-    float face_light)
+    float face_light,
+    float opacity = 1.0f)
 {
     if (z0 == z1) {
         return;
     }
 
     float light = std::clamp<float>(HeightLight(std::max(z0, z1)) * face_light, 0.0f, 1.0f);
-    glColor4f(light, light, light, 0.35f);
+    glColor4f(light, light, light, 0.35f * opacity);
     glBegin(GL_QUADS);
     glVertex2f(a.x, a.y);
     glVertex2f(b.x, b.y);
@@ -156,7 +157,7 @@ void DrawVerticalFaceFill(
     glEnd();
 }
 
-void DrawTopFace(const HeightmapCell& cell)
+void DrawTopFace(const HeightmapCell& cell, float opacity = 1.0f)
 {
     if (IsInvalidHeightmapCell(cell)) {
         return;
@@ -166,21 +167,21 @@ void DrawTopFace(const HeightmapCell& cell)
     float py = cell.center.y;
     HeightmapColor color = ApplyLight(RestrictionColor(cell.restriction), HeightLight(cell.z) * 1.08f);
 
-    glColor4f(color.r, color.g, color.b, 0.4f);
+    glColor4f(color.r, color.g, color.b, 0.4f * opacity);
     glBegin(GL_QUADS);
     glVertex2f(px, py - 16.0f); glVertex2f(px + 32.0f, py);
     glVertex2f(px, py + 16.0f); glVertex2f(px - 32.0f, py);
     glEnd();
 }
 
-void DrawHoverOutline(const HeightmapCell& cell)
+void DrawHoverOutline(const HeightmapCell& cell, float opacity = 1.0f)
 {
     HeightmapPoint top = {cell.center.x, cell.center.y - 16.0f};
     HeightmapPoint right = {cell.center.x + 32.0f, cell.center.y};
     HeightmapPoint bottom = {cell.center.x, cell.center.y + 16.0f};
     HeightmapPoint left = {cell.center.x - 32.0f, cell.center.y};
 
-    glColor4f(1.0f, 0.95f, 0.0f, 1.0f);
+    glColor4f(1.0f, 0.95f, 0.0f, opacity);
     glLineWidth(2.0f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(top.x, top.y);
@@ -190,12 +191,12 @@ void DrawHoverOutline(const HeightmapCell& cell)
     glEnd();
 }
 
-void DrawRegionEdge(const HeightmapCell& cell, const HeightmapPoint& a, const HeightmapPoint& b)
+void DrawRegionEdge(const HeightmapCell& cell, const HeightmapPoint& a, const HeightmapPoint& b, float opacity = 1.0f)
 {
     DrawColoredLine(
         {cell.center.x + a.x, cell.center.y + a.y},
         {cell.center.x + b.x, cell.center.y + b.y},
-        kOutlineColor, 1.0f, 2.0f);
+        kOutlineColor, 1.0f, 2.0f, opacity);
 }
 
 char HexDigit(uint8_t value)
@@ -404,6 +405,16 @@ void HeightmapRenderer::SetZExtent(float value)
 
 void HeightmapRenderer::Render()
 {
+    RenderInternal(1.0f, true);
+}
+
+void HeightmapRenderer::RenderOverlay(float opacity)
+{
+    RenderInternal(std::clamp(opacity, 0.0f, 1.0f), false);
+}
+
+void HeightmapRenderer::RenderInternal(float opacity, bool show_cell_text)
+{
     if (m_room_w <= 0 || m_room_h <= 0) {
         return;
     }
@@ -472,7 +483,8 @@ void HeightmapRenderer::Render()
             OffsetPoint(low_center, edge_start.x, edge_start.y),
             high.z,
             low_z,
-            face_light);
+            face_light,
+            opacity);
     };
 
     auto continuous_east_wall = [&](int x, int y, uint8_t high_z, uint8_t low_z) {
@@ -524,12 +536,12 @@ void HeightmapRenderer::Render()
         HeightmapPoint bottom_b = OffsetPoint(low_center, 0.0f, 16.0f);
 
         if (!continuous_east_wall(cell.x, cell.y - 1, cell.z, low_z)) {
-            DrawColoredLine(top_a, bottom_a, kOutlineColor, 1.0f, 1.0f);
+            DrawColoredLine(top_a, bottom_a, kOutlineColor, 1.0f, 1.0f, opacity);
         }
         if (!continuous_east_wall(cell.x, cell.y + 1, cell.z, low_z)) {
-            DrawColoredLine(top_b, bottom_b, kOutlineColor, 1.0f, 1.0f);
+            DrawColoredLine(top_b, bottom_b, kOutlineColor, 1.0f, 1.0f, opacity);
         }
-        DrawColoredLine(bottom_a, bottom_b, kOutlineColor, 1.0f, 1.0f);
+        DrawColoredLine(bottom_a, bottom_b, kOutlineColor, 1.0f, 1.0f, opacity);
         draw_height_step(cell, low_z, {32.0f, 0.0f}, {0.0f, 16.0f}, 0.82f);
     };
 
@@ -546,12 +558,12 @@ void HeightmapRenderer::Render()
         HeightmapPoint bottom_b = OffsetPoint(low_center, -32.0f, 0.0f);
 
         if (!continuous_south_wall(cell.x + 1, cell.y, cell.z, low_z)) {
-            DrawColoredLine(top_a, bottom_a, kOutlineColor, 1.0f, 1.0f);
+            DrawColoredLine(top_a, bottom_a, kOutlineColor, 1.0f, 1.0f, opacity);
         }
         if (!continuous_south_wall(cell.x - 1, cell.y, cell.z, low_z)) {
-            DrawColoredLine(top_b, bottom_b, kOutlineColor, 1.0f, 1.0f);
+            DrawColoredLine(top_b, bottom_b, kOutlineColor, 1.0f, 1.0f, opacity);
         }
-        DrawColoredLine(bottom_a, bottom_b, kOutlineColor, 1.0f, 1.0f);
+        DrawColoredLine(bottom_a, bottom_b, kOutlineColor, 1.0f, 1.0f, opacity);
         draw_height_step(cell, low_z, {0.0f, 16.0f}, {-32.0f, 0.0f}, 0.55f);
     };
 
@@ -582,20 +594,22 @@ void HeightmapRenderer::Render()
 
     for (const auto& cell : cells) {
         if (!neighbor_matches_height(cell, cell.x, cell.y - 1)) {
-            DrawRegionEdge(cell, {0.0f, -16.0f}, {32.0f, 0.0f});
+            DrawRegionEdge(cell, {0.0f, -16.0f}, {32.0f, 0.0f}, opacity);
         }
         if (!neighbor_matches_height(cell, cell.x + 1, cell.y)) {
-            DrawRegionEdge(cell, {32.0f, 0.0f}, {0.0f, 16.0f});
+            DrawRegionEdge(cell, {32.0f, 0.0f}, {0.0f, 16.0f}, opacity);
         }
         if (!neighbor_matches_height(cell, cell.x, cell.y + 1)) {
-            DrawRegionEdge(cell, {0.0f, 16.0f}, {-32.0f, 0.0f});
+            DrawRegionEdge(cell, {0.0f, 16.0f}, {-32.0f, 0.0f}, opacity);
         }
         if (!neighbor_matches_height(cell, cell.x - 1, cell.y)) {
-            DrawRegionEdge(cell, {-32.0f, 0.0f}, {0.0f, -16.0f});
+            DrawRegionEdge(cell, {-32.0f, 0.0f}, {0.0f, -16.0f}, opacity);
         }
 
-        DrawCellText(cell);
-        DrawTopFace(cell);
+        if (show_cell_text) {
+            DrawCellText(cell);
+        }
+        DrawTopFace(cell, opacity);
         draw_east_wall(cell);
         draw_south_wall(cell);
     }
@@ -609,7 +623,7 @@ void HeightmapRenderer::Render()
         m_hover_y < map->GetHeightmapHeight()) {
         HeightmapCell hover_cell = get_cell(m_hover_x, m_hover_y);
         if (IsDrawableCell(hover_cell)) {
-            DrawHoverOutline(hover_cell);
+            DrawHoverOutline(hover_cell, opacity);
         }
     }
 

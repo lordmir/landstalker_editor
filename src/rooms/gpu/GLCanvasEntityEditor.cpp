@@ -73,8 +73,9 @@ void GLCanvasEntityEditor::AddEntity()
 	}
 
 	Landstalker::Entity entity;
-	float x = float(m_canvas.m_mapRenderer.GetRoomLeft()) + float(m_canvas.m_mapRenderer.GetRoomWidth()) * 0.5f;
-	float y = float(m_canvas.m_mapRenderer.GetRoomTop()) + float(m_canvas.m_mapRenderer.GetRoomHeight()) * 0.5f;
+	auto [cell_x, cell_y] = m_canvas.MouseHeightmapCell();
+	float x = static_cast<float>(cell_x) + 0.5f;
+	float y = static_cast<float>(cell_y) + 0.5f;
 	entity.SetXDbl(std::clamp<double>(x, 0.5, 63.5));
 	entity.SetYDbl(std::clamp<double>(y, 0.5, 63.5));
 	entity.SetZDbl(m_canvas.FloorUnderPoint(float(entity.GetXDbl()), float(entity.GetYDbl())));
