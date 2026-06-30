@@ -8,6 +8,7 @@ GLCanvasLayerEditMode::GLCanvasLayerEditMode(MyGLCanvas& canvas)
 bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
 {
     bool ctrl = evt.ControlDown();
+    bool shift = evt.ShiftDown();
 
     switch (evt.GetKeyCode()) {
         case '1':
@@ -44,7 +45,34 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
             }
             return true;
         case WXK_ESCAPE:
-            m_canvas.ClearEditSelection();
+            if (m_canvas.m_layer_dragging_select || m_canvas.m_layer_dragging_draw ||
+                m_canvas.m_layer_dragging_selection_move || m_canvas.m_layer_dragging_line) {
+                if (m_canvas.m_layer_dragging_draw) {
+                    m_canvas.CommitLayerDrawStroke();
+                }
+                if (m_canvas.m_layer_dragging_line) {
+                    m_canvas.CancelLayerLineDrag();
+                }
+                if (m_canvas.m_layer_dragging_select) {
+                    m_canvas.FinishLayerSelectionDrag();
+                }
+                if (m_canvas.m_layer_dragging_selection_move) {
+                    m_canvas.CancelLayerSelectionMoveDrag();
+                }
+                m_canvas.m_layer_dragging_select = false;
+                m_canvas.m_layer_dragging_draw = false;
+                m_canvas.m_layer_dragging_selection_move = false;
+                m_canvas.m_layer_dragging_line = false;
+                m_canvas.m_layer_last_draw_x = -1;
+                m_canvas.m_layer_last_draw_y = -1;
+                if (m_canvas.HasCapture()) {
+                    m_canvas.ReleaseMouse();
+                }
+            } else if (m_canvas.m_drawing_tool != MyGLCanvas::DrawingTool::Select) {
+                m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Select);
+            } else {
+                m_canvas.ClearEditSelection();
+            }
             m_canvas.Refresh();
             return true;
         case 'c':
@@ -55,6 +83,18 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
         case WXK_SPACE:
             m_canvas.PasteSelectedBackgroundBlock();
             m_canvas.Refresh();
+            return true;
+        case WXK_DELETE:
+        case WXK_NUMPAD_DELETE:
+            m_canvas.ClearSelectedLayerCells();
+            return true;
+        case ',':
+        case '<':
+            m_canvas.AdjustSelectedBlockId(ctrl ? -256 : (shift ? -16 : -1));
+            return true;
+        case '.':
+        case '>':
+            m_canvas.AdjustSelectedBlockId(ctrl ? 256 : (shift ? 16 : 1));
             return true;
         case 'w':
         case 'W':
@@ -130,44 +170,93 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
     } else {
         m_canvas.m_background_has_hover = false;
     }
-    if (m_canvas.m_layer_dragging_draw &&
+
+    if (m_canvas.m_layer_dragging_selection_move && m_canvas.m_background_has_hover) {
+        m_canvas.UpdateLayerSelectionMoveDrag(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y);
+    } else if (m_canvas.m_layer_dragging_line && m_canvas.m_background_has_hover) {
+        m_canvas.UpdateLayerLineDrag(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y, evt.ShiftDown());
+    } else if (m_canvas.m_layer_dragging_select && m_canvas.m_background_has_hover) {
+        m_canvas.UpdateLayerSelectionDrag(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y);
+    } else if (m_canvas.m_layer_dragging_draw &&
         m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&
         m_canvas.m_background_has_hover &&
         (m_canvas.m_background_hover_x != m_canvas.m_layer_last_draw_x ||
          m_canvas.m_background_hover_y != m_canvas.m_layer_last_draw_y)) {
-        m_canvas.m_background_selected_x = m_canvas.m_background_hover_x;
-        m_canvas.m_background_selected_y = m_canvas.m_background_hover_y;
-        m_canvas.m_background_has_selection = true;
         if (m_canvas.PasteBackgroundBlockAt(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y, true)) {
             m_canvas.m_layer_last_draw_x = m_canvas.m_background_hover_x;
             m_canvas.m_layer_last_draw_y = m_canvas.m_background_hover_y;
         }
     }
-    m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
+    m_canvas.SetCursor(wxCursor(
+        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select &&
+        m_canvas.m_background_has_hover &&
+        m_canvas.IsLayerCellSelected(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y) ?
+        wxCURSOR_HAND : wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 
 void GLCanvasLayerEditMode::HandleLeftDown(const wxMouseEvent& evt)
 {
-    if (!m_canvas.SelectBackgroundCellAt(evt.GetPosition())) {
+    int x = -1;
+    int y = -1;
+    if (!m_canvas.BackgroundCellAt(evt.GetPosition(), x, y)) {
+        m_canvas.Refresh();
         return;
     }
+
     if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw) {
         m_canvas.m_layer_dragging_draw = true;
-        m_canvas.m_layer_last_draw_x = m_canvas.m_background_selected_x;
-        m_canvas.m_layer_last_draw_y = m_canvas.m_background_selected_y;
-        m_canvas.PasteBackgroundBlockAt(m_canvas.m_background_selected_x, m_canvas.m_background_selected_y, true);
-        if (!m_canvas.HasCapture()) {
-            m_canvas.CaptureMouse();
-        }
+        m_canvas.m_layer_last_draw_x = x;
+        m_canvas.m_layer_last_draw_y = y;
+        m_canvas.PasteBackgroundBlockAt(x, y, true);
+    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Line) {
+        m_canvas.BeginLayerLineDrag(x, y, evt.ShiftDown());
+    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select && m_canvas.IsLayerCellSelected(x, y)) {
+        m_canvas.BeginLayerSelectionMoveDrag(x, y);
+    } else {
+        m_canvas.BeginLayerSelectionDrag(x, y, evt.ShiftDown(), evt.ControlDown(), evt.AltDown());
+    }
+
+    if ((m_canvas.m_layer_dragging_select || m_canvas.m_layer_dragging_draw ||
+         m_canvas.m_layer_dragging_selection_move || m_canvas.m_layer_dragging_line) && !m_canvas.HasCapture()) {
+        m_canvas.CaptureMouse();
     }
     m_canvas.Refresh();
 }
 
 void GLCanvasLayerEditMode::HandleRightDown(const wxMouseEvent& evt)
 {
-    m_canvas.SelectBackgroundCellAt(evt.GetPosition());
-    m_canvas.CopySelectedBackgroundBlock();
+    if (m_canvas.m_layer_dragging_select || m_canvas.m_layer_dragging_draw ||
+        m_canvas.m_layer_dragging_selection_move || m_canvas.m_layer_dragging_line) {
+        if (m_canvas.m_layer_dragging_draw) {
+            m_canvas.CommitLayerDrawStroke();
+        }
+        if (m_canvas.m_layer_dragging_line) {
+            m_canvas.CancelLayerLineDrag();
+        }
+        if (m_canvas.m_layer_dragging_select) {
+            m_canvas.FinishLayerSelectionDrag();
+        }
+        if (m_canvas.m_layer_dragging_selection_move) {
+            m_canvas.CancelLayerSelectionMoveDrag();
+        }
+        m_canvas.m_layer_dragging_select = false;
+        m_canvas.m_layer_dragging_draw = false;
+        m_canvas.m_layer_dragging_selection_move = false;
+        m_canvas.m_layer_dragging_line = false;
+        m_canvas.m_layer_last_draw_x = -1;
+        m_canvas.m_layer_last_draw_y = -1;
+        if (m_canvas.HasCapture()) {
+            m_canvas.ReleaseMouse();
+        }
+        m_canvas.Refresh();
+        return;
+    }
+    int x = -1;
+    int y = -1;
+    if (m_canvas.BackgroundCellAt(evt.GetPosition(), x, y)) {
+        m_canvas.CopyBackgroundBlockAt(x, y);
+    }
     m_canvas.Refresh();
 }
 
@@ -190,6 +279,33 @@ void GLCanvasLayerEditMode::Render(int width, int height)
 
     if (m_canvas.m_layer_heightmap_overlay) {
         m_canvas.m_heightmapRenderer.RenderOverlay(0.55f);
+    }
+
+    if (m_canvas.m_layer_dragging_line && m_canvas.m_background_clipboard_valid) {
+        auto map = m_canvas.CurrentRoomMap();
+        const int w = m_canvas.m_mapRenderer.GetRoomWidth();
+        const int h = m_canvas.m_mapRenderer.GetRoomHeight();
+        for (const auto& cell : m_canvas.m_layer_line_preview_cells) {
+            int x = cell.first;
+            int y = cell.second;
+            int block_index = y * w + x;
+            const bool valid_preview_cell = map && x >= 0 && y >= 0 &&
+                x < w && y < h &&
+                block_index >= 0 && block_index < map->GetWidth() * map->GetHeight();
+            if (!valid_preview_cell) {
+                continue;
+            }
+            if (map->GetBlock(static_cast<uint16_t>(block_index), m_canvas.CurrentEditLayer()).value ==
+                m_canvas.m_background_clipboard_block_id) {
+                continue;
+            }
+            m_canvas.m_mapRenderer.RenderBlockGhost(
+                m_canvas.m_background_clipboard_block_id,
+                x,
+                y,
+                0.42f,
+                m_canvas.CurrentEditLayer());
+        }
     }
 
     if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&

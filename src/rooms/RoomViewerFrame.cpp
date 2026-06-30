@@ -1800,7 +1800,15 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Stamp);
 			break;
 		case TOOL_CLEAR:
-			if (m_gpuview) m_gpuview->ClearSelectedHeightmapCells();
+			if (m_gpuview && (m_gpuview->GetEditorMode() == MyGLCanvas::EditorMode::BackgroundLayer ||
+			                  m_gpuview->GetEditorMode() == MyGLCanvas::EditorMode::ForegroundLayer))
+			{
+				m_gpuview->ClearSelectedLayerCells();
+			}
+			else if (m_gpuview)
+			{
+				m_gpuview->ClearSelectedHeightmapCells();
+			}
 			break;
 		case HM_TYPE_DROPDOWN:
 		case HM_ZOOM:
