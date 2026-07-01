@@ -582,7 +582,62 @@ void GLCanvasRoomMode::Render(int width, int height)
 
     const GLint sprite_occlusion_ref = m_canvas.m_show_heightmap ? 0x01 : 0x05;
     const GLint sprite_occlusion_mask = m_canvas.m_show_heightmap ? 0x01 : 0x05;
-    if (m_canvas.m_show_entities || m_canvas.m_show_hitboxes) {
+    auto build_entity_occlusion_stencil = [this](
+        GLint entity_back_depth,
+        GLint entity_front_depth,
+        float entity_z,
+        float entity_min_x,
+        float entity_min_y,
+        float entity_max_x,
+        float entity_max_y,
+        float entity_top_z,
+        float sprite_min_x,
+        float sprite_min_y,
+        float sprite_max_x,
+        float sprite_max_y) {
+        m_canvas.m_heightmapRenderer.BuildEntityOcclusionStencil(
+            entity_back_depth,
+            entity_front_depth,
+            entity_z,
+            entity_min_x,
+            entity_min_y,
+            entity_max_x,
+            entity_max_y,
+            entity_top_z,
+            sprite_min_x,
+            sprite_min_y,
+            sprite_max_x,
+            sprite_max_y);
+        if (!m_canvas.m_show_heightmap) {
+            m_canvas.m_mapRenderer.BuildForegroundCoverageStencil();
+        }
+    };
+    auto floor_at_point = [this](float x, float y) {
+        return m_canvas.FloorUnderPoint(x, y);
+    };
+    auto shadow_occluded = [this](float min_x, float min_y, float max_x, float max_y, float z) {
+        return m_canvas.ShadowOccludedByHeightmap(min_x, min_y, max_x, max_y, z);
+    };
+    auto build_shadow_occlusion_stencil = [this](float min_x, float min_y, float max_x, float max_y, float z, float screen_min_x, float screen_min_y, float screen_max_x, float screen_max_y) {
+        GLint back_depth = std::clamp(static_cast<int>(std::floor(min_x + min_y + 1.0f)), 0, 255);
+        GLint front_depth = std::clamp(static_cast<int>(std::ceil(max_x + max_y + 25.0f)), 0, 255);
+        m_canvas.m_heightmapRenderer.BuildEntityOcclusionStencil(
+            back_depth,
+            front_depth,
+            z,
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+            z + 0.125f,
+            screen_min_x,
+            screen_min_y,
+            screen_max_x,
+            screen_max_y);
+    };
+
+    bool pending_entity_preview = m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity;
+    if (m_canvas.m_show_entities || m_canvas.m_show_hitboxes || pending_entity_preview) {
         std::set<uint32_t> collided_entities = m_canvas.FindCollidedEntityIds();
         int selected_collision_warning = 0;
         if (m_canvas.m_selected_entity_idx >= 0 &&
@@ -595,76 +650,54 @@ void GLCanvasRoomMode::Render(int width, int height)
             }
         }
 
-        m_canvas.m_spriteRenderer.Render(
-            m_canvas.m_instances,
-            m_canvas.m_cam_x,
-            m_canvas.m_cam_y,
-            m_canvas.m_selected_entity_idx,
-            selected_collision_warning,
-            occlusion_mode,
-            m_canvas.m_show_entities,
-            m_canvas.m_show_hitboxes,
-            sprite_occlusion_ref,
-            sprite_occlusion_mask,
-            [this](
-                GLint entity_back_depth,
-                GLint entity_front_depth,
-                float entity_z,
-                float entity_min_x,
-                float entity_min_y,
-                float entity_max_x,
-                float entity_max_y,
-                float entity_top_z,
-                float sprite_min_x,
-                float sprite_min_y,
-                float sprite_max_x,
-                float sprite_max_y) {
-                m_canvas.m_heightmapRenderer.BuildEntityOcclusionStencil(
-                    entity_back_depth,
-                    entity_front_depth,
-                    entity_z,
-                    entity_min_x,
-                    entity_min_y,
-                    entity_max_x,
-                    entity_max_y,
-                    entity_top_z,
-                    sprite_min_x,
-                    sprite_min_y,
-                    sprite_max_x,
-                    sprite_max_y);
-                if (!m_canvas.m_show_heightmap) {
-                    m_canvas.m_mapRenderer.BuildForegroundCoverageStencil();
-                }
-            },
-            [this](float x, float y) {
-                return m_canvas.FloorUnderPoint(x, y);
-            },
-            [this](float min_x, float min_y, float max_x, float max_y, float z) {
-                return m_canvas.ShadowOccludedByHeightmap(min_x, min_y, max_x, max_y, z);
-            },
-            [this](float min_x, float min_y, float max_x, float max_y, float z, float screen_min_x, float screen_min_y, float screen_max_x, float screen_max_y) {
-                GLint back_depth = std::clamp(static_cast<int>(std::floor(min_x + min_y + 1.0f)), 0, 255);
-                GLint front_depth = std::clamp(static_cast<int>(std::ceil(max_x + max_y + 25.0f)), 0, 255);
-                m_canvas.m_heightmapRenderer.BuildEntityOcclusionStencil(
-                    back_depth,
-                    front_depth,
-                    z,
-                    min_x,
-                    min_y,
-                    max_x,
-                    max_y,
-                    z + 0.125f,
-                    screen_min_x,
-                    screen_min_y,
-                    screen_max_x,
-                    screen_max_y);
-            },
-            [&collided_entities](uint32_t instance_id) {
-                return collided_entities.count(instance_id) != 0;
-            });
+        if (m_canvas.m_show_entities || m_canvas.m_show_hitboxes) {
+            m_canvas.m_spriteRenderer.Render(
+                m_canvas.m_instances,
+                m_canvas.m_cam_x,
+                m_canvas.m_cam_y,
+                m_canvas.m_selected_entity_idx,
+                selected_collision_warning,
+                occlusion_mode,
+                m_canvas.m_show_entities,
+                m_canvas.m_show_hitboxes,
+                sprite_occlusion_ref,
+                sprite_occlusion_mask,
+                build_entity_occlusion_stencil,
+                floor_at_point,
+                shadow_occluded,
+                build_shadow_occlusion_stencil,
+                [&collided_entities](uint32_t instance_id) {
+                    return collided_entities.count(instance_id) != 0;
+                });
 
-        m_canvas.RenderEntityControls();
-        m_canvas.RenderSelectedEntityTooltip();
+            m_canvas.RenderEntityControls();
+            m_canvas.RenderSelectedEntityTooltip();
+        }
+
+        SpriteInstance ghost{};
+        if (m_canvas.BuildPendingEntityPreviewInstance(ghost)) {
+            std::vector<SpriteInstance> ghost_instances{ghost};
+            m_canvas.m_spriteRenderer.SetOpacity(0.45f);
+            m_canvas.m_spriteRenderer.Render(
+                ghost_instances,
+                m_canvas.m_cam_x,
+                m_canvas.m_cam_y,
+                -1,
+                0,
+                occlusion_mode,
+                true,
+                m_canvas.m_show_hitboxes,
+                sprite_occlusion_ref,
+                sprite_occlusion_mask,
+                build_entity_occlusion_stencil,
+                floor_at_point,
+                shadow_occluded,
+                build_shadow_occlusion_stencil,
+                [](uint32_t) {
+                    return false;
+                });
+            m_canvas.m_spriteRenderer.SetOpacity(OpacityForIndex(m_canvas.m_sprite_opacity_idx));
+        }
     }
     if (m_canvas.m_show_warps) {
         m_canvas.RenderSelectedWarpTooltip();

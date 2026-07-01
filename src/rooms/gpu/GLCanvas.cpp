@@ -2095,16 +2095,53 @@ bool MyGLCanvas::HandleKeyDown(wxKeyEvent& evt) {
 }
 
 bool MyGLCanvas::CanUndo() const {
-    return IsObjectHistoryMode() ? !m_object_undo_stack.empty() : !m_map_undo_stack.empty();
+    if (IsObjectHistoryMode()) {
+        return !m_object_undo_stack.empty();
+    }
+    if (IsBackgroundLayerHistoryMode()) {
+        return !m_bg_layer_undo_stack.empty();
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        return !m_fg_layer_undo_stack.empty();
+    }
+    return !m_map_undo_stack.empty();
 }
 
 bool MyGLCanvas::CanRedo() const {
-    return IsObjectHistoryMode() ? !m_object_redo_stack.empty() : !m_map_redo_stack.empty();
+    if (IsObjectHistoryMode()) {
+        return !m_object_redo_stack.empty();
+    }
+    if (IsBackgroundLayerHistoryMode()) {
+        return !m_bg_layer_redo_stack.empty();
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        return !m_fg_layer_redo_stack.empty();
+    }
+    return !m_map_redo_stack.empty();
 }
 
 void MyGLCanvas::CaptureUndoState() {
     auto map = CurrentRoomMap();
     if (!map) {
+        return;
+    }
+
+    if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
+        }
+        m_bg_layer_redo_stack.clear();
+        NotifyHeightmapTargetChanged();
+        return;
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
+        }
+        m_fg_layer_redo_stack.clear();
+        NotifyHeightmapTargetChanged();
         return;
     }
 
@@ -2162,6 +2199,72 @@ void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
 
 bool MyGLCanvas::IsObjectHistoryMode() const {
     return m_editor_mode == EditorMode::Room;
+}
+
+bool MyGLCanvas::IsBackgroundLayerHistoryMode() const {
+    return m_editor_mode == EditorMode::BackgroundLayer;
+}
+
+bool MyGLCanvas::IsForegroundLayerHistoryMode() const {
+    return m_editor_mode == EditorMode::ForegroundLayer;
+}
+
+MyGLCanvas::LayerUndoState MyGLCanvas::BuildLayerUndoState(Tilemap3D::Layer layer) const {
+    LayerUndoState state{};
+    state.layer = layer;
+
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return state;
+    }
+
+    int count = map->GetWidth() * map->GetHeight();
+    state.blocks.reserve(static_cast<std::size_t>(std::max(0, count)));
+    for (int i = 0; i < count; ++i) {
+        state.blocks.push_back(map->GetBlock(static_cast<uint16_t>(i), layer).value);
+    }
+    return state;
+}
+
+void MyGLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    int count = map->GetWidth() * map->GetHeight();
+    int restore_count = std::min<int>(count, static_cast<int>(state.blocks.size()));
+    for (int i = 0; i < restore_count; ++i) {
+        map->SetBlock(state.blocks[static_cast<std::size_t>(i)], static_cast<uint16_t>(i), state.layer);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetBlock(state.blocks[static_cast<std::size_t>(i)], static_cast<uint16_t>(i), state.layer);
+        }
+    }
+
+    m_layer_dragging_select = false;
+    m_layer_dragging_draw = false;
+    m_layer_dragging_selection_move = false;
+    m_layer_dragging_line = false;
+    m_layer_draw_dirty = false;
+    m_layer_selection_drag_base.clear();
+    m_layer_selection_move_values.clear();
+    m_layer_line_preview_cells.clear();
+    m_layer_last_draw_x = -1;
+    m_layer_last_draw_y = -1;
+    m_layer_line_start_x = -1;
+    m_layer_line_start_y = -1;
+    m_layer_line_end_x = -1;
+    m_layer_line_end_y = -1;
+    m_layer_selection_move_anchor_x = -1;
+    m_layer_selection_move_anchor_y = -1;
+    m_layer_selection_move_delta_x = 0;
+    m_layer_selection_move_delta_y = 0;
+
+    ClampBackgroundSelection();
+    ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
+    UpdateStatusBar();
+    Refresh();
 }
 
 std::vector<Entity> MyGLCanvas::BuildCurrentRoomEntities() const {
@@ -2308,6 +2411,10 @@ void MyGLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
 void MyGLCanvas::ClearUndoRedoHistory() {
     m_map_undo_stack.clear();
     m_map_redo_stack.clear();
+    m_bg_layer_undo_stack.clear();
+    m_bg_layer_redo_stack.clear();
+    m_fg_layer_undo_stack.clear();
+    m_fg_layer_redo_stack.clear();
     m_object_undo_stack.clear();
     m_object_redo_stack.clear();
     NotifyHeightmapTargetChanged();
@@ -2323,6 +2430,16 @@ void MyGLCanvas::Undo() {
         auto previous = m_object_undo_stack.back();
         m_object_undo_stack.pop_back();
         RestoreObjectUndoState(previous);
+    } else if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        auto previous = m_bg_layer_undo_stack.back();
+        m_bg_layer_undo_stack.pop_back();
+        RestoreLayerUndoState(previous);
+    } else if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        auto previous = m_fg_layer_undo_stack.back();
+        m_fg_layer_undo_stack.pop_back();
+        RestoreLayerUndoState(previous);
     } else {
         auto map = CurrentRoomMap();
         if (!map) {
@@ -2349,6 +2466,22 @@ void MyGLCanvas::Redo() {
         auto next = m_object_redo_stack.back();
         m_object_redo_stack.pop_back();
         RestoreObjectUndoState(next);
+    } else if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
+        }
+        auto next = m_bg_layer_redo_stack.back();
+        m_bg_layer_redo_stack.pop_back();
+        RestoreLayerUndoState(next);
+    } else if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
+        }
+        auto next = m_fg_layer_redo_stack.back();
+        m_fg_layer_redo_stack.pop_back();
+        RestoreLayerUndoState(next);
     } else {
         auto map = CurrentRoomMap();
         if (!map) {
@@ -2484,12 +2617,22 @@ void MyGLCanvas::OnLeftDClick(wxMouseEvent& evt) {
 void MyGLCanvas::OnLeftUp(wxMouseEvent& evt) {
     if (m_heightmap_dragging_select || m_heightmap_dragging_draw || m_heightmap_dragging_line || m_heightmap_dragging_selection_move) {
         if (m_heightmap_dragging_select) {
+            int cell_x = -1;
+            int cell_y = -1;
+            if (HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+                UpdateHeightmapSelectionDrag(cell_x, cell_y);
+            }
             FinishHeightmapSelectionDrag();
         }
         if (m_heightmap_dragging_draw) {
             CommitHeightmapDrawStroke();
         }
         if (m_heightmap_dragging_line) {
+            int cell_x = -1;
+            int cell_y = -1;
+            if (HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+                UpdateHeightmapLineDrag(cell_x, cell_y, evt.ShiftDown());
+            }
             CommitHeightmapLineDrag();
         }
         if (m_heightmap_dragging_selection_move) {
@@ -2506,7 +2649,7 @@ void MyGLCanvas::OnLeftUp(wxMouseEvent& evt) {
         if (m_layer_dragging_select) {
             int cell_x = -1;
             int cell_y = -1;
-            if (BackgroundCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            if (BackgroundVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
                 UpdateLayerSelectionDrag(cell_x, cell_y);
             }
             FinishLayerSelectionDrag();
@@ -2525,8 +2668,8 @@ void MyGLCanvas::OnLeftUp(wxMouseEvent& evt) {
         if (m_layer_dragging_line) {
             int cell_x = -1;
             int cell_y = -1;
-            if (BackgroundCellAt(evt.GetPosition(), cell_x, cell_y)) {
-                UpdateLayerLineDrag(cell_x, cell_y, evt.ShiftDown());
+            if (BackgroundVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+                UpdateLayerLineDrag(cell_x, cell_y, evt.ShiftDown(), evt.AltDown());
             }
             CommitLayerLineDrag();
         }
@@ -2774,6 +2917,22 @@ bool MyGLCanvas::HeightmapCellAt(const wxPoint& point, int& cell_x, int& cell_y)
     return true;
 }
 
+bool MyGLCanvas::HeightmapVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const {
+    auto map = CurrentRoomMap();
+    if (!map || point == wxDefaultPosition) {
+        return false;
+    }
+
+    PickPoint map_point = ScreenToHeightmapPoint(
+        ScreenToWorldX(point.x),
+        ScreenToWorldY(point.y),
+        static_cast<float>(m_mapRenderer.GetRoomLeft()),
+        static_cast<float>(m_mapRenderer.GetRoomTop()));
+    cell_x = static_cast<int>(std::floor(map_point.x));
+    cell_y = static_cast<int>(std::floor(map_point.y));
+    return true;
+}
+
 bool MyGLCanvas::BackgroundCellAt(const wxPoint& point, int& cell_x, int& cell_y) const {
     auto map = CurrentRoomMap();
     if (!map || point == wxDefaultPosition) {
@@ -2815,6 +2974,22 @@ bool MyGLCanvas::BackgroundCellAt(const wxPoint& point, int& cell_x, int& cell_y
 
     cell_x = best_x;
     cell_y = best_y;
+    return true;
+}
+
+bool MyGLCanvas::BackgroundVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const {
+    auto map = CurrentRoomMap();
+    if (!map || point == wxDefaultPosition) {
+        return false;
+    }
+
+    float x_offset = CurrentEditLayer() == Tilemap3D::Layer::FG ? -32.0f : 0.0f;
+    float world_x = ScreenToWorldX(point.x) - x_offset - 16.0f;
+    float world_y = ScreenToWorldY(point.y) - 16.0f;
+    float a = (world_x - 512.0f) / 32.0f;
+    float b = (world_y - 100.0f) / 16.0f;
+    cell_x = static_cast<int>(std::round((a + b) * 0.5f));
+    cell_y = static_cast<int>(std::round((b - a) * 0.5f));
     return true;
 }
 
@@ -2915,12 +3090,20 @@ void MyGLCanvas::UpdateLayerSelectionDrag(int x, int y) {
         return;
     }
 
-    m_background_selected_x = std::clamp(x, 0, m_mapRenderer.GetRoomWidth() - 1);
-    m_background_selected_y = std::clamp(y, 0, m_mapRenderer.GetRoomHeight() - 1);
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+    m_background_selected_x = std::clamp(x, 0, width - 1);
+    m_background_selected_y = std::clamp(y, 0, height - 1);
     m_background_has_selection = true;
 
     m_layer_selected_cells = m_layer_selection_drag_base;
-    auto apply_cell = [this](int cell_x, int cell_y) {
+    auto apply_cell = [this, width, height](int cell_x, int cell_y) {
+        if (cell_x < 0 || cell_y < 0 || cell_x >= width || cell_y >= height) {
+            return;
+        }
         if (m_layer_selection_subtract) {
             m_layer_selected_cells.erase({cell_x, cell_y});
         } else {
@@ -2930,17 +3113,17 @@ void MyGLCanvas::UpdateLayerSelectionDrag(int x, int y) {
 
     if (m_layer_selection_parallelogram) {
         int anchor_u = m_layer_selection_drag_anchor_x - m_layer_selection_drag_anchor_y;
-        int target_u = m_background_selected_x - m_background_selected_y;
+        int target_u = x - y;
         int min_u = std::min(anchor_u, target_u);
         int max_u = std::max(anchor_u, target_u);
         bool track_x_axis = target_u < anchor_u ||
-            (target_u == anchor_u && m_background_selected_x < m_layer_selection_drag_anchor_x);
+            (target_u == anchor_u && x < m_layer_selection_drag_anchor_x);
         int anchor_axis = track_x_axis ? m_layer_selection_drag_anchor_x : m_layer_selection_drag_anchor_y;
-        int target_axis = track_x_axis ? m_background_selected_x : m_background_selected_y;
+        int target_axis = track_x_axis ? x : y;
         int min_axis = std::min(anchor_axis, target_axis);
         int max_axis = std::max(anchor_axis, target_axis);
-        for (int cell_y = 0; cell_y < m_mapRenderer.GetRoomHeight(); ++cell_y) {
-            for (int cell_x = 0; cell_x < m_mapRenderer.GetRoomWidth(); ++cell_x) {
+        for (int cell_y = 0; cell_y < height; ++cell_y) {
+            for (int cell_x = 0; cell_x < width; ++cell_x) {
                 int u = cell_x - cell_y;
                 int axis = track_x_axis ? cell_x : cell_y;
                 if (u >= min_u && u <= max_u && axis >= min_axis && axis <= max_axis) {
@@ -2949,12 +3132,12 @@ void MyGLCanvas::UpdateLayerSelectionDrag(int x, int y) {
             }
         }
     } else {
-        int min_x = std::min(m_layer_selection_drag_anchor_x, m_background_selected_x);
-        int max_x = std::max(m_layer_selection_drag_anchor_x, m_background_selected_x);
-        int min_y = std::min(m_layer_selection_drag_anchor_y, m_background_selected_y);
-        int max_y = std::max(m_layer_selection_drag_anchor_y, m_background_selected_y);
-        for (int cell_y = min_y; cell_y <= max_y; ++cell_y) {
-            for (int cell_x = min_x; cell_x <= max_x; ++cell_x) {
+        int min_x = std::min(m_layer_selection_drag_anchor_x, x);
+        int max_x = std::max(m_layer_selection_drag_anchor_x, x);
+        int min_y = std::min(m_layer_selection_drag_anchor_y, y);
+        int max_y = std::max(m_layer_selection_drag_anchor_y, y);
+        for (int cell_y = std::max(min_y, 0); cell_y <= std::min(max_y, height - 1); ++cell_y) {
+            for (int cell_x = std::max(min_x, 0); cell_x <= std::min(max_x, width - 1); ++cell_x) {
                 apply_cell(cell_x, cell_y);
             }
         }
@@ -3127,13 +3310,12 @@ std::pair<int, int> MyGLCanvas::SnapLayerLineEnd(int start_x, int start_y, int e
         return {end_x, end_y};
     }
 
+    int k = static_cast<int>(std::round(static_cast<double>(dx + dy) * 0.5));
+
     std::array<std::pair<int, int>, 3> candidates{{
         {end_x, start_y},
         {start_x, end_y},
-        [=]() {
-            int k = static_cast<int>(std::round(static_cast<double>(dx + dy) * 0.5));
-            return std::pair<int, int>{start_x + k, start_y + k};
-        }()
+        {start_x + k, start_y + k}
     }};
 
     auto distance_sq = [end_x, end_y](const std::pair<int, int>& point) {
@@ -3146,28 +3328,260 @@ std::pair<int, int> MyGLCanvas::SnapLayerLineEnd(int start_x, int start_y, int e
     });
 }
 
-void MyGLCanvas::BeginLayerLineDrag(int x, int y, bool shift_down) {
+std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenLineCells(int start_x, int start_y, int end_x, int end_y) const {
+    std::set<std::pair<int, int>> unique_cells;
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    if (width <= 0 || height <= 0) {
+        return {};
+    }
+
+    auto to_screen = [](int x, int y) {
+        return PickPoint{
+            32.0f * static_cast<float>(x - y),
+            16.0f * static_cast<float>(x + y)
+        };
+    };
+    auto add_screen_point = [&](float sx, float sy) {
+        float map_x = ((sy / 16.0f) + (sx / 32.0f)) * 0.5f;
+        float map_y = ((sy / 16.0f) - (sx / 32.0f)) * 0.5f;
+        int cell_x = static_cast<int>(std::round(map_x));
+        int cell_y = static_cast<int>(std::round(map_y));
+        if (cell_x >= 0 && cell_y >= 0 && cell_x < width && cell_y < height) {
+            unique_cells.insert({cell_x, cell_y});
+        }
+    };
+
+    PickPoint start = to_screen(start_x, start_y);
+    PickPoint end = to_screen(end_x, end_y);
+    float dx = end.x - start.x;
+    float dy = end.y - start.y;
+    float distance = std::sqrt(dx * dx + dy * dy);
+    int steps = std::max(1, static_cast<int>(std::ceil(distance / 8.0f)));
+    for (int i = 0; i <= steps; ++i) {
+        float t = static_cast<float>(i) / static_cast<float>(steps);
+        add_screen_point(start.x + dx * t, start.y + dy * t);
+    }
+
+    return {unique_cells.begin(), unique_cells.end()};
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenCircleCells(
+    int start_x,
+    int start_y,
+    int end_x,
+    int end_y,
+    bool filled) const {
+    std::vector<std::pair<int, int>> cells;
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+
+    auto to_screen = [](int x, int y) {
+        return PickPoint{
+            32.0f * static_cast<float>(x - y),
+            16.0f * static_cast<float>(x + y)
+        };
+    };
+
+    PickPoint start = to_screen(start_x, start_y);
+    PickPoint end = to_screen(end_x, end_y);
+    float min_x = std::min(start.x, end.x);
+    float max_x = std::max(start.x, end.x);
+    float min_y = std::min(start.y, end.y);
+    float max_y = std::max(start.y, end.y);
+    float radius_x = std::max(16.0f, (max_x - min_x + 32.0f) * 0.5f);
+    float radius_y = std::max(8.0f, (max_y - min_y + 16.0f) * 0.5f);
+    float center_x = (min_x + max_x) * 0.5f;
+    float center_y = (min_y + max_y) * 0.5f;
+
+    auto inside = [&](int x, int y) {
+        PickPoint point = to_screen(x, y);
+        float dx = (point.x - center_x) / radius_x;
+        float dy = (point.y - center_y) / radius_y;
+        return dx * dx + dy * dy <= 1.0f;
+    };
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (!inside(x, y)) {
+                continue;
+            }
+            bool outline = !inside(x - 1, y) || !inside(x + 1, y) ||
+                           !inside(x, y - 1) || !inside(x, y + 1);
+            if (filled || outline) {
+                cells.push_back({x, y});
+            }
+        }
+    }
+
+    return cells;
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewRectCells(
+    int start_x,
+    int start_y,
+    int end_x,
+    int end_y,
+    bool filled,
+    bool lock_equal) const {
+    std::vector<std::pair<int, int>> cells;
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    int anchor_u = start_x - start_y;
+    int target_u = end_x - end_y;
+    bool track_x_axis = target_u < anchor_u || (target_u == anchor_u && end_x < start_x);
+    int anchor_axis = track_x_axis ? start_x : start_y;
+    int target_axis = track_x_axis ? end_x : end_y;
+
+    if (lock_equal) {
+        int du = target_u - anchor_u;
+        int da = target_axis - anchor_axis;
+        int size = std::max(std::abs(du), std::abs(da));
+        int step_u = du < 0 ? -1 : 1;
+        int step_axis = da < 0 ? -1 : 1;
+        target_u = anchor_u + step_u * size;
+        target_axis = anchor_axis + step_axis * size;
+    }
+
+    int min_u = std::min(anchor_u, target_u);
+    int max_u = std::max(anchor_u, target_u);
+    int min_axis = std::min(anchor_axis, target_axis);
+    int max_axis = std::max(anchor_axis, target_axis);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int u = x - y;
+            int axis = track_x_axis ? x : y;
+            if (u < min_u || u > max_u || axis < min_axis || axis > max_axis) {
+                continue;
+            }
+            if (filled || u == min_u || u == max_u || axis == min_axis || axis == max_axis) {
+                cells.push_back({x, y});
+            }
+        }
+    }
+
+    return cells;
+}
+
+std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewCircleCells(
+    int start_x,
+    int start_y,
+    int end_x,
+    int end_y,
+    bool filled,
+    bool lock_equal) const {
+    std::vector<std::pair<int, int>> cells;
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    int anchor_u = start_x - start_y;
+    int target_u = end_x - end_y;
+    bool track_x_axis = target_u < anchor_u || (target_u == anchor_u && end_x < start_x);
+    int anchor_axis = track_x_axis ? start_x : start_y;
+    int target_axis = track_x_axis ? end_x : end_y;
+
+    if (lock_equal) {
+        int du = target_u - anchor_u;
+        int da = target_axis - anchor_axis;
+        int size = std::max(std::abs(du), std::abs(da));
+        int step_u = du < 0 ? -1 : 1;
+        int step_axis = da < 0 ? -1 : 1;
+        target_u = anchor_u + step_u * size;
+        target_axis = anchor_axis + step_axis * size;
+    }
+
+    int min_u = std::min(anchor_u, target_u);
+    int max_u = std::max(anchor_u, target_u);
+    int min_axis = std::min(anchor_axis, target_axis);
+    int max_axis = std::max(anchor_axis, target_axis);
+    float radius_u = std::max(0.5f, (static_cast<float>(max_u - min_u) + 1.0f) * 0.5f);
+    float radius_axis = std::max(0.5f, (static_cast<float>(max_axis - min_axis) + 1.0f) * 0.5f);
+    float center_u = (static_cast<float>(min_u) + static_cast<float>(max_u) + 1.0f) * 0.5f;
+    float center_axis = (static_cast<float>(min_axis) + static_cast<float>(max_axis) + 1.0f) * 0.5f;
+
+    auto inside = [&](int u, int axis) {
+        float du = (static_cast<float>(u) + 0.5f - center_u) / radius_u;
+        float da = (static_cast<float>(axis) + 0.5f - center_axis) / radius_axis;
+        return du * du + da * da <= 1.0f;
+    };
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int u = x - y;
+            int axis = track_x_axis ? x : y;
+            if (!inside(u, axis)) {
+                continue;
+            }
+            bool outline = !inside(u - 1, axis) || !inside(u + 1, axis) ||
+                           !inside(u, axis - 1) || !inside(u, axis + 1);
+            if (filled || outline) {
+                cells.push_back({x, y});
+            }
+        }
+    }
+
+    return cells;
+}
+
+void MyGLCanvas::BeginLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
     m_layer_dragging_line = true;
     m_layer_line_start_x = x;
     m_layer_line_start_y = y;
-    UpdateLayerLineDrag(x, y, shift_down);
+    UpdateLayerLineDrag(x, y, shift_down, alt_down);
 }
 
-void MyGLCanvas::UpdateLayerLineDrag(int x, int y, bool shift_down) {
+void MyGLCanvas::UpdateLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
     auto map = CurrentRoomMap();
     if (!map || !m_layer_dragging_line) {
         return;
     }
 
-    auto end = shift_down ? std::pair<int, int>{x, y} : SnapLayerLineEnd(m_layer_line_start_x, m_layer_line_start_y, x, y);
-    int max_x = m_mapRenderer.GetRoomWidth() - 1;
-    int max_y = m_mapRenderer.GetRoomHeight() - 1;
-    int end_x = std::clamp(end.first, 0, max_x);
-    int end_y = std::clamp(end.second, 0, max_y);
+    std::pair<int, int> end{x, y};
+    if (m_drawing_tool == DrawingTool::Line) {
+        end = shift_down ? end : SnapLayerLineEnd(m_layer_line_start_x, m_layer_line_start_y, x, y);
+    } else if (shift_down && !alt_down) {
+        int dx = x - m_layer_line_start_x;
+        int dy = y - m_layer_line_start_y;
+        int size = std::max(std::abs(dx), std::abs(dy));
+        int step_x = dx < 0 ? -1 : 1;
+        int step_y = dy < 0 ? -1 : 1;
+        end = {
+            m_layer_line_start_x + step_x * size,
+            m_layer_line_start_y + step_y * size
+        };
+    }
+    int end_x = end.first;
+    int end_y = end.second;
 
     m_layer_line_end_x = end_x;
     m_layer_line_end_y = end_y;
-    m_layer_line_preview_cells = BuildHeightmapLineCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y);
+    switch (m_drawing_tool) {
+        case DrawingTool::FilledRect:
+            m_layer_line_preview_cells = alt_down ?
+                BuildLayerSkewRectCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, true, shift_down) :
+                BuildHeightmapRectCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, true);
+            break;
+        case DrawingTool::OutlineRect:
+            m_layer_line_preview_cells = alt_down ?
+                BuildLayerSkewRectCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, false, shift_down) :
+                BuildHeightmapRectCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, false);
+            break;
+        case DrawingTool::FilledCircle:
+            m_layer_line_preview_cells = alt_down ?
+                BuildLayerSkewCircleCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, true, shift_down) :
+                BuildLayerScreenCircleCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, true);
+            break;
+        case DrawingTool::OutlineCircle:
+            m_layer_line_preview_cells = alt_down ?
+                BuildLayerSkewCircleCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, false, shift_down) :
+                BuildLayerScreenCircleCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y, false);
+            break;
+        default:
+            m_layer_line_preview_cells = shift_down ?
+                BuildLayerScreenLineCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y) :
+                BuildHeightmapLineCells(m_layer_line_start_x, m_layer_line_start_y, end_x, end_y);
+            break;
+    }
 }
 
 void MyGLCanvas::CommitLayerLineDrag() {
@@ -3231,18 +3645,24 @@ void MyGLCanvas::UpdateHeightmapSelectionDrag(int x, int y) {
         return;
     }
 
-    m_background_selected_x = std::clamp(x, 0, map->GetHeightmapWidth() - 1);
-    m_background_selected_y = std::clamp(y, 0, map->GetHeightmapHeight() - 1);
+    const int width = map->GetHeightmapWidth();
+    const int height = map->GetHeightmapHeight();
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    m_background_selected_x = std::clamp(x, 0, width - 1);
+    m_background_selected_y = std::clamp(y, 0, height - 1);
     m_background_has_selection = true;
 
-    int min_x = std::min(m_heightmap_selection_drag_anchor_x, m_background_selected_x);
-    int max_x = std::max(m_heightmap_selection_drag_anchor_x, m_background_selected_x);
-    int min_y = std::min(m_heightmap_selection_drag_anchor_y, m_background_selected_y);
-    int max_y = std::max(m_heightmap_selection_drag_anchor_y, m_background_selected_y);
+    int min_x = std::min(m_heightmap_selection_drag_anchor_x, x);
+    int max_x = std::max(m_heightmap_selection_drag_anchor_x, x);
+    int min_y = std::min(m_heightmap_selection_drag_anchor_y, y);
+    int max_y = std::max(m_heightmap_selection_drag_anchor_y, y);
 
     m_heightmap_selected_cells = m_heightmap_selection_drag_base;
-    for (int cell_y = min_y; cell_y <= max_y; ++cell_y) {
-        for (int cell_x = min_x; cell_x <= max_x; ++cell_x) {
+    for (int cell_y = std::max(min_y, 0); cell_y <= std::min(max_y, height - 1); ++cell_y) {
+        for (int cell_x = std::max(min_x, 0); cell_x <= std::min(max_x, width - 1); ++cell_x) {
             if (m_heightmap_selection_subtract) {
                 m_heightmap_selected_cells.erase({cell_x, cell_y});
             } else {
@@ -3659,8 +4079,6 @@ void MyGLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
         return;
     }
 
-    x = std::clamp(x, 0, map->GetHeightmapWidth() - 1);
-    y = std::clamp(y, 0, map->GetHeightmapHeight() - 1);
     std::pair<int, int> end{x, y};
     if (m_drawing_tool == DrawingTool::Line) {
         end = shift_down ? end : SnapHeightmapLineEnd(m_heightmap_line_start_x, m_heightmap_line_start_y, x, y);
@@ -3670,17 +4088,12 @@ void MyGLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
         int size = std::max(std::abs(dx), std::abs(dy));
         int step_x = dx < 0 ? -1 : 1;
         int step_y = dy < 0 ? -1 : 1;
-        int max_x_size = step_x < 0 ? m_heightmap_line_start_x : map->GetHeightmapWidth() - 1 - m_heightmap_line_start_x;
-        int max_y_size = step_y < 0 ? m_heightmap_line_start_y : map->GetHeightmapHeight() - 1 - m_heightmap_line_start_y;
-        size = std::min(size, std::min(max_x_size, max_y_size));
         end = {
             m_heightmap_line_start_x + step_x * size,
             m_heightmap_line_start_y + step_y * size
         };
     }
     auto [end_x, end_y] = end;
-    end_x = std::clamp(end_x, 0, map->GetHeightmapWidth() - 1);
-    end_y = std::clamp(end_y, 0, map->GetHeightmapHeight() - 1);
 
     m_heightmap_line_end_x = end_x;
     m_heightmap_line_end_y = end_y;
@@ -4510,6 +4923,135 @@ void MyGLCanvas::PasteSelectedBackgroundBlock() {
     PasteBackgroundBlockAt(m_background_selected_x, m_background_selected_y);
 }
 
+std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerFloodFillCells(int x, int y) const {
+    std::vector<std::pair<int, int>> cells;
+    auto map = CurrentRoomMap();
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    if (!map || x < 0 || y < 0 || x >= width || y >= height) {
+        return cells;
+    }
+
+    int start_index = y * width + x;
+    if (start_index < 0 || start_index >= map->GetWidth() * map->GetHeight()) {
+        return cells;
+    }
+
+    Tilemap3D::Layer layer = CurrentEditLayer();
+    uint16_t target = map->GetBlock(static_cast<uint16_t>(start_index), layer).value;
+    std::set<std::pair<int, int>> visited;
+    std::deque<std::pair<int, int>> queue;
+    queue.push_back({x, y});
+    visited.insert({x, y});
+
+    while (!queue.empty()) {
+        auto cell = queue.front();
+        queue.pop_front();
+        cells.push_back(cell);
+
+        static constexpr std::array<std::pair<int, int>, 6> kNeighbors = {{
+            {1, 0}, {0, 1}, {-1, 0}, {0, -1}, {1, 1}, {-1, -1}
+        }};
+        for (const auto& delta : kNeighbors) {
+            int nx = cell.first + delta.first;
+            int ny = cell.second + delta.second;
+            std::pair<int, int> next{nx, ny};
+            int block_index = ny * width + nx;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height ||
+                block_index < 0 || block_index >= map->GetWidth() * map->GetHeight() ||
+                visited.find(next) != visited.end() ||
+                map->GetBlock(static_cast<uint16_t>(block_index), layer).value != target) {
+                continue;
+            }
+            visited.insert(next);
+            queue.push_back(next);
+        }
+    }
+
+    return cells;
+}
+
+void MyGLCanvas::ApplyLayerFloodFillAt(int x, int y) {
+    if (!m_background_clipboard_valid) {
+        return;
+    }
+
+    bool changed = false;
+    for (const auto& cell : BuildLayerFloodFillCells(x, y)) {
+        changed = PasteBackgroundBlockAt(cell.first, cell.second, true) || changed;
+    }
+    if (changed) {
+        CommitLayerDrawStroke();
+    }
+}
+
+std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildLayerStampCells(int x, int y) const {
+    std::map<std::pair<int, int>, uint16_t> cells;
+    auto map = CurrentRoomMap();
+    if (!map || m_layer_selected_cells.empty() || m_layer_selection_anchor_x < 0 || m_layer_selection_anchor_y < 0) {
+        return cells;
+    }
+
+    const int width = m_mapRenderer.GetRoomWidth();
+    const int height = m_mapRenderer.GetRoomHeight();
+    const int dx = x - m_layer_selection_anchor_x;
+    const int dy = y - m_layer_selection_anchor_y;
+    Tilemap3D::Layer layer = CurrentEditLayer();
+    for (const auto& source : m_layer_selected_cells) {
+        int source_x = source.first;
+        int source_y = source.second;
+        int target_x = source_x + dx;
+        int target_y = source_y + dy;
+        if (source_x < 0 || source_y < 0 || source_x >= width || source_y >= height ||
+            target_x < 0 || target_y < 0 || target_x >= width || target_y >= height) {
+            continue;
+        }
+
+        int source_index = source_y * width + source_x;
+        if (source_index < 0 || source_index >= map->GetWidth() * map->GetHeight()) {
+            continue;
+        }
+        cells[{target_x, target_y}] = map->GetBlock(static_cast<uint16_t>(source_index), layer).value;
+    }
+
+    return cells;
+}
+
+void MyGLCanvas::ApplyLayerStampAt(int x, int y) {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    bool changed = false;
+    const int width = m_mapRenderer.GetRoomWidth();
+    Tilemap3D::Layer layer = CurrentEditLayer();
+    for (const auto& cell : BuildLayerStampCells(x, y)) {
+        int target_x = cell.first.first;
+        int target_y = cell.first.second;
+        int target_index = target_y * width + target_x;
+        if (target_index < 0 || target_index >= map->GetWidth() * map->GetHeight()) {
+            continue;
+        }
+        if (map->GetBlock(static_cast<uint16_t>(target_index), layer).value == cell.second) {
+            continue;
+        }
+        if (!m_layer_draw_dirty) {
+            CaptureUndoState();
+        }
+        map->SetBlock(cell.second, static_cast<uint16_t>(target_index), layer);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetBlock(cell.second, static_cast<uint16_t>(target_index), layer);
+        }
+        m_layer_draw_dirty = true;
+        changed = true;
+    }
+
+    if (changed) {
+        ReloadCurrentRoomMapView();
+    }
+}
+
 bool MyGLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
     auto map = CurrentRoomMap();
     if (!m_background_clipboard_valid || !map || x < 0 || y < 0 ||
@@ -4539,7 +5081,6 @@ bool MyGLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
         return true;
     }
     ReloadCurrentRoomMapView();
-    NotifyLayerBlockSelected();
     return true;
 }
 
@@ -4549,7 +5090,6 @@ void MyGLCanvas::CommitLayerDrawStroke() {
     }
     m_layer_draw_dirty = false;
     ReloadCurrentRoomMapView();
-    NotifyLayerBlockSelected();
 }
 
 void MyGLCanvas::PasteSelectedHeightmapCell() {
@@ -4810,6 +5350,36 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
                         0.98f,
                         2.0f);
                 }
+                for (const auto& source : m_layer_selection_move_values) {
+                    int x = source.first.first;
+                    int y = source.first.second;
+                    int replacement_source_x = x - m_layer_selection_move_delta_x;
+                    int replacement_source_y = y - m_layer_selection_move_delta_y;
+                    if (IsLayerCellSelected(replacement_source_x, replacement_source_y)) {
+                        continue;
+                    }
+
+                    PickPoint origin = block_screen_origin(x, y);
+                    float left = origin.x;
+                    float top = origin.y;
+                    float right = left + 32.0f * zoom;
+                    float bottom = top + 32.0f * zoom;
+                    glColor4f(0.04f, 0.04f, 0.04f, 0.38f);
+                    glBegin(GL_QUADS);
+                    glVertex2f(left, top);
+                    glVertex2f(right, top);
+                    glVertex2f(right, bottom);
+                    glVertex2f(left, bottom);
+                    glEnd();
+                    glLineWidth(2.0f);
+                    glColor4f(1.0f, 1.0f, 1.0f, 0.62f);
+                    glBegin(GL_LINES);
+                    glVertex2f(left + 5.0f * zoom, top + 5.0f * zoom);
+                    glVertex2f(right - 5.0f * zoom, bottom - 5.0f * zoom);
+                    glVertex2f(right - 5.0f * zoom, top + 5.0f * zoom);
+                    glVertex2f(left + 5.0f * zoom, bottom - 5.0f * zoom);
+                    glEnd();
+                }
             }
             int primary_x = m_layer_selection_anchor_x;
             int primary_y = m_layer_selection_anchor_y;
@@ -5029,6 +5599,39 @@ void MyGLCanvas::RenderHeightmapEditorOverlay(int width, int height) {
         glColor4f(1.0f, 1.0f, 1.0f, 0.9f);
         for (const auto& preview_cell : preview_cells) {
             draw_cell_diamond(preview_cell.first, preview_cell.second, 0.0f, 2.5f, preview_cell_z(preview_cell));
+        }
+    }
+
+    if (m_heightmap_dragging_selection_move) {
+        for (const auto& source : m_heightmap_selection_move_values) {
+            int x = source.first.first;
+            int y = source.first.second;
+            int replacement_source_x = x - m_heightmap_selection_move_delta_x;
+            int replacement_source_y = y - m_heightmap_selection_move_delta_y;
+            if (IsHeightmapCellSelected(replacement_source_x, replacement_source_y)) {
+                continue;
+            }
+
+            int z = static_cast<int>(HeightmapCellHeight(source.second));
+            PickPoint center = ProjectHeightmapGridPoint(
+                static_cast<float>(x) + 0.5f,
+                static_cast<float>(y) + 0.5f,
+                static_cast<float>(z),
+                room_left,
+                room_top,
+                m_heightmapRenderer.GetZExtent());
+            float cx = center.x * zoom + m_cam_x;
+            float cy = center.y * zoom + m_cam_y;
+            glColor4f(0.04f, 0.04f, 0.04f, 0.38f);
+            draw_cell_diamond(x, y, 0.38f, 2.0f, z);
+            glLineWidth(2.0f);
+            glColor4f(1.0f, 1.0f, 1.0f, 0.62f);
+            glBegin(GL_LINES);
+            glVertex2f(cx - 14.0f * zoom, cy - 7.0f * zoom);
+            glVertex2f(cx + 14.0f * zoom, cy + 7.0f * zoom);
+            glVertex2f(cx + 14.0f * zoom, cy - 7.0f * zoom);
+            glVertex2f(cx - 14.0f * zoom, cy + 7.0f * zoom);
+            glEnd();
         }
     }
 
@@ -5806,6 +6409,41 @@ void MyGLCanvas::UpdatePendingObjectAddHover() {
     auto [x, y] = MouseHeightmapCell();
     m_pending_add_hover_x = x;
     m_pending_add_hover_y = y;
+}
+
+bool MyGLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
+    if (m_pending_add_type != PendingObjectAddType::Entity ||
+        m_pending_add_hover_x < 0 ||
+        m_pending_add_hover_y < 0 ||
+        m_room_entities.size() >= 15) {
+        return false;
+    }
+
+    Landstalker::Entity entity;
+    float x = static_cast<float>(m_pending_add_hover_x) + 0.5f;
+    float y = static_cast<float>(m_pending_add_hover_y) + 0.5f;
+    entity.SetXDbl(std::clamp<double>(x, 0.5, 63.5));
+    entity.SetYDbl(std::clamp<double>(y, 0.5, 63.5));
+    entity.SetZDbl(FloorUnderPoint(float(entity.GetXDbl()), float(entity.GetYDbl())));
+
+    inst = SpriteInstance{};
+    inst.instance_id = static_cast<uint32_t>(m_room_entities.size() + 1);
+    inst.entity_id = entity.GetType();
+    inst.palette = entity.GetPalette();
+    inst.map_x = float(entity.GetXDbl());
+    inst.map_y = float(entity.GetYDbl());
+    inst.map_z = float(entity.GetZDbl());
+    inst.z_extent = m_heightmapRenderer.GetZExtent();
+    inst.room_left = float(m_mapRenderer.GetRoomLeft());
+    inst.room_top = float(m_mapRenderer.GetRoomTop());
+    inst.dx = 0.0f;
+    inst.dy = 0.0f;
+    inst.scale = 2.0f;
+    inst.anim_timer = 0.0f;
+    inst.anim_speed = 1.0f;
+    inst.orientation = entity.GetOrientation();
+    RefreshEntityMetadata(inst);
+    return true;
 }
 
 void MyGLCanvas::CancelPendingObjectAdd() {

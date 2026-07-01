@@ -95,6 +95,76 @@ const char* TileSwapPartLabel(TileSwapRegionPart part)
 	return "";
 }
 
+bool TileSwapMapDestinationContains(const Landstalker::TileSwap& swap, Landstalker::Tilemap3D::Layer layer, int rel_x, int rel_y)
+{
+	switch (swap.mode) {
+		case Landstalker::TileSwap::Mode::FLOOR:
+			return rel_x >= 0 && rel_x < swap.map.width &&
+				   rel_y >= 0 && rel_y < swap.map.height;
+		case Landstalker::TileSwap::Mode::WALL_NE:
+			if (layer == Landstalker::Tilemap3D::Layer::BG) {
+				return rel_x - rel_y >= 0 && rel_x - rel_y < swap.map.width &&
+					   rel_y >= 0 && rel_y < swap.map.height;
+			}
+			return rel_x - rel_y - 1 >= 0 && rel_x - rel_y - 1 < swap.map.width &&
+				   rel_y >= 0 && rel_y < swap.map.height;
+		case Landstalker::TileSwap::Mode::WALL_NW:
+			if (layer == Landstalker::Tilemap3D::Layer::BG) {
+				return rel_x >= 0 && rel_x < swap.map.height &&
+					   rel_y > rel_x && rel_y <= rel_x + swap.map.width;
+			}
+			return rel_x >= 0 && rel_x < swap.map.height &&
+				   rel_y >= rel_x && rel_y < rel_x + swap.map.width;
+	}
+	return false;
+}
+
+void DrawTileSwapPreviewClipped(const Landstalker::TileSwap& swap, Landstalker::Tilemap3D& tilemap, Landstalker::Tilemap3D::Layer layer)
+{
+	const int width = tilemap.GetWidth();
+	const int height = tilemap.GetHeight();
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			int map_x = x + tilemap.GetLeft();
+			int map_y = y + tilemap.GetTop();
+			int rel_x = map_x - swap.map.dst_x;
+			int rel_y = map_y - swap.map.dst_y;
+			if (!TileSwapMapDestinationContains(swap, layer, rel_x, rel_y)) {
+				continue;
+			}
+
+			int src_map_x = swap.map.src_x + rel_x;
+			int src_map_y = swap.map.src_y + rel_y;
+			int src_x = src_map_x - tilemap.GetLeft();
+			int src_y = src_map_y - tilemap.GetTop();
+			uint16_t block = 0;
+			if (src_x >= 0 && src_y >= 0 && src_x < width && src_y < height) {
+				block = tilemap.GetBlock({src_x, src_y}, layer);
+			}
+			tilemap.SetBlock({block, {x, y}}, layer);
+		}
+	}
+}
+
+void DrawHeightmapSwapPreviewClipped(const Landstalker::TileSwap& swap, Landstalker::Tilemap3D& tilemap)
+{
+	for (int y = 0; y < tilemap.GetHeightmapHeight(); ++y) {
+		for (int x = 0; x < tilemap.GetHeightmapWidth(); ++x) {
+			int rel_x = x - swap.heightmap.dst_x;
+			int rel_y = y - swap.heightmap.dst_y;
+			if (rel_x < 0 || rel_y < 0 ||
+				rel_x >= swap.heightmap.width || rel_y >= swap.heightmap.height) {
+				continue;
+			}
+
+			Landstalker::HMPoint2D src(rel_x + swap.heightmap.src_x, rel_y + swap.heightmap.src_y);
+			if (tilemap.IsHMPointValid(src)) {
+				tilemap.SetHeightmapCell({x, y}, tilemap.GetHeightmapCell(src));
+			}
+		}
+	}
+}
+
 std::string HexByte(uint8_t value)
 {
 	constexpr char digits[] = "0123456789ABCDEF";
@@ -564,9 +634,9 @@ void GLCanvasTileDoorEditor::ToggleSelectedTileSwapPreview()
 
 	m_canvas.m_tileswap_preview_map = std::make_shared<Landstalker::Tilemap3D>(*map);
 	const Landstalker::TileSwap& swap = swaps[static_cast<std::size_t>(swap_index)];
-	swap.DrawSwap(*m_canvas.m_tileswap_preview_map, Landstalker::Tilemap3D::Layer::BG);
-	swap.DrawSwap(*m_canvas.m_tileswap_preview_map, Landstalker::Tilemap3D::Layer::FG);
-	swap.DrawHeightmapSwap(*m_canvas.m_tileswap_preview_map);
+	DrawTileSwapPreviewClipped(swap, *m_canvas.m_tileswap_preview_map, Landstalker::Tilemap3D::Layer::BG);
+	DrawTileSwapPreviewClipped(swap, *m_canvas.m_tileswap_preview_map, Landstalker::Tilemap3D::Layer::FG);
+	DrawHeightmapSwapPreviewClipped(swap, *m_canvas.m_tileswap_preview_map);
 
 	m_canvas.m_tileswap_preview_active = true;
 	m_canvas.m_tileswap_preview_swap_index = swap_index;

@@ -201,6 +201,11 @@ private:
         int selected_door;
     };
 
+    struct LayerUndoState {
+        Landstalker::Tilemap3D::Layer layer;
+        std::vector<uint16_t> blocks;
+    };
+
     friend class GLCanvasEntityEditor;
     friend class GLCanvasWarpEditor;
     friend class GLCanvasTileDoorEditor;
@@ -239,6 +244,10 @@ private:
     void CaptureUndoState();
     void RestoreUndoState(const std::shared_ptr<Landstalker::Tilemap3D>& state);
     bool IsObjectHistoryMode() const;
+    bool IsBackgroundLayerHistoryMode() const;
+    bool IsForegroundLayerHistoryMode() const;
+    LayerUndoState BuildLayerUndoState(Landstalker::Tilemap3D::Layer layer) const;
+    void RestoreLayerUndoState(const LayerUndoState& state);
     std::vector<Landstalker::Entity> BuildCurrentRoomEntities() const;
     std::vector<Landstalker::WarpList::Warp> BuildCurrentRoomWarps() const;
     ObjectUndoState BuildObjectUndoState() const;
@@ -290,6 +299,7 @@ private:
     void UpdatePendingObjectAddHover();
     void CommitPendingObjectAdd();
     void CancelPendingObjectAdd();
+    bool BuildPendingEntityPreviewInstance(SpriteInstance& inst);
     void RenderPendingObjectAddOverlay();
     std::pair<int, int> MouseHeightmapCell() const;
     std::pair<float, float> FindNearestFreeWarpCell(float preferred_x, float preferred_y) const;
@@ -330,6 +340,8 @@ private:
     void ApplyHeightmapViewMode();
     bool BackgroundCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
     bool HeightmapCellAt(const wxPoint& point, int& cell_x, int& cell_y);
+    bool BackgroundVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
+    bool HeightmapVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
     bool SelectBackgroundCellAt(const wxPoint& point);
     bool SelectHeightmapCellAt(const wxPoint& point);
     void ClearEditSelection();
@@ -342,8 +354,12 @@ private:
     void CommitLayerSelectionMoveDrag();
     void CancelLayerSelectionMoveDrag();
     std::pair<int, int> SnapLayerLineEnd(int start_x, int start_y, int end_x, int end_y) const;
-    void BeginLayerLineDrag(int x, int y, bool shift_down);
-    void UpdateLayerLineDrag(int x, int y, bool shift_down);
+    std::vector<std::pair<int, int>> BuildLayerScreenLineCells(int start_x, int start_y, int end_x, int end_y) const;
+    std::vector<std::pair<int, int>> BuildLayerScreenCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled) const;
+    std::vector<std::pair<int, int>> BuildLayerSkewRectCells(int start_x, int start_y, int end_x, int end_y, bool filled, bool lock_equal) const;
+    std::vector<std::pair<int, int>> BuildLayerSkewCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled, bool lock_equal) const;
+    void BeginLayerLineDrag(int x, int y, bool shift_down, bool alt_down);
+    void UpdateLayerLineDrag(int x, int y, bool shift_down, bool alt_down);
     void CommitLayerLineDrag();
     void CancelLayerLineDrag();
     void BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection);
@@ -389,6 +405,10 @@ private:
     void CopySelectedHeightmapCell();
     void CopyHeightmapCellAt(int x, int y);
     void ClearBackgroundClipboard();
+    std::vector<std::pair<int, int>> BuildLayerFloodFillCells(int x, int y) const;
+    void ApplyLayerFloodFillAt(int x, int y);
+    std::map<std::pair<int, int>, uint16_t> BuildLayerStampCells(int x, int y) const;
+    void ApplyLayerStampAt(int x, int y);
     void PasteSelectedBackgroundBlock();
     bool PasteBackgroundBlockAt(int x, int y, bool defer_updates = false);
     void CommitLayerDrawStroke();
@@ -561,6 +581,10 @@ private:
     std::map<std::pair<int, int>, uint16_t> m_heightmap_selection_move_values;
     std::vector<std::shared_ptr<Landstalker::Tilemap3D>> m_map_undo_stack;
     std::vector<std::shared_ptr<Landstalker::Tilemap3D>> m_map_redo_stack;
+    std::vector<LayerUndoState> m_bg_layer_undo_stack;
+    std::vector<LayerUndoState> m_bg_layer_redo_stack;
+    std::vector<LayerUndoState> m_fg_layer_undo_stack;
+    std::vector<LayerUndoState> m_fg_layer_redo_stack;
     std::vector<ObjectUndoState> m_object_undo_stack;
     std::vector<ObjectUndoState> m_object_redo_stack;
     bool m_restoring_history;

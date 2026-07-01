@@ -218,7 +218,12 @@ void GLCanvasHeightmapMode::HandleMouseMove(const wxMouseEvent& evt)
         m_canvas.ScreenToWorldY(evt.GetPosition().y));
     int x = -1;
     int y = -1;
-    if (m_canvas.HeightmapCellAt(evt.GetPosition(), x, y)) {
+    bool has_cell = m_canvas.HeightmapCellAt(evt.GetPosition(), x, y);
+    if ((m_canvas.m_heightmap_dragging_select || m_canvas.m_heightmap_dragging_line) &&
+        m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), x, y)) {
+        has_cell = true;
+    }
+    if (has_cell) {
         if (m_canvas.m_heightmap_dragging_select) {
             m_canvas.UpdateHeightmapSelectionDrag(x, y);
         } else if (m_canvas.m_heightmap_dragging_selection_move) {
@@ -241,8 +246,14 @@ void GLCanvasHeightmapMode::HandleMouseMove(const wxMouseEvent& evt)
             m_canvas.m_heightmap_last_draw_y = y;
         }
     }
+    int cursor_x = -1;
+    int cursor_y = -1;
+    bool has_cursor_cell = m_canvas.HeightmapCellAt(evt.GetPosition(), cursor_x, cursor_y);
     m_canvas.SetCursor(wxCursor(
-        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select && m_canvas.IsHeightmapCellSelected(x, y) ? wxCURSOR_HAND : wxCURSOR_ARROW));
+        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select &&
+        !evt.ShiftDown() &&
+        has_cursor_cell &&
+        m_canvas.IsHeightmapCellSelected(cursor_x, cursor_y) ? wxCURSOR_HAND : wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 
@@ -255,7 +266,9 @@ void GLCanvasHeightmapMode::HandleLeftDown(const wxMouseEvent& evt)
         return;
     }
 
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select && m_canvas.IsHeightmapCellSelected(x, y)) {
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select &&
+        !evt.ShiftDown() &&
+        m_canvas.IsHeightmapCellSelected(x, y)) {
         m_canvas.BeginHeightmapSelectionMoveDrag(x, y);
     } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw) {
         m_canvas.m_heightmap_dragging_draw = true;

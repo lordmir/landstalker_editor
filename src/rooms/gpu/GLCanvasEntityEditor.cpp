@@ -74,6 +74,12 @@ void GLCanvasEntityEditor::AddEntity()
 
 	Landstalker::Entity entity;
 	auto [cell_x, cell_y] = m_canvas.MouseHeightmapCell();
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity &&
+		m_canvas.m_pending_add_hover_x >= 0 &&
+		m_canvas.m_pending_add_hover_y >= 0) {
+		cell_x = m_canvas.m_pending_add_hover_x;
+		cell_y = m_canvas.m_pending_add_hover_y;
+	}
 	float x = static_cast<float>(cell_x) + 0.5f;
 	float y = static_cast<float>(cell_y) + 0.5f;
 	entity.SetXDbl(std::clamp<double>(x, 0.5, 63.5));
