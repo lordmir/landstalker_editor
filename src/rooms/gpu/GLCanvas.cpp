@@ -1818,6 +1818,18 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
     if (persist_edits && m_initialized) {
         PersistCurrentRoomEdits();
     }
+    // Cancel any in-progress insertion or drag before switching rooms.
+    CancelPendingObjectAdd();
+    if (m_dragging_entity || m_dragging_warp || m_dragging_door || m_dragging_tileswap_region) {
+        m_dragging_entity = false;
+        m_dragging_warp = false;
+        m_dragging_door = false;
+        m_dragging_tileswap_region = false;
+        if (HasCapture()) {
+            ReleaseMouse();
+        }
+        SetCursor(wxCursor(wxCURSOR_ARROW));
+    }
     m_tileswap_preview_active = false;
     m_tileswap_preview_swap_index = -1;
     m_door_preview_active = false;
@@ -6528,17 +6540,24 @@ void MyGLCanvas::UpdatePendingObjectAddHover() {
         return;
     }
 
-    if (m_pending_add_type == PendingObjectAddType::TileSwap &&
-        (m_pending_tileswap_part == PendingTileSwapPart::MapSource ||
-         m_pending_tileswap_part == PendingTileSwapPart::MapDestination)) {
-        PickPoint point = ScreenToMapPoint(
-            ScreenToWorldX(m_last_mouse_pos.x),
-            ScreenToWorldY(m_last_mouse_pos.y),
-            0.0f,
-            static_cast<float>(m_mapRenderer.GetRoomLeft()),
-            static_cast<float>(m_mapRenderer.GetRoomTop()));
-        m_pending_add_hover_x = std::clamp(static_cast<int>(std::floor(point.x)), 0, 63);
-        m_pending_add_hover_y = std::clamp(static_cast<int>(std::floor(point.y)), 0, 63);
+    if (m_pending_add_type == PendingObjectAddType::TileSwap) {
+        if (m_pending_tileswap_part == PendingTileSwapPart::MapSource ||
+            m_pending_tileswap_part == PendingTileSwapPart::MapDestination) {
+            PickPoint point = ScreenToMapPoint(
+                ScreenToWorldX(m_last_mouse_pos.x),
+                ScreenToWorldY(m_last_mouse_pos.y),
+                0.0f,
+                static_cast<float>(m_mapRenderer.GetRoomLeft()),
+                static_cast<float>(m_mapRenderer.GetRoomTop()));
+            m_pending_add_hover_x = std::clamp(static_cast<int>(std::floor(point.x)), 0, 63);
+            m_pending_add_hover_y = std::clamp(static_cast<int>(std::floor(point.y)), 0, 63);
+        } else {
+            // HeightmapSource / HeightmapDestination — use local heightmap cell coords
+            // (same system as door.x/y and tileswap.heightmap.src_x/y)
+            auto [hx, hy] = MouseHeightmapCell();
+            m_pending_add_hover_x = hx;
+            m_pending_add_hover_y = hy;
+        }
         return;
     }
 
@@ -6752,7 +6771,17 @@ void MyGLCanvas::CommitPendingObjectAdd() {
     m_selected_entity_idx = -1;
     m_selected_warp_idx = -1;
     m_selected_door_idx = -1;
-    m_selected_tileswap_region_idx = static_cast<int>((swaps.size() - 1) * 4);
+    {
+        int new_swap_idx = static_cast<int>(swaps.size() - 1);
+        m_selected_tileswap_region_idx = -1;
+        auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_gd, m_current_room, m_mapRenderer, m_heightmapRenderer.GetZExtent());
+        for (const auto& r : regions) {
+            if (r.swap_index == new_swap_idx) {
+                m_selected_tileswap_region_idx = r.flat_index;
+                break;
+            }
+        }
+    }
     m_hovered_tileswap_region_idx = m_selected_tileswap_region_idx;
     NotifyRoomDataChanged(false, false, true, false);
     NotifySelectionChanged();
@@ -6775,10 +6804,9 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
         uint8_t height = map->GetHeight({x, y});
         return height == 0xFF ? 0.0f : static_cast<float>(height);
     };
-    auto draw_diamond = [&](int x, int y, bool heightmap, float r, float g, float b, float a) {
-        PickPoint center = heightmap
-            ? ProjectHeightmapGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, height_at(x, y), room_left, room_top, m_heightmapRenderer.GetZExtent())
-            : ProjectRoomGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, 0.0f, room_left, room_top);
+    // Heightmap segments: isometric diamond shape.
+    auto draw_diamond = [&](int x, int y, float r, float g, float b, float a) {
+        PickPoint center = ProjectHeightmapGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, height_at(x, y), room_left, room_top, m_heightmapRenderer.GetZExtent());
         float cx = center.x * zoom + m_cam_x;
         float cy = center.y * zoom + m_cam_y;
         glColor4f(r, g, b, a * 0.32f);
@@ -6795,6 +6823,29 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
         glVertex2f(cx + 32.0f * zoom, cy);
         glVertex2f(cx, cy + 16.0f * zoom);
         glVertex2f(cx - 32.0f * zoom, cy);
+        glEnd();
+    };
+    // Tilemap (layer swap) segments: screen-aligned rectangle matching the tile footprint.
+    auto draw_square = [&](int x, int y, float r, float g, float b, float a) {
+        PickPoint center = ProjectRoomGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, 0.0f, room_left, room_top);
+        float cx = center.x * zoom + m_cam_x;
+        float cy = center.y * zoom + m_cam_y;
+        float hw = 16.0f * zoom;
+        float hh = 16.0f * zoom;
+        glColor4f(r, g, b, a * 0.32f);
+        glBegin(GL_QUADS);
+        glVertex2f(cx - hw, cy - hh);
+        glVertex2f(cx + hw, cy - hh);
+        glVertex2f(cx + hw, cy + hh);
+        glVertex2f(cx - hw, cy + hh);
+        glEnd();
+        glColor4f(r, g, b, a);
+        glLineWidth(2.5f);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(cx - hw, cy - hh);
+        glVertex2f(cx + hw, cy - hh);
+        glVertex2f(cx + hw, cy + hh);
+        glVertex2f(cx - hw, cy + hh);
         glEnd();
     };
 
@@ -6818,18 +6869,22 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
 
     if (m_pending_add_type == PendingObjectAddType::TileSwap) {
         if (m_pending_tileswap_part != PendingTileSwapPart::MapSource) {
-            draw_diamond(m_pending_add_swap.map.src_x, m_pending_add_swap.map.src_y, false, 0.25f, 0.75f, 1.0f, 0.95f);
+            draw_square(m_pending_add_swap.map.src_x, m_pending_add_swap.map.src_y, 0.25f, 0.75f, 1.0f, 0.95f);
         }
         if (m_pending_tileswap_part == PendingTileSwapPart::HeightmapSource ||
             m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination) {
-            draw_diamond(m_pending_add_swap.map.dst_x, m_pending_add_swap.map.dst_y, false, 0.1f, 1.0f, 0.45f, 0.95f);
+            draw_square(m_pending_add_swap.map.dst_x, m_pending_add_swap.map.dst_y, 0.1f, 1.0f, 0.45f, 0.95f);
         }
         if (m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination) {
-            draw_diamond(m_pending_add_swap.heightmap.src_x, m_pending_add_swap.heightmap.src_y, true, 1.0f, 0.75f, 0.2f, 0.95f);
+            draw_diamond(m_pending_add_swap.heightmap.src_x, m_pending_add_swap.heightmap.src_y, 1.0f, 0.75f, 0.2f, 0.95f);
         }
         bool current_is_heightmap = m_pending_tileswap_part == PendingTileSwapPart::HeightmapSource ||
             m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination;
-        draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, current_is_heightmap, 1.0f, 1.0f, 1.0f, 0.95f);
+        if (current_is_heightmap) {
+            draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, 1.0f, 1.0f, 1.0f, 0.95f);
+        } else {
+            draw_square(m_pending_add_hover_x, m_pending_add_hover_y, 1.0f, 1.0f, 1.0f, 0.95f);
+        }
     } else if (m_pending_add_type == PendingObjectAddType::Entity) {
         SpriteInstance ghost{};
         if (BuildPendingEntityPreviewInstance(ghost)) {
@@ -7053,8 +7108,8 @@ std::pair<float, float> MyGLCanvas::FindNearestFreeWarpCell(float preferred_x, f
 std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
     if (m_last_mouse_pos.x < 0 || m_last_mouse_pos.y < 0) {
         return {
-            std::clamp(m_mapRenderer.GetRoomLeft() + m_mapRenderer.GetRoomWidth() / 2, 0, 63),
-            std::clamp(m_mapRenderer.GetRoomTop() + m_mapRenderer.GetRoomHeight() / 2, 0, 63)
+            std::clamp(m_mapRenderer.GetRoomWidth() / 2, 0, 63),
+            std::clamp(m_mapRenderer.GetRoomHeight() / 2, 0, 63)
         };
     }
 
@@ -7062,8 +7117,8 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
     int picked_y = -1;
     if (const_cast<MyGLCanvas*>(this)->HeightmapCellAt(m_last_mouse_pos, picked_x, picked_y)) {
         return {
-            std::clamp(m_mapRenderer.GetRoomLeft() + picked_x, 0, 63),
-            std::clamp(m_mapRenderer.GetRoomTop() + picked_y, 0, 63)
+            std::clamp(picked_x, 0, 63),
+            std::clamp(picked_y, 0, 63)
         };
     }
 
@@ -7184,6 +7239,7 @@ void MyGLCanvas::AddTileSwap() {
     }
 
     m_pending_add_swap = TileSwap{};
+    m_pending_add_swap.active = true;
     m_pending_add_swap.trigger = static_cast<uint8_t>(trigger);
     m_pending_add_swap.mode = TileSwap::Mode::FLOOR;
     m_pending_add_swap.map = {0, 0, 0, 0, 1, 1};
