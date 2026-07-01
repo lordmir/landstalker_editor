@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <iomanip>
 #include <sstream>
 
@@ -72,42 +73,55 @@ void GLCanvasEntityEditor::AddEntity()
 		return;
 	}
 
-	Landstalker::Entity entity;
-	auto [cell_x, cell_y] = m_canvas.MouseHeightmapCell();
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity &&
-		m_canvas.m_pending_add_hover_x >= 0 &&
-		m_canvas.m_pending_add_hover_y >= 0) {
-		cell_x = m_canvas.m_pending_add_hover_x;
-		cell_y = m_canvas.m_pending_add_hover_y;
+	// Use the exact same logic as the ghost preview
+	SpriteInstance ghost{};
+	if (!m_canvas.BuildPendingEntityPreviewInstance(ghost)) {
+		return;
 	}
-	float x = static_cast<float>(cell_x) + 0.5f;
-	float y = static_cast<float>(cell_y) + 0.5f;
-	entity.SetXDbl(std::clamp<double>(x, 0.5, 63.5));
-	entity.SetYDbl(std::clamp<double>(y, 0.5, 63.5));
-	entity.SetZDbl(m_canvas.FloorUnderPoint(float(entity.GetXDbl()), float(entity.GetYDbl())));
+	AddEntity(ghost);
+}
+
+void GLCanvasEntityEditor::AddEntity(const SpriteInstance& preview_instance)
+{
+	if (m_canvas.m_room_entities.size() >= 15) {
+		return;
+	}
+
+	// Create entity from ghost position
+	Landstalker::Entity entity;
+	entity.SetType(m_canvas.m_pending_add_entity_id);
+	entity.SetPalette(std::min<uint8_t>(m_canvas.m_pending_add_entity_palette, 3));
+	entity.SetOrientation(m_canvas.m_pending_add_entity_orientation);
+	entity.SetXDbl(preview_instance.map_x);
+	entity.SetYDbl(preview_instance.map_y);
+	entity.SetZDbl(preview_instance.map_z);
 	m_canvas.m_room_entities.push_back(entity);
 
-	SpriteInstance inst{};
+	// Create sprite instance from ghost
+	SpriteInstance inst = preview_instance;
 	inst.instance_id = static_cast<uint32_t>(m_canvas.m_room_entities.size());
-	inst.entity_id = entity.GetType();
-	inst.palette = entity.GetPalette();
-	inst.map_x = float(entity.GetXDbl());
-	inst.map_y = float(entity.GetYDbl());
-	inst.map_z = float(entity.GetZDbl());
-	inst.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
-	inst.room_left = float(m_canvas.m_mapRenderer.GetRoomLeft());
-	inst.room_top = float(m_canvas.m_mapRenderer.GetRoomTop());
-	inst.dx = 0.0f;
-	inst.dy = 0.0f;
-	inst.scale = 2.0f;
-	inst.anim_timer = 0.0f;
-	inst.anim_speed = 1.0f;
-	inst.orientation = entity.GetOrientation();
-	m_canvas.RefreshEntityMetadata(inst);
 	m_canvas.m_instances.push_back(inst);
 	GLCanvasObjectSupport::SortEntitiesGeometrically(m_canvas.m_instances);
 	m_canvas.m_selected_entity_idx = m_canvas.FindInstanceIndex(inst.instance_id);
 	m_canvas.m_selected_warp_idx = -1;
+
+	const float center_x = inst.map_x + inst.hitbox_offset;
+	const float center_y = inst.map_y + inst.hitbox_offset;
+	std::fprintf(
+		stderr,
+		"[PendingEntity] commit-inserted id=%u type=%u palette=%u orient=%d map=(%.3f,%.3f,%.3f) center=(%.3f,%.3f) floor=%.3f hitbox_offset=%.3f\n",
+		inst.instance_id,
+		inst.entity_id,
+		inst.palette,
+		static_cast<int>(inst.orientation),
+		inst.map_x,
+		inst.map_y,
+		inst.map_z,
+		center_x,
+		center_y,
+		inst.floor_z,
+		inst.hitbox_offset);
+	std::fflush(stderr);
 }
 
 void GLCanvasEntityEditor::CopySelectedEntity()
@@ -227,6 +241,11 @@ void GLCanvasEntityEditor::RenderSelectedEntityTooltip()
 	}
 
 	const SpriteInstance& inst = m_canvas.m_instances[static_cast<std::size_t>(m_canvas.m_selected_entity_idx)];
+	RenderEntityTooltipForInstance(inst);
+}
+
+void GLCanvasEntityEditor::RenderEntityTooltipForInstance(const SpriteInstance& inst)
+{
 	float center_x = inst.map_x + inst.hitbox_offset;
 	float center_y = inst.map_y + inst.hitbox_offset;
 	float top_z = inst.map_z + std::max(inst.hitbox_height, 0.125f);

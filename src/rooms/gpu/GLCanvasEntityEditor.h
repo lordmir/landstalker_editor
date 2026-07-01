@@ -8,6 +8,7 @@ public:
     explicit GLCanvasEntityEditor(MyGLCanvas& canvas);
 
     void AddEntity();
+    void AddEntity(const SpriteInstance& preview_instance);
     void CopySelectedEntity();
     void PasteEntity();
     void CycleSelectedEntityId(int delta);
@@ -15,6 +16,7 @@ public:
     void SetSelectedEntityOrientation(Landstalker::Orientation orientation);
     void SetSelectedEntityToFloor();
     void RenderSelectedEntityTooltip();
+    void RenderEntityTooltipForInstance(const SpriteInstance& inst);
 
 private:
     MyGLCanvas& m_canvas;

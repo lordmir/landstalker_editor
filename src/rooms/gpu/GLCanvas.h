@@ -267,6 +267,18 @@ private:
     int HitTestDoor(const wxPoint& point) const;
     int HitTestRoomInfoLink(const wxPoint& point) const;
     void StartEntityDrag(int entity_idx, const wxMouseEvent& evt, bool z_axis_only, bool shadow_drag = false);
+    void ApplyEntityDragStep(
+        SpriteInstance& inst,
+        const wxPoint& mouse_pos,
+        bool z_axis_only,
+        const wxPoint& drag_start_mouse,
+        float drag_start_x,
+        float drag_start_y,
+        float drag_start_z,
+        float drag_plane_z,
+        float drag_cursor_offset_x,
+        float drag_cursor_offset_y,
+        bool drag_floor_snap) const;
     void UpdateEntityDrag(const wxMouseEvent& evt);
     void EndEntityDrag();
     void StartWarpDrag(int warp_idx, const wxMouseEvent& evt);
@@ -590,6 +602,17 @@ private:
     bool m_restoring_history;
     PendingObjectAddType m_pending_add_type;
     PendingTileSwapPart m_pending_tileswap_part;
+    uint8_t m_pending_add_entity_id;
+    uint8_t m_pending_add_entity_palette;
+    Landstalker::Orientation m_pending_add_entity_orientation;
+    float m_pending_add_entity_cursor_offset_x;
+    float m_pending_add_entity_cursor_offset_y;
+    float m_pending_add_plane_z;
+    bool m_pending_add_floor_snap;
+    float m_pending_add_start_x;
+    float m_pending_add_start_y;
+    float m_pending_add_start_z;
+    wxPoint m_pending_add_mouse_start;
     Landstalker::TileSwap m_pending_add_swap;
     int m_pending_add_hover_x;
     int m_pending_add_hover_y;

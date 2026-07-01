@@ -2061,6 +2061,7 @@ void RoomViewerFrame::UpdateUI() const
 
 	const bool gpu_selected = IsGpuViewSelected();
 	const RoomEdit::Mode active_mode = gpu_selected ? ToRoomEditMode(m_gpuview->GetEditorMode()) : m_mode;
+	const bool drawing_tools_enabled = gpu_selected && active_mode != RoomEdit::Mode::NORMAL;
 	CheckMenuItem(ID_VIEW_ROOM, active_mode == RoomEdit::Mode::NORMAL);
 	CheckToolbarItem("Main", MODE_ROOM, active_mode == RoomEdit::Mode::NORMAL);
 	CheckMenuItem(ID_VIEW_HEIGHTMAP, active_mode == RoomEdit::Mode::HEIGHTMAP);
@@ -2079,6 +2080,16 @@ void RoomViewerFrame::UpdateUI() const
 	CheckToolbarItem("Drawing Tools", TOOL_FLOODFILL, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::FloodFill);
 	CheckToolbarItem("Drawing Tools", TOOL_STAMP, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Stamp);
 	CheckToolbarItem("Drawing Tools", TOOL_CLEAR, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Clear);
+	EnableToolbarItem("Drawing Tools", TOOL_SELECT, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_DRAW, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_LINE, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_FILLED_RECT, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_OUTLINE_RECT, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_FILLED_CIRCLE, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_OUTLINE_CIRCLE, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_FLOODFILL, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_STAMP, drawing_tools_enabled);
+	EnableToolbarItem("Drawing Tools", TOOL_CLEAR, drawing_tools_enabled);
 
 	if (m_mode == RoomEdit::Mode::NORMAL)
 	{

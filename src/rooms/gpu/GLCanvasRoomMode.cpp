@@ -232,7 +232,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
                 m_canvas.ResizeSelectedTileSwapByDelta(0, -1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(0.0f, -1.0f, 0.0f);
-            } else if (ctrl && m_canvas.m_selected_entity_idx >= 0) {
+            } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
+                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NW);
             } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.ResizeSelectedWarp(0.0f, -1.0f);
@@ -248,7 +249,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
                 m_canvas.ResizeSelectedTileSwapByDelta(-1, 0);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(-1.0f, 0.0f, 0.0f);
-            } else if (ctrl && m_canvas.m_selected_entity_idx >= 0) {
+            } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
+                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SW);
             } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.ResizeSelectedWarp(-1.0f, 0.0f);
@@ -264,7 +266,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
                 m_canvas.ResizeSelectedTileSwapByDelta(0, 1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(0.0f, 1.0f, 0.0f);
-            } else if (ctrl && m_canvas.m_selected_entity_idx >= 0) {
+            } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
+                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SE);
             } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.ResizeSelectedWarp(0.0f, 1.0f);
@@ -280,7 +283,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
                 m_canvas.ResizeSelectedTileSwapByDelta(1, 0);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(1.0f, 0.0f, 0.0f);
-            } else if (ctrl && m_canvas.m_selected_entity_idx >= 0) {
+            } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
+                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NE);
             } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.ResizeSelectedWarp(1.0f, 0.0f);
@@ -416,7 +420,11 @@ void GLCanvasRoomMode::HandleMouseMove(const wxMouseEvent& evt)
 void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
 {
     if (m_canvas.HasPendingObjectAdd()) {
+        bool pending_entity_add = m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity;
         m_canvas.CommitPendingObjectAdd();
+        if (pending_entity_add && m_canvas.m_selected_entity_idx >= 0) {
+            m_canvas.StartEntityDrag(m_canvas.m_selected_entity_idx, evt, evt.ControlDown());
+        }
         m_canvas.Refresh();
         return;
     }
@@ -676,6 +684,13 @@ void GLCanvasRoomMode::Render(int width, int height)
 
         SpriteInstance ghost{};
         if (m_canvas.BuildPendingEntityPreviewInstance(ghost)) {
+            // Restore the world-space ModelView matrix, which may have been reset to
+            // identity by RenderSelectedEntityTooltip (or RenderEntityControls) for HUD drawing.
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+            glTranslatef(m_canvas.m_cam_x, m_canvas.m_cam_y, 0.0f);
+            glScalef(m_canvas.ZoomFactor(), m_canvas.ZoomFactor(), 1.0f);
+
             std::vector<SpriteInstance> ghost_instances{ghost};
             m_canvas.m_spriteRenderer.SetOpacity(0.45f);
             m_canvas.m_spriteRenderer.Render(

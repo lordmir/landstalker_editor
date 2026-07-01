@@ -12,6 +12,7 @@
 #include <array>
 #include <cmath>
 #include <deque>
+#include <cstdio>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -32,6 +33,61 @@ int GLCanvasAttributes[] = {
     WX_GL_STENCIL_SIZE, 8,
     0
 };
+
+constexpr bool kLogPendingEntityPlacement = true;
+
+void LogPendingEntityPlacementSnapshot(
+    const char* stage,
+    const wxPoint& mouse,
+    int hover_x,
+    int hover_y,
+    float plane_z,
+    float offset_x,
+    float offset_y,
+    const SpriteInstance* ghost)
+{
+    if (!kLogPendingEntityPlacement) {
+        return;
+    }
+    if (!ghost) {
+        std::fprintf(
+            stderr,
+            "[PendingEntity] %s mouse=(%d,%d) hover=(%d,%d) plane_z=%.3f offset=(%.3f,%.3f) ghost=<none>\n",
+            stage,
+            mouse.x,
+            mouse.y,
+            hover_x,
+            hover_y,
+            plane_z,
+            offset_x,
+            offset_y);
+        std::fflush(stderr);
+        return;
+    }
+
+    const float center_x = ghost->map_x + ghost->hitbox_offset;
+    const float center_y = ghost->map_y + ghost->hitbox_offset;
+    std::fprintf(
+        stderr,
+        "[PendingEntity] %s mouse=(%d,%d) hover=(%d,%d) plane_z=%.3f offset=(%.3f,%.3f) "
+        "ghost={map=(%.3f,%.3f,%.3f) center=(%.3f,%.3f) floor=%.3f hitbox_offset=%.3f}\n",
+        stage,
+        mouse.x,
+        mouse.y,
+        hover_x,
+        hover_y,
+        plane_z,
+        offset_x,
+        offset_y,
+        ghost->map_x,
+        ghost->map_y,
+        ghost->map_z,
+        center_x,
+        center_y,
+        ghost->floor_z,
+        ghost->hitbox_offset);
+    std::fflush(stderr);
+}
 
 float HitboxBaseToBlocks(uint8_t base) {
     return float(base) / 8.0f;
@@ -1101,7 +1157,15 @@ MyGLCanvas::MyGLCanvas(wxWindow* parent, std::shared_ptr<GameData> gd)
     m_entity_clipboard_valid(false), m_zoom_step_idx(1), m_gl_init_failed(false), m_initialized(false), m_last_mouse_pos(wxDefaultPosition),
     m_last_anim_ms(0), m_last_frame_ms(0), m_animation_update_count(0), m_render_deferred(false),
     m_restoring_history(false), m_pending_add_type(PendingObjectAddType::None),
-    m_pending_tileswap_part(PendingTileSwapPart::MapSource), m_pending_add_hover_x(-1), m_pending_add_hover_y(-1),
+    m_pending_tileswap_part(PendingTileSwapPart::MapSource),
+    m_pending_add_entity_id(Landstalker::Entity{}.GetType()),
+    m_pending_add_entity_palette(Landstalker::Entity{}.GetPalette()),
+    m_pending_add_entity_orientation(Landstalker::Entity{}.GetOrientation()),
+    m_pending_add_entity_cursor_offset_x(0.0f),
+    m_pending_add_entity_cursor_offset_y(0.0f),
+    m_pending_add_plane_z(0.0f),
+    m_pending_add_floor_snap(true),
+    m_pending_add_hover_x(-1), m_pending_add_hover_y(-1),
     m_pending_add_swap_index(-1)
 {
     m_current_room = 0;
@@ -2743,6 +2807,13 @@ void MyGLCanvas::OnRightDown(wxMouseEvent& evt) {
         UpdateStatusBar();
         return;
     }
+
+    if (IsAnyEditMode() && m_drawing_tool == DrawingTool::Select) {
+        SetDrawingTool(DrawingTool::Draw);
+        UpdateStatusBar();
+        return;
+    }
+
     if (IsHeightmapEditMode()) {
         GLCanvasHeightmapMode(*this).HandleRightDown(evt);
         UpdateStatusBar();
@@ -2856,8 +2927,16 @@ void MyGLCanvas::SetEditorMode(EditorMode mode) {
 
     m_editor_mode = mode;
     if (IsAnyEditMode()) {
-        if (m_background_has_selection) {
-            ClampBackgroundSelection();
+        // Entering heightmap/layer modes should start with no active cell selection.
+        m_background_has_selection = false;
+        m_heightmap_selected_cells.clear();
+        m_heightmap_selection_drag_base.clear();
+        m_layer_selection_drag_base.clear();
+        m_layer_selection_move_values.clear();
+        m_heightmap_selection_move_values.clear();
+        NotifyHeightmapTargetChanged();
+        if (m_drawing_tool != DrawingTool::Select) {
+            SetDrawingTool(DrawingTool::Select);
         }
         if (IsHeightmapEditMode()) {
             m_heightmapRenderer.SetHoverPoint(ScreenToWorldX(m_last_mouse_pos.x), ScreenToWorldY(m_last_mouse_pos.y));
@@ -5284,13 +5363,34 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
         float top = origin.y;
         float right = left + 32.0f * zoom;
         float bottom = top + 32.0f * zoom;
-        glColor4f(0.35f, 0.75f, 1.0f, 0.85f);
+
+        // Strong hover cue for layer edit mode: soft fill + thick double outline.
+        glColor4f(0.20f, 0.68f, 1.0f, 0.20f);
+        glBegin(GL_QUADS);
+        glVertex2f(left, top);
+        glVertex2f(right, top);
+        glVertex2f(right, bottom);
+        glVertex2f(left, bottom);
+        glEnd();
+
+        glLineWidth(3.0f);
+        glColor4f(1.0f, 1.0f, 1.0f, 0.96f);
         glBegin(GL_LINE_LOOP);
         glVertex2f(left, top);
         glVertex2f(right, top);
         glVertex2f(right, bottom);
         glVertex2f(left, bottom);
         glEnd();
+
+        glLineWidth(2.0f);
+        glColor4f(0.10f, 0.78f, 1.0f, 0.96f);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(left + 1.0f, top + 1.0f);
+        glVertex2f(right - 1.0f, top + 1.0f);
+        glVertex2f(right - 1.0f, bottom - 1.0f);
+        glVertex2f(left + 1.0f, bottom - 1.0f);
+        glEnd();
+        glLineWidth(1.0f);
     }
 
     if (m_background_has_selection) {
@@ -5666,6 +5766,38 @@ void MyGLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
     SpriteInstance& inst = m_instances[static_cast<std::size_t>(entity_idx)];
     bool z_axis_only = m_drag_z_axis_only || evt.ControlDown() || evt.RightIsDown();
     SetCursor(wxCursor(z_axis_only ? wxCURSOR_SIZENS : wxCURSOR_HAND));
+    ApplyEntityDragStep(
+        inst,
+        evt.GetPosition(),
+        z_axis_only,
+        m_drag_start_mouse,
+        m_drag_start_x,
+        m_drag_start_y,
+        m_drag_start_z,
+        m_drag_plane_z,
+        m_drag_cursor_offset_x,
+        m_drag_cursor_offset_y,
+        m_drag_floor_snap);
+    UpdateEntityProjection(inst);
+    SortEntitiesGeometrically(m_instances);
+    entity_idx = FindInstanceIndex(m_drag_instance_id);
+    m_selected_entity_idx = entity_idx;
+    m_hovered_entity_idx = entity_idx;
+    Refresh();
+}
+
+void MyGLCanvas::ApplyEntityDragStep(
+    SpriteInstance& inst,
+    const wxPoint& mouse_pos,
+    bool z_axis_only,
+    const wxPoint& drag_start_mouse,
+    float drag_start_x,
+    float drag_start_y,
+    float drag_start_z,
+    float drag_plane_z,
+    float drag_cursor_offset_x,
+    float drag_cursor_offset_y,
+    bool drag_floor_snap) const {
     auto snap_half = [](float value) {
         return std::round(value * 2.0f) * 0.5f;
     };
@@ -5674,16 +5806,16 @@ void MyGLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
     };
 
     if (z_axis_only) {
-        float dy = static_cast<float>(evt.GetPosition().y - m_drag_start_mouse.y);
-        inst.map_x = clamp_map_pos(m_drag_start_x);
-        inst.map_y = clamp_map_pos(m_drag_start_y);
-        inst.map_z = std::clamp(snap_half(m_drag_start_z - dy / 32.0f), 0.0f, 15.5f);
+        float dy = static_cast<float>(mouse_pos.y - drag_start_mouse.y);
+        inst.map_x = clamp_map_pos(drag_start_x);
+        inst.map_y = clamp_map_pos(drag_start_y);
+        inst.map_z = std::clamp(snap_half(drag_start_z - dy / 32.0f), 0.0f, 15.5f);
     } else {
-        float world_x = ScreenToWorldX(evt.GetPosition().x);
-        float world_y = ScreenToWorldY(evt.GetPosition().y);
-        PickPoint cursor_map = ScreenToMapPoint(world_x, world_y, m_drag_plane_z, inst.room_left, inst.room_top, inst.z_extent);
-        float hitbox_center_x = cursor_map.x + m_drag_cursor_offset_x;
-        float hitbox_center_y = cursor_map.y + m_drag_cursor_offset_y;
+        float world_x = ScreenToWorldX(mouse_pos.x);
+        float world_y = ScreenToWorldY(mouse_pos.y);
+        PickPoint cursor_map = ScreenToMapPoint(world_x, world_y, drag_plane_z, inst.room_left, inst.room_top, inst.z_extent);
+        float hitbox_center_x = cursor_map.x + drag_cursor_offset_x;
+        float hitbox_center_y = cursor_map.y + drag_cursor_offset_y;
         inst.map_x = clamp_map_pos(snap_half(hitbox_center_x - inst.hitbox_offset));
         inst.map_y = clamp_map_pos(snap_half(hitbox_center_y - inst.hitbox_offset));
     }
@@ -5692,17 +5824,11 @@ void MyGLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
         inst.map_x + inst.hitbox_offset,
         inst.map_y + inst.hitbox_offset,
         inst.hitbox_base * 0.5f);
-    if (!z_axis_only && m_drag_floor_snap) {
+    if (!z_axis_only && drag_floor_snap) {
         inst.map_z = std::clamp(inst.floor_z, 0.0f, 15.5f);
     } else if (!z_axis_only) {
-        inst.map_z = std::clamp(m_drag_start_z, 0.0f, 15.5f);
+        inst.map_z = std::clamp(drag_start_z, 0.0f, 15.5f);
     }
-    UpdateEntityProjection(inst);
-    SortEntitiesGeometrically(m_instances);
-    entity_idx = FindInstanceIndex(m_drag_instance_id);
-    m_selected_entity_idx = entity_idx;
-    m_hovered_entity_idx = entity_idx;
-    Refresh();
 }
 
 void MyGLCanvas::EndEntityDrag() {
@@ -6406,43 +6532,50 @@ void MyGLCanvas::UpdatePendingObjectAddHover() {
         return;
     }
 
-    auto [x, y] = MouseHeightmapCell();
-    m_pending_add_hover_x = x;
-    m_pending_add_hover_y = y;
+    PickPoint point = ScreenToMapPoint(
+        ScreenToWorldX(m_last_mouse_pos.x),
+        ScreenToWorldY(m_last_mouse_pos.y),
+        m_pending_add_plane_z,
+        static_cast<float>(m_mapRenderer.GetRoomLeft()),
+        static_cast<float>(m_mapRenderer.GetRoomTop()),
+        m_heightmapRenderer.GetZExtent());
+    m_pending_add_hover_x = std::clamp(static_cast<int>(std::floor(point.x)), 0, 63);
+    m_pending_add_hover_y = std::clamp(static_cast<int>(std::floor(point.y)), 0, 63);
 }
 
 bool MyGLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
-    if (m_pending_add_type != PendingObjectAddType::Entity ||
-        m_pending_add_hover_x < 0 ||
-        m_pending_add_hover_y < 0 ||
-        m_room_entities.size() >= 15) {
+    if (m_pending_add_type != PendingObjectAddType::Entity) {
+        return false;
+    }
+    if (m_pending_add_hover_x < 0 || m_pending_add_hover_y < 0) {
         return false;
     }
 
-    Landstalker::Entity entity;
-    float x = static_cast<float>(m_pending_add_hover_x) + 0.5f;
-    float y = static_cast<float>(m_pending_add_hover_y) + 0.5f;
-    entity.SetXDbl(std::clamp<double>(x, 0.5, 63.5));
-    entity.SetYDbl(std::clamp<double>(y, 0.5, 63.5));
-    entity.SetZDbl(FloorUnderPoint(float(entity.GetXDbl()), float(entity.GetYDbl())));
-
     inst = SpriteInstance{};
     inst.instance_id = static_cast<uint32_t>(m_room_entities.size() + 1);
-    inst.entity_id = entity.GetType();
-    inst.palette = entity.GetPalette();
-    inst.map_x = float(entity.GetXDbl());
-    inst.map_y = float(entity.GetYDbl());
-    inst.map_z = float(entity.GetZDbl());
+    inst.entity_id = m_pending_add_entity_id;
+    inst.palette = std::min<uint8_t>(m_pending_add_entity_palette, 3);
     inst.z_extent = m_heightmapRenderer.GetZExtent();
-    inst.room_left = float(m_mapRenderer.GetRoomLeft());
-    inst.room_top = float(m_mapRenderer.GetRoomTop());
+    inst.room_left = static_cast<float>(m_mapRenderer.GetRoomLeft());
+    inst.room_top = static_cast<float>(m_mapRenderer.GetRoomTop());
     inst.dx = 0.0f;
     inst.dy = 0.0f;
     inst.scale = 2.0f;
     inst.anim_timer = 0.0f;
     inst.anim_speed = 1.0f;
-    inst.orientation = entity.GetOrientation();
+    inst.orientation = m_pending_add_entity_orientation;
     RefreshEntityMetadata(inst);
+
+    // Place ghost exactly on the hovered cell center — same coordinate source as the cell highlight.
+    float cx = static_cast<float>(m_pending_add_hover_x) + 0.5f;
+    float cy = static_cast<float>(m_pending_add_hover_y) + 0.5f;
+    inst.map_x = std::clamp(cx - inst.hitbox_offset, 0.0f, 63.5f);
+    inst.map_y = std::clamp(cy - inst.hitbox_offset, 0.0f, 63.5f);
+    inst.floor_z = FloorUnderHitbox(cx, cy, inst.hitbox_base * 0.5f);
+    inst.map_z = std::clamp(inst.floor_z, 0.0f, 15.5f);
+
+    UpdateEntityProjection(inst);
+
     return true;
 }
 
@@ -6451,8 +6584,16 @@ void MyGLCanvas::CancelPendingObjectAdd() {
     m_pending_tileswap_part = PendingTileSwapPart::MapSource;
     m_pending_add_hover_x = -1;
     m_pending_add_hover_y = -1;
+    m_pending_add_plane_z = 0.0f;
+    m_pending_add_floor_snap = true;
+    m_pending_add_entity_cursor_offset_x = 0.0f;
+    m_pending_add_entity_cursor_offset_y = 0.0f;
     m_pending_add_swap = TileSwap{};
     m_pending_add_swap_index = -1;
+    m_pending_add_start_x = 0.0f;
+    m_pending_add_start_y = 0.0f;
+    m_pending_add_start_z = 0.0f;
+    m_pending_add_mouse_start = wxPoint(-1, -1);
     SetCursor(wxCursor(wxCURSOR_ARROW));
     Refresh();
 }
@@ -6462,12 +6603,46 @@ void MyGLCanvas::CommitPendingObjectAdd() {
         return;
     }
 
+    if (m_pending_add_type == PendingObjectAddType::Entity) {
+        LogPendingEntityPlacementSnapshot(
+            "commit-start",
+            m_last_mouse_pos,
+            m_pending_add_hover_x,
+            m_pending_add_hover_y,
+            m_pending_add_plane_z,
+            m_pending_add_entity_cursor_offset_x,
+            m_pending_add_entity_cursor_offset_y,
+            nullptr);
+    }
+
     UpdatePendingObjectAddHover();
     switch (m_pending_add_type) {
         case PendingObjectAddType::Entity:
             if (m_room_entities.size() < 15) {
+                SpriteInstance ghost{};
+                if (!BuildPendingEntityPreviewInstance(ghost)) {
+                    LogPendingEntityPlacementSnapshot(
+                        "commit-build-preview-failed",
+                        m_last_mouse_pos,
+                        m_pending_add_hover_x,
+                        m_pending_add_hover_y,
+                        m_pending_add_plane_z,
+                        m_pending_add_entity_cursor_offset_x,
+                        m_pending_add_entity_cursor_offset_y,
+                        nullptr);
+                    return;
+                }
+                LogPendingEntityPlacementSnapshot(
+                    "commit-preview",
+                    m_last_mouse_pos,
+                    m_pending_add_hover_x,
+                    m_pending_add_hover_y,
+                    m_pending_add_plane_z,
+                    m_pending_add_entity_cursor_offset_x,
+                    m_pending_add_entity_cursor_offset_y,
+                    &ghost);
                 CaptureObjectUndoState();
-                GLCanvasEntityEditor(*this).AddEntity();
+                GLCanvasEntityEditor(*this).AddEntity(ghost);
                 NotifyRoomDataChanged(true, false, false, false);
                 NotifySelectionChanged();
             }
@@ -6558,7 +6733,7 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
     auto draw_diamond = [&](int x, int y, bool heightmap, float r, float g, float b, float a) {
         PickPoint center = heightmap
             ? ProjectHeightmapGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, height_at(x, y), room_left, room_top, m_heightmapRenderer.GetZExtent())
-            : ProjectRoomGridPoint(room_left + static_cast<float>(x) + 0.5f, room_top + static_cast<float>(y) + 0.5f, 0.0f, room_left, room_top);
+            : ProjectRoomGridPoint(static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f, 0.0f, room_left, room_top);
         float cx = center.x * zoom + m_cam_x;
         float cy = center.y * zoom + m_cam_y;
         glColor4f(r, g, b, a * 0.32f);
@@ -6610,8 +6785,37 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
         bool current_is_heightmap = m_pending_tileswap_part == PendingTileSwapPart::HeightmapSource ||
             m_pending_tileswap_part == PendingTileSwapPart::HeightmapDestination;
         draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, current_is_heightmap, 1.0f, 1.0f, 1.0f, 0.95f);
-    } else {
-        draw_diamond(m_pending_add_hover_x, m_pending_add_hover_y, true, 1.0f, 1.0f, 1.0f, 0.95f);
+    } else if (m_pending_add_type == PendingObjectAddType::Entity) {
+        SpriteInstance ghost{};
+        if (BuildPendingEntityPreviewInstance(ghost)) {
+            float center_x = ghost.map_x + ghost.hitbox_offset;
+            float center_y = ghost.map_y + ghost.hitbox_offset;
+            PickPoint center = ProjectRoomGridPoint(
+                center_x,
+                center_y,
+                ghost.map_z,
+                room_left,
+                room_top,
+                ghost.z_extent);
+            float cx = center.x * zoom + m_cam_x;
+            float cy = center.y * zoom + m_cam_y;
+            glColor4f(1.0f, 1.0f, 1.0f, 0.30f);
+            glBegin(GL_QUADS);
+            glVertex2f(cx, cy - 16.0f * zoom);
+            glVertex2f(cx + 32.0f * zoom, cy);
+            glVertex2f(cx, cy + 16.0f * zoom);
+            glVertex2f(cx - 32.0f * zoom, cy);
+            glEnd();
+            glColor4f(1.0f, 1.0f, 1.0f, 0.95f);
+            glLineWidth(2.5f);
+            glBegin(GL_LINE_LOOP);
+            glVertex2f(cx, cy - 16.0f * zoom);
+            glVertex2f(cx + 32.0f * zoom, cy);
+            glVertex2f(cx, cy + 16.0f * zoom);
+            glVertex2f(cx - 32.0f * zoom, cy);
+            glEnd();
+            GLCanvasEntityEditor(*this).RenderEntityTooltipForInstance(ghost);
+        }
     }
     glLineWidth(1.0f);
 }
@@ -6624,7 +6828,49 @@ void MyGLCanvas::AddEntity() {
         return;
     }
     m_pending_add_type = PendingObjectAddType::Entity;
+
+    // Initialize plane and cursor offset like StartEntityDrag.
+    float room_left = static_cast<float>(m_mapRenderer.GetRoomLeft());
+    float room_top = static_cast<float>(m_mapRenderer.GetRoomTop());
+    float z_extent = m_heightmapRenderer.GetZExtent();
+
+    m_pending_add_floor_snap = true;
+
+    float seed_center_x = 0.5f;
+    float seed_center_y = 0.5f;
+
+    // Compute a coarse room position first so the floor height comes from the same cell.
+    if (m_last_mouse_pos.x >= 0 && m_last_mouse_pos.y >= 0) {
+        float world_x = ScreenToWorldX(m_last_mouse_pos.x);
+        float world_y = ScreenToWorldY(m_last_mouse_pos.y);
+        PickPoint coarse = ScreenToMapPoint(world_x, world_y, 0.0f, room_left, room_top, z_extent);
+        seed_center_x = std::clamp(coarse.x, 0.0f, 63.5f);
+        seed_center_y = std::clamp(coarse.y, 0.0f, 63.5f);
+    }
+
+    m_pending_add_plane_z = std::clamp(FloorUnderPoint(seed_center_x, seed_center_y), 0.0f, 15.5f);
+    m_pending_add_entity_cursor_offset_x = 0.0f;
+    m_pending_add_entity_cursor_offset_y = 0.0f;
+
     UpdatePendingObjectAddHover();
+
+    if (m_pending_add_hover_x >= 0 && m_pending_add_hover_y >= 0) {
+        seed_center_x = static_cast<float>(m_pending_add_hover_x) + 0.5f;
+        seed_center_y = static_cast<float>(m_pending_add_hover_y) + 0.5f;
+    } else if (m_last_mouse_pos.x >= 0 && m_last_mouse_pos.y >= 0) {
+        float world_x = ScreenToWorldX(m_last_mouse_pos.x);
+        float world_y = ScreenToWorldY(m_last_mouse_pos.y);
+        PickPoint precise = ScreenToMapPoint(world_x, world_y, m_pending_add_plane_z, room_left, room_top, z_extent);
+        seed_center_x = std::clamp(precise.x, 0.0f, 63.5f);
+        seed_center_y = std::clamp(precise.y, 0.0f, 63.5f);
+    }
+
+    // Initialize the starting position to the hover cell center.
+    m_pending_add_start_x = seed_center_x;
+    m_pending_add_start_y = seed_center_y;
+    m_pending_add_start_z = m_pending_add_plane_z;
+    m_pending_add_mouse_start = m_last_mouse_pos;
+
     SetCursor(wxCursor(wxCURSOR_CROSS));
     Refresh();
 }
@@ -6694,6 +6940,10 @@ void MyGLCanvas::SelectNextTileSwapRegion(int direction) {
 
 void MyGLCanvas::CycleSelectedEntityId(int delta) {
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        if (m_pending_add_type == PendingObjectAddType::Entity) {
+            m_pending_add_entity_id = static_cast<uint8_t>((int(m_pending_add_entity_id) + delta + 256) & 0xFF);
+            Refresh();
+        }
         return;
     }
     CaptureObjectUndoState();
@@ -6703,6 +6953,10 @@ void MyGLCanvas::CycleSelectedEntityId(int delta) {
 
 void MyGLCanvas::CycleSelectedEntityPalette() {
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        if (m_pending_add_type == PendingObjectAddType::Entity) {
+            m_pending_add_entity_palette = static_cast<uint8_t>((m_pending_add_entity_palette + 1) % 4);
+            Refresh();
+        }
         return;
     }
     CaptureObjectUndoState();
@@ -6712,6 +6966,10 @@ void MyGLCanvas::CycleSelectedEntityPalette() {
 
 void MyGLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientation) {
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
+        if (m_pending_add_type == PendingObjectAddType::Entity) {
+            m_pending_add_entity_orientation = orientation;
+            Refresh();
+        }
         return;
     }
     CaptureObjectUndoState();
@@ -6746,14 +7004,24 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
             std::clamp(m_mapRenderer.GetRoomTop() + m_mapRenderer.GetRoomHeight() / 2, 0, 63)
         };
     }
+
+    int picked_x = -1;
+    int picked_y = -1;
+    if (const_cast<MyGLCanvas*>(this)->HeightmapCellAt(m_last_mouse_pos, picked_x, picked_y)) {
+        return {
+            std::clamp(m_mapRenderer.GetRoomLeft() + picked_x, 0, 63),
+            std::clamp(m_mapRenderer.GetRoomTop() + picked_y, 0, 63)
+        };
+    }
+
     PickPoint point = ScreenToHeightmapPoint(
         ScreenToWorldX(m_last_mouse_pos.x),
         ScreenToWorldY(m_last_mouse_pos.y),
         static_cast<float>(m_mapRenderer.GetRoomLeft()),
         static_cast<float>(m_mapRenderer.GetRoomTop()));
     return {
-        std::clamp(static_cast<int>(std::round(point.x)), 0, 63),
-        std::clamp(static_cast<int>(std::round(point.y)), 0, 63)
+        std::clamp(static_cast<int>(std::floor(point.x)), 0, 63),
+        std::clamp(static_cast<int>(std::floor(point.y)), 0, 63)
     };
 }
 
