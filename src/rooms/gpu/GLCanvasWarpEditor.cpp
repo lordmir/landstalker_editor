@@ -139,14 +139,29 @@ void GLCanvasWarpEditor::AddWarpHalf()
 {
 	// Warp creation is two-step: place one endpoint now, then complete on next insert.
 	Landstalker::WarpList::Warp warp;
-	auto [preferred_x, preferred_y] = m_canvas.MouseHeightmapCell();
-	auto [x, y] = FindNearestFreeWarpCell(static_cast<float>(preferred_x), static_cast<float>(preferred_y));
+	// Use room-grid coords (m_pending_add_hover_x/y from ScreenToMapPoint) to match
+	// ProjectWarpGridPoint, which has no heightmap offset. Centre on the cursor.
+	float half_w = std::round(m_canvas.m_pending_add_warp_width) * 0.5f;
+	float half_h = std::round(m_canvas.m_pending_add_warp_height) * 0.5f;
+	float cursor_x, cursor_y;
+	if (m_canvas.m_pending_add_hover_x >= 0 && m_canvas.m_pending_add_hover_y >= 0) {
+		cursor_x = static_cast<float>(m_canvas.m_pending_add_hover_x) + 0.5f;
+		cursor_y = static_cast<float>(m_canvas.m_pending_add_hover_y) + 0.5f;
+	} else {
+		auto [hx, hy] = m_canvas.MouseHeightmapCell();
+		cursor_x = static_cast<float>(hx) + 12.5f;
+		cursor_y = static_cast<float>(hy) + 12.5f;
+	}
+	auto [x, y] = FindNearestFreeWarpCell(cursor_x - half_w, cursor_y - half_h);
 	bool update_pending_instance = false;
 	if (!m_canvas.m_pending_warp_half) {
 		warp.room1 = m_canvas.m_current_room;
 		warp.x1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(x)), 0, 63));
 		warp.y1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(y)), 0, 63));
 		warp.room2 = 0xFFFF;
+		warp.x_size = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(m_canvas.m_pending_add_warp_width)), 1, 3));
+		warp.y_size = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(m_canvas.m_pending_add_warp_height)), 1, 3));
+		warp.type = m_canvas.m_pending_add_warp_type;
 		m_canvas.m_pending_warp = warp;
 		m_canvas.m_pending_warp_half = true;
 		m_canvas.m_pending_warp_room = m_canvas.m_current_room;
@@ -324,6 +339,15 @@ void GLCanvasWarpEditor::ResizeSelectedWarp(float dx, float dy)
 	}
 	GLCanvasObjectSupport::ClampWarpToValidSize(warp);
 	m_canvas.UpdateWarpFloor(warp);
+	if (warp.warp_key != 0) {
+		for (auto& other : m_canvas.m_warps) {
+			if (other.instance_id != warp.instance_id && other.warp_key == warp.warp_key) {
+				other.width = warp.width;
+				other.height = warp.height;
+				m_canvas.UpdateWarpFloor(other);
+			}
+		}
+	}
 }
 
 void GLCanvasWarpEditor::RotateSelectedWarp(float dx, float dy)
@@ -346,6 +370,45 @@ void GLCanvasWarpEditor::CycleSelectedWarpType(int delta)
 	int type = static_cast<int>(warp.warp.type);
 	type = (type + delta + 3) % 3;
 	warp.warp.type = static_cast<Landstalker::WarpList::Warp::Type>(type);
+	if (warp.warp_key != 0) {
+		for (auto& other : m_canvas.m_warps) {
+			if (other.instance_id != warp.instance_id && other.warp_key == warp.warp_key) {
+				other.warp.type = warp.warp.type;
+			}
+		}
+	}
+}
+
+void GLCanvasWarpEditor::RenderPendingWarpGhost()
+{
+	WarpInstance ghost{};
+	if (!m_canvas.BuildPendingWarpPreviewInstance(ghost)) {
+		return;
+	}
+	glUseProgram(0);
+	for (int i = 0; i <= 5; ++i) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glDisable(GL_TEXTURE_2D);
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	auto quad = WarpQuad(ghost);
+	glColor4f(1.0f, 0.95f, 0.0f, 0.35f);
+	glBegin(GL_QUADS);
+	for (const auto& point : quad) {
+		glVertex2f(point.x, point.y);
+	}
+	glEnd();
+	glColor4f(1.0f, 0.95f, 0.0f, 0.9f);
+	glLineWidth(2.5f);
+	glBegin(GL_LINE_LOOP);
+	for (const auto& point : quad) {
+		glVertex2f(point.x, point.y);
+	}
+	glEnd();
+	glLineWidth(1.0f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void GLCanvasWarpEditor::RenderWarps()

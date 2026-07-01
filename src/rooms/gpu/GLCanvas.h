@@ -312,6 +312,7 @@ private:
     void CommitPendingObjectAdd();
     void CancelPendingObjectAdd();
     bool BuildPendingEntityPreviewInstance(SpriteInstance& inst);
+    bool BuildPendingWarpPreviewInstance(WarpInstance& inst);
     void RenderPendingObjectAddOverlay();
     std::pair<int, int> MouseHeightmapCell() const;
     std::pair<float, float> FindNearestFreeWarpCell(float preferred_x, float preferred_y) const;
@@ -617,6 +618,10 @@ private:
     int m_pending_add_hover_x;
     int m_pending_add_hover_y;
     int m_pending_add_swap_index;
+    float m_pending_add_warp_width;
+    float m_pending_add_warp_height;
+    Landstalker::WarpList::Warp::Type m_pending_add_warp_type;
+    Landstalker::Door::Size m_pending_add_door_size;
     bool m_tileswap_preview_active;
     int m_tileswap_preview_swap_index;
     bool m_door_preview_active;

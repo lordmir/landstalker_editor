@@ -19,6 +19,7 @@ public:
     void RenderTileSwapOutlines();
     void RenderSelectedDoorTooltip();
     void RenderSelectedTileSwapRegionTooltip();
+    void RenderPendingDoorGhost();
 
 private:
     MyGLCanvas& m_canvas;

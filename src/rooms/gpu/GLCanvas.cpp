@@ -1166,7 +1166,11 @@ MyGLCanvas::MyGLCanvas(wxWindow* parent, std::shared_ptr<GameData> gd)
     m_pending_add_plane_z(0.0f),
     m_pending_add_floor_snap(true),
     m_pending_add_hover_x(-1), m_pending_add_hover_y(-1),
-    m_pending_add_swap_index(-1)
+    m_pending_add_swap_index(-1),
+    m_pending_add_warp_width(1.0f),
+    m_pending_add_warp_height(1.0f),
+    m_pending_add_warp_type(Landstalker::WarpList::Warp::Type::NORMAL),
+    m_pending_add_door_size(Door::Size::DOOR_1X4)
 {
     m_current_room = 0;
     m_fps_stopwatch.Start();
@@ -1184,6 +1188,7 @@ MyGLCanvas::~MyGLCanvas() {
 
 void MyGLCanvas::SetRoomNum(uint16_t roomnum) {
     if (m_initialized && m_current_room == roomnum) {
+        SetFocus();
         Refresh();
         return;
     }
@@ -1193,6 +1198,7 @@ void MyGLCanvas::SetRoomNum(uint16_t roomnum) {
         return;
     }
     LoadRoom(roomnum);
+    SetFocus();
     Refresh();
 }
 
@@ -1403,6 +1409,7 @@ void MyGLCanvas::NavigateToRoom(uint16_t roomnum) {
         return;
     }
     LoadRoom(roomnum);
+    SetFocus();
     NotifyRoomNavigationChanged();
 }
 
@@ -2141,8 +2148,11 @@ bool MyGLCanvas::HandleKeyDown(wxKeyEvent& evt) {
     }
 
     if (!IsAnyEditMode() && evt.GetKeyCode() == WXK_RETURN) {
-        if (OpenSelectedObjectProperties()) {
-            return true;
+        if (!m_dragging_entity && !m_dragging_warp && !m_dragging_door &&
+            !m_dragging_tileswap_region && !HasPendingObjectAdd()) {
+            if (OpenSelectedObjectProperties()) {
+                return true;
+            }
         }
     }
 
@@ -6579,6 +6589,36 @@ bool MyGLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
     return true;
 }
 
+bool MyGLCanvas::BuildPendingWarpPreviewInstance(WarpInstance& inst) {
+    if (m_pending_add_type != PendingObjectAddType::Warp) {
+        return false;
+    }
+    if (m_pending_add_hover_x < 0 || m_pending_add_hover_y < 0) {
+        return false;
+    }
+    // Use room-grid coords from UpdatePendingObjectAddHover (ScreenToMapPoint) so that
+    // ProjectWarpGridPoint renders the ghost centred on the cursor.
+    float half_w = std::round(m_pending_add_warp_width) * 0.5f;
+    float half_h = std::round(m_pending_add_warp_height) * 0.5f;
+    float cursor_x = static_cast<float>(m_pending_add_hover_x) + 0.5f;
+    float cursor_y = static_cast<float>(m_pending_add_hover_y) + 0.5f;
+    auto [x, y] = FindNearestFreeWarpCell(cursor_x - half_w, cursor_y - half_h);
+    Landstalker::WarpList::Warp warp{};
+    warp.room1 = m_current_room;
+    warp.x1 = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(x)), 0, 63));
+    warp.y1 = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(y)), 0, 63));
+    warp.room2 = 0xFFFF;
+    warp.x_size = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(m_pending_add_warp_width)), 1, 3));
+    warp.y_size = static_cast<uint8_t>(std::clamp(static_cast<int>(std::round(m_pending_add_warp_height)), 1, 3));
+    warp.type = m_pending_add_warp_type;
+    inst = GLCanvasObjectSupport::MakeWarpInstance(
+        warp, m_current_room, 0,
+        float(m_mapRenderer.GetRoomLeft()), float(m_mapRenderer.GetRoomTop()),
+        m_heightmapRenderer.GetZExtent());
+    UpdateWarpFloor(inst);
+    return true;
+}
+
 void MyGLCanvas::CancelPendingObjectAdd() {
     m_pending_add_type = PendingObjectAddType::None;
     m_pending_tileswap_part = PendingTileSwapPart::MapSource;
@@ -6594,6 +6634,10 @@ void MyGLCanvas::CancelPendingObjectAdd() {
     m_pending_add_start_y = 0.0f;
     m_pending_add_start_z = 0.0f;
     m_pending_add_mouse_start = wxPoint(-1, -1);
+    m_pending_add_warp_width = 1.0f;
+    m_pending_add_warp_height = 1.0f;
+    m_pending_add_warp_type = Landstalker::WarpList::Warp::Type::NORMAL;
+    m_pending_add_door_size = Door::Size::DOOR_1X4;
     SetCursor(wxCursor(wxCURSOR_ARROW));
     Refresh();
 }
@@ -6654,6 +6698,7 @@ void MyGLCanvas::CommitPendingObjectAdd() {
             NotifyRoomDataChanged(false, true, false, false);
             NotifySelectionChanged();
             CancelPendingObjectAdd();
+            SetFocus();
             return;
         case PendingObjectAddType::Door:
             CaptureObjectUndoState();
@@ -6827,6 +6872,7 @@ void MyGLCanvas::AddEntity() {
     if (m_room_entities.size() >= 15) {
         return;
     }
+    SetFocus();
     m_pending_add_type = PendingObjectAddType::Entity;
 
     // Initialize plane and cursor offset like StartEntityDrag.
@@ -6939,11 +6985,12 @@ void MyGLCanvas::SelectNextTileSwapRegion(int direction) {
 }
 
 void MyGLCanvas::CycleSelectedEntityId(int delta) {
+    if (m_pending_add_type == PendingObjectAddType::Entity) {
+        m_pending_add_entity_id = static_cast<uint8_t>((int(m_pending_add_entity_id) + delta + 256) & 0xFF);
+        Refresh();
+        return;
+    }
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
-        if (m_pending_add_type == PendingObjectAddType::Entity) {
-            m_pending_add_entity_id = static_cast<uint8_t>((int(m_pending_add_entity_id) + delta + 256) & 0xFF);
-            Refresh();
-        }
         return;
     }
     CaptureObjectUndoState();
@@ -6952,11 +6999,12 @@ void MyGLCanvas::CycleSelectedEntityId(int delta) {
 }
 
 void MyGLCanvas::CycleSelectedEntityPalette() {
+    if (m_pending_add_type == PendingObjectAddType::Entity) {
+        m_pending_add_entity_palette = static_cast<uint8_t>((m_pending_add_entity_palette + 1) % 4);
+        Refresh();
+        return;
+    }
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
-        if (m_pending_add_type == PendingObjectAddType::Entity) {
-            m_pending_add_entity_palette = static_cast<uint8_t>((m_pending_add_entity_palette + 1) % 4);
-            Refresh();
-        }
         return;
     }
     CaptureObjectUndoState();
@@ -6965,11 +7013,12 @@ void MyGLCanvas::CycleSelectedEntityPalette() {
 }
 
 void MyGLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientation) {
+    if (m_pending_add_type == PendingObjectAddType::Entity) {
+        m_pending_add_entity_orientation = orientation;
+        Refresh();
+        return;
+    }
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
-        if (m_pending_add_type == PendingObjectAddType::Entity) {
-            m_pending_add_entity_orientation = orientation;
-            Refresh();
-        }
         return;
     }
     CaptureObjectUndoState();
@@ -6987,7 +7036,11 @@ void MyGLCanvas::SetSelectedEntityToFloor() {
 }
 
 void MyGLCanvas::AddWarpHalf() {
+    SetFocus();
     m_pending_add_type = PendingObjectAddType::Warp;
+    m_pending_add_warp_width = 1.0f;
+    m_pending_add_warp_height = 1.0f;
+    m_pending_add_warp_type = Landstalker::WarpList::Warp::Type::NORMAL;
     UpdatePendingObjectAddHover();
     SetCursor(wxCursor(wxCURSOR_CROSS));
     Refresh();
@@ -7026,6 +7079,18 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
 }
 
 void MyGLCanvas::ResizeSelectedWarp(float dx, float dy) {
+    if (m_pending_add_type == PendingObjectAddType::Warp) {
+        if (dx != 0.0f) {
+            m_pending_add_warp_height = GLCanvasObjectSupport::ValidWarpHeight(m_pending_add_warp_height, m_pending_add_warp_width);
+            m_pending_add_warp_width = GLCanvasObjectSupport::ValidWarpWidth(m_pending_add_warp_width + dx, m_pending_add_warp_height);
+        }
+        if (dy != 0.0f) {
+            m_pending_add_warp_width = GLCanvasObjectSupport::ValidWarpWidth(m_pending_add_warp_width, m_pending_add_warp_height);
+            m_pending_add_warp_height = GLCanvasObjectSupport::ValidWarpHeight(m_pending_add_warp_height + dy, m_pending_add_warp_width);
+        }
+        Refresh();
+        return;
+    }
     if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
         return;
     }
@@ -7035,6 +7100,9 @@ void MyGLCanvas::ResizeSelectedWarp(float dx, float dy) {
 }
 
 void MyGLCanvas::RotateSelectedWarp(float dx, float dy) {
+    if (m_pending_add_type == PendingObjectAddType::Warp) {
+        return; // position is cursor-controlled
+    }
     if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
         return;
     }
@@ -7044,6 +7112,13 @@ void MyGLCanvas::RotateSelectedWarp(float dx, float dy) {
 }
 
 void MyGLCanvas::CycleSelectedWarpType(int delta) {
+    if (m_pending_add_type == PendingObjectAddType::Warp) {
+        int type = static_cast<int>(m_pending_add_warp_type);
+        type = (type + delta + 3) % 3;
+        m_pending_add_warp_type = static_cast<Landstalker::WarpList::Warp::Type>(type);
+        Refresh();
+        return;
+    }
     if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
         return;
     }
@@ -7053,6 +7128,20 @@ void MyGLCanvas::CycleSelectedWarpType(int delta) {
 }
 
 void MyGLCanvas::CycleSelectedDoorSize(int delta) {
+    if (m_pending_add_type == PendingObjectAddType::Door) {
+        static constexpr std::array<Door::Size, 4> sizes{
+            Door::Size::DOOR_1X4,
+            Door::Size::DOOR_2X4,
+            Door::Size::DOOR_2X5,
+            Door::Size::DOOR_1X0
+        };
+        auto it = std::find(sizes.begin(), sizes.end(), m_pending_add_door_size);
+        int idx = it == sizes.end() ? 0 : static_cast<int>(std::distance(sizes.begin(), it));
+        idx = (idx + delta + static_cast<int>(sizes.size())) % static_cast<int>(sizes.size());
+        m_pending_add_door_size = sizes[static_cast<std::size_t>(idx)];
+        Refresh();
+        return;
+    }
     if (m_selected_door_idx < 0) {
         return;
     }
@@ -7062,7 +7151,9 @@ void MyGLCanvas::CycleSelectedDoorSize(int delta) {
 }
 
 void MyGLCanvas::AddDoor() {
+    SetFocus();
     m_pending_add_type = PendingObjectAddType::Door;
+    m_pending_add_door_size = Door::Size::DOOR_1X4;
     UpdatePendingObjectAddHover();
     SetCursor(wxCursor(wxCURSOR_CROSS));
     Refresh();

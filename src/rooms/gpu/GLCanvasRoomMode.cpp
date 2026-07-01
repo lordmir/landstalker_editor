@@ -1,4 +1,6 @@
 #include "GLCanvasRoomMode.h"
+#include "GLCanvasTileDoorEditor.h"
+#include "GLCanvasWarpEditor.h"
 
 #include <algorithm>
 #include <array>
@@ -88,6 +90,10 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
                 m_canvas.CancelPendingObjectAdd();
                 return true;
             }
+            if (m_canvas.m_dragging_entity || m_canvas.m_dragging_warp ||
+                m_canvas.m_dragging_door || m_canvas.m_dragging_tileswap_region) {
+                return true;
+            }
             m_canvas.m_selected_entity_idx = -1;
             m_canvas.m_selected_warp_idx = -1;
             m_canvas.m_selected_tileswap_region_idx = -1;
@@ -110,13 +116,25 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             m_canvas.PanCameraByStep(0, -1);
             break;
         case WXK_PAGEUP:
-            m_canvas.NavigateToRoom((m_canvas.m_current_room + 1) % room_count);
+            if (!m_canvas.HasPendingObjectAdd() && !m_canvas.m_dragging_entity &&
+                !m_canvas.m_dragging_warp && !m_canvas.m_dragging_door &&
+                !m_canvas.m_dragging_tileswap_region) {
+                m_canvas.NavigateToRoom((m_canvas.m_current_room + 1) % room_count);
+            }
             break;
         case WXK_PAGEDOWN:
-            m_canvas.NavigateToRoom(m_canvas.m_current_room > 0 ? m_canvas.m_current_room - 1 : room_count - 1);
+            if (!m_canvas.HasPendingObjectAdd() && !m_canvas.m_dragging_entity &&
+                !m_canvas.m_dragging_warp && !m_canvas.m_dragging_door &&
+                !m_canvas.m_dragging_tileswap_region) {
+                m_canvas.NavigateToRoom(m_canvas.m_current_room > 0 ? m_canvas.m_current_room - 1 : room_count - 1);
+            }
             break;
         case WXK_TAB:
-            m_canvas.SelectNextObject(ctrl ? -1 : 1);
+            if (!m_canvas.HasPendingObjectAdd() && !m_canvas.m_dragging_entity &&
+                !m_canvas.m_dragging_warp && !m_canvas.m_dragging_door &&
+                !m_canvas.m_dragging_tileswap_region) {
+                m_canvas.SelectNextObject(ctrl ? -1 : 1);
+            }
             break;
         case WXK_SPACE:
             if (m_canvas.m_selected_door_idx >= 0) {
@@ -153,11 +171,13 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             break;
         case ',':
         case '<':
-            if (m_canvas.m_selected_door_idx >= 0) {
+            if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Door ||
+                m_canvas.m_selected_door_idx >= 0) {
                 m_canvas.CycleSelectedDoorSize(-1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.CycleSelectedTileSwapShape(-1);
-            } else if (m_canvas.m_selected_warp_idx >= 0) {
+            } else if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                       m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.CycleSelectedWarpType(-1);
             } else {
                 m_canvas.CycleSelectedEntityId(-1);
@@ -165,11 +185,13 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             break;
         case '.':
         case '>':
-            if (m_canvas.m_selected_door_idx >= 0) {
+            if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Door ||
+                m_canvas.m_selected_door_idx >= 0) {
                 m_canvas.CycleSelectedDoorSize(1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.CycleSelectedTileSwapShape(1);
-            } else if (m_canvas.m_selected_warp_idx >= 0) {
+            } else if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                       m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.CycleSelectedWarpType(1);
             } else {
                 m_canvas.CycleSelectedEntityId(1);
@@ -235,7 +257,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
                        m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NW);
-            } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
+            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                                 m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(0.0f, -1.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.RotateSelectedWarp(0.0f, -1.0f);
@@ -252,7 +275,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
                        m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SW);
-            } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
+            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                                 m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(-1.0f, 0.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.RotateSelectedWarp(-1.0f, 0.0f);
@@ -269,7 +293,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
                        m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SE);
-            } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
+            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                                 m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(0.0f, 1.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.RotateSelectedWarp(0.0f, 1.0f);
@@ -286,7 +311,8 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
                        m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NE);
-            } else if (shift && m_canvas.m_selected_warp_idx >= 0) {
+            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+                                 m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(1.0f, 0.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.RotateSelectedWarp(1.0f, 0.0f);
@@ -422,6 +448,7 @@ void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
     if (m_canvas.HasPendingObjectAdd()) {
         bool pending_entity_add = m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity;
         m_canvas.CommitPendingObjectAdd();
+        m_canvas.SetFocus();
         if (pending_entity_add && m_canvas.m_selected_entity_idx >= 0) {
             m_canvas.StartEntityDrag(m_canvas.m_selected_entity_idx, evt, evt.ControlDown());
         }
@@ -572,6 +599,10 @@ void GLCanvasRoomMode::Render(int width, int height)
     }
     if (m_canvas.m_show_warps) {
         m_canvas.RenderWarps();
+    }
+    if (m_canvas.HasPendingObjectAdd()) {
+        GLCanvasWarpEditor(m_canvas).RenderPendingWarpGhost();
+        GLCanvasTileDoorEditor(m_canvas).RenderPendingDoorGhost();
     }
 
     SpriteRenderer::OcclusionMode occlusion_mode = SpriteRenderer::OcclusionMode::AlwaysOnTop;

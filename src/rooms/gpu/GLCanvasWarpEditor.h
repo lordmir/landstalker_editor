@@ -15,6 +15,7 @@ public:
     void CycleSelectedWarpType(int delta);
     void RenderWarps();
     void RenderSelectedWarpTooltip();
+    void RenderPendingWarpGhost();
 
 private:
     MyGLCanvas& m_canvas;

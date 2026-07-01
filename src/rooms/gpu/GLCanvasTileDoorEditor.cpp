@@ -387,7 +387,7 @@ void GLCanvasTileDoorEditor::AddDoor()
 	doors.emplace_back(
 		static_cast<uint8_t>(best_x),
 		static_cast<uint8_t>(best_y),
-		Landstalker::Door::Size::DOOR_1X4);
+		m_canvas.m_pending_add_door_size);
 	rd->SetDoors(m_canvas.m_current_room, doors);
 
 	m_canvas.m_selected_entity_idx = -1;
@@ -398,6 +398,96 @@ void GLCanvasTileDoorEditor::AddDoor()
 	m_canvas.m_hovered_tileswap_region_idx = -1;
 	m_canvas.m_selected_door_idx = static_cast<int>(doors.size() - 1);
 	m_canvas.m_hovered_door_idx = m_canvas.m_selected_door_idx;
+}
+
+void GLCanvasTileDoorEditor::RenderPendingDoorGhost()
+{
+	if (m_canvas.m_pending_add_type != MyGLCanvas::PendingObjectAddType::Door) {
+		return;
+	}
+	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
+	if (!rd) {
+		return;
+	}
+
+	auto [preferred_x, preferred_y] = m_canvas.MouseHeightmapCell();
+	auto doors = rd->GetDoors(m_canvas.m_current_room);
+	auto cell_used = [&doors](int x, int y) {
+		for (const auto& door : doors) {
+			if (static_cast<int>(door.x) == x && static_cast<int>(door.y) == y) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	int best_x = preferred_x;
+	int best_y = preferred_y;
+	int best_dist = std::numeric_limits<int>::max();
+	for (int gy = 0; gy <= 63; ++gy) {
+		for (int gx = 0; gx <= 63; ++gx) {
+			if (cell_used(gx, gy)) {
+				continue;
+			}
+			int dx = gx - preferred_x;
+			int dy = gy - preferred_y;
+			int dist = dx * dx + dy * dy;
+			if (dist < best_dist) {
+				best_dist = dist;
+				best_x = gx;
+				best_y = gy;
+			}
+		}
+	}
+
+	auto map = m_canvas.CurrentRoomMap();
+	auto height_at = [&](int x, int y) -> float {
+		if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
+			return 0.0f;
+		}
+		uint8_t z = map->GetHeight({x, y});
+		return z == 0xFF ? 0.0f : static_cast<float>(z);
+	};
+
+	const float room_left = static_cast<float>(m_canvas.m_mapRenderer.GetRoomLeft());
+	const float room_top = static_cast<float>(m_canvas.m_mapRenderer.GetRoomTop());
+	const float z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+	PickPoint center = ProjectHeightmapGridPoint(
+		static_cast<float>(best_x) + 0.5f,
+		static_cast<float>(best_y) + 0.5f,
+		height_at(best_x, best_y),
+		room_left,
+		room_top,
+		z_extent);
+
+	glUseProgram(0);
+	for (int i = 0; i <= 5; ++i) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glDisable(GL_TEXTURE_2D);
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glColor4f(0.0f, 0.55f, 0.22f, 0.35f);
+	glBegin(GL_QUADS);
+	glVertex2f(center.x, center.y - 16.0f);
+	glVertex2f(center.x + 32.0f, center.y);
+	glVertex2f(center.x, center.y + 16.0f);
+	glVertex2f(center.x - 32.0f, center.y);
+	glEnd();
+
+	glColor4f(0.0f, 0.55f, 0.22f, 0.9f);
+	glLineWidth(2.5f);
+	glBegin(GL_LINE_LOOP);
+	glVertex2f(center.x, center.y - 16.0f);
+	glVertex2f(center.x + 32.0f, center.y);
+	glVertex2f(center.x, center.y + 16.0f);
+	glVertex2f(center.x - 32.0f, center.y);
+	glEnd();
+
+	glLineWidth(1.0f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void GLCanvasTileDoorEditor::AddTileSwap()
