@@ -192,6 +192,9 @@
     <ClCompile Include="..\src\misc\ExecutorThread.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\misc\LookupDataViewRenderer.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\FlagDataViewModel.cpp">
       <Filter>src\Rooms\FlagEditor</Filter>
     </ClCompile>
@@ -456,6 +459,9 @@
       <Filter>include\Miscellaneous</Filter>
     </ClInclude>
     <ClInclude Include="..\src\misc\ExecutorThread.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\LookupDataViewRenderer.h">
       <Filter>include\Miscellaneous</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\FlagDataViewModel.h">

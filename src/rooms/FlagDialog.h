@@ -39,6 +39,7 @@ private:
 	};
 
 	void AddPage(Landstalker::FlagType type, const std::string& name, BaseDataViewModel* model, const FlagDialog::PageProperties& props);
+	void EnsurePageInitialised(Landstalker::FlagType type);
 	void UpdateUI();
 
 	Landstalker::FlagType GetSelectedTab();
@@ -59,6 +60,7 @@ private:
 	ImageList* m_imglst;
 	uint16_t m_roomnum;
 	std::map<Landstalker::FlagType, wxDataViewCtrl*> m_dvc_ctrls;
+	std::map<Landstalker::FlagType, bool> m_page_initialised;
 	wxNotebook* m_tabs;
 	wxStdDialogButtonSizer* m_button_sizer;
 	wxButton* m_ok;

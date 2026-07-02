@@ -1,5 +1,29 @@
 #include <rooms/FlagDataViewModel.h>
+#include <misc/LookupDataViewRenderer.h>
 #include <numeric>
+
+namespace
+{
+const wxArrayString& GetSharedFlagChoices(const std::shared_ptr<Landstalker::GameData>& gd)
+{
+	static const Landstalker::GameData* s_cached_gd = nullptr;
+	static wxArrayString s_flag_choices;
+
+	if (gd.get() != s_cached_gd || s_flag_choices.GetCount() != 2048)
+	{
+		s_cached_gd = gd.get();
+		s_flag_choices.Clear();
+		s_flag_choices.reserve(2048);
+		for (std::size_t i = 0; i < 2048; ++i)
+		{
+			s_flag_choices.Add(gd->GetScriptData()->GetFlagDisplayName(i));
+		}
+	}
+
+	return s_flag_choices;
+}
+
+}
 
 template <>
 unsigned int FlagDataViewModel<Landstalker::EntityFlag>::GetColumnCount() const
@@ -47,10 +71,7 @@ wxArrayString FlagDataViewModel<Landstalker::EntityFlag>::GetColumnChoices(unsig
 		break;
 	}
 	case 1:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	case 2:
 		choices.Add("Set");
@@ -139,7 +160,7 @@ void FlagDataViewModel<Landstalker::EntityFlag>::InitControl(wxDataViewCtrl* ctr
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 240, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 220, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 220, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 100, wxALIGN_LEFT));
 }
@@ -195,10 +216,7 @@ wxArrayString FlagDataViewModel<Landstalker::OneTimeEventFlag>::GetColumnChoices
 	}
 	case 1:
 	case 3:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	case 2:
 	case 4:
@@ -306,11 +324,11 @@ void FlagDataViewModel<Landstalker::OneTimeEventFlag>::InitControl(wxDataViewCtr
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 160, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 120, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 120, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 80, wxALIGN_LEFT));
 	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(3)), 3, 120, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 3, 120, wxALIGN_LEFT));
 	ctrl->InsertColumn(4, new wxDataViewColumn(this->GetColumnHeader(4),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(4)), 4, 80, wxALIGN_LEFT));
 }
@@ -359,10 +377,7 @@ wxArrayString FlagDataViewModel<Landstalker::RoomClearFlag>::GetColumnChoices(un
 		break;
 	}
 	case 1:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	default:
 		break;
@@ -438,7 +453,7 @@ void FlagDataViewModel<Landstalker::RoomClearFlag>::InitControl(wxDataViewCtrl* 
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 240, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 220, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 220, wxALIGN_LEFT));
 }
 
 wxString LockedDoorFlagViewModel::GetColumnHeader(unsigned int col) const
@@ -509,10 +524,7 @@ wxArrayString FlagDataViewModel<Landstalker::SacredTreeFlag>::GetColumnChoices(u
 		break;
 	}
 	case 1:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	default:
 		break;
@@ -607,7 +619,7 @@ void FlagDataViewModel<Landstalker::SacredTreeFlag>::InitControl(wxDataViewCtrl*
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewTextRenderer(), 0, 270, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 290, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 290, wxALIGN_LEFT));
 }
 
 template <>
@@ -643,10 +655,7 @@ wxArrayString FlagDataViewModel<Landstalker::WarpList::Transition>::GetColumnCho
 		}
 		break;
 	case 1:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	default:
 		break;
@@ -722,7 +731,7 @@ void FlagDataViewModel<Landstalker::WarpList::Transition>::InitControl(wxDataVie
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 290, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 270, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 270, wxALIGN_LEFT));
 }
 
 template <>
@@ -1066,10 +1075,7 @@ wxArrayString FlagDataViewModel<Landstalker::TileSwapFlag>::GetColumnChoices(uns
 	switch (col)
 	{
 	case 2:
-		for (std::size_t i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
+		return GetSharedFlagChoices(m_gd);
 		break;
 	default:
 		break;
@@ -1160,7 +1166,7 @@ void FlagDataViewModel<Landstalker::TileSwapFlag>::InitControl(wxDataViewCtrl* c
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewToggleRenderer("bool", wxDATAVIEW_CELL_ACTIVATABLE), 1, 100, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 240, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 2, 240, wxALIGN_LEFT));
 }
 
 
@@ -1215,12 +1221,7 @@ wxArrayString FlagDataViewModel<Landstalker::TreeWarpFlag>::GetColumnChoices(uns
 {
 	if (col == 2)
 	{
-		wxArrayString choices;
-		for (int i = 0; i < 2048; ++i)
-		{
-			choices.Add(m_gd->GetScriptData()->GetFlagDisplayName(i));
-		}
-		return choices;
+		return GetSharedFlagChoices(m_gd);
 	}
 	else
 	{
@@ -1302,5 +1303,5 @@ void FlagDataViewModel<Landstalker::TreeWarpFlag>::InitControl(wxDataViewCtrl* c
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 2, 200, wxALIGN_LEFT));
 }

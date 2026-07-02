@@ -79,6 +79,8 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
         }
     }
 
+    EnsurePageInitialised(GetSelectedTab());
+
     UpdateUI();
 
     for (auto& ctrl : m_dvc_ctrls)
@@ -100,6 +102,15 @@ FlagDialog::~FlagDialog()
     {
         ctrl.second->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(FlagDialog::OnKeyPress), nullptr, this);
     }
+
+    for (const auto& model : m_models)
+    {
+        if (!m_page_initialised[model.first])
+        {
+            model.second->DecRef();
+        }
+    }
+
     m_tabs->Disconnect(wxEVT_BOOKCTRL_PAGE_CHANGED, wxBookCtrlEventHandler(FlagDialog::OnTabChange), nullptr, this);
     m_ok->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnOK), nullptr, this);
     m_cancel->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(FlagDialog::OnCancel), nullptr, this);
@@ -119,6 +130,7 @@ void FlagDialog::CommitAll()
 
 void FlagDialog::AddToCurrentList()
 {
+    EnsurePageInitialised(GetSelectedTab());
     if (m_page_properties[GetSelectedTab()].add_enabled == false)
     {
         return;
@@ -131,6 +143,7 @@ void FlagDialog::AddToCurrentList()
 
 void FlagDialog::DeleteFromCurrentList()
 {
+    EnsurePageInitialised(GetSelectedTab());
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection())
     {
         if (m_page_properties[GetSelectedTab()].delete_enabled == false)
@@ -154,6 +167,7 @@ void FlagDialog::DeleteFromCurrentList()
 
 void FlagDialog::MoveSelectedUpCurrentList()
 {
+    EnsurePageInitialised(GetSelectedTab());
     auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
     auto* model = m_models[GetSelectedTab()];
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
@@ -173,6 +187,7 @@ void FlagDialog::MoveSelectedUpCurrentList()
 
 void FlagDialog::MoveSelectedDownCurrentList()
 {
+    EnsurePageInitialised(GetSelectedTab());
     auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
     auto* model = m_models[GetSelectedTab()];
     if (m_dvc_ctrls[GetSelectedTab()]->HasSelection() && m_models[GetSelectedTab()]->GetRowCount() >= 2)
@@ -200,14 +215,28 @@ void FlagDialog::AddPage(Landstalker::FlagType type, const std::string& name, Ba
     szr->Add(m_dvc_ctrls[type], 1, wxALL | wxEXPAND, 5);
     m_pages.push_back(type);
     m_page_properties.insert({ type, props });
+    m_page_initialised[type] = false;
 
     auto* ctrl = m_dvc_ctrls[type];
     ctrl->ClearColumns();
     m_models[type] = model;
     model->Initialise();
+}
+
+void FlagDialog::EnsurePageInitialised(Landstalker::FlagType type)
+{
+    if (m_page_initialised[type])
+    {
+        return;
+    }
+
+    auto* ctrl = m_dvc_ctrls[type];
+    auto* model = m_models[type];
+    ctrl->ClearColumns();
     ctrl->AssociateModel(model);
     model->DecRef();
     model->InitControl(ctrl);
+    m_page_initialised[type] = true;
 }
 
 void FlagDialog::UpdateUI()
@@ -226,6 +255,7 @@ Landstalker::FlagType FlagDialog::GetSelectedTab()
 
 void FlagDialog::OnTabChange(wxBookCtrlEvent& /*evt*/)
 {
+    EnsurePageInitialised(GetSelectedTab());
     UpdateUI();
 }
 
