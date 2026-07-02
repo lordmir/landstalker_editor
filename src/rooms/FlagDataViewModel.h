@@ -73,7 +73,7 @@ public:
         if (row < m_data.size())
         {
             m_data.erase(m_data.begin() + row);
-            RowDeleted(row);
+            Reset(GetRowCount());
             return true;
         }
         return false;
@@ -84,7 +84,7 @@ public:
         if (row <= m_data.size())
         {
             m_data.insert(m_data.begin() + row, T(m_roomnum));
-            RowInserted(row);
+            Reset(GetRowCount());
             return true;
         }
         return false;
@@ -306,7 +306,7 @@ public:
         if (row < m_data.size())
         {
             m_data.erase(m_data.begin() + row);
-            RowDeleted(row);
+            Reset(GetRowCount());
             return true;
         }
         return false;
@@ -317,7 +317,7 @@ public:
         if (m_data.size() < 64)
         {
             m_data.insert(m_data.end(), Landstalker::Character());
-            RowInserted(m_data.size() - 1);
+            Reset(GetRowCount());
             return true;
         }
         return false;

@@ -7,6 +7,101 @@
 #include <algorithm>
 #include <vector>
 
+namespace
+{
+void AttachContainsAutocomplete(wxComboBox* combo, const wxArrayString& choices)
+{
+    combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
+    {
+        const wxString input = combo->GetValue();
+        const long caret = combo->GetInsertionPoint();
+        if (input.empty())
+        {
+            evt.Skip();
+            return;
+        }
+
+        const wxString needle = input.Lower();
+        for (unsigned int i = 0; i < choices.GetCount(); ++i)
+        {
+            const wxString candidate = choices[i];
+            if (candidate.Lower().Find(needle) != wxNOT_FOUND)
+            {
+                if (candidate != input)
+                {
+                    combo->ChangeValue(candidate);
+                    combo->SetInsertionPoint(caret);
+                    combo->SetSelection(caret, static_cast<long>(candidate.Length()));
+                }
+                break;
+            }
+        }
+
+        evt.Skip();
+    });
+}
+
+int ParseBracketedIndex(const wxString& text, int base, int fallback)
+{
+    wxString t = text;
+    t.Trim(true);
+    t.Trim(false);
+
+    if (t.empty())
+    {
+        return fallback;
+    }
+
+    if (t.StartsWith("["))
+    {
+        const int close = t.Find(']');
+        if (close != wxNOT_FOUND)
+        {
+            wxString idx = t.SubString(1, close - 1);
+            long parsed = 0;
+            if (idx.ToLong(&parsed, base) && parsed >= 0)
+            {
+                return static_cast<int>(parsed);
+            }
+        }
+    }
+
+    long parsed = 0;
+    if (t.ToLong(&parsed, base) && parsed >= 0)
+    {
+        return static_cast<int>(parsed);
+    }
+
+    return fallback;
+}
+
+int ComboSelectionOrParsed(const wxComboBox* combo, int base, int max_index, int fallback)
+{
+    const int sel = combo->GetSelection();
+    if (sel != wxNOT_FOUND)
+    {
+        return sel;
+    }
+
+    const int parsed = ParseBracketedIndex(combo->GetValue(), base, fallback);
+    if (parsed >= 0 && parsed <= max_index)
+    {
+        return parsed;
+    }
+
+    const wxString lower = combo->GetValue().Lower();
+    for (unsigned int i = 0; i < combo->GetCount(); ++i)
+    {
+        if (combo->GetString(i).Lower() == lower)
+        {
+            return static_cast<int>(i);
+        }
+    }
+
+    return fallback;
+}
+}
+
 enum ID
 {
     ID_HEADER = 20001,
@@ -69,7 +164,9 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
 
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_entity_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, 0);
+    m_ctrl_entity_type = new wxComboBox(this, ID_TYPE, entity_types[entity->GetType()], wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
+    AttachContainsAutocomplete(m_ctrl_entity_type, entity_types);
     m_ctrl_entity_type->SetSelection(entity->GetType());
     szr2a->Add(m_ctrl_entity_type, 0, wxALL | wxEXPAND, 5);
 
@@ -134,16 +231,18 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
     szr2d->Add(m_ctrl_palette, 1, wxALL | wxEXPAND, 5);
 
     szr2d->Add(new wxStaticText(this, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dialogue = new wxChoice(this, ID_DLG);
-    m_ctrl_dialogue->Insert(dialogues, 0);
+    m_ctrl_dialogue = new wxComboBox(this, ID_DLG, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), dialogues, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
+    AttachContainsAutocomplete(m_ctrl_dialogue, dialogues);
     m_ctrl_dialogue->SetSelection(entity->GetDialogue());
     szr2d->Add(m_ctrl_dialogue, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2e = new wxBoxSizer(wxHORIZONTAL);
 
     szr2e->Add(new wxStaticText(this, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_behaviour = new wxChoice(this, ID_BEHAV);
-    m_ctrl_behaviour->Insert(behaviours, 0);
+    m_ctrl_behaviour = new wxComboBox(this, ID_BEHAV, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), behaviours, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
+    AttachContainsAutocomplete(m_ctrl_behaviour, behaviours);
     m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
     szr2e->Add(m_ctrl_behaviour, 1, wxALL | wxEXPAND, 5);
     szr1->Add(szr2e, 0, wxALL | wxEXPAND, 0);
@@ -227,13 +326,13 @@ EntityPropertiesWindow::~EntityPropertiesWindow()
 
 void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
-    m_entity->SetType(m_ctrl_entity_type->GetSelection());
+    m_entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, 16, 0xFF, m_entity->GetType()));
     m_entity->SetXDbl(m_ctrl_x->GetValue());
     m_entity->SetYDbl(m_ctrl_y->GetValue());
     m_entity->SetZDbl(m_ctrl_z->GetValue());
     m_entity->SetSpeed(m_ctrl_speed->GetValue());
-    m_entity->SetBehaviour(m_ctrl_behaviour->GetSelection());
-    m_entity->SetDialogue(m_ctrl_dialogue->GetSelection());
+    m_entity->SetBehaviour(ComboSelectionOrParsed(m_ctrl_behaviour, 10, 0x3FF, m_entity->GetBehaviour()));
+    m_entity->SetDialogue(ComboSelectionOrParsed(m_ctrl_dialogue, 10, 0x3F, m_entity->GetDialogue()));
     m_entity->SetOrientation(static_cast<Landstalker::Orientation>(m_ctrl_orientation->GetSelection()));
     m_entity->SetPalette(m_ctrl_palette->GetSelection());
     m_entity->SetHostile(m_ctrl_hostile->GetValue());

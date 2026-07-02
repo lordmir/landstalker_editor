@@ -1,11 +1,50 @@
 #include <misc/LookupDataViewRenderer.h>
 
+#include <algorithm>
 #include <wx/combobox.h>
+#include <wx/odcombo.h>
+
+namespace
+{
+void AttachContainsAutocomplete(wxOwnerDrawnComboBox* combo, const wxArrayString& choices)
+{
+	combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
+	{
+		const wxString input = combo->GetValue();
+		const long caret = combo->GetInsertionPoint();
+		if (input.empty())
+		{
+			evt.Skip();
+			return;
+		}
+
+		const wxString needle = input.Lower();
+		for (unsigned int i = 0; i < choices.GetCount(); ++i)
+		{
+			const wxString candidate = choices[i];
+			if (candidate.Lower().Find(needle) != wxNOT_FOUND)
+			{
+				if (candidate != input)
+				{
+					combo->ChangeValue(candidate);
+					combo->SetInsertionPoint(caret);
+					combo->SetSelection(caret, static_cast<long>(candidate.Length()));
+				}
+				break;
+			}
+		}
+
+		evt.Skip();
+	});
+}
+}
 
 LookupDataViewRenderer::LookupDataViewRenderer(wxDataViewCellMode mode, wxArrayString choices)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
 	  m_choices(std::move(choices)),
-	  m_value(0)
+	  m_value(0),
+	  m_size_cached(false),
+	  m_cached_size(80, 18)
 {
 }
 
@@ -23,7 +62,32 @@ bool LookupDataViewRenderer::ActivateCell(const wxRect& /*cell*/, wxDataViewMode
 
 wxSize LookupDataViewRenderer::GetSize() const
 {
-	return { GetOwner()->GetOwner()->GetSize().GetWidth(), GetTextExtent(FormatLabel(m_value)).GetHeight() };
+	if (!m_size_cached)
+	{
+		int max_width = 0;
+		int max_height = 0;
+
+		if (m_choices.IsEmpty())
+		{
+			const wxSize sz = GetTextExtent("[0000] ???");
+			max_width = sz.GetWidth();
+			max_height = sz.GetHeight();
+		}
+		else
+		{
+			for (const auto& choice : m_choices)
+			{
+				const wxSize sz = GetTextExtent(choice);
+				max_width = std::max(max_width, sz.GetWidth());
+				max_height = std::max(max_height, sz.GetHeight());
+			}
+		}
+
+		m_cached_size = { std::max(max_width + 6, 80), std::max(max_height + 2, 18) };
+		m_size_cached = true;
+	}
+
+	return m_cached_size;
 }
 
 bool LookupDataViewRenderer::SetValue(const wxVariant& value)
@@ -46,9 +110,10 @@ bool LookupDataViewRenderer::HasEditorCtrl() const
 wxWindow* LookupDataViewRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
 {
 	m_value = value.GetLong();
-	auto* combo = new wxComboBox(parent, wxID_ANY, FormatLabel(m_value), labelRect.GetPosition(), labelRect.GetSize(), m_choices,
+	auto* combo = new wxOwnerDrawnComboBox(parent, wxID_ANY, FormatLabel(m_value), labelRect.GetPosition(), labelRect.GetSize(), m_choices,
 		wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-	combo->AutoComplete(m_choices);
+	combo->SetPopupMaxHeight(480);
+	AttachContainsAutocomplete(combo, m_choices);
 	combo->SetInsertionPointEnd();
 	combo->SelectAll();
 	return combo;
@@ -56,7 +121,7 @@ wxWindow* LookupDataViewRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labe
 
 bool LookupDataViewRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value)
 {
-	auto* combo = dynamic_cast<wxComboBox*>(ctrl);
+	auto* combo = dynamic_cast<wxOwnerDrawnComboBox*>(ctrl);
 	if (!combo)
 	{
 		return false;

@@ -6,6 +6,101 @@
 #include <algorithm>
 #include <vector>
 
+namespace
+{
+void AttachContainsAutocomplete(wxComboBox* combo, const wxArrayString& choices)
+{
+    combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
+    {
+        const wxString input = combo->GetValue();
+        const long caret = combo->GetInsertionPoint();
+        if (input.empty())
+        {
+            evt.Skip();
+            return;
+        }
+
+        const wxString needle = input.Lower();
+        for (unsigned int i = 0; i < choices.GetCount(); ++i)
+        {
+            const wxString candidate = choices[i];
+            if (candidate.Lower().Find(needle) != wxNOT_FOUND)
+            {
+                if (candidate != input)
+                {
+                    combo->ChangeValue(candidate);
+                    combo->SetInsertionPoint(caret);
+                    combo->SetSelection(caret, static_cast<long>(candidate.Length()));
+                }
+                break;
+            }
+        }
+
+        evt.Skip();
+    });
+}
+
+int ParseBracketedIndex(const wxString& text, int fallback)
+{
+    wxString t = text;
+    t.Trim(true);
+    t.Trim(false);
+
+    if (t.empty())
+    {
+        return fallback;
+    }
+
+    if (t.StartsWith("["))
+    {
+        const int close = t.Find(']');
+        if (close != wxNOT_FOUND)
+        {
+            wxString idx = t.SubString(1, close - 1);
+            long parsed = 0;
+            if (idx.ToLong(&parsed) && parsed >= 0)
+            {
+                return static_cast<int>(parsed);
+            }
+        }
+    }
+
+    long parsed = 0;
+    if (t.ToLong(&parsed) && parsed >= 0)
+    {
+        return static_cast<int>(parsed);
+    }
+
+    return fallback;
+}
+
+int ComboSelectionOrParsed(const wxComboBox* combo, int max_index, int fallback)
+{
+    const int sel = combo->GetSelection();
+    if (sel != wxNOT_FOUND)
+    {
+        return sel;
+    }
+
+    const int parsed = ParseBracketedIndex(combo->GetValue(), fallback);
+    if (parsed >= 0 && parsed <= max_index)
+    {
+        return parsed;
+    }
+
+    const wxString lower = combo->GetValue().Lower();
+    for (unsigned int i = 0; i < combo->GetCount(); ++i)
+    {
+        if (combo->GetString(i).Lower() == lower)
+        {
+            return static_cast<int>(i);
+        }
+    }
+
+    return fallback;
+}
+}
+
 enum ID
 {
     ID_HEADER = 20001,
@@ -47,7 +142,9 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     {
         room_names.Add(Landstalker::StrWPrintf("[%03d] %ls", i, gd.GetRoomData()->GetRoom(i)->GetDisplayName().c_str()));
     }
-    m_ctrl_src_room = new wxChoice(this, ID_SRC_ROOM, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), room_names, 0);
+    m_ctrl_src_room = new wxComboBox(this, ID_SRC_ROOM, room_names[src_room], wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
+    AttachContainsAutocomplete(m_ctrl_src_room, room_names);
     m_ctrl_src_room->SetSelection(src_room);
     m_ctrl_src_room->Enable(false);
     szr2a->Add(m_ctrl_src_room, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
@@ -70,7 +167,9 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
         room_names.insert(room_names.begin(), "<UNKNOWN>");
         m_unknown_selectable = true;
     }
-    m_ctrl_dst_room = new wxChoice(this, ID_DST_ROOM, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), room_names, 0);
+    m_ctrl_dst_room = new wxComboBox(this, ID_DST_ROOM, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
+    AttachContainsAutocomplete(m_ctrl_dst_room, room_names);
     if (m_unknown_selectable)
     {
         if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)
@@ -119,11 +218,11 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     szr2b->Add(new wxStaticText(this, wxID_ANY, "Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), type_names, 0);
     m_ctrl_type->SetSelection(static_cast<int>(warp->type));
-    szr2b->Add(m_ctrl_type, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
+    szr2b->Add(m_ctrl_type, 1, wxALL | wxEXPAND, 5);
     szr2b->Add(new wxStaticText(this, wxID_ANY, "Size:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_size = new wxChoice(this, ID_SIZE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), size_names, 0);
     m_ctrl_size->SetSelection(warp->y_size > 1 ? warp->y_size + 1 : warp->x_size - 1);
-    szr2b->Add(m_ctrl_size, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
+    szr2b->Add(m_ctrl_size, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2c, 1, wxEXPAND, 0);
@@ -164,6 +263,13 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
         m_warp->y_size = 1;
     }
 
+    const uint16_t current_dst_room = (m_warp->room1 == m_room_src) ? m_warp->room2 : m_warp->room1;
+    const int fallback_dst_selection = m_unknown_selectable ?
+        (current_dst_room == 0xFFFF ? 0 : static_cast<int>(current_dst_room) + 1) :
+        static_cast<int>(current_dst_room);
+    const int dst_selection = ComboSelectionOrParsed(m_ctrl_dst_room,
+        static_cast<int>(m_ctrl_dst_room->GetCount()) - 1, fallback_dst_selection);
+
     if (m_warp->room1 == m_room_src)
     {
         m_warp->x1 = m_ctrl_src_x->GetValue();
@@ -172,18 +278,18 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
         m_warp->y2 = m_ctrl_dst_y->GetValue();
         if (m_unknown_selectable)
         {
-            if (m_ctrl_dst_room->GetSelection() == 0)
+            if (dst_selection == 0)
             {
                 m_warp->room2 = 0xFFFF;
             }
             else
             {
-                m_warp->room2 = m_ctrl_dst_room->GetSelection() - 1;
+                m_warp->room2 = dst_selection - 1;
             }
         }
         else
         {
-            m_warp->room2 = m_ctrl_dst_room->GetSelection();
+            m_warp->room2 = dst_selection;
         }
     }
     else
@@ -194,18 +300,18 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
         m_warp->y1 = m_ctrl_dst_y->GetValue();
         if (m_unknown_selectable)
         {
-            if (m_ctrl_dst_room->GetSelection() == 0)
+            if (dst_selection == 0)
             {
                 m_warp->room1 = 0xFFFF;
             }
             else
             {
-                m_warp->room1 = m_ctrl_dst_room->GetSelection() - 1;
+                m_warp->room1 = dst_selection - 1;
             }
         }
         else
         {
-            m_warp->room1 = m_ctrl_dst_room->GetSelection();
+            m_warp->room1 = dst_selection;
         }
     }
 

@@ -1,7 +1,7 @@
 #include <rooms/ChestDialog.h>
 
 ChestDialog::ChestDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<Landstalker::GameData> gd)
-	: wxDialog(parent, wxID_ANY, "Chests", wxDefaultPosition, { 640, 480 }),
+    : wxDialog(parent, wxID_ANY, "Chests", wxDefaultPosition, { 640, 480 }, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
 	  m_gd(gd),
 	  m_imglst(imglst),
 	  m_roomnum(room)

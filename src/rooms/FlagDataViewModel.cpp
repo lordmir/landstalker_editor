@@ -729,7 +729,7 @@ template <>
 void FlagDataViewModel<Landstalker::WarpList::Transition>::InitControl(wxDataViewCtrl* ctrl) const
 {
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(0)), 0, 290, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, this->GetColumnChoices(0)), 0, 290, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetSharedFlagChoices(m_gd)), 1, 270, wxALIGN_LEFT));
 }
@@ -874,7 +874,7 @@ void FlagDataViewModel<Landstalker::ChestItem>::InitControl(wxDataViewCtrl* ctrl
 	ctrl->InsertColumn(0, new wxDataViewColumn(this->GetColumnHeader(0),
 		new wxDataViewTextRenderer(), 0, 400, wxALIGN_LEFT));
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, this->GetColumnChoices(1)), 1, 200, wxALIGN_LEFT));
 }
 
 template <>
@@ -1007,7 +1007,7 @@ void FlagDataViewModel<Landstalker::Character>::InitControl(wxDataViewCtrl* ctrl
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewTextRenderer(), 1, 320, wxALIGN_LEFT));
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewChoiceByIndexRenderer(this->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, this->GetColumnChoices(2)), 2, 200, wxALIGN_LEFT));
 }
 
 template <>
@@ -1028,7 +1028,7 @@ bool FlagDataViewModel<Landstalker::TileSwapFlag>::AddRow(unsigned int /*row*/)
 				next_idx++;
 		};
 		m_data.insert(m_data.end(), Landstalker::TileSwapFlag(m_roomnum, next_idx));
-		RowInserted(m_data.size() - 1);
+		Reset(GetRowCount());
 		return true;
 	}
 	return false;
@@ -1040,7 +1040,7 @@ bool FlagDataViewModel<Landstalker::TileSwapFlag>::DeleteRow(unsigned int row)
 	if (row < m_data.size())
 	{
 		m_data.erase(m_data.begin() + row);
-		RowDeleted(row);
+		Reset(GetRowCount());
 		return true;
 	}
 	return false;
@@ -1176,7 +1176,7 @@ bool FlagDataViewModel<Landstalker::TreeWarpFlag>::AddRow(unsigned int /*row*/)
 	if (m_data.size() < 1)
 	{
 		m_data.insert(m_data.end(), Landstalker::TreeWarpFlag(m_roomnum, 0, 0));
-		RowInserted(m_data.size() - 1);
+		Reset(GetRowCount());
 		return true;
 	}
 	return false;
@@ -1188,7 +1188,7 @@ bool FlagDataViewModel<Landstalker::TreeWarpFlag>::DeleteRow(unsigned int row)
 	if (row < m_data.size())
 	{
 		m_data.erase(m_data.begin() + row);
-		RowDeleted(row);
+		Reset(GetRowCount());
 		return true;
 	}
 	return false;

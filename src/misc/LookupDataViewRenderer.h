@@ -26,6 +26,8 @@ private:
 
 	wxArrayString m_choices;
 	mutable long m_value;
+	mutable bool m_size_cached;
+	mutable wxSize m_cached_size;
 };
 
 #endif // _LOOKUP_DATA_VIEW_RENDERER_H_

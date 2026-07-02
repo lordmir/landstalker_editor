@@ -139,30 +139,48 @@ void FlagDialog::AddToCurrentList()
     auto* model = m_models[GetSelectedTab()];
     model->AddRow(model->GetRowCount());
     ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(static_cast<intptr_t>(model->GetRowCount()))));
+    ctrl->EnsureVisible(ctrl->GetSelection());
 }
 
 void FlagDialog::DeleteFromCurrentList()
 {
     EnsurePageInitialised(GetSelectedTab());
-    if (m_dvc_ctrls[GetSelectedTab()]->HasSelection())
+    if (!m_dvc_ctrls[GetSelectedTab()]->HasSelection())
     {
-        if (m_page_properties[GetSelectedTab()].delete_enabled == false)
-        {
-            return;
-        }
-        auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
-        auto* model = m_models[GetSelectedTab()];
-        unsigned int sel = reinterpret_cast<intptr_t>(ctrl->GetSelection().GetID()) - 1;
-        model->DeleteRow(sel);
-        if (model->GetRowCount() > sel)
-        {
-            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(static_cast<intptr_t>(sel - 1))));
-        }
-        else if (model->GetRowCount() != 0)
-        {
-            ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(static_cast<intptr_t>(model->GetRowCount()))));
-        }
+        return;
     }
+
+    if (m_page_properties[GetSelectedTab()].delete_enabled == false)
+    {
+        return;
+    }
+
+    auto* ctrl = m_dvc_ctrls[GetSelectedTab()];
+    auto* model = m_models[GetSelectedTab()];
+
+    const auto selected_item = ctrl->GetSelection();
+    const auto selected_id = reinterpret_cast<intptr_t>(selected_item.GetID());
+    if (selected_id <= 0)
+    {
+        return;
+    }
+
+    const unsigned int sel = static_cast<unsigned int>(selected_id - 1);
+    if (!model->DeleteRow(sel))
+    {
+        return;
+    }
+
+    const unsigned int row_count = model->GetRowCount();
+    if (row_count == 0)
+    {
+        ctrl->UnselectAll();
+        return;
+    }
+
+    const unsigned int next_sel = (sel < row_count) ? sel : (row_count - 1);
+    ctrl->Select(wxDataViewItem(reinterpret_cast<void*>(static_cast<intptr_t>(next_sel + 1))));
+    ctrl->EnsureVisible(ctrl->GetSelection());
 }
 
 void FlagDialog::MoveSelectedUpCurrentList()

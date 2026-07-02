@@ -1,7 +1,7 @@
 #include <rooms/TileSwapDialog.h>
 
 TileSwapDialog::TileSwapDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<Landstalker::GameData> gd)
-	: wxDialog(parent, wxID_ANY, "Tile Swaps", wxDefaultPosition, { 640, 480 }),
+    : wxDialog(parent, wxID_ANY, "Tile Swaps", wxDefaultPosition, { 1000, 560 }),
       m_gd(gd),
       m_imglst(imglst),
       m_roomnum(room),
@@ -54,8 +54,8 @@ TileSwapDialog::TileSwapDialog(wxWindow* parent, ImageList* imglst, uint16_t roo
     m_button_sizer->AddButton(m_cancel);
     m_button_sizer->Realize();
 
-    SetMinClientSize(wxSize(640, 480));
-    SetSize(wxSize(640, 480));
+    SetMinClientSize(wxSize(900, 520));
+    SetSize(wxSize(1000, 560));
     GetSizer()->Fit(this);
     CentreOnParent(wxBOTH);
 
