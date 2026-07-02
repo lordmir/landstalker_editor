@@ -26,7 +26,6 @@ public:
     void RenderBlockGhost(uint16_t block_id, int block_x, int block_y, float alpha, Landstalker::Tilemap3D::Layer layer);
     void RenderBlockPriorityHighlight(uint16_t block_id, int block_x, int block_y, Landstalker::Tilemap3D::Layer layer, float r, float g, float b, float alpha);
     void BuildForegroundCoverageStencil();
-    void WriteForegroundPriorityDebugLog(const char* path, float screen_min_x, float screen_min_y, float screen_max_x, float screen_max_y) const;
     void SetBackgroundOpacity(float opacity) { m_bg_opacity = opacity; }
     void SetForegroundOpacity(float opacity) { m_fg_opacity = opacity; }
 

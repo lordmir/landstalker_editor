@@ -104,10 +104,6 @@ std::string HexByte(int value)
     return result;
 }
 
-void DrawEntityFloorDebug(const SpriteInstance& inst)
-{
-}
-
 void SetShadowFillColor(bool selected, float z_delta, float alpha_scale)
 {
     if (selected && z_delta < 0.0f) {

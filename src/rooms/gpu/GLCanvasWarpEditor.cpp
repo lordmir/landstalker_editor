@@ -10,13 +10,13 @@
 
 #include "GLCanvasObjectSupport.h"
 #include "PixelFont.h"
+#include "RoomProjection.h"
 
 namespace {
 
-struct PickPoint {
-	float x;
-	float y;
-};
+using PickPoint = RoomProjection::PickPoint;
+using RoomProjection::ProjectWarpGridPoint;
+using RoomProjection::ScreenToMapPoint;
 
 struct PickRect {
 	float min_x;
@@ -24,16 +24,6 @@ struct PickRect {
 	float max_x;
 	float max_y;
 };
-
-PickPoint ProjectWarpGridPoint(const WarpInstance& warp, float x, float y, float z)
-{
-	float grid_x = x - warp.room_left;
-	float grid_y = y - warp.room_top;
-	return {
-		32.0f * grid_x - 32.0f * grid_y + 512.0f,
-		16.0f * grid_x + 16.0f * grid_y + 100.0f - warp.z_extent * z
-	};
-}
 
 std::array<PickPoint, 4> WarpQuad(const WarpInstance& warp, float z_offset = 0.0f)
 {
@@ -67,6 +57,39 @@ PickRect WarpResizeControlRect(const WarpInstance& warp, int axis)
 		? ProjectWarpGridPoint(warp, warp.x + warp.width, warp.y + warp.height * 0.5f, z)
 		: ProjectWarpGridPoint(warp, warp.x + warp.width * 0.5f, warp.y + warp.height, z);
 	return RectAroundPoint(point, 6.0f);
+}
+
+bool PointInRect(const PickPoint& point, const PickRect& rect)
+{
+	return point.x >= rect.min_x &&
+		   point.x <= rect.max_x &&
+		   point.y >= rect.min_y &&
+		   point.y <= rect.max_y;
+}
+
+float Cross(const PickPoint& a, const PickPoint& b, const PickPoint& c)
+{
+	return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+bool PointInQuad(const PickPoint& point, const std::array<PickPoint, 4>& quad)
+{
+	bool has_positive = false;
+	bool has_negative = false;
+	for (std::size_t i = 0; i < quad.size(); ++i) {
+		float cross = Cross(quad[i], quad[(i + 1) % quad.size()], point);
+		has_positive = has_positive || cross > 0.0f;
+		has_negative = has_negative || cross < 0.0f;
+		if (has_positive && has_negative) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool PointInWarp(const WarpInstance& warp, const PickPoint& point)
+{
+	return PointInQuad(point, WarpQuad(warp));
 }
 
 bool WarpResizeAxisUsable(const WarpInstance& warp, int axis)
@@ -133,6 +156,168 @@ void DrawOverlayText(const std::string& text, float x, float y, float scale)
 GLCanvasWarpEditor::GLCanvasWarpEditor(MyGLCanvas& canvas)
 	: m_canvas(canvas)
 {
+}
+
+void GLCanvasWarpEditor::BeginAddWarpHalf()
+{
+	m_canvas.SetFocus();
+	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::Warp;
+	m_canvas.m_pending_add_warp_width = 1.0f;
+	m_canvas.m_pending_add_warp_height = 1.0f;
+	m_canvas.m_pending_add_warp_type = Landstalker::WarpList::Warp::Type::NORMAL;
+	m_canvas.UpdatePendingObjectAddHover();
+	m_canvas.SetCursor(wxCursor(wxCURSOR_CROSS));
+	m_canvas.Refresh();
+}
+
+int GLCanvasWarpEditor::HitTestWarpResizeControl(const wxPoint& point) const
+{
+	if (m_canvas.m_selected_warp_idx < 0 || m_canvas.m_selected_warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
+		return 0;
+	}
+
+	PickPoint world_point{
+		m_canvas.ScreenToWorldX(point.x),
+		m_canvas.ScreenToWorldY(point.y)
+	};
+	const WarpInstance& warp = m_canvas.m_warps[static_cast<std::size_t>(m_canvas.m_selected_warp_idx)];
+	for (int axis = 1; axis <= 2; ++axis) {
+		if (WarpResizeAxisUsable(warp, axis) && PointInRect(world_point, WarpResizeControlRect(warp, axis))) {
+			return axis;
+		}
+	}
+	return 0;
+}
+
+int GLCanvasWarpEditor::HitTestWarp(const wxPoint& point) const
+{
+	PickPoint world_point{
+		m_canvas.ScreenToWorldX(point.x),
+		m_canvas.ScreenToWorldY(point.y)
+	};
+
+	for (int i = static_cast<int>(m_canvas.m_warps.size()) - 1; i >= 0; --i) {
+		if (PointInWarp(m_canvas.m_warps[static_cast<std::size_t>(i)], world_point)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void GLCanvasWarpEditor::StartWarpDrag(int warp_idx, const wxMouseEvent& evt)
+{
+	if (warp_idx < 0 || warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
+		return;
+	}
+
+	m_canvas.CaptureObjectUndoState();
+	WarpInstance& warp = m_canvas.m_warps[static_cast<std::size_t>(warp_idx)];
+	m_canvas.m_dragging_warp = true;
+	m_canvas.m_drag_warp_instance_id = warp.instance_id;
+	m_canvas.m_drag_warp_resize_axis = 0;
+	m_canvas.m_drag_start_mouse = evt.GetPosition();
+	m_canvas.m_drag_warp_start_x = warp.x;
+	m_canvas.m_drag_warp_start_y = warp.y;
+	m_canvas.m_drag_warp_start_width = warp.width;
+	m_canvas.m_drag_warp_start_height = warp.height;
+	m_canvas.m_drag_warp_start_floor_z = warp.floor_z;
+	m_canvas.SetCursor(wxCursor(wxCURSOR_HAND));
+	if (!m_canvas.HasCapture()) {
+		m_canvas.CaptureMouse();
+	}
+}
+
+void GLCanvasWarpEditor::StartWarpResizeDrag(int warp_idx, int axis, const wxMouseEvent& evt)
+{
+	if (warp_idx < 0 || warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
+		return;
+	}
+
+	m_canvas.CaptureObjectUndoState();
+	WarpInstance& warp = m_canvas.m_warps[static_cast<std::size_t>(warp_idx)];
+	m_canvas.m_dragging_warp = true;
+	m_canvas.m_drag_warp_instance_id = warp.instance_id;
+	m_canvas.m_drag_warp_resize_axis = axis;
+	m_canvas.m_drag_start_mouse = evt.GetPosition();
+	m_canvas.m_drag_warp_start_x = warp.x;
+	m_canvas.m_drag_warp_start_y = warp.y;
+	m_canvas.m_drag_warp_start_width = warp.width;
+	m_canvas.m_drag_warp_start_height = warp.height;
+	m_canvas.m_drag_warp_start_floor_z = warp.floor_z;
+	m_canvas.m_selected_warp_idx = warp_idx;
+	m_canvas.m_selected_entity_idx = -1;
+	m_canvas.SetCursor(wxCursor(axis == 1 ? wxCURSOR_SIZENWSE : wxCURSOR_SIZENESW));
+	if (!m_canvas.HasCapture()) {
+		m_canvas.CaptureMouse();
+	}
+}
+
+void GLCanvasWarpEditor::UpdateWarpDrag(const wxMouseEvent& evt)
+{
+	int warp_idx = m_canvas.FindWarpIndex(m_canvas.m_drag_warp_instance_id);
+	if (warp_idx < 0) {
+		EndWarpDrag();
+		return;
+	}
+
+	WarpInstance& warp = m_canvas.m_warps[static_cast<std::size_t>(warp_idx)];
+	auto snap_cell = [](float value) {
+		return std::round(value);
+	};
+	auto clamp_map_pos = [](float value) {
+		return std::clamp(value, 0.0f, 63.5f);
+	};
+
+	PickPoint center = ScreenToMapPoint(
+		m_canvas.ScreenToWorldX(evt.GetPosition().x),
+		m_canvas.ScreenToWorldY(evt.GetPosition().y),
+		m_canvas.m_drag_warp_start_floor_z,
+		warp.room_left,
+		warp.room_top,
+		warp.z_extent);
+	if (m_canvas.m_drag_warp_resize_axis == 1) {
+		warp.x = m_canvas.m_drag_warp_start_x;
+		warp.y = m_canvas.m_drag_warp_start_y;
+		warp.height = GLCanvasObjectSupport::ValidWarpHeight(m_canvas.m_drag_warp_start_height, m_canvas.m_drag_warp_start_width);
+		warp.width = std::min(GLCanvasObjectSupport::ValidWarpWidth(center.x - m_canvas.m_drag_warp_start_x, warp.height), 63.5f - m_canvas.m_drag_warp_start_x);
+		m_canvas.SetCursor(wxCursor(wxCURSOR_SIZENWSE));
+	} else if (m_canvas.m_drag_warp_resize_axis == 2) {
+		warp.x = m_canvas.m_drag_warp_start_x;
+		warp.y = m_canvas.m_drag_warp_start_y;
+		warp.width = GLCanvasObjectSupport::ValidWarpWidth(m_canvas.m_drag_warp_start_width, m_canvas.m_drag_warp_start_height);
+		warp.height = std::min(GLCanvasObjectSupport::ValidWarpHeight(center.y - m_canvas.m_drag_warp_start_y, warp.width), 63.5f - m_canvas.m_drag_warp_start_y);
+		m_canvas.SetCursor(wxCursor(wxCURSOR_SIZENESW));
+	} else {
+		warp.x = clamp_map_pos(snap_cell(center.x - warp.width * 0.5f));
+		warp.y = clamp_map_pos(snap_cell(center.y - warp.height * 0.5f));
+		m_canvas.SetCursor(wxCursor(wxCURSOR_HAND));
+	}
+	m_canvas.UpdateWarpFloor(warp);
+
+	m_canvas.m_selected_warp_idx = warp_idx;
+	m_canvas.m_selected_entity_idx = -1;
+	m_canvas.m_hovered_warp_idx = warp_idx;
+	m_canvas.m_hovered_entity_idx = -1;
+	m_canvas.Refresh();
+}
+
+void GLCanvasWarpEditor::EndWarpDrag()
+{
+	if (!m_canvas.m_dragging_warp) {
+		return;
+	}
+
+	uint32_t dragged_id = m_canvas.m_drag_warp_instance_id;
+	m_canvas.m_dragging_warp = false;
+	m_canvas.m_drag_warp_resize_axis = 0;
+	if (m_canvas.HasCapture()) {
+		m_canvas.ReleaseMouse();
+	}
+	m_canvas.m_selected_warp_idx = m_canvas.FindWarpIndex(dragged_id);
+	m_canvas.m_hovered_warp_idx = m_canvas.m_selected_warp_idx;
+	m_canvas.SetCursor(wxCursor(m_canvas.m_hovered_warp_idx >= 0 ? wxCURSOR_HAND : wxCURSOR_ARROW));
+	m_canvas.NotifyRoomDataChanged(false, true, false, false);
+	m_canvas.Refresh();
 }
 
 void GLCanvasWarpEditor::AddWarpHalf()
@@ -325,6 +510,18 @@ std::pair<float, float> GLCanvasWarpEditor::FindNearestFreeWarpCell(float prefer
 
 void GLCanvasWarpEditor::ResizeSelectedWarp(float dx, float dy)
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+		if (dx != 0.0f) {
+			m_canvas.m_pending_add_warp_height = GLCanvasObjectSupport::ValidWarpHeight(m_canvas.m_pending_add_warp_height, m_canvas.m_pending_add_warp_width);
+			m_canvas.m_pending_add_warp_width = GLCanvasObjectSupport::ValidWarpWidth(m_canvas.m_pending_add_warp_width + dx, m_canvas.m_pending_add_warp_height);
+		}
+		if (dy != 0.0f) {
+			m_canvas.m_pending_add_warp_width = GLCanvasObjectSupport::ValidWarpWidth(m_canvas.m_pending_add_warp_width, m_canvas.m_pending_add_warp_height);
+			m_canvas.m_pending_add_warp_height = GLCanvasObjectSupport::ValidWarpHeight(m_canvas.m_pending_add_warp_height + dy, m_canvas.m_pending_add_warp_width);
+		}
+		m_canvas.Refresh();
+		return;
+	}
 	if (m_canvas.m_selected_warp_idx < 0 || m_canvas.m_selected_warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
 		return;
 	}
@@ -352,6 +549,9 @@ void GLCanvasWarpEditor::ResizeSelectedWarp(float dx, float dy)
 
 void GLCanvasWarpEditor::RotateSelectedWarp(float dx, float dy)
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+		return;
+	}
 	if (m_canvas.m_selected_warp_idx < 0 || m_canvas.m_selected_warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
 		return;
 	}
@@ -363,6 +563,13 @@ void GLCanvasWarpEditor::RotateSelectedWarp(float dx, float dy)
 
 void GLCanvasWarpEditor::CycleSelectedWarpType(int delta)
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+		int type = static_cast<int>(m_canvas.m_pending_add_warp_type);
+		type = (type + delta + 3) % 3;
+		m_canvas.m_pending_add_warp_type = static_cast<Landstalker::WarpList::Warp::Type>(type);
+		m_canvas.Refresh();
+		return;
+	}
 	if (m_canvas.m_selected_warp_idx < 0 || m_canvas.m_selected_warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
 		return;
 	}

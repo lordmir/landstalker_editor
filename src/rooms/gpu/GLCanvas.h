@@ -17,6 +17,7 @@
 #include "MapRenderer.h"
 #include "HeightmapRenderer.h"
 #include "SpriteRenderer.h"
+#include "GLCanvasRoomInfoOverlay.h"
 
 wxDECLARE_EVENT(EVT_GPU_EDITOR_MODE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_OPACITY_CHANGE, wxCommandEvent);
@@ -210,8 +211,10 @@ private:
     friend class GLCanvasWarpEditor;
     friend class GLCanvasTileDoorEditor;
     friend class GLCanvasObjectCoordinator;
+    friend class GLCanvasHeightmapHitTest;
     friend class GLCanvasHeightmapMode;
     friend class GLCanvasLayerEditMode;
+    friend class GLCanvasRoomInfoOverlay;
     friend class GLCanvasRoomMode;
 
     void OnIdle(wxIdleEvent& evt);
@@ -267,18 +270,6 @@ private:
     int HitTestDoor(const wxPoint& point) const;
     int HitTestRoomInfoLink(const wxPoint& point) const;
     void StartEntityDrag(int entity_idx, const wxMouseEvent& evt, bool z_axis_only, bool shadow_drag = false);
-    void ApplyEntityDragStep(
-        SpriteInstance& inst,
-        const wxPoint& mouse_pos,
-        bool z_axis_only,
-        const wxPoint& drag_start_mouse,
-        float drag_start_x,
-        float drag_start_y,
-        float drag_start_z,
-        float drag_plane_z,
-        float drag_cursor_offset_x,
-        float drag_cursor_offset_y,
-        bool drag_floor_snap) const;
     void UpdateEntityDrag(const wxMouseEvent& evt);
     void EndEntityDrag();
     void StartWarpDrag(int warp_idx, const wxMouseEvent& evt);
@@ -336,8 +327,6 @@ private:
     void RenderSelectedDoorTooltip();
     void RenderSelectedTileSwapRegionTooltip();
     void RenderRoomInfoTable(int width, int height);
-    void WriteSelectedEntityOcclusionDebugLog();
-    void WriteEntityDrawOrderDebugLog();
     float FloorUnderRect(float min_x, float min_y, float max_x, float max_y) const;
     float FloorUnderPoint(float x, float y) const;
     bool ShadowOccludedByHeightmap(float min_x, float min_y, float max_x, float max_y, float z) const;
@@ -355,8 +344,6 @@ private:
     bool HeightmapCellAt(const wxPoint& point, int& cell_x, int& cell_y);
     bool BackgroundVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
     bool HeightmapVirtualCellAt(const wxPoint& point, int& cell_x, int& cell_y) const;
-    bool SelectBackgroundCellAt(const wxPoint& point);
-    bool SelectHeightmapCellAt(const wxPoint& point);
     void ClearEditSelection();
     void BeginLayerSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection, bool parallelogram_selection);
     void UpdateLayerSelectionDrag(int x, int y);
@@ -417,7 +404,6 @@ private:
     void CopyBackgroundBlockAt(int x, int y);
     void CopySelectedHeightmapCell();
     void CopyHeightmapCellAt(int x, int y);
-    void ClearBackgroundClipboard();
     std::vector<std::pair<int, int>> BuildLayerFloodFillCells(int x, int y) const;
     void ApplyLayerFloodFillAt(int x, int y);
     std::map<std::pair<int, int>, uint16_t> BuildLayerStampCells(int x, int y) const;
@@ -440,7 +426,6 @@ private:
     void UpdateAnimations(float dt);
     void UpdateStatusBar();
     void RecordRenderedFrame();
-    void RenderStencilOverlay(int width, int height, GLint ref, GLint mask, float r, float g, float b, float a) const;
     std::set<uint32_t> FindCollidedEntityIds() const;
 
     std::shared_ptr<Landstalker::GameData> m_gd;
@@ -449,6 +434,7 @@ private:
     MapRenderer m_mapRenderer;
     HeightmapRenderer m_heightmapRenderer;
     SpriteRenderer m_spriteRenderer;
+    GLCanvasRoomInfoOverlay m_room_info_overlay;
 
     std::vector<SpriteInstance> m_instances;
     std::vector<WarpInstance> m_warps;
@@ -460,7 +446,6 @@ private:
     bool m_entity_clipboard_valid;
     Landstalker::Entity m_entity_clipboard;
     wxStopWatch m_fps_stopwatch;
-    wxStopWatch m_room_stopwatch;
     wxStopWatch m_anim_stopwatch;
     long m_last_anim_ms;
     long m_last_frame_ms;
@@ -519,7 +504,6 @@ private:
     int m_fg_opacity_idx;
     int m_sprite_opacity_idx;
     int m_entity_occlusion_idx;
-    bool m_debug_occlusion;
     bool m_show_hitboxes;
     EditorMode m_editor_mode;
     DrawingTool m_drawing_tool;
@@ -617,7 +601,6 @@ private:
     Landstalker::TileSwap m_pending_add_swap;
     int m_pending_add_hover_x;
     int m_pending_add_hover_y;
-    int m_pending_add_swap_index;
     float m_pending_add_warp_width;
     float m_pending_add_warp_height;
     Landstalker::WarpList::Warp::Type m_pending_add_warp_type;
@@ -633,12 +616,6 @@ private:
     bool m_gl_init_failed;
     bool m_initialized;
     wxPoint m_last_mouse_pos;
-    struct RoomInfoLink {
-        wxRect rect;
-        uint16_t room;
-    };
-    std::vector<RoomInfoLink> m_room_info_links;
-
     wxDECLARE_EVENT_TABLE();
 };
 

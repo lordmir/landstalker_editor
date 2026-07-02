@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 
+// Initializes the OpenGL function loader after a valid GL context is current.
 bool InitGLLoader();
 
 #endif // GL_LOADER_H

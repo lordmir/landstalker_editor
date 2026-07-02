@@ -10,6 +10,8 @@ using namespace Landstalker;
 namespace GLCanvasObjectSupport {
 namespace {
 // Shared geometry/projection helpers used by multiple editor/coordinator units.
+using RoomProjection::ProjectHeightmapGridPoint;
+using RoomProjection::ProjectRoomGridPoint;
 
 struct PickRect {
     float min_x;
@@ -21,26 +23,6 @@ struct PickRect {
 struct TileSwapRegionBounds {
     PickRect bounds;
 };
-
-PickPoint ProjectRoomGridPoint(float x, float y, float z, float room_left, float room_top, float z_extent = 32.0f)
-{
-    float grid_x = x - room_left;
-    float grid_y = y - room_top;
-    return {
-        32.0f * grid_x - 32.0f * grid_y + 512.0f,
-        16.0f * grid_x + 16.0f * grid_y + 100.0f - z_extent * z
-    };
-}
-
-PickPoint ProjectHeightmapGridPoint(float x, float y, float z, float room_left, float room_top, float z_extent)
-{
-    float grid_x = x - room_left + 12.0f;
-    float grid_y = y - room_top + 12.0f;
-    return {
-        32.0f * grid_x - 32.0f * grid_y + 512.0f,
-        16.0f * grid_x + 16.0f * grid_y + 100.0f - z_extent * z
-    };
-}
 
 PickRect BoundsForPoints(const std::vector<PickPoint>& points)
 {

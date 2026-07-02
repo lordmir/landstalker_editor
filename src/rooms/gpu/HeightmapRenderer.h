@@ -30,25 +30,6 @@ public:
         float sprite_min_y,
         float sprite_max_x,
         float sprite_max_y);
-    void RenderEntityOcclusionDebug(
-        GLint entity_back_depth,
-        GLint entity_front_depth,
-        float entity_z,
-        float entity_min_x,
-        float entity_min_y,
-        float entity_max_x,
-        float entity_max_y,
-        float entity_top_z);
-    void WriteEntityOcclusionDebugLog(
-        const char* path,
-        GLint entity_back_depth,
-        GLint entity_front_depth,
-        float entity_z,
-        float entity_min_x,
-        float entity_min_y,
-        float entity_max_x,
-        float entity_max_y,
-        float entity_top_z) const;
     void SetHoverPoint(float x, float y);
     void ClearHover();
     int GetHoverX() const { return m_hover_x; }

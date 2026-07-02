@@ -228,13 +228,25 @@
     <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasEditorOverlays.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasEntityEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasHeightmapHitTest.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasHeightmapMode.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasHistory.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasLayerEditMode.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectCommands.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectCoordinator.cpp">
@@ -243,10 +255,19 @@
     <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectSupport.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomInfoOverlay.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomMode.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasTileSwapEditor.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasTilemapEditing.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasWarpEditor.cpp">
@@ -482,6 +503,9 @@
     <ClInclude Include="..\src\rooms\gpu\GLCanvasEntityEditor.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasHeightmapHitTest.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasHeightmapMode.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
@@ -494,10 +518,16 @@
     <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectSupport.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomInfoOverlay.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomMode.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditorSupport.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasWarpEditor.h">

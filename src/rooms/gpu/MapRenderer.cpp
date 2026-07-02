@@ -3,10 +3,8 @@
 #include "ShaderSources.h"
 #include <landstalker/main/GameData.h>
 #include <algorithm>
-#include <fstream>
 #include <iostream>
 #include <chrono>
-#include <iomanip>
 
 using namespace Landstalker;
 
@@ -606,119 +604,6 @@ void MapRenderer::BuildForegroundCoverageStencil() {
     glStencilMask(0xFF);
     glDisable(GL_STENCIL_TEST);
     glUseProgram(0);
-}
-
-void MapRenderer::WriteForegroundPriorityDebugLog(
-    const char* path,
-    float screen_min_x,
-    float screen_min_y,
-    float screen_max_x,
-    float screen_max_y) const
-{
-    std::ofstream log(path, std::ios::out | std::ios::trunc);
-    if (!log.is_open()) {
-        return;
-    }
-
-    auto rd = m_gd->GetRoomData();
-    auto map_entry = rd->GetMapForRoom(m_current_room);
-    if (!map_entry) {
-        log << "error,no_map_for_room\n";
-        return;
-    }
-
-    auto map = map_entry->GetData();
-    auto blockset = rd->GetCombinedBlocksetForRoom(m_current_room);
-    if (!map || !blockset) {
-        log << "error,no_map_or_blockset\n";
-        return;
-    }
-
-    int priority_tile_count = 0;
-    int overlapping_tile_count = 0;
-    int overlapping_priority_tile_count = 0;
-
-    log << std::fixed << std::setprecision(3);
-    log << "room," << m_current_room << "\n";
-    log << "room_size," << m_room_w << "," << m_room_h << "\n";
-    log << "entity_screen_bounds,"
-        << screen_min_x << ","
-        << screen_min_y << ","
-        << screen_max_x << ","
-        << screen_max_y << "\n";
-    log << "note,foreground tile screen bounds are approximate 16x16 quadrants of the rendered 32x32 block quad\n\n";
-    log << "block_x,block_y,block_id,tile_x,tile_y,tile_value,tile_index,priority,hflip,vflip,screen_min_x,screen_min_y,screen_max_x,screen_max_y,overlaps_entity_bounds\n";
-
-    for (int y = 0; y < m_room_h; ++y) {
-        for (int x = 0; x < m_room_w; ++x) {
-            std::size_t map_idx = static_cast<std::size_t>(y * m_room_w + x);
-            if (map_idx >= static_cast<std::size_t>(map->GetWidth() * map->GetHeight())) {
-                continue;
-            }
-
-            uint16_t block_id = map->GetBlock(static_cast<uint16_t>(map_idx), Tilemap3D::Layer::FG).value;
-            if (block_id >= blockset->size()) {
-                continue;
-            }
-
-            float block_px = 32.0f * x - 32.0f * y + 512.0f - 32.0f;
-            float block_py = 16.0f * x + 16.0f * y + 100.0f;
-
-            for (int ty = 0; ty < 2; ++ty) {
-                for (int tx = 0; tx < 2; ++tx) {
-                    uint16_t tile_value = blockset->at(block_id).GetTile(tx, ty).GetTileValue();
-                    bool priority = (tile_value & 0x8000) != 0;
-                    bool hflip = (tile_value & 0x0800) != 0;
-                    bool vflip = (tile_value & 0x1000) != 0;
-                    uint16_t tile_index = tile_value & 0x07FF;
-                    float tile_min_x = block_px + static_cast<float>(tx * 16);
-                    float tile_min_y = block_py + static_cast<float>(ty * 16);
-                    float tile_max_x = tile_min_x + 16.0f;
-                    float tile_max_y = tile_min_y + 16.0f;
-                    bool overlaps = tile_max_x >= screen_min_x
-                        && tile_min_x <= screen_max_x
-                        && tile_max_y >= screen_min_y
-                        && tile_min_y <= screen_max_y;
-
-                    if (priority) {
-                        ++priority_tile_count;
-                    }
-                    if (overlaps) {
-                        ++overlapping_tile_count;
-                    }
-                    if (overlaps && priority) {
-                        ++overlapping_priority_tile_count;
-                    }
-
-                    if (!priority && !overlaps) {
-                        continue;
-                    }
-
-                    log << x << ","
-                        << y << ","
-                        << block_id << ","
-                        << tx << ","
-                        << ty << ",0x"
-                        << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << tile_value
-                        << std::dec << std::nouppercase << std::setfill(' ') << ","
-                        << tile_index << ","
-                        << (priority ? 1 : 0) << ","
-                        << (hflip ? 1 : 0) << ","
-                        << (vflip ? 1 : 0) << ","
-                        << tile_min_x << ","
-                        << tile_min_y << ","
-                        << tile_max_x << ","
-                        << tile_max_y << ","
-                        << (overlaps ? 1 : 0)
-                        << "\n";
-                }
-            }
-        }
-    }
-
-    log << "\nsummary,total_priority_tiles," << priority_tile_count << "\n";
-    log << "summary,overlapping_tiles," << overlapping_tile_count << "\n";
-    log << "summary,overlapping_priority_tiles," << overlapping_priority_tile_count << "\n";
 }
 
 void MapRenderer::InitShaders() {

@@ -3,8 +3,9 @@
 #include "GLCanvasWarpEditor.h"
 
 #include <algorithm>
-#include <array>
+#include <cmath>
 #include <set>
+#include <vector>
 
 namespace {
 
@@ -340,25 +341,9 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
         case 'Z':
             m_canvas.m_entity_occlusion_idx = (m_canvas.m_entity_occlusion_idx + 1) % 3;
             break;
-        case 'o':
-        case 'O':
-            m_canvas.m_debug_occlusion = !m_canvas.m_debug_occlusion;
-            break;
-        case 'l':
-        case 'L':
-            if (m_canvas.m_selected_entity_idx >= 0 && m_canvas.m_selected_entity_idx < static_cast<int>(m_canvas.m_instances.size())) {
-                m_canvas.WriteSelectedEntityOcclusionDebugLog();
-            } else {
-                m_canvas.WriteEntityDrawOrderDebugLog();
-            }
-            break;
         case 'p':
         case 'P':
             m_canvas.CycleSelectedEntityPalette();
-            break;
-        case 'q':
-        case 'Q':
-            m_canvas.WriteEntityDrawOrderDebugLog();
             break;
     }
 
@@ -753,83 +738,6 @@ void GLCanvasRoomMode::Render(int width, int height)
         m_canvas.RenderSelectedTileSwapRegionTooltip();
     }
     m_canvas.RenderPendingObjectAddOverlay();
-
-    if (m_canvas.m_debug_occlusion &&
-        m_canvas.m_selected_entity_idx >= 0 &&
-        m_canvas.m_selected_entity_idx < static_cast<int>(m_canvas.m_instances.size())) {
-        const auto& selected = m_canvas.m_instances[static_cast<std::size_t>(m_canvas.m_selected_entity_idx)];
-        float center_x = selected.map_x + selected.hitbox_offset;
-        float center_y = selected.map_y + selected.hitbox_offset;
-        float half_base = selected.hitbox_base * 0.5f;
-        float top_z = selected.map_z + std::max(selected.hitbox_height, 0.125f);
-
-        float min_depth = (center_x - half_base) + (center_y - half_base);
-        float max_depth = (center_x + half_base) + (center_y + half_base) + 25.0f;
-        int rear_edge_padding = std::abs(selected.map_z - selected.floor_z) <= 0.01f ? 1 : 0;
-        auto depth_range = std::pair<GLint, GLint>{
-            std::clamp(static_cast<int>(std::ceil(min_depth)) + rear_edge_padding, 0, 255),
-            std::clamp(static_cast<int>(std::ceil(max_depth)), 0, 255)
-        };
-
-        auto project = [&selected](float x, float y, float z) {
-            float grid_x = x - selected.room_left;
-            float grid_y = y - selected.room_top;
-            return std::pair<float, float>{
-                32.0f * grid_x - 32.0f * grid_y + 512.0f,
-                16.0f * grid_x + 16.0f * grid_y + 100.0f - selected.z_extent * z
-            };
-        };
-        std::array<std::pair<float, float>, 8> clip_bounds = {
-            project(center_x - half_base, center_y - half_base, selected.map_z),
-            project(center_x + half_base, center_y - half_base, selected.map_z),
-            project(center_x + half_base, center_y + half_base, selected.map_z),
-            project(center_x - half_base, center_y + half_base, selected.map_z),
-            project(center_x - half_base, center_y - half_base, top_z),
-            project(center_x + half_base, center_y - half_base, top_z),
-            project(center_x + half_base, center_y + half_base, top_z),
-            project(center_x - half_base, center_y + half_base, top_z)
-        };
-
-        float clip_min_x = clip_bounds.front().first;
-        float clip_min_y = clip_bounds.front().second;
-        float clip_max_x = clip_bounds.front().first;
-        float clip_max_y = clip_bounds.front().second;
-        for (const auto& point : clip_bounds) {
-            clip_min_x = std::min(clip_min_x, point.first);
-            clip_min_y = std::min(clip_min_y, point.second);
-            clip_max_x = std::max(clip_max_x, point.first);
-            clip_max_y = std::max(clip_max_y, point.second);
-        }
-
-        if (!m_canvas.m_show_heightmap) {
-            m_canvas.m_heightmapRenderer.BuildEntityOcclusionStencil(
-                depth_range.first,
-                depth_range.second,
-                selected.map_z,
-                center_x - half_base,
-                center_y - half_base,
-                center_x + half_base,
-                center_y + half_base,
-                top_z,
-                clip_min_x,
-                clip_min_y,
-                clip_max_x,
-                clip_max_y);
-            m_canvas.m_mapRenderer.BuildForegroundCoverageStencil();
-            m_canvas.RenderStencilOverlay(width, height, 0x04, 0x04, 0.0f, 0.8f, 1.0f, 0.22f);
-            m_canvas.RenderStencilOverlay(width, height, 0x05, 0x05, 1.0f, 0.0f, 1.0f, 0.38f);
-        }
-
-        m_canvas.m_heightmapRenderer.RenderEntityOcclusionDebug(
-            depth_range.first,
-            depth_range.second,
-            selected.map_z,
-            center_x - half_base,
-            center_y - half_base,
-            center_x + half_base,
-            center_y + half_base,
-            top_z);
-    }
 
     m_canvas.RenderRoomInfoTable(width, height);
     m_canvas.SwapBuffers();

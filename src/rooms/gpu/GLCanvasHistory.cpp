@@ -1,0 +1,416 @@
+#include "GLCanvas.h"
+#include "GLCanvasObjectSupport.h"
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <memory>
+
+using namespace Landstalker;
+
+namespace {
+constexpr std::size_t kMaxUndoStates = 100;
+}
+
+bool MyGLCanvas::CanUndo() const {
+    if (IsObjectHistoryMode()) {
+        return !m_object_undo_stack.empty();
+    }
+    if (IsBackgroundLayerHistoryMode()) {
+        return !m_bg_layer_undo_stack.empty();
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        return !m_fg_layer_undo_stack.empty();
+    }
+    return !m_map_undo_stack.empty();
+}
+
+bool MyGLCanvas::CanRedo() const {
+    if (IsObjectHistoryMode()) {
+        return !m_object_redo_stack.empty();
+    }
+    if (IsBackgroundLayerHistoryMode()) {
+        return !m_bg_layer_redo_stack.empty();
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        return !m_fg_layer_redo_stack.empty();
+    }
+    return !m_map_redo_stack.empty();
+}
+
+void MyGLCanvas::CaptureUndoState() {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
+        }
+        m_bg_layer_redo_stack.clear();
+        NotifyHeightmapTargetChanged();
+        return;
+    }
+    if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
+        }
+        m_fg_layer_redo_stack.clear();
+        NotifyHeightmapTargetChanged();
+        return;
+    }
+
+    m_map_undo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+    if (m_map_undo_stack.size() > kMaxUndoStates) {
+        m_map_undo_stack.erase(m_map_undo_stack.begin());
+    }
+    m_map_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
+    auto map = CurrentRoomMap();
+    if (!map || !state) {
+        return;
+    }
+
+    *map = *state;
+    m_tileswap_preview_active = false;
+    m_tileswap_preview_swap_index = -1;
+    m_door_preview_active = false;
+    m_door_preview_idx = -1;
+    m_tileswap_preview_map.reset();
+    m_heightmapRenderer.ClearPreviewMap();
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_selection_drag_base.clear();
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+
+    ClampBackgroundSelection();
+    ReloadCurrentRoomMapView();
+    m_heightmapRenderer.LoadRoom(m_current_room);
+    RefreshObjectPlacementsFromHeightmap();
+    UpdateHeightmapClipboardFromSelectedCell();
+    NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
+    NotifyLayerBlockSelected();
+    UpdateStatusBar();
+    Refresh();
+}
+
+bool MyGLCanvas::IsObjectHistoryMode() const {
+    return m_editor_mode == EditorMode::Room;
+}
+
+bool MyGLCanvas::IsBackgroundLayerHistoryMode() const {
+    return m_editor_mode == EditorMode::BackgroundLayer;
+}
+
+bool MyGLCanvas::IsForegroundLayerHistoryMode() const {
+    return m_editor_mode == EditorMode::ForegroundLayer;
+}
+
+MyGLCanvas::LayerUndoState MyGLCanvas::BuildLayerUndoState(Tilemap3D::Layer layer) const {
+    LayerUndoState state{};
+    state.layer = layer;
+
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return state;
+    }
+
+    int count = map->GetWidth() * map->GetHeight();
+    state.blocks.reserve(static_cast<std::size_t>(std::max(0, count)));
+    for (int i = 0; i < count; ++i) {
+        state.blocks.push_back(map->GetBlock(static_cast<uint16_t>(i), layer).value);
+    }
+    return state;
+}
+
+void MyGLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
+    auto map = CurrentRoomMap();
+    if (!map) {
+        return;
+    }
+
+    int count = map->GetWidth() * map->GetHeight();
+    int restore_count = std::min<int>(count, static_cast<int>(state.blocks.size()));
+    for (int i = 0; i < restore_count; ++i) {
+        map->SetBlock(state.blocks[static_cast<std::size_t>(i)], static_cast<uint16_t>(i), state.layer);
+        if (m_tileswap_preview_map) {
+            m_tileswap_preview_map->SetBlock(state.blocks[static_cast<std::size_t>(i)], static_cast<uint16_t>(i), state.layer);
+        }
+    }
+
+    m_layer_dragging_select = false;
+    m_layer_dragging_draw = false;
+    m_layer_dragging_selection_move = false;
+    m_layer_dragging_line = false;
+    m_layer_draw_dirty = false;
+    m_layer_selection_drag_base.clear();
+    m_layer_selection_move_values.clear();
+    m_layer_line_preview_cells.clear();
+    m_layer_last_draw_x = -1;
+    m_layer_last_draw_y = -1;
+    m_layer_line_start_x = -1;
+    m_layer_line_start_y = -1;
+    m_layer_line_end_x = -1;
+    m_layer_line_end_y = -1;
+    m_layer_selection_move_anchor_x = -1;
+    m_layer_selection_move_anchor_y = -1;
+    m_layer_selection_move_delta_x = 0;
+    m_layer_selection_move_delta_y = 0;
+
+    ClampBackgroundSelection();
+    ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
+    UpdateStatusBar();
+    Refresh();
+}
+
+std::vector<Entity> MyGLCanvas::BuildCurrentRoomEntities() const {
+    if (m_instances.empty()) {
+        return m_room_entities;
+    }
+
+    std::vector<Entity> entities(m_instances.size());
+    for (const auto& inst : m_instances) {
+        std::size_t idx = inst.instance_id > 0 ? std::size_t(inst.instance_id - 1) : entities.size();
+        if (idx >= entities.size()) {
+            continue;
+        }
+        Entity entity = idx < m_room_entities.size() ? m_room_entities[idx] : Entity{};
+        entity.SetType(inst.entity_id);
+        entity.SetPalette(std::min<uint8_t>(inst.palette, 3));
+        entity.SetOrientation(inst.orientation);
+        entity.SetXDbl(inst.map_x);
+        entity.SetYDbl(inst.map_y);
+        entity.SetZDbl(inst.map_z);
+        entities[idx] = entity;
+    }
+    return entities;
+}
+
+std::vector<WarpList::Warp> MyGLCanvas::BuildCurrentRoomWarps() const {
+    std::vector<WarpList::Warp> warps;
+    std::map<uint32_t, std::size_t> warp_slots;
+    for (const auto& inst : m_warps) {
+        uint32_t key = inst.warp_key != 0 ? inst.warp_key : inst.instance_id;
+        auto slot_it = warp_slots.find(key);
+        if (slot_it == warp_slots.end()) {
+            warp_slots[key] = warps.size();
+            warps.push_back(inst.warp);
+            slot_it = warp_slots.find(key);
+        }
+        WarpList::Warp& warp = warps[slot_it->second];
+        if (inst.current_room_is_room1) {
+            warp.room1 = m_current_room;
+            warp.x1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+            warp.y1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+        } else {
+            warp.room2 = m_current_room;
+            warp.x2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+            warp.y2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+        }
+        warp.x_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.width)), 1, 63));
+        warp.y_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.height)), 1, 63));
+    }
+    warps.erase(
+        std::remove_if(
+            warps.begin(),
+            warps.end(),
+            [](const auto& warp) {
+                return warp.room1 == 0xFFFF || warp.room2 == 0xFFFF || !warp.IsValid();
+            }),
+        warps.end());
+    return warps;
+}
+
+MyGLCanvas::ObjectUndoState MyGLCanvas::BuildObjectUndoState() const {
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    ObjectUndoState state{};
+    state.entities = BuildCurrentRoomEntities();
+    state.warps = BuildCurrentRoomWarps();
+    state.swaps = rd ? rd->GetTileSwaps(m_current_room) : std::vector<TileSwap>{};
+    state.doors = rd ? rd->GetDoors(m_current_room) : std::vector<Door>{};
+    state.pending_warp_half = m_pending_warp_half;
+    state.pending_warp_room = m_pending_warp_room;
+    state.pending_warp_instance_id = m_pending_warp_instance_id;
+    state.pending_warp = m_pending_warp;
+    state.selected_entity = SelectedEntityListIndex();
+    state.selected_warp = SelectedWarpListIndex();
+    state.selected_tileswap = SelectedTileSwapListIndex();
+    state.selected_door = SelectedDoorListIndex();
+    return state;
+}
+
+void MyGLCanvas::CaptureObjectUndoState() {
+    if (!m_gd) {
+        return;
+    }
+
+    m_object_undo_stack.push_back(BuildObjectUndoState());
+    if (m_object_undo_stack.size() > kMaxUndoStates) {
+        m_object_undo_stack.erase(m_object_undo_stack.begin());
+    }
+    m_object_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
+    auto sd = m_gd ? m_gd->GetSpriteData() : nullptr;
+    auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
+    if (!sd || !rd) {
+        return;
+    }
+
+    sd->SetRoomEntities(m_current_room, state.entities);
+    rd->SetWarpsForRoom(m_current_room, state.warps);
+    rd->SetTileSwaps(m_current_room, state.swaps);
+    rd->SetDoors(m_current_room, state.doors);
+
+    m_restoring_history = true;
+    LoadRoomFromGameData(m_current_room, false, false);
+    m_restoring_history = false;
+
+    m_pending_warp_half = state.pending_warp_half;
+    m_pending_warp_room = state.pending_warp_room;
+    m_pending_warp_instance_id = state.pending_warp_instance_id;
+    m_pending_warp = state.pending_warp;
+    if (m_pending_warp_half && m_pending_warp_room == m_current_room) {
+        uint32_t instance_id = m_pending_warp_instance_id != 0
+            ? m_pending_warp_instance_id
+            : static_cast<uint32_t>(m_warps.size() + 1);
+        WarpInstance inst = GLCanvasObjectSupport::MakeWarpInstance(
+            m_pending_warp,
+            m_current_room,
+            instance_id,
+            float(m_mapRenderer.GetRoomLeft()),
+            float(m_mapRenderer.GetRoomTop()),
+            m_heightmapRenderer.GetZExtent());
+        UpdateWarpFloor(inst);
+        m_warps.push_back(inst);
+    }
+
+    ClearObjectSelection();
+    if (state.selected_entity > 0) {
+        SelectEntityByIndex(state.selected_entity);
+    } else if (state.selected_warp > 0) {
+        SelectWarpByIndex(state.selected_warp);
+    } else if (state.selected_tileswap > 0) {
+        SelectTileSwapByIndex(state.selected_tileswap);
+    } else if (state.selected_door > 0) {
+        SelectDoorByIndex(state.selected_door);
+    }
+
+    NotifyRoomDataChanged(true, true, true, true);
+    NotifySelectionChanged();
+    UpdateStatusBar();
+    Refresh();
+}
+
+void MyGLCanvas::ClearUndoRedoHistory() {
+    m_map_undo_stack.clear();
+    m_map_redo_stack.clear();
+    m_bg_layer_undo_stack.clear();
+    m_bg_layer_redo_stack.clear();
+    m_fg_layer_undo_stack.clear();
+    m_fg_layer_redo_stack.clear();
+    m_object_undo_stack.clear();
+    m_object_redo_stack.clear();
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::Undo() {
+    if (!CanUndo()) {
+        return;
+    }
+
+    if (IsObjectHistoryMode()) {
+        m_object_redo_stack.push_back(BuildObjectUndoState());
+        auto previous = m_object_undo_stack.back();
+        m_object_undo_stack.pop_back();
+        RestoreObjectUndoState(previous);
+    } else if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        auto previous = m_bg_layer_undo_stack.back();
+        m_bg_layer_undo_stack.pop_back();
+        RestoreLayerUndoState(previous);
+    } else if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        auto previous = m_fg_layer_undo_stack.back();
+        m_fg_layer_undo_stack.pop_back();
+        RestoreLayerUndoState(previous);
+    } else {
+        auto map = CurrentRoomMap();
+        if (!map) {
+            return;
+        }
+        m_map_redo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+        auto previous = m_map_undo_stack.back();
+        m_map_undo_stack.pop_back();
+        RestoreUndoState(previous);
+    }
+    NotifyHeightmapTargetChanged();
+}
+
+void MyGLCanvas::Redo() {
+    if (!CanRedo()) {
+        return;
+    }
+
+    if (IsObjectHistoryMode()) {
+        m_object_undo_stack.push_back(BuildObjectUndoState());
+        if (m_object_undo_stack.size() > kMaxUndoStates) {
+            m_object_undo_stack.erase(m_object_undo_stack.begin());
+        }
+        auto next = m_object_redo_stack.back();
+        m_object_redo_stack.pop_back();
+        RestoreObjectUndoState(next);
+    } else if (IsBackgroundLayerHistoryMode()) {
+        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
+        }
+        auto next = m_bg_layer_redo_stack.back();
+        m_bg_layer_redo_stack.pop_back();
+        RestoreLayerUndoState(next);
+    } else if (IsForegroundLayerHistoryMode()) {
+        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
+            m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
+        }
+        auto next = m_fg_layer_redo_stack.back();
+        m_fg_layer_redo_stack.pop_back();
+        RestoreLayerUndoState(next);
+    } else {
+        auto map = CurrentRoomMap();
+        if (!map) {
+            return;
+        }
+        m_map_undo_stack.push_back(std::make_shared<Tilemap3D>(*map));
+        if (m_map_undo_stack.size() > kMaxUndoStates) {
+            m_map_undo_stack.erase(m_map_undo_stack.begin());
+        }
+        auto next = m_map_redo_stack.back();
+        m_map_redo_stack.pop_back();
+        RestoreUndoState(next);
+    }
+    NotifyHeightmapTargetChanged();
+}

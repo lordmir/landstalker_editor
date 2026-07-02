@@ -4,14 +4,133 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdio>
 #include <iomanip>
 #include <sstream>
 
 #include "GLCanvasObjectSupport.h"
 #include "PixelFont.h"
+#include "RoomProjection.h"
 
 namespace {
+
+using PickPoint = RoomProjection::PickPoint;
+using RoomProjection::ProjectEntityGridPoint;
+using RoomProjection::ScreenToMapPoint;
+
+struct PickRect {
+	float min_x;
+	float min_y;
+	float max_x;
+	float max_y;
+};
+
+float HitboxBaseToBlocks(uint8_t base) {
+	return float(base) / 8.0f;
+}
+
+float HitboxHeightToBlocks(uint8_t height) {
+	return float(height) / 16.0f;
+}
+
+float HitboxDrawOffset(float hitbox_base) {
+	return hitbox_base < 1.5f ? 0.0f : 0.5f;
+}
+
+PickRect EntityZControlRect(const SpriteInstance& inst)
+{
+	float center_x = inst.map_x + inst.hitbox_offset;
+	float center_y = inst.map_y + inst.hitbox_offset;
+	float top_z = inst.map_z + std::max(inst.hitbox_height, 0.125f);
+	PickPoint top_center = ProjectEntityGridPoint(inst, center_x, center_y, top_z);
+	constexpr float half_size = 6.0f;
+	constexpr float y_offset = 14.0f;
+	return {
+		top_center.x - half_size,
+		top_center.y - y_offset - half_size,
+		top_center.x + half_size,
+		top_center.y - y_offset + half_size
+	};
+}
+
+bool PointInRect(const PickPoint& point, const PickRect& rect)
+{
+	return point.x >= rect.min_x &&
+	       point.x <= rect.max_x &&
+	       point.y >= rect.min_y &&
+	       point.y <= rect.max_y;
+}
+
+float Cross(const PickPoint& a, const PickPoint& b, const PickPoint& c)
+{
+	return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+bool PointInQuad(const PickPoint& point, const std::array<PickPoint, 4>& quad)
+{
+	bool has_positive = false;
+	bool has_negative = false;
+	for (std::size_t i = 0; i < quad.size(); ++i) {
+		float cross = Cross(quad[i], quad[(i + 1) % quad.size()], point);
+		has_positive = has_positive || cross > 0.0f;
+		has_negative = has_negative || cross < 0.0f;
+		if (has_positive && has_negative) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool PointInEntityHitbox(const SpriteInstance& inst, const PickPoint& point, bool include_shadow = true)
+{
+	if (inst.hitbox_base <= 0.0f) {
+		return false;
+	}
+
+	float center_x = inst.map_x + inst.hitbox_offset;
+	float center_y = inst.map_y + inst.hitbox_offset;
+	float half_base = inst.hitbox_base * 0.5f;
+	float min_x = center_x - half_base;
+	float min_y = center_y - half_base;
+	float max_x = center_x + half_base;
+	float max_y = center_y + half_base;
+	float bottom_z = inst.map_z;
+	float height = std::max(inst.hitbox_height, 0.125f);
+	std::array<PickPoint, 4> bottom = {
+		ProjectEntityGridPoint(inst, min_x, min_y, bottom_z),
+		ProjectEntityGridPoint(inst, max_x, min_y, bottom_z),
+		ProjectEntityGridPoint(inst, max_x, max_y, bottom_z),
+		ProjectEntityGridPoint(inst, min_x, max_y, bottom_z)
+	};
+	std::array<PickPoint, 4> top = {
+		ProjectEntityGridPoint(inst, min_x, min_y, bottom_z + height),
+		ProjectEntityGridPoint(inst, max_x, min_y, bottom_z + height),
+		ProjectEntityGridPoint(inst, max_x, max_y, bottom_z + height),
+		ProjectEntityGridPoint(inst, min_x, max_y, bottom_z + height)
+	};
+	std::array<PickPoint, 4> shadow = {
+		ProjectEntityGridPoint(inst, min_x, min_y, inst.floor_z),
+		ProjectEntityGridPoint(inst, max_x, min_y, inst.floor_z),
+		ProjectEntityGridPoint(inst, max_x, max_y, inst.floor_z),
+		ProjectEntityGridPoint(inst, min_x, max_y, inst.floor_z)
+	};
+
+	if (PointInQuad(point, bottom) || PointInQuad(point, top) || (include_shadow && PointInQuad(point, shadow))) {
+		return true;
+	}
+
+	for (std::size_t i = 0; i < bottom.size(); ++i) {
+		std::array<PickPoint, 4> side = {
+			bottom[i],
+			bottom[(i + 1) % bottom.size()],
+			top[(i + 1) % top.size()],
+			top[i]
+		};
+		if (PointInQuad(point, side)) {
+			return true;
+		}
+	}
+	return false;
+}
 
 std::string HexByte(uint8_t value)
 {
@@ -66,6 +185,257 @@ GLCanvasEntityEditor::GLCanvasEntityEditor(MyGLCanvas& canvas)
 {
 }
 
+void GLCanvasEntityEditor::BeginAddEntity()
+{
+	if (m_canvas.m_room_entities.size() >= 15) {
+		return;
+	}
+	m_canvas.SetFocus();
+	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::Entity;
+
+	float room_left = static_cast<float>(m_canvas.m_mapRenderer.GetRoomLeft());
+	float room_top = static_cast<float>(m_canvas.m_mapRenderer.GetRoomTop());
+	float z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+
+	m_canvas.m_pending_add_floor_snap = true;
+
+	float seed_center_x = 0.5f;
+	float seed_center_y = 0.5f;
+	if (m_canvas.m_last_mouse_pos.x >= 0 && m_canvas.m_last_mouse_pos.y >= 0) {
+		float world_x = m_canvas.ScreenToWorldX(m_canvas.m_last_mouse_pos.x);
+		float world_y = m_canvas.ScreenToWorldY(m_canvas.m_last_mouse_pos.y);
+		PickPoint coarse = ScreenToMapPoint(world_x, world_y, 0.0f, room_left, room_top, z_extent);
+		seed_center_x = std::clamp(coarse.x, 0.0f, 63.5f);
+		seed_center_y = std::clamp(coarse.y, 0.0f, 63.5f);
+	}
+
+	m_canvas.m_pending_add_plane_z = std::clamp(m_canvas.FloorUnderPoint(seed_center_x, seed_center_y), 0.0f, 15.5f);
+	m_canvas.m_pending_add_entity_cursor_offset_x = 0.0f;
+	m_canvas.m_pending_add_entity_cursor_offset_y = 0.0f;
+
+	m_canvas.UpdatePendingObjectAddHover();
+
+	if (m_canvas.m_pending_add_hover_x >= 0 && m_canvas.m_pending_add_hover_y >= 0) {
+		seed_center_x = static_cast<float>(m_canvas.m_pending_add_hover_x) + 0.5f;
+		seed_center_y = static_cast<float>(m_canvas.m_pending_add_hover_y) + 0.5f;
+	} else if (m_canvas.m_last_mouse_pos.x >= 0 && m_canvas.m_last_mouse_pos.y >= 0) {
+		float world_x = m_canvas.ScreenToWorldX(m_canvas.m_last_mouse_pos.x);
+		float world_y = m_canvas.ScreenToWorldY(m_canvas.m_last_mouse_pos.y);
+		PickPoint precise = ScreenToMapPoint(world_x, world_y, m_canvas.m_pending_add_plane_z, room_left, room_top, z_extent);
+		seed_center_x = std::clamp(precise.x, 0.0f, 63.5f);
+		seed_center_y = std::clamp(precise.y, 0.0f, 63.5f);
+	}
+
+	m_canvas.m_pending_add_start_x = seed_center_x;
+	m_canvas.m_pending_add_start_y = seed_center_y;
+	m_canvas.m_pending_add_start_z = m_canvas.m_pending_add_plane_z;
+	m_canvas.m_pending_add_mouse_start = m_canvas.m_last_mouse_pos;
+
+	m_canvas.SetCursor(wxCursor(wxCURSOR_CROSS));
+	m_canvas.Refresh();
+}
+
+int GLCanvasEntityEditor::HitTestEntity(const wxPoint& point) const
+{
+	PickPoint world_point{
+		m_canvas.ScreenToWorldX(point.x),
+		m_canvas.ScreenToWorldY(point.y)
+	};
+
+	for (int i = static_cast<int>(m_canvas.m_instances.size()) - 1; i >= 0; --i) {
+		if (PointInEntityHitbox(m_canvas.m_instances[static_cast<std::size_t>(i)], world_point)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int GLCanvasEntityEditor::HitTestEntityBody(const wxPoint& point) const
+{
+	PickPoint world_point{
+		m_canvas.ScreenToWorldX(point.x),
+		m_canvas.ScreenToWorldY(point.y)
+	};
+
+	for (int i = static_cast<int>(m_canvas.m_instances.size()) - 1; i >= 0; --i) {
+		if (PointInEntityHitbox(m_canvas.m_instances[static_cast<std::size_t>(i)], world_point, false)) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+int GLCanvasEntityEditor::HitTestEntityZControl(const wxPoint& point) const
+{
+	PickPoint world_point{
+		m_canvas.ScreenToWorldX(point.x),
+		m_canvas.ScreenToWorldY(point.y)
+	};
+
+	if (m_canvas.m_selected_entity_idx >= 0 &&
+		m_canvas.m_selected_entity_idx < static_cast<int>(m_canvas.m_instances.size()) &&
+		PointInRect(world_point, EntityZControlRect(m_canvas.m_instances[static_cast<std::size_t>(m_canvas.m_selected_entity_idx)]))) {
+		return m_canvas.m_selected_entity_idx;
+	}
+
+	return -1;
+}
+
+void GLCanvasEntityEditor::StartEntityDrag(int entity_idx, const wxMouseEvent& evt, bool z_axis_only, bool shadow_drag)
+{
+	if (entity_idx < 0 || entity_idx >= static_cast<int>(m_canvas.m_instances.size())) {
+		return;
+	}
+
+	m_canvas.CaptureObjectUndoState();
+	SpriteInstance& inst = m_canvas.m_instances[static_cast<std::size_t>(entity_idx)];
+	m_canvas.m_dragging_entity = true;
+	m_canvas.m_drag_z_axis_only = z_axis_only;
+	m_canvas.m_drag_instance_id = inst.instance_id;
+	m_canvas.m_drag_start_mouse = evt.GetPosition();
+	m_canvas.m_drag_start_x = inst.map_x;
+	m_canvas.m_drag_start_y = inst.map_y;
+	m_canvas.m_drag_start_z = inst.map_z;
+	m_canvas.m_drag_plane_z = shadow_drag ? inst.floor_z : inst.map_z;
+	PickPoint cursor_map = ScreenToMapPoint(
+		m_canvas.ScreenToWorldX(evt.GetPosition().x),
+		m_canvas.ScreenToWorldY(evt.GetPosition().y),
+		m_canvas.m_drag_plane_z,
+		inst.room_left,
+		inst.room_top,
+		inst.z_extent);
+	m_canvas.m_drag_cursor_offset_x = inst.map_x + inst.hitbox_offset - cursor_map.x;
+	m_canvas.m_drag_cursor_offset_y = inst.map_y + inst.hitbox_offset - cursor_map.y;
+	m_canvas.m_drag_floor_snap = std::abs(inst.map_z - inst.floor_z) <= 0.01f;
+	m_canvas.SetCursor(wxCursor(z_axis_only ? wxCURSOR_SIZENS : wxCURSOR_HAND));
+	if (!m_canvas.HasCapture()) {
+		m_canvas.CaptureMouse();
+	}
+}
+
+void GLCanvasEntityEditor::ApplyEntityDragStep(
+	SpriteInstance& inst,
+	const wxPoint& mouse_pos,
+	bool z_axis_only,
+	const wxPoint& drag_start_mouse,
+	float drag_start_x,
+	float drag_start_y,
+	float drag_start_z,
+	float drag_plane_z,
+	float drag_cursor_offset_x,
+	float drag_cursor_offset_y,
+	bool drag_floor_snap) const
+{
+	auto snap_half = [](float value) {
+		return std::round(value * 2.0f) * 0.5f;
+	};
+	auto clamp_map_pos = [](float value) {
+		return std::clamp(value, 0.0f, 63.5f);
+	};
+
+	if (z_axis_only) {
+		float dy = static_cast<float>(mouse_pos.y - drag_start_mouse.y);
+		inst.map_x = clamp_map_pos(drag_start_x);
+		inst.map_y = clamp_map_pos(drag_start_y);
+		inst.map_z = std::clamp(snap_half(drag_start_z - dy / 32.0f), 0.0f, 15.5f);
+	} else {
+		float world_x = m_canvas.ScreenToWorldX(mouse_pos.x);
+		float world_y = m_canvas.ScreenToWorldY(mouse_pos.y);
+		PickPoint cursor_map = ScreenToMapPoint(world_x, world_y, drag_plane_z, inst.room_left, inst.room_top, inst.z_extent);
+		float hitbox_center_x = cursor_map.x + drag_cursor_offset_x;
+		float hitbox_center_y = cursor_map.y + drag_cursor_offset_y;
+		inst.map_x = clamp_map_pos(snap_half(hitbox_center_x - inst.hitbox_offset));
+		inst.map_y = clamp_map_pos(snap_half(hitbox_center_y - inst.hitbox_offset));
+	}
+
+	inst.floor_z = m_canvas.FloorUnderHitbox(
+		inst.map_x + inst.hitbox_offset,
+		inst.map_y + inst.hitbox_offset,
+		inst.hitbox_base * 0.5f);
+	if (!z_axis_only && drag_floor_snap) {
+		inst.map_z = std::clamp(inst.floor_z, 0.0f, 15.5f);
+	} else if (!z_axis_only) {
+		inst.map_z = std::clamp(drag_start_z, 0.0f, 15.5f);
+	}
+}
+
+void GLCanvasEntityEditor::UpdateEntityDrag(const wxMouseEvent& evt)
+{
+	int entity_idx = m_canvas.FindInstanceIndex(m_canvas.m_drag_instance_id);
+	if (entity_idx < 0) {
+		EndEntityDrag();
+		return;
+	}
+
+	SpriteInstance& inst = m_canvas.m_instances[static_cast<std::size_t>(entity_idx)];
+	bool z_axis_only = m_canvas.m_drag_z_axis_only || evt.ControlDown() || evt.RightIsDown();
+	m_canvas.SetCursor(wxCursor(z_axis_only ? wxCURSOR_SIZENS : wxCURSOR_HAND));
+	ApplyEntityDragStep(
+		inst,
+		evt.GetPosition(),
+		z_axis_only,
+		m_canvas.m_drag_start_mouse,
+		m_canvas.m_drag_start_x,
+		m_canvas.m_drag_start_y,
+		m_canvas.m_drag_start_z,
+		m_canvas.m_drag_plane_z,
+		m_canvas.m_drag_cursor_offset_x,
+		m_canvas.m_drag_cursor_offset_y,
+		m_canvas.m_drag_floor_snap);
+	UpdateEntityProjection(inst);
+	GLCanvasObjectSupport::SortEntitiesGeometrically(m_canvas.m_instances);
+	entity_idx = m_canvas.FindInstanceIndex(m_canvas.m_drag_instance_id);
+	m_canvas.m_selected_entity_idx = entity_idx;
+	m_canvas.m_hovered_entity_idx = entity_idx;
+	m_canvas.Refresh();
+}
+
+void GLCanvasEntityEditor::EndEntityDrag()
+{
+	if (!m_canvas.m_dragging_entity) {
+		return;
+	}
+
+	uint32_t dragged_id = m_canvas.m_drag_instance_id;
+	m_canvas.m_dragging_entity = false;
+	if (m_canvas.HasCapture()) {
+		m_canvas.ReleaseMouse();
+	}
+	GLCanvasObjectSupport::SortEntitiesGeometrically(m_canvas.m_instances);
+	m_canvas.m_selected_entity_idx = m_canvas.FindInstanceIndex(dragged_id);
+	m_canvas.m_hovered_entity_idx = m_canvas.m_selected_entity_idx;
+	m_canvas.SetCursor(wxCursor(m_canvas.m_hovered_entity_idx >= 0 ? wxCURSOR_HAND : wxCURSOR_ARROW));
+	m_canvas.NotifyRoomDataChanged(true, false, false, false);
+	m_canvas.Refresh();
+}
+
+void GLCanvasEntityEditor::UpdateEntityProjection(SpriteInstance& inst)
+{
+	float ex_block = inst.map_x + inst.hitbox_offset - inst.room_left;
+	float ey_block = inst.map_y + inst.hitbox_offset - inst.room_top;
+	inst.x = 32.0f * ex_block - 32.0f * ey_block + 512.0f;
+	inst.y = 16.0f * ex_block + 16.0f * ey_block + 100.0f - inst.map_z * inst.z_extent;
+}
+
+void GLCanvasEntityEditor::RefreshEntityMetadata(SpriteInstance& inst)
+{
+	auto sd = m_canvas.m_gd->GetSpriteData();
+	if (sd->IsEntity(inst.entity_id)) {
+		auto hitbox = sd->GetEntityHitbox(inst.entity_id);
+		inst.hitbox_base = HitboxBaseToBlocks(hitbox.base);
+		inst.hitbox_height = HitboxHeightToBlocks(hitbox.height);
+	} else {
+		inst.hitbox_base = 1.0f;
+		inst.hitbox_height = 1.0f;
+	}
+	inst.hitbox_offset = HitboxDrawOffset(inst.hitbox_base);
+	inst.floor_z = m_canvas.FloorUnderHitbox(
+		inst.map_x + inst.hitbox_offset,
+		inst.map_y + inst.hitbox_offset,
+		inst.hitbox_base * 0.5f);
+	UpdateEntityProjection(inst);
+}
+
 void GLCanvasEntityEditor::AddEntity()
 {
 	// Keep room entity data and render instances in lockstep when inserting.
@@ -104,24 +474,6 @@ void GLCanvasEntityEditor::AddEntity(const SpriteInstance& preview_instance)
 	GLCanvasObjectSupport::SortEntitiesGeometrically(m_canvas.m_instances);
 	m_canvas.m_selected_entity_idx = m_canvas.FindInstanceIndex(inst.instance_id);
 	m_canvas.m_selected_warp_idx = -1;
-
-	const float center_x = inst.map_x + inst.hitbox_offset;
-	const float center_y = inst.map_y + inst.hitbox_offset;
-	std::fprintf(
-		stderr,
-		"[PendingEntity] commit-inserted id=%u type=%u palette=%u orient=%d map=(%.3f,%.3f,%.3f) center=(%.3f,%.3f) floor=%.3f hitbox_offset=%.3f\n",
-		inst.instance_id,
-		inst.entity_id,
-		inst.palette,
-		static_cast<int>(inst.orientation),
-		inst.map_x,
-		inst.map_y,
-		inst.map_z,
-		center_x,
-		center_y,
-		inst.floor_z,
-		inst.hitbox_offset);
-	std::fflush(stderr);
 }
 
 void GLCanvasEntityEditor::CopySelectedEntity()
@@ -198,6 +550,11 @@ void GLCanvasEntityEditor::PasteEntity()
 
 void GLCanvasEntityEditor::CycleSelectedEntityId(int delta)
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+		m_canvas.m_pending_add_entity_id = static_cast<uint8_t>((int(m_canvas.m_pending_add_entity_id) + delta + 256) & 0xFF);
+		m_canvas.Refresh();
+		return;
+	}
 	if (m_canvas.m_selected_entity_idx < 0 || m_canvas.m_selected_entity_idx >= static_cast<int>(m_canvas.m_instances.size())) {
 		return;
 	}
@@ -208,6 +565,11 @@ void GLCanvasEntityEditor::CycleSelectedEntityId(int delta)
 
 void GLCanvasEntityEditor::CycleSelectedEntityPalette()
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+		m_canvas.m_pending_add_entity_palette = static_cast<uint8_t>((m_canvas.m_pending_add_entity_palette + 1) % 4);
+		m_canvas.Refresh();
+		return;
+	}
 	if (m_canvas.m_selected_entity_idx < 0 || m_canvas.m_selected_entity_idx >= static_cast<int>(m_canvas.m_instances.size())) {
 		return;
 	}
@@ -217,6 +579,11 @@ void GLCanvasEntityEditor::CycleSelectedEntityPalette()
 
 void GLCanvasEntityEditor::SetSelectedEntityOrientation(Landstalker::Orientation orientation)
 {
+	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+		m_canvas.m_pending_add_entity_orientation = orientation;
+		m_canvas.Refresh();
+		return;
+	}
 	if (m_canvas.m_selected_entity_idx < 0 || m_canvas.m_selected_entity_idx >= static_cast<int>(m_canvas.m_instances.size())) {
 		return;
 	}
@@ -232,6 +599,62 @@ void GLCanvasEntityEditor::SetSelectedEntityToFloor()
 	inst.floor_z = m_canvas.FloorUnderHitbox(inst.map_x + inst.hitbox_offset, inst.map_y + inst.hitbox_offset, inst.hitbox_base * 0.5f);
 	inst.map_z = std::clamp(inst.floor_z, 0.0f, 15.5f);
 	m_canvas.UpdateEntityProjection(inst);
+}
+
+void GLCanvasEntityEditor::RenderEntityControls()
+{
+	auto draw_control = [this](int entity_idx, bool selected) {
+		if (entity_idx < 0 || entity_idx >= static_cast<int>(m_canvas.m_instances.size())) {
+			return;
+		}
+
+		const SpriteInstance& inst = m_canvas.m_instances[static_cast<std::size_t>(entity_idx)];
+		PickRect rect = EntityZControlRect(inst);
+		float center_x = inst.map_x + inst.hitbox_offset;
+		float center_y = inst.map_y + inst.hitbox_offset;
+		float top_z = inst.map_z + std::max(inst.hitbox_height, 0.125f);
+		PickPoint top_center = ProjectEntityGridPoint(inst, center_x, center_y, top_z);
+		PickPoint handle_center{
+			(rect.min_x + rect.max_x) * 0.5f,
+			(rect.min_y + rect.max_y) * 0.5f
+		};
+
+		glColor4f(selected ? 1.0f : 0.85f, selected ? 0.2f : 0.9f, selected ? 0.2f : 1.0f, 0.95f);
+		glLineWidth(1.0f);
+		glBegin(GL_LINES);
+		glVertex2f(top_center.x, top_center.y);
+		glVertex2f(handle_center.x, handle_center.y);
+		glEnd();
+
+		glColor4f(0.02f, 0.02f, 0.02f, 0.55f);
+		glBegin(GL_QUADS);
+		glVertex2f(rect.min_x, rect.min_y);
+		glVertex2f(rect.max_x, rect.min_y);
+		glVertex2f(rect.max_x, rect.max_y);
+		glVertex2f(rect.min_x, rect.max_y);
+		glEnd();
+
+		glColor4f(selected ? 1.0f : 0.85f, selected ? 0.2f : 0.9f, selected ? 0.2f : 1.0f, 0.95f);
+		glLineWidth(2.0f);
+		glBegin(GL_LINE_LOOP);
+		glVertex2f(rect.min_x, rect.min_y);
+		glVertex2f(rect.max_x, rect.min_y);
+		glVertex2f(rect.max_x, rect.max_y);
+		glVertex2f(rect.min_x, rect.max_y);
+		glEnd();
+		glLineWidth(1.0f);
+	};
+
+	glUseProgram(0);
+	for (int i = 0; i <= 5; ++i) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glDisable(GL_TEXTURE_2D);
+	}
+	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	draw_control(m_canvas.m_selected_entity_idx, true);
 }
 
 void GLCanvasEntityEditor::RenderSelectedEntityTooltip()
