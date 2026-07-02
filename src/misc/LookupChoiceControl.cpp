@@ -8,6 +8,21 @@
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
 
+namespace
+{
+bool IsDescendantOf(wxWindow* child, const wxWindow* ancestor)
+{
+    for (wxWindow* w = child; w; w = w->GetParent())
+    {
+        if (w == ancestor)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+}
+
 LookupChoiceControl::LookupChoiceControl(wxWindow* parent, wxWindowID id, const wxString& value, const wxArrayString& choices,
     const wxPoint& pos, const wxSize& size)
     : wxPanel(parent, id, pos, size),
@@ -15,8 +30,14 @@ LookupChoiceControl::LookupChoiceControl(wxWindow* parent, wxWindowID id, const 
       m_text(new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER)),
       m_drop_btn(new wxBitmapButton(this, wxID_ANY,
           wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_BUTTON, wxSize(16, 16)),
-          wxDefaultPosition, wxSize(24, -1), wxBU_EXACTFIT)),
-      m_popup(new wxPopupWindow(this, wxBORDER_SIMPLE)),
+          wxDefaultPosition,
+#ifdef __WXGTK__
+          wxSize(30, -1),
+#else
+          wxSize(24, -1),
+#endif
+          wxBU_EXACTFIT)),
+      m_popup(new wxPopupTransientWindow(this, wxBORDER_SIMPLE | wxPU_CONTAINS_CONTROLS)),
       m_list(new wxListBox(m_popup, wxID_ANY))
 {
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -29,19 +50,24 @@ LookupChoiceControl::LookupChoiceControl(wxWindow* parent, wxWindowID id, const 
     m_popup->SetSizer(popup_sizer);
 
     m_text->Bind(wxEVT_TEXT, &LookupChoiceControl::OnText, this);
-    m_text->Bind(wxEVT_CHAR_HOOK, &LookupChoiceControl::OnTextKeyDown, this);
+    m_text->Bind(wxEVT_KEY_DOWN, &LookupChoiceControl::OnTextKeyDown, this);
     m_text->Bind(wxEVT_TEXT_ENTER, &LookupChoiceControl::OnTextEnter, this);
     m_text->Bind(wxEVT_LEFT_DOWN, &LookupChoiceControl::OnTextLeftDown, this);
     m_text->Bind(wxEVT_SET_FOCUS, &LookupChoiceControl::OnTextFocus, this);
+    m_text->Bind(wxEVT_KILL_FOCUS, &LookupChoiceControl::OnControlKillFocus, this);
     m_drop_btn->Bind(wxEVT_BUTTON, &LookupChoiceControl::OnDropDownClick, this);
+    m_drop_btn->Bind(wxEVT_KILL_FOCUS, &LookupChoiceControl::OnControlKillFocus, this);
     Bind(wxEVT_SIZE, &LookupChoiceControl::OnSize, this);
+    Bind(wxEVT_KILL_FOCUS, &LookupChoiceControl::OnControlKillFocus, this);
 
     m_list->Bind(wxEVT_LISTBOX, &LookupChoiceControl::OnListSelect, this);
     m_list->Bind(wxEVT_LISTBOX_DCLICK, &LookupChoiceControl::OnListActivate, this);
     m_list->Bind(wxEVT_LEFT_DOWN, &LookupChoiceControl::OnListLeftDown, this);
     m_list->Bind(wxEVT_LEFT_UP, &LookupChoiceControl::OnListLeftUp, this);
     m_list->Bind(wxEVT_MOTION, &LookupChoiceControl::OnListMouseMove, this);
-    m_list->Bind(wxEVT_CHAR_HOOK, &LookupChoiceControl::OnListKeyDown, this);
+    m_list->Bind(wxEVT_KEY_DOWN, &LookupChoiceControl::OnListKeyDown, this);
+    m_list->Bind(wxEVT_SET_FOCUS, &LookupChoiceControl::OnListFocus, this);
+    m_list->Bind(wxEVT_KILL_FOCUS, &LookupChoiceControl::OnControlKillFocus, this);
 
     UpdateFilteredItems();
     m_text->SetFocus();
@@ -99,10 +125,11 @@ wxString LookupChoiceControl::GetString(unsigned int index) const
     return m_choices[index];
 }
 
-void LookupChoiceControl::UpdateFilteredItems(bool show_all)
+void LookupChoiceControl::UpdateFilteredItems(bool show_all, bool auto_select)
 {
     const wxString needle = show_all ? wxString() : m_text->GetValue().Lower();
     const wxString current_value = m_text->GetValue().Lower();
+    m_updating_list = true;
     m_list->Freeze();
     m_list->Clear();
 
@@ -120,7 +147,7 @@ void LookupChoiceControl::UpdateFilteredItems(bool show_all)
         }
     }
 
-    if (m_list->GetCount() > 0)
+    if (auto_select && m_list->GetCount() > 0)
     {
         if (selected_row == wxNOT_FOUND)
         {
@@ -129,7 +156,16 @@ void LookupChoiceControl::UpdateFilteredItems(bool show_all)
         m_list->SetSelection(selected_row);
         m_list->EnsureVisible(selected_row);
     }
+    else
+    {
+        const int sel = m_list->GetSelection();
+        if (sel != wxNOT_FOUND)
+        {
+            m_list->Deselect(sel);
+        }
+    }
 
+    m_updating_list = false;
     m_list->Thaw();
 }
 
@@ -149,8 +185,18 @@ void LookupChoiceControl::ShowPopup()
     m_popup->SetSize(screen_pt.x, screen_pt.y, popup_width, popup_height);
     if (!m_popup->IsShown())
     {
-        m_popup->Show();
+        m_popup->Popup(m_text);
     }
+
+    CallAfter([this]()
+    {
+        wxWindow* focus = wxWindow::FindFocus();
+        if (IsDescendantOf(focus, m_popup) && focus != m_text)
+        {
+            m_text->SetFocus();
+            m_text->SetInsertionPointEnd();
+        }
+    });
 
     const int selected = m_list->GetSelection();
     if (selected != wxNOT_FOUND)
@@ -163,7 +209,7 @@ void LookupChoiceControl::HidePopup()
 {
     if (m_popup->IsShown())
     {
-        m_popup->Hide();
+        m_popup->Dismiss();
     }
 }
 
@@ -202,14 +248,20 @@ void LookupChoiceControl::MoveSelection(int delta)
 
 void LookupChoiceControl::OnText(wxCommandEvent& evt)
 {
-    UpdateFilteredItems();
+    UpdateFilteredItems(false, false);
     if (m_list->GetCount() > 0)
     {
         ShowPopup();
     }
-    else
+    else if (m_popup->IsShown())
     {
         HidePopup();
+    }
+
+    if (wxWindow::FindFocus() == m_text)
+    {
+        const long pos = m_text->GetInsertionPoint();
+        m_text->SetSelection(pos, pos);
     }
     evt.Skip();
 }
@@ -221,6 +273,7 @@ void LookupChoiceControl::OnTextLeftDown(wxMouseEvent& evt)
     {
         ShowPopup();
     }
+    m_select_all_on_focus = false;
     m_text->CallAfter([text = m_text]()
     {
         if (text)
@@ -233,6 +286,11 @@ void LookupChoiceControl::OnTextLeftDown(wxMouseEvent& evt)
 void LookupChoiceControl::OnTextFocus(wxFocusEvent& evt)
 {
     evt.Skip();
+    if (!m_select_all_on_focus)
+    {
+        return;
+    }
+    m_select_all_on_focus = false;
     m_text->CallAfter([text = m_text]()
     {
         if (text)
@@ -316,9 +374,30 @@ void LookupChoiceControl::OnSize(wxSizeEvent& evt)
     evt.Skip();
 }
 
+void LookupChoiceControl::OnControlKillFocus(wxFocusEvent& evt)
+{
+    evt.Skip();
+    CallAfter([this]()
+    {
+        if (!m_popup || !m_popup->IsShown())
+        {
+            return;
+        }
+
+        wxWindow* focus = wxWindow::FindFocus();
+        if (IsDescendantOf(focus, this) || IsDescendantOf(focus, m_popup))
+        {
+            return;
+        }
+
+        HidePopup();
+    });
+}
+
 void LookupChoiceControl::OnListSelect(wxCommandEvent& evt)
 {
-    AcceptSelected();
+    // Selection changes can be triggered programmatically on GTK while filtering.
+    // Commit only on explicit user actions (enter/double-click/click release).
     evt.Skip();
 }
 
@@ -334,32 +413,39 @@ void LookupChoiceControl::OnListLeftDown(wxMouseEvent& evt)
     if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
         m_list->SetSelection(hit);
-        AcceptSelected();
-        m_text->SetFocus();
+        m_list_click_candidate = hit;
         return;
     }
+
+    m_list_click_candidate = wxNOT_FOUND;
     evt.Skip();
 }
 
 void LookupChoiceControl::OnListLeftUp(wxMouseEvent& evt)
 {
-    evt.Skip();
-    CallAfter([this]()
+    const int hit = m_list->HitTest(evt.GetPosition());
+    if (m_list_click_candidate != wxNOT_FOUND && hit == m_list_click_candidate &&
+        hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
-        if (!m_popup || !m_popup->IsShown())
-        {
-            return;
-        }
-        if (m_list->GetSelection() != wxNOT_FOUND)
-        {
-            AcceptSelected();
-            m_text->SetFocus();
-        }
-    });
+        m_list->SetSelection(hit);
+        AcceptSelected();
+        m_text->SetFocus();
+        m_list_click_candidate = wxNOT_FOUND;
+        return;
+    }
+
+    m_list_click_candidate = wxNOT_FOUND;
+    evt.Skip();
 }
 
 void LookupChoiceControl::OnListMouseMove(wxMouseEvent& evt)
 {
+    if (wxWindow::FindFocus() == m_text)
+    {
+        evt.Skip();
+        return;
+    }
+
     const int hit = m_list->HitTest(evt.GetPosition());
     if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
@@ -371,8 +457,33 @@ void LookupChoiceControl::OnListMouseMove(wxMouseEvent& evt)
     evt.Skip();
 }
 
+void LookupChoiceControl::OnListFocus(wxFocusEvent& evt)
+{
+    evt.Skip();
+    CallAfter([this]()
+    {
+        if (m_text)
+        {
+            m_text->SetFocus();
+            m_text->SetInsertionPointEnd();
+            const long pos = m_text->GetInsertionPoint();
+            m_text->SetSelection(pos, pos);
+        }
+    });
+}
+
 void LookupChoiceControl::OnListKeyDown(wxKeyEvent& evt)
 {
+    if (evt.GetKeyCode() == WXK_DOWN)
+    {
+        MoveSelection(+1);
+        return;
+    }
+    if (evt.GetKeyCode() == WXK_UP)
+    {
+        MoveSelection(-1);
+        return;
+    }
     if (evt.GetKeyCode() == WXK_ESCAPE)
     {
         HidePopup();
@@ -395,6 +506,17 @@ void LookupChoiceControl::OnListKeyDown(wxKeyEvent& evt)
         }
         return;
     }
+
+    // If GTK routes printable/edit keys to the list, replay into text control.
+    if (m_text)
+    {
+        m_text->SetFocus();
+        m_text->SetInsertionPointEnd();
+        const long pos = m_text->GetInsertionPoint();
+        m_text->SetSelection(pos, pos);
+        m_text->EmulateKeyPress(evt);
+        return;
+    }
     evt.Skip();
 }
 
@@ -403,6 +525,7 @@ void LookupChoiceControl::OnDropDownClick(wxCommandEvent& evt)
     if (m_popup->IsShown())
     {
         HidePopup();
+        m_select_all_on_focus = false;
         m_text->SetFocus();
         m_text->SelectAll();
         return;
@@ -412,12 +535,14 @@ void LookupChoiceControl::OnDropDownClick(wxCommandEvent& evt)
     if (m_list->GetCount() <= 0)
     {
         HidePopup();
+        m_select_all_on_focus = false;
         m_text->SetFocus();
         m_text->SelectAll();
         return;
     }
 
     ShowPopup();
+    m_select_all_on_focus = false;
     m_text->SetFocus();
     m_text->SelectAll();
     evt.Skip(false);

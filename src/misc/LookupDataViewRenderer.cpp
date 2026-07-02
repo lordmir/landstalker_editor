@@ -6,17 +6,30 @@
 #include <wx/bmpbuttn.h>
 #include <wx/button.h>
 #include <wx/listbox.h>
+#include <wx/panel.h>
 #include <wx/popupwin.h>
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
 
 namespace
 {
-class LookupPopupWindow : public wxPopupWindow
+bool IsDescendantOf(wxWindow* child, const wxWindow* ancestor)
+{
+	for (wxWindow* w = child; w; w = w->GetParent())
+	{
+		if (w == ancestor)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+class LookupPopupWindow : public wxPopupTransientWindow
 {
 public:
 	explicit LookupPopupWindow(wxWindow* parent)
-		: wxPopupWindow(parent, wxBORDER_SIMPLE),
+		: wxPopupTransientWindow(parent, wxBORDER_SIMPLE | wxPU_CONTAINS_CONTROLS),
 		  m_list(new wxListBox(this, wxID_ANY))
 	{
 		auto* sizer = new wxBoxSizer(wxVERTICAL);
@@ -42,7 +55,13 @@ public:
 		  m_text(new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER)),
 		  m_drop_btn(new wxBitmapButton(this, wxID_ANY,
 			wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_BUTTON, wxSize(16, 16)),
-			wxDefaultPosition, wxSize(24, -1), wxBU_EXACTFIT)),
+			wxDefaultPosition,
+#ifdef __WXGTK__
+			wxSize(30, -1),
+#else
+			wxSize(24, -1),
+#endif
+			wxBU_EXACTFIT)),
 		  m_popup(new LookupPopupWindow(this))
 	{
 		SetMinSize(rect.GetSize());
@@ -54,19 +73,24 @@ public:
 		Layout();
 
 		m_text->Bind(wxEVT_TEXT, &LookupEditorControl::OnText, this);
-		m_text->Bind(wxEVT_CHAR_HOOK, &LookupEditorControl::OnTextKeyDown, this);
+		m_text->Bind(wxEVT_KEY_DOWN, &LookupEditorControl::OnTextKeyDown, this);
 		m_text->Bind(wxEVT_TEXT_ENTER, &LookupEditorControl::OnTextEnter, this);
 		m_text->Bind(wxEVT_LEFT_DOWN, &LookupEditorControl::OnTextLeftDown, this);
 		m_text->Bind(wxEVT_SET_FOCUS, &LookupEditorControl::OnTextFocus, this);
+		m_text->Bind(wxEVT_KILL_FOCUS, &LookupEditorControl::OnControlKillFocus, this);
 		m_drop_btn->Bind(wxEVT_BUTTON, &LookupEditorControl::OnDropDownClick, this);
+		m_drop_btn->Bind(wxEVT_KILL_FOCUS, &LookupEditorControl::OnControlKillFocus, this);
 		Bind(wxEVT_SIZE, &LookupEditorControl::OnSize, this);
+		Bind(wxEVT_KILL_FOCUS, &LookupEditorControl::OnControlKillFocus, this);
 
 		m_popup->GetList()->Bind(wxEVT_LISTBOX, &LookupEditorControl::OnListSelect, this);
 		m_popup->GetList()->Bind(wxEVT_LISTBOX_DCLICK, &LookupEditorControl::OnListActivate, this);
 		m_popup->GetList()->Bind(wxEVT_LEFT_DOWN, &LookupEditorControl::OnListLeftDown, this);
 		m_popup->GetList()->Bind(wxEVT_LEFT_UP, &LookupEditorControl::OnListLeftUp, this);
 		m_popup->GetList()->Bind(wxEVT_MOTION, &LookupEditorControl::OnListMouseMove, this);
-		m_popup->GetList()->Bind(wxEVT_CHAR_HOOK, &LookupEditorControl::OnListKeyDown, this);
+		m_popup->GetList()->Bind(wxEVT_KEY_DOWN, &LookupEditorControl::OnListKeyDown, this);
+		m_popup->GetList()->Bind(wxEVT_SET_FOCUS, &LookupEditorControl::OnListFocus, this);
+		m_popup->GetList()->Bind(wxEVT_KILL_FOCUS, &LookupEditorControl::OnControlKillFocus, this);
 
 		UpdateFilteredItems();
 		m_text->SetFocus();
@@ -87,11 +111,12 @@ public:
 	}
 
 private:
-	void UpdateFilteredItems(bool show_all = false)
+	void UpdateFilteredItems(bool show_all = false, bool auto_select = true)
 	{
 		const wxString needle = show_all ? wxString() : m_text->GetValue().Lower();
 		const wxString current_value = m_text->GetValue().Lower();
 		auto* list = m_popup->GetList();
+		m_updating_list = true;
 		list->Freeze();
 		list->Clear();
 		m_filtered_indices.clear();
@@ -111,7 +136,7 @@ private:
 			}
 		}
 
-		if (list->GetCount() > 0)
+		if (auto_select && list->GetCount() > 0)
 		{
 			if (selected_row == wxNOT_FOUND)
 			{
@@ -120,7 +145,16 @@ private:
 			list->SetSelection(selected_row);
 			list->EnsureVisible(selected_row);
 		}
+		else
+		{
+			const int sel = list->GetSelection();
+			if (sel != wxNOT_FOUND)
+			{
+				list->Deselect(sel);
+			}
+		}
 
+		m_updating_list = false;
 		list->Thaw();
 	}
 
@@ -141,8 +175,18 @@ private:
 		m_popup->SetSize(screen_pt.x, screen_pt.y, popup_width, popup_height);
 		if (!m_popup->IsShown())
 		{
-			m_popup->Show();
+			m_popup->Popup(m_text);
 		}
+
+		CallAfter([this]()
+		{
+			wxWindow* focus = wxWindow::FindFocus();
+			if (IsDescendantOf(focus, m_popup) && focus != m_text)
+			{
+				m_text->SetFocus();
+				m_text->SetInsertionPointEnd();
+			}
+		});
 
 		const int selected = list->GetSelection();
 		if (selected != wxNOT_FOUND)
@@ -155,7 +199,7 @@ private:
 	{
 		if (m_popup->IsShown())
 		{
-			m_popup->Hide();
+			m_popup->Dismiss();
 		}
 	}
 
@@ -196,7 +240,7 @@ private:
 
 	void OnText(wxCommandEvent& evt)
 	{
-		UpdateFilteredItems();
+		UpdateFilteredItems(false, false);
 		if (m_popup->GetList()->GetCount() > 0)
 		{
 			ShowPopup();
@@ -204,6 +248,12 @@ private:
 		else if (m_popup->IsShown())
 		{
 			HidePopup();
+		}
+
+		if (wxWindow::FindFocus() == m_text)
+		{
+			const long pos = m_text->GetInsertionPoint();
+			m_text->SetSelection(pos, pos);
 		}
 		evt.Skip();
 	}
@@ -215,6 +265,7 @@ private:
 		{
 			ShowPopup();
 		}
+		m_select_all_on_focus = false;
 		m_text->CallAfter([text = m_text]()
 		{
 			if (text)
@@ -227,6 +278,11 @@ private:
 	void OnTextFocus(wxFocusEvent& evt)
 	{
 		evt.Skip();
+		if (!m_select_all_on_focus)
+		{
+			return;
+		}
+		m_select_all_on_focus = false;
 		m_text->CallAfter([text = m_text]()
 		{
 			if (text)
@@ -240,6 +296,26 @@ private:
 	{
 		Layout();
 		evt.Skip();
+	}
+
+	void OnControlKillFocus(wxFocusEvent& evt)
+	{
+		evt.Skip();
+		CallAfter([this]()
+		{
+			if (!m_popup || !m_popup->IsShown())
+			{
+				return;
+			}
+
+			wxWindow* focus = wxWindow::FindFocus();
+			if (IsDescendantOf(focus, this) || IsDescendantOf(focus, m_popup))
+			{
+				return;
+			}
+
+			HidePopup();
+		});
 	}
 
 	void OnTextKeyDown(wxKeyEvent& evt)
@@ -275,9 +351,12 @@ private:
 			if (m_popup->IsShown())
 			{
 				AcceptSelected();
-				return;
 			}
-			break;
+			if (GetParent())
+			{
+				GetParent()->SetFocus();
+			}
+			return;
 		case WXK_TAB:
 			if (m_popup->IsShown())
 			{
@@ -305,14 +384,18 @@ private:
 		if (m_popup->IsShown())
 		{
 			AcceptSelected();
-			return;
 		}
-		evt.Skip();
+		if (GetParent())
+		{
+			GetParent()->SetFocus();
+		}
+		evt.Skip(false);
 	}
 
 	void OnListSelect(wxCommandEvent& evt)
 	{
-		AcceptSelected();
+		// Selection changes can be triggered programmatically on GTK while filtering.
+		// Commit only on explicit user actions (enter/double-click/click release).
 		evt.Skip();
 	}
 
@@ -329,34 +412,40 @@ private:
 		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
 		{
 			list->SetSelection(hit);
-			AcceptSelected();
-			m_text->SetFocus();
+			m_list_click_candidate = hit;
 			return;
 		}
+
+		m_list_click_candidate = wxNOT_FOUND;
 		evt.Skip();
 	}
 
 	void OnListLeftUp(wxMouseEvent& evt)
 	{
-		evt.Skip();
-		// On some platforms/DataView flows, listbox selection notification can be
-		// delayed or missed when focus changes quickly, so commit on mouse-up too.
-		CallAfter([this]()
+		auto* list = m_popup->GetList();
+		const int hit = list->HitTest(evt.GetPosition());
+		if (m_list_click_candidate != wxNOT_FOUND && hit == m_list_click_candidate &&
+			hit >= 0 && hit < static_cast<int>(list->GetCount()))
 		{
-			if (!m_popup || !m_popup->IsShown())
-			{
-				return;
-			}
-			if (m_popup->GetList()->GetSelection() != wxNOT_FOUND)
-			{
-				AcceptSelected();
-				m_text->SetFocus();
-			}
-		});
+			list->SetSelection(hit);
+			AcceptSelected();
+			m_text->SetFocus();
+			m_list_click_candidate = wxNOT_FOUND;
+			return;
+		}
+
+		m_list_click_candidate = wxNOT_FOUND;
+		evt.Skip();
 	}
 
 	void OnListMouseMove(wxMouseEvent& evt)
 	{
+		if (wxWindow::FindFocus() == m_text)
+		{
+			evt.Skip();
+			return;
+		}
+
 		auto* list = m_popup->GetList();
 		const int hit = list->HitTest(evt.GetPosition());
 		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
@@ -369,8 +458,33 @@ private:
 		evt.Skip();
 	}
 
+	void OnListFocus(wxFocusEvent& evt)
+	{
+		evt.Skip();
+		CallAfter([this]()
+		{
+			if (m_text)
+			{
+				m_text->SetFocus();
+				m_text->SetInsertionPointEnd();
+				const long pos = m_text->GetInsertionPoint();
+				m_text->SetSelection(pos, pos);
+			}
+		});
+	}
+
 	void OnListKeyDown(wxKeyEvent& evt)
 	{
+		if (evt.GetKeyCode() == WXK_DOWN)
+		{
+			MoveSelection(+1);
+			return;
+		}
+		if (evt.GetKeyCode() == WXK_UP)
+		{
+			MoveSelection(-1);
+			return;
+		}
 		if (evt.GetKeyCode() == WXK_ESCAPE)
 		{
 			HidePopup();
@@ -393,6 +507,17 @@ private:
 			}
 			return;
 		}
+
+		// If GTK routes printable/edit keys to the list, replay into text control.
+		if (m_text)
+		{
+			m_text->SetFocus();
+			m_text->SetInsertionPointEnd();
+			const long pos = m_text->GetInsertionPoint();
+			m_text->SetSelection(pos, pos);
+			m_text->EmulateKeyPress(evt);
+			return;
+		}
 		evt.Skip();
 	}
 
@@ -401,6 +526,7 @@ private:
 		if (m_popup->IsShown())
 		{
 			HidePopup();
+			m_select_all_on_focus = false;
 			m_text->SetFocus();
 			m_text->SelectAll();
 			return;
@@ -410,12 +536,14 @@ private:
 		if (m_popup->GetList()->GetCount() <= 0)
 		{
 			HidePopup();
+			m_select_all_on_focus = false;
 			m_text->SetFocus();
 			m_text->SelectAll();
 			return;
 		}
 
 		ShowPopup();
+		m_select_all_on_focus = false;
 		m_text->SetFocus();
 		m_text->SelectAll();
 		evt.Skip(false);
@@ -426,6 +554,9 @@ private:
 	wxTextCtrl* m_text;
 	wxBitmapButton* m_drop_btn;
 	LookupPopupWindow* m_popup;
+	int m_list_click_candidate = wxNOT_FOUND;
+	bool m_updating_list = false;
+	bool m_select_all_on_focus = true;
 };
 }
 

@@ -6,7 +6,7 @@
 
 class wxBitmapButton;
 class wxListBox;
-class wxPopupWindow;
+class wxPopupTransientWindow;
 class wxTextCtrl;
 class wxCommandEvent;
 class wxFocusEvent;
@@ -29,7 +29,7 @@ public:
     wxString GetString(unsigned int index) const;
 
 private:
-    void UpdateFilteredItems(bool show_all = false);
+    void UpdateFilteredItems(bool show_all = false, bool auto_select = true);
     void ShowPopup();
     void HidePopup();
     void AcceptSelected();
@@ -38,12 +38,14 @@ private:
     void OnText(wxCommandEvent& evt);
     void OnTextLeftDown(wxMouseEvent& evt);
     void OnTextFocus(wxFocusEvent& evt);
+    void OnControlKillFocus(wxFocusEvent& evt);
     void OnTextKeyDown(wxKeyEvent& evt);
     void OnTextEnter(wxCommandEvent& evt);
     void OnSize(wxSizeEvent& evt);
 
     void OnListSelect(wxCommandEvent& evt);
     void OnListActivate(wxCommandEvent& evt);
+    void OnListFocus(wxFocusEvent& evt);
     void OnListLeftDown(wxMouseEvent& evt);
     void OnListLeftUp(wxMouseEvent& evt);
     void OnListMouseMove(wxMouseEvent& evt);
@@ -54,8 +56,11 @@ private:
     wxArrayString m_choices;
     wxTextCtrl* m_text;
     wxBitmapButton* m_drop_btn;
-    wxPopupWindow* m_popup;
+    wxPopupTransientWindow* m_popup;
     wxListBox* m_list;
+    int m_list_click_candidate = wxNOT_FOUND;
+    bool m_updating_list = false;
+    bool m_select_all_on_focus = true;
 };
 
 #endif // _LOOKUP_CHOICE_CONTROL_H_
