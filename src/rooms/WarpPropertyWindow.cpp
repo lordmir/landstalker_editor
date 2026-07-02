@@ -1,6 +1,5 @@
 #include <rooms/WarpPropertyWindow.h>
 
-#include <misc/SearchableComboUtils.h>
 #include <wx/settings.h>
 #include <landstalker/misc/Utils.h>
 #include <cmath>
@@ -43,7 +42,7 @@ int ParseBracketedIndex(const wxString& text, int fallback)
     return fallback;
 }
 
-int ComboSelectionOrParsed(const wxOwnerDrawnComboBox* combo, int max_index, int fallback)
+int ComboSelectionOrParsed(const LookupChoiceControl* combo, int max_index, int fallback)
 {
     const int sel = combo->GetSelection();
     if (sel != wxNOT_FOUND)
@@ -111,9 +110,8 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     {
         room_names.Add(Landstalker::StrWPrintf("[%03d] %ls", i, gd.GetRoomData()->GetRoom(i)->GetDisplayName().c_str()));
     }
-    m_ctrl_src_room = new wxOwnerDrawnComboBox(this, ID_SRC_ROOM, room_names[src_room], wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
-    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_src_room, room_names, 480, 24);
+    m_ctrl_src_room = new LookupChoiceControl(this, ID_SRC_ROOM, room_names[src_room], room_names,
+        wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     m_ctrl_src_room->SetSelection(src_room);
     m_ctrl_src_room->Enable(false);
     szr2a->Add(m_ctrl_src_room, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
@@ -136,9 +134,8 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
         room_names.insert(room_names.begin(), "<UNKNOWN>");
         m_unknown_selectable = true;
     }
-    m_ctrl_dst_room = new wxOwnerDrawnComboBox(this, ID_DST_ROOM, wxEmptyString, wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
-    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_dst_room, room_names, 480, 24);
+    m_ctrl_dst_room = new LookupChoiceControl(this, ID_DST_ROOM, wxEmptyString, room_names,
+        wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     if (m_unknown_selectable)
     {
         if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)

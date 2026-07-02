@@ -25,9 +25,11 @@
     <ClCompile Include="..\src\main\MainFrame.cpp" />
     <ClCompile Include="..\src\misc\AssemblyBuilderDialog.cpp" />
     <ClCompile Include="..\src\misc\ExecutorThread.cpp" />
+    <ClCompile Include="..\src\misc\LookupChoiceControl.cpp" />
     <ClCompile Include="..\src\misc\LookupDataViewRenderer.cpp" />
     <ClCompile Include="..\src\misc\PreferencesDialog.cpp" />
     <ClCompile Include="..\src\misc\ResizeableGrid.cpp" />
+    <ClCompile Include="..\src\misc\SearchableComboUtils.cpp" />
     <ClCompile Include="..\src\misc\SelectionControlFrame.cpp" />
     <ClCompile Include="..\src\palettes\DataViewCtrlPaletteModel.cpp" />
     <ClCompile Include="..\src\palettes\DataViewCtrlPaletteRenderer.cpp" />
@@ -118,9 +120,11 @@
     <ClInclude Include="..\src\misc\AssemblyBuilderDialog.h" />
     <ClInclude Include="..\src\misc\BaseDataViewModel.h" />
     <ClInclude Include="..\src\misc\ExecutorThread.h" />
+    <ClInclude Include="..\src\misc\LookupChoiceControl.h" />
     <ClInclude Include="..\src\misc\LookupDataViewRenderer.h" />
     <ClInclude Include="..\src\misc\PreferencesDialog.h" />
     <ClInclude Include="..\src\misc\ResizeableGrid.h" />
+    <ClInclude Include="..\src\misc\SearchableComboUtils.h" />
     <ClInclude Include="..\src\misc\SelectionControlFrame.h" />
     <ClInclude Include="..\src\palettes\DataViewCtrlPaletteModel.h" />
     <ClInclude Include="..\src\palettes\DataViewCtrlPaletteRenderer.h" />

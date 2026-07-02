@@ -192,7 +192,13 @@
     <ClCompile Include="..\src\misc\ExecutorThread.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\misc\LookupChoiceControl.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\misc\LookupDataViewRenderer.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\misc\SearchableComboUtils.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\FlagDataViewModel.cpp">
@@ -461,7 +467,13 @@
     <ClInclude Include="..\src\misc\ExecutorThread.h">
       <Filter>include\Miscellaneous</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\misc\LookupChoiceControl.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\misc\LookupDataViewRenderer.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\SearchableComboUtils.h">
       <Filter>include\Miscellaneous</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\FlagDataViewModel.h">

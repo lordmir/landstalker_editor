@@ -1,9 +1,433 @@
 #include <misc/LookupDataViewRenderer.h>
-#include <misc/SearchableComboUtils.h>
 
 #include <algorithm>
-#include <wx/combobox.h>
-#include <wx/odcombo.h>
+#include <vector>
+#include <wx/artprov.h>
+#include <wx/bmpbuttn.h>
+#include <wx/button.h>
+#include <wx/listbox.h>
+#include <wx/popupwin.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+
+namespace
+{
+class LookupPopupWindow : public wxPopupWindow
+{
+public:
+	explicit LookupPopupWindow(wxWindow* parent)
+		: wxPopupWindow(parent, wxBORDER_SIMPLE),
+		  m_list(new wxListBox(this, wxID_ANY))
+	{
+		auto* sizer = new wxBoxSizer(wxVERTICAL);
+		sizer->Add(m_list, 1, wxEXPAND);
+		SetSizerAndFit(sizer);
+	}
+
+	wxListBox* GetList() const
+	{
+		return m_list;
+	}
+
+private:
+	wxListBox* m_list;
+};
+
+class LookupEditorControl : public wxPanel
+{
+public:
+	LookupEditorControl(wxWindow* parent, const wxRect& rect, const wxString& value, const wxArrayString& choices)
+		: wxPanel(parent, wxID_ANY, rect.GetPosition(), rect.GetSize()),
+		  m_choices(choices),
+		  m_text(new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER)),
+		  m_drop_btn(new wxBitmapButton(this, wxID_ANY,
+			wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_BUTTON, wxSize(16, 16)),
+			wxDefaultPosition, wxSize(24, -1), wxBU_EXACTFIT)),
+		  m_popup(new LookupPopupWindow(this))
+	{
+		SetMinSize(rect.GetSize());
+		auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+		sizer->Add(m_text, 1, wxEXPAND);
+		sizer->Add(m_drop_btn, 0, wxEXPAND);
+		SetSizer(sizer);
+		SetAutoLayout(true);
+		Layout();
+
+		m_text->Bind(wxEVT_TEXT, &LookupEditorControl::OnText, this);
+		m_text->Bind(wxEVT_CHAR_HOOK, &LookupEditorControl::OnTextKeyDown, this);
+		m_text->Bind(wxEVT_TEXT_ENTER, &LookupEditorControl::OnTextEnter, this);
+		m_text->Bind(wxEVT_LEFT_DOWN, &LookupEditorControl::OnTextLeftDown, this);
+		m_text->Bind(wxEVT_SET_FOCUS, &LookupEditorControl::OnTextFocus, this);
+		m_drop_btn->Bind(wxEVT_BUTTON, &LookupEditorControl::OnDropDownClick, this);
+		Bind(wxEVT_SIZE, &LookupEditorControl::OnSize, this);
+
+		m_popup->GetList()->Bind(wxEVT_LISTBOX, &LookupEditorControl::OnListSelect, this);
+		m_popup->GetList()->Bind(wxEVT_LISTBOX_DCLICK, &LookupEditorControl::OnListActivate, this);
+		m_popup->GetList()->Bind(wxEVT_LEFT_DOWN, &LookupEditorControl::OnListLeftDown, this);
+		m_popup->GetList()->Bind(wxEVT_LEFT_UP, &LookupEditorControl::OnListLeftUp, this);
+		m_popup->GetList()->Bind(wxEVT_MOTION, &LookupEditorControl::OnListMouseMove, this);
+		m_popup->GetList()->Bind(wxEVT_CHAR_HOOK, &LookupEditorControl::OnListKeyDown, this);
+
+		UpdateFilteredItems();
+		m_text->SetFocus();
+		m_text->SetInsertionPointEnd();
+	}
+
+	~LookupEditorControl() override
+	{
+		if (m_popup && m_popup->IsShown())
+		{
+			m_popup->Hide();
+		}
+	}
+
+	wxString GetValueText() const
+	{
+		return m_text->GetValue();
+	}
+
+private:
+	void UpdateFilteredItems(bool show_all = false)
+	{
+		const wxString needle = show_all ? wxString() : m_text->GetValue().Lower();
+		const wxString current_value = m_text->GetValue().Lower();
+		auto* list = m_popup->GetList();
+		list->Freeze();
+		list->Clear();
+		m_filtered_indices.clear();
+		int selected_row = wxNOT_FOUND;
+
+		for (std::size_t i = 0; i < m_choices.GetCount(); ++i)
+		{
+			const wxString& choice = m_choices[i];
+			if (needle.IsEmpty() || choice.Lower().Find(needle) != wxNOT_FOUND)
+			{
+				m_filtered_indices.push_back(static_cast<int>(i));
+				list->Append(choice);
+				if (selected_row == wxNOT_FOUND && !current_value.IsEmpty() && choice.Lower() == current_value)
+				{
+					selected_row = static_cast<int>(list->GetCount()) - 1;
+				}
+			}
+		}
+
+		if (list->GetCount() > 0)
+		{
+			if (selected_row == wxNOT_FOUND)
+			{
+				selected_row = 0;
+			}
+			list->SetSelection(selected_row);
+			list->EnsureVisible(selected_row);
+		}
+
+		list->Thaw();
+	}
+
+	void ShowPopup()
+	{
+		auto* list = m_popup->GetList();
+		if (list->GetCount() <= 0)
+		{
+			return;
+		}
+
+		const int row_height = std::max(list->GetCharHeight() + 6, 18);
+		const int visible_rows = std::min(12, static_cast<int>(list->GetCount()));
+		const int popup_height = row_height * visible_rows + 8;
+		const int popup_width = std::max(GetSize().GetWidth(), 300);
+
+		const wxPoint screen_pt = ClientToScreen(wxPoint(0, GetSize().GetHeight()));
+		m_popup->SetSize(screen_pt.x, screen_pt.y, popup_width, popup_height);
+		if (!m_popup->IsShown())
+		{
+			m_popup->Show();
+		}
+
+		const int selected = list->GetSelection();
+		if (selected != wxNOT_FOUND)
+		{
+			list->EnsureVisible(selected);
+		}
+	}
+
+	void HidePopup()
+	{
+		if (m_popup->IsShown())
+		{
+			m_popup->Hide();
+		}
+	}
+
+	void AcceptSelected()
+	{
+		auto* list = m_popup->GetList();
+		const int sel = list->GetSelection();
+		if (sel != wxNOT_FOUND && sel >= 0 && sel < static_cast<int>(list->GetCount()))
+		{
+			m_text->ChangeValue(list->GetString(sel));
+			m_text->SetInsertionPointEnd();
+			m_text->SetSelection(m_text->GetLastPosition(), m_text->GetLastPosition());
+		}
+		HidePopup();
+	}
+
+	void MoveSelection(int delta)
+	{
+		auto* list = m_popup->GetList();
+		if (list->GetCount() <= 0)
+		{
+			return;
+		}
+
+		int sel = list->GetSelection();
+		if (sel == wxNOT_FOUND)
+		{
+			sel = 0;
+		}
+		else
+		{
+			sel = std::clamp(sel + delta, 0, static_cast<int>(list->GetCount()) - 1);
+		}
+
+		list->SetSelection(sel);
+		list->EnsureVisible(sel);
+	}
+
+	void OnText(wxCommandEvent& evt)
+	{
+		UpdateFilteredItems();
+		if (m_popup->GetList()->GetCount() > 0)
+		{
+			ShowPopup();
+		}
+		else if (m_popup->IsShown())
+		{
+			HidePopup();
+		}
+		evt.Skip();
+	}
+
+	void OnTextLeftDown(wxMouseEvent& evt)
+	{
+		evt.Skip();
+		if (!m_popup->IsShown() && m_popup->GetList()->GetCount() > 0)
+		{
+			ShowPopup();
+		}
+		m_text->CallAfter([text = m_text]()
+		{
+			if (text)
+			{
+				text->SelectAll();
+			}
+		});
+	}
+
+	void OnTextFocus(wxFocusEvent& evt)
+	{
+		evt.Skip();
+		m_text->CallAfter([text = m_text]()
+		{
+			if (text)
+			{
+				text->SelectAll();
+			}
+		});
+	}
+
+	void OnSize(wxSizeEvent& evt)
+	{
+		Layout();
+		evt.Skip();
+	}
+
+	void OnTextKeyDown(wxKeyEvent& evt)
+	{
+		switch (evt.GetKeyCode())
+		{
+		case WXK_DOWN:
+			if (!m_popup->IsShown())
+			{
+				ShowPopup();
+			}
+			else
+			{
+				MoveSelection(+1);
+			}
+			return;
+		case WXK_UP:
+			if (m_popup->IsShown())
+			{
+				MoveSelection(-1);
+				return;
+			}
+			break;
+		case WXK_ESCAPE:
+			if (m_popup->IsShown())
+			{
+				HidePopup();
+				return;
+			}
+			break;
+		case WXK_RETURN:
+		case WXK_NUMPAD_ENTER:
+			if (m_popup->IsShown())
+			{
+				AcceptSelected();
+				return;
+			}
+			break;
+		case WXK_TAB:
+			if (m_popup->IsShown())
+			{
+				AcceptSelected();
+				evt.Skip();
+				return;
+			}
+			break;
+		case WXK_RIGHT:
+			if (m_popup->IsShown())
+			{
+				AcceptSelected();
+				return;
+			}
+			break;
+		default:
+			break;
+		}
+
+		evt.Skip();
+	}
+
+	void OnTextEnter(wxCommandEvent& evt)
+	{
+		if (m_popup->IsShown())
+		{
+			AcceptSelected();
+			return;
+		}
+		evt.Skip();
+	}
+
+	void OnListSelect(wxCommandEvent& evt)
+	{
+		AcceptSelected();
+		evt.Skip();
+	}
+
+	void OnListActivate(wxCommandEvent& evt)
+	{
+		AcceptSelected();
+		evt.Skip();
+	}
+
+	void OnListLeftDown(wxMouseEvent& evt)
+	{
+		auto* list = m_popup->GetList();
+		const int hit = list->HitTest(evt.GetPosition());
+		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
+		{
+			list->SetSelection(hit);
+			AcceptSelected();
+			m_text->SetFocus();
+			return;
+		}
+		evt.Skip();
+	}
+
+	void OnListLeftUp(wxMouseEvent& evt)
+	{
+		evt.Skip();
+		// On some platforms/DataView flows, listbox selection notification can be
+		// delayed or missed when focus changes quickly, so commit on mouse-up too.
+		CallAfter([this]()
+		{
+			if (!m_popup || !m_popup->IsShown())
+			{
+				return;
+			}
+			if (m_popup->GetList()->GetSelection() != wxNOT_FOUND)
+			{
+				AcceptSelected();
+				m_text->SetFocus();
+			}
+		});
+	}
+
+	void OnListMouseMove(wxMouseEvent& evt)
+	{
+		auto* list = m_popup->GetList();
+		const int hit = list->HitTest(evt.GetPosition());
+		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
+		{
+			if (list->GetSelection() != hit)
+			{
+				list->SetSelection(hit);
+			}
+		}
+		evt.Skip();
+	}
+
+	void OnListKeyDown(wxKeyEvent& evt)
+	{
+		if (evt.GetKeyCode() == WXK_ESCAPE)
+		{
+			HidePopup();
+			m_text->SetFocus();
+			return;
+		}
+		if (evt.GetKeyCode() == WXK_RETURN || evt.GetKeyCode() == WXK_NUMPAD_ENTER)
+		{
+			AcceptSelected();
+			m_text->SetFocus();
+			return;
+		}
+		if (evt.GetKeyCode() == WXK_TAB || evt.GetKeyCode() == WXK_RIGHT)
+		{
+			AcceptSelected();
+			m_text->SetFocus();
+			if (evt.GetKeyCode() == WXK_TAB)
+			{
+				evt.Skip();
+			}
+			return;
+		}
+		evt.Skip();
+	}
+
+	void OnDropDownClick(wxCommandEvent& evt)
+	{
+		if (m_popup->IsShown())
+		{
+			HidePopup();
+			m_text->SetFocus();
+			m_text->SelectAll();
+			return;
+		}
+
+		UpdateFilteredItems(true);
+		if (m_popup->GetList()->GetCount() <= 0)
+		{
+			HidePopup();
+			m_text->SetFocus();
+			m_text->SelectAll();
+			return;
+		}
+
+		ShowPopup();
+		m_text->SetFocus();
+		m_text->SelectAll();
+		evt.Skip(false);
+	}
+
+	wxArrayString m_choices;
+	std::vector<int> m_filtered_indices;
+	wxTextCtrl* m_text;
+	wxBitmapButton* m_drop_btn;
+	LookupPopupWindow* m_popup;
+};
+}
 
 LookupDataViewRenderer::LookupDataViewRenderer(wxDataViewCellMode mode, wxArrayString choices)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
@@ -76,23 +500,17 @@ bool LookupDataViewRenderer::HasEditorCtrl() const
 wxWindow* LookupDataViewRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
 {
 	m_value = value.GetLong();
-	auto* combo = new wxOwnerDrawnComboBox(parent, wxID_ANY, FormatLabel(m_value), labelRect.GetPosition(), labelRect.GetSize(), m_choices,
-		wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
-	SearchableComboUtils::SetupSearchableOwnerDrawnCombo(combo, m_choices, 480, 24);
-	const long text_len = static_cast<long>(combo->GetValue().Length());
-	combo->SetSelection(0, text_len);
-	combo->SetInsertionPoint(0);
-	return combo;
+	return new LookupEditorControl(parent, labelRect, FormatLabel(m_value), m_choices);
 }
 
 bool LookupDataViewRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value)
 {
-	auto* combo = dynamic_cast<wxOwnerDrawnComboBox*>(ctrl);
-	if (!combo)
+	auto* editor = dynamic_cast<LookupEditorControl*>(ctrl);
+	if (!editor)
 	{
 		return false;
 	}
-	value = ParseValue(combo->GetValue());
+	value = ParseValue(editor->GetValueText());
 	return true;
 }
 

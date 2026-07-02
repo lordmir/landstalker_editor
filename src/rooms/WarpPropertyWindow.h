@@ -4,11 +4,11 @@
 #include <wx/dialog.h>
 #include <wx/iconbndl.h>
 #include <wx/artprov.h>
+#include <misc/LookupChoiceControl.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/choice.h>
 #include <wx/combobox.h>
-#include <wx/odcombo.h>
 #include <wx/arrstr.h>
 #include <wx/statline.h>
 #include <wx/spinctrl.h>
@@ -36,10 +36,10 @@ private:
     uint16_t m_room_src;
 
     wxStaticText* m_ctrl_dialog_header;
-    wxOwnerDrawnComboBox* m_ctrl_src_room;
+    LookupChoiceControl* m_ctrl_src_room;
     wxSpinCtrl* m_ctrl_src_x;
     wxSpinCtrl* m_ctrl_src_y;
-    wxOwnerDrawnComboBox* m_ctrl_dst_room;
+    LookupChoiceControl* m_ctrl_dst_room;
     wxSpinCtrl* m_ctrl_dst_x;
     wxSpinCtrl* m_ctrl_dst_y;
     wxChoice* m_ctrl_type;
