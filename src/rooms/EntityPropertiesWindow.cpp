@@ -1,5 +1,6 @@
 #include <rooms/EntityPropertiesWindow.h>
 
+#include <misc/SearchableComboUtils.h>
 #include <wx/settings.h>
 #include <landstalker/misc/Utils.h>
 #include <landstalker/main/SpriteData.h>
@@ -9,38 +10,6 @@
 
 namespace
 {
-void AttachContainsAutocomplete(wxComboBox* combo, const wxArrayString& choices)
-{
-    combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
-    {
-        const wxString input = combo->GetValue();
-        const long caret = combo->GetInsertionPoint();
-        if (input.empty())
-        {
-            evt.Skip();
-            return;
-        }
-
-        const wxString needle = input.Lower();
-        for (unsigned int i = 0; i < choices.GetCount(); ++i)
-        {
-            const wxString candidate = choices[i];
-            if (candidate.Lower().Find(needle) != wxNOT_FOUND)
-            {
-                if (candidate != input)
-                {
-                    combo->ChangeValue(candidate);
-                    combo->SetInsertionPoint(caret);
-                    combo->SetSelection(caret, static_cast<long>(candidate.Length()));
-                }
-                break;
-            }
-        }
-
-        evt.Skip();
-    });
-}
-
 int ParseBracketedIndex(const wxString& text, int base, int fallback)
 {
     wxString t = text;
@@ -75,7 +44,7 @@ int ParseBracketedIndex(const wxString& text, int base, int fallback)
     return fallback;
 }
 
-int ComboSelectionOrParsed(const wxComboBox* combo, int base, int max_index, int fallback)
+int ComboSelectionOrParsed(const wxOwnerDrawnComboBox* combo, int base, int max_index, int fallback)
 {
     const int sel = combo->GetSelection();
     if (sel != wxNOT_FOUND)
@@ -164,9 +133,9 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
 
     szr1->Add(szr2a, 0, 0, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_entity_type = new wxComboBox(this, ID_TYPE, entity_types[entity->GetType()], wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-    AttachContainsAutocomplete(m_ctrl_entity_type, entity_types);
+    m_ctrl_entity_type = new wxOwnerDrawnComboBox(this, ID_TYPE, entity_types[entity->GetType()], wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), entity_types, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_entity_type, entity_types, 480, 24);
     m_ctrl_entity_type->SetSelection(entity->GetType());
     szr2a->Add(m_ctrl_entity_type, 0, wxALL | wxEXPAND, 5);
 
@@ -231,18 +200,18 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
     szr2d->Add(m_ctrl_palette, 1, wxALL | wxEXPAND, 5);
 
     szr2d->Add(new wxStaticText(this, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dialogue = new wxComboBox(this, ID_DLG, wxEmptyString, wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), dialogues, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-    AttachContainsAutocomplete(m_ctrl_dialogue, dialogues);
+    m_ctrl_dialogue = new wxOwnerDrawnComboBox(this, ID_DLG, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), dialogues, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_dialogue, dialogues, 480, 24);
     m_ctrl_dialogue->SetSelection(entity->GetDialogue());
     szr2d->Add(m_ctrl_dialogue, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2e = new wxBoxSizer(wxHORIZONTAL);
 
     szr2e->Add(new wxStaticText(this, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_behaviour = new wxComboBox(this, ID_BEHAV, wxEmptyString, wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), behaviours, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-    AttachContainsAutocomplete(m_ctrl_behaviour, behaviours);
+    m_ctrl_behaviour = new wxOwnerDrawnComboBox(this, ID_BEHAV, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), behaviours, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_behaviour, behaviours, 480, 24);
     m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
     szr2e->Add(m_ctrl_behaviour, 1, wxALL | wxEXPAND, 5);
     szr1->Add(szr2e, 0, wxALL | wxEXPAND, 0);

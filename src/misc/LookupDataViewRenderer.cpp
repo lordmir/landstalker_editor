@@ -1,43 +1,9 @@
 #include <misc/LookupDataViewRenderer.h>
+#include <misc/SearchableComboUtils.h>
 
 #include <algorithm>
 #include <wx/combobox.h>
 #include <wx/odcombo.h>
-
-namespace
-{
-void AttachContainsAutocomplete(wxOwnerDrawnComboBox* combo, const wxArrayString& choices)
-{
-	combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
-	{
-		const wxString input = combo->GetValue();
-		const long caret = combo->GetInsertionPoint();
-		if (input.empty())
-		{
-			evt.Skip();
-			return;
-		}
-
-		const wxString needle = input.Lower();
-		for (unsigned int i = 0; i < choices.GetCount(); ++i)
-		{
-			const wxString candidate = choices[i];
-			if (candidate.Lower().Find(needle) != wxNOT_FOUND)
-			{
-				if (candidate != input)
-				{
-					combo->ChangeValue(candidate);
-					combo->SetInsertionPoint(caret);
-					combo->SetSelection(caret, static_cast<long>(candidate.Length()));
-				}
-				break;
-			}
-		}
-
-		evt.Skip();
-	});
-}
-}
 
 LookupDataViewRenderer::LookupDataViewRenderer(wxDataViewCellMode mode, wxArrayString choices)
 	: wxDataViewCustomRenderer("long", mode, wxALIGN_LEFT),
@@ -111,11 +77,11 @@ wxWindow* LookupDataViewRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labe
 {
 	m_value = value.GetLong();
 	auto* combo = new wxOwnerDrawnComboBox(parent, wxID_ANY, FormatLabel(m_value), labelRect.GetPosition(), labelRect.GetSize(), m_choices,
-		wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-	combo->SetPopupMaxHeight(480);
-	AttachContainsAutocomplete(combo, m_choices);
-	combo->SetInsertionPointEnd();
-	combo->SelectAll();
+		wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+	SearchableComboUtils::SetupSearchableOwnerDrawnCombo(combo, m_choices, 480, 24);
+	const long text_len = static_cast<long>(combo->GetValue().Length());
+	combo->SetSelection(0, text_len);
+	combo->SetInsertionPoint(0);
 	return combo;
 }
 

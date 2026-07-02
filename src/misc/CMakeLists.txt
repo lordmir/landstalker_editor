@@ -6,5 +6,6 @@ target_sources(${MODULE_NAME} PRIVATE
     "LookupDataViewRenderer.cpp"
     "PreferencesDialog.cpp"
     "ResizeableGrid.cpp"
+    "SearchableComboUtils.cpp"
     "SelectionControlFrame.cpp"
 )

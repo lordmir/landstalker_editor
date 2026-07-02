@@ -69,17 +69,19 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     GetSizer()->Fit(this);
     CentreOnParent(wxBOTH);
 
+    std::size_t initial_tab = 0;
     for (std::size_t i = 0; i < m_tabs->GetPageCount(); ++i)
     {
         const auto* model = m_models[m_pages[i]];
         if (model->GetRowCount() > 0)
         {
-            m_tabs->ChangeSelection(i);
+            initial_tab = i;
             break;
         }
     }
 
-    EnsurePageInitialised(GetSelectedTab());
+    m_tabs->SetSelection(initial_tab);
+    EnsurePageInitialised(m_pages[initial_tab]);
 
     UpdateUI();
 
@@ -268,7 +270,12 @@ void FlagDialog::UpdateUI()
 
 Landstalker::FlagType FlagDialog::GetSelectedTab()
 {
-    return m_pages[m_tabs->GetSelection()];
+    const int sel = m_tabs->GetSelection();
+    if (sel < 0 || static_cast<std::size_t>(sel) >= m_pages.size())
+    {
+        return m_pages.front();
+    }
+    return m_pages[static_cast<std::size_t>(sel)];
 }
 
 void FlagDialog::OnTabChange(wxBookCtrlEvent& /*evt*/)

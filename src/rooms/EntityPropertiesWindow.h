@@ -8,6 +8,7 @@
 #include <wx/stattext.h>
 #include <wx/choice.h>
 #include <wx/combobox.h>
+#include <wx/odcombo.h>
 #include <wx/arrstr.h>
 #include <wx/statline.h>
 #include <wx/spinctrl.h>
@@ -33,15 +34,15 @@ private:
     int m_id;
 
     wxStaticText* m_ctrl_dialog_header;
-    wxComboBox* m_ctrl_entity_type;
+    wxOwnerDrawnComboBox* m_ctrl_entity_type;
     wxSpinCtrlDouble* m_ctrl_x;
     wxSpinCtrlDouble* m_ctrl_y;
     wxSpinCtrlDouble* m_ctrl_z;
     wxSpinCtrl* m_ctrl_speed;
     wxChoice* m_ctrl_orientation;
     wxChoice* m_ctrl_palette;
-    wxComboBox* m_ctrl_dialogue;
-    wxComboBox* m_ctrl_behaviour;
+    wxOwnerDrawnComboBox* m_ctrl_dialogue;
+    wxOwnerDrawnComboBox* m_ctrl_behaviour;
     wxCheckBox* m_ctrl_hostile;
     wxCheckBox* m_ctrl_no_rotate;
     wxCheckBox* m_ctrl_no_pickup;

@@ -1,5 +1,6 @@
 #include <rooms/WarpPropertyWindow.h>
 
+#include <misc/SearchableComboUtils.h>
 #include <wx/settings.h>
 #include <landstalker/misc/Utils.h>
 #include <cmath>
@@ -8,38 +9,6 @@
 
 namespace
 {
-void AttachContainsAutocomplete(wxComboBox* combo, const wxArrayString& choices)
-{
-    combo->Bind(wxEVT_TEXT, [combo, choices](wxCommandEvent& evt)
-    {
-        const wxString input = combo->GetValue();
-        const long caret = combo->GetInsertionPoint();
-        if (input.empty())
-        {
-            evt.Skip();
-            return;
-        }
-
-        const wxString needle = input.Lower();
-        for (unsigned int i = 0; i < choices.GetCount(); ++i)
-        {
-            const wxString candidate = choices[i];
-            if (candidate.Lower().Find(needle) != wxNOT_FOUND)
-            {
-                if (candidate != input)
-                {
-                    combo->ChangeValue(candidate);
-                    combo->SetInsertionPoint(caret);
-                    combo->SetSelection(caret, static_cast<long>(candidate.Length()));
-                }
-                break;
-            }
-        }
-
-        evt.Skip();
-    });
-}
-
 int ParseBracketedIndex(const wxString& text, int fallback)
 {
     wxString t = text;
@@ -74,7 +43,7 @@ int ParseBracketedIndex(const wxString& text, int fallback)
     return fallback;
 }
 
-int ComboSelectionOrParsed(const wxComboBox* combo, int max_index, int fallback)
+int ComboSelectionOrParsed(const wxOwnerDrawnComboBox* combo, int max_index, int fallback)
 {
     const int sel = combo->GetSelection();
     if (sel != wxNOT_FOUND)
@@ -142,9 +111,9 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     {
         room_names.Add(Landstalker::StrWPrintf("[%03d] %ls", i, gd.GetRoomData()->GetRoom(i)->GetDisplayName().c_str()));
     }
-    m_ctrl_src_room = new wxComboBox(this, ID_SRC_ROOM, room_names[src_room], wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-    AttachContainsAutocomplete(m_ctrl_src_room, room_names);
+    m_ctrl_src_room = new wxOwnerDrawnComboBox(this, ID_SRC_ROOM, room_names[src_room], wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_src_room, room_names, 480, 24);
     m_ctrl_src_room->SetSelection(src_room);
     m_ctrl_src_room->Enable(false);
     szr2a->Add(m_ctrl_src_room, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
@@ -167,9 +136,9 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
         room_names.insert(room_names.begin(), "<UNKNOWN>");
         m_unknown_selectable = true;
     }
-    m_ctrl_dst_room = new wxComboBox(this, ID_DST_ROOM, wxEmptyString, wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER | wxWANTS_CHARS);
-    AttachContainsAutocomplete(m_ctrl_dst_room, room_names);
+    m_ctrl_dst_room = new wxOwnerDrawnComboBox(this, ID_DST_ROOM, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), room_names, wxCB_DROPDOWN | wxTE_PROCESS_ENTER);
+    SearchableComboUtils::SetupSearchableOwnerDrawnCombo(m_ctrl_dst_room, room_names, 480, 24);
     if (m_unknown_selectable)
     {
         if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)
