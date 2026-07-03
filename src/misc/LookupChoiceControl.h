@@ -36,6 +36,7 @@ private:
     bool CommitCurrentTextIfValid();
     void RestoreCommittedValue();
     void SendSelectionChangedEvent();
+    void ShowTextFromStart();
     void UpdateFilteredItems(bool show_all = false, bool auto_select = true);
     void ShowPopup();
     void HidePopup();

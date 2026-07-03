@@ -15,6 +15,7 @@
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 #include <wx/button.h>
+#include <wx/notebook.h>
 #include <string>
 #include <vector>
 #include <landstalker/rooms/Entity.h>
@@ -31,6 +32,7 @@ public:
 
 private:
     void UpdateUI();
+    void UpdateBehaviourScript();
 
     void OnClickOK(wxCommandEvent& e);
     void OnClickCancel(wxCommandEvent& e);
@@ -70,6 +72,7 @@ private:
     wxCheckBox* m_ctrl_reserved;
     wxCheckBox* m_ctrl_copy_tiles;
     wxSpinCtrl* m_ctrl_copy_source;
+    wxTextCtrl* m_ctrl_behaviour_script;
     wxStdDialogButtonSizer* m_sizer_btn;
     wxStaticText* m_chest_label;
     wxCheckBox* m_ctrl_chest_prev;

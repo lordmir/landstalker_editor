@@ -4,6 +4,7 @@
 #include <landstalker/misc/Utils.h>
 #include <landstalker/main/SpriteData.h>
 #include <landstalker/main/GameData.h>
+#include <landstalker/behaviours/BehaviourYamlConverter.h>
 #include <cmath>
 #include <algorithm>
 #include <vector>
@@ -50,7 +51,7 @@ enum ID
 };
 
 EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_t room, std::vector<Landstalker::Entity>& entities, const Landstalker::GameData* gd, const std::vector<std::wstring>& char_names)
-    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 560)),
+    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 640)),
       m_entities(&entities),
       m_gd(gd),
       m_id(id),
@@ -98,10 +99,23 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     }
 
     const auto entity = &(*m_entities)[id - 1];
-    wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
-    this->SetSizer(szr1);
+    wxBoxSizer* root_sizer = new wxBoxSizer(wxVERTICAL);
+    this->SetSizer(root_sizer);
 
-    m_ctrl_dialog_header = new wxStaticText(this, ID_HEADER, Landstalker::StrPrintf("Edit Entity %d", id), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    wxNotebook* notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    root_sizer->Add(notebook, 1, wxALL | wxEXPAND, 5);
+
+    wxPanel* properties_page = new wxPanel(notebook, wxID_ANY);
+    wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
+    properties_page->SetSizer(szr1);
+    notebook->AddPage(properties_page, _("Properties"), true);
+
+    wxPanel* behaviour_page = new wxPanel(notebook, wxID_ANY);
+    wxBoxSizer* behaviour_sizer = new wxBoxSizer(wxVERTICAL);
+    behaviour_page->SetSizer(behaviour_sizer);
+    notebook->AddPage(behaviour_page, _("Behaviour Script"), false);
+
+    m_ctrl_dialog_header = new wxStaticText(properties_page, ID_HEADER, Landstalker::StrPrintf("Edit Entity %d", id), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     wxFont m_ctrl_dialog_header_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     m_ctrl_dialog_header_font.SetWeight(wxFONTWEIGHT_BOLD);
     m_ctrl_dialog_header->SetFont(m_ctrl_dialog_header_font);
@@ -110,33 +124,33 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     wxBoxSizer* szr2a = new wxBoxSizer(wxHORIZONTAL);
 
     szr1->Add(szr2a, 0, wxEXPAND, 0);
-    szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_entity_type = new LookupChoiceControl(this, ID_TYPE, entity_types[entity->GetType()], entity_types,
+    szr2a->Add(new wxStaticText(properties_page, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_entity_type = new LookupChoiceControl(properties_page, ID_TYPE, entity_types[entity->GetType()], entity_types,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     m_ctrl_entity_type->SetSelection(entity->GetType());
     szr2a->Add(m_ctrl_entity_type, 1, wxALL | wxEXPAND, 5);
 
-    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
+    szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 0);
-    szr2b->Add(new wxStaticText(this, wxID_ANY, "X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_x = new wxSpinCtrlDouble(this, ID_X, wxT("32.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    szr2b->Add(new wxStaticText(properties_page, wxID_ANY, "X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_x = new wxSpinCtrlDouble(properties_page, ID_X, wxT("32.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
     m_ctrl_x->SetRange(0.5, 64.0);
     m_ctrl_x->SetIncrement(0.5);
     m_ctrl_x->SetSnapToTicks(true);
     m_ctrl_x->SetDigits(1);
     m_ctrl_x->SetValue(entity->GetXDbl());
     szr2b->Add(m_ctrl_x, 1, wxALL | wxEXPAND, 5);
-    szr2b->Add(new wxStaticText(this, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_y = new wxSpinCtrlDouble(this, ID_Y, wxT("32.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    szr2b->Add(new wxStaticText(properties_page, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_y = new wxSpinCtrlDouble(properties_page, ID_Y, wxT("32.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
     m_ctrl_y->SetRange(0.5, 64.0);
     m_ctrl_y->SetIncrement(0.5);
     m_ctrl_y->SetSnapToTicks(true);
     m_ctrl_y->SetDigits(1);
     m_ctrl_y->SetValue(entity->GetYDbl());
     szr2b->Add(m_ctrl_y, 1, wxALL | wxEXPAND, 5);
-    szr2b->Add(new wxStaticText(this, wxID_ANY, "Z:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_z = new wxSpinCtrlDouble(this, ID_Z, wxT("0.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    szr2b->Add(new wxStaticText(properties_page, wxID_ANY, "Z:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_z = new wxSpinCtrlDouble(properties_page, ID_Z, wxT("0.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
     m_ctrl_z->SetRange(0.0, 15.5);
     m_ctrl_z->SetIncrement(0.5);
     m_ctrl_z->SetSnapToTicks(true);
@@ -146,18 +160,18 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
 
     wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2c, 0, wxALL | wxEXPAND, 0);
-    szr2c->Add(new wxStaticText(this, wxID_ANY, "Orientation:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2c->Add(new wxStaticText(properties_page, wxID_ANY, "Orientation:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString orientation_choices;
     orientation_choices.Add(wxT("[0] North East"));
     orientation_choices.Add(wxT("[1] South East"));
     orientation_choices.Add(wxT("[2] South West"));
     orientation_choices.Add(wxT("[3] North West"));
-    m_ctrl_orientation = new wxChoice(this, ID_ROT, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), orientation_choices, 0);
+    m_ctrl_orientation = new wxChoice(properties_page, ID_ROT, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), orientation_choices, 0);
     m_ctrl_orientation->SetSelection(static_cast<int>(entity->GetOrientation()));
     szr2c->Add(m_ctrl_orientation, 2, wxALL | wxEXPAND, 5);
 
-    szr2c->Add(new wxStaticText(this, wxID_ANY, "Speed:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_speed = new wxSpinCtrl(this, ID_SPD, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    szr2c->Add(new wxStaticText(properties_page, wxID_ANY, "Speed:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_speed = new wxSpinCtrl(properties_page, ID_SPD, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
     m_ctrl_speed->SetRange(0, 7);
     m_ctrl_speed->SetValue(entity->GetSpeed());
     m_ctrl_speed->SetIncrement(1);
@@ -166,110 +180,123 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     wxBoxSizer* szr2d = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2d, 0, wxALL | wxEXPAND, 0);
 
-    szr2d->Add(new wxStaticText(this, wxID_ANY, "Palette:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2d->Add(new wxStaticText(properties_page, wxID_ANY, "Palette:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString palette_choices;
     palette_choices.Add(wxT("[0] Room"));
     palette_choices.Add(wxT("[1] Sprite Lo/Hi"));
     palette_choices.Add(wxT("[2] Player"));
     palette_choices.Add(wxT("[3] Sprite Lo, HUD"));
-    m_ctrl_palette = new wxChoice(this, ID_PAL, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), palette_choices, 0);
+    m_ctrl_palette = new wxChoice(properties_page, ID_PAL, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), palette_choices, 0);
     m_ctrl_palette->SetSelection(entity->GetPalette());
     szr2d->Add(m_ctrl_palette, 1, wxALL | wxEXPAND, 5);
 
-    szr2d->Add(new wxStaticText(this, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dialogue = new LookupChoiceControl(this, ID_DLG, wxEmptyString, dialogues,
+    szr2d->Add(new wxStaticText(properties_page, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_dialogue = new LookupChoiceControl(properties_page, ID_DLG, wxEmptyString, dialogues,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     m_ctrl_dialogue->SetSelection(entity->GetDialogue());
     szr2d->Add(m_ctrl_dialogue, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2e = new wxBoxSizer(wxHORIZONTAL);
 
-    szr2e->Add(new wxStaticText(this, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_behaviour = new LookupChoiceControl(this, ID_BEHAV, wxEmptyString, behaviours,
+    szr2e->Add(new wxStaticText(properties_page, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_behaviour = new LookupChoiceControl(properties_page, ID_BEHAV, wxEmptyString, behaviours,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
     szr2e->Add(m_ctrl_behaviour, 1, wxALL | wxEXPAND, 5);
     szr1->Add(szr2e, 0, wxALL | wxEXPAND, 0);
-    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
+    szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
     wxGridSizer* szr2f = new wxGridSizer(3, 3, 0, 0);
     szr1->Add(szr2f, 2, wxALL | wxEXPAND, 5);
 
-    m_ctrl_hostile = new wxCheckBox(this, ID_FH, _("Hostile"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_hostile = new wxCheckBox(properties_page, ID_FH, _("Hostile"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_hostile->SetValue(entity->IsHostile());
     szr2f->Add(m_ctrl_hostile, 0, wxALL, 5);
 
-    m_ctrl_no_rotate = new wxCheckBox(this, ID_FR, _("No Rotate"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_no_rotate = new wxCheckBox(properties_page, ID_FR, _("No Rotate"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_no_rotate->SetValue(entity->NoRotate());
     szr2f->Add(m_ctrl_no_rotate, 0, wxALL, 5);
 
-    m_ctrl_no_pickup = new wxCheckBox(this, ID_FP, _("No Pickup"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_no_pickup = new wxCheckBox(properties_page, ID_FP, _("No Pickup"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_no_pickup->SetValue(entity->NoPickup());
     szr2f->Add(m_ctrl_no_pickup, 0, wxALL, 5);
 
-    m_ctrl_has_dialogue = new wxCheckBox(this, ID_FD, _("Has Dialogue"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_has_dialogue = new wxCheckBox(properties_page, ID_FD, _("Has Dialogue"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_dialogue->SetValue(entity->HasDialogue());
     szr2f->Add(m_ctrl_has_dialogue, 0, wxALL, 5);
 
-    m_ctrl_visible = new wxCheckBox(this, ID_FV, _("Visible"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_visible = new wxCheckBox(properties_page, ID_FV, _("Visible"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_visible->SetValue(entity->IsVisible());
     szr2f->Add(m_ctrl_visible, 0, wxALL, 5);
 
-    m_ctrl_solid = new wxCheckBox(this, ID_FS, _("Solid"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_solid = new wxCheckBox(properties_page, ID_FS, _("Solid"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_solid->SetValue(entity->IsSolid());
     szr2f->Add(m_ctrl_solid, 0, wxALL, 5);
 
-    m_ctrl_has_gravity = new wxCheckBox(this, ID_FG, _("Gravity"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_has_gravity = new wxCheckBox(properties_page, ID_FG, _("Gravity"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_gravity->SetValue(entity->HasGravity());
     szr2f->Add(m_ctrl_has_gravity, 0, wxALL, 5);
 
-    m_ctrl_has_friction = new wxCheckBox(this, ID_FF, _("Friction"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_has_friction = new wxCheckBox(properties_page, ID_FF, _("Friction"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_has_friction->SetValue(entity->HasFriction());
     szr2f->Add(m_ctrl_has_friction, 0, wxALL, 5);
 
-    m_ctrl_reserved = new wxCheckBox(this, ID_FX, _("Reserved"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_reserved = new wxCheckBox(properties_page, ID_FX, _("Reserved"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_reserved->SetValue(entity->IsReservedSet());
     szr2f->Add(m_ctrl_reserved, 0, wxALL, 5);
 
-    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
+    szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
     wxBoxSizer* szr2g = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2g, 1, wxALL | wxEXPAND, 5);
 
-    m_ctrl_copy_tiles = new wxCheckBox(this, ID_FT, _("Copy Tiles"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    m_ctrl_copy_tiles = new wxCheckBox(properties_page, ID_FT, _("Copy Tiles"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_ctrl_copy_tiles->SetValue(entity->IsTileCopySet());
     szr2g->Add(m_ctrl_copy_tiles, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    szr2g->Add(new wxStaticText(this, wxID_ANY, _("Tile Source:")), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_copy_source = new wxSpinCtrl(this, ID_CPYSRC, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
+    szr2g->Add(new wxStaticText(properties_page, wxID_ANY, _("Tile Source:")), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_copy_source = new wxSpinCtrl(properties_page, ID_CPYSRC, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
     m_ctrl_copy_source->SetRange(0, 15);
     m_ctrl_copy_source->SetValue(entity->GetCopySource());
     m_ctrl_copy_source->SetIncrement(1);
     szr2g->Add(m_ctrl_copy_source, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     
-    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
-    m_chest_label = new wxStaticText(this, wxID_ANY, "Chest Options (Chest ID: N/A)", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
+    m_chest_label = new wxStaticText(properties_page, wxID_ANY, "Chest Options (Chest ID: N/A)", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     wxFont font = m_chest_label->GetFont();
     font.SetWeight(wxFONTWEIGHT_BOLD);
     m_chest_label->SetFont(font);
     szr1->Add(m_chest_label, 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
     wxBoxSizer* szr2h = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2h, 1, wxALL | wxEXPAND, 5);
-    szr2h->Add(new wxStaticText(this, wxID_ANY, _("Copy from previous room:"), wxDefaultPosition, wxDefaultSize), 0, wxALIGN_CENTER_VERTICAL);
-    m_ctrl_chest_prev = new wxCheckBox(this, ID_CHEST_PREV, _(" - Setting applies to whole room!"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    szr2h->Add(new wxStaticText(properties_page, wxID_ANY, _("Copy from previous room:"), wxDefaultPosition, wxDefaultSize), 0, wxALIGN_CENTER_VERTICAL);
+    m_ctrl_chest_prev = new wxCheckBox(properties_page, ID_CHEST_PREV, _(" - Setting applies to whole room!"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     szr2h->Add(m_ctrl_chest_prev, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxBoxSizer* szr2i = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2i, 1, wxALL | wxEXPAND, 5);
-    szr2i->Add(new wxStaticText(this, wxID_ANY, "Chest Flag ID:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_chest_idx = new wxTextCtrl(this, ID_CHEST_IDX, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
+    szr2i->Add(new wxStaticText(properties_page, wxID_ANY, "Chest Flag ID:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_chest_idx = new wxTextCtrl(properties_page, ID_CHEST_IDX, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
     szr2i->Add(m_ctrl_chest_idx, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxBoxSizer* szr2j = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2j, 1, wxALL | wxEXPAND, 5);
-    szr2j->Add(new wxStaticText(this, wxID_ANY, "Chest Contents:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_chest_content = new LookupChoiceControl(this, ID_CHEST_CONTENT, "", items, wxDefaultPosition, wxDLG_UNIT(this, wxSize(150, -1)));
+    szr2j->Add(new wxStaticText(properties_page, wxID_ANY, "Chest Contents:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_chest_content = new LookupChoiceControl(properties_page, ID_CHEST_CONTENT, "", items, wxDefaultPosition, wxDLG_UNIT(this, wxSize(150, -1)));
     szr2j->Add(m_ctrl_chest_content, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
+    m_ctrl_behaviour_script = new wxTextCtrl(
+        behaviour_page,
+        wxID_ANY,
+        wxEmptyString,
+        wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)),
+        wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
+    auto script_font = m_ctrl_behaviour_script->GetFont();
+    script_font.SetFamily(wxFONTFAMILY_TELETYPE);
+    script_font.SetPointSize(10);
+    m_ctrl_behaviour_script->SetFont(script_font);
+    behaviour_sizer->Add(m_ctrl_behaviour_script, 1, wxALL | wxEXPAND, 5);
+
+    root_sizer->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
     m_sizer_btn = new wxStdDialogButtonSizer();
-    szr1->Add(m_sizer_btn, 0, wxALL | wxEXPAND, 5);
+    root_sizer->Add(m_sizer_btn, 0, wxALL | wxEXPAND, 5);
     m_btn_ok = new wxButton(this, wxID_OK, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     m_btn_ok->SetDefault();
     m_sizer_btn->AddButton(m_btn_ok);
@@ -284,6 +311,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_btn_ok->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickOK), NULL, this);
     m_btn_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
     m_ctrl_entity_type->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_prev->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_content->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
 
@@ -295,12 +323,15 @@ EntityPropertiesWindow::~EntityPropertiesWindow()
     m_btn_ok->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickOK), NULL, this);
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
     m_ctrl_entity_type->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_prev->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_content->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
 }
 
 void EntityPropertiesWindow::UpdateUI()
 {
+    UpdateBehaviourScript();
+
     if (ComboSelectionOrParsed(m_ctrl_entity_type, (*m_entities)[m_id - 1].GetType()) == 0x12) // Chest
     {
         m_chest_label->SetLabel(Landstalker::StrPrintf("Chest Options (Chest ID %d)", m_chest_id));
@@ -342,6 +373,29 @@ void EntityPropertiesWindow::UpdateUI()
         m_ctrl_chest_prev->Enable(false);
         m_ctrl_chest_idx->Enable(false);
         m_ctrl_chest_content->Enable(false);
+    }
+}
+
+void EntityPropertiesWindow::UpdateBehaviourScript()
+{
+    if (!m_gd || !m_gd->GetSpriteData())
+    {
+        m_ctrl_behaviour_script->ChangeValue(_("No game data loaded."));
+        return;
+    }
+
+    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
+    try
+    {
+        const auto script = m_gd->GetSpriteData()->GetScript(behaviour_id);
+        const std::wstring script_name = Landstalker::SpriteData::GetBehaviourDisplayName(behaviour_id);
+        std::wstring text = Landstalker::StrWPrintf(L"# [%04d] %ls\n\n", behaviour_id, script_name.c_str());
+        text += Landstalker::utf8_to_wstr(Landstalker::BehaviourYamlConverter::ToYaml(script.second));
+        m_ctrl_behaviour_script->ChangeValue(text);
+    }
+    catch (const std::exception& e)
+    {
+        m_ctrl_behaviour_script->ChangeValue(Landstalker::StrPrintf("Unable to load behaviour script %d:\n%s", behaviour_id, e.what()));
     }
 }
 

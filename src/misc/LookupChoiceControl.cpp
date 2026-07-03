@@ -89,8 +89,7 @@ LookupChoiceControl::LookupChoiceControl(wxWindow* parent, wxWindowID id, const 
     m_list->Bind(wxEVT_KILL_FOCUS, &LookupChoiceControl::OnControlKillFocus, this);
 
     UpdateFilteredItems();
-    m_text->SetFocus();
-    m_text->SetInsertionPointEnd();
+    ShowTextFromStart();
 }
 
 LookupChoiceControl::~LookupChoiceControl()
@@ -112,6 +111,7 @@ void LookupChoiceControl::ChangeValue(const wxString& value)
         m_selection = idx;
         m_committed_value = value;
     }
+    ShowTextFromStart();
 }
 
 void LookupChoiceControl::SetSelection(int selection)
@@ -121,7 +121,7 @@ void LookupChoiceControl::SetSelection(int selection)
         m_selection = selection;
         m_committed_value = m_choices[static_cast<std::size_t>(selection)];
         m_text->ChangeValue(m_committed_value);
-        m_text->SetInsertionPointEnd();
+        ShowTextFromStart();
     }
 }
 
@@ -196,6 +196,7 @@ bool LookupChoiceControl::CommitCurrentTextIfValid()
     if (m_text->GetValue() != m_committed_value)
     {
         m_text->ChangeValue(m_committed_value);
+        ShowTextFromStart();
     }
     if (m_selection != previous_selection)
     {
@@ -207,7 +208,7 @@ bool LookupChoiceControl::CommitCurrentTextIfValid()
 void LookupChoiceControl::RestoreCommittedValue()
 {
     m_text->ChangeValue(m_committed_value);
-    m_text->SetInsertionPointEnd();
+    ShowTextFromStart();
     m_selection = FindChoiceIndex(m_committed_value);
 }
 
@@ -218,6 +219,12 @@ void LookupChoiceControl::SendSelectionChangedEvent()
     evt.SetInt(m_selection);
     evt.SetString(m_committed_value);
     ProcessWindowEvent(evt);
+}
+
+void LookupChoiceControl::ShowTextFromStart()
+{
+    m_text->SetInsertionPoint(0);
+    m_text->SetSelection(0, 0);
 }
 
 void LookupChoiceControl::UpdateFilteredItems(bool show_all, bool auto_select)
@@ -339,8 +346,7 @@ void LookupChoiceControl::AcceptSelected()
         m_selection = m_filtered_indices[static_cast<std::size_t>(row)];
         m_committed_value = m_choices[static_cast<std::size_t>(m_selection)];
         m_text->ChangeValue(m_committed_value);
-        m_text->SetInsertionPointEnd();
-        m_text->SetSelection(m_text->GetLastPosition(), m_text->GetLastPosition());
+        ShowTextFromStart();
         if (m_selection != previous_selection)
         {
             SendSelectionChangedEvent();
@@ -513,6 +519,16 @@ void LookupChoiceControl::OnSize(wxSizeEvent& evt)
 
         m_text->SetSize(0, 0, text_w, client.GetHeight());
         m_drop_btn->SetSize(text_w, 0, button_w, client.GetHeight());
+        if (wxWindow::FindFocus() != m_text && IsCurrentValueValidChoice())
+        {
+            CallAfter([this]()
+            {
+                if (m_text && wxWindow::FindFocus() != m_text && IsCurrentValueValidChoice())
+                {
+                    ShowTextFromStart();
+                }
+            });
+        }
     }
 
     Layout();
