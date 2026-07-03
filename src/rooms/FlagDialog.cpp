@@ -1,6 +1,7 @@
 #include <rooms/FlagDialog.h>
 #include <rooms/FlagDataViewModel.h>
 #include <rooms/TileSwapDataViewModel.h>
+#include <wx/listctrl.h>
 
 FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::shared_ptr<Landstalker::GameData> gd)
 	: wxDialog(parent, wxID_ANY, "Flags", wxDefaultPosition, {800, 480}),
@@ -14,9 +15,9 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
       m_ctrl_add(nullptr),
       m_ctrl_delete(nullptr),
       m_ctrl_move_up(nullptr),
-	      m_ctrl_move_down(nullptr)
-	{
-	    const int plus_img = m_imglst->GetIdx("plus");
+	  m_ctrl_move_down(nullptr)
+{
+	const int plus_img = m_imglst->GetIdx("plus");
     const int minus_img = m_imglst->GetIdx("minus");
     const int up_img = m_imglst->GetIdx("up");
     const int down_img = m_imglst->GetIdx("down");
@@ -25,7 +26,7 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     this->SetSizer(szr1);
 
     m_tabs = new wxListbook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLB_LEFT);
-    m_tabs->SetMinSize(wxSize(700, 360));
+    m_tabs->SetMinSize(wxSize(650, 360));
 
     szr1->Add(m_tabs, 1, wxALL | wxEXPAND, 5);
 
@@ -39,6 +40,7 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
     AddPage(Landstalker::FlagType::TILESWAP, "Tile Swap Flags", new TileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
     AddPage(Landstalker::FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
     AddPage(Landstalker::FlagType::TREE_WARP, "Tree Warp Flag", new TreeWarpFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    m_tabs->GetListView()->SetColumnWidth(0, 150);
 
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
     szr1->Add(szr2b, 0, wxEXPAND, 5);
@@ -81,9 +83,9 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
         }
     }
 
-	    m_tabs->SetSelection(initial_tab);
+    m_tabs->SetSelection(initial_tab);
 
-	    UpdateUI();
+    UpdateUI();
 
     for (auto& ctrl : m_dvc_ctrls)
     {

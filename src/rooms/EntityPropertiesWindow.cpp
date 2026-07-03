@@ -56,7 +56,7 @@ enum ID
 };
 
 #if defined(__WXMSW__)
-#define DLG_SIZE wxSize(560, 640)
+#define DLG_SIZE wxSize(560, 550)
 #else
 #define DLG_SIZE wxSize(560, 700)
 #endif
@@ -365,6 +365,7 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_ctrl_chest_content->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
 
     UpdateUI();
+    m_btn_ok->SetFocus();
 }
 
 EntityPropertiesWindow::~EntityPropertiesWindow()
