@@ -22,6 +22,8 @@
 #include <landstalker/misc/Labels.h>
 #include <landstalker/main/GameData.h>
 
+class wxBitmapButton;
+
 class EntityPropertiesWindow : public wxDialog
 {
 public:
@@ -33,10 +35,17 @@ public:
 private:
     void UpdateUI();
     void UpdateBehaviourScript();
+    void UpdateBehaviourControls(int behaviour_id);
+    void UpdateBehaviourUsage(int behaviour_id);
+    bool ApplyBehaviourNameChange();
+    void RevertBehaviourNameChange();
+    bool CommitBehaviourScript();
 
     void OnClickOK(wxCommandEvent& e);
     void OnClickCancel(wxCommandEvent& e);
     void OnChange(wxCommandEvent& e);
+    void OnApplyBehaviourName(wxCommandEvent& e);
+    void OnCancelBehaviourName(wxCommandEvent& e);
 
     std::vector<Landstalker::Entity>* m_entities;
     const Landstalker::GameData* m_gd;
@@ -50,6 +59,7 @@ private:
     int m_chest_flag;
     int m_prev_chest_flag;
     uint8_t m_prev_chest_contents;
+    int m_current_behaviour_id = wxNOT_FOUND;
 
     wxStaticText* m_ctrl_dialog_header;
     LookupChoiceControl* m_ctrl_entity_type;
@@ -72,7 +82,12 @@ private:
     wxCheckBox* m_ctrl_reserved;
     wxCheckBox* m_ctrl_copy_tiles;
     wxSpinCtrl* m_ctrl_copy_source;
+    LookupChoiceControl* m_ctrl_behaviour_tab;
+    wxTextCtrl* m_ctrl_behaviour_name;
+    wxBitmapButton* m_ctrl_behaviour_name_apply;
+    wxBitmapButton* m_ctrl_behaviour_name_cancel;
     wxTextCtrl* m_ctrl_behaviour_script;
+    wxTextCtrl* m_ctrl_behaviour_usage;
     wxStdDialogButtonSizer* m_sizer_btn;
     wxStaticText* m_chest_label;
     wxCheckBox* m_ctrl_chest_prev;

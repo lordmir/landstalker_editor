@@ -26,8 +26,10 @@ public:
     void ChangeValue(const wxString& value);
     void SetSelection(int selection);
     int GetSelection() const;
+    bool CommitPendingSelection();
     unsigned int GetCount() const;
     wxString GetString(unsigned int index) const;
+    void SetString(unsigned int index, const wxString& value);
     bool Enable(bool enable = true) override;
 
 private:
@@ -40,8 +42,10 @@ private:
     void UpdateFilteredItems(bool show_all = false, bool auto_select = true);
     void ShowPopup();
     void HidePopup();
+    void AcceptChoiceIndex(int choice_idx);
     void AcceptSelected();
     void MoveSelection(int delta);
+    void RememberPendingListSelection();
 
     void OnText(wxCommandEvent& evt);
     void OnTextLeftDown(wxMouseEvent& evt);
@@ -69,6 +73,7 @@ private:
     std::vector<int> m_filtered_indices;
     wxString m_committed_value;
     int m_selection = wxNOT_FOUND;
+    int m_pending_selection = wxNOT_FOUND;
     int m_list_click_candidate = wxNOT_FOUND;
     bool m_updating_list = false;
     bool m_select_all_on_focus = true;

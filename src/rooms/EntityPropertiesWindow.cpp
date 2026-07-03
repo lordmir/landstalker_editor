@@ -1,5 +1,8 @@
 #include <rooms/EntityPropertiesWindow.h>
 
+#include <wx/artprov.h>
+#include <wx/bmpbuttn.h>
+#include <wx/msgdlg.h>
 #include <wx/settings.h>
 #include <landstalker/misc/Utils.h>
 #include <landstalker/main/SpriteData.h>
@@ -47,11 +50,20 @@ enum ID
     ID_CPYSRC,
     ID_CHEST_PREV,
     ID_CHEST_IDX,
-    ID_CHEST_CONTENT
+    ID_CHEST_CONTENT,
+    ID_BEHAV_NAME_APPLY,
+    ID_BEHAV_NAME_CANCEL
 };
 
+#if defined(__WXMSW__)
+#define DLG_SIZE wxSize(560, 640)
+#else
+#define DLG_SIZE wxSize(560, 700)
+#endif
+
+
 EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_t room, std::vector<Landstalker::Entity>& entities, const Landstalker::GameData* gd, const std::vector<std::wstring>& char_names)
-    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 640)),
+    : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, DLG_SIZE),
       m_entities(&entities),
       m_gd(gd),
       m_id(id),
@@ -114,6 +126,32 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     wxBoxSizer* behaviour_sizer = new wxBoxSizer(wxVERTICAL);
     behaviour_page->SetSizer(behaviour_sizer);
     notebook->AddPage(behaviour_page, _("Behaviour Script"), false);
+
+    wxBoxSizer* behaviour_select_sizer = new wxBoxSizer(wxHORIZONTAL);
+    behaviour_sizer->Add(behaviour_select_sizer, 0, wxALL | wxEXPAND, 5);
+    behaviour_select_sizer->Add(new wxStaticText(behaviour_page, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_behaviour_tab = new LookupChoiceControl(behaviour_page, ID_BEHAV, wxEmptyString, behaviours,
+        wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
+    behaviour_select_sizer->Add(m_ctrl_behaviour_tab, 1, wxALL | wxEXPAND, 5);
+
+    wxBoxSizer* behaviour_name_sizer = new wxBoxSizer(wxHORIZONTAL);
+    behaviour_sizer->Add(behaviour_name_sizer, 0, wxALL | wxEXPAND, 5);
+    behaviour_name_sizer->Add(new wxStaticText(behaviour_page, wxID_ANY, "Name:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_behaviour_name = new wxTextCtrl(behaviour_page, wxID_ANY, wxEmptyString, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)));
+    behaviour_name_sizer->Add(m_ctrl_behaviour_name, 1, wxALL | wxEXPAND, 5);
+    m_ctrl_behaviour_name_apply = new wxBitmapButton(behaviour_page, ID_BEHAV_NAME_APPLY,
+        wxArtProvider::GetBitmap(wxART_TICK_MARK, wxART_BUTTON, wxSize(16, 16)),
+        wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)),
+        wxBU_AUTODRAW);
+    behaviour_name_sizer->Add(m_ctrl_behaviour_name_apply, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_behaviour_name_cancel = new wxBitmapButton(behaviour_page, ID_BEHAV_NAME_CANCEL,
+        wxArtProvider::GetBitmap(wxART_CROSS_MARK, wxART_BUTTON, wxSize(16, 16)),
+        wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)),
+        wxBU_AUTODRAW);
+    behaviour_name_sizer->Add(m_ctrl_behaviour_name_cancel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     m_ctrl_dialog_header = new wxStaticText(properties_page, ID_HEADER, Landstalker::StrPrintf("Edit Entity %d", id), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     wxFont m_ctrl_dialog_header_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
@@ -264,22 +302,20 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     wxFont font = m_chest_label->GetFont();
     font.SetWeight(wxFONTWEIGHT_BOLD);
     m_chest_label->SetFont(font);
-    szr1->Add(m_chest_label, 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    szr1->Add(m_chest_label, 0, wxALL | wxALIGN_LEFT, 5);
     wxBoxSizer* szr2h = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2h, 1, wxALL | wxEXPAND, 5);
+    szr1->Add(szr2h, 0, wxALL | wxEXPAND, 5);
     szr2h->Add(new wxStaticText(properties_page, wxID_ANY, _("Copy from previous room:"), wxDefaultPosition, wxDefaultSize), 0, wxALIGN_CENTER_VERTICAL);
     m_ctrl_chest_prev = new wxCheckBox(properties_page, ID_CHEST_PREV, _(" - Setting applies to whole room!"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     szr2h->Add(m_ctrl_chest_prev, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxBoxSizer* szr2i = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2i, 1, wxALL | wxEXPAND, 5);
+    szr1->Add(szr2i, 0, wxALL | wxEXPAND, 5);
     szr2i->Add(new wxStaticText(properties_page, wxID_ANY, "Chest Flag ID:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_chest_idx = new wxTextCtrl(properties_page, ID_CHEST_IDX, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
     szr2i->Add(m_ctrl_chest_idx, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    wxBoxSizer* szr2j = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2j, 1, wxALL | wxEXPAND, 5);
-    szr2j->Add(new wxStaticText(properties_page, wxID_ANY, "Chest Contents:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    szr2i->Add(new wxStaticText(properties_page, wxID_ANY, "Chest Contents:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_chest_content = new LookupChoiceControl(properties_page, ID_CHEST_CONTENT, "", items, wxDefaultPosition, wxDLG_UNIT(this, wxSize(150, -1)));
-    szr2j->Add(m_ctrl_chest_content, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2i->Add(m_ctrl_chest_content, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     m_ctrl_behaviour_script = new wxTextCtrl(
         behaviour_page,
@@ -287,12 +323,22 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
         wxEmptyString,
         wxDefaultPosition,
         wxDLG_UNIT(this, wxSize(-1, -1)),
-        wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2);
+        wxTE_MULTILINE | wxTE_RICH2);
     auto script_font = m_ctrl_behaviour_script->GetFont();
     script_font.SetFamily(wxFONTFAMILY_TELETYPE);
     script_font.SetPointSize(10);
     m_ctrl_behaviour_script->SetFont(script_font);
     behaviour_sizer->Add(m_ctrl_behaviour_script, 1, wxALL | wxEXPAND, 5);
+
+    behaviour_sizer->Add(new wxStaticText(behaviour_page, wxID_ANY, "Also Used By:"), 0, wxLEFT | wxRIGHT | wxTOP, 10);
+    m_ctrl_behaviour_usage = new wxTextCtrl(
+        behaviour_page,
+        wxID_ANY,
+        wxEmptyString,
+        wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, 35)),
+        wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2 | wxTE_DONTWRAP);
+    behaviour_sizer->Add(m_ctrl_behaviour_usage, 0, wxALL | wxEXPAND, 5);
 
     root_sizer->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
     m_sizer_btn = new wxStdDialogButtonSizer();
@@ -312,6 +358,9 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_btn_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
     m_ctrl_entity_type->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_behaviour->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour_tab->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour_name_apply->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
+    m_ctrl_behaviour_name_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
     m_ctrl_chest_prev->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_content->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
 
@@ -324,13 +373,24 @@ EntityPropertiesWindow::~EntityPropertiesWindow()
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
     m_ctrl_entity_type->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_behaviour->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour_tab->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour_name_apply->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
+    m_ctrl_behaviour_name_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
     m_ctrl_chest_prev->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_content->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
 }
 
 void EntityPropertiesWindow::UpdateUI()
 {
+    int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
+    const auto* event_focus = wxWindow::FindFocus();
+    if (event_focus == m_ctrl_behaviour_tab)
+    {
+        behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour_tab, behaviour_id);
+    }
+    UpdateBehaviourControls(behaviour_id);
     UpdateBehaviourScript();
+    UpdateBehaviourUsage(behaviour_id);
 
     if (ComboSelectionOrParsed(m_ctrl_entity_type, (*m_entities)[m_id - 1].GetType()) == 0x12) // Chest
     {
@@ -376,6 +436,29 @@ void EntityPropertiesWindow::UpdateUI()
     }
 }
 
+void EntityPropertiesWindow::UpdateBehaviourControls(int behaviour_id)
+{
+    if (behaviour_id == wxNOT_FOUND)
+    {
+        return;
+    }
+
+    if (m_ctrl_behaviour->GetSelection() != behaviour_id)
+    {
+        m_ctrl_behaviour->SetSelection(behaviour_id);
+    }
+    if (m_ctrl_behaviour_tab->GetSelection() != behaviour_id)
+    {
+        m_ctrl_behaviour_tab->SetSelection(behaviour_id);
+    }
+
+    if (m_current_behaviour_id != behaviour_id)
+    {
+        m_current_behaviour_id = behaviour_id;
+        m_ctrl_behaviour_name->ChangeValue(Landstalker::SpriteData::GetBehaviourDisplayName(behaviour_id));
+    }
+}
+
 void EntityPropertiesWindow::UpdateBehaviourScript()
 {
     if (!m_gd || !m_gd->GetSpriteData())
@@ -399,21 +482,151 @@ void EntityPropertiesWindow::UpdateBehaviourScript()
     }
 }
 
+void EntityPropertiesWindow::UpdateBehaviourUsage(int behaviour_id)
+{
+    if (!m_gd || !m_gd->GetRoomData() || !m_gd->GetSpriteData())
+    {
+        m_ctrl_behaviour_usage->ChangeValue(_("No game data loaded."));
+        return;
+    }
+
+    wxString usage;
+    int use_count = 0;
+    constexpr int max_visible_usage = 10;
+    for (std::size_t room = 0; room < m_gd->GetRoomData()->GetRoomCount(); ++room)
+    {
+        const auto entities = m_gd->GetSpriteData()->GetRoomEntities(static_cast<uint16_t>(room));
+        for (std::size_t entity_idx = 0; entity_idx < entities.size(); ++entity_idx)
+        {
+            const auto& entity = entities[entity_idx];
+            if (entity.GetBehaviour() != behaviour_id)
+            {
+                continue;
+            }
+
+            if (use_count < max_visible_usage)
+            {
+                if (!usage.IsEmpty())
+                {
+                    usage += "\n";
+                }
+                usage += Landstalker::StrWPrintf(L"[%03d] %ls - Entity %d, %ls",
+                    room,
+                    m_gd->GetRoomData()->GetRoomDisplayName(static_cast<uint16_t>(room)).c_str(),
+                    entity_idx + 1,
+                    Landstalker::SpriteData::GetEntityDisplayName(entity.GetType()).c_str());
+            }
+            ++use_count;
+        }
+    }
+
+    if (use_count == 0)
+    {
+        usage = _("No room entities use this behaviour.");
+    }
+    else if (use_count > max_visible_usage)
+    {
+        usage += Landstalker::StrPrintf("\n...and %d more", use_count - max_visible_usage);
+    }
+    m_ctrl_behaviour_usage->ChangeValue(usage);
+}
+
+bool EntityPropertiesWindow::ApplyBehaviourNameChange()
+{
+    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
+    const std::wstring behaviour_name = m_ctrl_behaviour_name->GetValue().ToStdWstring();
+    if (!Landstalker::Labels::Update(Landstalker::Labels::C_BEHAVIOURS, behaviour_id, behaviour_name))
+    {
+        wxMessageBox(_("Behaviour name must be unique and valid."), _("Invalid Behaviour Name"), wxOK | wxICON_ERROR, this);
+        return false;
+    }
+
+    const wxString display_name = Landstalker::StrWPrintf(L"[%04d] %ls", behaviour_id, behaviour_name.c_str());
+    m_ctrl_behaviour->SetString(behaviour_id, display_name);
+    m_ctrl_behaviour_tab->SetString(behaviour_id, display_name);
+    return true;
+}
+
+void EntityPropertiesWindow::RevertBehaviourNameChange()
+{
+    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
+    m_ctrl_behaviour_name->ChangeValue(Landstalker::SpriteData::GetBehaviourDisplayName(behaviour_id));
+}
+
+bool EntityPropertiesWindow::CommitBehaviourScript()
+{
+    if (!m_gd || !m_gd->GetSpriteData())
+    {
+        return true;
+    }
+
+    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
+    try
+    {
+        const auto commands = Landstalker::BehaviourYamlConverter::FromYaml(
+            Landstalker::wstr_to_utf8(m_ctrl_behaviour_script->GetValue().ToStdWstring()));
+        m_gd->GetSpriteData()->SetScript(behaviour_id, commands);
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(e.what(), _("Error parsing behaviour YAML"), wxOK | wxICON_ERROR, this);
+        return false;
+    }
+    return true;
+}
+
 void EntityPropertiesWindow::OnChange(wxCommandEvent& e)
 {
+    const auto* event_object = e.GetEventObject();
+    if (event_object == m_ctrl_behaviour_tab)
+    {
+        m_ctrl_behaviour->SetSelection(ComboSelectionOrParsed(m_ctrl_behaviour_tab, (*m_entities)[m_id - 1].GetBehaviour()));
+    }
+    else if (event_object == m_ctrl_behaviour)
+    {
+        m_ctrl_behaviour_tab->SetSelection(ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour()));
+    }
+
     UpdateUI();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnApplyBehaviourName(wxCommandEvent& e)
+{
+    ApplyBehaviourNameChange();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnCancelBehaviourName(wxCommandEvent& e)
+{
+    RevertBehaviourNameChange();
     e.Skip();
 }
 
 void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     auto* entity = &(*m_entities)[m_id - 1];
+    m_ctrl_entity_type->CommitPendingSelection();
+    m_ctrl_dialogue->CommitPendingSelection();
+    m_ctrl_behaviour->CommitPendingSelection();
+    m_ctrl_behaviour_tab->CommitPendingSelection();
+    m_ctrl_chest_content->CommitPendingSelection();
+
     entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, entity->GetType()));
     entity->SetXDbl(m_ctrl_x->GetValue());
     entity->SetYDbl(m_ctrl_y->GetValue());
     entity->SetZDbl(m_ctrl_z->GetValue());
     entity->SetSpeed(m_ctrl_speed->GetValue());
-    entity->SetBehaviour(ComboSelectionOrParsed(m_ctrl_behaviour, entity->GetBehaviour()));
+    const int behaviour_selection = ComboSelectionOrParsed(m_ctrl_behaviour, entity->GetBehaviour());
+    if (!ApplyBehaviourNameChange())
+    {
+        return;
+    }
+    if (!CommitBehaviourScript())
+    {
+        return;
+    }
+    entity->SetBehaviour(behaviour_selection);
     entity->SetDialogue(ComboSelectionOrParsed(m_ctrl_dialogue, entity->GetDialogue()));
     entity->SetOrientation(static_cast<Landstalker::Orientation>(m_ctrl_orientation->GetSelection()));
     entity->SetPalette(m_ctrl_palette->GetSelection());

@@ -5,7 +5,7 @@
 #include <memory>
 #include <wx/wx.h>
 #include <wx/dataview.h>
-#include <wx/notebook.h>
+#include <wx/listbook.h>
 #include <map>
 #include <landstalker/main/GameData.h>
 #include <landstalker/rooms/Flags.h>
@@ -39,10 +39,15 @@ private:
 	};
 
 	void AddPage(Landstalker::FlagType type, const std::string& name, BaseDataViewModel* model, const FlagDialog::PageProperties& props);
-	void EnsurePageInitialised(Landstalker::FlagType type);
+	void FinishDataViewEditors();
+	void SelectRowAfterMutation(Landstalker::FlagType type, unsigned int row);
+	void RefreshList(Landstalker::FlagType type);
+	void RefreshCurrentList();
 	void UpdateUI();
+	void UpdateUI(Landstalker::FlagType type);
 
 	Landstalker::FlagType GetSelectedTab();
+	Landstalker::FlagType GetTabByIndex(int selection) const;
 
 	void OnTabChange(wxBookCtrlEvent& e);
 	void OnOK(wxCommandEvent& evt);
@@ -59,9 +64,9 @@ private:
 	std::shared_ptr<Landstalker::GameData> m_gd;
 	ImageList* m_imglst;
 	uint16_t m_roomnum;
+	std::map<Landstalker::FlagType, wxPanel*> m_page_panels;
 	std::map<Landstalker::FlagType, wxDataViewCtrl*> m_dvc_ctrls;
-	std::map<Landstalker::FlagType, bool> m_page_initialised;
-	wxNotebook* m_tabs;
+	wxListbook* m_tabs;
 	wxStdDialogButtonSizer* m_button_sizer;
 	wxButton* m_ok;
 	wxButton* m_cancel;
