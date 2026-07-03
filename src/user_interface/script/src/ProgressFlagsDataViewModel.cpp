@@ -177,7 +177,7 @@ void ProgressFlagsDataViewModel::GetValueByRow(wxVariant& variant, unsigned int 
 		variant = flag == 0xFFFF ? -1 : flag;
 		break;
 	case 3:
-		variant = flag == 0xFFFF ? _("<NONE>") : _(ScriptData::GetFlagDisplayName(flag));
+		variant = flag == 0xFFFF ? _("<NONE>") : wxString(ScriptData::GetFlagDisplayName(flag));
 		break;
 	default:
 		break;

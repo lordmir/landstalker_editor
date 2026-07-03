@@ -469,7 +469,8 @@ bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 		}
 		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
 		std::string blkpath = "blocksets";
-		blkpath += wxFileName::GetPathSeparator() + blkname;
+		blkpath += std::filesystem::path::preferred_separator;
+		blkpath += blkname;
 		dialog.Update(i, "Exporting " + rd->map + "...");
 		wxYield();
 		ExportTmx(mapfile, blkpath, i);
@@ -528,8 +529,9 @@ bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
 		std::string roomfile = rd->name + ".tmx";
 		std::string blkname = StrPrintf("BT%02d_%01d%01d_p%02d.png", rd->tileset + 1, rd->pri_blockset, rd->sec_blockset + 1, rd->room_palette + 1);
 		std::string blkpath = "blocksets";
-		blkpath += wxFileName::GetPathSeparator() + blkname;
-		dialog.Update(i, "Exporting " + m_g->GetRoomData()->GetRoomDisplayName(i) + "...");
+		blkpath += std::filesystem::path::preferred_separator;
+		blkpath += blkname;
+		dialog.Update(i, wxString("Exporting ") + wxString(m_g->GetRoomData()->GetRoomDisplayName(i)) + "...");
 		wxYield();
 		ExportRoomTmx(roomfile, blkpath, i);
 	}
@@ -873,13 +875,13 @@ void RoomViewerFrame::RefreshLists() const
 	m_palettes.Clear();
 	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomPalettes().size(); ++i)
 	{
-		m_palettes.Add(_(m_g->GetRoomData()->GetRoomPaletteDisplayName(i)));
+		m_palettes.Add(wxString(m_g->GetRoomData()->GetRoomPaletteDisplayName(i)));
 	}
 
 	m_tilesets.Clear();
 	for (const auto& p : m_g->GetRoomData()->GetTilesets())
 	{
-		m_tilesets.Add(_(p->GetName()));
+		m_tilesets.Add(wxString::FromUTF8(p->GetName()));
 	}
 	m_pri_blocksets.Clear();
 	m_sec_blocksets.Clear();
@@ -889,34 +891,34 @@ void RoomViewerFrame::RefreshLists() const
 		{
 			if (p.second->GetSecondary() == 0)
 			{
-				m_pri_blocksets.Add(_(p.first));
+				m_pri_blocksets.Add(wxString::FromUTF8(p.first));
 			}
 			else if (p.second->GetPrimary() == rd->pri_blockset)
 			{
-				m_sec_blocksets.Add(_(p.first));
+				m_sec_blocksets.Add(wxString::FromUTF8(p.first));
 			}
 		}
 	}
 	m_maps.Clear();
 	for (const auto& map : m_g->GetRoomData()->GetMaps())
 	{
-		m_maps.Add(map.first);
+		m_maps.Add(wxString::FromUTF8(map.first));
 	}
 	m_rooms.Clear();
 	m_rooms.Add("<NONE>");
 	for (const auto& room : m_g->GetRoomData()->GetRoomlist())
 	{
-		m_rooms.Add(_(room->GetDisplayName()));
+		m_rooms.Add(wxString(room->GetDisplayName()));
 	}
 	m_menustrings.Clear();
 	m_menustrings.Add("<NONE>");
 	for (unsigned int i = 0; i < m_g->GetStringData()->GetItemNameCount(); ++i)
 	{
-		m_menustrings.Add(m_g->GetStringData()->GetItemName(i));
+		m_menustrings.Add(wxString(m_g->GetStringData()->GetItemName(i)));
 	}
 	for (unsigned int i = 0; i < m_g->GetStringData()->GetMenuStrCount(); ++i)
 	{
-		m_menustrings.Add(m_g->GetStringData()->GetMenuStr(i));
+		m_menustrings.Add(wxString(m_g->GetStringData()->GetMenuStr(i)));
 	}
 }
 
@@ -946,8 +948,8 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
 
-		props.GetGrid()->SetPropertyValue("Name", _(rd->GetDisplayName()));
-		props.GetGrid()->SetPropertyValue("Label", _(rd->name));
+		props.GetGrid()->SetPropertyValue("Name", wxString(rd->GetDisplayName()));
+		props.GetGrid()->SetPropertyValue("Label", wxString::FromUTF8(rd->name));
 		props.GetGrid()->SetPropertyValue("RN", rd->index);
 		props.GetGrid()->GetProperty("TS")->SetChoiceSelection(rd->tileset);
 		props.GetGrid()->GetProperty("RP")->SetChoiceSelection(rd->room_palette);

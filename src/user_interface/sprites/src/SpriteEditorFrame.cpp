@@ -665,11 +665,11 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		int sprite_index = m_sprite->GetSprite();
 
 		props.Append(new wxPropertyCategory("Main", "Main"));
-		props.Append(new wxStringProperty("Name", "Name", _(sd->GetSpriteDisplayName(sprite_index))));
-		props.Append(new wxStringProperty("Label", "Label", _(sd->GetSpriteName(sprite_index))))->Enable(false);
+		props.Append(new wxStringProperty("Name", "Name", wxString(sd->GetSpriteDisplayName(sprite_index))));
+		props.Append(new wxStringProperty("Label", "Label", wxString(sd->GetSpriteName(sprite_index))))->Enable(false);
 		props.Append(new wxIntProperty("ID", "ID", sprite_index))->Enable(false);
-		props.Append(new wxStringProperty("Start Address", "Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress()))))->Enable(false);
-		props.Append(new wxStringProperty("End Address", "End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress()))))->Enable(false);
+		props.Append(new wxStringProperty("Start Address", "Start Address", wxString::FromUTF8(StrPrintf("0x%06X", m_sprite->GetStartAddress()))))->Enable(false);
+		props.Append(new wxStringProperty("End Address", "End Address", wxString::FromUTF8(StrPrintf("0x%06X", m_sprite->GetEndAddress()))))->Enable(false);
 		props.Append(new wxIntProperty("Size (bytes)", "Size", m_sprite->GetDataLength()))->Enable(false);
 		props.Append(new wxEnumProperty("Low Palette", "Low Palette", m_lo_palettes));
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
@@ -732,7 +732,7 @@ void SpriteEditorFrame::RefreshLists() const
 		m_lo_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
 		{
-			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
+			m_lo_palettes.Add(wxString(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
 		}
 		for (int i = 0; i < static_cast<int>(m_lo_palettes.GetCount()); ++i)
 		{
@@ -747,7 +747,7 @@ void SpriteEditorFrame::RefreshLists() const
 		m_hi_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
 		{
-			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
+			m_hi_palettes.Add(wxString(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
 		}
 		for (int i = 0; i < static_cast<int>(m_hi_palettes.GetCount()); ++i)
 		{
@@ -764,7 +764,7 @@ void SpriteEditorFrame::RefreshLists() const
 		{
 			if (m_lo_palettes.Index(p.first) == -1 && m_hi_palettes.Index(p.first) == -1)
 			{
-				m_misc_palettes.Add(_(p.first));
+				m_misc_palettes.Add(wxString(p.first));
 			}
 		}
 		m_idle_frame_count_options.Clear();
@@ -810,11 +810,11 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		int sprite_index = m_sprite->GetSprite();
 		int entity_index = sd->GetEntitiesFromSprite(sprite_index)[0];
 
-		props.GetGrid()->SetPropertyValue("Name", _(sd->GetSpriteDisplayName(sprite_index)));
-		props.GetGrid()->SetPropertyValue("Label", _(sd->GetSpriteName(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Name", wxString(sd->GetSpriteDisplayName(sprite_index)));
+		props.GetGrid()->SetPropertyValue("Label", wxString(sd->GetSpriteName(sprite_index)));
 		props.GetGrid()->SetPropertyValue("ID", static_cast<int>(sprite_index));
-		props.GetGrid()->SetPropertyValue("Start Address", _(StrPrintf("0x%06X", m_sprite->GetStartAddress())));
-		props.GetGrid()->SetPropertyValue("End Address", _(StrPrintf("0x%06X", m_sprite->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("Start Address", wxString::FromUTF8(StrPrintf("0x%06X", m_sprite->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("End Address", wxString::FromUTF8(StrPrintf("0x%06X", m_sprite->GetEndAddress())));
 		props.GetGrid()->SetPropertyValue("Size", static_cast<int>(m_sprite->GetDataLength()));
 		props.GetGrid()->GetProperty("Low Palette")->SetChoices(m_lo_palettes);
 		props.GetGrid()->GetProperty("High Palette")->SetChoices(m_hi_palettes);

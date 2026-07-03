@@ -757,7 +757,7 @@ wxArrayString FlagDataViewModel<ChestItem>::GetColumnChoices(unsigned int col) c
 		{
 			if (i < m_gd->GetStringData()->GetItemNameCount())
 			{
-				choices.Add(StrPrintf("[%02X] ", i) + _(m_gd->GetStringData()->GetItemName(i)));
+				choices.Add(wxString::FromUTF8(StrPrintf("[%02X] ", i)) + wxString(m_gd->GetStringData()->GetItemName(i)));
 			}
 			else
 			{

@@ -15,7 +15,7 @@ RoomErrorDialog::RoomErrorDialog(wxWindow* parent, const std::vector<std::string
     {
         for (const auto& e : errors)
         {
-            list->Insert(_(e), list->GetCount());
+            list->Insert(wxString::FromUTF8(e), list->GetCount());
         }
     }
     szr1->Add(list, 1, wxALL | wxEXPAND, 5);

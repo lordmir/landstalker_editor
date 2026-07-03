@@ -137,19 +137,19 @@ void ScriptTableDataViewModel::GetValueByRow(wxVariant& variant, unsigned int ro
 		switch (m_mode)
 		{
 		case Mode::CUTSCENE:
-			variant = _(ScriptData::GetCutsceneDisplayName(row));
+			variant = wxString(ScriptData::GetCutsceneDisplayName(row));
 			break;
 		case Mode::CHARACTER:
-			variant = _(StrWPrintf("[%03d] %ls",row, m_gd->GetStringData()->GetCharacterDisplayName(row).c_str()));
+			variant = wxString(StrWPrintf("[%03d] %ls",row, m_gd->GetStringData()->GetCharacterDisplayName(row).c_str()));
 			break;
 		case Mode::SHOP:
-			variant = _(SHOP_ACTIONS.at(row));
+			variant = wxString::FromUTF8(SHOP_ACTIONS.at(row));
 			break;
 		case Mode::ITEM:
-			variant = row < ITEM_ACTIONS.size() ? _(ITEM_ACTIONS.at(row)) : _(StrPrintf("Custom Event %d", row));
+			variant = row < ITEM_ACTIONS.size() ? wxString::FromUTF8(ITEM_ACTIONS.at(row)) : wxString::FromUTF8(StrPrintf("Custom Event %d", row));
 			break;
 		default:
-			variant = _(std::to_string(row));
+			variant = wxString::FromUTF8(std::to_string(row));
 			break;
 		}
 		break;

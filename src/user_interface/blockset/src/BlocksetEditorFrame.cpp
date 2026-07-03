@@ -346,15 +346,15 @@ void BlocksetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 	if (m_gd && m_blocks && m_palette)
 	{
 		InitPaletteList();
-		props.GetGrid()->SetPropertyValue("Name", _(m_blocks->GetName()));
-		props.GetGrid()->SetPropertyValue("Tileset", _(m_gd->GetRoomData()->GetTileset(m_blocks->GetTileset())->GetName()));
-		props.GetGrid()->SetPropertyValue("Primary Blockset", _(m_gd->GetRoomData()->GetBlockset(m_blocks->GetTileset(), m_blocks->GetPrimary(), 0)->GetName()));
+		props.GetGrid()->SetPropertyValue("Name", wxString::FromUTF8(m_blocks->GetName()));
+		props.GetGrid()->SetPropertyValue("Tileset", wxString::FromUTF8(m_gd->GetRoomData()->GetTileset(m_blocks->GetTileset())->GetName()));
+		props.GetGrid()->SetPropertyValue("Primary Blockset", wxString::FromUTF8(m_gd->GetRoomData()->GetBlockset(m_blocks->GetTileset(), m_blocks->GetPrimary(), 0)->GetName()));
 		props.GetGrid()->GetProperty("Palette")->SetChoices(m_palette_list);
 		props.GetGrid()->GetProperty("Palette")->SetValue(m_palette->GetName());
 		props.GetGrid()->SetPropertyValue("Block Count", static_cast<int>(m_blocks->GetData()->size()));
-		props.GetGrid()->SetPropertyValue("Start Address", _(Hex(m_blocks->GetStartAddress())));
-		props.GetGrid()->SetPropertyValue("End Address", _(Hex(m_blocks->GetEndAddress())));
-		props.GetGrid()->SetPropertyValue("Filename", _(m_blocks->GetFilename().string()));
+		props.GetGrid()->SetPropertyValue("Start Address", wxString::FromUTF8(Hex(m_blocks->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("End Address", wxString::FromUTF8(Hex(m_blocks->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("Filename", wxString::FromUTF8(m_blocks->GetFilename().string()));
 		props.GetGrid()->SetPropertyValue("Original Size", wxString::Format("%lu bytes", m_blocks->GetOrigBytes()->size()));
 		props.GetGrid()->SetPropertyValue("Uncompressed Size", wxString::Format("%lu bytes", m_blocks->GetData()->size() * 8));
 	}

@@ -4,14 +4,14 @@
 DataViewScriptActionEditorControl::DataViewScriptActionEditorControl(wxWindow* parent, const wxRect& rect, const ScriptTable::Action& value, const std::vector<std::string>& choices, std::shared_ptr<GameData> gd)
 	: wxWindow(parent, wxID_ANY, rect.GetPosition(), rect.GetSize()),
 	  m_entry(value),
-	  m_choices(true),
+	  m_choices(),
 	  m_editor(Editor::NONE),
 	  m_gd(gd)
 {
 	Freeze();
 	for (const auto& choice : choices)
 	{
-		m_choices.Add(choice);
+		m_choices.Add(wxString::FromUTF8(choice));
 	}
 	SetBackgroundColour(*wxWHITE);
 	SetBackgroundStyle(wxBackgroundStyle::wxBG_STYLE_SYSTEM);

@@ -193,7 +193,7 @@ void FlagDialog::MoveSelectedDownCurrentList()
 void FlagDialog::AddPage(FlagType type, const std::string& name, BaseDataViewModel* model, const FlagDialog::PageProperties& props)
 {
     auto* panel = new wxPanel(m_tabs, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_tabs, wxSize(-1, -1)), wxTAB_TRAVERSAL);
-    m_tabs->AddPage(panel, _(name), false);
+    m_tabs->AddPage(panel, wxString::FromUTF8(name), false);
     wxBoxSizer* szr = new wxBoxSizer(wxVERTICAL);
     panel->SetSizer(szr);
     m_dvc_ctrls[type] = new wxDataViewCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 400));

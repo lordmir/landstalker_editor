@@ -271,7 +271,7 @@ void TileSwapDialog::OnKeyPress(wxKeyEvent& evt)
 void TileSwapDialog::AddPage(const PageType type, const std::string& name, BaseDataViewModel* model)
 {
     auto* panel = new wxPanel(m_tabs, wxID_ANY, wxDefaultPosition, wxDLG_UNIT(m_tabs, wxSize(-1, -1)), wxTAB_TRAVERSAL);
-    m_tabs->AddPage(panel, _(name), false);
+    m_tabs->AddPage(panel, wxString::FromUTF8(name), false);
     wxBoxSizer* szr = new wxBoxSizer(wxVERTICAL);
     panel->SetSizer(szr);
     m_dvc_ctrls[type] = new wxDataViewCtrl(panel, wxID_ANY, wxDefaultPosition, wxSize(600, 400));

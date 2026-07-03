@@ -316,7 +316,7 @@ bool StringEditorFrame::ExportStrings(const std::filesystem::path& filename, Str
     default:
         for (std::size_t i = 0; i < sd->GetStringCount(m_type); ++i)
         {
-            fs << sd->GetString(m_type, i) << std::endl;
+            fs << utf8_conv.to_bytes(sd->GetString(m_type, i)) << std::endl;
         }
         break;
     }

@@ -331,7 +331,7 @@ protected:
         m_list[0].clear();
         for (std::size_t i = 0; i < 0x400; ++i)
         {
-            m_list[0].Add(StrWPrintf("[%03X] ", i) + _(m_gd->GetStringData()->GetCharacterDisplayName(i)));
+            m_list[0].Add(wxString(StrWPrintf("[%03X] ", i) + m_gd->GetStringData()->GetCharacterDisplayName(i)));
         }
     }
 };

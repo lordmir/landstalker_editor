@@ -155,7 +155,7 @@ void EntityViewerFrame::RefreshLists() const
 		m_lo_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetLoPaletteCount(); ++i)
 		{
-			m_lo_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
+			m_lo_palettes.Add(wxString(m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(i)));
 		}
 		wxFont font = m_lo_palettes.Item(epals.first + 1).GetFont();
 		font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
@@ -165,7 +165,7 @@ void EntityViewerFrame::RefreshLists() const
 		m_hi_palettes.Add("<None>");
 		for (int i = 0; i < m_gd->GetSpriteData()->GetHiPaletteCount(); ++i)
 		{
-			m_hi_palettes.Add(_(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
+			m_hi_palettes.Add(wxString(m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(i)));
 		}
 		font = m_hi_palettes.Item(epals.second + 1).GetFont();
 		font.SetWeight(wxFontWeight::wxFONTWEIGHT_BOLD);
@@ -243,7 +243,7 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		bool is_enemy = sd->IsEntityEnemy(m_entity_id);
 		auto enemy_stats = sd->GetEnemyStats(m_entity_id);
 
-		props.GetGrid()->SetPropertyValue("Name", _(sd->GetEntityDisplayName(m_entity_id)));
+		props.GetGrid()->SetPropertyValue("Name", wxString(sd->GetEntityDisplayName(m_entity_id)));
 		props.GetGrid()->SetPropertyValue("ID", m_entity_id);
 		props.GetGrid()->GetProperty("Sprite")->SetChoices(m_sprites);
 		props.GetGrid()->GetProperty("Sprite")->SetChoiceSelection(m_sprites.Index(sprite_index));

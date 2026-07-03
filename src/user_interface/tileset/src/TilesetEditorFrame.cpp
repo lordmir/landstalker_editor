@@ -580,20 +580,20 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 	if (m_animated_tileset_entry)
 	{
 		props.GetGrid()->GetProperty("P")->SetChoices(UpdatePalList(m_animated_tileset_entry, props));
-		props.GetGrid()->SetPropertyValue("N", _(m_animated_tileset_entry->GetName()));
+		props.GetGrid()->SetPropertyValue("N", wxString::FromUTF8(m_animated_tileset_entry->GetName()));
 		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
-		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_animated_tileset_entry->GetStartAddress())));
-		props.GetGrid()->SetPropertyValue("EA", _(Hex(m_animated_tileset_entry->GetEndAddress())));
-		props.GetGrid()->SetPropertyValue("FN", _(m_animated_tileset_entry->GetFilename().string()));
+		props.GetGrid()->SetPropertyValue("SA", wxString::FromUTF8(Hex(m_animated_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("EA", wxString::FromUTF8(Hex(m_animated_tileset_entry->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("FN", wxString::FromUTF8(m_animated_tileset_entry->GetFilename().string()));
 	}
 	else if (m_tileset_entry)
 	{
 		props.GetGrid()->GetProperty("P")->SetChoices(UpdatePalList(m_tileset_entry, props));
-		props.GetGrid()->SetPropertyValue("N", _(m_tileset_entry->GetName()));
+		props.GetGrid()->SetPropertyValue("N", wxString::FromUTF8(m_tileset_entry->GetName()));
 		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_tileset_entry->GetOrigBytes()->size()));
-		props.GetGrid()->SetPropertyValue("SA", _(Hex(m_tileset_entry->GetStartAddress())));
-		props.GetGrid()->SetPropertyValue("EA", _(Hex(m_tileset_entry->GetEndAddress())));
-		props.GetGrid()->SetPropertyValue("FN", _(m_tileset_entry->GetFilename().string()));
+		props.GetGrid()->SetPropertyValue("SA", wxString::FromUTF8(Hex(m_tileset_entry->GetStartAddress())));
+		props.GetGrid()->SetPropertyValue("EA", wxString::FromUTF8(Hex(m_tileset_entry->GetEndAddress())));
+		props.GetGrid()->SetPropertyValue("FN", wxString::FromUTF8(m_tileset_entry->GetFilename().string()));
 	}
 	if (m_tileset)
 	{

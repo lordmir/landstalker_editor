@@ -137,12 +137,12 @@ void ScriptTableEditorFrame::RefreshLists() const
 		m_items.Clear();
 		for (std::size_t i = 0; i < m_gd->GetRoomData()->GetRoomCount(); ++i)
 		{
-			m_rooms.Add(_(m_gd->GetRoomData()->GetRoomDisplayName(i)), i);
-			m_rooms_plus_empty.Add(_(m_gd->GetRoomData()->GetRoomDisplayName(i)), i);
+			m_rooms.Add(wxString(m_gd->GetRoomData()->GetRoomDisplayName(i)), i);
+			m_rooms_plus_empty.Add(wxString(m_gd->GetRoomData()->GetRoomDisplayName(i)), i);
 		}
 		for (std::size_t i = 0; i < 64; ++i)
 		{
-			m_items.Add(_(m_gd->GetStringData()->GetItemDisplayName(i)), i);
+			m_items.Add(wxString(m_gd->GetStringData()->GetItemDisplayName(i)), i);
 		}
 	}
 }
