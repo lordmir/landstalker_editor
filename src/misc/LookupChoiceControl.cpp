@@ -99,12 +99,20 @@ LookupChoiceControl::~LookupChoiceControl()
 
 wxString LookupChoiceControl::GetValue() const
 {
+    if (m_pending_selection != wxNOT_FOUND &&
+        m_pending_selection >= 0 &&
+        m_pending_selection < static_cast<int>(m_choices.GetCount()))
+    {
+        return m_choices[static_cast<std::size_t>(m_pending_selection)];
+    }
+
     return m_text->GetValue();
 }
 
 void LookupChoiceControl::ChangeValue(const wxString& value)
 {
     m_text->ChangeValue(value);
+    m_pending_selection = wxNOT_FOUND;
     const int idx = FindChoiceIndex(value);
     if (idx != wxNOT_FOUND)
     {
@@ -118,6 +126,7 @@ void LookupChoiceControl::SetSelection(int selection)
 {
     if (selection >= 0 && selection < static_cast<int>(m_choices.GetCount()))
     {
+        m_pending_selection = wxNOT_FOUND;
         m_selection = selection;
         m_committed_value = m_choices[static_cast<std::size_t>(selection)];
         m_text->ChangeValue(m_committed_value);
@@ -127,12 +136,43 @@ void LookupChoiceControl::SetSelection(int selection)
 
 int LookupChoiceControl::GetSelection() const
 {
+    if (m_pending_selection != wxNOT_FOUND)
+    {
+        return m_pending_selection;
+    }
+
     const int current = FindChoiceIndex(m_text->GetValue());
     if (current != wxNOT_FOUND)
     {
         return current;
     }
     return m_selection;
+}
+
+bool LookupChoiceControl::CommitPendingSelection()
+{
+    if (m_pending_selection != wxNOT_FOUND)
+    {
+        AcceptChoiceIndex(m_pending_selection);
+        HidePopup();
+        return true;
+    }
+
+    if (m_popup->IsShown() && m_list->GetSelection() != wxNOT_FOUND)
+    {
+        AcceptSelected();
+        return true;
+    }
+
+    if (CommitCurrentTextIfValid())
+    {
+        HidePopup();
+        return true;
+    }
+
+    RestoreCommittedValue();
+    HidePopup();
+    return false;
 }
 
 unsigned int LookupChoiceControl::GetCount() const
@@ -147,6 +187,23 @@ wxString LookupChoiceControl::GetString(unsigned int index) const
         return wxString();
     }
     return m_choices[index];
+}
+
+void LookupChoiceControl::SetString(unsigned int index, const wxString& value)
+{
+    if (index >= m_choices.GetCount())
+    {
+        return;
+    }
+
+    m_choices[index] = value;
+    if (m_selection == static_cast<int>(index))
+    {
+        m_committed_value = value;
+        m_text->ChangeValue(value);
+        ShowTextFromStart();
+    }
+    UpdateFilteredItems(m_popup->IsShown());
 }
 
 bool LookupChoiceControl::Enable(bool enable)
@@ -210,6 +267,7 @@ void LookupChoiceControl::RestoreCommittedValue()
     m_text->ChangeValue(m_committed_value);
     ShowTextFromStart();
     m_selection = FindChoiceIndex(m_committed_value);
+    m_pending_selection = wxNOT_FOUND;
 }
 
 void LookupChoiceControl::SendSelectionChangedEvent()
@@ -232,6 +290,7 @@ void LookupChoiceControl::UpdateFilteredItems(bool show_all, bool auto_select)
     const wxString needle = show_all ? wxString() : m_text->GetValue().Lower();
     const wxString current_value = m_text->GetValue().Lower();
     m_updating_list = true;
+    m_pending_selection = wxNOT_FOUND;
     m_list->Freeze();
     m_list->Clear();
     m_filtered_indices.clear();
@@ -300,7 +359,7 @@ void LookupChoiceControl::ShowPopup()
     if (!m_popup->IsShown())
     {
 #ifdef __WXGTK__
-        m_popup->Popup(m_text);
+        static_cast<wxPopupTransientWindow*>(m_popup)->Popup(m_text);
 #else
         m_popup->Show();
 #endif
@@ -330,7 +389,7 @@ void LookupChoiceControl::HidePopup()
     if (m_popup->IsShown())
     {
 #ifdef __WXGTK__
-        m_popup->Dismiss();
+        static_cast<wxPopupTransientWindow*>(m_popup)->Dismiss();
 #else
         m_popup->Hide();
 #endif
@@ -342,17 +401,26 @@ void LookupChoiceControl::AcceptSelected()
     const int row = m_list->GetSelection();
     if (row != wxNOT_FOUND && row >= 0 && row < static_cast<int>(m_filtered_indices.size()))
     {
+        AcceptChoiceIndex(m_filtered_indices[static_cast<std::size_t>(row)]);
+    }
+    HidePopup();
+}
+
+void LookupChoiceControl::AcceptChoiceIndex(int choice_idx)
+{
+    if (choice_idx != wxNOT_FOUND && choice_idx >= 0 && choice_idx < static_cast<int>(m_choices.GetCount()))
+    {
         const int previous_selection = m_selection;
-        m_selection = m_filtered_indices[static_cast<std::size_t>(row)];
+        m_selection = choice_idx;
         m_committed_value = m_choices[static_cast<std::size_t>(m_selection)];
         m_text->ChangeValue(m_committed_value);
         ShowTextFromStart();
+        m_pending_selection = wxNOT_FOUND;
         if (m_selection != previous_selection)
         {
             SendSelectionChangedEvent();
         }
     }
-    HidePopup();
 }
 
 void LookupChoiceControl::MoveSelection(int delta)
@@ -374,6 +442,16 @@ void LookupChoiceControl::MoveSelection(int delta)
 
     m_list->SetSelection(sel);
     m_list->EnsureVisible(sel);
+    RememberPendingListSelection();
+}
+
+void LookupChoiceControl::RememberPendingListSelection()
+{
+    const int row = m_list->GetSelection();
+    if (!m_updating_list && row != wxNOT_FOUND && row >= 0 && row < static_cast<int>(m_filtered_indices.size()))
+    {
+        m_pending_selection = m_filtered_indices[static_cast<std::size_t>(row)];
+    }
 }
 
 void LookupChoiceControl::OnText(wxCommandEvent& evt)
@@ -561,6 +639,7 @@ void LookupChoiceControl::OnListSelect(wxCommandEvent& evt)
     // On GTK, selection events can fire during filtering; commit only on explicit user action.
     // Selection changes can be triggered programmatically on GTK while filtering.
     // Commit only on explicit user actions (enter/double-click/click release).
+    RememberPendingListSelection();
 #else
     // On Windows, listbox selection notifications map cleanly to intentional user selection.
     AcceptSelected();
@@ -581,6 +660,7 @@ void LookupChoiceControl::OnListLeftDown(wxMouseEvent& evt)
     if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
         m_list->SetSelection(hit);
+        RememberPendingListSelection();
         m_list_click_candidate = hit;
         return;
     }
@@ -592,6 +672,7 @@ void LookupChoiceControl::OnListLeftDown(wxMouseEvent& evt)
     if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
         m_list->SetSelection(hit);
+        RememberPendingListSelection();
         AcceptSelected();
         m_text->SetFocus();
         return;
@@ -608,6 +689,7 @@ void LookupChoiceControl::OnListLeftUp(wxMouseEvent& evt)
         hit >= 0 && hit < static_cast<int>(m_list->GetCount()))
     {
         m_list->SetSelection(hit);
+        RememberPendingListSelection();
         AcceptSelected();
         m_text->SetFocus();
         m_list_click_candidate = wxNOT_FOUND;
@@ -649,6 +731,7 @@ void LookupChoiceControl::OnListMouseMove(wxMouseEvent& evt)
         if (m_list->GetSelection() != hit)
         {
             m_list->SetSelection(hit);
+            RememberPendingListSelection();
         }
     }
     evt.Skip();

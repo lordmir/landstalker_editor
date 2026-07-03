@@ -20,7 +20,7 @@
 #include <sprites/EntityViewerFrame.h>
 #include <behaviours/BehaviourScriptEditorFrame.h>
 #include <script/ScriptEditorFrame.h>
-#include <script/ScriptTableEditorFrame.h>
+#include <script/ScriptTableTreeEditorFrame.h>
 #include <script/ProgressFlagsFrame.h>
 #include <script/CharacterSfxFrame.h>
 #include <landstalker/main/GameData.h>
@@ -158,7 +158,7 @@ private:
     EntityViewerFrame* GetEntityViewer();
     BehaviourScriptEditorFrame* GetBehaviourScriptEditor();
     ScriptEditorFrame* GetScriptEditor();
-    ScriptTableEditorFrame* GetScriptTableEditor();
+    ScriptTableTreeEditorFrame* GetScriptTableEditor();
     ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
     CharacterSfxEditorFrame* GetCharacterSfxEditorFrame();
     

@@ -1,6 +1,7 @@
 #include <misc/LookupDataViewRenderer.h>
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 #include <wx/artprov.h>
 #include <wx/bmpbuttn.h>
@@ -133,7 +134,24 @@ public:
 
 	wxString GetValueText() const
 	{
+		if (m_pending_value)
+		{
+			return *m_pending_value;
+		}
 		return m_text->GetValue();
+	}
+
+	void CommitPendingSelection()
+	{
+		auto* list = m_popup->GetList();
+		if (m_pending_value)
+		{
+			AcceptValue(*m_pending_value);
+		}
+		else if (m_popup->IsShown() && list->GetSelection() != wxNOT_FOUND)
+		{
+			AcceptSelected();
+		}
 	}
 
 private:
@@ -159,6 +177,7 @@ private:
 	{
 		m_text->ChangeValue(m_committed_value);
 		m_text->SetInsertionPointEnd();
+		m_pending_value.reset();
 	}
 
 	void UpdateFilteredItems(bool show_all = false, bool auto_select = true)
@@ -167,6 +186,7 @@ private:
 		const wxString current_value = m_text->GetValue().Lower();
 		auto* list = m_popup->GetList();
 		m_updating_list = true;
+		m_pending_value.reset();
 		list->Freeze();
 		list->Clear();
 		m_filtered_indices.clear();
@@ -269,12 +289,18 @@ private:
 		const int sel = list->GetSelection();
 		if (sel != wxNOT_FOUND && sel >= 0 && sel < static_cast<int>(list->GetCount()))
 		{
-			m_committed_value = list->GetString(sel);
-			m_text->ChangeValue(m_committed_value);
-			m_text->SetInsertionPointEnd();
-			m_text->SetSelection(m_text->GetLastPosition(), m_text->GetLastPosition());
+			AcceptValue(list->GetString(sel));
 		}
 		HidePopup();
+	}
+
+	void AcceptValue(const wxString& value)
+	{
+		m_committed_value = value;
+		m_text->ChangeValue(m_committed_value);
+		m_text->SetInsertionPointEnd();
+		m_text->SetSelection(m_text->GetLastPosition(), m_text->GetLastPosition());
+		m_pending_value.reset();
 	}
 
 	void MoveSelection(int delta)
@@ -297,6 +323,17 @@ private:
 
 		list->SetSelection(sel);
 		list->EnsureVisible(sel);
+		RememberPendingListSelection();
+	}
+
+	void RememberPendingListSelection()
+	{
+		auto* list = m_popup->GetList();
+		const int sel = list->GetSelection();
+		if (!m_updating_list && sel != wxNOT_FOUND && sel >= 0 && sel < static_cast<int>(list->GetCount()))
+		{
+			m_pending_value = list->GetString(sel);
+		}
 	}
 
 	void OnText(wxCommandEvent& evt)
@@ -483,6 +520,7 @@ private:
 		// GTK can emit selection changes during list rebuild; only explicit actions should commit.
 		// Selection changes can be triggered programmatically on GTK while filtering.
 		// Commit only on explicit user actions (enter/double-click/click release).
+		RememberPendingListSelection();
 		#else
 		AcceptSelected();
 		#endif
@@ -503,6 +541,7 @@ private:
 		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
 		{
 			list->SetSelection(hit);
+			RememberPendingListSelection();
 			m_list_click_candidate = hit;
 			return;
 		}
@@ -514,6 +553,7 @@ private:
 		if (hit != wxNOT_FOUND && hit >= 0 && hit < static_cast<int>(list->GetCount()))
 		{
 			list->SetSelection(hit);
+			RememberPendingListSelection();
 			AcceptSelected();
 			m_text->SetFocus();
 			return;
@@ -531,6 +571,7 @@ private:
 			hit >= 0 && hit < static_cast<int>(list->GetCount()))
 		{
 			list->SetSelection(hit);
+			RememberPendingListSelection();
 			AcceptSelected();
 			m_text->SetFocus();
 			m_list_click_candidate = wxNOT_FOUND;
@@ -573,6 +614,7 @@ private:
 			if (list->GetSelection() != hit)
 			{
 				list->SetSelection(hit);
+				RememberPendingListSelection();
 			}
 		}
 		evt.Skip();
@@ -681,6 +723,7 @@ private:
 	wxBitmapButton* m_drop_btn;
 	LookupPopupWindow* m_popup;
 	wxString m_committed_value;
+	std::optional<wxString> m_pending_value;
 	int m_list_click_candidate = wxNOT_FOUND;
 	bool m_updating_list = false;
 	bool m_select_all_on_focus = true;
@@ -768,6 +811,7 @@ bool LookupDataViewRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& v
 	{
 		return false;
 	}
+	editor->CommitPendingSelection();
 	value = ParseValue(editor->GetValueText());
 	return true;
 }

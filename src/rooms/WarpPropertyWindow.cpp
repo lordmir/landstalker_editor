@@ -1,6 +1,7 @@
 #include <rooms/WarpPropertyWindow.h>
 
 #include <wx/settings.h>
+#include <wx/wrapsizer.h>
 #include <landstalker/misc/Utils.h>
 #include <cmath>
 #include <algorithm>
@@ -32,14 +33,19 @@ enum ID
     ID_SIZE
 };
 
+#if defined(__WXMSW__)
+#define DLG_SIZE wxSize(500, 250)
+#else
+#define DLG_SIZE wxSize(500, 350)
+#endif
+
 WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int id, Landstalker::WarpList::Warp* warp, Landstalker::GameData& gd)
-    : wxDialog(parent, wxID_ANY, "Edit Warp", wxDefaultPosition, wxSize(500, 250)),
+    : wxDialog(parent, wxID_ANY, "Edit Warp", wxDefaultPosition, DLG_SIZE),
       m_warp(warp),
       m_id(id),
       m_unknown_selectable(false),
       m_room_src(src_room)
 {
-
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(szr1);
 
@@ -117,10 +123,10 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     m_ctrl_size->SetSelection(warp->y_size > 1 ? warp->y_size + 1 : warp->x_size - 1);
     szr2c->Add(m_ctrl_size, 1, wxALL | wxEXPAND, 5);
     
-    wxBoxSizer* szr3 = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr3, 1, wxEXPAND, 0);
+    wxWrapSizer* szr3 = new wxWrapSizer(wxHORIZONTAL);
+    szr1->Add(szr3, 0, wxEXPAND, 0);
     wxBoxSizer* szr3a = new wxBoxSizer(wxVERTICAL);
-    szr3->Add(szr3a, 1, wxEXPAND, 0);
+    szr3->Add(szr3a, 0, wxEXPAND, 0);
     wxBoxSizer* szr3ai = new wxBoxSizer(wxHORIZONTAL);
     szr3a->Add(szr3ai, 1, wxEXPAND, 0);
     szr3ai->Add(new wxStaticText(this, wxID_ANY, "Source X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -136,7 +142,7 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     m_ctrl_src_y->SetIncrement(1);
     szr3ai->Add(m_ctrl_src_y, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxBoxSizer* szr3b = new wxBoxSizer(wxVERTICAL);
-    szr3->Add(szr3b, 1, wxEXPAND, 0);
+    szr3->Add(szr3b, 0, wxEXPAND, 0);
     wxBoxSizer* szr3bi = new wxBoxSizer(wxHORIZONTAL);
     szr3b->Add(szr3bi, 1, wxEXPAND, 0);
     szr3bi->Add(new wxStaticText(this, wxID_ANY, "Destination X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -179,6 +185,8 @@ WarpPropertyWindow::~WarpPropertyWindow()
 
 void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
+    m_ctrl_dst_room->CommitPendingSelection();
+
     m_warp->type = static_cast<Landstalker::WarpList::Warp::Type>(m_ctrl_type->GetSelection());
     if (m_ctrl_size->GetSelection() > 2)
     {

@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 option(LANDSTALKER_BUILD_SHARED "Build liblandstalker as a shared library" OFF)
 option(INSTALL_DEPS "Automatically download and build dependencies" ON)
+option(LANDSTALKER_BUILD_TESTING "Build the test suites" OFF)
 
 include(dependencies.cmake)
 
@@ -18,6 +19,15 @@ add_subdirectory(modules/liblandstalker EXCLUDE_FROM_ALL)
 add_executable(${CMAKE_PROJECT_NAME} WIN32)
 
 add_subdirectory("src")
+
+if(LANDSTALKER_BUILD_TESTING)
+    enable_testing()
+    add_subdirectory("tests")
+    # modules/liblandstalker is added with EXCLUDE_FROM_ALL, which also excludes its test
+    # executables - without this, a default build never produces them and ctest is left
+    # running gtest_discover_tests' "<target>_NOT_BUILT" placeholders.
+    set_target_properties(lz77_tests tilemap3d_tests script_tests PROPERTIES EXCLUDE_FROM_ALL FALSE)
+endif()
 
 if(WIN32)
     add_custom_command (

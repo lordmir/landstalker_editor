@@ -289,6 +289,12 @@ void RoomViewerFrame::UpdateFrame()
 
 void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 {
+	if (m_entity_dialog != nullptr && gd != m_g)
+	{
+		// The cached dialog holds combo lists and script trees built from the old game data.
+		m_entity_dialog->Destroy();
+		m_entity_dialog = nullptr;
+	}
 	m_g = gd;
 	if (m_gpuview == nullptr && gd != nullptr)
 	{
@@ -313,6 +319,11 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 void RoomViewerFrame::ClearGameData()
 {
 	m_g = nullptr;
+	if (m_entity_dialog != nullptr)
+	{
+		m_entity_dialog->Destroy();
+		m_entity_dialog = nullptr;
+	}
 	if (m_gpuview != nullptr)
 	{
 		m_mgr.DetachPane(m_gpuview);
@@ -2430,12 +2441,14 @@ void RoomViewerFrame::UpdateEntityProperties(int entity)
 		return;
 	}
 
-	const std::vector<uint16_t> chars = m_g->GetStringData()->GetRoomCharacters(m_roomnum);
-	std::vector<std::wstring> char_names;
-	std::transform(chars.cbegin(), chars.cend(), std::back_inserter(char_names),
-		[this](uint16_t chr) { return m_g->GetStringData()->GetCharacterDisplayName(chr); });
-	EntityPropertiesWindow dlg(this, entity, m_roomnum, entities, m_g.get(), char_names);
-	if (dlg.ShowModal() == wxID_OK)
+	// The dialog is expensive to construct (thousands of combo entries), so keep one cached
+	// instance alive and repoint it at the entity being edited on each open.
+	if (m_entity_dialog == nullptr)
+	{
+		m_entity_dialog = new EntityPropertiesWindow(this, m_g);
+	}
+	m_entity_dialog->SetEntity(entity, m_roomnum, entities);
+	if (m_entity_dialog->ShowModal() == wxID_OK)
 	{
 		if (m_gpuview)
 		{

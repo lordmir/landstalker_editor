@@ -14,6 +14,7 @@
 #include <rooms/TileSwapDialog.h>
 
 class MyGLCanvas;
+class EntityPropertiesWindow;
 
 namespace RoomEdit
 {
@@ -158,6 +159,9 @@ private:
 	WarpControlFrame* m_warpctrl;
 	TileSwapControlFrame* m_swapctrl;
 	BlocksetEditorCtrl* m_blkctrl;
+	// Cached entity properties dialog - expensive to construct, so created once per loaded
+	// game and reused across opens (see UpdateEntityProperties). Destroyed on game data change.
+	EntityPropertiesWindow* m_entity_dialog = nullptr;
 
 	std::shared_ptr<Landstalker::GameData> m_g;
 	uint16_t m_roomnum;

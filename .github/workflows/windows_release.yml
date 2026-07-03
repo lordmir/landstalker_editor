@@ -22,6 +22,14 @@ jobs:
           path: landstalker_editor
           submodules: 'recursive'
 
+      # The disasm-backed tests need a landstalker_disasm checkout; the runner has no local
+      # copy, so clone it as test data.
+      - name: Checkout test data (landstalker_disasm)
+        uses: actions/checkout@v4
+        with:
+          repository: lordmir/landstalker_disasm
+          path: landstalker_disasm
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
         with:
@@ -30,9 +38,16 @@ jobs:
       - name: 'Build Release'
         working-directory: ${{github.workspace}}/landstalker_editor
         run: |
-          cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release -DLANDSTALKER_BUILD_TESTING=ON
           cmake --build build --config Release
           cmake --install build --prefix ./release --config Release
+
+      - name: 'Run Tests'
+        working-directory: ${{github.workspace}}/landstalker_editor
+        env:
+          LANDSTALKER_DISASM_PATH: ${{github.workspace}}/landstalker_disasm
+        run: |
+          ctest --test-dir build -C Release --output-on-failure
 
       - name: 'Build Debug'
         working-directory: ${{github.workspace}}/landstalker_editor
