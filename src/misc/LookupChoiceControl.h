@@ -1,12 +1,13 @@
 #ifndef _LOOKUP_CHOICE_CONTROL_H_
 #define _LOOKUP_CHOICE_CONTROL_H_
 
+#include <vector>
 #include <wx/arrstr.h>
 #include <wx/panel.h>
 
 class wxBitmapButton;
 class wxListBox;
-class wxPopupTransientWindow;
+class wxPopupWindow;
 class wxTextCtrl;
 class wxCommandEvent;
 class wxFocusEvent;
@@ -27,8 +28,14 @@ public:
     int GetSelection() const;
     unsigned int GetCount() const;
     wxString GetString(unsigned int index) const;
+    bool Enable(bool enable = true) override;
 
 private:
+    int FindChoiceIndex(const wxString& value) const;
+    bool IsCurrentValueValidChoice() const;
+    bool CommitCurrentTextIfValid();
+    void RestoreCommittedValue();
+    void SendSelectionChangedEvent();
     void UpdateFilteredItems(bool show_all = false, bool auto_select = true);
     void ShowPopup();
     void HidePopup();
@@ -56,8 +63,11 @@ private:
     wxArrayString m_choices;
     wxTextCtrl* m_text;
     wxBitmapButton* m_drop_btn;
-    wxPopupTransientWindow* m_popup;
+    wxPopupWindow* m_popup;
     wxListBox* m_list;
+    std::vector<int> m_filtered_indices;
+    wxString m_committed_value;
+    int m_selection = wxNOT_FOUND;
     int m_list_click_candidate = wxNOT_FOUND;
     bool m_updating_list = false;
     bool m_select_all_on_focus = true;

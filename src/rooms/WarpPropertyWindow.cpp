@@ -8,63 +8,13 @@
 
 namespace
 {
-int ParseBracketedIndex(const wxString& text, int fallback)
-{
-    wxString t = text;
-    t.Trim(true);
-    t.Trim(false);
-
-    if (t.empty())
-    {
-        return fallback;
-    }
-
-    if (t.StartsWith("["))
-    {
-        const int close = t.Find(']');
-        if (close != wxNOT_FOUND)
-        {
-            wxString idx = t.SubString(1, close - 1);
-            long parsed = 0;
-            if (idx.ToLong(&parsed) && parsed >= 0)
-            {
-                return static_cast<int>(parsed);
-            }
-        }
-    }
-
-    long parsed = 0;
-    if (t.ToLong(&parsed) && parsed >= 0)
-    {
-        return static_cast<int>(parsed);
-    }
-
-    return fallback;
-}
-
-int ComboSelectionOrParsed(const LookupChoiceControl* combo, int max_index, int fallback)
+int ComboSelectionOrParsed(const LookupChoiceControl* combo, int fallback)
 {
     const int sel = combo->GetSelection();
     if (sel != wxNOT_FOUND)
     {
         return sel;
     }
-
-    const int parsed = ParseBracketedIndex(combo->GetValue(), fallback);
-    if (parsed >= 0 && parsed <= max_index)
-    {
-        return parsed;
-    }
-
-    const wxString lower = combo->GetValue().Lower();
-    for (unsigned int i = 0; i < combo->GetCount(); ++i)
-    {
-        if (combo->GetString(i).Lower() == lower)
-        {
-            return static_cast<int>(i);
-        }
-    }
-
     return fallback;
 }
 }
@@ -99,11 +49,12 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     m_ctrl_dialog_header->SetFont(m_ctrl_dialog_header_font);
     szr1->Add(m_ctrl_dialog_header, 0, wxALL, 5);
 
-    wxFlexGridSizer* szr2a = new wxFlexGridSizer(2, 6, 0, 0);
+    wxFlexGridSizer* szr2a = new wxFlexGridSizer(2, 2, 0, 0);
     szr2a->SetFlexibleDirection(wxBOTH);
     szr2a->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+    szr2a->AddGrowableCol(1, 1);
 
-    szr1->Add(szr2a, 0, 0, 0);
+    szr1->Add(szr2a, 0, wxEXPAND, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Source Room:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     wxArrayString room_names;
     for (std::size_t i = 0; i < gd.GetRoomData()->GetRoomCount(); ++i)
@@ -115,18 +66,6 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     m_ctrl_src_room->SetSelection(src_room);
     m_ctrl_src_room->Enable(false);
     szr2a->Add(m_ctrl_src_room, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
-    szr2a->Add(new wxStaticText(this, wxID_ANY, "X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_src_x = new wxSpinCtrl(this, ID_SRC_X, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_src_x->SetRange(0, 63);
-    m_ctrl_src_x->SetValue(warp->room1 == src_room ? warp->x1 : warp->x2);
-    m_ctrl_src_x->SetIncrement(1);
-    szr2a->Add(m_ctrl_src_x, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    szr2a->Add(new wxStaticText(this, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_src_y = new wxSpinCtrl(this, ID_SRC_Y, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_src_y->SetRange(0, 63);
-    m_ctrl_src_y->SetValue(warp->room1 == src_room ? warp->y1 : warp->y2);
-    m_ctrl_src_y->SetIncrement(1);
-    szr2a->Add(m_ctrl_src_y, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Destination Room:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)
@@ -136,9 +75,9 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     }
     m_ctrl_dst_room = new LookupChoiceControl(this, ID_DST_ROOM, wxEmptyString, room_names,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
-    if (m_unknown_selectable)
-    {
-        if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)
+        if (m_unknown_selectable)
+        {
+            if (warp->room1 == src_room ? warp->room2 == 0xFFFF : warp->room1 == 0xFFFF)
         {
             m_ctrl_dst_room->SetSelection(0);
         }
@@ -152,23 +91,11 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
         m_ctrl_dst_room->SetSelection(warp->room1 == src_room ? warp->room2 : warp->room1);
     }
     szr2a->Add(m_ctrl_dst_room, 1, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, 5);
-    szr2a->Add(new wxStaticText(this, wxID_ANY, "X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dst_x = new wxSpinCtrl(this, ID_DST_X, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_dst_x->SetRange(0, 63);
-    m_ctrl_dst_x->SetValue(warp->room1 == src_room ? warp->x2 : warp->x1);
-    m_ctrl_dst_x->SetIncrement(1);
-    szr2a->Add(m_ctrl_dst_x, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    szr2a->Add(new wxStaticText(this, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_dst_y = new wxSpinCtrl(this, ID_DST_Y, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
-    m_ctrl_dst_y->SetRange(0, 63);
-    m_ctrl_dst_y->SetValue(warp->room1 == src_room ? warp->y2 : warp->y1);
-    m_ctrl_dst_y->SetIncrement(1);
-    szr2a->Add(m_ctrl_dst_y, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-   
-    wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2b, 0, wxEXPAND, 0);
-
+    
+    
+    wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2c, 0, wxEXPAND, 0);
+    
     wxArrayString type_names;
     type_names.Add("[0] Normal");
     type_names.Add("[1] Stairs SE");
@@ -180,18 +107,53 @@ WarpPropertyWindow::WarpPropertyWindow(wxWindow* parent, uint16_t src_room, int 
     size_names.Add("3X1");
     size_names.Add("1X2");
     size_names.Add("1X3");
-
-    szr2b->Add(new wxStaticText(this, wxID_ANY, "Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    
+    szr2c->Add(new wxStaticText(this, wxID_ANY, "Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_type = new wxChoice(this, ID_TYPE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), type_names, 0);
     m_ctrl_type->SetSelection(static_cast<int>(warp->type));
-    szr2b->Add(m_ctrl_type, 1, wxALL | wxEXPAND, 5);
-    szr2b->Add(new wxStaticText(this, wxID_ANY, "Size:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr2c->Add(m_ctrl_type, 1, wxALL | wxEXPAND, 5);
+    szr2c->Add(new wxStaticText(this, wxID_ANY, "Size:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_size = new wxChoice(this, ID_SIZE, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), size_names, 0);
     m_ctrl_size->SetSelection(warp->y_size > 1 ? warp->y_size + 1 : warp->x_size - 1);
-    szr2b->Add(m_ctrl_size, 1, wxALL | wxEXPAND, 5);
+    szr2c->Add(m_ctrl_size, 1, wxALL | wxEXPAND, 5);
+    
+    wxBoxSizer* szr3 = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr3, 1, wxEXPAND, 0);
+    wxBoxSizer* szr3a = new wxBoxSizer(wxVERTICAL);
+    szr3->Add(szr3a, 1, wxEXPAND, 0);
+    wxBoxSizer* szr3ai = new wxBoxSizer(wxHORIZONTAL);
+    szr3a->Add(szr3ai, 1, wxEXPAND, 0);
+    szr3ai->Add(new wxStaticText(this, wxID_ANY, "Source X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_src_x = new wxSpinCtrl(this, ID_SRC_X, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    m_ctrl_src_x->SetRange(0, 63);
+    m_ctrl_src_x->SetValue(warp->room1 == src_room ? warp->x1 : warp->x2);
+    m_ctrl_src_x->SetIncrement(1);
+    szr3ai->Add(m_ctrl_src_x, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr3ai->Add(new wxStaticText(this, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_src_y = new wxSpinCtrl(this, ID_SRC_Y, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    m_ctrl_src_y->SetRange(0, 63);
+    m_ctrl_src_y->SetValue(warp->room1 == src_room ? warp->y1 : warp->y2);
+    m_ctrl_src_y->SetIncrement(1);
+    szr3ai->Add(m_ctrl_src_y, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    wxBoxSizer* szr3b = new wxBoxSizer(wxVERTICAL);
+    szr3->Add(szr3b, 1, wxEXPAND, 0);
+    wxBoxSizer* szr3bi = new wxBoxSizer(wxHORIZONTAL);
+    szr3b->Add(szr3bi, 1, wxEXPAND, 0);
+    szr3bi->Add(new wxStaticText(this, wxID_ANY, "Destination X:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_dst_x = new wxSpinCtrl(this, ID_DST_X, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    m_ctrl_dst_x->SetRange(0, 63);
+    m_ctrl_dst_x->SetValue(warp->room1 == src_room ? warp->x2 : warp->x1);
+    m_ctrl_dst_x->SetIncrement(1);
+    szr3bi->Add(m_ctrl_dst_x, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    szr3bi->Add(new wxStaticText(this, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_dst_y = new wxSpinCtrl(this, ID_DST_Y, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
+    m_ctrl_dst_y->SetRange(0, 63);
+    m_ctrl_dst_y->SetValue(warp->room1 == src_room ? warp->y2 : warp->y1);
+    m_ctrl_dst_y->SetIncrement(1);
+    szr3bi->Add(m_ctrl_dst_y, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
-    szr1->Add(szr2c, 1, wxEXPAND, 0);
+    wxBoxSizer* szr2d = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2d, 1, wxEXPAND, 0);
     m_sizer_btn = new wxStdDialogButtonSizer();
     szr1->Add(m_sizer_btn, 0, wxALL | wxEXPAND, 5);
     m_btn_ok = new wxButton(this, wxID_OK, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
@@ -233,8 +195,7 @@ void WarpPropertyWindow::OnClickOK(wxCommandEvent& /*evt*/)
     const int fallback_dst_selection = m_unknown_selectable ?
         (current_dst_room == 0xFFFF ? 0 : static_cast<int>(current_dst_room) + 1) :
         static_cast<int>(current_dst_room);
-    const int dst_selection = ComboSelectionOrParsed(m_ctrl_dst_room,
-        static_cast<int>(m_ctrl_dst_room->GetCount()) - 1, fallback_dst_selection);
+    const int dst_selection = ComboSelectionOrParsed(m_ctrl_dst_room, fallback_dst_selection);
 
     if (m_warp->room1 == m_room_src)
     {

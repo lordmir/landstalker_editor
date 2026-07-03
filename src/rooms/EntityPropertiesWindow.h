@@ -15,23 +15,39 @@
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 #include <wx/button.h>
+#include <string>
+#include <vector>
 #include <landstalker/rooms/Entity.h>
 #include <landstalker/misc/Labels.h>
+#include <landstalker/main/GameData.h>
 
 class EntityPropertiesWindow : public wxDialog
 {
 public:
-    EntityPropertiesWindow(wxWindow* parent, int id, Landstalker::Entity* entity, const std::vector<std::wstring>& char_names = {});
+
+    EntityPropertiesWindow(wxWindow* parent, int id, uint16_t room, std::vector<Landstalker::Entity>& entities, const Landstalker::GameData* gd, const std::vector<std::wstring>& char_names = {});
 
     virtual ~EntityPropertiesWindow();
 
 private:
+    void UpdateUI();
 
     void OnClickOK(wxCommandEvent& e);
     void OnClickCancel(wxCommandEvent& e);
+    void OnChange(wxCommandEvent& e);
 
-    Landstalker::Entity* m_entity;
+    std::vector<Landstalker::Entity>* m_entities;
+    const Landstalker::GameData* m_gd;
     int m_id;
+    uint16_t m_room;
+    
+    int m_chest_id;
+    bool m_disabled_for_room;
+    uint8_t m_chest_contents;
+    uint8_t m_orig_chest_contents;
+    int m_chest_flag;
+    int m_prev_chest_flag;
+    uint8_t m_prev_chest_contents;
 
     wxStaticText* m_ctrl_dialog_header;
     LookupChoiceControl* m_ctrl_entity_type;
@@ -55,6 +71,10 @@ private:
     wxCheckBox* m_ctrl_copy_tiles;
     wxSpinCtrl* m_ctrl_copy_source;
     wxStdDialogButtonSizer* m_sizer_btn;
+    wxStaticText* m_chest_label;
+    wxCheckBox* m_ctrl_chest_prev;
+    wxTextCtrl* m_ctrl_chest_idx;
+    LookupChoiceControl* m_ctrl_chest_content;
     wxButton* m_btn_ok;
     wxButton* m_btn_cancel;
 

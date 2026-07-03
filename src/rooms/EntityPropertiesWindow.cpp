@@ -3,69 +3,20 @@
 #include <wx/settings.h>
 #include <landstalker/misc/Utils.h>
 #include <landstalker/main/SpriteData.h>
+#include <landstalker/main/GameData.h>
 #include <cmath>
 #include <algorithm>
 #include <vector>
 
 namespace
 {
-int ParseBracketedIndex(const wxString& text, int base, int fallback)
-{
-    wxString t = text;
-    t.Trim(true);
-    t.Trim(false);
-
-    if (t.empty())
-    {
-        return fallback;
-    }
-
-    if (t.StartsWith("["))
-    {
-        const int close = t.Find(']');
-        if (close != wxNOT_FOUND)
-        {
-            wxString idx = t.SubString(1, close - 1);
-            long parsed = 0;
-            if (idx.ToLong(&parsed, base) && parsed >= 0)
-            {
-                return static_cast<int>(parsed);
-            }
-        }
-    }
-
-    long parsed = 0;
-    if (t.ToLong(&parsed, base) && parsed >= 0)
-    {
-        return static_cast<int>(parsed);
-    }
-
-    return fallback;
-}
-
-int ComboSelectionOrParsed(const LookupChoiceControl* combo, int base, int max_index, int fallback)
+int ComboSelectionOrParsed(const LookupChoiceControl* combo, int fallback)
 {
     const int sel = combo->GetSelection();
     if (sel != wxNOT_FOUND)
     {
         return sel;
     }
-
-    const int parsed = ParseBracketedIndex(combo->GetValue(), base, fallback);
-    if (parsed >= 0 && parsed <= max_index)
-    {
-        return parsed;
-    }
-
-    const wxString lower = combo->GetValue().Lower();
-    for (unsigned int i = 0; i < combo->GetCount(); ++i)
-    {
-        if (combo->GetString(i).Lower() == lower)
-        {
-            return static_cast<int>(i);
-        }
-    }
-
     return fallback;
 }
 }
@@ -92,14 +43,35 @@ enum ID
     ID_FF,
     ID_FX,
     ID_FT,
-    ID_CPYSRC
+    ID_CPYSRC,
+    ID_CHEST_PREV,
+    ID_CHEST_IDX,
+    ID_CHEST_CONTENT
 };
 
-EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landstalker::Entity* entity, const std::vector<std::wstring>& char_names)
+EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_t room, std::vector<Landstalker::Entity>& entities, const Landstalker::GameData* gd, const std::vector<std::wstring>& char_names)
     : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, wxSize(560, 560)),
-      m_entity(entity),
-      m_id(id)
+      m_entities(&entities),
+      m_gd(gd),
+      m_id(id),
+      m_room(room)
 {
+    m_chest_id = 0;
+    for (int i = 0; i < m_id - 1; ++i)
+    {
+        if ((*m_entities)[i].IsChest())
+        {
+            m_chest_id++;
+        }
+    }
+    m_disabled_for_room = m_gd->GetRoomData()->GetNoChestFlagForRoom(m_room);
+    auto chests = m_gd->GetRoomData()->GetChestsForRoom(m_room);
+    m_chest_contents = m_chest_id < static_cast<int>(chests.size()) ? chests[m_chest_id] : 0;
+    m_orig_chest_contents = m_chest_contents;
+    m_chest_flag = m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room) + m_chest_id;
+    m_prev_chest_flag = (m_room == 0 ? 0 : m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room - 1)) + m_chest_id;
+    m_prev_chest_contents = m_gd->GetRoomData()->GetChestContentsFromFlag(m_prev_chest_flag);
+
     wxArrayString entity_types;
     for (std::size_t i = 0; i < 256; ++i)
     {
@@ -118,7 +90,14 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
         std::wstring dialogue_name = i < char_names.size() ? char_names.at(i) : L"???";
         dialogues.Add(Landstalker::StrWPrintf(L"[%02d] %ls", i, dialogue_name.c_str()));
     }
+    wxArrayString items;
+    for (std::size_t i = 0; i < 64; ++i)
+    {
+        auto item_name = gd->GetStringData()->GetItemName(i);
+        items.Add(Landstalker::StrWPrintf(L"[%02X] %ls", i, item_name.c_str()));
+    }
 
+    const auto entity = &(*m_entities)[id - 1];
     wxBoxSizer* szr1 = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(szr1);
 
@@ -130,12 +109,12 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
 
     wxBoxSizer* szr2a = new wxBoxSizer(wxHORIZONTAL);
 
-    szr1->Add(szr2a, 0, 0, 0);
+    szr1->Add(szr2a, 0, wxEXPAND, 0);
     szr2a->Add(new wxStaticText(this, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_entity_type = new LookupChoiceControl(this, ID_TYPE, entity_types[entity->GetType()], entity_types,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
     m_ctrl_entity_type->SetSelection(entity->GetType());
-    szr2a->Add(m_ctrl_entity_type, 0, wxALL | wxEXPAND, 5);
+    szr2a->Add(m_ctrl_entity_type, 1, wxALL | wxEXPAND, 5);
 
     szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
     wxBoxSizer* szr2b = new wxBoxSizer(wxHORIZONTAL);
@@ -265,6 +244,29 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
     m_ctrl_copy_source->SetIncrement(1);
     szr2g->Add(m_ctrl_copy_source, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
+    
+    szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
+    m_chest_label = new wxStaticText(this, wxID_ANY, "Chest Options (Chest ID: N/A)", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    wxFont font = m_chest_label->GetFont();
+    font.SetWeight(wxFONTWEIGHT_BOLD);
+    m_chest_label->SetFont(font);
+    szr1->Add(m_chest_label, 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    wxBoxSizer* szr2h = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2h, 1, wxALL | wxEXPAND, 5);
+    szr2h->Add(new wxStaticText(this, wxID_ANY, _("Copy from previous room:"), wxDefaultPosition, wxDefaultSize), 0, wxALIGN_CENTER_VERTICAL);
+    m_ctrl_chest_prev = new wxCheckBox(this, ID_CHEST_PREV, _(" - Setting applies to whole room!"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    szr2h->Add(m_ctrl_chest_prev, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    wxBoxSizer* szr2i = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2i, 1, wxALL | wxEXPAND, 5);
+    szr2i->Add(new wxStaticText(this, wxID_ANY, "Chest Flag ID:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_chest_idx = new wxTextCtrl(this, ID_CHEST_IDX, wxT(""), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
+    szr2i->Add(m_ctrl_chest_idx, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    wxBoxSizer* szr2j = new wxBoxSizer(wxHORIZONTAL);
+    szr1->Add(szr2j, 1, wxALL | wxEXPAND, 5);
+    szr2j->Add(new wxStaticText(this, wxID_ANY, "Chest Contents:", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_chest_content = new LookupChoiceControl(this, ID_CHEST_CONTENT, "", items, wxDefaultPosition, wxDLG_UNIT(this, wxSize(150, -1)));
+    szr2j->Add(m_ctrl_chest_content, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
     szr1->Add(new wxStaticLine(this), 0, wxALL | wxEXPAND, 0);
     m_sizer_btn = new wxStdDialogButtonSizer();
     szr1->Add(m_sizer_btn, 0, wxALL | wxEXPAND, 5);
@@ -281,36 +283,116 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, Landsta
 
     m_btn_ok->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickOK), NULL, this);
     m_btn_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
+    m_ctrl_entity_type->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_chest_prev->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_chest_content->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+
+    UpdateUI();
 }
 
 EntityPropertiesWindow::~EntityPropertiesWindow()
 {
     m_btn_ok->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickOK), NULL, this);
     m_btn_cancel->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
+    m_ctrl_entity_type->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_chest_prev->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_chest_content->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+}
+
+void EntityPropertiesWindow::UpdateUI()
+{
+    if (ComboSelectionOrParsed(m_ctrl_entity_type, (*m_entities)[m_id - 1].GetType()) == 0x12) // Chest
+    {
+        m_chest_label->SetLabel(Landstalker::StrPrintf("Chest Options (Chest ID %d)", m_chest_id));
+        if (m_ctrl_chest_prev->GetValue())
+        {
+            if (m_disabled_for_room == false)
+            {
+                m_orig_chest_contents = m_chest_contents;
+                m_disabled_for_room = true;
+            }
+            m_ctrl_chest_idx->SetValue(Landstalker::StrPrintf("0x%02X", m_prev_chest_flag));
+            m_ctrl_chest_content->SetSelection(m_prev_chest_contents);
+        }
+        else
+        {
+            if (m_disabled_for_room == true)
+            {
+                m_chest_contents = m_orig_chest_contents;
+                m_disabled_for_room = false;
+            }
+            else
+            {
+                m_chest_contents = ComboSelectionOrParsed(m_ctrl_chest_content, m_chest_contents);
+            }
+            m_ctrl_chest_idx->SetValue(Landstalker::StrPrintf("0x%02X", m_chest_flag));
+            m_ctrl_chest_content->SetSelection(m_chest_contents);
+        }
+        m_ctrl_chest_prev->SetValue(m_disabled_for_room);
+        m_ctrl_chest_prev->Enable(true);
+        m_ctrl_chest_idx->Enable(false);
+        m_ctrl_chest_content->Enable(!m_disabled_for_room);
+    }
+    else
+    {
+        m_chest_label->SetLabel(_("Chest Options (N/A)"));
+        m_ctrl_chest_prev->SetValue(false);
+        m_ctrl_chest_idx->SetValue("");
+        m_ctrl_chest_content->ChangeValue("");
+        m_ctrl_chest_prev->Enable(false);
+        m_ctrl_chest_idx->Enable(false);
+        m_ctrl_chest_content->Enable(false);
+    }
+}
+
+void EntityPropertiesWindow::OnChange(wxCommandEvent& e)
+{
+    UpdateUI();
+    e.Skip();
 }
 
 void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
-    m_entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, 16, 0xFF, m_entity->GetType()));
-    m_entity->SetXDbl(m_ctrl_x->GetValue());
-    m_entity->SetYDbl(m_ctrl_y->GetValue());
-    m_entity->SetZDbl(m_ctrl_z->GetValue());
-    m_entity->SetSpeed(m_ctrl_speed->GetValue());
-    m_entity->SetBehaviour(ComboSelectionOrParsed(m_ctrl_behaviour, 10, 0x3FF, m_entity->GetBehaviour()));
-    m_entity->SetDialogue(ComboSelectionOrParsed(m_ctrl_dialogue, 10, 0x3F, m_entity->GetDialogue()));
-    m_entity->SetOrientation(static_cast<Landstalker::Orientation>(m_ctrl_orientation->GetSelection()));
-    m_entity->SetPalette(m_ctrl_palette->GetSelection());
-    m_entity->SetHostile(m_ctrl_hostile->GetValue());
-    m_entity->SetNoRotate(m_ctrl_no_rotate->GetValue());
-    m_entity->SetNoPickup(m_ctrl_no_pickup->GetValue());
-    m_entity->SetHasDialogue(m_ctrl_has_dialogue->GetValue());
-    m_entity->SetVisible(m_ctrl_visible->GetValue());
-    m_entity->SetSolid(m_ctrl_solid->GetValue());
-    m_entity->SetGravity(m_ctrl_has_gravity->GetValue());
-    m_entity->SetFriction(m_ctrl_has_friction->GetValue());
-    m_entity->SetReserved(m_ctrl_reserved->GetValue());
-    m_entity->SetTileCopy(m_ctrl_copy_tiles->GetValue());
-    m_entity->SetCopySource(m_ctrl_copy_source->GetValue());
+    auto* entity = &(*m_entities)[m_id - 1];
+    entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, entity->GetType()));
+    entity->SetXDbl(m_ctrl_x->GetValue());
+    entity->SetYDbl(m_ctrl_y->GetValue());
+    entity->SetZDbl(m_ctrl_z->GetValue());
+    entity->SetSpeed(m_ctrl_speed->GetValue());
+    entity->SetBehaviour(ComboSelectionOrParsed(m_ctrl_behaviour, entity->GetBehaviour()));
+    entity->SetDialogue(ComboSelectionOrParsed(m_ctrl_dialogue, entity->GetDialogue()));
+    entity->SetOrientation(static_cast<Landstalker::Orientation>(m_ctrl_orientation->GetSelection()));
+    entity->SetPalette(m_ctrl_palette->GetSelection());
+    entity->SetHostile(m_ctrl_hostile->GetValue());
+    entity->SetNoRotate(m_ctrl_no_rotate->GetValue());
+    entity->SetNoPickup(m_ctrl_no_pickup->GetValue());
+    entity->SetHasDialogue(m_ctrl_has_dialogue->GetValue());
+    entity->SetVisible(m_ctrl_visible->GetValue());
+    entity->SetSolid(m_ctrl_solid->GetValue());
+    entity->SetGravity(m_ctrl_has_gravity->GetValue());
+    entity->SetFriction(m_ctrl_has_friction->GetValue());
+    entity->SetReserved(m_ctrl_reserved->GetValue());
+    entity->SetTileCopy(m_ctrl_copy_tiles->GetValue());
+    entity->SetCopySource(m_ctrl_copy_source->GetValue());
+    if (entity->IsChest())
+    {
+        if (m_disabled_for_room)
+        {
+            m_gd->GetRoomData()->SetNoChestFlagForRoom(m_room, true);
+        }
+        else
+        {
+            m_gd->GetRoomData()->SetNoChestFlagForRoom(m_room, false);
+            auto chests = m_gd->GetRoomData()->GetChestsForRoom(m_room);
+            if (m_chest_id >= static_cast<int>(chests.size()))
+            {
+                chests.resize(m_chest_id + 1); // Fill with 0s up to chest_id
+            }
+            chests[m_chest_id] = m_chest_contents;
+            m_gd->GetRoomData()->SetChestsForRoom(m_room, chests);
+        }
+        m_gd->GetRoomData()->CleanupChests(*m_gd);
+    }
     EndModal(wxID_OK);
 }
 

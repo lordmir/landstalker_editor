@@ -2190,7 +2190,6 @@ void RoomViewerFrame::UpdateUI() const
 		EnableMenuItem(ID_EDIT_ENTITY_PROPERTIES, false);
 		EnableToolbarItem("Main", ID_EDIT_ENTITY_PROPERTIES, false);
 
-		const bool has_hm_selection = gpu_selected && m_gpuview->HasSelectedHeightmapCell();
 		const bool has_hm_edit_target = gpu_selected && m_gpuview->HasHeightmapEditTarget();
 		EnableToolbarItem("Heightmap", HM_INSERT_ROW_BEFORE, gpu_selected && m_gpuview->CanInsertSelectedHeightmapRow());
 		EnableToolbarItem("Heightmap", HM_INSERT_ROW_AFTER, gpu_selected && m_gpuview->CanInsertSelectedHeightmapRow());
@@ -2435,7 +2434,7 @@ void RoomViewerFrame::UpdateEntityProperties(int entity)
 	std::vector<std::wstring> char_names;
 	std::transform(chars.cbegin(), chars.cend(), std::back_inserter(char_names),
 		[this](uint16_t chr) { return m_g->GetStringData()->GetCharacterDisplayName(chr); });
-	EntityPropertiesWindow dlg(this, entity, &entities[entity - 1], char_names);
+	EntityPropertiesWindow dlg(this, entity, m_roomnum, entities, m_g.get(), char_names);
 	if (dlg.ShowModal() == wxID_OK)
 	{
 		if (m_gpuview)
