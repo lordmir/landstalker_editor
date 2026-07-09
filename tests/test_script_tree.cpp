@@ -326,3 +326,234 @@ TEST_F(ScriptTreeEditorTest, ShopModelEditFlow)
     EXPECT_NE(displayed.find("NewFunction"), displayed.end());
     EXPECT_NE(displayed.find("NewFunction2"), displayed.end());
 }
+
+// User report: add two sibling functions to an entry, then reference one from the other
+// through a script action - on the post-edit rebuild every one of the sibling functions
+// vanished from the tree. Both must stay in the function table, stay displayed, and stay
+// displayed IN THE ENTRY THE USER ADDED THEM TO across the rebuild (new functions are
+// appended to the end of the function table, and the location-based related-function sweep
+// re-attributes table-end functions to whichever entry owns the last anchored run - which is
+// where they "disappear" to).
+TEST_F(ScriptTreeEditorTest, SiblingFunctionReferenceSurvivesRebuild)
+{
+    ScriptTreeNode cat = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    ASSERT_FALSE(cat.children.empty()) << "no character entries";
+    // Pick an entry whose slot resolves to a merged function body, so the entry participates
+    // in location anchoring like a typical character.
+    ScriptTreeNode* entry = nullptr;
+    for (auto& e : cat.children)
+    {
+        for (auto& c : e.children)
+        {
+            if (!c.embedded_function_name.empty())
+            {
+                entry = &e;
+                break;
+            }
+        }
+        if (entry)
+        {
+            break;
+        }
+    }
+    ASSERT_NE(entry, nullptr) << "no character entry with a merged slot function found";
+    const wxString entry_name = entry->name;
+
+    auto char_funcs = s_gd->GetScriptData()->GetCharFuncs();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(*entry, char_funcs, s_gd, FullPool()));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    ASSERT_FALSE(top.IsEmpty());
+
+    wxDataViewItem fa = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    wxDataViewItem fb = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    ASSERT_TRUE(fa.IsOk());
+    ASSERT_TRUE(fb.IsOk());
+    // Deterministic names, independent of what earlier (cumulative) tests created.
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzSibRefA")), fa, 0));
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzSibRefB")), fb, 0));
+    ASSERT_NE(char_funcs->GetMapping("zzSibRefA"), nullptr);
+    ASSERT_NE(char_funcs->GetMapping("zzSibRefB"), nullptr);
+
+    // Reference B from a script action inside A.
+    wxDataViewItem action = model->AddChild(fa, { ScriptTreeNodeType::ACTION, "Script Action", "Script Action:" });
+    ASSERT_TRUE(action.IsOk());
+    EXPECT_TRUE(model->SetValue(wxVariant(wxString("Function: zzSibRefB")), action, 0));
+
+    EXPECT_NE(char_funcs->GetMapping("zzSibRefA"), nullptr);
+    EXPECT_NE(char_funcs->GetMapping("zzSibRefB"), nullptr);
+
+    // The app rebuilds the category after every reference-affecting edit.
+    ScriptTreeNode rebuilt = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    std::set<std::string> displayed;
+    CollectDisplayFunctionNames(rebuilt, displayed);
+    EXPECT_NE(displayed.find("zzSibRefA"), displayed.end()) << "referencing function vanished from the tree";
+    EXPECT_NE(displayed.find("zzSibRefB"), displayed.end()) << "referenced function vanished from the tree";
+    EXPECT_NE(char_funcs->GetMapping("zzSibRefA"), nullptr) << "referencing function removed from the table";
+    EXPECT_NE(char_funcs->GetMapping("zzSibRefB"), nullptr) << "referenced function removed from the table";
+
+    // The functions must still be displayed in the entry they were added to - not silently
+    // re-attributed to whichever entry happens to own the end of the function table.
+    auto entry_displaying = [&](const std::string& name) -> wxString
+    {
+        for (const auto& e : rebuilt.children)
+        {
+            std::set<std::string> names;
+            CollectDisplayFunctionNames(e, names);
+            if (names.find(name) != names.end())
+            {
+                return e.name;
+            }
+        }
+        return "<nowhere>";
+    };
+    EXPECT_EQ(entry_displaying("zzSibRefA"), entry_name);
+    EXPECT_EQ(entry_displaying("zzSibRefB"), entry_name);
+}
+
+// User report: with two sibling functions in an entry, referencing ONE of them from the
+// entry's own function body correctly re-displays it embedded at the reference point - but
+// the OTHER (still unreferenced) sibling vanished. Both must survive the rebuild, in the
+// same entry.
+TEST_F(ScriptTreeEditorTest, ReferencingOneSiblingKeepsTheOther)
+{
+    ScriptTreeNode cat = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    ASSERT_FALSE(cat.children.empty()) << "no character entries";
+    ScriptTreeNode* entry = nullptr;
+    ScriptTreeNode* merged_slot = nullptr;
+    for (auto& e : cat.children)
+    {
+        for (auto& c : e.children)
+        {
+            if (!c.embedded_function_name.empty())
+            {
+                entry = &e;
+                merged_slot = &c;
+                break;
+            }
+        }
+        if (entry)
+        {
+            break;
+        }
+    }
+    ASSERT_NE(entry, nullptr) << "no character entry with a merged slot function found";
+    const wxString entry_name = entry->name;
+    const wxString slot_name = merged_slot->name;
+
+    auto char_funcs = s_gd->GetScriptData()->GetCharFuncs();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(*entry, char_funcs, s_gd, FullPool()));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    ASSERT_FALSE(top.IsEmpty());
+
+    wxDataViewItem fa = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    wxDataViewItem fb = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    ASSERT_TRUE(fa.IsOk());
+    ASSERT_TRUE(fb.IsOk());
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzKeepA")), fa, 0));
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzKeepB")), fb, 0));
+    ASSERT_NE(char_funcs->GetMapping("zzKeepA"), nullptr);
+    ASSERT_NE(char_funcs->GetMapping("zzKeepB"), nullptr);
+
+    // Reference sibling B from a script action inside the entry's own (merged slot) function.
+    wxDataViewItem slot = FindItemByPrefix(model.get(), wxDataViewItem(), slot_name);
+    ASSERT_TRUE(slot.IsOk());
+    wxDataViewItem action = model->AddChild(slot, { ScriptTreeNodeType::ACTION, "Script Action", "Script Action:" });
+    ASSERT_TRUE(action.IsOk());
+    EXPECT_TRUE(model->SetValue(wxVariant(wxString("Function: zzKeepB")), action, 0));
+
+    EXPECT_NE(char_funcs->GetMapping("zzKeepA"), nullptr);
+    EXPECT_NE(char_funcs->GetMapping("zzKeepB"), nullptr);
+
+    ScriptTreeNode rebuilt = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    auto entry_displaying = [&](const std::string& name) -> wxString
+    {
+        for (const auto& e : rebuilt.children)
+        {
+            std::set<std::string> names;
+            CollectDisplayFunctionNames(e, names);
+            if (names.find(name) != names.end())
+            {
+                return e.name;
+            }
+        }
+        return "<nowhere>";
+    };
+    EXPECT_EQ(entry_displaying("zzKeepB"), entry_name) << "referenced sibling not displayed in its entry";
+    EXPECT_EQ(entry_displaying("zzKeepA"), entry_name) << "unreferenced sibling vanished";
+    EXPECT_NE(char_funcs->GetMapping("zzKeepA"), nullptr) << "unreferenced sibling removed from the table";
+    EXPECT_NE(char_funcs->GetMapping("zzKeepB"), nullptr) << "referenced sibling removed from the table";
+}
+
+
+// User report (VC2019 debug build WITH the positioning fix): two sibling functions, reference
+// one - it moves to the reference point (correct), but the other sibling vanishes. Suspected
+// gesture: the reference was made through the entry's table slot action, making the referenced
+// function the entry's location anchor. The location walk only runs FORWARD from the anchor,
+// so a sibling positioned before it in the table is claimed by the preceding entry's run.
+TEST_F(ScriptTreeEditorTest, SlotAnchoringSecondSiblingKeepsFirst)
+{
+    auto char_table = s_gd->GetScriptData()->GetCharTable();
+    ScriptTreeNode cat = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    ASSERT_FALSE(cat.children.empty()) << "no character entries";
+
+    // Pick an entry whose slot holds a raw script ID (no merged function, no location anchor).
+    int idx = -1;
+    for (std::size_t i = 0; i < char_table->size(); ++i)
+    {
+        if (std::holds_alternative<uint16_t>(char_table->at(i)))
+        {
+            idx = static_cast<int>(i);
+            break;
+        }
+    }
+    ASSERT_NE(idx, -1) << "no character with a raw script-ID slot found";
+    auto it = cat.children.begin();
+    std::advance(it, idx);
+    ScriptTreeNode* entry = &*it;
+    const wxString entry_name = entry->name;
+
+    auto char_funcs = s_gd->GetScriptData()->GetCharFuncs();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(*entry, char_funcs, s_gd, FullPool()));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    ASSERT_FALSE(top.IsEmpty());
+
+    wxDataViewItem fa = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    wxDataViewItem fb = model->AddSibling(top[0], { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    ASSERT_TRUE(fa.IsOk());
+    ASSERT_TRUE(fb.IsOk());
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzSlotA")), fa, 0));
+    ASSERT_TRUE(model->SetValue(wxVariant(wxString("zzSlotB")), fb, 0));
+
+    // Point the entry's own slot action at the SECOND sibling.
+    wxDataViewItem slot = FindItemByPrefix(model.get(), wxDataViewItem(), "On Talk:");
+    ASSERT_TRUE(slot.IsOk());
+    EXPECT_TRUE(model->SetValue(wxVariant(wxString("Function: zzSlotB")), slot, 0));
+    ASSERT_TRUE(std::holds_alternative<std::string>(char_table->at(idx)));
+    EXPECT_EQ(std::get<std::string>(char_table->at(idx)), "zzSlotB");
+
+    ScriptTreeNode rebuilt = ScriptTreeNode::BuildCategoryTree(s_gd, 2);
+    auto entry_displaying = [&](const std::string& name) -> wxString
+    {
+        for (const auto& e : rebuilt.children)
+        {
+            std::set<std::string> names;
+            CollectDisplayFunctionNames(e, names);
+            if (names.find(name) != names.end())
+            {
+                return e.name;
+            }
+        }
+        return "<nowhere>";
+    };
+    EXPECT_EQ(entry_displaying("zzSlotB"), entry_name) << "slot-anchored sibling not displayed in its entry";
+    EXPECT_EQ(entry_displaying("zzSlotA"), entry_name) << "other sibling vanished";
+}

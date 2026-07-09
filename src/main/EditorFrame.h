@@ -30,6 +30,10 @@ public:
 	virtual void UpdateUI() const;
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd) { m_gd = gd; }
 	virtual void ClearGameData() { m_gd = nullptr; }
+	// Flushes any edit the editor is holding outside the game data (e.g. an open in-place cell
+	// editor) into the game data. Called before the project is saved or built, so nothing the
+	// user has entered is missing from the output.
+	virtual void CommitPendingEdits() {}
 	virtual void SetImageList(ImageList* imglst);
 protected:
 	void CheckMenuItem(int id, bool checked) const;

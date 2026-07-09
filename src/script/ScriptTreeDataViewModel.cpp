@@ -412,9 +412,23 @@ void ScriptTreeDataViewModel::CreateFunction(const std::string& name)
     {
         return;
     }
+    // Position the new function directly after the last primary-table function this entry
+    // displays, keeping it inside the entry's location run so the next category rebuild
+    // redisplays it under this entry (see the matching logic in SyncToScriptTable()).
+    std::string insert_anchor;
+    std::vector<ScriptTreeNode*> function_nodes;
+    CollectFunctionNodes(root, function_nodes);
+    for (const ScriptTreeNode* node : function_nodes)
+    {
+        const std::string displayed = GetFunctionName(*node);
+        if (m_functions->GetMapping(displayed) != nullptr)
+        {
+            insert_anchor = displayed;
+        }
+    }
     Statements::ScriptStatementVector statements;
     statements.push_back(Statements::Rts());
-    m_functions->AddFunction(ScriptFunction(name, statements));
+    m_functions->InsertFunctionAfter(ScriptFunction(name, statements), insert_anchor);
 }
 
 void ScriptTreeDataViewModel::RenameTableReferences(const std::string& old_name, const std::string& new_name)
@@ -695,6 +709,81 @@ void ScriptTreeDataViewModel::PopulateScriptAction(ScriptTreeNode& node, bool is
     }
 }
 
+void ScriptTreeDataViewModel::MoveAnchoredFunctionToGroupHead(const std::string& name)
+{
+    if (!m_functions || m_functions->GetMapping(name) == nullptr)
+    {
+        return;
+    }
+    const auto& order = m_functions->GetFunctionNames();
+    std::map<std::string, std::size_t> index_of;
+    for (std::size_t i = 0; i < order.size(); ++i)
+    {
+        index_of.emplace(order.at(i), i);
+    }
+
+    // The entry's standalone function headers (root children), with their table positions.
+    std::list<ScriptTreeNode>& siblings = root.children;
+    auto anchor_it = siblings.end();
+    std::set<std::size_t> displayed_indices;
+    for (auto it = siblings.begin(); it != siblings.end(); ++it)
+    {
+        if (it->type != ScriptTreeNodeType::FUNCTION)
+        {
+            continue;
+        }
+        const auto idx = index_of.find(GetFunctionName(*it));
+        if (idx == index_of.end())
+        {
+            // Owned by another pool table - positioned in a different file entirely.
+            continue;
+        }
+        displayed_indices.insert(idx->second);
+        if (GetFunctionName(*it) == name)
+        {
+            anchor_it = it;
+        }
+    }
+    if (anchor_it == siblings.end())
+    {
+        return;
+    }
+
+    // Walk down the contiguous run of displayed table positions ending at the anchor - the
+    // anchor must lead exactly this run. Never reach across a gap: the functions beyond it
+    // aren't part of this group, and dragging the anchor past them would reorder (and
+    // potentially break the fall-through pairing of) unrelated functions.
+    const std::size_t anchor_index = index_of.at(name);
+    std::size_t low = anchor_index;
+    while (low > 0 && displayed_indices.find(low - 1) != displayed_indices.end())
+    {
+        --low;
+    }
+    if (low == anchor_index)
+    {
+        return;
+    }
+
+    // Move the anchor's display node directly before the group head's; the sync that follows
+    // (SetFunctionOrder() from display order) applies the same move to the table itself.
+    for (auto it = siblings.begin(); it != siblings.end(); ++it)
+    {
+        if (it->type != ScriptTreeNodeType::FUNCTION)
+        {
+            continue;
+        }
+        const auto idx = index_of.find(GetFunctionName(*it));
+        if (idx != index_of.end() && idx->second == low)
+        {
+            const wxDataViewItem moved = anchor_it->ToItem();
+            siblings.splice(it, siblings, anchor_it);
+            ItemDeleted(wxDataViewItem(), moved);
+            ItemAdded(wxDataViewItem(), moved);
+            return;
+        }
+    }
+}
+
 bool ScriptTreeDataViewModel::ApplyScriptAction(const wxDataViewItem& item, bool is_function, const std::string& function_name, uint16_t script_id)
 {
     ScriptTreeNode* node = reinterpret_cast<ScriptTreeNode*>(item.GetID());
@@ -706,6 +795,11 @@ bool ScriptTreeDataViewModel::ApplyScriptAction(const wxDataViewItem& item, bool
     wxDataViewItemArray old_children = node->GetChildren();
 
     PopulateScriptAction(*node, is_function, function_name, script_id);
+    if (node->write_back && is_function)
+    {
+        // The slot now references this function, making it the entry's location anchor.
+        MoveAnchoredFunctionToGroupHead(function_name);
+    }
     SyncToScriptTable();
 
     const wxDataViewItem node_item = node->ToItem();
@@ -1174,6 +1268,12 @@ void ScriptTreeDataViewModel::SyncToScriptTable()
     CollectFunctionNodes(root, function_nodes);
     std::set<std::string> current_names;
     std::vector<std::string> current_order;
+    // Table-position anchor for brand-new functions: the last synced function that lives in
+    // the primary table. Inserting there (rather than appending at the table's end) keeps a
+    // new function inside this entry's location run, so the category rebuild's location-based
+    // related-function attribution redisplays it under THIS entry - appended at the end it
+    // would silently reappear under whichever entry owns the table's last anchored run.
+    std::string insert_anchor;
 
     for (ScriptTreeNode* node : function_nodes)
     {
@@ -1196,8 +1296,12 @@ void ScriptTreeDataViewModel::SyncToScriptTable()
         }
         else
         {
-            m_functions->AddFunction(std::move(built));
+            m_functions->InsertFunctionAfter(std::move(built), insert_anchor);
             owner = m_functions.get();
+        }
+        if (owner == m_functions.get())
+        {
+            insert_anchor = name;
         }
         // Ordering and auto-removal are only ever applied to this tab's primary table, and only
         // for standalone definitions it owns - see CollectFunctionNames() for why a merged /

@@ -60,6 +60,10 @@ private:
     // Shows the selected character's script tree, or disables the tree when the Script combo
     // is on "<None>" or names a character without a script table entry.
     void UpdateCharScriptTree();
+    // Commits any in-place edit open on the character script tree, pushing its value through
+    // the model into the script tables. The floating editor doesn't commit itself when focus
+    // moves elsewhere, so anything that swaps the model or closes the dialog must flush first.
+    void CommitCharScriptEditing();
     // Rebuilds the character category tree after a script edit, so reference counts and
     // shared-function markers stay accurate.
     void RebuildCharScriptTree();

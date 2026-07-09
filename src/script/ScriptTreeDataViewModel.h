@@ -121,6 +121,12 @@ private:
     void AddDefaultScriptAction(ScriptTreeNode& node) const;
     void PopulateScriptAction(ScriptTreeNode& node, bool is_function, const std::string& function_name, uint16_t script_id) const;
     void SyncToScriptTable();
+    // Called when a table-slot edit makes `name` this entry's location anchor: moves its
+    // display node (and, via the sync that follows, its table position) to the head of the
+    // contiguous group of standalone functions it sits in. The rebuild's location walk only
+    // runs FORWARD from an anchor, so any of the entry's other functions positioned before the
+    // anchor in the table would otherwise be re-attributed to the preceding entry's run.
+    void MoveAnchoredFunctionToGroupHead(const std::string& name);
     // Adds a new, empty (single "Return" statement) function to m_functions - the caller must
     // have already verified IsValidNewFunctionName().
     void CreateFunction(const std::string& name);

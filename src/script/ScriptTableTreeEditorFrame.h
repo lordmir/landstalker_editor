@@ -18,6 +18,7 @@ public:
     bool Open(ScriptTableTreeCategory category);
     virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
     virtual void ClearGameData();
+    virtual void CommitPendingEdits();
 
     void UpdateUI() const;
 private:

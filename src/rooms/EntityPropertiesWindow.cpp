@@ -742,18 +742,31 @@ void EntityPropertiesWindow::RefreshDialogueMapScript()
     UpdateCharScriptTree();
 }
 
+void EntityPropertiesWindow::CommitCharScriptEditing()
+{
+    if (!m_ctrl_char_script)
+    {
+        return;
+    }
+    wxDataViewColumn* column = m_ctrl_char_script->GetColumn(0);
+    wxDataViewRenderer* renderer = column ? column->GetRenderer() : nullptr;
+    if (renderer && renderer->GetEditorCtrl())
+    {
+        // Pulls the editor's value through the model (SetValue -> SyncToScriptTable) and
+        // closes the editor; an invalid value is simply dropped, as if editing were escaped.
+        renderer->FinishEditing();
+    }
+}
+
 void EntityPropertiesWindow::UpdateCharScriptTree()
 {
     if (!m_ctrl_char_script)
     {
         return;
     }
-    // Cancel any in-place edit before the model is swapped out from under it.
-    wxDataViewColumn* column = m_ctrl_char_script->GetColumn(0);
-    if (wxDataViewRenderer* renderer = column ? column->GetRenderer() : nullptr)
-    {
-        renderer->CancelEditing();
-    }
+    // Commit (rather than discard) any in-place edit before the model is swapped out from
+    // under it - switching character or tab is navigation, not a request to abandon the edit.
+    CommitCharScriptEditing();
 
     // Building the character category tree is the expensive part of this dialog; don't pay
     // for it until the Dialogue tab is actually shown (OnPageChanged re-runs this then).
@@ -1000,7 +1013,16 @@ void EntityPropertiesWindow::OnCharScriptEditingDone(wxDataViewEvent& e)
     {
         CallAfter([this]()
         {
-            RebuildCharScriptTree();
+            // An edit flushed by OnClickOK commits after the dialog has closed - the data is
+            // already synced, so just mark the (expensive) tree rebuild for the next open.
+            if (IsShown())
+            {
+                RebuildCharScriptTree();
+            }
+            else
+            {
+                m_char_tree_stale = true;
+            }
         });
     }
     e.Skip();
@@ -1098,6 +1120,9 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
     m_ctrl_behaviour->CommitPendingSelection();
     m_ctrl_behaviour_tab->CommitPendingSelection();
     m_ctrl_chest_content->CommitPendingSelection();
+    // A script edit still open in the character tree's floating editor commits straight into
+    // the script tables (they aren't gated on OK), and would otherwise be lost with the dialog.
+    CommitCharScriptEditing();
 
     entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, entity->GetType()));
     entity->SetXDbl(m_ctrl_x->GetValue());

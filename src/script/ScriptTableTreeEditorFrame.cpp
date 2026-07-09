@@ -73,6 +73,14 @@ void ScriptTableTreeEditorFrame::ClearGameData()
     UpdateUI();
 }
 
+void ScriptTableTreeEditorFrame::CommitPendingEdits()
+{
+    if (m_editor)
+    {
+        m_editor->CommitTreeEditing();
+    }
+}
+
 void ScriptTableTreeEditorFrame::UpdateUI() const
 {
     const bool loaded = m_gd != nullptr && m_gd->GetScriptData()->HasTables();

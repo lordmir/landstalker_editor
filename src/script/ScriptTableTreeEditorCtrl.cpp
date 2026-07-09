@@ -314,6 +314,22 @@ void ScriptTableTreeEditorCtrl::CancelTreeEditing()
     }
 }
 
+void ScriptTableTreeEditorCtrl::CommitTreeEditing()
+{
+    if (!m_dvc_ctrl)
+    {
+        return;
+    }
+    wxDataViewColumn* column = m_dvc_ctrl->GetColumn(0);
+    wxDataViewRenderer* renderer = column ? column->GetRenderer() : nullptr;
+    if (renderer && renderer->GetEditorCtrl())
+    {
+        // Pulls the editor's value through the model (SetValue -> SyncToScriptTable) and
+        // closes the editor; an invalid value is simply dropped, as if editing were escaped.
+        renderer->FinishEditing();
+    }
+}
+
 void ScriptTableTreeEditorCtrl::SelectScriptEntry(int entry_index)
 {
     if (entry_index < 0 || static_cast<std::size_t>(entry_index) >= m_entries.size())
@@ -324,7 +340,9 @@ void ScriptTableTreeEditorCtrl::SelectScriptEntry(int entry_index)
     // The tree's in-place editor is a floating child window positioned over a specific row; if
     // it's left open while we swap in a different entry's model below, it stays visible, now
     // floating over whatever row happens to occupy that same screen position in the new tree.
-    CancelTreeEditing();
+    // Commit (rather than discard) whatever the user had typed - switching entries is a
+    // navigation action, not a request to abandon the edit in progress.
+    CommitTreeEditing();
 
     if (!m_models[entry_index])
     {
@@ -355,7 +373,9 @@ void ScriptTableTreeEditorCtrl::RebuildCategory(int select_entry)
         return;
     }
 
-    CancelTreeEditing();
+    // Commit any in-flight edit before the model it belongs to is destroyed below, or the
+    // typed value would be silently lost.
+    CommitTreeEditing();
     m_dvc_ctrl->UnselectAll();
     m_dvc_ctrl->AssociateModel(nullptr);
     m_models.clear();
@@ -878,6 +898,11 @@ void ScriptTableTreeEditorCtrl::ImportScript(bool yaml)
         return;
     }
 
+    // Discard (don't commit) any edit in progress: it belongs to the table that's about to be
+    // replaced wholesale, and committing it during the post-import rebuild would sync stale
+    // pre-import content over the freshly imported functions.
+    CancelTreeEditing();
+
     try
     {
         std::filesystem::path path(dialog.GetPath().ToStdWstring());
@@ -926,6 +951,10 @@ void ScriptTableTreeEditorCtrl::ExportScript(bool yaml)
         wxMessageBox("No script table is open.", yaml ? "Export" : "Save", wxOK | wxICON_WARNING, this);
         return;
     }
+
+    // The export snapshots the table, so any in-flight in-place edit must reach it first (the
+    // menu click that got us here doesn't move focus, so the editor won't have committed itself).
+    CommitTreeEditing();
 
     const wxString name = GetCategoryName();
     wxString wildcard = yaml ? "YAML files (*.yaml)|*.yaml|All files (*.*)|*.*" : "Assembly files (*.asm)|*.asm|All files (*.*)|*.*";

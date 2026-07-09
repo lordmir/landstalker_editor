@@ -65,6 +65,12 @@ public:
     void ExportScript(bool yaml);
     void ImportScript(bool yaml);
 
+    // Commits any in-place edit currently open on the tree column, pushing its value through
+    // the model (and so into the underlying script tables). The floating editor only commits
+    // itself when the tree decides editing has finished; menu and toolbar clicks don't move
+    // focus, so anything that snapshots the tables (project save, export) must flush first.
+    void CommitTreeEditing();
+
     // Refreshes the current category's tree/entry list after its underlying table was mutated
     // (also called internally after every reference-affecting edit).
     void RebuildCategory(int select_entry);
@@ -84,9 +90,9 @@ private:
     void OnTreeSelectionChanged(wxDataViewEvent& event);
     void OnTreeItemActivated(wxDataViewEvent& event);
     void OnTreeItemEditingDone(wxDataViewEvent& event);
-    // Cancels (without committing) any in-place edit currently active on the tree column, so
-    // that switching entries or categories while editing doesn't leave the floating editor
-    // control stuck open over what's now a different row/entry.
+    // Cancels (without committing) any in-place edit currently active on the tree column.
+    // Only for paths where the edit's target data is going away entirely (project close,
+    // whole-table import) - navigation and save paths use CommitTreeEditing() instead.
     void CancelTreeEditing();
     void ExpandTree(const wxDataViewItem& parent = wxDataViewItem());
     void UpdateEditButtons();

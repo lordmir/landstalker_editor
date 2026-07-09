@@ -480,6 +480,13 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
+            // An editor can be holding an uncommitted edit (e.g. an open in-place cell editor -
+            // reaching this menu item doesn't move focus, so it never commits itself); flush
+            // everything into the game data before it is snapshotted to disk.
+            for (const auto& editor : m_editors)
+            {
+                editor.second->CommitPendingEdits();
+            }
             AssemblyBuilderDialog bdlg(this, path, m_g);
             bdlg.ShowModal();
             if (bdlg.DidOperationSucceed())
@@ -544,6 +551,10 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         }
         if (m_g)
         {
+            for (const auto& editor : m_editors)
+            {
+                editor.second->CommitPendingEdits();
+            }
             auto dlg = AssemblyBuilderDialog(this, path, m_g, AssemblyBuilderDialog::Func::INJECT, std::make_shared<Landstalker::Rom>(m_rom));
             dlg.ShowModal();
             if (dlg.DidOperationSucceed() && wxFileName(path).Exists())
@@ -1080,6 +1091,10 @@ void MainFrame::OnBuildAsm(wxCommandEvent& /*event*/)
     if (m_last_asm.empty())
     {
         return;
+    }
+    for (const auto& editor : m_editors)
+    {
+        editor.second->CommitPendingEdits();
     }
     AssemblyBuilderDialog bdlg(this, m_last_asm, m_g, AssemblyBuilderDialog::Func::BUILD);
     bdlg.ShowModal();
