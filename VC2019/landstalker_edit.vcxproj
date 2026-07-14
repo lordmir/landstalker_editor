@@ -15,6 +15,11 @@
     <ClCompile Include="..\src\2d_maps\Map2DEditorFrame.cpp" />
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorFrame.cpp" />
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorCtrl.cpp" />
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorFrame.cpp" />
+    <ClCompile Include="..\src\script\ScriptTreeActionEditors.cpp" />
+    <ClCompile Include="..\src\script\ScriptTreeBuilder.cpp" />
+    <ClCompile Include="..\src\script\ScriptTreeDataViewModel.cpp" />
     <ClCompile Include="..\src\blockset\BlocksetEditorCtrl.cpp" />
     <ClCompile Include="..\src\blockset\BlocksetEditorFrame.cpp" />
     <ClCompile Include="..\src\main\BrowserTreeCtrl.cpp" />
@@ -73,8 +78,6 @@
     <ClCompile Include="..\src\script\CharacterSfxCtrl.cpp" />
     <ClCompile Include="..\src\script\CharacterSfxDataViewModel.cpp" />
     <ClCompile Include="..\src\script\CharacterSfxFrame.cpp" />
-    <ClCompile Include="..\src\script\DataViewScriptActionEditorControl.cpp" />
-    <ClCompile Include="..\src\script\DataViewScriptActionRenderer.cpp" />
     <ClCompile Include="..\src\script\ProgressFlagsCtrl.cpp" />
     <ClCompile Include="..\src\script\ProgressFlagsDataViewModel.cpp" />
     <ClCompile Include="..\src\script\ProgressFlagsFrame.cpp" />
@@ -83,9 +86,6 @@
     <ClCompile Include="..\src\script\ScriptDataViewRenderer.cpp" />
     <ClCompile Include="..\src\script\ScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\script\ScriptEditorFrame.cpp" />
-    <ClCompile Include="..\src\script\ScriptTableDataViewModel.cpp" />
-    <ClCompile Include="..\src\script\ScriptTableEditorCtrl.cpp" />
-    <ClCompile Include="..\src\script\ScriptTableEditorFrame.cpp" />
     <ClCompile Include="..\src\sprites\AnimationControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\AnimationFrameControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\EntityViewerCtrl.cpp" />
@@ -107,6 +107,11 @@
     <ClInclude Include="..\src\2d_maps\Map2DEditorFrame.h" />
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorCtrl.h" />
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorFrame.h" />
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorCtrl.h" />
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorFrame.h" />
+    <ClInclude Include="..\src\script\ScriptTreeActionEditors.h" />
+    <ClInclude Include="..\src\script\ScriptTreeDataViewModel.h" />
+    <ClInclude Include="..\src\script\ScriptTreeNode.h" />
     <ClInclude Include="..\src\blockset\BlocksetEditorCtrl.h" />
     <ClInclude Include="..\src\blockset\BlocksetEditorFrame.h" />
     <ClInclude Include="..\src\main\BrowserTreeCtrl.h" />
@@ -167,8 +172,6 @@
     <ClInclude Include="..\src\script\CharacterSfxCtrl.h" />
     <ClInclude Include="..\src\script\CharacterSfxDataViewModel.h" />
     <ClInclude Include="..\src\script\CharacterSfxFrame.h" />
-    <ClInclude Include="..\src\script\DataViewScriptActionEditorControl.h" />
-    <ClInclude Include="..\src\script\DataViewScriptActionRenderer.h" />
     <ClInclude Include="..\src\script\ProgressFlagsCtrl.h" />
     <ClInclude Include="..\src\script\ProgressFlagsDataViewModel.h" />
     <ClInclude Include="..\src\script\ProgressFlagsFrame.h" />
@@ -177,9 +180,6 @@
     <ClInclude Include="..\src\script\ScriptDataViewEditorControl.h" />
     <ClInclude Include="..\src\script\ScriptEditorCtrl.h" />
     <ClInclude Include="..\src\script\ScriptEditorFrame.h" />
-    <ClInclude Include="..\src\script\ScriptTableDataViewModel.h" />
-    <ClInclude Include="..\src\script\ScriptTableEditorCtrl.h" />
-    <ClInclude Include="..\src\script\ScriptTableEditorFrame.h" />
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h" />
     <ClInclude Include="..\src\sprites\AnimationFrameControlFrame.h" />
     <ClInclude Include="..\src\sprites\EntityViewerCtrl.h" />

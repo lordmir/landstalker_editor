@@ -48,7 +48,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::ENTITY, new EntityViewerFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::BEHAVIOUR_SCRIPT, new BehaviourScriptEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::SCRIPT, new ScriptEditorFrame(this->m_mainwin, m_imgs) });
-    m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableTreeEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARACTER_SFX, new CharacterSfxEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
@@ -272,19 +272,11 @@ void MainFrame::InitUI()
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     if (m_g->GetScriptData()->HasTables())
     {
-        auto nodeST = m_browser->AppendItem(nodeScript, "Script Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE));
-        m_browser->AppendItem(nodeST, "Cutscene Table", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::CUTSCENE) << 16));
-        m_browser->AppendItem(nodeST, "Character Table", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::CHARACTER) << 16));
-        auto nodeSTS = m_browser->AppendItem(nodeST, "Shop Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::SHOP) << 16));
-        for (std::size_t i = 0; i < m_g->GetScriptData()->GetShopTable()->size(); ++i)
-        {
-            m_browser->AppendItem(nodeSTS, Landstalker::StrPrintf("ShopTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::SHOP) << 16) | i, scr_img, false));
-        }
-        auto nodeSTI = m_browser->AppendItem(nodeST, "Item Tables", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::BASE, static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM)));
-        for (std::size_t i = 0; i < m_g->GetScriptData()->GetItemTable()->size(); ++i)
-        {
-            m_browser->AppendItem(nodeSTI, Landstalker::StrPrintf("ItemTable%d", i), scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, (static_cast<std::size_t>(ScriptTableDataViewModel::Mode::ITEM) << 16) | i, scr_img, false));
-        }
+        // One item per script target - entry navigation lives inside the tree editor itself.
+        m_browser->AppendItem(nodeScript, "Shops", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::SHOP) << 16));
+        m_browser->AppendItem(nodeScript, "Special Items", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::ITEM) << 16));
+        m_browser->AppendItem(nodeScript, "Characters", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CHARACTER) << 16));
+        m_browser->AppendItem(nodeScript, "Cutscenes", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CUTSCENE) << 16));
         m_browser->AppendItem(nodeScript, "Progress Flags", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::PROGRESS_FLAGS));
     }
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
@@ -488,6 +480,13 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
         }
         if (m_g)
         {
+            // An editor can be holding an uncommitted edit (e.g. an open in-place cell editor -
+            // reaching this menu item doesn't move focus, so it never commits itself); flush
+            // everything into the game data before it is snapshotted to disk.
+            for (const auto& editor : m_editors)
+            {
+                editor.second->CommitPendingEdits();
+            }
             AssemblyBuilderDialog bdlg(this, path, m_g);
             bdlg.ShowModal();
             if (bdlg.DidOperationSucceed())
@@ -552,6 +551,10 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
         }
         if (m_g)
         {
+            for (const auto& editor : m_editors)
+            {
+                editor.second->CommitPendingEdits();
+            }
             auto dlg = AssemblyBuilderDialog(this, path, m_g, AssemblyBuilderDialog::Func::INJECT, std::make_shared<Landstalker::Rom>(m_rom));
             dlg.ShowModal();
             if (dlg.DidOperationSucceed() && wxFileName(path).Exists())
@@ -1089,6 +1092,10 @@ void MainFrame::OnBuildAsm(wxCommandEvent& /*event*/)
     {
         return;
     }
+    for (const auto& editor : m_editors)
+    {
+        editor.second->CommitPendingEdits();
+    }
     AssemblyBuilderDialog bdlg(this, m_last_asm, m_g, AssemblyBuilderDialog::Func::BUILD);
     bdlg.ShowModal();
     if(bdlg.DidOperationSucceed())
@@ -1193,7 +1200,7 @@ void MainFrame::RefreshEditor()
         break;
     case Mode::SCRIPT_TABLE:
         // Display script table
-        GetScriptTableEditor()->Open(static_cast<ScriptTableDataViewModel::Mode>(m_seldata >> 16), m_seldata & 0xFFFF, m_extradata);
+        GetScriptTableEditor()->Open(static_cast<ScriptTableTreeCategory>(m_seldata >> 16));
         ShowEditor(EditorType::SCRIPT_TABLE);
         break;
     case Mode::PROGRESS_FLAGS:
@@ -1330,9 +1337,9 @@ ScriptEditorFrame* MainFrame::GetScriptEditor()
     return static_cast<ScriptEditorFrame*>(m_editors.at(EditorType::SCRIPT));
 }
 
-ScriptTableEditorFrame* MainFrame::GetScriptTableEditor()
+ScriptTableTreeEditorFrame* MainFrame::GetScriptTableEditor()
 {
-    return static_cast<ScriptTableEditorFrame*>(m_editors.at(EditorType::SCRIPT_TABLE));
+    return static_cast<ScriptTableTreeEditorFrame*>(m_editors.at(EditorType::SCRIPT_TABLE));
 }
 
 ProgressFlagsEditorFrame* MainFrame::GetProgressFlagsEditorFrame()

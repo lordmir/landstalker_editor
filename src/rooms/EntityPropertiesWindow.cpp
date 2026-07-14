@@ -8,6 +8,7 @@
 #include <landstalker/main/SpriteData.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/behaviours/BehaviourYamlConverter.h>
+#include <script/ScriptTreeActionEditors.h>
 #include <cmath>
 #include <algorithm>
 #include <vector>
@@ -52,7 +53,9 @@ enum ID
     ID_CHEST_IDX,
     ID_CHEST_CONTENT,
     ID_BEHAV_NAME_APPLY,
-    ID_BEHAV_NAME_CANCEL
+    ID_BEHAV_NAME_CANCEL,
+    ID_DLG_MAP_DIALOGUE,
+    ID_DLG_MAP_SCRIPT
 };
 
 #if defined(__WXMSW__)
@@ -62,28 +65,21 @@ enum ID
 #endif
 
 
-EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_t room, std::vector<Landstalker::Entity>& entities, const Landstalker::GameData* gd, const std::vector<std::wstring>& char_names)
+EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd)
     : wxDialog(parent, wxID_ANY, "Edit Entity", wxDefaultPosition, DLG_SIZE),
-      m_entities(&entities),
-      m_gd(gd),
-      m_id(id),
-      m_room(room)
+      m_entities(nullptr),
+      m_gd_shared(gd),
+      m_gd(gd.get()),
+      m_id(0),
+      m_room(0)
 {
     m_chest_id = 0;
-    for (int i = 0; i < m_id - 1; ++i)
-    {
-        if ((*m_entities)[i].IsChest())
-        {
-            m_chest_id++;
-        }
-    }
-    m_disabled_for_room = m_gd->GetRoomData()->GetNoChestFlagForRoom(m_room);
-    auto chests = m_gd->GetRoomData()->GetChestsForRoom(m_room);
-    m_chest_contents = m_chest_id < static_cast<int>(chests.size()) ? chests[m_chest_id] : 0;
-    m_orig_chest_contents = m_chest_contents;
-    m_chest_flag = m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room) + m_chest_id;
-    m_prev_chest_flag = (m_room == 0 ? 0 : m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room - 1)) + m_chest_id;
-    m_prev_chest_contents = m_gd->GetRoomData()->GetChestContentsFromFlag(m_prev_chest_flag);
+    m_disabled_for_room = false;
+    m_chest_contents = 0;
+    m_orig_chest_contents = 0;
+    m_chest_flag = 0;
+    m_prev_chest_flag = 0;
+    m_prev_chest_contents = 0;
 
     wxArrayString entity_types;
     for (std::size_t i = 0; i < 256; ++i)
@@ -97,11 +93,12 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
         std::wstring behaviour_name = Landstalker::SpriteData::GetBehaviourDisplayName(i);
         behaviours.Add(Landstalker::StrWPrintf(L"[%04d] %ls", i, behaviour_name.c_str()));
     }
+    // Placeholder labels: SetEntity()'s RefreshDialogueNames() fills in the room's mapped
+    // character names.
     wxArrayString dialogues;
     for (std::size_t i = 0; i < 64; ++i)
     {
-        std::wstring dialogue_name = i < char_names.size() ? char_names.at(i) : L"???";
-        dialogues.Add(Landstalker::StrWPrintf(L"[%02d] %ls", i, dialogue_name.c_str()));
+        dialogues.Add(Landstalker::StrWPrintf(L"[%02d] ???", i));
     }
     wxArrayString items;
     for (std::size_t i = 0; i < 64; ++i)
@@ -110,11 +107,11 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
         items.Add(Landstalker::StrWPrintf(L"[%02X] %ls", i, item_name.c_str()));
     }
 
-    const auto entity = &(*m_entities)[id - 1];
     wxBoxSizer* root_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(root_sizer);
 
-    wxNotebook* notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    m_notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    wxNotebook* notebook = m_notebook;
     root_sizer->Add(notebook, 1, wxALL | wxEXPAND, 5);
 
     wxPanel* properties_page = new wxPanel(notebook, wxID_ANY);
@@ -163,9 +160,8 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
 
     szr1->Add(szr2a, 0, wxEXPAND, 0);
     szr2a->Add(new wxStaticText(properties_page, wxID_ANY, "Entity Type:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-    m_ctrl_entity_type = new LookupChoiceControl(properties_page, ID_TYPE, entity_types[entity->GetType()], entity_types,
+    m_ctrl_entity_type = new LookupChoiceControl(properties_page, ID_TYPE, wxEmptyString, entity_types,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
-    m_ctrl_entity_type->SetSelection(entity->GetType());
     szr2a->Add(m_ctrl_entity_type, 1, wxALL | wxEXPAND, 5);
 
     szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
@@ -177,7 +173,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_ctrl_x->SetIncrement(0.5);
     m_ctrl_x->SetSnapToTicks(true);
     m_ctrl_x->SetDigits(1);
-    m_ctrl_x->SetValue(entity->GetXDbl());
     szr2b->Add(m_ctrl_x, 1, wxALL | wxEXPAND, 5);
     szr2b->Add(new wxStaticText(properties_page, wxID_ANY, "Y:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_y = new wxSpinCtrlDouble(properties_page, ID_Y, wxT("32.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
@@ -185,7 +180,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_ctrl_y->SetIncrement(0.5);
     m_ctrl_y->SetSnapToTicks(true);
     m_ctrl_y->SetDigits(1);
-    m_ctrl_y->SetValue(entity->GetYDbl());
     szr2b->Add(m_ctrl_y, 1, wxALL | wxEXPAND, 5);
     szr2b->Add(new wxStaticText(properties_page, wxID_ANY, "Z:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_z = new wxSpinCtrlDouble(properties_page, ID_Z, wxT("0.0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
@@ -193,7 +187,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_ctrl_z->SetIncrement(0.5);
     m_ctrl_z->SetSnapToTicks(true);
     m_ctrl_z->SetDigits(1);
-    m_ctrl_z->SetValue(entity->GetZDbl());
     szr2b->Add(m_ctrl_z, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2c = new wxBoxSizer(wxHORIZONTAL);
@@ -205,13 +198,11 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     orientation_choices.Add(wxT("[2] South West"));
     orientation_choices.Add(wxT("[3] North West"));
     m_ctrl_orientation = new wxChoice(properties_page, ID_ROT, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), orientation_choices, 0);
-    m_ctrl_orientation->SetSelection(static_cast<int>(entity->GetOrientation()));
     szr2c->Add(m_ctrl_orientation, 2, wxALL | wxEXPAND, 5);
 
     szr2c->Add(new wxStaticText(properties_page, wxID_ANY, "Speed:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_speed = new wxSpinCtrl(properties_page, ID_SPD, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), wxSP_ARROW_KEYS);
     m_ctrl_speed->SetRange(0, 7);
-    m_ctrl_speed->SetValue(entity->GetSpeed());
     m_ctrl_speed->SetIncrement(1);
     szr2c->Add(m_ctrl_speed, 1, wxALL | wxEXPAND, 5);
 
@@ -225,13 +216,11 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     palette_choices.Add(wxT("[2] Player"));
     palette_choices.Add(wxT("[3] Sprite Lo, HUD"));
     m_ctrl_palette = new wxChoice(properties_page, ID_PAL, wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), palette_choices, 0);
-    m_ctrl_palette->SetSelection(entity->GetPalette());
     szr2d->Add(m_ctrl_palette, 1, wxALL | wxEXPAND, 5);
 
     szr2d->Add(new wxStaticText(properties_page, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_dialogue = new LookupChoiceControl(properties_page, ID_DLG, wxEmptyString, dialogues,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
-    m_ctrl_dialogue->SetSelection(entity->GetDialogue());
     szr2d->Add(m_ctrl_dialogue, 1, wxALL | wxEXPAND, 5);
 
     wxBoxSizer* szr2e = new wxBoxSizer(wxHORIZONTAL);
@@ -239,7 +228,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     szr2e->Add(new wxStaticText(properties_page, wxID_ANY, "Behaviour:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_behaviour = new LookupChoiceControl(properties_page, ID_BEHAV, wxEmptyString, behaviours,
         wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
-    m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
     szr2e->Add(m_ctrl_behaviour, 1, wxALL | wxEXPAND, 5);
     szr1->Add(szr2e, 0, wxALL | wxEXPAND, 0);
     szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
@@ -247,39 +235,30 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     szr1->Add(szr2f, 2, wxALL | wxEXPAND, 5);
 
     m_ctrl_hostile = new wxCheckBox(properties_page, ID_FH, _("Hostile"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_hostile->SetValue(entity->IsHostile());
     szr2f->Add(m_ctrl_hostile, 0, wxALL, 5);
 
     m_ctrl_no_rotate = new wxCheckBox(properties_page, ID_FR, _("No Rotate"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_no_rotate->SetValue(entity->NoRotate());
     szr2f->Add(m_ctrl_no_rotate, 0, wxALL, 5);
 
     m_ctrl_no_pickup = new wxCheckBox(properties_page, ID_FP, _("No Pickup"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_no_pickup->SetValue(entity->NoPickup());
     szr2f->Add(m_ctrl_no_pickup, 0, wxALL, 5);
 
     m_ctrl_has_dialogue = new wxCheckBox(properties_page, ID_FD, _("Has Dialogue"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_has_dialogue->SetValue(entity->HasDialogue());
     szr2f->Add(m_ctrl_has_dialogue, 0, wxALL, 5);
 
     m_ctrl_visible = new wxCheckBox(properties_page, ID_FV, _("Visible"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_visible->SetValue(entity->IsVisible());
     szr2f->Add(m_ctrl_visible, 0, wxALL, 5);
 
     m_ctrl_solid = new wxCheckBox(properties_page, ID_FS, _("Solid"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_solid->SetValue(entity->IsSolid());
     szr2f->Add(m_ctrl_solid, 0, wxALL, 5);
 
     m_ctrl_has_gravity = new wxCheckBox(properties_page, ID_FG, _("Gravity"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_has_gravity->SetValue(entity->HasGravity());
     szr2f->Add(m_ctrl_has_gravity, 0, wxALL, 5);
 
     m_ctrl_has_friction = new wxCheckBox(properties_page, ID_FF, _("Friction"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_has_friction->SetValue(entity->HasFriction());
     szr2f->Add(m_ctrl_has_friction, 0, wxALL, 5);
 
     m_ctrl_reserved = new wxCheckBox(properties_page, ID_FX, _("Reserved"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_reserved->SetValue(entity->IsReservedSet());
     szr2f->Add(m_ctrl_reserved, 0, wxALL, 5);
 
     szr1->Add(new wxStaticLine(properties_page), 0, wxALL | wxEXPAND, 0);
@@ -287,12 +266,10 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     szr1->Add(szr2g, 1, wxALL | wxEXPAND, 5);
 
     m_ctrl_copy_tiles = new wxCheckBox(properties_page, ID_FT, _("Copy Tiles"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
-    m_ctrl_copy_tiles->SetValue(entity->IsTileCopySet());
     szr2g->Add(m_ctrl_copy_tiles, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     szr2g->Add(new wxStaticText(properties_page, wxID_ANY, _("Tile Source:")), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 5);
     m_ctrl_copy_source = new wxSpinCtrl(properties_page, ID_CPYSRC, wxT("0"), wxDefaultPosition, wxDLG_UNIT(this, wxSize(60, -1)), wxSP_ARROW_KEYS);
     m_ctrl_copy_source->SetRange(0, 15);
-    m_ctrl_copy_source->SetValue(entity->GetCopySource());
     m_ctrl_copy_source->SetIncrement(1);
     szr2g->Add(m_ctrl_copy_source, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
@@ -361,8 +338,75 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, int id, uint16_
     m_ctrl_behaviour_tab->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_behaviour_name_apply->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
     m_ctrl_behaviour_name_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
+    m_ctrl_behaviour_tab->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_behaviour_name_apply->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
+    m_ctrl_behaviour_name_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
     m_ctrl_chest_prev->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_chest_content->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
+    m_ctrl_dlg_map_dialogue->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnDialogueMapDialogueChange), NULL, this);
+    m_ctrl_dlg_map_script->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnDialogueMapScriptChange), NULL, this);
+}
+
+void EntityPropertiesWindow::SetEntity(int id, uint16_t room, std::vector<Landstalker::Entity>& entities)
+{
+    m_id = id;
+    m_room = room;
+    m_entities = &entities;
+
+    m_chest_id = 0;
+    for (int i = 0; i < m_id - 1; ++i)
+    {
+        if ((*m_entities)[i].IsChest())
+        {
+            m_chest_id++;
+        }
+    }
+    m_disabled_for_room = m_gd->GetRoomData()->GetNoChestFlagForRoom(m_room);
+    auto chests = m_gd->GetRoomData()->GetChestsForRoom(m_room);
+    m_chest_contents = m_chest_id < static_cast<int>(chests.size()) ? chests[m_chest_id] : 0;
+    m_orig_chest_contents = m_chest_contents;
+    m_chest_flag = m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room) + m_chest_id;
+    m_prev_chest_flag = (m_room == 0 ? 0 : m_gd->GetRoomData()->GetChestFlagBaseForRoom(m_room - 1)) + m_chest_id;
+    m_prev_chest_contents = m_gd->GetRoomData()->GetChestContentsFromFlag(m_prev_chest_flag);
+
+    const auto entity = &entities[id - 1];
+    m_ctrl_dialog_header->SetLabel(Landstalker::StrPrintf("Edit Entity %d", id));
+    m_ctrl_entity_type->SetSelection(entity->GetType());
+    m_ctrl_x->SetValue(entity->GetXDbl());
+    m_ctrl_y->SetValue(entity->GetYDbl());
+    m_ctrl_z->SetValue(entity->GetZDbl());
+    m_ctrl_orientation->SetSelection(static_cast<int>(entity->GetOrientation()));
+    m_ctrl_speed->SetValue(entity->GetSpeed());
+    m_ctrl_palette->SetSelection(entity->GetPalette());
+    m_ctrl_dialogue->SetSelection(entity->GetDialogue());
+    m_ctrl_hostile->SetValue(entity->IsHostile());
+    m_ctrl_no_rotate->SetValue(entity->NoRotate());
+    m_ctrl_no_pickup->SetValue(entity->NoPickup());
+    m_ctrl_has_dialogue->SetValue(entity->HasDialogue());
+    m_ctrl_visible->SetValue(entity->IsVisible());
+    m_ctrl_solid->SetValue(entity->IsSolid());
+    m_ctrl_has_gravity->SetValue(entity->HasGravity());
+    m_ctrl_has_friction->SetValue(entity->HasFriction());
+    m_ctrl_reserved->SetValue(entity->IsReservedSet());
+    m_ctrl_copy_tiles->SetValue(entity->IsTileCopySet());
+    m_ctrl_copy_source->SetValue(entity->GetCopySource());
+    m_ctrl_chest_prev->SetValue(false);
+
+    // Force the behaviour name/script/usage panels to repopulate for the new entity.
+    m_current_behaviour_id = wxNOT_FOUND;
+    m_ctrl_behaviour->SetSelection(entity->GetBehaviour());
+    m_ctrl_behaviour_tab->SetSelection(entity->GetBehaviour());
+
+    // Room dialogue mapping: reload and refresh the slot names in both dialogue dropdowns.
+    // Scripts may have changed since the last open, so the character tree is stale; it is
+    // rebuilt when the Dialogue tab is next shown.
+    m_dialogue_map = m_gd->GetStringData()->GetRoomCharacters(m_room);
+    m_dialogue_map_orig = m_dialogue_map;
+    m_char_tree_stale = true;
+    RefreshDialogueNames();
+    m_ctrl_dlg_map_dialogue->SetSelection(entity->GetDialogue());
+    m_notebook->ChangeSelection(0);
+    RefreshDialogueMapScript();
 
     UpdateUI();
     m_btn_ok->SetFocus();
@@ -604,9 +648,431 @@ void EntityPropertiesWindow::OnCancelBehaviourName(wxCommandEvent& e)
     e.Skip();
 }
 
+void EntityPropertiesWindow::RefreshDialogueMapScript()
+{
+    const int dialogue = m_ctrl_dlg_map_dialogue->GetSelection();
+    const bool hint_was_shown = m_ctrl_dlg_map_hint->IsShown();
+    if (dialogue < 0)
+    {
+        m_ctrl_dlg_map_script->SetSelection(0);
+        m_ctrl_dlg_map_script->Disable();
+        m_ctrl_dlg_map_hint->Hide();
+    }
+    else if (static_cast<std::size_t>(dialogue) > m_dialogue_map.size())
+    {
+        // The mapping list is contiguous (dialogue slot = list index), so a slot past the
+        // next unmapped one can't be mapped without inventing the entries in between.
+        m_ctrl_dlg_map_script->SetSelection(0);
+        m_ctrl_dlg_map_script->Disable();
+        m_ctrl_dlg_map_hint->SetLabel(Landstalker::StrPrintf(
+            "This dialogue cannot be mapped yet: dialogues must be mapped in order, and the "
+            "next unmapped dialogue is [%02d].", static_cast<int>(m_dialogue_map.size())));
+        m_ctrl_dlg_map_hint->Wrap(m_ctrl_dlg_map_hint->GetParent()->GetClientSize().GetWidth() - 20);
+        m_ctrl_dlg_map_hint->Show();
+    }
+    else
+    {
+        m_ctrl_dlg_map_script->Enable();
+        m_ctrl_dlg_map_hint->Hide();
+        // Index 0 is "<None>": the first slot past the end of the room's mapping list.
+        if (static_cast<std::size_t>(dialogue) < m_dialogue_map.size())
+        {
+            m_ctrl_dlg_map_script->SetSelection(m_dialogue_map[dialogue] + 1);
+        }
+        else
+        {
+            m_ctrl_dlg_map_script->SetSelection(0);
+        }
+    }
+    if (m_ctrl_dlg_map_hint->IsShown() != hint_was_shown)
+    {
+        m_ctrl_dlg_map_hint->GetParent()->Layout();
+    }
+    UpdateCharScriptTree();
+}
+
+void EntityPropertiesWindow::CommitCharScriptEditing()
+{
+    if (!m_ctrl_char_script)
+    {
+        return;
+    }
+    wxDataViewColumn* column = m_ctrl_char_script->GetColumn(0);
+    wxDataViewRenderer* renderer = column ? column->GetRenderer() : nullptr;
+    if (renderer && renderer->GetEditorCtrl())
+    {
+        // Pulls the editor's value through the model (SetValue -> SyncToScriptTable) and
+        // closes the editor; an invalid value is simply dropped, as if editing were escaped.
+        renderer->FinishEditing();
+    }
+}
+
+void EntityPropertiesWindow::UpdateCharScriptTree()
+{
+    if (!m_ctrl_char_script)
+    {
+        return;
+    }
+    // Commit (rather than discard) any in-place edit before the model is swapped out from
+    // under it - switching character or tab is navigation, not a request to abandon the edit.
+    CommitCharScriptEditing();
+
+    // Building the character category tree is the expensive part of this dialog; don't pay
+    // for it until the Dialogue tab is actually shown (OnPageChanged re-runs this then).
+    if (m_notebook->GetCurrentPage() != m_dialogue_page)
+    {
+        m_ctrl_char_script->UnselectAll();
+        m_ctrl_char_script->AssociateModel(nullptr);
+        m_ctrl_char_script->Disable();
+        return;
+    }
+    if (m_char_tree_stale)
+    {
+        m_ctrl_char_script->UnselectAll();
+        m_ctrl_char_script->AssociateModel(nullptr);
+        m_char_models.clear();
+        m_char_tree = ScriptTreeNode::BuildCategoryTree(m_gd_shared, 2);
+        m_char_tree.SetParent();
+        m_char_models.resize(m_char_tree.children.size());
+        m_char_tree_stale = false;
+    }
+
+    const int selection = m_ctrl_dlg_map_script->IsEnabled() ? m_ctrl_dlg_map_script->GetSelection() : 0;
+    const int char_id = selection - 1;
+    // The last child is the synthesised "Other Functions" entry, not a character.
+    const int char_count = static_cast<int>(m_char_tree.children.size()) - 1;
+    if (selection <= 0 || char_id >= char_count)
+    {
+        m_ctrl_char_script->UnselectAll();
+        m_ctrl_char_script->AssociateModel(nullptr);
+        m_ctrl_char_script->Disable();
+        return;
+    }
+
+    m_ctrl_char_script->Enable();
+    if (!m_char_models[char_id])
+    {
+        auto it = m_char_tree.children.begin();
+        std::advance(it, char_id);
+        m_char_models[char_id] = wxObjectDataPtr<ScriptTreeDataViewModel>(new ScriptTreeDataViewModel(
+            *it, m_gd_shared->GetScriptData()->GetCharFuncs(), m_gd_shared,
+            { m_gd_shared->GetScriptData()->GetCharFuncs(), m_gd_shared->GetScriptData()->GetCutsceneFuncs(),
+              m_gd_shared->GetScriptData()->GetShopFuncs(), m_gd_shared->GetScriptData()->GetItemFuncs() }));
+    }
+    m_ctrl_char_script->UnselectAll();
+    m_ctrl_char_script->Freeze();
+    m_ctrl_char_script->AssociateModel(m_char_models[char_id].get());
+    wxDataViewItemArray children;
+    m_char_models[char_id]->GetChildren(wxDataViewItem(), children);
+    for (const auto& child : children)
+    {
+        m_ctrl_char_script->ExpandChildren(child);
+    }
+    m_ctrl_char_script->Thaw();
+}
+
+void EntityPropertiesWindow::RebuildCharScriptTree()
+{
+    m_char_tree_stale = true;
+    UpdateCharScriptTree();
+}
+
+void EntityPropertiesWindow::OnPageChanged(wxBookCtrlEvent& e)
+{
+    // The character tree defers its (expensive) build until the Dialogue tab is shown.
+    if (m_notebook->GetCurrentPage() == m_dialogue_page)
+    {
+        UpdateCharScriptTree();
+    }
+    e.Skip();
+}
+
+ScriptTreeDataViewModel* EntityPropertiesWindow::GetCharScriptModel() const
+{
+    if (!m_ctrl_char_script || !m_ctrl_char_script->IsEnabled())
+    {
+        return nullptr;
+    }
+    return static_cast<ScriptTreeDataViewModel*>(m_ctrl_char_script->GetModel());
+}
+
+void EntityPropertiesWindow::UpdateCharScriptButtons()
+{
+    ScriptTreeDataViewModel* model = GetCharScriptModel();
+    const wxDataViewItem selected = model ? m_ctrl_char_script->GetSelection() : wxDataViewItem();
+    m_btn_char_add_child->Enable(model && !model->GetAddChildOptions(selected).empty());
+    m_btn_char_add_sibling->Enable(model && !model->GetAddSiblingOptions(selected).empty());
+    m_btn_char_remove->Enable(model && model->CanRemoveItem(selected));
+    m_btn_char_move_up->Enable(model && model->CanMoveItemUp(selected));
+    m_btn_char_move_down->Enable(model && model->CanMoveItemDown(selected));
+}
+
+void EntityPropertiesWindow::ShowCharScriptAddMenu(bool child)
+{
+    constexpr int ADD_MENU_BASE = 21000;
+    ScriptTreeDataViewModel* model = GetCharScriptModel();
+    if (!model)
+    {
+        return;
+    }
+
+    wxDataViewItem selected = m_ctrl_char_script->GetSelection();
+    std::vector<ScriptTreeAddOption> options = child ? model->GetAddChildOptions(selected) : model->GetAddSiblingOptions(selected);
+    if (options.empty())
+    {
+        UpdateCharScriptButtons();
+        return;
+    }
+
+    wxMenu menu;
+    for (std::size_t i = 0; i < options.size(); ++i)
+    {
+        menu.Append(ADD_MENU_BASE + static_cast<int>(i), options.at(i).label);
+    }
+
+    const int selection = GetPopupMenuSelectionFromUser(menu);
+    if (selection < ADD_MENU_BASE || static_cast<std::size_t>(selection - ADD_MENU_BASE) >= options.size())
+    {
+        return;
+    }
+
+    const ScriptTreeAddOption& option = options.at(selection - ADD_MENU_BASE);
+    wxDataViewItem added = child ? model->AddChild(selected, option) : model->AddSibling(selected, option);
+    if (added.IsOk())
+    {
+        if (child)
+        {
+            m_ctrl_char_script->Expand(selected);
+        }
+        m_ctrl_char_script->Expand(added);
+        m_ctrl_char_script->Select(added);
+        m_ctrl_char_script->EnsureVisible(added);
+    }
+    UpdateCharScriptButtons();
+}
+
+void EntityPropertiesWindow::RemoveCharScriptItem()
+{
+    ScriptTreeDataViewModel* model = GetCharScriptModel();
+    if (!model)
+    {
+        return;
+    }
+
+    wxDataViewItem selected = m_ctrl_char_script->GetSelection();
+    if (!model->CanRemoveItem(selected))
+    {
+        UpdateCharScriptButtons();
+        return;
+    }
+
+    if (wxMessageBox("Remove the selected script item?", "Remove", wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION, this) != wxYES)
+    {
+        return;
+    }
+
+    // Same policy as the Characters script editor: removing a subtree can drop the only
+    // reference to an embedded function, so rebuild the category unless the removal is
+    // reference-free and inside a standalone function. Both checks walk the subtree, so
+    // they must run before the node is destroyed.
+    const bool need_rebuild = model->SubtreeAffectsReferences(selected)
+        || !model->IsInsideStandaloneFunction(selected);
+    model->RemoveItem(selected);
+    if (need_rebuild)
+    {
+        RebuildCharScriptTree();
+    }
+    else
+    {
+        UpdateCharScriptButtons();
+    }
+}
+
+void EntityPropertiesWindow::MoveCharScriptItem(bool up)
+{
+    ScriptTreeDataViewModel* model = GetCharScriptModel();
+    if (!model)
+    {
+        return;
+    }
+
+    const wxDataViewItem selected = m_ctrl_char_script->GetSelection();
+    const wxDataViewItem moved = up ? model->MoveItemUp(selected) : model->MoveItemDown(selected);
+    if (moved.IsOk())
+    {
+        m_ctrl_char_script->Select(moved);
+        m_ctrl_char_script->EnsureVisible(moved);
+    }
+    UpdateCharScriptButtons();
+}
+
+void EntityPropertiesWindow::OnCharScriptSelectionChanged(wxDataViewEvent& e)
+{
+    UpdateCharScriptButtons();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnCharScriptItemActivated(wxDataViewEvent& e)
+{
+    ScriptTreeDataViewModel* model = GetCharScriptModel();
+
+    // A Custom ASM block is edited as a whole in a multi-line dialog rather than in place -
+    // activating either the block itself or any of its instruction lines opens it.
+    const wxDataViewItem asm_block = (model && e.GetItem().IsOk())
+        ? model->GetCustomAsmBlock(e.GetItem()) : wxDataViewItem();
+    if (model && asm_block.IsOk())
+    {
+        wxTextEntryDialog dialog(this,
+                                 "Edit the custom assembler block, one instruction per line:",
+                                 "Custom ASM",
+                                 model->GetCustomAsmText(asm_block),
+                                 wxTextEntryDialogStyle | wxTE_MULTILINE);
+        if (dialog.ShowModal() == wxID_OK)
+        {
+            if (model->ApplyCustomAsm(asm_block, dialog.GetValue()))
+            {
+                // ASM lines can mention function labels, which feeds the reference analysis.
+                RebuildCharScriptTree();
+            }
+            else
+            {
+                wxMessageBox("The assembler block was not changed - check that every line is a single, valid instruction, "
+                             "that at least one instruction remains, and that no line is a script-structure instruction "
+                             "(rts, bra, trap #0-#2) - those have their own statement types.",
+                             "Custom ASM", wxOK | wxICON_WARNING, this);
+            }
+        }
+        e.Skip();
+        return;
+    }
+
+    if (m_ctrl_char_script && e.GetItem().IsOk())
+    {
+        m_ctrl_char_script->EditItem(e.GetItem(), m_ctrl_char_script->GetColumn(0));
+    }
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnCharScriptEditingDone(wxDataViewEvent& e)
+{
+    // The model only applies the committed value after this event; a script edit can change
+    // function references, so rebuild the category afterwards to keep reference counts and
+    // shared-function markers accurate (mirrors the Characters script editor's policy).
+    if (!e.IsEditCancelled() && e.GetItem().IsOk())
+    {
+        CallAfter([this]()
+        {
+            // An edit flushed by OnClickOK commits after the dialog has closed - the data is
+            // already synced, so just mark the (expensive) tree rebuild for the next open.
+            if (IsShown())
+            {
+                RebuildCharScriptTree();
+            }
+            else
+            {
+                m_char_tree_stale = true;
+            }
+        });
+    }
+    e.Skip();
+}
+
+void EntityPropertiesWindow::RefreshDialogueNames()
+{
+    for (unsigned int i = 0; i < m_ctrl_dialogue->GetCount(); ++i)
+    {
+        const std::wstring name = i < m_dialogue_map.size()
+            ? m_gd->GetStringData()->GetCharacterDisplayName(m_dialogue_map[i])
+            : L"???";
+        const wxString label = Landstalker::StrWPrintf(L"[%02d] %ls", i, name.c_str());
+        m_ctrl_dialogue->SetString(i, label);
+        m_ctrl_dlg_map_dialogue->SetString(i, label);
+    }
+}
+
+void EntityPropertiesWindow::OnDialogueMapDialogueChange(wxCommandEvent& e)
+{
+    RefreshDialogueMapScript();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnDialogueMapScriptChange(wxCommandEvent& e)
+{
+    const int dialogue = m_ctrl_dlg_map_dialogue->GetSelection();
+    if (dialogue < 0)
+    {
+        e.Skip();
+        return;
+    }
+    const std::size_t slot = static_cast<std::size_t>(dialogue);
+    const int selection = m_ctrl_dlg_map_script->GetSelection();
+    if (selection <= 0)
+    {
+        // "<None>": the mapping list is contiguous (dialogue slot = list index), so only the
+        // last mapped slot can be unmapped without renumbering every later dialogue.
+        if (slot >= m_dialogue_map.size())
+        {
+            // Already unmapped - nothing to do.
+        }
+        else if (slot == m_dialogue_map.size() - 1)
+        {
+            m_dialogue_map.pop_back();
+        }
+        else
+        {
+            wxMessageBox("Only the last mapped dialogue can be unmapped - removing an earlier "
+                         "entry would renumber every later dialogue. Use the room's Dialogue "
+                         "editor to restructure the mapping list.",
+                         "Dialogue Mapping", wxOK | wxICON_INFORMATION, this);
+            RefreshDialogueMapScript();
+            e.Skip();
+            return;
+        }
+    }
+    else
+    {
+        if (slot > m_dialogue_map.size())
+        {
+            // Unreachable via the UI (the Script combo is disabled for slots past the next
+            // unmapped one), but never invent gap-filling entries.
+            e.Skip();
+            return;
+        }
+        if (slot == m_dialogue_map.size())
+        {
+            m_dialogue_map.push_back(Landstalker::Character(0));
+        }
+        m_dialogue_map[slot] = static_cast<Landstalker::Character>(selection - 1);
+    }
+    RefreshDialogueNames();
+    UpdateCharScriptTree();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnApplyBehaviourName(wxCommandEvent& e)
+{
+    ApplyBehaviourNameChange();
+    e.Skip();
+}
+
+void EntityPropertiesWindow::OnCancelBehaviourName(wxCommandEvent& e)
+{
+    RevertBehaviourNameChange();
+    e.Skip();
+}
+
 void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
 {
     auto* entity = &(*m_entities)[m_id - 1];
+    m_ctrl_entity_type->CommitPendingSelection();
+    m_ctrl_dialogue->CommitPendingSelection();
+    m_ctrl_behaviour->CommitPendingSelection();
+    m_ctrl_behaviour_tab->CommitPendingSelection();
+    m_ctrl_chest_content->CommitPendingSelection();
+    // A script edit still open in the character tree's floating editor commits straight into
+    // the script tables (they aren't gated on OK), and would otherwise be lost with the dialog.
+    CommitCharScriptEditing();
+
     m_ctrl_entity_type->CommitPendingSelection();
     m_ctrl_dialogue->CommitPendingSelection();
     m_ctrl_behaviour->CommitPendingSelection();
@@ -660,6 +1126,10 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
             m_gd->GetRoomData()->SetChestsForRoom(m_room, chests);
         }
         m_gd->GetRoomData()->CleanupChests(*m_gd);
+    }
+    if (m_dialogue_map != m_dialogue_map_orig)
+    {
+        m_gd->GetStringData()->SetRoomCharacters(m_room, m_dialogue_map);
     }
     EndModal(wxID_OK);
 }

@@ -135,6 +135,21 @@
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorFrame.cpp">
       <Filter>src\Behaviours</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorCtrl.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorFrame.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\ScriptTreeActionEditors.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\ScriptTreeBuilder.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\ScriptTreeDataViewModel.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\blockset\BlocksetEditorCtrl.cpp">
       <Filter>src\Blockset</Filter>
     </ClCompile>
@@ -164,12 +179,6 @@
     </ClCompile>
     <ClCompile Include="..\src\palettes\DataViewCtrlPaletteRenderer.cpp">
       <Filter>src\Palette</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\script\DataViewScriptActionEditorControl.cpp">
-      <Filter>src\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\script\DataViewScriptActionRenderer.cpp">
-      <Filter>src\Script</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\DoorDataViewModel.cpp">
       <Filter>src\Rooms\DoorSwapEditor</Filter>
@@ -339,15 +348,6 @@
     <ClCompile Include="..\src\script\ScriptEditorFrame.cpp">
       <Filter>src\Script</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\script\ScriptTableDataViewModel.cpp">
-      <Filter>src\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\script\ScriptTableEditorCtrl.cpp">
-      <Filter>src\Script</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\script\ScriptTableEditorFrame.cpp">
-      <Filter>src\Script</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\misc\SelectionControlFrame.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
@@ -407,6 +407,21 @@
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorFrame.h">
       <Filter>include\Behaviours</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorCtrl.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorFrame.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\ScriptTreeActionEditors.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\ScriptTreeDataViewModel.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\ScriptTreeNode.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\blockset\BlocksetEditorCtrl.h">
       <Filter>include\Blockset</Filter>
     </ClInclude>
@@ -436,12 +451,6 @@
     </ClInclude>
     <ClInclude Include="..\src\palettes\DataViewCtrlPaletteRenderer.h">
       <Filter>include\Palette</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\script\DataViewScriptActionEditorControl.h">
-      <Filter>include\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\script\DataViewScriptActionRenderer.h">
-      <Filter>include\Script</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\DoorDataViewModel.h">
       <Filter>include\Rooms\DoorSwapEditor</Filter>
@@ -609,15 +618,6 @@
       <Filter>include\Script</Filter>
     </ClInclude>
     <ClInclude Include="..\src\script\ScriptEditorFrame.h">
-      <Filter>include\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\script\ScriptTableDataViewModel.h">
-      <Filter>include\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\script\ScriptTableEditorCtrl.h">
-      <Filter>include\Script</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\script\ScriptTableEditorFrame.h">
       <Filter>include\Script</Filter>
     </ClInclude>
     <ClInclude Include="..\src\misc\SelectionControlFrame.h">
