@@ -150,7 +150,73 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, std::shared_ptr
         wxBU_AUTODRAW);
     behaviour_name_sizer->Add(m_ctrl_behaviour_name_cancel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    m_ctrl_dialog_header = new wxStaticText(properties_page, ID_HEADER, Landstalker::StrPrintf("Edit Entity %d", id), wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
+    // Dialogue tab: maps the room's dialogue slots (the same list as the Properties tab's
+    // Dialogue dropdown) to global character script entries via the RoomDialogueTable.
+    // SetEntity() loads the room's mapping.
+    wxPanel* dialogue_page = new wxPanel(notebook, wxID_ANY);
+    wxBoxSizer* dialogue_sizer = new wxBoxSizer(wxVERTICAL);
+    dialogue_page->SetSizer(dialogue_sizer);
+    notebook->AddPage(dialogue_page, _("Dialogue"), false);
+    m_dialogue_page = dialogue_page;
+
+    dialogue_sizer->Add(new wxStaticText(dialogue_page, wxID_ANY, "Dialogue Mapping:"), 0, wxALL, 5);
+    wxBoxSizer* dialogue_map_sizer = new wxBoxSizer(wxHORIZONTAL);
+    dialogue_sizer->Add(dialogue_map_sizer, 0, wxALL | wxEXPAND, 5);
+    dialogue_map_sizer->Add(new wxStaticText(dialogue_page, wxID_ANY, "Dialogue:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    m_ctrl_dlg_map_dialogue = new LookupChoiceControl(dialogue_page, ID_DLG_MAP_DIALOGUE, wxEmptyString, dialogues,
+        wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)));
+    dialogue_map_sizer->Add(m_ctrl_dlg_map_dialogue, 1, wxALL | wxEXPAND, 5);
+    dialogue_map_sizer->Add(new wxStaticText(dialogue_page, wxID_ANY, "=>"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    dialogue_map_sizer->Add(new wxStaticText(dialogue_page, wxID_ANY, "Script:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+    wxArrayString script_characters;
+    script_characters.Add(_("<None>"));
+    for (std::size_t i = 0; i < 0x400; ++i)
+    {
+        script_characters.Add(Landstalker::StrWPrintf(L"[%03X] %ls", i, m_gd->GetStringData()->GetCharacterDisplayName(i).c_str()));
+    }
+    m_ctrl_dlg_map_script = new wxChoice(dialogue_page, ID_DLG_MAP_SCRIPT, wxDefaultPosition,
+        wxDLG_UNIT(this, wxSize(-1, -1)), script_characters, 0);
+    dialogue_map_sizer->Add(m_ctrl_dlg_map_script, 1, wxALL | wxEXPAND, 5);
+    m_ctrl_dlg_map_hint = new wxStaticText(dialogue_page, wxID_ANY, wxEmptyString);
+    m_ctrl_dlg_map_hint->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    dialogue_sizer->Add(m_ctrl_dlg_map_hint, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 10);
+    m_ctrl_dlg_map_hint->Hide();
+
+    // Edit controls for the character script tree, mirroring the Characters script editor's
+    // button row.
+    wxBoxSizer* char_script_button_sizer = new wxBoxSizer(wxHORIZONTAL);
+    dialogue_sizer->Add(char_script_button_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, 5);
+    m_btn_char_add_child = new wxButton(dialogue_page, wxID_ANY, "Add Child");
+    m_btn_char_add_sibling = new wxButton(dialogue_page, wxID_ANY, "Add Sibling");
+    m_btn_char_remove = new wxButton(dialogue_page, wxID_ANY, "Remove");
+    m_btn_char_move_up = new wxButton(dialogue_page, wxID_ANY, "Move Up");
+    m_btn_char_move_down = new wxButton(dialogue_page, wxID_ANY, "Move Down");
+    m_btn_char_add_child->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ShowCharScriptAddMenu(true); });
+    m_btn_char_add_sibling->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ShowCharScriptAddMenu(false); });
+    m_btn_char_remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RemoveCharScriptItem(); });
+    m_btn_char_move_up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveCharScriptItem(true); });
+    m_btn_char_move_down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveCharScriptItem(false); });
+    char_script_button_sizer->Add(m_btn_char_add_child, 0, wxRIGHT, 4);
+    char_script_button_sizer->Add(m_btn_char_add_sibling, 0, wxRIGHT, 4);
+    char_script_button_sizer->Add(m_btn_char_remove, 0, wxRIGHT, 4);
+    char_script_button_sizer->Add(m_btn_char_move_up, 0, wxRIGHT, 4);
+    char_script_button_sizer->Add(m_btn_char_move_down, 0);
+
+    // The selected character's script tree - the same tree control the Characters script
+    // editor uses, resolving against the shared four-table function pool. Building the
+    // category tree is expensive, so it's deferred until this tab is first shown (see
+    // UpdateCharScriptTree()).
+    m_ctrl_char_script = new wxDataViewCtrl(dialogue_page, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_SINGLE | wxDV_NO_HEADER);
+    m_ctrl_char_script->AppendColumn(new wxDataViewColumn("Script", new ScriptActionRenderer(), 0, 500, wxALIGN_LEFT));
+    m_ctrl_char_script->Bind(wxEVT_DATAVIEW_ITEM_EDITING_DONE, &EntityPropertiesWindow::OnCharScriptEditingDone, this);
+    m_ctrl_char_script->Bind(wxEVT_DATAVIEW_SELECTION_CHANGED, &EntityPropertiesWindow::OnCharScriptSelectionChanged, this);
+    m_ctrl_char_script->Bind(wxEVT_DATAVIEW_ITEM_ACTIVATED, &EntityPropertiesWindow::OnCharScriptItemActivated, this);
+    m_ctrl_char_script->Disable();
+    dialogue_sizer->Add(m_ctrl_char_script, 1, wxALL | wxEXPAND, 5);
+    UpdateCharScriptButtons();
+    notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &EntityPropertiesWindow::OnPageChanged, this);
+
+    m_ctrl_dialog_header = new wxStaticText(properties_page, ID_HEADER, "Edit Entity", wxDefaultPosition, wxDLG_UNIT(this, wxSize(-1, -1)), 0);
     wxFont m_ctrl_dialog_header_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     m_ctrl_dialog_header_font.SetWeight(wxFONTWEIGHT_BOLD);
     m_ctrl_dialog_header->SetFont(m_ctrl_dialog_header_font);
@@ -335,9 +401,6 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, std::shared_ptr
     m_btn_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnClickCancel), NULL, this);
     m_ctrl_entity_type->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_behaviour->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
-    m_ctrl_behaviour_tab->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
-    m_ctrl_behaviour_name_apply->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
-    m_ctrl_behaviour_name_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
     m_ctrl_behaviour_tab->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(EntityPropertiesWindow::OnChange), NULL, this);
     m_ctrl_behaviour_name_apply->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnApplyBehaviourName), NULL, this);
     m_ctrl_behaviour_name_cancel->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(EntityPropertiesWindow::OnCancelBehaviourName), NULL, this);
@@ -633,18 +696,6 @@ void EntityPropertiesWindow::OnChange(wxCommandEvent& e)
     }
 
     UpdateUI();
-    e.Skip();
-}
-
-void EntityPropertiesWindow::OnApplyBehaviourName(wxCommandEvent& e)
-{
-    ApplyBehaviourNameChange();
-    e.Skip();
-}
-
-void EntityPropertiesWindow::OnCancelBehaviourName(wxCommandEvent& e)
-{
-    RevertBehaviourNameChange();
     e.Skip();
 }
 
@@ -1072,12 +1123,6 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
     // A script edit still open in the character tree's floating editor commits straight into
     // the script tables (they aren't gated on OK), and would otherwise be lost with the dialog.
     CommitCharScriptEditing();
-
-    m_ctrl_entity_type->CommitPendingSelection();
-    m_ctrl_dialogue->CommitPendingSelection();
-    m_ctrl_behaviour->CommitPendingSelection();
-    m_ctrl_behaviour_tab->CommitPendingSelection();
-    m_ctrl_chest_content->CommitPendingSelection();
 
     entity->SetType(ComboSelectionOrParsed(m_ctrl_entity_type, entity->GetType()));
     entity->SetXDbl(m_ctrl_x->GetValue());
