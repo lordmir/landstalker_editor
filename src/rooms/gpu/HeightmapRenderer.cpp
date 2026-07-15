@@ -8,6 +8,9 @@
 using namespace Landstalker;
 
 namespace {
+// Upper bound for the projected height of one heightmap Z unit, in pixels.
+constexpr float kMaxZExtent = 128.0f;
+
 struct HeightmapPoint {
     float x;
     float y;
@@ -399,7 +402,7 @@ void HeightmapRenderer::ClearHover()
 
 void HeightmapRenderer::SetZExtent(float value)
 {
-    m_z_extent = std::clamp(value, 0.0f, 64.0f);
+    m_z_extent = std::clamp(value, 0.0f, kMaxZExtent);
 }
 
 void HeightmapRenderer::Render()
@@ -933,5 +936,5 @@ void HeightmapRenderer::BuildEntityOcclusionStencil(
 
 void HeightmapRenderer::AdjustZExtent(float delta)
 {
-    m_z_extent = std::clamp(m_z_extent + delta, 0.0f, 128.0f);
+    SetZExtent(m_z_extent + delta);
 }

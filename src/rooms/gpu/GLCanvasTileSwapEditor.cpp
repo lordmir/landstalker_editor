@@ -122,22 +122,11 @@ int GLCanvasTileDoorEditor::HitTestTileSwapRegion(const wxPoint& point) const
 	for (int i = static_cast<int>(regions.size()) - 1; i >= 0; --i) {
 		const auto& region = regions[static_cast<std::size_t>(i)];
 		constexpr float hit_padding = 5.0f;
-		std::vector<PickPoint> bounds_points;
-		bounds_points.reserve(region.points.size() + region.fill_points.size());
-		for (const auto& pt : region.points) {
-			bounds_points.push_back(pt);
-		}
-		for (const auto& pt : region.fill_points) {
-			bounds_points.push_back(pt);
-		}
-		if (!bounds_points.empty()) {
-			PickRect bounds = BoundsForPoints(bounds_points);
-			if (world_point.x < bounds.min_x - hit_padding ||
-				world_point.x > bounds.max_x + hit_padding ||
-				world_point.y < bounds.min_y - hit_padding ||
-				world_point.y > bounds.max_y + hit_padding) {
-				continue;
-			}
+		if (world_point.x < region.bounds.min_x - hit_padding ||
+			world_point.x > region.bounds.max_x + hit_padding ||
+			world_point.y < region.bounds.min_y - hit_padding ||
+			world_point.y > region.bounds.max_y + hit_padding) {
+			continue;
 		}
 		bool hit = PointInPolygon(world_point, region.fill_points) ||
 			PointInPolygonWinding(world_point, region.fill_points) ||
@@ -772,21 +761,13 @@ void GLCanvasTileDoorEditor::RenderSelectedTileSwapRegionTooltip()
 	const Landstalker::TileSwap& swap = region.swap;
 	auto metrics = GLCanvasObjectSupport::MetricsForTileSwapRegion(swap, region.part);
 
-	std::vector<PickPoint> all_points;
-	all_points.reserve(region.points.size() + region.fill_points.size());
-	for (const auto& p : region.points) {
-		all_points.push_back({p.x, p.y});
-	}
-	for (const auto& p : region.fill_points) {
-		all_points.push_back({p.x, p.y});
-	}
-	if (all_points.empty()) {
+	if (region.points.empty() && region.fill_points.empty()) {
 		return;
 	}
-	PickRect bounds = BoundsForPoints(all_points);
+	const PickRect& bounds = region.bounds;
 
 	std::array<std::string, 6> lines = {
-		std::string{"ID:"} + HexByte(swap.trigger),
+		Landstalker::StrPrintf("ID:%02X", swap.trigger),
 		std::string{TileSwapPartLabel(region.part)},
 		std::string{"X:"} + std::to_string(metrics.x),
 		std::string{"Y:"} + std::to_string(metrics.y),

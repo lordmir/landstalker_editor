@@ -1,41 +1,71 @@
 #include <misc/AssemblyBuilderDialog.h>
 #include <wxresource/wxcrafter.h>
 
+#include <algorithm>
 #include <future>
 #include <wx/progdlg.h>
+#include <wx/textfile.h>
+#include <wx/tokenzr.h>
+#include <yaml-cpp/yaml.h>
 
-static wxString init_clonecmd = "git clone {URL} --branch {TAG} --single-branch .";
-static wxString init_cloneurl = "https://github.com/lordmir/landstalker_disasm.git";
-static wxString init_clonetag = "0.3";
-static wxString init_asmargs = "/p /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_ /e EXPANDED=0";
-#ifdef __WXMSW__
-static wxString init_assembler = ".\\tools\\build\\asm68k.exe";
-#else
-static wxString init_assembler = "wine ./tools/build/asm68k.exe";
-#endif
-static wxString init_baseasm = "landstalker_us.asm";
-static wxString init_outname = "landstalker.bin";
-#ifdef __WXMSW__
-static wxString init_emulator = "fusion.exe";
-#else
-static wxString init_emulator = "kega-fusion";
-#endif
-static bool init_run_after_build = true;
-static bool init_build_on_save = true;
-static bool init_clone_in_new_dir = true;
+static const wxString default_region = "US";
+
+// Assembler options shared by every build in build.yaml, used when the
+// assembly source predates build.yaml.
+static const wxString standard_buildopts = "/p /d /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_";
+
+// Z80 sound driver and music bank build steps, as per build.bat/build.sh in
+// the disassembly. Sources are assembled with asw and located with p2bin.
+struct Z80BuildStep
+{
+    const char* name;
+    const char* source;
+    const char* object;
+    const char* binary;
+    const char* link_opts;
+};
+static const Z80BuildStep z80_build_steps[] = {
+    {"Sound Bank 3", "code/audio/soundbank3.asm", "soundbank3.p", "soundbank3.bin", "-l 0xff -r 0x8000-0xdfff -k"},
+    {"Sound Bank 4", "code/audio/soundbank4.asm", "soundbank4.p", "soundbank4.bin", "-l 0xff -r 0x8000-0xffff -k"},
+    {"Cube/Iwadare Driver", "code/audio/main.asm", "cube.p", "cube.bin", "-l 0xff -r 0x0000-0x1f7f -k"},
+};
+
+// Per-region 68k defines, mirroring build.yaml. Used when the assembly
+// source has no build.yaml (or it lacks the selected build).
+struct RegionDefaults
+{
+    const char* region;
+    int values[14]; // Order matches default_define_names below, minus EXPANDED.
+};
+static const char* default_define_names[] = {
+    "REGION", "NTSC", "REGION_CHECK", "FIX_COLL_1", "FIX_COLL_2", "FIX_ARMLET_SKIP",
+    "FIX_WHISTLE_CHECK", "FIX_SPRITE_HIDE", "ENABLE_GOLD_COUNT", "FIX_GOLA_BUG",
+    "FIX_GOLD_CAP", "FIX_END_CREDS", "REFRESH_GOLD_CTR", "FIX_TS_GLITCH"
+};
+static const RegionDefaults region_defaults[] = {
+    {"US",   {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1}},
+    {"JP",   {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0}},
+    {"EUR",  {2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
+    {"FR",   {3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1}},
+    {"DE",   {4, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1}},
+    {"BETA", {5, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0}},
+};
 
 
 wxString AssemblyBuilderDialog::clonecmd;
 wxString AssemblyBuilderDialog::cloneurl;
 wxString AssemblyBuilderDialog::clonetag;
-wxString AssemblyBuilderDialog::asmargs;
 wxString AssemblyBuilderDialog::assembler;
-wxString AssemblyBuilderDialog::baseasm;
-wxString AssemblyBuilderDialog::outname;
+wxString AssemblyBuilderDialog::z80assembler;
+wxString AssemblyBuilderDialog::z80linker;
 wxString AssemblyBuilderDialog::emulator;
 bool AssemblyBuilderDialog::run_after_build;
 bool AssemblyBuilderDialog::build_on_save;
 bool AssemblyBuilderDialog::clone_in_new_dir;
+wxString AssemblyBuilderDialog::project_region = default_region;
+bool AssemblyBuilderDialog::project_expanded = false;
+wxString AssemblyBuilderDialog::project_dir;
+wxConfig* AssemblyBuilderDialog::config_store = nullptr;
 
 
 AssemblyBuilderDialog::AssemblyBuilderDialog(wxWindow* parent, const wxString& dir, std::shared_ptr<Landstalker::GameData> gd, Func fn, std::shared_ptr<Landstalker::Rom> rom)
@@ -86,7 +116,7 @@ AssemblyBuilderDialog::~AssemblyBuilderDialog()
 
 wxString AssemblyBuilderDialog::GetBuiltRomName()
 {
-    return outname;
+    return m_built_rom_name;
 }
 
 bool AssemblyBuilderDialog::DidOperationSucceed()
@@ -94,21 +124,215 @@ bool AssemblyBuilderDialog::DidOperationSucceed()
     return m_operation_succeeded;
 }
 
+const wxArrayString& AssemblyBuilderDialog::GetRegions()
+{
+    static wxArrayString regions;
+    if (regions.empty())
+    {
+        for (const auto& defaults : region_defaults)
+        {
+            regions.Add(defaults.region);
+        }
+    }
+    return regions;
+}
+
+const AssemblyBuilderDialog::ConfigDefaults& AssemblyBuilderDialog::GetDefaults()
+{
+    static const ConfigDefaults defaults = {
+        /* clonecmd */         "git clone {URL} --branch {TAG} --single-branch .",
+        /* cloneurl */         "https://github.com/lordmir/landstalker_disasm.git",
+        /* clonetag */         "v0.4",
+#ifdef __WXMSW__
+        /* assembler */        ".\\tools\\build\\asm68k.exe",
+        // Blank flags/output mean "derive from build.yaml / the project region".
+        /* asmargs */          "",
+        /* z80assembler */     ".\\tools\\build\\asw\\asw.exe",
+        /* z80linker */        ".\\tools\\build\\asw\\p2bin.exe",
+        /* outname */          "",
+        /* emulator */         "fusion.exe",
+#else
+        /* assembler */        "wine ./tools/build/asm68k.exe",
+        /* asmargs */          "",
+        /* z80assembler */     "wine ./tools/build/asw/asw.exe",
+        /* z80linker */        "wine ./tools/build/asw/p2bin.exe",
+        /* outname */          "",
+        /* emulator */         "kega-fusion",
+#endif
+        /* run_after_build */  true,
+        /* build_on_save */    true,
+        /* clone_in_new_dir */ true
+    };
+    return defaults;
+}
+
+void AssemblyBuilderDialog::SetProjectRegionFromAsm(const wxString& asm_path)
+{
+    // The top-level assembly documents its region and build options in
+    // comments near the top of the file, e.g.:
+    //   ;; BUILDOPTS = /p /o ... /e REGION=0;NTSC=1;EXPANDED=0;...
+    //   ;; REGION = US
+    wxString detected_region = default_region;
+    bool detected_expanded = false;
+    bool region_found = false;
+    bool expanded_found = false;
+    wxTextFile file(asm_path);
+    if (file.Open())
+    {
+        std::size_t lines_to_scan = std::min<std::size_t>(file.GetLineCount(), 100);
+        for (std::size_t i = 0; i < lines_to_scan && !(region_found && expanded_found); ++i)
+        {
+            wxString line = file.GetLine(i);
+            line.Trim(false);
+            if (!line.StartsWith(";"))
+            {
+                continue;
+            }
+            while (line.StartsWith(";"))
+            {
+                line.Remove(0, 1);
+            }
+            line.Trim(false);
+            if (!expanded_found && line.StartsWith("BUILDOPTS"))
+            {
+                int pos = line.Find("EXPANDED=");
+                if (pos != wxNOT_FOUND && static_cast<std::size_t>(pos) + 9 < line.length())
+                {
+                    detected_expanded = line[pos + 9] != '0';
+                    expanded_found = true;
+                }
+                continue;
+            }
+            if (region_found || !line.StartsWith("REGION"))
+            {
+                continue;
+            }
+            line = line.Mid(6);
+            line.Trim(false);
+            if (!line.StartsWith("="))
+            {
+                continue; // e.g. REGION_CHECK
+            }
+            wxString value = line.Mid(1).Trim(false).BeforeFirst(' ').Trim().Upper();
+            if (GetRegions().Index(value) != wxNOT_FOUND)
+            {
+                detected_region = value;
+                region_found = true;
+            }
+        }
+        file.Close();
+    }
+    project_region = detected_region;
+    project_expanded = detected_expanded;
+    project_dir = wxFileName(asm_path).GetPath();
+}
+
+void AssemblyBuilderDialog::SetProjectRegion(const wxString& new_region)
+{
+    project_region = (GetRegions().Index(new_region) != wxNOT_FOUND) ? new_region : default_region;
+    project_expanded = false;
+    project_dir.clear();
+}
+
+wxString AssemblyBuilderDialog::GetProjectRegion()
+{
+    return project_region;
+}
+
+bool AssemblyBuilderDialog::GetProjectExpanded()
+{
+    return project_expanded;
+}
+
+wxString AssemblyBuilderDialog::BuildName(const wxString& build_region, bool build_expanded)
+{
+    return build_region + (build_expanded ? "_EXPANDED" : "");
+}
+
+wxString AssemblyBuilderDialog::GetDefaultBuildOpts(const wxString& build_name)
+{
+    if (!project_dir.empty())
+    {
+        const wxString build_yaml = project_dir + wxFileName::GetPathSeparator() + "build.yaml";
+        if (wxFileExists(build_yaml))
+        {
+            try
+            {
+                YAML::Node root = YAML::LoadFile(build_yaml.ToStdString());
+                YAML::Node build = root["Builds"][build_name.ToStdString()];
+                if (build && build["Buildopts"])
+                {
+                    return wxString(build["Buildopts"].as<std::string>());
+                }
+            }
+            catch (const std::exception&)
+            {
+                // Fall through to the standard options.
+            }
+        }
+    }
+    return standard_buildopts;
+}
+
 void AssemblyBuilderDialog::InitConfig(wxConfig* config)
 {
+    config_store = config;
     if (config != nullptr)
     {
-        InitConfigVar(config, "/build/cloneurl", cloneurl, init_cloneurl);
-        InitConfigVar(config, "/build/clonetag", clonetag, init_clonetag);
-        InitConfigVar(config, "/build/clonecmd", clonecmd, init_clonecmd);
-        InitConfigVar(config, "/build/assembler", assembler, init_assembler);
-        InitConfigVar(config, "/build/asmargs", asmargs, init_asmargs);
-        InitConfigVar(config, "/build/baseasm", baseasm, init_baseasm);
-        InitConfigVar(config, "/build/outname", outname, init_outname);
-        InitConfigVar(config, "/build/emulator", emulator, init_emulator);
-        InitConfigVar(config, "/build/run_after_build", run_after_build, init_run_after_build);
-        InitConfigVar(config, "/build/build_on_save", build_on_save, init_build_on_save);
-        InitConfigVar(config, "/build/clone_in_new_dir", clone_in_new_dir, init_clone_in_new_dir);
+        const ConfigDefaults& defaults = GetDefaults();
+        // Migrate defaults from before the disassembly gained regions and the
+        // Z80 sound driver build: the old flags hardcoded EXPANDED=0 and the
+        // old output name hid the region-specific ROM naming.
+        if (config->Read("/build/asmargs") == "/p /o ae-,e+,w+,c+,op+,os+,ow+,oz+,l_ /e EXPANDED=0")
+        {
+            config->Write("/build/asmargs", "");
+        }
+        if (config->Read("/build/outname") == "landstalker.bin")
+        {
+            config->Write("/build/outname", "");
+        }
+        if (config->Read("/build/clonetag") == "0.3")
+        {
+            config->Write("/build/clonetag", defaults.clonetag);
+        }
+        // Migrate the briefly-used global region settings to per-region storage.
+        if (config->Exists("/build/region") || config->Exists("/build/expanded") ||
+            config->Exists("/build/asmargs") || config->Exists("/build/outname"))
+        {
+            wxString old_region = config->Read("/build/region", default_region);
+            if (GetRegions().Index(old_region) == wxNOT_FOUND)
+            {
+                old_region = default_region;
+            }
+            if (config->Exists("/build/asmargs"))
+            {
+                config->Write("/build/" + old_region + "/asmargs", config->Read("/build/asmargs"));
+            }
+            if (config->Exists("/build/outname"))
+            {
+                config->Write("/build/" + old_region + "/outname", config->Read("/build/outname"));
+            }
+            config->DeleteEntry("/build/region");
+            config->DeleteEntry("/build/expanded");
+            config->DeleteEntry("/build/asmargs");
+            config->DeleteEntry("/build/outname");
+        }
+        // The expanded state is derived from the opened assembly and forms
+        // part of the storage key rather than being stored itself.
+        for (const auto& region_name : GetRegions())
+        {
+            config->DeleteEntry("/build/" + region_name + "/expanded");
+        }
+        InitConfigVar(config, "/build/cloneurl", cloneurl, defaults.cloneurl);
+        InitConfigVar(config, "/build/clonetag", clonetag, defaults.clonetag);
+        InitConfigVar(config, "/build/clonecmd", clonecmd, defaults.clonecmd);
+        InitConfigVar(config, "/build/assembler", assembler, defaults.assembler);
+        InitConfigVar(config, "/build/z80assembler", z80assembler, defaults.z80assembler);
+        InitConfigVar(config, "/build/z80linker", z80linker, defaults.z80linker);
+        InitConfigVar(config, "/build/emulator", emulator, defaults.emulator);
+        InitConfigVar(config, "/build/run_after_build", run_after_build, defaults.run_after_build);
+        InitConfigVar(config, "/build/build_on_save", build_on_save, defaults.build_on_save);
+        InitConfigVar(config, "/build/clone_in_new_dir", clone_in_new_dir, defaults.clone_in_new_dir);
         config->Flush();
     }
 }
@@ -229,8 +453,18 @@ void AssemblyBuilderDialog::OnProcessComplete(wxProcessEvent& evt)
     case Step::BUILD:
         if (JoinThread())
         {
+            if (!m_build_queue.empty())
+            {
+                if (!RunNextBuildCommand())
+                {
+                    Abandon();
+                    MakeIdle();
+                    m_step = Step::IDLE;
+                }
+                break;
+            }
             auto f = wxFileName(m_dir, "");
-            f.SetFullName(outname);
+            f.SetFullName(m_built_rom_name);
             retval = DoFixChecksum();
             if (retval)
             {
@@ -310,14 +544,14 @@ bool AssemblyBuilderDialog::Build(bool post_save)
         return true;
     }
 
-    if (dir.HasFiles(baseasm) && dir.HasSubDirs())
+    if (dir.HasFiles() && dir.HasSubDirs())
     {
         m_step = Step::BUILD;
         return DoSave() && DoBuild();
     }
     else
     {
-        Log("No top-level assembly file exists in \"" + m_dir + "\"!", *wxRED);
+        Log("No assembly source exists in \"" + m_dir + "\"!", *wxRED);
         return false;
     }
 }
@@ -369,6 +603,7 @@ void AssemblyBuilderDialog::Abandon()
         delete m_execThread;
         m_execThread = nullptr;
     }
+    m_build_queue.clear();
 }
 
 bool AssemblyBuilderDialog::DoClone()
@@ -446,8 +681,230 @@ bool AssemblyBuilderDialog::DoSave()
     return false;
 }
 
+std::vector<std::pair<wxString, wxString>> AssemblyBuilderDialog::BuiltInDefines(const wxString& build_region, bool build_expanded)
+{
+    std::vector<std::pair<wxString, wxString>> defines;
+    for (const auto& region_default : region_defaults)
+    {
+        if (build_region == region_default.region)
+        {
+            for (std::size_t i = 0; i < sizeof(default_define_names) / sizeof(default_define_names[0]); ++i)
+            {
+                defines.emplace_back(default_define_names[i], wxString::Format("%d", region_default.values[i]));
+                if (defines.back().first == "NTSC")
+                {
+                    defines.emplace_back("EXPANDED", build_expanded ? "1" : "0");
+                }
+            }
+            break;
+        }
+    }
+    return defines;
+}
+
+std::vector<std::pair<wxString, wxString>> AssemblyBuilderDialog::ParseDefines(const wxString& defines)
+{
+    std::vector<std::pair<wxString, wxString>> parsed;
+    wxStringTokenizer tokenizer(defines, ";");
+    while (tokenizer.HasMoreTokens())
+    {
+        wxString token = tokenizer.GetNextToken().Trim().Trim(false);
+        wxString name = token.BeforeFirst('=').Trim();
+        wxString value = token.AfterFirst('=').Trim().Trim(false);
+        if (!name.empty() && token.Contains("="))
+        {
+            parsed.emplace_back(name, value);
+        }
+    }
+    return parsed;
+}
+
+wxString AssemblyBuilderDialog::FormatDefines(const std::vector<std::pair<wxString, wxString>>& defines)
+{
+    wxString formatted;
+    for (const auto& define : defines)
+    {
+        formatted << (formatted.empty() ? "" : ";") << define.first << "=" << define.second;
+    }
+    return formatted;
+}
+
+wxString AssemblyBuilderDialog::GetDefaultDefines(const wxString& build_name)
+{
+    if (!project_dir.empty())
+    {
+        const wxString build_yaml = project_dir + wxFileName::GetPathSeparator() + "build.yaml";
+        if (wxFileExists(build_yaml))
+        {
+            try
+            {
+                YAML::Node root = YAML::LoadFile(build_yaml.ToStdString());
+                YAML::Node build = root["Builds"][build_name.ToStdString()];
+                if (build && build["Defines"])
+                {
+                    std::vector<std::pair<wxString, wxString>> defines;
+                    for (const auto& define : build["Defines"])
+                    {
+                        defines.emplace_back(define.first.as<std::string>(), define.second.as<std::string>());
+                    }
+                    return FormatDefines(defines);
+                }
+            }
+            catch (const std::exception&)
+            {
+                // Fall through to the built-in defaults.
+            }
+        }
+    }
+    const bool build_expanded = build_name.EndsWith("_EXPANDED");
+    const wxString build_region = build_expanded ? build_name.BeforeLast('_') : build_name;
+    return FormatDefines(BuiltInDefines(build_region, build_expanded));
+}
+
+AssemblyBuilderDialog::BuildSettings AssemblyBuilderDialog::ResolveBuildSettings()
+{
+    BuildSettings settings;
+    const ConfigDefaults& defaults = GetDefaults();
+    wxString asmargs = defaults.asmargs;
+    wxString outname = defaults.outname;
+    wxString custom_defines;
+    settings.expanded = project_expanded;
+    const wxString build_name = BuildName(project_region, project_expanded);
+    if (config_store != nullptr)
+    {
+        asmargs = config_store->Read("/build/" + build_name + "/asmargs", defaults.asmargs);
+        outname = config_store->Read("/build/" + build_name + "/outname", defaults.outname);
+        custom_defines = config_store->Read("/build/" + build_name + "/defines");
+    }
+    const wxString stem = "landstalker_" + project_region.Lower() + (settings.expanded ? "_expanded" : "");
+    settings.source = stem + ".asm";
+    settings.target = stem + ".bin";
+    settings.buildopts = standard_buildopts;
+    settings.defines = BuiltInDefines(project_region, project_expanded);
+
+    const wxString build_yaml = m_dir + wxFileName::GetPathSeparator() + "build.yaml";
+    if (wxFileExists(build_yaml))
+    {
+        try
+        {
+            YAML::Node root = YAML::LoadFile(build_yaml.ToStdString());
+            YAML::Node build = root["Builds"][build_name.ToStdString()];
+            if (build)
+            {
+                if (build["Source"])
+                {
+                    settings.source = build["Source"].as<std::string>();
+                }
+                if (build["Target"])
+                {
+                    settings.target = build["Target"].as<std::string>();
+                }
+                if (build["Buildopts"])
+                {
+                    settings.buildopts = build["Buildopts"].as<std::string>();
+                }
+                if (build["Defines"])
+                {
+                    settings.defines.clear();
+                    for (const auto& define : build["Defines"])
+                    {
+                        settings.defines.emplace_back(define.first.as<std::string>(), define.second.as<std::string>());
+                    }
+                }
+            }
+            else
+            {
+                Log("Build \"" + build_name + "\" not found in build.yaml, using built-in defaults.\n", *wxRED);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            Log(wxString("Failed to parse build.yaml (") + e.what() + "), using built-in defaults.\n", *wxRED);
+        }
+    }
+    else
+    {
+        Log("No build.yaml found in assembly directory, using built-in defaults.\n");
+    }
+
+    if (!asmargs.empty())
+    {
+        settings.buildopts = asmargs;
+    }
+    if (!outname.empty())
+    {
+        settings.target = outname;
+    }
+    if (!custom_defines.empty())
+    {
+        settings.defines = ParseDefines(custom_defines);
+    }
+    wxFileName source_name(settings.source);
+    source_name.SetExt("sym");
+    settings.symbol = source_name.GetFullName();
+    source_name.SetExt("lst");
+    settings.listing = source_name.GetFullName();
+    return settings;
+}
+
+void AssemblyBuilderDialog::QueueZ80Commands(bool expanded_rom)
+{
+    // The Z80 sound driver and music banks were introduced to the disassembly
+    // after v0.3: skip them for older sources that lack the audio code.
+    if (!wxFileExists(m_dir + wxFileName::GetPathSeparator() + z80_build_steps[0].source))
+    {
+        Log("No Z80 audio sources found, skipping sound driver build.\n");
+        return;
+    }
+    const wxString z80defines = wxString(" -D EXPANDED=") + (expanded_rom ? "1" : "0");
+    for (const auto& step : z80_build_steps)
+    {
+        m_build_queue.push_back(z80assembler + " " + step.source + " -o " + step.object + z80defines);
+        m_build_queue.push_back(z80linker + " " + wxString(step.object) + " " + step.binary + " " + step.link_opts);
+    }
+}
+
 bool AssemblyBuilderDialog::DoBuild()
 {
+    m_build_queue.clear();
+    BuildSettings settings = ResolveBuildSettings();
+    m_built_rom_name = settings.target;
+
+    if (!wxFileExists(m_dir + wxFileName::GetPathSeparator() + settings.source))
+    {
+        Log("Assembly file \"" + settings.source + "\" does not exist in \"" + m_dir + "\"!", *wxRED);
+        return false;
+    }
+
+    QueueZ80Commands(settings.expanded);
+
+    wxString defines;
+    for (const auto& define : settings.defines)
+    {
+        defines << (defines.empty() ? "/e " : ";") << define.first << "=" << define.second;
+    }
+    wxString cmd = assembler;
+    cmd << " " << settings.buildopts;
+    if (!defines.empty())
+    {
+        cmd << " " << defines;
+    }
+    cmd << " \"" << settings.source << "\",\"" << settings.target << "\",\""
+        << settings.symbol << "\",\"" << settings.listing << "\"";
+    m_build_queue.push_back(cmd);
+
+    return RunNextBuildCommand();
+}
+
+bool AssemblyBuilderDialog::RunNextBuildCommand()
+{
+    if (m_build_queue.empty())
+    {
+        return false;
+    }
+    wxString cmd = m_build_queue.front();
+    m_build_queue.pop_front();
+
     wxProcess* process = new wxProcess(this);
     process->Redirect();
     m_execThread = new ExecutorThread(this, process, m_msgQueue);
@@ -461,15 +918,7 @@ bool AssemblyBuilderDialog::DoBuild()
         return false;
     }
 
-    wxString cmd = assembler;
-    cmd << " " << asmargs << " \"" << baseasm << "\",\"" << outname << "\"";
     Log(cmd + "\n", *wxBLUE);
-    if (cmd.empty())
-    {
-        Log("Assemble command has not been set!", *wxRED);
-        Abandon();
-        return false;
-    }
 
     wxExecuteEnv env;
     env.cwd = m_dir;
@@ -494,17 +943,17 @@ bool AssemblyBuilderDialog::DoFixChecksum()
 
     Log("Fixing ROM checksum...\n", *wxBLUE);
     bool isSuccess;
-    if (wxFileName(outname).Exists())
+    if (wxFileName(m_built_rom_name).Exists())
     {
-        auto r = Landstalker::Rom(outname.ToStdString());
-        r.writeFile(outname.ToStdString());
+        auto r = Landstalker::Rom(m_built_rom_name.ToStdString());
+        r.writeFile(m_built_rom_name.ToStdString());
 
         Log(Landstalker::StrPrintf("Done! Checksum is 0x%04X.\n", r.read_checksum()), wxColor(0, 128, 0));
         isSuccess = true;
     }
     else
     {
-        Log(wxString("Failed to read ROM file \"") + outname + "\" while checking checksum. ", *wxRED);
+        Log(wxString("Failed to read ROM file \"") + m_built_rom_name + "\" while checking checksum. ", *wxRED);
         isSuccess = false;
     }
 

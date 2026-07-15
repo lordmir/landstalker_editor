@@ -25,8 +25,6 @@ public:
     void LoadRoom(uint16_t roomnum);
     void Render(
         const std::vector<SpriteInstance>& instances,
-        float cam_x,
-        float cam_y,
         int selected_entity_index,
         int selected_collision_warning,
         OcclusionMode occlusion_mode,
@@ -54,9 +52,6 @@ private:
     int m_tex_w, m_tex_h;
     float m_opacity;
     int m_palette_rows;
-    uint16_t m_current_room;
-    int m_room_left;
-    int m_room_top;
 };
 
 #endif // SPRITE_RENDERER_H

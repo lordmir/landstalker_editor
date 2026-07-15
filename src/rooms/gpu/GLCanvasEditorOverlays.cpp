@@ -31,42 +31,7 @@ std::string HexWord(uint16_t value)
     return out;
 }
 
-void DrawOverlayGlyph(char c, float x, float y, float scale)
-{
-    const auto* glyph = PixelFont::Glyph(c);
-    if (!glyph) {
-        return;
-    }
-
-    glBegin(GL_QUADS);
-    for (int row = 0; row < PixelFont::kGlyphHeight; ++row) {
-        uint8_t bits = (*glyph)[row];
-        for (int col = 0; col < PixelFont::kGlyphWidth; ++col) {
-            uint8_t mask = static_cast<uint8_t>(1u << (PixelFont::kGlyphWidth - 1 - col));
-            if ((bits & mask) == 0) {
-                continue;
-            }
-
-            float px = x + float(col) * scale;
-            float py = y + float(row) * scale;
-            glVertex2f(px, py);
-            glVertex2f(px + scale, py);
-            glVertex2f(px + scale, py + scale);
-            glVertex2f(px, py + scale);
-        }
-    }
-    glEnd();
-}
-
-void DrawOverlayText(const std::string& text, float x, float y, float scale)
-{
-    constexpr float glyph_advance = 6.0f;
-    x = std::round(x);
-    y = std::round(y);
-    for (std::size_t i = 0; i < text.size(); ++i) {
-        DrawOverlayGlyph(text[i], x + float(i) * glyph_advance * scale, y, scale);
-    }
-}
+using PixelFont::DrawOverlayText;
 
 }  // namespace
 
@@ -283,7 +248,7 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
 
     if (m_background_show_block_ids) {
         constexpr float scale = 1.0f;
-        constexpr float glyph_advance = 6.0f;
+        constexpr float glyph_advance = PixelFont::kGlyphAdvance;
         constexpr float glyph_height = 7.0f;
         for (int y = 0; y < m_mapRenderer.GetRoomHeight(); ++y) {
             for (int x = 0; x < m_mapRenderer.GetRoomWidth(); ++x) {

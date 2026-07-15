@@ -11,9 +11,14 @@
 #include "PixelFont.h"
 #include "RoomProjection.h"
 
+#include <landstalker/misc/Utils.h>
+
 namespace {
 
 using PickPoint = RoomProjection::PickPoint;
+using GLCanvasObjectSupport::HitboxBaseToBlocks;
+using GLCanvasObjectSupport::HitboxDrawOffset;
+using GLCanvasObjectSupport::HitboxHeightToBlocks;
 using RoomProjection::ProjectEntityGridPoint;
 using RoomProjection::ScreenToMapPoint;
 
@@ -23,18 +28,6 @@ struct PickRect {
 	float max_x;
 	float max_y;
 };
-
-float HitboxBaseToBlocks(uint8_t base) {
-	return float(base) / 8.0f;
-}
-
-float HitboxHeightToBlocks(uint8_t height) {
-	return float(height) / 16.0f;
-}
-
-float HitboxDrawOffset(float hitbox_base) {
-	return hitbox_base < 1.5f ? 0.0f : 0.5f;
-}
 
 PickRect EntityZControlRect(const SpriteInstance& inst)
 {
@@ -132,51 +125,7 @@ bool PointInEntityHitbox(const SpriteInstance& inst, const PickPoint& point, boo
 	return false;
 }
 
-std::string HexByte(uint8_t value)
-{
-	constexpr char digits[] = "0123456789ABCDEF";
-	std::string out;
-	out.push_back(digits[(value >> 4) & 0x0F]);
-	out.push_back(digits[value & 0x0F]);
-	return out;
-}
-
-void DrawOverlayGlyph(char c, float x, float y, float scale)
-{
-	const auto* glyph = PixelFont::Glyph(c);
-	if (!glyph) {
-		return;
-	}
-
-	glBegin(GL_QUADS);
-	for (int row = 0; row < PixelFont::kGlyphHeight; ++row) {
-		uint8_t bits = (*glyph)[row];
-		for (int col = 0; col < PixelFont::kGlyphWidth; ++col) {
-			uint8_t mask = static_cast<uint8_t>(1u << (PixelFont::kGlyphWidth - 1 - col));
-			if ((bits & mask) == 0) {
-				continue;
-			}
-
-			float px = x + float(col) * scale;
-			float py = y + float(row) * scale;
-			glVertex2f(px, py);
-			glVertex2f(px + scale, py);
-			glVertex2f(px + scale, py + scale);
-			glVertex2f(px, py + scale);
-		}
-	}
-	glEnd();
-}
-
-void DrawOverlayText(const std::string& text, float x, float y, float scale)
-{
-	constexpr float glyph_advance = 6.0f;
-	x = std::round(x);
-	y = std::round(y);
-	for (std::size_t i = 0; i < text.size(); ++i) {
-		DrawOverlayGlyph(text[i], x + float(i) * glyph_advance * scale, y, scale);
-	}
-}
+using PixelFont::DrawOverlayText;
 
 }  // namespace
 
@@ -436,23 +385,9 @@ void GLCanvasEntityEditor::RefreshEntityMetadata(SpriteInstance& inst)
 	UpdateEntityProjection(inst);
 }
 
-void GLCanvasEntityEditor::AddEntity()
-{
-	// Keep room entity data and render instances in lockstep when inserting.
-	if (m_canvas.m_room_entities.size() >= 15) {
-		return;
-	}
-
-	// Use the exact same logic as the ghost preview
-	SpriteInstance ghost{};
-	if (!m_canvas.BuildPendingEntityPreviewInstance(ghost)) {
-		return;
-	}
-	AddEntity(ghost);
-}
-
 void GLCanvasEntityEditor::AddEntity(const SpriteInstance& preview_instance)
 {
+	// Keep room entity data and render instances in lockstep when inserting.
 	if (m_canvas.m_room_entities.size() >= 15) {
 		return;
 	}
@@ -685,7 +620,7 @@ void GLCanvasEntityEditor::RenderEntityTooltipForInstance(const SpriteInstance& 
 
 	std::array<std::string, 5> lines = {
 		std::string{"I:"} + std::to_string(std::clamp<int>(static_cast<int>(inst.instance_id), 1, 15)),
-		std::string{"EID:"} + HexByte(inst.entity_id),
+		Landstalker::StrPrintf("EID:%02X", inst.entity_id),
 		std::string{"X:"} + fmt(inst.map_x),
 		std::string{"Y:"} + fmt(inst.map_y),
 		std::string{"Z:"} + fmt(inst.map_z)

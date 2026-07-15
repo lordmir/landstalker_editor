@@ -2,11 +2,17 @@
 
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdint>
+#include <string>
+
+#include "GLLoader.h"
 
 namespace PixelFont {
 constexpr int kGlyphWidth = 5;
 constexpr int kGlyphHeight = 7;
+// Horizontal advance between glyphs, in pixels at scale 1.
+constexpr float kGlyphAdvance = 6.0f;
 
 inline const std::array<uint8_t, kGlyphHeight>* Glyph(char c)
 {
@@ -197,6 +203,45 @@ inline const std::array<uint8_t, kGlyphHeight>* Glyph(char c)
         }
         default:
             return nullptr;
+    }
+}
+
+// Draws a single glyph as immediate-mode quads using the current GL color.
+inline void DrawOverlayGlyph(char c, float x, float y, float scale)
+{
+    const auto* glyph = Glyph(c);
+    if (!glyph) {
+        return;
+    }
+
+    glBegin(GL_QUADS);
+    for (int row = 0; row < kGlyphHeight; ++row) {
+        uint8_t bits = (*glyph)[row];
+        for (int col = 0; col < kGlyphWidth; ++col) {
+            uint8_t mask = static_cast<uint8_t>(1u << (kGlyphWidth - 1 - col));
+            if ((bits & mask) == 0) {
+                continue;
+            }
+
+            float px = x + float(col) * scale;
+            float py = y + float(row) * scale;
+            glVertex2f(px, py);
+            glVertex2f(px + scale, py);
+            glVertex2f(px + scale, py + scale);
+            glVertex2f(px, py + scale);
+        }
+    }
+    glEnd();
+}
+
+// Draws a text run using the current GL color. Coordinates are rounded to
+// whole pixels so the bitmap font stays crisp.
+inline void DrawOverlayText(const std::string& text, float x, float y, float scale)
+{
+    x = std::round(x);
+    y = std::round(y);
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        DrawOverlayGlyph(text[i], x + float(i) * kGlyphAdvance * scale, y, scale);
     }
 }
 } // namespace PixelFont

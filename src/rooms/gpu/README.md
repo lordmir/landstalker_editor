@@ -225,8 +225,9 @@ Handles cross-object operations:
 
 Contains shared object geometry and conversion helpers:
 
-- Tile-swap region geometry construction.
-- Tile-swap region metrics.
+- Tile-swap region geometry construction and metrics.
+- Door geometry construction (with optional preview-map override).
+- Shared `PickRect`/bounds helpers for projected geometry.
 - Warp instance construction and valid-size clamping.
 - Geometric entity sorting.
 
@@ -250,7 +251,9 @@ runtime shader file loading.
 
 ### `PixelFont.h`
 
-Provides the bitmap font used for GPU overlay text, labels, and tooltips.
+Provides the bitmap font used for GPU overlay text, labels, and tooltips,
+plus the shared `DrawOverlayGlyph`/`DrawOverlayText` helpers used by all
+overlay/tooltip renderers.
 
 ## Frame Integration Events
 

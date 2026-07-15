@@ -11,8 +11,6 @@ public:
 
     // Enters pending-add mode for placing a new entity with the cursor.
     void BeginAddEntity();
-    // Adds an entity using the current pending/hover placement state.
-    void AddEntity();
     // Adds an entity from a prepared preview instance.
     void AddEntity(const SpriteInstance& preview_instance);
     // Returns the topmost entity hit by point, including shadow/body volume.

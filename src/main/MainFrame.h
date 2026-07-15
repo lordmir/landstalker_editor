@@ -136,6 +136,7 @@ private:
     bool CheckForFileChanges();
     void OpenFile(const wxString& path);
     void OpenLabelsFile(std::string path);
+    void ShowRomOpenWarning();
     void OpenRomFile(const wxString& path);
     void OpenAsmFile(const wxString& path);
     void InitUI();

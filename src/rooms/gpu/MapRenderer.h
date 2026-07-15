@@ -17,7 +17,7 @@ public:
     void Init();
     void LoadRoom(uint16_t roomnum);
     void LoadPreviewRoom(uint16_t roomnum, const Landstalker::Tilemap3D& map);
-    void Render(float cam_x, float cam_y);
+    void Render();
     void RenderBackgroundOnly();
     void RenderBackgroundWithOpacity(float alpha);
     void RenderForegroundOnly();
@@ -38,6 +38,14 @@ private:
     void UploadRoomMap(uint16_t roomnum, const Landstalker::Tilemap3D& map);
     void InitShaders();
     GLuint CreateShader(const char* vs_name, const char* vs_src, const char* fs_name, const char* fs_src);
+    // Activates the map shader with all textures bound and default uniforms
+    // (no priority filter/highlight) and blending enabled. Callers override
+    // u_alpha and the priority uniforms as needed.
+    void BindMapShaderState(GLuint map_tex_id, float map_w, float map_h);
+    // Emits one textured quad per room block, offset horizontally by x_offset.
+    void DrawRoomQuads(float x_offset) const;
+    // Uploads the current 1x1 preview-map texture for a single block.
+    void UploadBlockPreviewTexture(uint16_t block_id);
 
     std::shared_ptr<Landstalker::GameData> m_gd;
     GLuint m_map_shader_program;

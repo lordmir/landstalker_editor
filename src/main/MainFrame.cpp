@@ -18,6 +18,9 @@
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
 #include <wx/richmsgdlg.h>
+#include <wx/artprov.h>
+#include <wx/hyperlink.h>
+#include <wx/statbmp.h>
 #include <wx/colour.h>
 #include <wx/graphics.h>
 #include <wx/progdlg.h>
@@ -132,8 +135,54 @@ void MainFrame::OnAbout(wxCommandEvent& event)
     event.Skip();
 }
 
+void MainFrame::ShowRomOpenWarning()
+{
+    if (m_config != nullptr && !m_config->ReadBool("/warnings/show_rom_open_warning", true))
+    {
+        return;
+    }
+
+    wxDialog dlg(this, wxID_ANY, "Opening ROM");
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* msg_sizer = new wxBoxSizer(wxHORIZONTAL);
+    msg_sizer->Add(new wxStaticBitmap(&dlg, wxID_ANY, wxArtProvider::GetBitmap(wxART_WARNING, wxART_MESSAGE_BOX)),
+        0, wxALL | wxALIGN_TOP, 10);
+
+    wxBoxSizer* text_sizer = new wxBoxSizer(wxVERTICAL);
+    text_sizer->Add(new wxStaticText(&dlg, wxID_ANY,
+        "You are opening a ROM file directly.\n\n"
+        "Loading a non-retail ROM may not work, and not all editor features\n"
+        "are available when working from a ROM.\n\n"
+        "It is advisable to open a disassembly instead:"), 0, wxBOTTOM, 5);
+    text_sizer->Add(new wxHyperlinkCtrl(&dlg, wxID_ANY,
+        "https://github.com/lordmir/landstalker_disasm",
+        "https://github.com/lordmir/landstalker_disasm"), 0, wxBOTTOM, 5);
+    wxCheckBox* dont_show_again = new wxCheckBox(&dlg, wxID_ANY, "Don't show this warning again");
+    text_sizer->Add(dont_show_again, 0, wxTOP, 5);
+    msg_sizer->Add(text_sizer, 1, wxALL | wxEXPAND, 10);
+    sizer->Add(msg_sizer, 1, wxEXPAND, 0);
+
+    wxStdDialogButtonSizer* btnszr = new wxStdDialogButtonSizer();
+    wxButton* ok = new wxButton(&dlg, wxID_OK, "OK");
+    ok->SetDefault();
+    btnszr->AddButton(ok);
+    btnszr->Realize();
+    sizer->Add(btnszr, 0, wxALL | wxALIGN_RIGHT, 10);
+
+    dlg.SetSizerAndFit(sizer);
+    dlg.CentreOnParent();
+    dlg.ShowModal();
+
+    if (m_config != nullptr && dont_show_again->GetValue())
+    {
+        m_config->Write("/warnings/show_rom_open_warning", false);
+        m_config->Flush();
+    }
+}
+
 void MainFrame::OpenRomFile(const wxString& path)
 {
+    ShowRomOpenWarning();
     try
     {
         if (CloseFiles() != ReturnCode::OK)
@@ -165,6 +214,7 @@ void MainFrame::OpenRomFile(const wxString& path)
             this->SetLabel("Landstalker Editor - " + m_rom.get_description());
             m_asmfile = false;
             m_built_rom = path;
+            AssemblyBuilderDialog::SetProjectRegion("US");
             InitUI();
         }
     }
@@ -209,6 +259,7 @@ void MainFrame::OpenAsmFile(const wxString& path)
             wxFileName name(path);
             m_asmfile = true;
             m_last_asm = name.GetPath();
+            AssemblyBuilderDialog::SetProjectRegionFromAsm(path);
             InitUI();
         }
     }

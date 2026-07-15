@@ -58,27 +58,23 @@ bool GLCanvasHeightmapMode::HandleKeyDown(wxKeyEvent& evt)
     bool shift = evt.ShiftDown();
 
     if (shift) {
+        // Shift+1..4 apply view presets: flat, raised, full-height, and
+        // full-height with the tilemap drawn underneath.
+        auto apply_view_preset = [this](float z_scale, bool tilemap_underlay) {
+            m_canvas.SetHeightmapZScale(z_scale);
+            m_canvas.m_heightmap_tilemap_underlay = tilemap_underlay;
+            m_canvas.Refresh();
+            return true;
+        };
         switch (evt.GetKeyCode()) {
             case '1':
-                m_canvas.m_heightmap_view_mode = MyGLCanvas::HeightmapViewMode::Flat;
-                m_canvas.ApplyHeightmapViewMode();
-                m_canvas.Refresh();
-                return true;
+                return apply_view_preset(0.0f, false);
             case '2':
-                m_canvas.m_heightmap_view_mode = MyGLCanvas::HeightmapViewMode::Raised;
-                m_canvas.ApplyHeightmapViewMode();
-                m_canvas.Refresh();
-                return true;
+                return apply_view_preset(0.5f, false);
             case '3':
-                m_canvas.m_heightmap_view_mode = MyGLCanvas::HeightmapViewMode::Full;
-                m_canvas.ApplyHeightmapViewMode();
-                m_canvas.Refresh();
-                return true;
+                return apply_view_preset(1.0f, false);
             case '4':
-                m_canvas.m_heightmap_view_mode = MyGLCanvas::HeightmapViewMode::FullWithTilemap;
-                m_canvas.ApplyHeightmapViewMode();
-                m_canvas.Refresh();
-                return true;
+                return apply_view_preset(1.0f, true);
         }
     }
 

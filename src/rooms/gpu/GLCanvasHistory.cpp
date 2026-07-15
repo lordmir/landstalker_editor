@@ -83,24 +83,7 @@ void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
     m_door_preview_idx = -1;
     m_tileswap_preview_map.reset();
     m_heightmapRenderer.ClearPreviewMap();
-    m_heightmap_dragging_select = false;
-    m_heightmap_dragging_draw = false;
-    m_heightmap_dragging_line = false;
-    m_heightmap_dragging_selection_move = false;
-    m_heightmap_draw_dirty = false;
-    m_heightmap_line_preview_cells.clear();
-    m_heightmap_selection_move_values.clear();
-    m_heightmap_selection_drag_base.clear();
-    m_heightmap_last_draw_x = -1;
-    m_heightmap_last_draw_y = -1;
-    m_heightmap_line_start_x = -1;
-    m_heightmap_line_start_y = -1;
-    m_heightmap_line_end_x = -1;
-    m_heightmap_line_end_y = -1;
-    m_heightmap_selection_move_anchor_x = -1;
-    m_heightmap_selection_move_anchor_y = -1;
-    m_heightmap_selection_move_delta_x = 0;
-    m_heightmap_selection_move_delta_y = 0;
+    ResetHeightmapEditState();
 
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
@@ -158,24 +141,7 @@ void MyGLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
         }
     }
 
-    m_layer_dragging_select = false;
-    m_layer_dragging_draw = false;
-    m_layer_dragging_selection_move = false;
-    m_layer_dragging_line = false;
-    m_layer_draw_dirty = false;
-    m_layer_selection_drag_base.clear();
-    m_layer_selection_move_values.clear();
-    m_layer_line_preview_cells.clear();
-    m_layer_last_draw_x = -1;
-    m_layer_last_draw_y = -1;
-    m_layer_line_start_x = -1;
-    m_layer_line_start_y = -1;
-    m_layer_line_end_x = -1;
-    m_layer_line_end_y = -1;
-    m_layer_selection_move_anchor_x = -1;
-    m_layer_selection_move_anchor_y = -1;
-    m_layer_selection_move_delta_x = 0;
-    m_layer_selection_move_delta_y = 0;
+    ResetLayerEditState();
 
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();

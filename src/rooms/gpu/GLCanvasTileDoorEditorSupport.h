@@ -7,40 +7,29 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <iomanip>
 #include <limits>
-#include <sstream>
 #include <set>
 
 #include "GLCanvasObjectSupport.h"
 #include "PixelFont.h"
 #include "RoomProjection.h"
 
+#include <landstalker/misc/Utils.h>
+
 using GLCanvasObjectSupport::TileSwapRegionPart;
 
 namespace {
 
 using PickPoint = RoomProjection::PickPoint;
+using PickRect = GLCanvasObjectSupport::PickRect;
+using DoorGeometry = GLCanvasObjectSupport::DoorGeometry;
+using GLCanvasObjectSupport::BoundsForPoints;
+using GLCanvasObjectSupport::BuildDoorGeometries;
+using PixelFont::DrawOverlayText;
 using RoomProjection::ProjectHeightmapGridPoint;
 using RoomProjection::ProjectRoomGridPoint;
 using RoomProjection::ScreenToHeightmapPoint;
 using RoomProjection::ScreenToMapPoint;
-
-struct PickRect {
-	float min_x;
-	float min_y;
-	float max_x;
-	float max_y;
-};
-
-struct DoorGeometry {
-	int index;
-	Landstalker::Door door;
-	bool valid;
-	std::vector<PickPoint> cell_points;
-	std::vector<PickPoint> map_points;
-	PickRect bounds;
-};
 
 PickRect RectAroundPoint(const PickPoint& point, float half_size)
 {
@@ -63,111 +52,6 @@ bool PointInRect(const PickPoint& point, const PickRect& rect)
 PickRect TileSwapRegionResizeControlRect(const GLCanvasObjectSupport::TileSwapRegionGeometry& region)
 {
 	return RectAroundPoint({region.resize_handle.x, region.resize_handle.y}, 6.0f);
-}
-
-PickRect BoundsForPoints(const std::vector<PickPoint>& points)
-{
-	PickRect bounds{
-		std::numeric_limits<float>::max(),
-		std::numeric_limits<float>::max(),
-		std::numeric_limits<float>::lowest(),
-		std::numeric_limits<float>::lowest()
-	};
-	for (const auto& point : points) {
-		bounds.min_x = std::min(bounds.min_x, point.x);
-		bounds.min_y = std::min(bounds.min_y, point.y);
-		bounds.max_x = std::max(bounds.max_x, point.x);
-		bounds.max_y = std::max(bounds.max_y, point.y);
-	}
-	return bounds;
-}
-
-std::vector<DoorGeometry> BuildDoorGeometries(
-	const std::shared_ptr<Landstalker::GameData>& gd,
-	uint16_t room,
-	const MapRenderer& map_renderer,
-	float z_extent,
-	const std::shared_ptr<Landstalker::Tilemap3D>& preview_map)
-{
-	std::vector<DoorGeometry> out;
-	auto rd = gd ? gd->GetRoomData() : nullptr;
-	if (!rd) {
-		return out;
-	}
-
-	auto doors = rd->GetDoors(room);
-	auto map_entry = rd->GetMapForRoom(room);
-	auto tilemap = preview_map ? preview_map : (map_entry ? map_entry->GetData() : nullptr);
-	if (!tilemap) {
-		return out;
-	}
-
-	const float room_left = static_cast<float>(map_renderer.GetRoomLeft());
-	const float room_top = static_cast<float>(map_renderer.GetRoomTop());
-
-	auto height_at = [&](int x, int y) {
-		if (x < 0 || y < 0 || x >= tilemap->GetHeightmapWidth() || y >= tilemap->GetHeightmapHeight()) {
-			return 0.0f;
-		}
-		uint8_t z = tilemap->GetHeight({x, y});
-		return z == 0xFF ? 0.0f : static_cast<float>(z);
-	};
-
-	auto offset = [](const PickPoint& point, float x, float y) {
-		return PickPoint{point.x + x, point.y + y};
-	};
-
-	for (std::size_t i = 0; i < doors.size(); ++i) {
-		const Landstalker::Door& door = doors[i];
-		int x = static_cast<int>(door.x);
-		int y = static_cast<int>(door.y);
-		PickPoint center = ProjectHeightmapGridPoint(
-			static_cast<float>(x) + 0.5f,
-			static_cast<float>(y) + 0.5f,
-			height_at(x, y),
-			room_left,
-			room_top,
-			z_extent);
-
-		DoorGeometry geom{};
-		geom.index = static_cast<int>(i);
-		geom.door = door;
-		geom.cell_points = {
-			offset(center, 0.0f, -16.0f),
-			offset(center, 32.0f, 0.0f),
-			offset(center, 0.0f, 16.0f),
-			offset(center, -32.0f, 0.0f)
-		};
-
-		auto [valid, poly] = door.GetMapRegionPoly(tilemap, 1, 2);
-		geom.valid = valid;
-		auto tile_offset = door.GetTileOffset(tilemap, Landstalker::Tilemap3D::Layer::BG);
-		PickPoint anchor = ProjectRoomGridPoint(
-			room_left + static_cast<float>(tile_offset.first),
-			room_top + static_cast<float>(tile_offset.second),
-			0.0f,
-			room_left,
-			room_top);
-		geom.map_points.reserve(poly.size());
-		for (const auto& point : poly) {
-			geom.map_points.push_back({
-				anchor.x + static_cast<float>(point.first) * 32.0f,
-				anchor.y + static_cast<float>(point.second) * 16.0f
-			});
-		}
-
-		geom.bounds = BoundsForPoints(geom.cell_points);
-		if (!geom.map_points.empty()) {
-			PickRect map_bounds = BoundsForPoints(geom.map_points);
-			geom.bounds.min_x = std::min(geom.bounds.min_x, map_bounds.min_x);
-			geom.bounds.min_y = std::min(geom.bounds.min_y, map_bounds.min_y);
-			geom.bounds.max_x = std::max(geom.bounds.max_x, map_bounds.max_x);
-			geom.bounds.max_y = std::max(geom.bounds.max_y, map_bounds.max_y);
-		}
-		out.push_back(std::move(geom));
-	}
-
-	return out;
 }
 
 float DistanceToSegment(const PickPoint& point, const PickPoint& a, const PickPoint& b)
@@ -335,52 +219,6 @@ void DrawHeightmapSwapPreviewClipped(const Landstalker::TileSwap& swap, Landstal
 				tilemap.SetHeightmapCell({x, y}, tilemap.GetHeightmapCell(src));
 			}
 		}
-	}
-}
-
-std::string HexByte(uint8_t value)
-{
-	constexpr char digits[] = "0123456789ABCDEF";
-	std::string out;
-	out.push_back(digits[(value >> 4) & 0x0F]);
-	out.push_back(digits[value & 0x0F]);
-	return out;
-}
-
-void DrawOverlayGlyph(char c, float x, float y, float scale)
-{
-	const auto* glyph = PixelFont::Glyph(c);
-	if (!glyph) {
-		return;
-	}
-
-	glBegin(GL_QUADS);
-	for (int row = 0; row < PixelFont::kGlyphHeight; ++row) {
-		uint8_t bits = (*glyph)[row];
-		for (int col = 0; col < PixelFont::kGlyphWidth; ++col) {
-			uint8_t mask = static_cast<uint8_t>(1u << (PixelFont::kGlyphWidth - 1 - col));
-			if ((bits & mask) == 0) {
-				continue;
-			}
-
-			float px = x + float(col) * scale;
-			float py = y + float(row) * scale;
-			glVertex2f(px, py);
-			glVertex2f(px + scale, py);
-			glVertex2f(px + scale, py + scale);
-			glVertex2f(px, py + scale);
-		}
-	}
-	glEnd();
-}
-
-void DrawOverlayText(const std::string& text, float x, float y, float scale)
-{
-	constexpr float glyph_advance = 6.0f;
-	x = std::round(x);
-	y = std::round(y);
-	for (std::size_t i = 0; i < text.size(); ++i) {
-		DrawOverlayGlyph(text[i], x + float(i) * glyph_advance * scale, y, scale);
 	}
 }
 

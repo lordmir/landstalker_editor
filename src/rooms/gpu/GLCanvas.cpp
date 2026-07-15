@@ -19,8 +19,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <deque>
-#include <limits>
 #include <set>
 #include <utility>
 #include <wx/log.h>
@@ -36,17 +34,9 @@ int GLCanvasAttributes[] = {
     0
 };
 
-float HitboxBaseToBlocks(uint8_t base) {
-    return float(base) / 8.0f;
-}
-
-float HitboxHeightToBlocks(uint8_t height) {
-    return float(height) / 16.0f;
-}
-
-float HitboxDrawOffset(float hitbox_base) {
-    return hitbox_base < 1.5f ? 0.0f : 0.5f;
-}
+using GLCanvasObjectSupport::HitboxBaseToBlocks;
+using GLCanvasObjectSupport::HitboxDrawOffset;
+using GLCanvasObjectSupport::HitboxHeightToBlocks;
 
 struct EntityBounds {
     float min_x;
@@ -102,306 +92,14 @@ float WheelSteps(const wxMouseEvent& evt) {
 }
 
 using PickPoint = RoomProjection::PickPoint;
+using GLCanvasObjectSupport::BuildDoorGeometries;
+using GLCanvasObjectSupport::BuildTileSwapRegionGeometries;
+using GLCanvasObjectSupport::MakeWarpInstance;
+using GLCanvasObjectSupport::SortEntitiesGeometrically;
 using RoomProjection::ProjectEntityGridPoint;
-using RoomProjection::ProjectHeightmapGridPoint;
-using RoomProjection::ProjectRoomGridPoint;
 using RoomProjection::ProjectWarpGridPoint;
 using RoomProjection::ScreenToHeightmapPoint;
 using RoomProjection::ScreenToMapPoint;
-
-struct PickRect {
-    float min_x;
-    float min_y;
-    float max_x;
-    float max_y;
-};
-
-enum class TileSwapRegionPart {
-    TilemapSource = 0,
-    TilemapDestination = 1,
-    HeightmapSource = 2,
-    HeightmapDestination = 3
-};
-
-GLCanvasObjectSupport::TileSwapRegionPart ToSupportTileSwapRegionPart(TileSwapRegionPart part)
-{
-    switch (part) {
-        case TileSwapRegionPart::TilemapSource:
-            return GLCanvasObjectSupport::TileSwapRegionPart::TilemapSource;
-        case TileSwapRegionPart::TilemapDestination:
-            return GLCanvasObjectSupport::TileSwapRegionPart::TilemapDestination;
-        case TileSwapRegionPart::HeightmapSource:
-            return GLCanvasObjectSupport::TileSwapRegionPart::HeightmapSource;
-        case TileSwapRegionPart::HeightmapDestination:
-            return GLCanvasObjectSupport::TileSwapRegionPart::HeightmapDestination;
-    }
-    return GLCanvasObjectSupport::TileSwapRegionPart::TilemapSource;
-}
-
-TileSwapRegionPart FromSupportTileSwapRegionPart(GLCanvasObjectSupport::TileSwapRegionPart part)
-{
-    switch (part) {
-        case GLCanvasObjectSupport::TileSwapRegionPart::TilemapSource:
-            return TileSwapRegionPart::TilemapSource;
-        case GLCanvasObjectSupport::TileSwapRegionPart::TilemapDestination:
-            return TileSwapRegionPart::TilemapDestination;
-        case GLCanvasObjectSupport::TileSwapRegionPart::HeightmapSource:
-            return TileSwapRegionPart::HeightmapSource;
-        case GLCanvasObjectSupport::TileSwapRegionPart::HeightmapDestination:
-            return TileSwapRegionPart::HeightmapDestination;
-    }
-    return TileSwapRegionPart::TilemapSource;
-}
-
-struct TileSwapRegionGeometry {
-    int flat_index;
-    int swap_index;
-    TileSwapRegionPart part;
-    TileSwap swap;
-    std::vector<PickPoint> points;
-    std::vector<PickPoint> fill_points;
-    PickRect bounds;
-    bool segments;
-    PickPoint resize_handle;
-};
-
-struct TileSwapRegionMetrics {
-    int x;
-    int y;
-    int width;
-    int height;
-};
-
-struct DoorGeometry {
-    int index;
-    Door door;
-    bool valid;
-    std::vector<PickPoint> cell_points;
-    std::vector<PickPoint> map_points;
-    PickRect bounds;
-};
-
-TileSwapRegionMetrics MetricsForTileSwapRegion(const TileSwap& swap, TileSwapRegionPart part)
-{
-    auto metrics = GLCanvasObjectSupport::MetricsForTileSwapRegion(swap, ToSupportTileSwapRegionPart(part));
-    return {metrics.x, metrics.y, metrics.width, metrics.height};
-}
-
-PickPoint PolygonEdgeHandle(const std::vector<PickPoint>& points, int axis)
-{
-    if (points.empty()) {
-        return {0.0f, 0.0f};
-    }
-    if (points.size() == 1) {
-        return points.front();
-    }
-
-    float best_key = std::numeric_limits<float>::lowest();
-    PickPoint best{0.0f, 0.0f};
-    for (std::size_t i = 0; i < points.size(); ++i) {
-        const PickPoint& a = points[i];
-        const PickPoint& b = points[(i + 1) % points.size()];
-        PickPoint midpoint{(a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f};
-        float key = axis == 1 ? midpoint.x : midpoint.y;
-        if (key > best_key) {
-            best_key = key;
-            best = midpoint;
-        }
-    }
-    return best;
-}
-
-void ClampWarpToValidSize(WarpInstance& warp)
-{
-    GLCanvasObjectSupport::ClampWarpToValidSize(warp);
-}
-
-PickRect BoundsForPoints(const std::vector<PickPoint>& points)
-{
-    PickRect bounds{
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::lowest()
-    };
-    for (const auto& point : points) {
-        bounds.min_x = std::min(bounds.min_x, point.x);
-        bounds.min_y = std::min(bounds.min_y, point.y);
-        bounds.max_x = std::max(bounds.max_x, point.x);
-        bounds.max_y = std::max(bounds.max_y, point.y);
-    }
-    return bounds;
-}
-
-const char* TileSwapShapeLabel(TileSwap::Mode mode)
-{
-    switch (mode) {
-        case TileSwap::Mode::FLOOR:
-            return "FLOOR";
-        case TileSwap::Mode::WALL_NE:
-            return "WNE";
-        case TileSwap::Mode::WALL_NW:
-            return "WNW";
-    }
-    return "UNK";
-}
-
-std::vector<TileSwapRegionGeometry> BuildTileSwapRegionGeometries(
-    const std::shared_ptr<GameData>& gd,
-    uint16_t room,
-    const MapRenderer& map_renderer,
-    float z_extent)
-{
-    std::vector<TileSwapRegionGeometry> out;
-    auto shared = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(gd, room, map_renderer, z_extent);
-    out.reserve(shared.size());
-    for (const auto& region : shared) {
-        TileSwapRegionGeometry local{};
-        local.flat_index = region.flat_index;
-        local.swap_index = region.swap_index;
-        local.part = FromSupportTileSwapRegionPart(region.part);
-        local.swap = region.swap;
-        local.points.reserve(region.points.size());
-        for (const auto& point : region.points) {
-            local.points.push_back({point.x, point.y});
-        }
-        local.fill_points.reserve(region.fill_points.size());
-        for (const auto& point : region.fill_points) {
-            local.fill_points.push_back({point.x, point.y});
-        }
-        local.bounds = local.points.empty() ? PickRect{0.0f, 0.0f, 0.0f, 0.0f} : BoundsForPoints(local.points);
-        if (!local.fill_points.empty()) {
-            PickRect fill_bounds = BoundsForPoints(local.fill_points);
-            local.bounds.min_x = std::min(local.bounds.min_x, fill_bounds.min_x);
-            local.bounds.min_y = std::min(local.bounds.min_y, fill_bounds.min_y);
-            local.bounds.max_x = std::max(local.bounds.max_x, fill_bounds.max_x);
-            local.bounds.max_y = std::max(local.bounds.max_y, fill_bounds.max_y);
-        }
-        local.segments = region.segments;
-        local.resize_handle = {region.resize_handle.x, region.resize_handle.y};
-        out.push_back(std::move(local));
-    }
-    return out;
-}
-
-std::vector<DoorGeometry> BuildDoorGeometries(
-    const std::shared_ptr<GameData>& gd,
-    uint16_t room,
-    const MapRenderer& map_renderer,
-    float z_extent,
-    const std::shared_ptr<const Tilemap3D>& override_tilemap)
-{
-    std::vector<DoorGeometry> out;
-    auto rd = gd ? gd->GetRoomData() : nullptr;
-    if (!rd) {
-        return out;
-    }
-    auto doors = rd->GetDoors(room);
-    if (doors.empty()) {
-        return out;
-    }
-
-    std::shared_ptr<const Tilemap3D> tilemap = override_tilemap;
-    if (!tilemap) {
-        auto map_entry = rd->GetMapForRoom(room);
-        tilemap = map_entry ? map_entry->GetData() : nullptr;
-    }
-    if (!tilemap) {
-        return out;
-    }
-
-    const float room_left = static_cast<float>(map_renderer.GetRoomLeft());
-    const float room_top = static_cast<float>(map_renderer.GetRoomTop());
-
-    auto height_at = [&](int x, int y) {
-        if (x < 0 || y < 0 || x >= tilemap->GetHeightmapWidth() || y >= tilemap->GetHeightmapHeight()) {
-            return 0.0f;
-        }
-        uint8_t z = tilemap->GetHeight({x, y});
-        return z == 0xFF ? 0.0f : static_cast<float>(z);
-    };
-
-    auto offset = [](const PickPoint& point, float x, float y) {
-        return PickPoint{point.x + x, point.y + y};
-    };
-
-    for (std::size_t i = 0; i < doors.size(); ++i) {
-        const Door& door = doors[i];
-        int x = static_cast<int>(door.x);
-        int y = static_cast<int>(door.y);
-        PickPoint center = ProjectHeightmapGridPoint(
-            static_cast<float>(x) + 0.5f,
-            static_cast<float>(y) + 0.5f,
-            height_at(x, y),
-            room_left,
-            room_top,
-            z_extent);
-
-        DoorGeometry geom{};
-        geom.index = static_cast<int>(i);
-        geom.door = door;
-        geom.cell_points = {
-            offset(center, 0.0f, -16.0f),
-            offset(center, 32.0f, 0.0f),
-            offset(center, 0.0f, 16.0f),
-            offset(center, -32.0f, 0.0f)
-        };
-
-        auto [valid, poly] = door.GetMapRegionPoly(tilemap, 1, 2);
-        geom.valid = valid;
-        auto tile_offset = door.GetTileOffset(tilemap, Tilemap3D::Layer::BG);
-        PickPoint anchor = ProjectRoomGridPoint(
-            room_left + static_cast<float>(tile_offset.first),
-            room_top + static_cast<float>(tile_offset.second),
-            0.0f,
-            room_left,
-            room_top);
-        geom.map_points.reserve(poly.size());
-        for (const auto& point : poly) {
-            geom.map_points.push_back({
-                anchor.x + static_cast<float>(point.first) * 32.0f,
-                anchor.y + static_cast<float>(point.second) * 16.0f
-            });
-        }
-
-        geom.bounds = BoundsForPoints(geom.cell_points);
-        if (!geom.map_points.empty()) {
-            PickRect map_bounds = BoundsForPoints(geom.map_points);
-            geom.bounds.min_x = std::min(geom.bounds.min_x, map_bounds.min_x);
-            geom.bounds.min_y = std::min(geom.bounds.min_y, map_bounds.min_y);
-            geom.bounds.max_x = std::max(geom.bounds.max_x, map_bounds.max_x);
-            geom.bounds.max_y = std::max(geom.bounds.max_y, map_bounds.max_y);
-        }
-        out.push_back(std::move(geom));
-    }
-
-    return out;
-}
-
-WarpInstance MakeWarpInstance(
-    const Landstalker::WarpList::Warp& warp,
-    uint16_t current_room,
-    uint32_t instance_id,
-    float room_left,
-    float room_top,
-    float z_extent = 32.0f,
-    uint32_t warp_key = 0,
-    int side_override = 0)
-{
-    return GLCanvasObjectSupport::MakeWarpInstance(
-        warp,
-        current_room,
-        instance_id,
-        room_left,
-        room_top,
-        z_extent,
-        warp_key,
-        side_override);
-}
-
-void SortEntitiesGeometrically(std::vector<SpriteInstance>& instances) {
-    GLCanvasObjectSupport::SortEntitiesGeometrically(instances);
-}
 
 std::set<uint32_t> FindCollidedEntities(const std::vector<SpriteInstance>& instances) {
     constexpr float epsilon = 0.001f;
@@ -452,69 +150,12 @@ wxEND_EVENT_TABLE()
 
 MyGLCanvas::MyGLCanvas(wxWindow* parent, std::shared_ptr<GameData> gd)
     : wxGLCanvas(parent, wxID_ANY, GLCanvasAttributes, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS),
-    m_gd(gd), m_context(nullptr), m_mapRenderer(gd), m_heightmapRenderer(gd), m_spriteRenderer(gd), m_room_info_overlay(*this),
-      m_frame_count(0), m_fps(0.0f), m_current_room(0), m_cam_x(0.0f), m_cam_y(0.0f),
-      m_alpha(false), m_show_heightmap(false), m_show_entities(true), m_show_warps(true), m_show_tile_swaps(true),
-      m_hovered_entity_idx(-1), m_selected_entity_idx(-1), m_hovered_warp_idx(-1), m_selected_warp_idx(-1),
-      m_hovered_tileswap_region_idx(-1), m_selected_tileswap_region_idx(-1),
-      m_hovered_door_idx(-1), m_selected_door_idx(-1),
-      m_dragging_entity(false), m_drag_z_axis_only(false), m_drag_instance_id(0),
-      m_drag_start_x(0.0f), m_drag_start_y(0.0f), m_drag_start_z(0.0f),
-      m_drag_plane_z(0.0f), m_drag_cursor_offset_x(0.0f), m_drag_cursor_offset_y(0.0f), m_drag_floor_snap(false),
-      m_dragging_warp(false), m_drag_warp_instance_id(0), m_drag_warp_resize_axis(0),
-      m_drag_warp_start_x(0.0f), m_drag_warp_start_y(0.0f),
-      m_drag_warp_start_width(0.0f), m_drag_warp_start_height(0.0f), m_drag_warp_start_floor_z(0.0f),
-      m_dragging_door(false), m_drag_door_idx(-1), m_drag_door_start_x(0), m_drag_door_start_y(0),
-      m_dragging_tileswap_region(false), m_drag_tileswap_region_idx(-1), m_drag_tileswap_resize_axis(0),
-      m_drag_tileswap_start_x(0), m_drag_tileswap_start_y(0), m_drag_tileswap_start_width(1), m_drag_tileswap_start_height(1),
-    m_dragging_pan(false), m_drag_pan_start_mouse(wxDefaultPosition), m_drag_pan_start_cam_x(0.0f), m_drag_pan_start_cam_y(0.0f),
-    m_bg_opacity_idx(0), m_fg_opacity_idx(0), m_sprite_opacity_idx(0), m_entity_occlusion_idx(1),
-        m_show_hitboxes(true), m_editor_mode(EditorMode::Room), m_drawing_tool(DrawingTool::Select), m_heightmap_view_mode(HeightmapViewMode::Flat), m_non_heightmap_z_extent(32.0f), m_heightmap_z_scale(0.0f), m_heightmap_tilemap_underlay(false), m_layer_heightmap_overlay(false), m_foreground_show_background_underlay(true), m_background_show_block_ids(false), m_layer_priority_highlight(true),
-            m_background_has_selection(false), m_background_selected_x(0), m_background_selected_y(0),
-            m_background_has_hover(false), m_background_hover_x(0), m_background_hover_y(0),
-            m_background_clipboard_valid(false), m_background_clipboard_block_id(0),
-            m_layer_dragging_select(false), m_layer_selection_add(false), m_layer_selection_subtract(false), m_layer_selection_parallelogram(false),
-            m_layer_selection_anchor_x(0), m_layer_selection_anchor_y(0),
-            m_layer_selection_drag_anchor_x(0), m_layer_selection_drag_anchor_y(0),
-            m_layer_dragging_selection_move(false), m_layer_selection_move_anchor_x(-1), m_layer_selection_move_anchor_y(-1),
-            m_layer_selection_move_delta_x(0), m_layer_selection_move_delta_y(0),
-            m_layer_dragging_draw(false), m_layer_dragging_line(false), m_layer_draw_dirty(false), m_layer_last_draw_x(-1), m_layer_last_draw_y(-1),
-            m_layer_line_start_x(-1), m_layer_line_start_y(-1), m_layer_line_end_x(-1), m_layer_line_end_y(-1),
-            m_heightmap_clipboard_valid(false), m_heightmap_clipboard_cell(0),
-            m_heightmap_dragging_select(false), m_heightmap_dragging_draw(false), m_heightmap_dragging_line(false), m_heightmap_dragging_selection_move(false), m_heightmap_draw_dirty(false),
-            m_heightmap_selection_add(false), m_heightmap_selection_subtract(false),
-            m_heightmap_selection_anchor_x(0), m_heightmap_selection_anchor_y(0),
-            m_heightmap_selection_drag_anchor_x(0), m_heightmap_selection_drag_anchor_y(0),
-            m_heightmap_last_draw_x(-1), m_heightmap_last_draw_y(-1),
-            m_heightmap_line_start_x(-1), m_heightmap_line_start_y(-1),
-            m_heightmap_line_end_x(-1), m_heightmap_line_end_y(-1),
-            m_heightmap_selection_move_anchor_x(-1), m_heightmap_selection_move_anchor_y(-1),
-            m_heightmap_selection_move_delta_x(0), m_heightmap_selection_move_delta_y(0),
-            m_tileswap_preview_active(false), m_tileswap_preview_swap_index(-1),
-    m_door_preview_active(false), m_door_preview_idx(-1),
-      m_pending_warp_half(false), m_pending_warp_room(0xFFFF), m_pending_warp_instance_id(0),
-    m_entity_clipboard_valid(false), m_zoom_step_idx(1), m_gl_init_failed(false), m_initialized(false), m_last_mouse_pos(wxDefaultPosition),
-    m_last_anim_ms(0), m_last_frame_ms(0), m_animation_update_count(0), m_render_deferred(false),
-    m_restoring_history(false), m_pending_add_type(PendingObjectAddType::None),
-    m_pending_tileswap_part(PendingTileSwapPart::MapSource),
-    m_pending_add_entity_id(Landstalker::Entity{}.GetType()),
-    m_pending_add_entity_palette(Landstalker::Entity{}.GetPalette()),
-    m_pending_add_entity_orientation(Landstalker::Entity{}.GetOrientation()),
-    m_pending_add_entity_cursor_offset_x(0.0f),
-    m_pending_add_entity_cursor_offset_y(0.0f),
-    m_pending_add_plane_z(0.0f),
-    m_pending_add_floor_snap(true),
-    m_pending_add_start_x(0.0f),
-    m_pending_add_start_y(0.0f),
-    m_pending_add_start_z(0.0f),
-    m_pending_add_mouse_start(wxDefaultPosition),
-    m_pending_add_hover_x(-1), m_pending_add_hover_y(-1),
-    m_pending_add_warp_width(1.0f),
-    m_pending_add_warp_height(1.0f),
-    m_pending_add_warp_type(Landstalker::WarpList::Warp::Type::NORMAL),
-    m_pending_add_door_size(Door::Size::DOOR_1X4)
+      m_gd(gd),
+      m_mapRenderer(gd),
+      m_heightmapRenderer(gd),
+      m_spriteRenderer(gd),
+      m_room_info_overlay(*this)
 {
-    m_current_room = 0;
     m_fps_stopwatch.Start();
     m_anim_stopwatch.Start();
     m_last_anim_ms = m_anim_stopwatch.Time();
@@ -577,7 +218,7 @@ void MyGLCanvas::SetHeightmapZScale(float scale) {
 
     m_heightmap_z_scale = clamped;
     if (IsHeightmapEditMode()) {
-        ApplyHeightmapViewMode();
+        ApplyHeightmapEditZExtent();
         RefreshObjectPlacementsFromHeightmap();
         UpdateStatusBar();
         Refresh();
@@ -683,31 +324,7 @@ void MyGLCanvas::ToggleLayerPriorityHighlight() {
     SetLayerPriorityHighlight(!m_layer_priority_highlight);
 }
 
-void MyGLCanvas::SetDrawingTool(DrawingTool tool) {
-    if (m_drawing_tool == tool) {
-        return;
-    }
-    if (m_layer_dragging_draw) {
-        CommitLayerDrawStroke();
-    }
-    m_drawing_tool = tool;
-    m_heightmap_dragging_select = false;
-    m_heightmap_dragging_draw = false;
-    m_heightmap_dragging_line = false;
-    m_heightmap_dragging_selection_move = false;
-    m_heightmap_draw_dirty = false;
-    m_heightmap_last_draw_x = -1;
-    m_heightmap_last_draw_y = -1;
-    m_heightmap_line_start_x = -1;
-    m_heightmap_line_start_y = -1;
-    m_heightmap_line_end_x = -1;
-    m_heightmap_line_end_y = -1;
-    m_heightmap_selection_move_anchor_x = -1;
-    m_heightmap_selection_move_anchor_y = -1;
-    m_heightmap_selection_move_delta_x = 0;
-    m_heightmap_selection_move_delta_y = 0;
-    m_heightmap_line_preview_cells.clear();
-    m_heightmap_selection_move_values.clear();
+void MyGLCanvas::ResetLayerEditState() {
     m_layer_dragging_select = false;
     m_layer_selection_add = false;
     m_layer_selection_subtract = false;
@@ -729,6 +346,41 @@ void MyGLCanvas::SetDrawingTool(DrawingTool tool) {
     m_layer_line_end_x = -1;
     m_layer_line_end_y = -1;
     m_layer_line_preview_cells.clear();
+}
+
+void MyGLCanvas::ResetHeightmapEditState() {
+    m_heightmap_dragging_select = false;
+    m_heightmap_dragging_draw = false;
+    m_heightmap_dragging_line = false;
+    m_heightmap_dragging_selection_move = false;
+    m_heightmap_draw_dirty = false;
+    m_heightmap_selection_add = false;
+    m_heightmap_selection_subtract = false;
+    m_heightmap_last_draw_x = -1;
+    m_heightmap_last_draw_y = -1;
+    m_heightmap_line_start_x = -1;
+    m_heightmap_line_start_y = -1;
+    m_heightmap_line_end_x = -1;
+    m_heightmap_line_end_y = -1;
+    m_heightmap_selection_move_anchor_x = -1;
+    m_heightmap_selection_move_anchor_y = -1;
+    m_heightmap_selection_move_delta_x = 0;
+    m_heightmap_selection_move_delta_y = 0;
+    m_heightmap_line_preview_cells.clear();
+    m_heightmap_selection_move_values.clear();
+    m_heightmap_selection_drag_base.clear();
+}
+
+void MyGLCanvas::SetDrawingTool(DrawingTool tool) {
+    if (m_drawing_tool == tool) {
+        return;
+    }
+    if (m_layer_dragging_draw) {
+        CommitLayerDrawStroke();
+    }
+    m_drawing_tool = tool;
+    ResetHeightmapEditState();
+    ResetLayerEditState();
     if (HasCapture()) {
         ReleaseMouse();
     }
@@ -970,31 +622,8 @@ void MyGLCanvas::CancelActiveDrag() {
     m_dragging_door = false;
     m_dragging_tileswap_region = false;
     m_dragging_pan = false;
-    m_heightmap_dragging_line = false;
-    m_heightmap_dragging_selection_move = false;
-    m_heightmap_line_preview_cells.clear();
-    m_heightmap_selection_move_values.clear();
-    m_layer_dragging_select = false;
-    m_layer_selection_add = false;
-    m_layer_selection_subtract = false;
-    m_layer_selection_parallelogram = false;
-    m_layer_selection_drag_base.clear();
-    m_layer_dragging_selection_move = false;
-    m_layer_selection_move_anchor_x = -1;
-    m_layer_selection_move_anchor_y = -1;
-    m_layer_selection_move_delta_x = 0;
-    m_layer_selection_move_delta_y = 0;
-    m_layer_selection_move_values.clear();
-    m_layer_dragging_draw = false;
-    m_layer_dragging_line = false;
-    m_layer_draw_dirty = false;
-    m_layer_last_draw_x = -1;
-    m_layer_last_draw_y = -1;
-    m_layer_line_start_x = -1;
-    m_layer_line_start_y = -1;
-    m_layer_line_end_x = -1;
-    m_layer_line_end_y = -1;
-    m_layer_line_preview_cells.clear();
+    ResetHeightmapEditState();
+    ResetLayerEditState();
     if (HasCapture()) {
         ReleaseMouse();
     }
@@ -1152,16 +781,7 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
     }
     // Cancel any in-progress insertion or drag before switching rooms.
     CancelPendingObjectAdd();
-    if (m_dragging_entity || m_dragging_warp || m_dragging_door || m_dragging_tileswap_region) {
-        m_dragging_entity = false;
-        m_dragging_warp = false;
-        m_dragging_door = false;
-        m_dragging_tileswap_region = false;
-        if (HasCapture()) {
-            ReleaseMouse();
-        }
-        SetCursor(wxCursor(wxCURSOR_ARROW));
-    }
+    CancelActiveDrag();
     m_tileswap_preview_active = false;
     m_tileswap_preview_swap_index = -1;
     m_door_preview_active = false;
@@ -1185,26 +805,6 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
     m_selected_tileswap_region_idx = -1;
     m_hovered_door_idx = -1;
     m_selected_door_idx = -1;
-    m_heightmap_dragging_select = false;
-    m_heightmap_dragging_draw = false;
-    m_heightmap_dragging_line = false;
-    m_heightmap_dragging_selection_move = false;
-    m_heightmap_draw_dirty = false;
-    m_heightmap_selection_add = false;
-    m_heightmap_selection_subtract = false;
-    m_heightmap_last_draw_x = -1;
-    m_heightmap_last_draw_y = -1;
-    m_heightmap_line_start_x = -1;
-    m_heightmap_line_start_y = -1;
-    m_heightmap_line_end_x = -1;
-    m_heightmap_line_end_y = -1;
-    m_heightmap_selection_move_anchor_x = -1;
-    m_heightmap_selection_move_anchor_y = -1;
-    m_heightmap_selection_move_delta_x = 0;
-    m_heightmap_selection_move_delta_y = 0;
-    m_heightmap_line_preview_cells.clear();
-    m_heightmap_selection_move_values.clear();
-    m_heightmap_selection_drag_base.clear();
     if (room_changed) {
         m_background_has_selection = false;
         m_background_selected_x = 0;
@@ -1218,11 +818,6 @@ void MyGLCanvas::LoadRoomFromGameData(uint16_t roomnum, bool persist_edits, bool
         m_heightmap_clipboard_cell = 0;
         NotifyHeightmapTargetChanged();
     }
-    m_dragging_entity = false;
-    m_dragging_warp = false;
-    m_dragging_door = false;
-    m_dragging_tileswap_region = false;
-    SetCursor(wxCursor(wxCURSOR_ARROW));
     auto sd = m_gd->GetSpriteData();
     auto entities = sd->GetRoomEntities(roomnum);
     m_room_entities = entities;
@@ -1405,14 +1000,7 @@ void MyGLCanvas::OnIdle(wxIdleEvent& evt)
     }
 
     long now_ms = m_anim_stopwatch.Time();
-    const bool frame_due = now_ms - m_last_frame_ms >= kTargetFrameMs;
-
-    if (frame_due || m_render_deferred) {
-        if (!frame_due) {
-            evt.RequestMore();
-            return;
-        }
-
+    if (now_ms - m_last_frame_ms >= kTargetFrameMs) {
         float dt = std::clamp((now_ms - m_last_anim_ms) / 1000.0f, 0.0f, 0.1f);
         m_last_anim_ms = now_ms;
         m_render_deferred = false;
@@ -1512,21 +1100,10 @@ void MyGLCanvas::OnMouseWheel(wxMouseEvent& evt) {
         float steps = WheelSteps(evt);
         int delta = steps > 0.0f ? 1 : (steps < 0.0f ? -1 : 0);
         if (delta != 0) {
-            int old_idx = std::clamp(m_zoom_step_idx, 0, static_cast<int>(kZoomSteps.size()) - 1);
-            int new_idx = std::clamp(old_idx + delta, 0, static_cast<int>(kZoomSteps.size()) - 1);
-            if (new_idx != old_idx) {
-                float old_zoom = kZoomSteps[static_cast<std::size_t>(old_idx)];
-                float new_zoom = kZoomSteps[static_cast<std::size_t>(new_idx)];
-                float anchor_x = static_cast<float>(evt.GetPosition().x);
-                float anchor_y = static_cast<float>(evt.GetPosition().y);
-                float world_x = (anchor_x - m_cam_x) / old_zoom;
-                float world_y = (anchor_y - m_cam_y) / old_zoom;
-                m_zoom_step_idx = new_idx;
-                m_cam_x = anchor_x - world_x * new_zoom;
-                m_cam_y = anchor_y - world_y * new_zoom;
-                m_cam_x = std::round(m_cam_x);
-                m_cam_y = std::round(m_cam_y);
-            }
+            ChangeZoomStep(
+                delta,
+                static_cast<float>(evt.GetPosition().x),
+                static_cast<float>(evt.GetPosition().y));
         }
         Refresh();
         return;
@@ -1823,7 +1400,7 @@ Tilemap3D::Layer MyGLCanvas::CurrentEditLayer() const {
     return m_editor_mode == EditorMode::ForegroundLayer ? Tilemap3D::Layer::FG : Tilemap3D::Layer::BG;
 }
 
-void MyGLCanvas::ApplyHeightmapViewMode() {
+void MyGLCanvas::ApplyHeightmapEditZExtent() {
     m_heightmapRenderer.SetZExtent(m_heightmap_z_scale * kHeightmapEditorMaxZExtent);
 }
 
@@ -1834,7 +1411,7 @@ void MyGLCanvas::SetEditorMode(EditorMode mode) {
 
     if (m_editor_mode != EditorMode::Heightmap && mode == EditorMode::Heightmap) {
         m_non_heightmap_z_extent = m_heightmapRenderer.GetZExtent();
-        ApplyHeightmapViewMode();
+        ApplyHeightmapEditZExtent();
     } else if (m_editor_mode == EditorMode::Heightmap && mode != EditorMode::Heightmap) {
         m_heightmapRenderer.SetZExtent(m_non_heightmap_z_extent);
     }
@@ -2156,62 +1733,37 @@ void MyGLCanvas::PersistCurrentRoomEdits() {
         return;
     }
 
-    std::vector<Landstalker::Entity> entities(m_instances.size());
-    for (const auto& inst : m_instances) {
-        std::size_t idx = inst.instance_id > 0 ? std::size_t(inst.instance_id - 1) : entities.size();
-        if (idx >= entities.size()) {
-            continue;
-        }
-        Landstalker::Entity entity = idx < m_room_entities.size() ? m_room_entities[idx] : Landstalker::Entity{};
-        entity.SetType(inst.entity_id);
-        entity.SetPalette(std::min<uint8_t>(inst.palette, 3));
-        entity.SetOrientation(inst.orientation);
-        entity.SetXDbl(inst.map_x);
-        entity.SetYDbl(inst.map_y);
-        entity.SetZDbl(inst.map_z);
-        entities[idx] = entity;
-    }
+    std::vector<Landstalker::Entity> entities = BuildCurrentRoomEntities();
     m_gd->GetSpriteData()->SetRoomEntities(m_current_room, entities);
     m_room_entities = entities;
 
-    std::vector<Landstalker::WarpList::Warp> warps;
-    std::map<uint32_t, std::size_t> warp_slots;
-    for (const auto& inst : m_warps) {
-        uint32_t key = inst.warp_key != 0 ? inst.warp_key : inst.instance_id;
-        auto slot_it = warp_slots.find(key);
-        if (slot_it == warp_slots.end()) {
-            warp_slots[key] = warps.size();
-            warps.push_back(inst.warp);
-            slot_it = warp_slots.find(key);
-        }
-        Landstalker::WarpList::Warp& warp = warps[slot_it->second];
-        if (inst.current_room_is_room1) {
-            warp.room1 = m_current_room;
-            warp.x1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
-            warp.y1 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
-        } else {
-            warp.room2 = m_current_room;
-            warp.x2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
-            warp.y2 = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
-        }
-        warp.x_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.width)), 1, 63));
-        warp.y_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.height)), 1, 63));
-        if (m_pending_warp_half &&
-            m_pending_warp_room == m_current_room &&
-            inst.instance_id == m_pending_warp_instance_id &&
-            inst.DestinationRoom() == 0xFFFF) {
-            m_pending_warp = warp;
+    // A pending warp half is not persisted (it has no destination yet), so its
+    // latest editor position/size must be captured before it is filtered out.
+    if (m_pending_warp_half && m_pending_warp_room == m_current_room) {
+        int pending_idx = FindWarpIndex(m_pending_warp_instance_id);
+        if (pending_idx >= 0) {
+            const WarpInstance& inst = m_warps[static_cast<std::size_t>(pending_idx)];
+            if (inst.DestinationRoom() == 0xFFFF) {
+                Landstalker::WarpList::Warp warp = inst.warp;
+                uint8_t x = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+                uint8_t y = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+                if (inst.current_room_is_room1) {
+                    warp.room1 = m_current_room;
+                    warp.x1 = x;
+                    warp.y1 = y;
+                } else {
+                    warp.room2 = m_current_room;
+                    warp.x2 = x;
+                    warp.y2 = y;
+                }
+                warp.x_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.width)), 1, 63));
+                warp.y_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.height)), 1, 63));
+                m_pending_warp = warp;
+            }
         }
     }
-    warps.erase(
-        std::remove_if(
-            warps.begin(),
-            warps.end(),
-            [](const auto& warp) {
-                return warp.room1 == 0xFFFF || warp.room2 == 0xFFFF || !warp.IsValid();
-            }),
-        warps.end());
-    m_gd->GetRoomData()->SetWarpsForRoom(m_current_room, warps);
+
+    m_gd->GetRoomData()->SetWarpsForRoom(m_current_room, BuildCurrentRoomWarps());
 }
 
 void MyGLCanvas::OnPaint(wxPaintEvent&) {

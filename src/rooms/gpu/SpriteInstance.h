@@ -2,6 +2,8 @@
 #define SPRITE_INSTANCE_H
 
 #include <cstdint>
+#include <map>
+#include <vector>
 #include <landstalker/rooms/Entity.h>
 
 // Texture-frame metadata for a single sprite animation frame.

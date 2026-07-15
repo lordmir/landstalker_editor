@@ -574,7 +574,7 @@ void GLCanvasRoomMode::Render(int width, int height)
 {
     // Delegate drawing in strict layer order to keep occlusion deterministic.
     // Earlier passes also prepare stencil information used by later passes.
-    m_canvas.m_mapRenderer.Render(m_canvas.m_cam_x, m_canvas.m_cam_y);
+    m_canvas.m_mapRenderer.Render();
     if (m_canvas.m_show_heightmap) {
         m_canvas.m_heightmapRenderer.Render();
     }
@@ -677,8 +677,6 @@ void GLCanvasRoomMode::Render(int width, int height)
         if (m_canvas.m_show_entities || m_canvas.m_show_hitboxes) {
             m_canvas.m_spriteRenderer.Render(
                 m_canvas.m_instances,
-                m_canvas.m_cam_x,
-                m_canvas.m_cam_y,
                 m_canvas.m_selected_entity_idx,
                 selected_collision_warning,
                 occlusion_mode,
@@ -711,8 +709,6 @@ void GLCanvasRoomMode::Render(int width, int height)
             m_canvas.m_spriteRenderer.SetOpacity(0.45f);
             m_canvas.m_spriteRenderer.Render(
                 ghost_instances,
-                m_canvas.m_cam_x,
-                m_canvas.m_cam_y,
                 -1,
                 0,
                 occlusion_mode,

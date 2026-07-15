@@ -479,7 +479,7 @@ void GLCanvasTileDoorEditor::RenderSelectedDoorTooltip()
 	}
 
 	std::array<std::string, 4> lines = {
-		std::string{"ID:"} + HexByte(static_cast<uint8_t>(std::clamp(m_canvas.m_selected_door_idx + 1, 0, 255))),
+		Landstalker::StrPrintf("ID:%02X", std::clamp(m_canvas.m_selected_door_idx + 1, 0, 255)),
 		std::string{"X:"} + std::to_string(static_cast<int>(door.x)),
 		std::string{"Y:"} + std::to_string(static_cast<int>(door.y)),
 		std::string{"T:"} + type_label

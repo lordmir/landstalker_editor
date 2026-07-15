@@ -1,6 +1,5 @@
 #include "SpriteRenderer.h"
 #include "GLLoader.h"
-#include "PixelFont.h"
 #include "ShaderSources.h"
 #include <landstalker/sprites/SpriteFrame.h>
 #include <landstalker/palettes/Palette.h>
@@ -8,7 +7,6 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <utility>
 
@@ -61,8 +59,6 @@ SpritePoint ProjectEntityGridPoint(const SpriteInstance& inst, float x, float y,
     };
 }
 
-std::pair<GLint, GLint> EntityDepthStencilRange(const SpriteInstance& inst);
-
 void DrawHitboxLine(const SpritePoint& a, const SpritePoint& b, float r, float g, float bl, float alpha)
 {
     glColor4f(r, g, bl, alpha);
@@ -87,21 +83,6 @@ void DrawDottedLine(const SpritePoint& a, const SpritePoint& b)
         glVertex2f(a.x + (b.x - a.x) * t1, a.y + (b.y - a.y) * t1);
     }
     glEnd();
-}
-
-char HexDigit(int value)
-{
-    value &= 0x0F;
-    return value < 10 ? static_cast<char>('0' + value) : static_cast<char>('A' + value - 10);
-}
-
-std::string HexByte(int value)
-{
-    value = std::clamp(value, 0, 255);
-    std::string result;
-    result.push_back(HexDigit(value >> 4));
-    result.push_back(HexDigit(value));
-    return result;
 }
 
 void SetShadowFillColor(bool selected, float z_delta, float alpha_scale)
@@ -428,8 +409,7 @@ std::pair<GLint, GLint> EntityDepthStencilRange(const SpriteInstance& inst)
 }
 
 SpriteRenderer::SpriteRenderer(std::shared_ptr<GameData> gd)
-    : m_gd(gd), m_texture_id(0), m_pal_texture_id(0), m_shader_program(0), m_tex_w(0), m_tex_h(0), m_opacity(1.0f), m_palette_rows(PALETTE_TEXTURE_ROWS),
-      m_current_room(0), m_room_left(0), m_room_top(0)
+    : m_gd(gd), m_texture_id(0), m_pal_texture_id(0), m_shader_program(0), m_tex_w(0), m_tex_h(0), m_opacity(1.0f), m_palette_rows(PALETTE_TEXTURE_ROWS)
 {
 }
 
@@ -449,14 +429,6 @@ void SpriteRenderer::Init()
 
 void SpriteRenderer::LoadRoom(uint16_t roomnum)
 {
-    m_current_room = roomnum;
-    auto map_entry = m_gd->GetRoomData()->GetMapForRoom(roomnum);
-    if (map_entry) {
-        auto map = map_entry->GetData();
-        m_room_left = map->GetLeft();
-        m_room_top = map->GetTop();
-    }
-
     if (!m_pal_texture_id)
     {
         return;
@@ -476,8 +448,6 @@ void SpriteRenderer::LoadRoom(uint16_t roomnum)
 
 void SpriteRenderer::Render(
     const std::vector<SpriteInstance> &instances,
-    float cam_x,
-    float cam_y,
     int selected_entity_index,
     int selected_collision_warning,
     OcclusionMode occlusion_mode,

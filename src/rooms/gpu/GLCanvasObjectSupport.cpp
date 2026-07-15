@@ -13,30 +13,16 @@ namespace {
 using RoomProjection::ProjectHeightmapGridPoint;
 using RoomProjection::ProjectRoomGridPoint;
 
-struct PickRect {
-    float min_x;
-    float min_y;
-    float max_x;
-    float max_y;
-};
-
-struct TileSwapRegionBounds {
-    PickRect bounds;
-};
-
-PickRect BoundsForPoints(const std::vector<PickPoint>& points)
+// Combined bounds of a region's outline and fill polygons.
+PickRect RegionBounds(const std::vector<PickPoint>& points, const std::vector<PickPoint>& fill_points)
 {
-    PickRect bounds{
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::lowest(),
-        std::numeric_limits<float>::lowest()
-    };
-    for (const auto& point : points) {
-        bounds.min_x = std::min(bounds.min_x, point.x);
-        bounds.min_y = std::min(bounds.min_y, point.y);
-        bounds.max_x = std::max(bounds.max_x, point.x);
-        bounds.max_y = std::max(bounds.max_y, point.y);
+    PickRect bounds = points.empty() ? PickRect{0.0f, 0.0f, 0.0f, 0.0f} : BoundsForPoints(points);
+    if (!fill_points.empty()) {
+        PickRect fill_bounds = BoundsForPoints(fill_points);
+        bounds.min_x = std::min(bounds.min_x, fill_bounds.min_x);
+        bounds.min_y = std::min(bounds.min_y, fill_bounds.min_y);
+        bounds.max_x = std::max(bounds.max_x, fill_bounds.max_x);
+        bounds.max_y = std::max(bounds.max_y, fill_bounds.max_y);
     }
     return bounds;
 }
@@ -173,6 +159,23 @@ bool EntityMustDrawBefore(const SpriteInstance& lhs, const SpriteInstance& rhs)
 
 }  // namespace
 
+PickRect BoundsForPoints(const std::vector<PickPoint>& points)
+{
+    PickRect bounds{
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest()
+    };
+    for (const auto& point : points) {
+        bounds.min_x = std::min(bounds.min_x, point.x);
+        bounds.min_y = std::min(bounds.min_y, point.y);
+        bounds.max_x = std::max(bounds.max_x, point.x);
+        bounds.max_y = std::max(bounds.max_y, point.y);
+    }
+    return bounds;
+}
+
 std::vector<TileSwapRegionGeometry> BuildTileSwapRegionGeometries(
     const std::shared_ptr<GameData>& gd,
     uint16_t room,
@@ -205,6 +208,7 @@ std::vector<TileSwapRegionGeometry> BuildTileSwapRegionGeometries(
         geom.swap = swap;
         geom.points = std::move(points);
         geom.fill_points = geom.points;
+        geom.bounds = RegionBounds(geom.points, geom.fill_points);
         geom.segments = segments;
         geom.resize_handle = TileSwapResizeHandlePoint(geom.points, swap.mode);
         out.push_back(std::move(geom));
@@ -311,6 +315,7 @@ std::vector<TileSwapRegionGeometry> BuildTileSwapRegionGeometries(
         geom.swap = swap;
         geom.points = std::move(segments);
         geom.fill_points = std::move(fill_points);
+        geom.bounds = RegionBounds(geom.points, geom.fill_points);
         geom.segments = true;
         geom.resize_handle = geom.fill_points[2];
         out.push_back(std::move(geom));
@@ -322,6 +327,87 @@ std::vector<TileSwapRegionGeometry> BuildTileSwapRegionGeometries(
         add_region(static_cast<int>(i), TileSwapRegionPart::TilemapDestination, swap, tilemap_points(swap, TileSwap::Region::DESTINATION));
         heightmap_region(static_cast<int>(i), TileSwapRegionPart::HeightmapSource, swap, swap.heightmap, true);
         heightmap_region(static_cast<int>(i), TileSwapRegionPart::HeightmapDestination, swap, swap.heightmap, false);
+    }
+
+    return out;
+}
+
+std::vector<DoorGeometry> BuildDoorGeometries(
+    const std::shared_ptr<GameData>& gd,
+    uint16_t room,
+    const MapRenderer& map_renderer,
+    float z_extent,
+    const std::shared_ptr<Tilemap3D>& preview_map)
+{
+    std::vector<DoorGeometry> out;
+    auto rd = gd ? gd->GetRoomData() : nullptr;
+    if (!rd) {
+        return out;
+    }
+
+    auto doors = rd->GetDoors(room);
+    auto map_entry = rd->GetMapForRoom(room);
+    auto tilemap = preview_map ? preview_map : (map_entry ? map_entry->GetData() : nullptr);
+    if (!tilemap) {
+        return out;
+    }
+
+    const float room_left = static_cast<float>(map_renderer.GetRoomLeft());
+    const float room_top = static_cast<float>(map_renderer.GetRoomTop());
+
+    auto height_at = [&](int x, int y) {
+        if (x < 0 || y < 0 || x >= tilemap->GetHeightmapWidth() || y >= tilemap->GetHeightmapHeight()) {
+            return 0.0f;
+        }
+        uint8_t z = tilemap->GetHeight({x, y});
+        return z == 0xFF ? 0.0f : static_cast<float>(z);
+    };
+
+    auto offset = [](const PickPoint& point, float x, float y) {
+        return PickPoint{point.x + x, point.y + y};
+    };
+
+    for (std::size_t i = 0; i < doors.size(); ++i) {
+        const Door& door = doors[i];
+        int x = static_cast<int>(door.x);
+        int y = static_cast<int>(door.y);
+        PickPoint center = ProjectHeightmapGridPoint(
+            static_cast<float>(x) + 0.5f,
+            static_cast<float>(y) + 0.5f,
+            height_at(x, y),
+            room_left,
+            room_top,
+            z_extent);
+
+        DoorGeometry geom{};
+        geom.index = static_cast<int>(i);
+        geom.door = door;
+        geom.cell_points = {
+            offset(center, 0.0f, -16.0f),
+            offset(center, 32.0f, 0.0f),
+            offset(center, 0.0f, 16.0f),
+            offset(center, -32.0f, 0.0f)
+        };
+
+        auto [valid, poly] = door.GetMapRegionPoly(tilemap, 1, 2);
+        geom.valid = valid;
+        auto tile_offset = door.GetTileOffset(tilemap, Tilemap3D::Layer::BG);
+        PickPoint anchor = ProjectRoomGridPoint(
+            room_left + static_cast<float>(tile_offset.first),
+            room_top + static_cast<float>(tile_offset.second),
+            0.0f,
+            room_left,
+            room_top);
+        geom.map_points.reserve(poly.size());
+        for (const auto& point : poly) {
+            geom.map_points.push_back({
+                anchor.x + static_cast<float>(point.first) * 32.0f,
+                anchor.y + static_cast<float>(point.second) * 16.0f
+            });
+        }
+
+        geom.bounds = RegionBounds(geom.cell_points, geom.map_points);
+        out.push_back(std::move(geom));
     }
 
     return out;
