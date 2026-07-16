@@ -1159,7 +1159,23 @@ std::optional<Statements::ScriptStatement> ScriptTreeDataViewModel::BuildStateme
         return Statements::ChurchInteraction(action_child(ScriptTreeNodeType::CHURCH_NORMAL_PRIEST),
             action_child(ScriptTreeNodeType::CHURCH_SKELETON_PRIEST));
     case ScriptTreeNodeType::DISPLAY_PRICE:
+    {
+        // Multi-variant form (FR/DE article forms): the actions live in TABLE_ENTRY children.
+        // Single form: the node itself is the merged action (see ScriptTreeBuilder).
+        std::vector<Statements::Action> actions;
+        for (const auto& child : node.children)
+        {
+            if (child.type == ScriptTreeNodeType::TABLE_ENTRY)
+            {
+                actions.push_back(BuildAction(child));
+            }
+        }
+        if (!actions.empty())
+        {
+            return Statements::DisplayPrice(std::move(actions));
+        }
         return Statements::DisplayPrice(BuildAction(node));
+    }
     case ScriptTreeNodeType::TABLE:
     {
         std::vector<Statements::Action> actions;

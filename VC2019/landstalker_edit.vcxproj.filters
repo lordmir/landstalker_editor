@@ -366,6 +366,9 @@
     <ClCompile Include="..\src\text\StringEditorFrame.cpp">
       <Filter>src\Text</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\text\CharsetEditorFrame.cpp">
+      <Filter>src\Text</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\tileset\TileEditor.cpp">
       <Filter>src\Tileset</Filter>
     </ClCompile>
@@ -636,6 +639,9 @@
       <Filter>include\Text</Filter>
     </ClInclude>
     <ClInclude Include="..\src\text\StringEditorFrame.h">
+      <Filter>include\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\text\CharsetEditorFrame.h">
       <Filter>include\Text</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tileset\TileEditor.h">

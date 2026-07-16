@@ -116,6 +116,9 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		price->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
 		price->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(price)->Enable(false);
+		// Grammatical article form (FR/DE localisation hack) - only editable when the loaded
+		// region has an item article table.
+		props.Append(new wxEnumProperty("Article", "Article", m_articles))->Enable(false);
 		props.Append(new wxPropertyCategory("Enemy", "Enemy"));
 		auto is_enemy = new wxBoolProperty("Is Enemy", "Is Enemy", sd->IsEntityEnemy(m_entity_id));
 		is_enemy->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
@@ -216,6 +219,16 @@ void EntityViewerFrame::RefreshLists() const
 		m_probabilities.Add("1/2048");
 		m_probabilities.Add("Never");
 		m_probabilities.Add("Guaranteed");
+
+		m_articles.Clear();
+		m_articles.Add("[0] Vowel/Neuter");
+		m_articles.Add("[1] Fem");
+		m_articles.Add("[2] Masc");
+		m_articles.Add("[3] Plural");
+		m_articles.Add("[4] None");
+		m_articles.Add("[5]");
+		m_articles.Add("[6]");
+		m_articles.Add("[7]");
 	}
 }
 
@@ -272,6 +285,13 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Equipment Index", is_item ? item_props.equipment_index : 0);
 		props.GetGrid()->GetProperty("Normal Buy Price")->Enable(is_item);
 		props.GetGrid()->SetPropertyValue("Normal Buy Price", is_item ? item_props.price : 0);
+		const bool has_articles = is_item && m_gd->GetScriptData() && m_gd->GetScriptData()->HasItemArticles();
+		props.GetGrid()->GetProperty("Article")->Enable(has_articles);
+		props.GetGrid()->GetProperty("Article")->SetChoices(has_articles ? m_articles : m_empty_choices);
+		if (has_articles)
+		{
+			props.GetGrid()->GetProperty("Article")->SetChoiceSelection(m_gd->GetScriptData()->GetItemArticle(m_entity_id - 0xC0));
+		}
 		props.GetGrid()->SetPropertyValue("Is Enemy", sd->IsEntityEnemy(m_entity_id));
 		props.GetGrid()->GetProperty("Health")->Enable(is_enemy);
 		props.GetGrid()->SetPropertyValue("Health", is_enemy ? enemy_stats.health : 0);
@@ -404,6 +424,17 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		{
 			item_props.price = std::clamp<uint16_t>(value, 0, 65535);
 			m_gd->GetSpriteData()->SetItemProperties(m_entity_id, item_props);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Article")
+	{
+		int value = property->GetValuePlain().GetInteger();
+		auto scd = m_gd->GetScriptData();
+		if (scd && scd->HasItemArticles() && sd->IsEntityItem(m_entity_id)
+			&& value != scd->GetItemArticle(m_entity_id - 0xC0))
+		{
+			scd->SetItemArticle(m_entity_id - 0xC0, std::clamp<uint8_t>(value, 0, 7));
 			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}

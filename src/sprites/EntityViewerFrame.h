@@ -38,6 +38,7 @@ private:
 	mutable wxPGChoices m_items;
 	mutable wxPGChoices m_verbs;
 	mutable wxPGChoices m_probabilities;
+	mutable wxPGChoices m_articles;
 	mutable wxPGChoices m_empty_choices;
 	mutable bool m_reset_props = false;
 

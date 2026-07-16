@@ -581,7 +581,7 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 	{
 		props.GetGrid()->GetProperty("P")->SetChoices(UpdatePalList(m_animated_tileset_entry, props));
 		props.GetGrid()->SetPropertyValue("N", wxString(m_animated_tileset_entry->GetName()));
-		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%lu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
+		props.GetGrid()->SetPropertyValue("OS", wxString::Format("%zu bytes", m_animated_tileset_entry->GetOrigBytes()->size()));
 		props.GetGrid()->SetPropertyValue("SA", wxString(Landstalker::Hex(m_animated_tileset_entry->GetStartAddress())));
 		props.GetGrid()->SetPropertyValue("EA", wxString(Landstalker::Hex(m_animated_tileset_entry->GetEndAddress())));
 		props.GetGrid()->SetPropertyValue("FN", wxString(m_animated_tileset_entry->GetFilename().string()));
@@ -612,11 +612,11 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		{
 			props.GetGrid()->GetProperty("A")->Hide(true);
 		}
-		props.GetGrid()->SetPropertyValue("US", wxString::Format("%lu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
-		props.GetGrid()->SetPropertyValue("#", wxString::Format("%lu", m_tileset->GetTileCount()));
-		props.GetGrid()->SetPropertyValue("W", wxString::Format("%lu", m_tileset->GetTileWidth()));
-		props.GetGrid()->SetPropertyValue("H", wxString::Format("%lu", m_tileset->GetTileHeight()));
-		props.GetGrid()->SetPropertyValue("D", wxString::Format("%lu", m_tileset->GetTileBitDepth()));
+		props.GetGrid()->SetPropertyValue("US", wxString::Format("%zu bytes", m_tileset->GetTilesetUncompressedSizeBytes()));
+		props.GetGrid()->SetPropertyValue("#", wxString::Format("%zu", m_tileset->GetTileCount()));
+		props.GetGrid()->SetPropertyValue("W", wxString::Format("%zu", m_tileset->GetTileWidth()));
+		props.GetGrid()->SetPropertyValue("H", wxString::Format("%zu", m_tileset->GetTileHeight()));
+		props.GetGrid()->SetPropertyValue("D", wxString::Format("%zu", m_tileset->GetTileBitDepth()));
 		props.GetGrid()->SetPropertyValue("B", wxString(Landstalker::Tileset::BLOCKTYPE_STRINGS.at(m_tileset->GetTileBlockType())));
 		props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
 		props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));

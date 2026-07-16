@@ -54,6 +54,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableTreeEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARACTER_SFX, new CharacterSfxEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -355,6 +356,7 @@ void MainFrame::InitUI()
         m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
             static_cast<int>(Landstalker::StringData::Type::SYSTEM)));
     }
+    m_browser->AppendItem(nodeS, "Character Set", fonts_img, fonts_img, new TreeNodeData(TreeNodeData::Node::CHARSET));
 
     m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::Node::PALETTE,
         static_cast<int>(PaletteListFrame::Mode::ROOM)));
@@ -616,6 +618,12 @@ MainFrame::ReturnCode MainFrame::SaveToRom(std::string path)
                 m_last_was_asm = false;
                 m_mnu_run_emu->Enable(true);
                 m_mnu_save->Enable(true);
+                if (m_g->GetStringData())
+                {
+                    auto charset_path = std::filesystem::path(path);
+                    charset_path.replace_filename(charset_path.stem().string() + "_charset.yaml");
+                    m_g->GetStringData()->SaveCharsets(charset_path);
+                }
             }
             return ReturnCode::OK;
         }
@@ -1264,6 +1272,11 @@ void MainFrame::RefreshEditor()
         GetCharacterSfxEditorFrame()->Open(m_extradata);
         ShowEditor(EditorType::CHARACTER_SFX);
         break;
+    case Mode::CHARSET:
+        // Display character set mappings
+        GetCharsetEditor()->Open();
+        ShowEditor(EditorType::CHARSET);
+        break;
     case Mode::NONE:
     default:
         HideAllEditors();
@@ -1331,6 +1344,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::CHARACTER_SFX:
         SetMode(Mode::CHARACTER_SFX);
+        break;
+    case TreeNodeData::Node::CHARSET:
+        SetMode(Mode::CHARSET);
         break;
     default:
         // do nothing
@@ -1401,6 +1417,11 @@ ProgressFlagsEditorFrame* MainFrame::GetProgressFlagsEditorFrame()
 CharacterSfxEditorFrame* MainFrame::GetCharacterSfxEditorFrame()
 {
     return static_cast<CharacterSfxEditorFrame*>(m_editors.at(EditorType::CHARACTER_SFX));
+}
+
+CharsetEditorFrame* MainFrame::GetCharsetEditor()
+{
+    return static_cast<CharsetEditorFrame*>(m_editors.at(EditorType::CHARSET));
 }
 
 void MainFrame::OnClose(wxCloseEvent& event)

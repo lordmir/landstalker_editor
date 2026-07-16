@@ -832,8 +832,8 @@ void Map2DEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 	{
 		props.GetGrid()->GetProperty("T")->SetChoices(m_tileset_list);
 		props.GetGrid()->SetPropertyValue("T", wxString(m_tiles->GetName()));
-		props.GetGrid()->SetPropertyValue("TW", wxString::Format("%lu", m_tiles->GetData()->GetTileWidth()));
-		props.GetGrid()->SetPropertyValue("TH", wxString::Format("%lu", m_tiles->GetData()->GetTileHeight()));
+		props.GetGrid()->SetPropertyValue("TW", wxString::Format("%zu", m_tiles->GetData()->GetTileWidth()));
+		props.GetGrid()->SetPropertyValue("TH", wxString::Format("%zu", m_tiles->GetData()->GetTileHeight()));
 	}
 }
 

@@ -355,8 +355,8 @@ void BlocksetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Start Address", wxString(Landstalker::Hex(m_blocks->GetStartAddress())));
 		props.GetGrid()->SetPropertyValue("End Address", wxString(Landstalker::Hex(m_blocks->GetEndAddress())));
 		props.GetGrid()->SetPropertyValue("Filename", wxString(m_blocks->GetFilename().string()));
-		props.GetGrid()->SetPropertyValue("Original Size", wxString::Format("%lu bytes", m_blocks->GetOrigBytes()->size()));
-		props.GetGrid()->SetPropertyValue("Uncompressed Size", wxString::Format("%lu bytes", m_blocks->GetData()->size() * 8));
+		props.GetGrid()->SetPropertyValue("Original Size", wxString::Format("%zu bytes", m_blocks->GetOrigBytes()->size()));
+		props.GetGrid()->SetPropertyValue("Uncompressed Size", wxString::Format("%zu bytes", m_blocks->GetData()->size() * 8));
 	}
 }
 

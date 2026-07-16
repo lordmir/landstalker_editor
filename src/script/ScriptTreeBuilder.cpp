@@ -91,7 +91,22 @@ void AddFuncBody(ScriptTreeNode& node, const ScriptFunction& func, std::shared_p
                 else if constexpr (std::is_same_v<T, Statements::DisplayPrice>)
                 {
                     node.children.push_back(ScriptTreeNode{ ScriptTreeNodeType::DISPLAY_PRICE, "Display Item Price:" });
-                    AddAction(node.children.back(), e.display_price, gd, "Display Item Price:");
+                    auto& gchild = node.children.back();
+                    if (e.display_price.size() == 1)
+                    {
+                        AddAction(gchild, e.display_price.front(), gd, "Display Item Price:");
+                    }
+                    else
+                    {
+                        // FR/DE: one message per grammatical article form, laid out like an
+                        // action table beneath the statement node.
+                        for (std::size_t i = 0; i < e.display_price.size(); ++i)
+                        {
+                            const wxString label = StrPrintf("Variant %d:", i);
+                            gchild.children.push_back(ScriptTreeNode{ ScriptTreeNodeType::TABLE_ENTRY, label });
+                            AddAction(gchild.children.back(), e.display_price.at(i), gd, label);
+                        }
+                    }
                 }
                 else if constexpr (std::is_same_v<T, Statements::ActionTable>)
                 {

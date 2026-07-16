@@ -12,6 +12,7 @@
 #include <wxresource/wxcrafter.h>
 #include <tileset/TilesetEditorFrame.h>
 #include <text/StringEditorFrame.h>
+#include <text/CharsetEditorFrame.h>
 #include <palettes/PaletteListFrame.h>
 #include <rooms/RoomViewerFrame.h>
 #include <2d_maps/Map2DEditorFrame.h>
@@ -162,6 +163,7 @@ private:
     ScriptTableTreeEditorFrame* GetScriptTableEditor();
     ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
     CharacterSfxEditorFrame* GetCharacterSfxEditorFrame();
+    CharsetEditorFrame* GetCharsetEditor();
     
     Mode m_mode;
     ImageList* m_imgs;
