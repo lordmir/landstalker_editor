@@ -1,4 +1,5 @@
 #include <rooms/EntityPropertiesWindow.h>
+#include <misc/DataViewModelAssociate.h>
 
 #include <wx/artprov.h>
 #include <wx/bmpbuttn.h>
@@ -8,6 +9,7 @@
 #include <landstalker/main/SpriteData.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/behaviours/BehaviourYamlConverter.h>
+#include <script/ScriptTableTreeEditorDialog.h>
 #include <script/ScriptTreeActionEditors.h>
 #include <cmath>
 #include <algorithm>
@@ -773,14 +775,14 @@ void EntityPropertiesWindow::UpdateCharScriptTree()
     if (m_notebook->GetCurrentPage() != m_dialogue_page)
     {
         m_ctrl_char_script->UnselectAll();
-        m_ctrl_char_script->AssociateModel(nullptr);
+        AssociateDataViewModel(m_ctrl_char_script, nullptr);
         m_ctrl_char_script->Disable();
         return;
     }
     if (m_char_tree_stale)
     {
         m_ctrl_char_script->UnselectAll();
-        m_ctrl_char_script->AssociateModel(nullptr);
+        AssociateDataViewModel(m_ctrl_char_script, nullptr);
         m_char_models.clear();
         m_char_tree = ScriptTreeNode::BuildCategoryTree(m_gd_shared, 2);
         m_char_tree.SetParent();
@@ -795,7 +797,7 @@ void EntityPropertiesWindow::UpdateCharScriptTree()
     if (selection <= 0 || char_id >= char_count)
     {
         m_ctrl_char_script->UnselectAll();
-        m_ctrl_char_script->AssociateModel(nullptr);
+        AssociateDataViewModel(m_ctrl_char_script, nullptr);
         m_ctrl_char_script->Disable();
         return;
     }
@@ -812,7 +814,7 @@ void EntityPropertiesWindow::UpdateCharScriptTree()
     }
     m_ctrl_char_script->UnselectAll();
     m_ctrl_char_script->Freeze();
-    m_ctrl_char_script->AssociateModel(m_char_models[char_id].get());
+    AssociateDataViewModel(m_ctrl_char_script, m_char_models[char_id].get());
     wxDataViewItemArray children;
     m_char_models[char_id]->GetChildren(wxDataViewItem(), children);
     for (const auto& child : children)
@@ -992,6 +994,23 @@ void EntityPropertiesWindow::OnCharScriptItemActivated(wxDataViewEvent& e)
                              "(rts, bra, trap #0-#2) - those have their own statement types.",
                              "Custom ASM", wxOK | wxICON_WARNING, this);
             }
+        }
+        e.Skip();
+        return;
+    }
+
+    // Script preview rows aren't editable in place - double-clicking one opens a popup instead
+    // (the linked cutscene/character's own script tree for hyperlinked rows, otherwise the
+    // segment script editor), mirroring the Script Function Editor. These rows must never fall
+    // through to EditItem(): besides being a no-op edit, EditItem() takes wxGTK's selection lock,
+    // which asserts after any tree rebuild has re-associated the model.
+    const ScriptTreeNode* node = reinterpret_cast<const ScriptTreeNode*>(e.GetItem().GetID());
+    if (model && node && node->type == ScriptTreeNodeType::SCRIPT_ENTRY)
+    {
+        if (ScriptEntryPopup::Open(this, m_gd_shared, model, *node))
+        {
+            // Both popups edit shared script data this tree displays.
+            RebuildCharScriptTree();
         }
         e.Skip();
         return;

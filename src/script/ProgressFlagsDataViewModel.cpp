@@ -1,6 +1,34 @@
 #include <script/ProgressFlagsDataViewModel.h>
+#include <misc/LookupDataViewRenderer.h>
 
 #include <numeric>
+
+namespace
+{
+// Progress flags store the raw flag ID directly (uint16_t, 0xFFFF sentinel for "none") with no
+// clamp in ProgressFlags.cpp, unlike e.g. SET_FLAG's [0, 999] - matches the broader 0-2047 range
+// FlagDataViewModel::GetSharedFlagChoices() uses elsewhere. "<NONE>" is appended past the end
+// (index 2048) so a bare typed flag number still resolves directly to its own index.
+const wxArrayString& GetProgressFlagChoices(const std::shared_ptr<Landstalker::GameData>& gd)
+{
+	static const Landstalker::GameData* s_cached_gd = nullptr;
+	static wxArrayString s_choices;
+
+	if (gd.get() != s_cached_gd || s_choices.GetCount() != 2049)
+	{
+		s_cached_gd = gd.get();
+		s_choices.Clear();
+		s_choices.Alloc(2049);
+		for (int i = 0; i < 2048; ++i)
+		{
+			s_choices.Add(wxString(gd->GetScriptData()->GetFlagDisplayName(i)));
+		}
+		s_choices.Add(_("<NONE>"));
+	}
+
+	return s_choices;
+}
+}
 
 ProgressFlagsDataViewModel::ProgressFlagsDataViewModel(std::shared_ptr<Landstalker::GameData> gd)
 	: BaseDataViewModel(),
@@ -127,15 +155,17 @@ wxString ProgressFlagsDataViewModel::GetColumnHeader(unsigned int col) const
 		return _("Progress");
 	case 2:
 		return _("Flag");
-	case 3:
-		return _("Description");
 	default:
 		return "???";
 	}
 }
 
-wxArrayString ProgressFlagsDataViewModel::GetColumnChoices(unsigned int /*col*/) const
+wxArrayString ProgressFlagsDataViewModel::GetColumnChoices(unsigned int col) const
 {
+	if (col == 2)
+	{
+		return GetProgressFlagChoices(m_gd);
+	}
 	return wxArrayString();
 }
 
@@ -149,8 +179,6 @@ wxString ProgressFlagsDataViewModel::GetColumnType(unsigned int col) const
 		return "string";
 	case 2:
 		return "long";
-	case 3:
-		return "string";
 	default:
 		return "???";
 	}
@@ -174,10 +202,7 @@ void ProgressFlagsDataViewModel::GetValueByRow(wxVariant& variant, unsigned int 
 			static_cast<int>(100.0 * (progress + 1) / GetTotalProgressInQuest(quest)));
 		break;
 	case 2:
-		variant = flag == 0xFFFF ? -1 : flag;
-		break;
-	case 3:
-		variant = flag == 0xFFFF ? _("<NONE>") : wxString(Landstalker::ScriptData::GetFlagDisplayName(flag));
+		variant = static_cast<long>(flag == 0xFFFF ? 2048 : flag);
 		break;
 	default:
 		break;
@@ -199,8 +224,11 @@ bool ProgressFlagsDataViewModel::SetValueByRow(const wxVariant& variant, unsigne
 	switch (col)
 	{
 	case 2:
-		m_flags[quest][progress] = variant.GetLong() < 0 ? 0xFFFF : static_cast<uint16_t>(variant.GetLong());
- 		break;
+	{
+		const long idx = variant.GetLong();
+		m_flags[quest][progress] = (idx < 0 || idx >= 2048) ? 0xFFFF : static_cast<uint16_t>(idx);
+		break;
+	}
 	default:
 		return false;
 	}
@@ -308,10 +336,7 @@ void ProgressFlagsDataViewModel::InitControl(wxDataViewCtrl* ctrl) const
 	// Progress
 	ctrl->InsertColumn(1, new wxDataViewColumn(this->GetColumnHeader(1),
 		new wxDataViewTextRenderer(GetColumnType(1)), 1, 120, wxALIGN_LEFT));
-	// Flag
+	// Flag (searchable name combo - replaces the old separate Flag spin + Description text columns)
 	ctrl->InsertColumn(2, new wxDataViewColumn(this->GetColumnHeader(2),
-		new wxDataViewSpinRenderer(-1, 2047), 2, 120, wxALIGN_LEFT));
-	// Label
-	ctrl->InsertColumn(3, new wxDataViewColumn(this->GetColumnHeader(3),
-		new wxDataViewTextRenderer(GetColumnType(3)), 3, -1, wxALIGN_LEFT));
+		new LookupDataViewRenderer(wxDATAVIEW_CELL_EDITABLE, GetProgressFlagChoices(m_gd)), 2, 320, wxALIGN_LEFT));
 }

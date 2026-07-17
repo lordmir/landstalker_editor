@@ -2,6 +2,7 @@
 #include <landstalker/behaviours/BehaviourYamlConverter.h>
 
 #include <wx/propgrid/advprops.h>
+#include <wx/settings.h>
 
 wxBEGIN_EVENT_TABLE(BehaviourScriptEditorCtrl, wxPanel)
 EVT_CHOICE(wxID_ANY, BehaviourScriptEditorCtrl::OnScriptSelect)
@@ -82,8 +83,10 @@ void BehaviourScriptEditorCtrl::RefreshBehaviourScript()
         auto font = m_text_ctrl->GetFont();
         font.SetFamily(wxFONTFAMILY_TELETYPE);
         font.SetPointSize(10);
-        m_text_ctrl->SetBackgroundColour(*wxWHITE);
-        m_text_ctrl->SetDefaultStyle(wxTextAttr(*wxBLACK, wxNullColour, font));
+        // Was hardcoded to *wxWHITE/*wxBLACK, which stayed a light control regardless of the
+        // app's theme - these system colours track light/dark mode correctly instead.
+        m_text_ctrl->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+        m_text_ctrl->SetDefaultStyle(wxTextAttr(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT), wxNullColour, font));
         for (const auto& script : scripts)
         {
             m_script_dropdown->Append(StrWPrintf("[%d] %ls", script.first, m_gd->GetSpriteData()->GetBehaviourDisplayName(script.first).c_str()));

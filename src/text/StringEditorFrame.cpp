@@ -1,4 +1,5 @@
 #include <text/StringEditorFrame.h>
+#include <misc/DataViewModelAssociate.h>
 #include <wx/dataview.h>
 #include <codecvt>
 #include <locale>
@@ -7,15 +8,6 @@ enum MENU_IDS
 {
     ID_FILE_EXPORT = 22000,
     ID_FILE_IMPORT
-};
-
-enum TOOL_IDS
-{
-    ID_APPEND = 30000,
-    ID_INSERT,
-    ID_DELETE,
-    ID_MOVE_UP,
-    ID_MOVE_DOWN
 };
 
 static const std::string MODE_DESCRIPTORS[] =
@@ -45,8 +37,35 @@ StringEditorFrame::StringEditorFrame(wxWindow* parent, ImageList* imglst)
 {
 	m_mgr.SetManagedWindow(this);
 
-	m_stringView = new wxDataViewCtrl(this, wxID_ANY);
-	m_mgr.AddPane(m_stringView, wxAuiPaneInfo().CenterPane());
+	// No frame-level toolbar - embedded buttons here cover Append/Insert/Delete/Move Up/Down
+	// directly, so m_stringView needs a wrapping panel (rather than being the AUI center pane
+	// itself) to have somewhere to put them.
+	wxPanel* content_panel = new wxPanel(this, wxID_ANY);
+	wxBoxSizer* vsizer = new wxBoxSizer(wxVERTICAL);
+	content_panel->SetSizer(vsizer);
+
+	wxBoxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
+	m_append_button = new wxButton(content_panel, wxID_ANY, "Append");
+	m_insert_button = new wxButton(content_panel, wxID_ANY, "Insert");
+	m_delete_button = new wxButton(content_panel, wxID_ANY, "Delete");
+	m_move_up_button = new wxButton(content_panel, wxID_ANY, "Move Up");
+	m_move_down_button = new wxButton(content_panel, wxID_ANY, "Move Down");
+	m_append_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnAppend(); });
+	m_insert_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnInsert(); });
+	m_delete_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnDelete(); });
+	m_move_up_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMoveUp(); });
+	m_move_down_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMoveDown(); });
+	button_sizer->Add(m_append_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_insert_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_delete_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_move_up_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_move_down_button, 0);
+	vsizer->Add(button_sizer, 0, wxALL, 4);
+
+	m_stringView = new wxDataViewCtrl(content_panel, wxID_ANY);
+	vsizer->Add(m_stringView, 1, wxALL | wxEXPAND, 5);
+
+	m_mgr.AddPane(content_panel, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -63,7 +82,7 @@ void StringEditorFrame::SetMode(Landstalker::StringData::Type type)
     
     m_stringView->ClearColumns();
     m_model = new StringDataViewModel(type, m_gd->GetStringData());
-    m_stringView->AssociateModel(m_model);
+    AssociateDataViewModel(m_stringView, m_model);
     m_model->DecRef();
     auto font = m_stringView->GetFont();
     if (type != Landstalker::StringData::Type::MAIN)
@@ -116,36 +135,18 @@ void StringEditorFrame::SetMode(Landstalker::StringData::Type type)
 void StringEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
     const auto id = evt.GetId();
-    if ((id >= 22000) && (id < 31000))
+    switch (id)
     {
-        switch (id)
-        {
-        case ID_FILE_EXPORT:
-            OnMenuExport();
-            break;
-        case ID_FILE_IMPORT:
-            OnMenuImport();
-            break;
-        case ID_APPEND:
-            OnAppend();
-            break;
-        case ID_INSERT:
-            OnInsert();
-            break;
-        case ID_DELETE:
-            OnDelete();
-            break;
-        case ID_MOVE_UP:
-            OnMoveUp();
-            break;
-        case ID_MOVE_DOWN:
-            OnMoveDown();
-            break;
-        default:
-            wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
-        }
-        UpdateUI();
+    case ID_FILE_EXPORT:
+        OnMenuExport();
+        break;
+    case ID_FILE_IMPORT:
+        OnMenuImport();
+        break;
+    default:
+        return;
     }
+    UpdateUI();
 }
 
 void StringEditorFrame::OnMenuImport()
@@ -381,11 +382,11 @@ bool StringEditorFrame::ImportStrings(const std::filesystem::path& filename, Lan
 
 void StringEditorFrame::UpdateUI() const
 {
-    EnableToolbarItem("Strings", ID_APPEND, IsAddRemoveAllowed());
-    EnableToolbarItem("Strings", ID_INSERT, IsAddRemoveAllowed());
-    EnableToolbarItem("Strings", ID_DELETE, m_stringView->HasSelection() && IsAddRemoveAllowed());
-    EnableToolbarItem("Strings", ID_MOVE_UP, m_stringView->HasSelection() && !IsSelTop());
-    EnableToolbarItem("Strings", ID_MOVE_DOWN, m_stringView->HasSelection() && !IsSelBottom());
+    m_append_button->Enable(IsAddRemoveAllowed());
+    m_insert_button->Enable(IsAddRemoveAllowed());
+    m_delete_button->Enable(m_stringView->HasSelection() && IsAddRemoveAllowed());
+    m_move_up_button->Enable(m_stringView->HasSelection() && !IsSelTop());
+    m_move_down_button->Enable(m_stringView->HasSelection() && !IsSelBottom());
 }
 
 void StringEditorFrame::OnSelectionChange(wxDataViewEvent& evt)
@@ -394,23 +395,14 @@ void StringEditorFrame::OnSelectionChange(wxDataViewEvent& evt)
     evt.Skip();
 }
 
-void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void StringEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-    auto* parent = m_mgr.GetManagedWindow();
-
+    // No frame-level toolbar - the embedded Append/Insert/Delete/Move Up/Down buttons next to
+    // m_stringView already cover these actions directly.
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export Strings...");
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Strings...");
-
-    wxAuiToolBar* strings_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-    strings_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Entry");
-    strings_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
-    strings_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
-    strings_tb->AddSeparator();
-    strings_tb->AddTool(ID_MOVE_UP, "Move Up", ilist.GetImage("up"), "Move Up");
-    strings_tb->AddTool(ID_MOVE_DOWN, "Move Down", ilist.GetImage("down"), "Move Down");
-    AddToolbar(m_mgr, *strings_tb, "Strings", "Script Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
 
     UpdateUI();
     m_mgr.Update();

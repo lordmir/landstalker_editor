@@ -1,4 +1,5 @@
 #include <script/ProgressFlagsCtrl.h>
+#include <misc/DataViewModelAssociate.h>
 #include <script/ProgressFlagsFrame.h>
 
 wxBEGIN_EVENT_TABLE(ProgressFlagsEditorCtrl, wxPanel)
@@ -9,11 +10,41 @@ ProgressFlagsEditorCtrl::ProgressFlagsEditorCtrl(wxWindow* parent)
 	: wxPanel(parent),
 	  m_model(nullptr)
 {
-	wxBoxSizer* hsizer = new wxBoxSizer(wxHORIZONTAL);
-	this->SetSizer(hsizer);
+	wxBoxSizer* vsizer = new wxBoxSizer(wxVERTICAL);
+	this->SetSizer(vsizer);
+
+	wxBoxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
+	m_append_button = new wxButton(this, wxID_ANY, "Append");
+	m_insert_button = new wxButton(this, wxID_ANY, "Insert");
+	m_delete_button = new wxButton(this, wxID_ANY, "Delete");
+	m_move_up_button = new wxButton(this, wxID_ANY, "Move Up");
+	m_move_down_button = new wxButton(this, wxID_ANY, "Move Down");
+	m_new_quest_button = new wxButton(this, wxID_ANY, "New Quest");
+	m_delete_quest_button = new wxButton(this, wxID_ANY, "Delete Quest");
+	m_append_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { AppendRow(); });
+	m_insert_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { InsertRow(); });
+	m_delete_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { DeleteRow(); });
+	m_move_up_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveRowUp(); });
+	m_move_down_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveRowDown(); });
+	m_new_quest_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { AddQuest(); });
+	m_delete_quest_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&)
+	{
+		if (wxMessageBox("Really delete quest?", "Confirm", wxYES_NO, this) == wxYES)
+		{
+			DeleteQuest();
+		}
+	});
+	button_sizer->Add(m_append_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_insert_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_delete_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_move_up_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_move_down_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_new_quest_button, 0, wxRIGHT, 4);
+	button_sizer->Add(m_delete_quest_button, 0);
+	vsizer->Add(button_sizer, 0, wxALL, 4);
 
 	m_dvc_ctrl = new wxDataViewCtrl(this, wxID_ANY);
-	hsizer->Add(m_dvc_ctrl, 1, wxALL | wxEXPAND, 5);
+	vsizer->Add(m_dvc_ctrl, 1, wxALL | wxEXPAND, 5);
 
 	GetSizer()->Fit(this);
 }
@@ -26,11 +57,11 @@ void ProgressFlagsEditorCtrl::SetGameData(std::shared_ptr<Landstalker::GameData>
 {
 	m_gd = gd;
 	m_dvc_ctrl->ClearColumns();
-	m_dvc_ctrl->AssociateModel(nullptr);
+	AssociateDataViewModel(m_dvc_ctrl, nullptr);
 	m_model = new ProgressFlagsDataViewModel(gd);
 
 	m_model->Initialise();
-	m_dvc_ctrl->AssociateModel(m_model);
+	AssociateDataViewModel(m_dvc_ctrl, m_model);
 	m_model->DecRef();
 	m_model->InitControl(m_dvc_ctrl);
 	m_dvc_ctrl->SetSelections({});
@@ -221,7 +252,25 @@ void ProgressFlagsEditorCtrl::OnSelectionChange(wxDataViewEvent& evt)
 void ProgressFlagsEditorCtrl::UpdateUI()
 {
 	m_model->CommitData();
+	UpdateButtonStates();
 	static_cast<ProgressFlagsEditorFrame*>(GetParent())->UpdateUI();
+}
+
+void ProgressFlagsEditorCtrl::UpdateButtonStates()
+{
+	// Mirrors ProgressFlagsEditorFrame's old EnableToolbarItem() conditions exactly (including
+	// Move Up/Move Down checking IsSelBottom()/IsSelTop() respectively, not the other way around
+	// - that's how the original toolbar logic already had it).
+	const bool loaded = m_gd != nullptr && m_model != nullptr && m_gd->GetScriptData()->HasTables();
+	const bool selected = loaded && IsRowSelected();
+	const int q = selected ? GetSelectedQuestProgress().second : 0;
+	m_append_button->Enable(selected && m_model->GetTotalProgressInQuest(q) < 255);
+	m_insert_button->Enable(selected && m_model->GetTotalProgressInQuest(q) < 255);
+	m_delete_button->Enable(selected && m_model->GetRowCount() > 1);
+	m_move_up_button->Enable(selected && !IsSelBottom());
+	m_move_down_button->Enable(selected && !IsSelTop());
+	m_new_quest_button->Enable(loaded && m_model->GetTotalQuests() < 255);
+	m_delete_quest_button->Enable(selected && m_model->GetTotalQuests() > 1);
 }
 
 void ProgressFlagsEditorCtrl::FireEvent(const wxEventType& e, const wxString& data, long numeric_data, long extra_numeric_data, long extra_extra_numeric_data)

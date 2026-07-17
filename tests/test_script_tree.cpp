@@ -557,3 +557,285 @@ TEST_F(ScriptTreeEditorTest, SlotAnchoringSecondSiblingKeepsFirst)
     EXPECT_EQ(entry_displaying("zzSlotB"), entry_name) << "slot-anchored sibling not displayed in its entry";
     EXPECT_EQ(entry_displaying("zzSlotA"), entry_name) << "other sibling vanished";
 }
+
+// Isolates a reported bug (adding a top-level sibling function shows it, then it "immediately
+// disappears") down to just the model, with no GameData/disassembly and no live wxDataViewCtrl -
+// so it runs unconditionally (not gated behind LANDSTALKER_DISASM_PATH like the fixture above).
+// If this passes, the node genuinely persists in the model after AddSibling() returns, and the
+// disappearance has to be a GTK dataview view-side artifact, not a data bug.
+TEST(ScriptTreeAddSiblingStandaloneTest, TopLevelFunctionSiblingPersistsInModel)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    root.AddChild(ScriptTreeNodeType::RETURN, "Return");
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top_before;
+    model->GetChildren(wxDataViewItem(), top_before);
+    ASSERT_EQ(top_before.size(), 1u);
+
+    ASSERT_TRUE(model->CanAddSibling(top_before[0]));
+    wxDataViewItem added = model->AddSibling(top_before[0],
+        { ScriptTreeNodeType::FUNCTION, "Function", "Function: NewFunction" });
+    ASSERT_TRUE(added.IsOk());
+
+    wxDataViewItemArray top_after;
+    model->GetChildren(wxDataViewItem(), top_after);
+    EXPECT_EQ(top_after.size(), 2u) << "new sibling missing from the model's own top-level children";
+
+    bool found = false;
+    for (const auto& item : top_after)
+    {
+        if (item == added)
+        {
+            found = true;
+        }
+    }
+    EXPECT_TRUE(found) << "the item AddSibling() returned isn't among the model's current children";
+
+    EXPECT_NE(functions->GetMapping("NewFunction"), nullptr)
+        << "new function never made it into the backing ScriptFunctionTable";
+
+    // Re-querying repeatedly (simulating the view re-rendering after Select()/Expand()/
+    // EnsureVisible()) must keep reporting the same thing - nothing should self-remove.
+    for (int i = 0; i < 3; ++i)
+    {
+        wxDataViewItemArray repeat;
+        model->GetChildren(wxDataViewItem(), repeat);
+        EXPECT_EQ(repeat.size(), 2u) << "child count changed on repeated query #" << i;
+    }
+}
+
+// Custom Item Shop Action entries are numbered by their position among ALL of the container's
+// existing entries (matching ScriptTreeBuilder's own "Custom Action %d" convention: the fixed
+// On Pick Up/On Pay/On Steal slots occupy positions 1-3, so the first addable one is "4"), always
+// appended at the end (never spliced in mid-list, which would leave every later number wrong),
+// and merged with a default Script Action rather than left as a bare, actionless label.
+TEST(ScriptTreeAddSiblingStandaloneTest, CustomItemShopActionNumberedAndMergedWithAction)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    ScriptTreeNode* container = root.AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Item Script 00: ...");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pick Up:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pay:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Steal:");
+    root.SetParent();
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    // The model deep-copies tree_root into its own `root` member - `container` above belongs to
+    // OUR local tree, not the model's copy, so the item to operate on has to come back out of the
+    // model itself rather than from that now-disconnected pointer.
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    ASSERT_EQ(top.size(), 1u);
+    const wxDataViewItem container_item = top[0];
+    const ScriptTreeAddOption option{ ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Item Shop Action", "Custom Action:" };
+
+    ASSERT_TRUE(model->CanAddChild(container_item));
+    wxDataViewItem fourth = model->AddChild(container_item, option);
+    ASSERT_TRUE(fourth.IsOk());
+    EXPECT_EQ(RowText(model.get(), fourth), "Custom Action 4: Script ID 0000")
+        << "not numbered by total position, or not merged with a default Script Action";
+
+    // Adding a sibling from an EARLY entry (not the last) must still append at the end, numbered
+    // to continue the sequence - not splice in after whatever was clicked.
+    wxDataViewItemArray children;
+    model->GetChildren(container_item, children);
+    ASSERT_EQ(children.size(), 4u);
+    wxDataViewItem fifth = model->AddSibling(children[0] /* "On Pick Up:" */, option);
+    ASSERT_TRUE(fifth.IsOk());
+    EXPECT_EQ(RowText(model.get(), fifth), "Custom Action 5: Script ID 0000");
+
+    wxDataViewItemArray final_children;
+    model->GetChildren(container_item, final_children);
+    ASSERT_EQ(final_children.size(), 5u);
+    EXPECT_EQ(final_children[3], fourth) << "\"Custom Action 4\" not positioned before the fifth";
+    EXPECT_EQ(final_children[4], fifth) << "new sibling not appended at the end of the list";
+}
+
+// A container type with no populate-time seed (PROG_DEP_TABLE, TABLE) used to be inserted with
+// zero children, which the GTK dataview backend registers as a leaf; adding ITS first child then
+// silently fails to notify the view (see AddChild()'s comment), leaving it looking permanently
+// empty. Both must now always come into existence already containing one entry.
+TEST(ScriptTreeAddSiblingStandaloneTest, ProgDepTableAndActionTableNeverBornEmpty)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    ScriptTreeNode* body = root.AddChild(ScriptTreeNodeType::FUNCTION, "Function: F");
+    body->AddChild(ScriptTreeNodeType::RETURN, "Return");
+    root.SetParent();
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    ASSERT_EQ(top.size(), 1u);
+    const wxDataViewItem function_item = top[0];
+
+    wxDataViewItem prog_dep = model->AddChild(function_item,
+        { ScriptTreeNodeType::PROG_DEP_TABLE, "Progress Dependent List", "Progress Dependent:" });
+    ASSERT_TRUE(prog_dep.IsOk());
+    wxDataViewItemArray prog_dep_children;
+    model->GetChildren(prog_dep, prog_dep_children);
+    EXPECT_EQ(prog_dep_children.size(), 1u) << "Progress Dependent List born with no entries";
+
+    wxDataViewItem table = model->AddChild(function_item,
+        { ScriptTreeNodeType::TABLE, "Action Table", "Action Table:" });
+    ASSERT_TRUE(table.IsOk());
+    wxDataViewItemArray table_children;
+    model->GetChildren(table, table_children);
+    EXPECT_EQ(table_children.size(), 1u) << "Action Table born with no entries";
+}
+
+// The fixed leading "On Pick Up:"/"On Pay:"/"On Steal:" entries share CUSTOM_ITEM_SHOP_TABLE's
+// type with the numbered "Custom Action N" entries after them, so protecting them has to be
+// position-based, not type-based - they must never be removable or reorderable, while a genuine
+// Custom Action entry must not be movable past them either.
+TEST(ScriptTreeAddSiblingStandaloneTest, FixedShopActionSlotsProtected)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    ScriptTreeNode* container = root.AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Item Script 00: ...");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pick Up:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pay:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Steal:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Action 4:");
+    root.SetParent();
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    const wxDataViewItem container_item = top[0];
+    wxDataViewItemArray children;
+    model->GetChildren(container_item, children);
+    ASSERT_EQ(children.size(), 4u);
+    const wxDataViewItem pick_up = children[0];
+    const wxDataViewItem pay = children[1];
+    const wxDataViewItem steal = children[2];
+    const wxDataViewItem custom4 = children[3];
+
+    for (const auto& fixed : { pick_up, pay, steal })
+    {
+        EXPECT_FALSE(model->CanRemoveItem(fixed)) << "a fixed slot must not be removable";
+        EXPECT_FALSE(model->CanMoveItemUp(fixed)) << "a fixed slot must not be movable up";
+        EXPECT_FALSE(model->CanMoveItemDown(fixed)) << "a fixed slot must not be movable down";
+    }
+    EXPECT_TRUE(model->CanRemoveItem(custom4)) << "a genuine Custom Action entry must be removable";
+    EXPECT_FALSE(model->CanMoveItemUp(custom4)) << "a Custom Action must not be movable into the fixed zone";
+}
+
+// Removing a Custom Action from the middle of the numbered group must renumber the survivors to
+// stay sequential, but must NOT disturb what each survivor actually points at ("the body") - and
+// the whole rebuilt actions vector must be persisted back via write_back_actions, since no
+// per-slot write_back can express a structural resize.
+TEST(ScriptTreeAddSiblingStandaloneTest, RemovingCustomShopActionRenumbersAndPersists)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    ScriptTreeNode* container = root.AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Item Script 00: ...");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pick Up:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pay:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Steal:");
+    root.SetParent();
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    const wxDataViewItem container_item = top[0];
+    const ScriptTreeAddOption option{ ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Item Shop Action", "Custom Action:" };
+
+    // Add three Custom Actions (4, 5, 6), each pointing at a distinct raw script ID so the
+    // "body" of each is individually identifiable after a reshuffle.
+    wxDataViewItem fourth = model->AddChild(container_item, option);
+    wxDataViewItem fifth = model->AddChild(container_item, option);
+    wxDataViewItem sixth = model->AddChild(container_item, option);
+    ASSERT_TRUE(model->ApplyScriptAction(fourth, false, "", 40));
+    ASSERT_TRUE(model->ApplyScriptAction(fifth, false, "", 50));
+    ASSERT_TRUE(model->ApplyScriptAction(sixth, false, "", 60));
+
+    // As in the earlier tests: `container` above belongs to the pre-copy tree, not the model's
+    // own copy - the hook has to be set on the actual node the model operates on.
+    ScriptTreeNode* model_container = reinterpret_cast<ScriptTreeNode*>(container_item.GetID());
+    std::vector<ScriptTable::Action> persisted;
+    model_container->write_back_actions = [&persisted](const std::vector<ScriptTable::Action>& actions)
+    {
+        persisted = actions;
+    };
+
+    ASSERT_TRUE(model->RemoveItem(fifth));
+
+    wxDataViewItemArray remaining;
+    model->GetChildren(container_item, remaining);
+    ASSERT_EQ(remaining.size(), 5u);
+    EXPECT_EQ(RowText(model.get(), remaining[3]), "Custom Action 4: Script ID 0028")
+        << "the surviving \"40\" entry lost its label/position";
+    EXPECT_EQ(RowText(model.get(), remaining[4]), "Custom Action 5: Script ID 003C")
+        << "the surviving \"60\" entry wasn't renumbered down to 5";
+
+    ASSERT_EQ(persisted.size(), 5u) << "structural removal never reached write_back_actions";
+    ASSERT_TRUE(std::holds_alternative<uint16_t>(persisted.at(3)));
+    EXPECT_EQ(std::get<uint16_t>(persisted.at(3)), 40) << "persisted vector doesn't match the tree's current order";
+    ASSERT_TRUE(std::holds_alternative<uint16_t>(persisted.at(4)));
+    EXPECT_EQ(std::get<uint16_t>(persisted.at(4)), 60);
+}
+
+// Reproduces the reported bug directly: ScriptTreeBuilder's AddLocationRelatedFunctions()/
+// AddFunc() append bare "Function: X" headers as children of the SAME container, after all its
+// shop-action entries (for related/single-use functions this item's script also happens to
+// embed). Those must never count toward "Custom Action N" numbering, and a new entry must be
+// inserted before them, not appended past them.
+TEST(ScriptTreeAddSiblingStandaloneTest, CustomItemShopActionNumberingIgnoresEmbeddedFunctions)
+{
+    ScriptTreeNode root{ ScriptTreeNodeType::ROOT, "root" };
+    ScriptTreeNode* container = root.AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Item Script 00: ...");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pick Up:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Pay:");
+    container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "On Steal:");
+    for (int i = 4; i <= 8; ++i)
+    {
+        container->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, StrPrintf("Custom Action %d:", i));
+    }
+    // Simulate AddLocationRelatedFunctions()/AddFunc(): bare function headers trailing the shop
+    // actions, as siblings within the SAME container.
+    for (int i = 0; i < 4; ++i)
+    {
+        ScriptTreeNode* related = container->AddChild(ScriptTreeNodeType::FUNCTION, StrPrintf("Function: Related%d", i));
+        related->text_value = StrPrintf("Related%d", i);
+        related->AddChild(ScriptTreeNodeType::RETURN, "Return");
+    }
+    root.SetParent();
+
+    auto functions = std::make_shared<ScriptFunctionTable>();
+    wxObjectDataPtr<ScriptTreeDataViewModel> model(
+        new ScriptTreeDataViewModel(root, functions, nullptr));
+
+    wxDataViewItemArray top;
+    model->GetChildren(wxDataViewItem(), top);
+    const wxDataViewItem container_item = top[0];
+    const ScriptTreeAddOption option{ ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Item Shop Action", "Custom Action:" };
+
+    ASSERT_TRUE(model->CanAddChild(container_item));
+    wxDataViewItem ninth = model->AddChild(container_item, option);
+    ASSERT_TRUE(ninth.IsOk());
+    EXPECT_EQ(RowText(model.get(), ninth), "Custom Action 9: Script ID 0000")
+        << "the four trailing \"Function:\" headers were counted toward the number";
+
+    wxDataViewItemArray children;
+    model->GetChildren(container_item, children);
+    ASSERT_EQ(children.size(), 13u);  // 3 fixed + 8 (5 existing + new) custom + 4 functions
+    EXPECT_EQ(children[8], ninth) << "new entry wasn't inserted right after the last shop action";
+    for (std::size_t i = 9; i < 13; ++i)
+    {
+        EXPECT_EQ(RowText(model.get(), children[i]).find("Function: Related"), 0u)
+            << "a function header got displaced from its trailing position by index " << i;
+    }
+}

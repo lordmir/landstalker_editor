@@ -107,7 +107,11 @@ void ResizeableGrid::ResizeGrid(int new_rows, int new_cols)
 
 void CellTextEditor::BeginEdit(int row, int col, wxGrid* grid)
 {
+    // Cream highlight is always light, regardless of the app's theme, so the text must stay dark
+    // too - otherwise a dark-themed native control's default (light) foreground would leave this
+    // box's text unreadable against it.
     Text()->SetBackgroundColour(wxColour(247, 240, 213));
+    Text()->SetForegroundColour(wxColour(0, 0, 0));
     Text()->SetValue(grid->GetTable()->GetValue(row, col));
     Text()->SetInsertionPointEnd();
     Text()->SetFocus();

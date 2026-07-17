@@ -1,5 +1,7 @@
 #include <script/ScriptTableTreeEditorCtrl.h>
+#include <misc/DataViewModelAssociate.h>
 
+#include <script/ScriptTableTreeEditorDialog.h>
 #include <script/ScriptTreeActionEditors.h>
 
 #include <landstalker/main/AsmFile.h>
@@ -106,8 +108,10 @@ namespace
     }
 }
 
-ScriptTableTreeEditorCtrl::ScriptTableTreeEditorCtrl(wxWindow* parent)
-    : wxPanel(parent)
+ScriptTableTreeEditorCtrl::ScriptTableTreeEditorCtrl(wxWindow* parent, ImageList* imglst, bool show_entry_list)
+    : wxPanel(parent),
+      m_imglst(imglst),
+      m_show_entry_list(show_entry_list)
 {
     BuildUi();
 }
@@ -120,40 +124,51 @@ void ScriptTableTreeEditorCtrl::BuildUi()
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    wxSplitterWindow* splitter = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_3DSASH);
-    splitter->SetMinimumPaneSize(150);
-    // Keep the entry list's width fixed and give any extra space from resizing to the tree
-    // pane instead - the more natural behaviour for a sidebar-style list.
-    splitter->SetSashGravity(0.0);
-
-    wxPanel* left_panel = new wxPanel(splitter, wxID_ANY);
-    wxBoxSizer* left_sizer = new wxBoxSizer(wxVERTICAL);
-
-    wxBoxSizer* entry_button_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* add_entry_button = new wxButton(left_panel, ID_ADD_ENTRY, "Add Entry");
-    wxButton* remove_entry_button = new wxButton(left_panel, ID_REMOVE_ENTRY, "Remove Entry");
-    wxButton* move_entry_up_button = new wxButton(left_panel, ID_MOVE_ENTRY_UP, "Move Up");
-    wxButton* move_entry_down_button = new wxButton(left_panel, ID_MOVE_ENTRY_DOWN, "Move Down");
-    add_entry_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { AddEntry(); });
-    remove_entry_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RemoveEntry(); });
-    move_entry_up_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveEntryUp(); });
-    move_entry_down_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveEntryDown(); });
-    entry_button_sizer->Add(add_entry_button, 0, wxRIGHT, 4);
-    entry_button_sizer->Add(remove_entry_button, 0, wxRIGHT, 4);
-    entry_button_sizer->Add(move_entry_up_button, 0, wxRIGHT, 4);
-    entry_button_sizer->Add(move_entry_down_button, 0);
-
-    m_entry_list = new wxListBox(left_panel, wxID_ANY);
-    m_entry_list->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& event)
+    wxSplitterWindow* splitter = nullptr;
+    wxPanel* left_panel = nullptr;
+    if (m_show_entry_list)
     {
-        SelectScriptEntry(event.GetSelection());
-    });
+        splitter = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_3DSASH);
+        splitter->SetMinimumPaneSize(150);
+        // Keep the entry list's width fixed and give any extra space from resizing to the tree
+        // pane instead - the more natural behaviour for a sidebar-style list.
+        splitter->SetSashGravity(0.0);
 
-    left_sizer->Add(entry_button_sizer, 0, wxALL, 4);
-    left_sizer->Add(m_entry_list, 1, wxGROW);
-    left_panel->SetSizer(left_sizer);
+        left_panel = new wxPanel(splitter, wxID_ANY);
+        wxBoxSizer* left_sizer = new wxBoxSizer(wxVERTICAL);
 
-    wxPanel* right_panel = new wxPanel(splitter, wxID_ANY);
+        // Image-only (not text) buttons here specifically - the entry list pane is narrow, and these
+        // mirror the icons the old frame-level toolbar used for the same actions.
+        wxBoxSizer* entry_button_sizer = new wxBoxSizer(wxHORIZONTAL);
+        wxBitmapButton* add_entry_button = new wxBitmapButton(left_panel, ID_ADD_ENTRY, m_imglst->GetImage("append_tile"));
+        wxBitmapButton* remove_entry_button = new wxBitmapButton(left_panel, ID_REMOVE_ENTRY, m_imglst->GetImage("delete"));
+        wxBitmapButton* move_entry_up_button = new wxBitmapButton(left_panel, ID_MOVE_ENTRY_UP, m_imglst->GetImage("up"));
+        wxBitmapButton* move_entry_down_button = new wxBitmapButton(left_panel, ID_MOVE_ENTRY_DOWN, m_imglst->GetImage("down"));
+        add_entry_button->SetToolTip("Add Entry");
+        remove_entry_button->SetToolTip("Remove Entry");
+        move_entry_up_button->SetToolTip("Move Entry Up");
+        move_entry_down_button->SetToolTip("Move Entry Down");
+        add_entry_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { AddEntry(); });
+        remove_entry_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RemoveEntry(); });
+        move_entry_up_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveEntryUp(); });
+        move_entry_down_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { MoveEntryDown(); });
+        entry_button_sizer->Add(add_entry_button, 0, wxRIGHT, 4);
+        entry_button_sizer->Add(remove_entry_button, 0, wxRIGHT, 4);
+        entry_button_sizer->Add(move_entry_up_button, 0, wxRIGHT, 4);
+        entry_button_sizer->Add(move_entry_down_button, 0);
+
+        m_entry_list = new wxListBox(left_panel, wxID_ANY);
+        m_entry_list->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& event)
+        {
+            SelectScriptEntry(event.GetSelection());
+        });
+
+        left_sizer->Add(entry_button_sizer, 0, wxALL, 4);
+        left_sizer->Add(m_entry_list, 1, wxGROW);
+        left_panel->SetSizer(left_sizer);
+    }
+
+    wxPanel* right_panel = new wxPanel(splitter ? static_cast<wxWindow*>(splitter) : this, wxID_ANY);
     wxBoxSizer* right_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer* edit_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -188,8 +203,15 @@ void ScriptTableTreeEditorCtrl::BuildUi()
     right_sizer->Add(m_dvc_ctrl, 1, wxGROW);
     right_panel->SetSizer(right_sizer);
 
-    splitter->SplitVertically(left_panel, right_panel, 340);
-    sizer->Add(splitter, 1, wxGROW);
+    if (splitter)
+    {
+        splitter->SplitVertically(left_panel, right_panel, 340);
+        sizer->Add(splitter, 1, wxGROW);
+    }
+    else
+    {
+        sizer->Add(right_panel, 1, wxGROW);
+    }
     SetSizer(sizer);
 }
 
@@ -205,7 +227,7 @@ void ScriptTableTreeEditorCtrl::ClearGameData()
     if (m_dvc_ctrl)
     {
         m_dvc_ctrl->UnselectAll();
-        m_dvc_ctrl->AssociateModel(nullptr);
+        AssociateDataViewModel(m_dvc_ctrl, nullptr);
     }
     m_models.clear();
     m_entries.clear();
@@ -218,7 +240,7 @@ void ScriptTableTreeEditorCtrl::ClearGameData()
     m_open = false;
 }
 
-void ScriptTableTreeEditorCtrl::Open(ScriptTableTreeCategory category)
+void ScriptTableTreeEditorCtrl::Open(ScriptTableTreeCategory category, int entry)
 {
     if (!m_gd)
     {
@@ -227,7 +249,8 @@ void ScriptTableTreeEditorCtrl::Open(ScriptTableTreeCategory category)
     // Always rebuild, even when re-opening the same category: script data can be edited
     // elsewhere (e.g. the entity properties dialog's character script tree), so cached trees
     // may be stale. Keep the current entry selection when the category hasn't changed.
-    const int select_entry = (m_open && category == m_category) ? GetSelectedEntry() : 0;
+    const int select_entry = entry >= 0 ? entry
+        : ((m_open && category == m_category) ? GetSelectedEntry() : 0);
     m_category = category;
     m_open = true;
     RebuildCategory(select_entry);
@@ -235,7 +258,7 @@ void ScriptTableTreeEditorCtrl::Open(ScriptTableTreeCategory category)
 
 int ScriptTableTreeEditorCtrl::GetSelectedEntry() const
 {
-    return m_entry_list ? m_entry_list->GetSelection() : wxNOT_FOUND;
+    return m_entry_list ? m_entry_list->GetSelection() : m_selected_entry;
 }
 
 std::shared_ptr<ScriptFunctionTable> ScriptTableTreeEditorCtrl::GetCategoryFunctions() const
@@ -344,6 +367,8 @@ void ScriptTableTreeEditorCtrl::SelectScriptEntry(int entry_index)
     // navigation action, not a request to abandon the edit in progress.
     CommitTreeEditing();
 
+    m_selected_entry = entry_index;
+
     if (!m_models[entry_index])
     {
         m_models[entry_index] = wxObjectDataPtr<ScriptTreeDataViewModel>(
@@ -360,7 +385,7 @@ void ScriptTableTreeEditorCtrl::SelectScriptEntry(int entry_index)
     // Freeze while the model is swapped and the whole tree expanded - repainting row by row
     // during the expansion is by far the slowest (and most flickery) part of a rebuild.
     m_dvc_ctrl->Freeze();
-    m_dvc_ctrl->AssociateModel(m_models[entry_index].get());
+    AssociateDataViewModel(m_dvc_ctrl, m_models[entry_index].get());
     ExpandTree();
     m_dvc_ctrl->Thaw();
     UpdateEditButtons();
@@ -377,7 +402,7 @@ void ScriptTableTreeEditorCtrl::RebuildCategory(int select_entry)
     // typed value would be silently lost.
     CommitTreeEditing();
     m_dvc_ctrl->UnselectAll();
-    m_dvc_ctrl->AssociateModel(nullptr);
+    AssociateDataViewModel(m_dvc_ctrl, nullptr);
     m_models.clear();
     m_entries.clear();
 
@@ -392,33 +417,39 @@ void ScriptTableTreeEditorCtrl::RebuildCategory(int select_entry)
     // Update the entry list in place rather than Clear()+Append() - most rebuilds change no
     // entry names at all, and repopulating a long list is slow, flickers, and loses the scroll
     // position.
-    m_entry_list->Freeze();
-    unsigned int index_in_list = 0;
-    for (const ScriptTreeNode* entry : m_entries)
+    if (m_entry_list)
     {
-        if (index_in_list < m_entry_list->GetCount())
+        m_entry_list->Freeze();
+        unsigned int index_in_list = 0;
+        for (const ScriptTreeNode* entry : m_entries)
         {
-            if (m_entry_list->GetString(index_in_list) != entry->name)
+            if (index_in_list < m_entry_list->GetCount())
             {
-                m_entry_list->SetString(index_in_list, entry->name);
+                if (m_entry_list->GetString(index_in_list) != entry->name)
+                {
+                    m_entry_list->SetString(index_in_list, entry->name);
+                }
             }
+            else
+            {
+                m_entry_list->Append(entry->name);
+            }
+            ++index_in_list;
         }
-        else
+        while (m_entry_list->GetCount() > m_entries.size())
         {
-            m_entry_list->Append(entry->name);
+            m_entry_list->Delete(m_entry_list->GetCount() - 1);
         }
-        ++index_in_list;
+        m_entry_list->Thaw();
     }
-    while (m_entry_list->GetCount() > m_entries.size())
-    {
-        m_entry_list->Delete(m_entry_list->GetCount() - 1);
-    }
-    m_entry_list->Thaw();
 
     if (!m_entries.empty())
     {
         int index = std::clamp(select_entry, 0, static_cast<int>(m_entries.size()) - 1);
-        m_entry_list->SetSelection(index);
+        if (m_entry_list)
+        {
+            m_entry_list->SetSelection(index);
+        }
         SelectScriptEntry(index);
     }
 
@@ -760,11 +791,33 @@ void ScriptTableTreeEditorCtrl::OnTreeItemActivated(wxDataViewEvent& event)
         return;
     }
 
+    // Script preview rows aren't editable in place - double-clicking one opens a popup instead:
+    // the linked cutscene/character's own script tree for hyperlinked rows, otherwise the
+    // segment script editor for that row's script line.
+    const ScriptTreeNode* node = reinterpret_cast<const ScriptTreeNode*>(event.GetItem().GetID());
+    if (m_gd && node && node->type == ScriptTreeNodeType::SCRIPT_ENTRY)
+    {
+        OpenScriptEntryPopup(*node);
+        event.Skip();
+        return;
+    }
+
     if (m_dvc_ctrl && event.GetItem().IsOk())
     {
         m_dvc_ctrl->EditItem(event.GetItem(), m_dvc_ctrl->GetColumn(0));
     }
     event.Skip();
+}
+
+void ScriptTableTreeEditorCtrl::OpenScriptEntryPopup(const ScriptTreeNode& node)
+{
+    // Both popups edit the same shared data this tree is displaying - flush any in-flight cell
+    // edit first, then rebuild afterwards so the preview rows reflect whatever was changed.
+    CommitTreeEditing();
+    if (ScriptEntryPopup::Open(this, m_gd, GetTreeModel(), node))
+    {
+        RebuildCurrentCategory();
+    }
 }
 
 void ScriptTableTreeEditorCtrl::OnTreeItemEditingDone(wxDataViewEvent& event)

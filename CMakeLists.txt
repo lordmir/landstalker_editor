@@ -59,6 +59,15 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     landstalker
 )
 
+# On the GTK port some controls need to reach beneath wx to the native GtkTreeView (see
+# ScriptEditorCtrl.cpp's hyperlink handling) - wx::core doesn't propagate the toolkit's own
+# include directories, so pull them in explicitly.
+if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::GTK3)
+endif()
+
 install(
     TARGETS ${CMAKE_PROJECT_NAME}
     EXPORT ${CMAKE_PROJECT_NAME}Targets

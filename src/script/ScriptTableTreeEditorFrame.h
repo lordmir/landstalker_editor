@@ -6,9 +6,9 @@
 #include <script/ScriptTableTreeEditorCtrl.h>
 
 // Editor frame for the four script targets (Shops, Custom Items, Characters, Cutscenes):
-// hosts the tree-based ScriptTableTreeEditorCtrl, contributes the script toolbar and YAML/ASM
-// import/export menu items, and surfaces the selected entry's top-level attributes (shop
-// room/markups, item id/shop/extra data) in the properties pane.
+// hosts the tree-based ScriptTableTreeEditorCtrl (which owns its own embedded action buttons),
+// contributes the YAML/ASM import/export menu items, and surfaces the selected entry's top-level
+// attributes (shop room/markups, item id/shop/extra data) in the properties pane.
 class ScriptTableTreeEditorFrame : public EditorFrame
 {
 public:

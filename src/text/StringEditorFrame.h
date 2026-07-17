@@ -47,6 +47,12 @@ private:
 	StringDataViewModel* m_model;
 	std::string m_title;
 
+	wxButton* m_append_button = nullptr;
+	wxButton* m_insert_button = nullptr;
+	wxButton* m_delete_button = nullptr;
+	wxButton* m_move_up_button = nullptr;
+	wxButton* m_move_down_button = nullptr;
+
 	wxDECLARE_EVENT_TABLE();
 };
 

@@ -10,6 +10,7 @@
 #include <wx/splitter.h>
 
 #include <landstalker/main/GameData.h>
+#include <main/ImageList.h>
 #include <script/ScriptTreeNode.h>
 #include <script/ScriptTreeDataViewModel.h>
 
@@ -30,13 +31,19 @@ enum class ScriptTableTreeCategory
 class ScriptTableTreeEditorCtrl : public wxPanel
 {
 public:
-    ScriptTableTreeEditorCtrl(wxWindow* parent);
+    // `show_entry_list` false drops the left (entry list) pane entirely, leaving just the tree
+    // and its edit buttons - the popup (ScriptTableTreeEditorDialog) hosts one fixed entry, so
+    // the list is dead weight there. With the list hidden the entry buttons are never built, so
+    // `imglst` may be nullptr in that mode.
+    ScriptTableTreeEditorCtrl(wxWindow* parent, ImageList* imglst, bool show_entry_list = true);
     virtual ~ScriptTableTreeEditorCtrl();
 
     virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
     virtual void ClearGameData();
 
-    void Open(ScriptTableTreeCategory category);
+    // `entry` >= 0 opens with that specific entry selected instead of the default (first, or the
+    // previously selected entry when re-opening the same category).
+    void Open(ScriptTableTreeCategory category, int entry = -1);
     ScriptTableTreeCategory GetCategory() const { return m_category; }
     int GetSelectedEntry() const;
 
@@ -81,6 +88,11 @@ public:
 
 private:
     void BuildUi();
+    // Opens the popup a double-clicked script preview row (SCRIPT_ENTRY) leads to: the linked
+    // cutscene/character's own script tree for cutscene/speaker entries, otherwise the segment
+    // script editor for the entry's script line. Rebuilds the category afterwards - both popups
+    // edit shared data this tree displays.
+    void OpenScriptEntryPopup(const ScriptTreeNode& node);
     void ShowAddMenu(bool child);
     void AddSelectedItem(bool child, const ScriptTreeAddOption& option);
     void MoveCurrentEntry(int direction);
@@ -118,6 +130,10 @@ private:
     wxListBox* m_entry_list = nullptr;
     wxDataViewCtrl* m_dvc_ctrl = nullptr;
     std::function<void()> m_on_state_change;
+    ImageList* m_imglst = nullptr;
+    bool m_show_entry_list = true;
+    // The current entry when there's no entry list to hold the selection (popup mode).
+    int m_selected_entry = 0;
 };
 
 #endif // _SCRIPT_TABLE_TREE_EDITOR_CTRL_H_

@@ -2,15 +2,6 @@
 
 #include <codecvt>
 
-enum TOOL_IDS
-{
-	ID_APPEND = 30000,
-	ID_INSERT,
-	ID_DELETE,
-	ID_MOVE_UP,
-	ID_MOVE_DOWN
-};
-
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_YML = 20000,
@@ -103,23 +94,14 @@ void ScriptEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	ctrl->GetGrid()->Thaw();
 }
 
-void ScriptEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void ScriptEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-	auto* parent = m_mgr.GetManagedWindow();
-
+	// No frame-level toolbar - ScriptEditorCtrl's own embedded Append/Insert/Delete/Move Up/Down
+	// buttons already cover these actions directly on the dataview they act on.
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Script as YAML...");
 	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
-
-	wxAuiToolBar* script_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	script_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Entry To End");
-	script_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Entry");
-	script_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Entry");
-	script_tb->AddSeparator();
-	script_tb->AddTool(ID_MOVE_UP, "Move Up", ilist.GetImage("up"), "Move Up");
-	script_tb->AddTool(ID_MOVE_DOWN, "Move Down", ilist.GetImage("down"), "Move Down");
-	AddToolbar(m_mgr, *script_tb, "Script", "Script Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
 
 	m_mgr.Update();
 	UpdateUI();
@@ -134,21 +116,6 @@ void ScriptEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_FILE_IMPORT_YML:
 		OnImportYml();
-		break;
-	case ID_APPEND:
-		OnAppend();
-		break;
-	case ID_INSERT:
-		OnInsert();
-		break;
-	case ID_DELETE:
-		OnDelete();
-		break;
-	case ID_MOVE_UP:
-		OnMoveUp();
-		break;
-	case ID_MOVE_DOWN:
-		OnMoveDown();
 		break;
 	}
 	UpdateUI();
@@ -198,36 +165,8 @@ void ScriptEditorFrame::OnImportYml()
 	}
 }
 
-void ScriptEditorFrame::OnAppend()
-{
-	m_editor->AppendRow();
-}
-
-void ScriptEditorFrame::OnInsert()
-{
-	m_editor->InsertRow();
-}
-
-void ScriptEditorFrame::OnDelete()
-{
-	m_editor->DeleteRow();
-}
-
-void ScriptEditorFrame::OnMoveUp()
-{
-	m_editor->MoveRowUp();
-}
-
-void ScriptEditorFrame::OnMoveDown()
-{
-	m_editor->MoveRowDown();
-}
-
 void ScriptEditorFrame::UpdateUI() const
 {
-	EnableToolbarItem("Script", ID_APPEND, true);
-	EnableToolbarItem("Script", ID_INSERT, true);
-	EnableToolbarItem("Script", ID_DELETE, m_editor->IsRowSelected());
-	EnableToolbarItem("Script", ID_MOVE_UP, m_editor->IsRowSelected() && !m_editor->IsSelTop());
-	EnableToolbarItem("Script", ID_MOVE_DOWN, m_editor->IsRowSelected() && !m_editor->IsSelBottom());
+	// No frame-level toolbar items to enable/disable - ScriptEditorCtrl's own
+	// UpdateButtonStates() drives its embedded buttons' enabled state directly.
 }

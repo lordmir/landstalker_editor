@@ -4,19 +4,6 @@
 
 #include <fstream>
 
-enum TOOL_IDS
-{
-    ID_ADD_ENTRY = 30000,
-    ID_REMOVE_ENTRY,
-    ID_MOVE_ENTRY_UP,
-    ID_MOVE_ENTRY_DOWN,
-    ID_ADD_CHILD,
-    ID_ADD_SIBLING,
-    ID_REMOVE_ITEM,
-    ID_MOVE_ITEM_UP,
-    ID_MOVE_ITEM_DOWN
-};
-
 enum MENU_IDS
 {
     ID_FILE_EXPORT_YML = 20000,
@@ -29,7 +16,7 @@ ScriptTableTreeEditorFrame::ScriptTableTreeEditorFrame(wxWindow* parent, ImageLi
     : EditorFrame(parent, wxID_ANY, imglst)
 {
     m_mgr.SetManagedWindow(this);
-    m_editor = new ScriptTableTreeEditorCtrl(this);
+    m_editor = new ScriptTableTreeEditorCtrl(this, imglst);
     m_editor->SetStateChangeCallback([this]()
     {
         UpdateUI();
@@ -83,16 +70,8 @@ void ScriptTableTreeEditorFrame::CommitPendingEdits()
 
 void ScriptTableTreeEditorFrame::UpdateUI() const
 {
-    const bool loaded = m_gd != nullptr && m_gd->GetScriptData()->HasTables();
-    EnableToolbarItem("Script", ID_ADD_ENTRY, loaded);
-    EnableToolbarItem("Script", ID_REMOVE_ENTRY, loaded && m_editor->CanRemoveEntry());
-    EnableToolbarItem("Script", ID_MOVE_ENTRY_UP, loaded && m_editor->CanMoveEntryUp());
-    EnableToolbarItem("Script", ID_MOVE_ENTRY_DOWN, loaded && m_editor->CanMoveEntryDown());
-    EnableToolbarItem("Script", ID_ADD_CHILD, loaded && m_editor->CanAddChild());
-    EnableToolbarItem("Script", ID_ADD_SIBLING, loaded && m_editor->CanAddSibling());
-    EnableToolbarItem("Script", ID_REMOVE_ITEM, loaded && m_editor->CanRemoveItem());
-    EnableToolbarItem("Script", ID_MOVE_ITEM_UP, loaded && m_editor->CanMoveItemUp());
-    EnableToolbarItem("Script", ID_MOVE_ITEM_DOWN, loaded && m_editor->CanMoveItemDown());
+    // No frame-level toolbar items to enable/disable - ScriptTableTreeEditorCtrl's own
+    // UpdateEditButtons() drives its embedded buttons' enabled state directly.
 }
 
 int ScriptTableTreeEditorFrame::GetSelectedTableIndex() const
@@ -295,29 +274,17 @@ void ScriptTableTreeEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
     ctrl->GetGrid()->Thaw();
 }
 
-void ScriptTableTreeEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void ScriptTableTreeEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-    auto* parent = m_mgr.GetManagedWindow();
-
+    // No frame-level toolbar - ScriptTableTreeEditorCtrl's own embedded buttons (both the entry
+    // list's Add/Remove/Move Up/Down and the script tree's Add Child/Add Sibling/Remove/Move Up/
+    // Down) already cover these actions directly on the controls they act on.
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Script as YAML...");
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
     AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ASM, "Export Script as ASM...");
     AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_ASM, "Import Script from ASM...");
-
-    wxAuiToolBar* script_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-    script_tb->AddTool(ID_ADD_ENTRY, "Add Entry", ilist.GetImage("append_tile"), "Add Entry");
-    script_tb->AddTool(ID_REMOVE_ENTRY, "Remove Entry", ilist.GetImage("delete"), "Remove Entry");
-    script_tb->AddTool(ID_MOVE_ENTRY_UP, "Move Entry Up", ilist.GetImage("up"), "Move Entry Up");
-    script_tb->AddTool(ID_MOVE_ENTRY_DOWN, "Move Entry Down", ilist.GetImage("down"), "Move Entry Down");
-    script_tb->AddSeparator();
-    script_tb->AddTool(ID_ADD_CHILD, "Add Child", ilist.GetImage("new"), "Add a child script item to the selected row");
-    script_tb->AddTool(ID_ADD_SIBLING, "Add Sibling", ilist.GetImage("plus"), "Add a script item next to the selected row");
-    script_tb->AddTool(ID_REMOVE_ITEM, "Remove", ilist.GetImage("minus"), "Remove the selected script item");
-    script_tb->AddTool(ID_MOVE_ITEM_UP, "Move Up", ilist.GetImage("up"), "Move the selected script item up");
-    script_tb->AddTool(ID_MOVE_ITEM_DOWN, "Move Down", ilist.GetImage("down"), "Move the selected script item down");
-    AddToolbar(m_mgr, *script_tb, "Script", "Script Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
 
     m_mgr.Update();
     UpdateUI();
@@ -338,33 +305,6 @@ void ScriptTableTreeEditorFrame::OnMenuClick(wxMenuEvent& evt)
         break;
     case ID_FILE_IMPORT_ASM:
         m_editor->ImportScript(false);
-        break;
-    case ID_ADD_ENTRY:
-        m_editor->AddEntry();
-        break;
-    case ID_REMOVE_ENTRY:
-        m_editor->RemoveEntry();
-        break;
-    case ID_MOVE_ENTRY_UP:
-        m_editor->MoveEntryUp();
-        break;
-    case ID_MOVE_ENTRY_DOWN:
-        m_editor->MoveEntryDown();
-        break;
-    case ID_ADD_CHILD:
-        m_editor->AddChildItem();
-        break;
-    case ID_ADD_SIBLING:
-        m_editor->AddSiblingItem();
-        break;
-    case ID_REMOVE_ITEM:
-        m_editor->RemoveSelectedItem();
-        break;
-    case ID_MOVE_ITEM_UP:
-        m_editor->MoveSelectedItemUp();
-        break;
-    case ID_MOVE_ITEM_DOWN:
-        m_editor->MoveSelectedItemDown();
         break;
     }
     UpdateUI();

@@ -5,6 +5,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <wx/dataview.h>
@@ -15,6 +16,13 @@
 #include <landstalker/script/ScriptStatements.h>
 
 #include <script/ScriptTreeNode.h>
+
+// What a hyperlinked script preview row points at (see GetScriptEntryLinkTarget()).
+enum class ScriptTreeLinkType
+{
+    CUTSCENE,
+    CHARACTER
+};
 
 // A true tree-shaped wxDataViewModel over one script category (Shops / Custom Items /
 // Characters / Cutscenes). Unlike the other editors' BaseDataViewModel (a virtual list),
@@ -106,6 +114,12 @@ public:
     static bool IsValidLabelSyntax(const std::string& name);
     // IsValidLabelSyntax(), plus must not already name an existing function in this table.
     bool IsValidNewFunctionName(const std::string& name) const;
+    // A SCRIPT_ENTRY preview row whose script line references a cutscene or a non-global
+    // character with an in-range script-table entry links to that entry's own script tree:
+    // returns the target (category + entry index), or nullopt for every other row. Drawn as a
+    // hyperlink via GetAttr(); double-click opens the target's tree popup.
+    std::optional<std::pair<ScriptTreeLinkType, int>> GetScriptEntryLinkTarget(const ScriptTreeNode& node) const;
+    bool IsScriptEntryLink(const ScriptTreeNode& node) const;
 private:
     // True for statement types that end a function (their Statements counterpart reports
     // IsEndOfFunction()) - nothing placed after one of these can ever run.
@@ -138,6 +152,24 @@ private:
     // True if the parent offers an add option of the given type - i.e. children of that type
     // are user-managed (addable, removable, movable) rather than fixed structure.
     bool IsChildOptionType(const ScriptTreeNode& parent, ScriptTreeNodeType type) const;
+    // True for one of a Custom Item Shop Action container's fixed "On Pick Up:"/"On Pay:"/
+    // "On Steal:" leading entries (by position, not label) - these can't be removed or reordered,
+    // unlike the numbered "Custom Action N" entries after them.
+    bool IsFixedShopActionSlot(const ScriptTreeNode& node) const;
+    // The ScriptTable::Action a Custom Item Shop Action entry's merged value represents - the
+    // ScriptTable::Action counterpart of BuildAction() (which builds a Statements::Action for
+    // function bodies instead; these entries live in a ScriptTable::Item, not a function).
+    Landstalker::ScriptTable::Action BuildShopTableAction(const ScriptTreeNode& node) const;
+    // Rebuilds the whole ScriptTable::Item::actions vector from a Custom Item Shop Action
+    // container's current children (in order) and writes it back via write_back_actions - needed
+    // after any structural change (add/remove/move) to that container's children, since each
+    // entry's own write_back only ever overwrites its own already-existing table position.
+    void SyncCustomItemShopActions(ScriptTreeNode& container) const;
+    // Re-labels a Custom Item Shop Action container's numbered entries (position 4+) to match
+    // their current position, preserving each entry's own resolved action ("body") - called after
+    // any add/remove/move so labels never drift out of sequence. The fixed first three entries
+    // ("On Pick Up:"/"On Pay:"/"On Steal:") are left untouched.
+    void RenumberCustomShopActions(ScriptTreeNode& container);
     void CollectFunctionNodes(ScriptTreeNode& node, std::vector<ScriptTreeNode*>& functions) const;
     void CollectFunctionNames(const ScriptTreeNode& node, std::set<std::string>& names) const;
     // Direct node -> Statements construction, the exact inverse of AddFuncBody()/AddAction().

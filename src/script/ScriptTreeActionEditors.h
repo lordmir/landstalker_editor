@@ -23,6 +23,9 @@ public:
     wxString GetFunctionName() const;
     wxString GetNewFunctionName() const;
     uint16_t GetScriptId() const;
+    // Resolves the function combo's pending (highlighted-but-not-yet-committed) popup selection,
+    // if any - call before GetFunctionName() when reading the final committed value.
+    void CommitFunctionSelection();
 
 private:
     void OnModeChanged(wxCommandEvent& event);
@@ -43,7 +46,7 @@ private:
 
     ScriptTreeDataViewModel* m_model;
     wxChoice* m_mode;
-    wxComboBox* m_function_combo;
+    wxWindow* m_function_combo;
     wxTextCtrl* m_id_text;
     wxSpinButton* m_id_spin;
     wxTextCtrl* m_new_function_text;

@@ -1,6 +1,8 @@
 #include <script/ScriptTreeActionEditors.h>
 
 #include <landstalker/misc/Utils.h>
+#include <misc/DataViewEditorKeys.h>
+#include <misc/LookupDataViewRenderer.h>
 
 using namespace Landstalker;
 
@@ -53,8 +55,7 @@ ScriptActionEditorCtrl::ScriptActionEditorCtrl(wxWindow* parent, const wxRect& r
     m_id_spin->SetRange(0, 0xFFFF);
     m_id_spin->SetValue(script_id);
 
-    m_function_combo = new wxComboBox(this, wxID_ANY, function_name, wxDefaultPosition, wxDefaultSize, choices);
-    m_function_combo->AutoComplete(choices);
+    m_function_combo = LookupEditor::Create(this, wxRect(wxPoint(0, 0), rect.GetSize()), function_name, choices, nullptr);
 
     m_new_function_text = new wxTextCtrl(this, wxID_ANY, wxString(), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
     m_new_function_text->SetMaxLength(50);
@@ -239,21 +240,23 @@ void ScriptActionEditorCtrl::UpdatePreviewPopup()
 void ScriptActionEditorCtrl::UpdateIdColour()
 {
     const bool valid = m_model && m_model->IsValidScriptId(ParseId());
-    m_id_text->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT) : wxColour(200, 0, 0));
+    m_id_text->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT)
+        : wxSystemSettings::SelectLightDark(wxColour(200, 0, 0), wxColour(255, 90, 90)));
     m_id_text->Refresh();
 }
 
 void ScriptActionEditorCtrl::UpdateFunctionColour()
 {
-    const bool valid = m_model && m_model->HasFunction(Trim(m_function_combo->GetValue().ToStdString()));
-    m_function_combo->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT) : wxColour(200, 0, 0));
-    m_function_combo->Refresh();
+    const bool valid = m_model && m_model->HasFunction(Trim(GetFunctionName().ToStdString()));
+    LookupEditor::SetTextColour(m_function_combo, valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT)
+        : wxSystemSettings::SelectLightDark(wxColour(200, 0, 0), wxColour(255, 90, 90)));
 }
 
 void ScriptActionEditorCtrl::UpdateNewFunctionColour()
 {
     const bool valid = m_model && m_model->IsValidNewFunctionName(Trim(m_new_function_text->GetValue().ToStdString()));
-    m_new_function_text->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT) : wxColour(200, 0, 0));
+    m_new_function_text->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT)
+        : wxSystemSettings::SelectLightDark(wxColour(200, 0, 0), wxColour(255, 90, 90)));
     m_new_function_text->Refresh();
 }
 
@@ -269,7 +272,12 @@ bool ScriptActionEditorCtrl::IsNewFunctionMode() const
 
 wxString ScriptActionEditorCtrl::GetFunctionName() const
 {
-    return wxString(Trim(m_function_combo->GetValue().ToStdString()));
+    return wxString(Trim(LookupEditor::GetValueText(m_function_combo).ToStdString()));
+}
+
+void ScriptActionEditorCtrl::CommitFunctionSelection()
+{
+    LookupEditor::CommitPendingSelection(m_function_combo);
 }
 
 wxString ScriptActionEditorCtrl::GetNewFunctionName() const
@@ -396,6 +404,7 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
             rename->SetValidator(validator);
         }
         rename->SelectAll();
+        BindDataViewEditorEscapeEnter(rename, this);
         return rename;
     }
 
@@ -414,7 +423,8 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         auto update_colour = [model, label]()
         {
             const bool valid = model && model->HasFunction(Trim(label->GetValue().ToStdString()));
-            label->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT) : wxColour(200, 0, 0));
+            label->SetForegroundColour(valid ? wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT)
+                : wxSystemSettings::SelectLightDark(wxColour(200, 0, 0), wxColour(255, 90, 90)));
             label->Refresh();
         };
         label->Bind(wxEVT_TEXT, [update_colour](wxCommandEvent&) { update_colour(); });
@@ -427,14 +437,18 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         editor->SetSizer(sizer);
         editor->Layout();
         label->SelectAll();
+        BindDataViewEditorEscapeEnter(editor, this);
         return editor;
     }
 
     case ScriptTreeNodeType::PROG_DEP_ACTION:
     {
-        // A Progress Entry gets a pair of spin controls, one per value.
+        // A Progress Entry gets a pair of spin controls, one per value. Needs an explicit opaque
+        // background - a bare wxPanel here left gaps (around the static labels) showing the
+        // underlying row's own text through the editor.
         wxPanel* editor = new wxPanel(parent, wxID_ANY, labelRect.GetPosition(), labelRect.GetSize());
         editor->SetName("QuestProgressEditor");
+        editor->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
         wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(new wxStaticText(editor, wxID_ANY, "Quest"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
         wxSpinCtrl* quest_spin = new wxSpinCtrl(editor, wxID_ANY, wxEmptyString, wxDefaultPosition,
@@ -448,6 +462,7 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         sizer->Add(progress_spin, 1, wxEXPAND);
         editor->SetSizer(sizer);
         editor->Layout();
+        BindDataViewEditorEscapeEnter(editor, this);
         return editor;
     }
 
@@ -464,6 +479,7 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         {
             spin->SetBase(16);
         }
+        BindDataViewEditorEscapeEnter(spin, this);
         return spin;
     }
 
@@ -479,8 +495,10 @@ wxWindow* ScriptActionRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
     }
     const std::string function_name = node->embedded_function_name.empty()
         ? node->text_value : node->embedded_function_name;
-    return new ScriptActionEditorCtrl(parent, labelRect, !function_name.empty(),
+    wxWindow* editor = new ScriptActionEditorCtrl(parent, labelRect, !function_name.empty(),
         node->numeric_value, wxString(function_name), GetTreeModel());
+    BindDataViewEditorEscapeEnter(editor, this);
+    return editor;
 }
 
 bool ScriptActionRenderer::GetValueFromEditorCtrl(wxWindow* editorCtrl, wxVariant& value)
@@ -538,6 +556,7 @@ bool ScriptActionRenderer::GetValueFromEditorCtrl(wxWindow* editorCtrl, wxVarian
     }
     else if (editor->IsFunctionMode())
     {
+        editor->CommitFunctionSelection();
         value = wxString(FUNC_PREFIX + editor->GetFunctionName().ToStdString());
     }
     else

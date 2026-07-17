@@ -1,4 +1,5 @@
 #include <palettes/PaletteListFrame.h>
+#include <misc/DataViewModelAssociate.h>
 #include <cstdint>
 
 enum MENU_IDS
@@ -125,7 +126,7 @@ void PaletteListFrame::Update()
         }
         m_renderer->Reset();
         m_model = new DataViewCtrlPaletteModel(entries, labels);
-        m_list->AssociateModel(m_model);
+        AssociateDataViewModel(m_list, m_model);
         m_model->DecRef();
         m_list->GetColumn(1)->SetWidth(m_renderer->GetTotalWidth(m_model->GetColumnMaxElements()));
     }

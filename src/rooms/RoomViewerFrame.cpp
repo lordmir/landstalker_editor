@@ -2726,7 +2726,6 @@ void RoomViewerFrame::OnSwapSelect(wxCommandEvent& evt)
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
 		(m_gpuview && m_gpuview->GetSelectedTileSwapIndex() != evt.GetInt()))
 	{
-		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
 		if (m_gpuview && !gpu_selection)
 		{
@@ -2801,7 +2800,6 @@ void RoomViewerFrame::OnDoorSelect(wxCommandEvent& evt)
 	if (m_swapctrl->GetSelected() != evt.GetInt() ||
 		(m_gpuview && m_gpuview->GetSelectedDoorIndex() != evt.GetInt()))
 	{
-		wxLogDebug("Event %d", evt.GetInt());
 		m_swapctrl->SetSelected(evt.GetInt());
 		if (m_gpuview && !gpu_selection)
 		{

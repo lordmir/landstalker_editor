@@ -28,11 +28,6 @@ private:
 
 	void OnExportYml();
 	void OnImportYml();
-	void OnAppend();
-	void OnInsert();
-	void OnDelete();
-	void OnMoveUp();
-	void OnMoveDown();
 
 	mutable bool m_reset_props = false;
 

@@ -1,6 +1,7 @@
 #ifndef _SCRIPT_TREE_NODE_H_
 #define _SCRIPT_TREE_NODE_H_
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 #include <wx/string.h>
 #include <wx/dataview.h>
@@ -85,6 +87,13 @@ struct ScriptTreeNode
     // entry); writes the edited value back into the underlying ScriptTable vector so that it
     // gets picked up by the project save ("Output ASM").
     std::function<void(const Landstalker::ScriptTable::Action&)> write_back;
+    // Set only on a Custom Item Shop Action container (the "Item Script XX: ..." top-level entry)
+    // - rebuilds the underlying ScriptTable::Item's whole actions vector from this container's
+    // current children, in order. Unlike write_back above (which only ever overwrites a single
+    // already-existing table position), this container's children are structurally user-managed -
+    // added, removed and reordered - so persisting them needs to replace the whole vector, not one
+    // slot in it.
+    std::function<void(const std::vector<Landstalker::ScriptTable::Action>&)> write_back_actions;
 
     // Generic typed payload, interpreted per node type - the authoritative copy of each row's
     // value. Sync, validity checks and editors all read these; the display text is
@@ -166,6 +175,13 @@ struct ScriptTreeAddOption
     wxString label;
     wxString default_name;
 };
+
+// The Custom Item Shop table's fixed leading action slots, in order - shared between
+// ScriptTreeBuilder (initial construction from ScriptTable::Item::actions) and
+// ScriptTreeDataViewModel (numbering/positioning newly added entries the same way, and
+// protecting these three from being removed or reordered). Only entries beyond these first
+// three are the user-managed, sequentially numbered "Custom Action N" slots.
+inline const std::array<const char*, 3> kCustomItemShopActionFixedLabels = { "On Pick Up:", "On Pay:", "On Steal:" };
 
 void AddAction(ScriptTreeNode& node, const Landstalker::Statements::Action& action,
                std::shared_ptr<Landstalker::GameData> gd, const wxString& label = "Script Action:");

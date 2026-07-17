@@ -4,17 +4,6 @@
 
 #include <wx/propgrid/advprops.h>
 
-enum TOOL_IDS
-{
-	ID_APPEND = 30000,
-	ID_INSERT,
-	ID_DELETE,
-	ID_MOVE_UP,
-	ID_MOVE_DOWN,
-	ID_NEW_QUEST,
-	ID_DELETE_QUEST
-};
-
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_YML = 20000,
@@ -70,14 +59,8 @@ void ProgressFlagsEditorFrame::ClearGameData()
 
 void ProgressFlagsEditorFrame::UpdateUI() const
 {
-	auto [p, q] = m_editor->GetSelectedQuestProgress();
-	EnableToolbarItem("Flags", ID_APPEND, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && m_editor->GetModel()->GetTotalProgressInQuest(q) < 255);
-	EnableToolbarItem("Flags", ID_INSERT, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && m_editor->GetModel()->GetTotalProgressInQuest(q) < 255);
-	EnableToolbarItem("Flags", ID_DELETE, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && m_editor->GetModel()->GetRowCount() > 1);
-	EnableToolbarItem("Flags", ID_MOVE_UP, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && !m_editor->IsSelBottom());
-	EnableToolbarItem("Flags", ID_MOVE_DOWN, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && !m_editor->IsSelTop());
-	EnableToolbarItem("Flags", ID_NEW_QUEST, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->GetModel()->GetTotalQuests() < 255);
-	EnableToolbarItem("Flags", ID_DELETE_QUEST, m_gd != nullptr && m_editor->GetModel() != nullptr && m_gd->GetScriptData()->HasTables() && m_editor->IsRowSelected() && m_editor->IsRowSelected() && m_editor->GetModel()->GetTotalQuests() > 1);
+	// No frame-level toolbar items to enable/disable - ProgressFlagsEditorCtrl's own
+	// UpdateButtonStates() drives its embedded buttons' enabled state directly.
 }
 
 void ProgressFlagsEditorFrame::InitProperties(wxPropertyGridManager& props) const
@@ -129,26 +112,15 @@ void ProgressFlagsEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	ctrl->GetGrid()->Thaw();
 }
 
-void ProgressFlagsEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
+void ProgressFlagsEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 {
-	auto* parent = m_mgr.GetManagedWindow();
-
+	// No frame-level toolbar - ProgressFlagsEditorCtrl's own embedded Append/Insert/Delete/Move Up/
+	// Down/New Quest/Delete Quest buttons already cover these actions directly on the dataview they
+	// act on.
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Flag Mapping as YAML...");
 	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Flag Mapping from YAML...");
-
-	wxAuiToolBar* script_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	script_tb->AddTool(ID_APPEND, "Append Entry", ilist.GetImage("append_tile"), "Append Progress Marker");
-	script_tb->AddTool(ID_INSERT, "Insert Entry", ilist.GetImage("plus"), "Insert Progress Marker");
-	script_tb->AddTool(ID_DELETE, "Delete Entry", ilist.GetImage("minus"), "Delete Progress Marker");
-	script_tb->AddSeparator();
-	script_tb->AddTool(ID_MOVE_UP, "Move Up", ilist.GetImage("up"), "Move Up");
-	script_tb->AddTool(ID_MOVE_DOWN, "Move Down", ilist.GetImage("down"), "Move Down");
-	script_tb->AddSeparator();
-	script_tb->AddTool(ID_NEW_QUEST, "New Quest", ilist.GetImage("new"), "New Quest");
-	script_tb->AddTool(ID_DELETE_QUEST, "Delete Quest", ilist.GetImage("delete"), "Delete Quest");
-	AddToolbar(m_mgr, *script_tb, "Flags", "Progress Flags Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1).CloseButton(false).Movable(false).DockFixed(true));
 
 	m_mgr.Update();
 	UpdateUI();
@@ -163,27 +135,6 @@ void ProgressFlagsEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_FILE_IMPORT_YML:
 		OnImportYml();
-		break;
-	case ID_APPEND:
-		OnAppend();
-		break;
-	case ID_INSERT:
-		OnInsert();
-		break;
-	case ID_DELETE:
-		OnDelete();
-		break;
-	case ID_MOVE_UP:
-		OnMoveUp();
-		break;
-	case ID_MOVE_DOWN:
-		OnMoveDown();
-		break;
-	case ID_NEW_QUEST:
-		OnNewCollection();
-		break;
-	case ID_DELETE_QUEST:
-		OnDeleteCollection();
 		break;
 	}
 	UpdateUI();
@@ -233,41 +184,3 @@ void ProgressFlagsEditorFrame::OnImportYml()
 	}
 }
 
-void ProgressFlagsEditorFrame::OnAppend()
-{
-	m_editor->AppendRow();
-}
-
-void ProgressFlagsEditorFrame::OnInsert()
-{
-	m_editor->InsertRow();
-}
-
-void ProgressFlagsEditorFrame::OnDelete()
-{
-	m_editor->DeleteRow();
-}
-
-void ProgressFlagsEditorFrame::OnMoveUp()
-{
-	m_editor->MoveRowUp();
-}
-
-void ProgressFlagsEditorFrame::OnMoveDown()
-{
-	m_editor->MoveRowDown();
-}
-
-void ProgressFlagsEditorFrame::OnNewCollection()
-{
-	m_editor->AddQuest();
-}
-
-void ProgressFlagsEditorFrame::OnDeleteCollection()
-{
-	int answer = wxMessageBox("Really delete quest?", "Confirm", wxYES_NO, this);
-	if (answer == wxYES)
-	{
-		m_editor->DeleteQuest();
-	}
-}

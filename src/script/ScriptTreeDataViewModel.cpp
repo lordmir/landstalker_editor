@@ -1,7 +1,11 @@
 #include <script/ScriptTreeDataViewModel.h>
 
+#include <script/ScriptEntryLink.h>
+
 #include <landstalker/misc/Labels.h>
 #include <landstalker/misc/Utils.h>
+
+#include <wx/settings.h>
 
 #include <algorithm>
 #include <sstream>
@@ -891,14 +895,47 @@ bool ScriptTreeDataViewModel::GetAttr(const wxDataViewItem& item, unsigned int /
 
     ApplyClassAttr(*node, attr);
 
+    // Script preview rows referencing another entry's own script tree (a cutscene, or a
+    // non-global character) read as hyperlinks - double-clicking one opens that entry's tree
+    // in a popup (see ScriptTableTreeEditorCtrl::OnTreeItemActivated).
+    if (IsScriptEntryLink(*node))
+    {
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(0, 102, 204), wxColour(100, 170, 255)));
+    }
+
     // An unresolved value (unknown function/branch target, out-of-range script ID) overrides
     // the class colour but keeps the class font, so e.g. an invalid "On..." slot still reads
     // as bold, just in red instead of dark red.
     if (!IsNodeValueValid(*node))
     {
-        attr.SetColour(wxColour(200, 0, 0));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(200, 0, 0), wxColour(255, 90, 90)));
     }
     return true;
+}
+
+bool ScriptTreeDataViewModel::IsScriptEntryLink(const ScriptTreeNode& node) const
+{
+    return GetScriptEntryLinkTarget(node).has_value();
+}
+
+std::optional<std::pair<ScriptTreeLinkType, int>> ScriptTreeDataViewModel::GetScriptEntryLinkTarget(const ScriptTreeNode& node) const
+{
+    if (node.type != ScriptTreeNodeType::SCRIPT_ENTRY || !m_gd || !m_gd->GetScriptData() || !m_gd->GetScriptData()->GetScript())
+    {
+        return std::nullopt;
+    }
+    const auto script = m_gd->GetScriptData()->GetScript();
+    if (node.numeric_value >= script->GetScriptLineCount())
+    {
+        return std::nullopt;
+    }
+    const auto target = ScriptEntryLink::Resolve(m_gd, script->GetScriptLine(node.numeric_value));
+    if (!target)
+    {
+        return std::nullopt;
+    }
+    return std::make_pair(target->is_cutscene ? ScriptTreeLinkType::CUTSCENE : ScriptTreeLinkType::CHARACTER,
+        target->entry);
 }
 
 void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataViewItemAttr& attr) const
@@ -908,7 +945,7 @@ void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataV
     if (node.parent == &root && node.type != ScriptTreeNodeType::FUNCTION)
     {
         attr.SetBold(true);
-        attr.SetColour(wxColour(139, 0, 0));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(139, 0, 0), wxColour(255, 120, 120)));
         return;
     }
 
@@ -939,7 +976,7 @@ void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataV
     case ScriptTreeNodeType::SHOP_TABLE_ON_PURCHASE:
     case ScriptTreeNodeType::SHOP_TABLE_CUSTOM:
         attr.SetBold(true);
-        attr.SetColour(wxColour(102, 0, 153));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(102, 0, 153), wxColour(200, 120, 255)));
         return;
 
     // Uneditable reference/listing rows (resolved script lines, inline ASM, bare jump labels).
@@ -958,7 +995,7 @@ void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataV
     case ScriptTreeNodeType::SCRIPT_CUSTOM:
     case ScriptTreeNodeType::CUSTOM_ASM_LINE:
         attr.SetItalic(true);
-        attr.SetColour(wxColour(96, 96, 96));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(96, 96, 96), wxColour(175, 175, 175)));
         return;
 
     // Parameterised (editable) non-action statements ("Set Flag 1234 on Talk:", "Sleep: 60", ...).
@@ -970,7 +1007,7 @@ void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataV
     case ScriptTreeNodeType::CUSTOM_SHOP_ACTION:
     case ScriptTreeNodeType::SLEEP:
         attr.SetBold(true);
-        attr.SetColour(wxColour(0, 0, 139));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(0, 0, 139), wxColour(120, 150, 255)));
         return;
 
     // Fixed (parameterless) function statements ("Return", "Shop:", "Yes/No Question:", ...).
@@ -982,7 +1019,7 @@ void ScriptTreeDataViewModel::ApplyClassAttr(const ScriptTreeNode& node, wxDataV
     case ScriptTreeNodeType::TABLE:
     case ScriptTreeNodeType::CUSTOM_ASM:
         attr.SetBold(true);
-        attr.SetColour(wxColour(0, 100, 0));
+        attr.SetColour(wxSystemSettings::SelectLightDark(wxColour(0, 100, 0), wxColour(90, 200, 90)));
         return;
 
     // Everything else (function headers, structural nodes) - default colour, bold.
@@ -1037,7 +1074,14 @@ std::vector<ScriptTreeAddOption> ScriptTreeDataViewModel::GetChildOptions(const 
     // NOTE: deliberately no option for CUSTOM_ASM - its instruction lines are edited (added,
     // removed, reordered) wholesale through the multi-line ASM dialog, not the add menu.
     case ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE:
-        options = { { ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Item Shop Action", "Custom Action:" } };
+        // CUSTOM_ITEM_SHOP_TABLE is reused for both the top-level container and each flat
+        // "Custom Action:" entry inside it (see PopulateFixedChildren()'s matching check) - only
+        // the container itself offers this as a child option, or "Add Child" on an existing entry
+        // would nest a new one inside it instead of alongside it as a sibling.
+        if (!node.parent || node.parent->type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+        {
+            options = { { ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, "Custom Item Shop Action", "Custom Action:" } };
+        }
         break;
     default:
         break;
@@ -1064,6 +1108,92 @@ bool ScriptTreeDataViewModel::IsChildOptionType(const ScriptTreeNode& parent, Sc
     return false;
 }
 
+bool ScriptTreeDataViewModel::IsFixedShopActionSlot(const ScriptTreeNode& node) const
+{
+    if (node.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE || !node.parent
+        || node.parent->type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+    {
+        return false;
+    }
+    std::size_t index = 0;
+    for (const auto& sibling : node.parent->children)
+    {
+        if (sibling.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+        {
+            continue;
+        }
+        if (&sibling == &node)
+        {
+            return index < kCustomItemShopActionFixedLabels.size();
+        }
+        ++index;
+    }
+    return false;
+}
+
+Landstalker::ScriptTable::Action ScriptTreeDataViewModel::BuildShopTableAction(const ScriptTreeNode& node) const
+{
+    // Mirrors BuildAction()'s own function-name-vs-script-ID resolution, but for a
+    // ScriptTable::Action (a plain "uint16_t script ID OR function name" variant) rather than a
+    // Statements::Action (an in-function jump/script-ID instruction).
+    const std::string function_name = GetFunctionName(node);
+    if (!function_name.empty())
+    {
+        return Landstalker::ScriptTable::Action(function_name);
+    }
+    return Landstalker::ScriptTable::Action(node.numeric_value);
+}
+
+void ScriptTreeDataViewModel::SyncCustomItemShopActions(ScriptTreeNode& container) const
+{
+    if (!container.write_back_actions)
+    {
+        return;
+    }
+    // The container can also hold bare "Function:" headers after the shop-action entries (see
+    // AddLocationRelatedFunctions()/AddFunc()) - those are related/single-use functions embedded
+    // for display, not entries of this item's actions vector, and must not be written back as one.
+    std::vector<Landstalker::ScriptTable::Action> actions;
+    for (const auto& child : container.children)
+    {
+        if (child.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+        {
+            actions.push_back(BuildShopTableAction(child));
+        }
+    }
+    container.write_back_actions(actions);
+}
+
+void ScriptTreeDataViewModel::RenumberCustomShopActions(ScriptTreeNode& container)
+{
+    // Trailing bare "Function:" headers (see SyncCustomItemShopActions()'s comment) aren't shop-
+    // action entries and must be skipped entirely here - both from the position count (so a
+    // shop-action entry's number never accounts for them) and from relabeling (a FUNCTION node
+    // has no action_label to fix up).
+    std::size_t index = 0;
+    for (auto& entry : container.children)
+    {
+        if (entry.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+        {
+            continue;
+        }
+        if (index >= kCustomItemShopActionFixedLabels.size())
+        {
+            const wxString new_label = StrPrintf("Custom Action %d:", static_cast<int>(index) + 1);
+            if (entry.action_label != new_label)
+            {
+                // Keep the resolved action text ("the body") exactly as-is - only the position-
+                // derived label prefix changes, so reordering/removing entries never disturbs
+                // what any of them actually point at.
+                const wxString suffix = entry.name.Mid(entry.action_label.length());
+                entry.action_label = new_label;
+                entry.name = new_label + suffix;
+                ItemChanged(entry.ToItem());
+            }
+        }
+        ++index;
+    }
+}
 
 std::string ScriptTreeDataViewModel::GetFunctionName(const ScriptTreeNode& node) const
 {
@@ -1405,11 +1535,31 @@ void ScriptTreeDataViewModel::PopulateFixedChildren(ScriptTreeNode& node) const
     case ScriptTreeNodeType::PROG_DEP_ACTION:
         add_action_child(ScriptTreeNodeType::ACTION, "Script Action:");
         break;
+    case ScriptTreeNodeType::PROG_DEP_TABLE:
+    {
+        // Never born empty: a container with zero children is registered as a leaf by the GTK
+        // dataview backend (see AddChild()/AddSibling()'s ItemsAdded() comment) - a later "first
+        // child" add to it is then silently dropped rather than shown, since wx never learns it
+        // became a container. Seed one entry up front, matching FUNCTION/CUSTOM_ASM's own pattern
+        // of never leaving their container type childless.
+        ScriptTreeNode* entry = node.AddChild(ScriptTreeNodeType::PROG_DEP_ACTION, "On Quest 0, Progress 0:");
+        PopulateFixedChildren(*entry);
+        break;
+    }
+    case ScriptTreeNodeType::TABLE:
+    {
+        ScriptTreeNode* entry = node.AddChild(ScriptTreeNodeType::TABLE_ENTRY, "Entry:");
+        PopulateFixedChildren(*entry);
+        break;
+    }
     case ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE:
-        if (node.parent && node.parent->type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
-        {
-            merge_action_self(node);
-        }
+        // PopulateFixedChildren() is only ever reached via AddChild()/AddSibling() creating a new
+        // flat "Custom Action N:" entry - the top-level container itself is built directly by
+        // ScriptTreeBuilder, never through here - so this is always the nested-entry case.
+        // (This used to be conditional on node.parent's type, but at this point node hasn't been
+        // attached to its real parent yet - AddChild()/AddSibling() call SetParent() afterwards -
+        // so node.parent was always null here and the merge never actually ran.)
+        merge_action_self(node);
         break;
     case ScriptTreeNodeType::QUESTION:
         add_action_child(ScriptTreeNodeType::Q_PROMPT, "Prompt:");
@@ -1470,13 +1620,20 @@ bool ScriptTreeDataViewModel::CanRemoveItem(const wxDataViewItem& item) const
     // structure (slots like "On Pay:", a question's OnYes/OnNo, ...) can't be removed even
     // though its parent may offer add options for other types (e.g. "Function" at top level).
     const ScriptTreeNode* node = reinterpret_cast<const ScriptTreeNode*>(item.GetID());
-    return node && node->parent && IsChildOptionType(*node->parent, node->type);
+    if (!node || !node->parent || !IsChildOptionType(*node->parent, node->type))
+    {
+        return false;
+    }
+    // A Custom Item Shop Action container's fixed leading "On Pick Up:"/"On Pay:"/"On Steal:"
+    // entries share CUSTOM_ITEM_SHOP_TABLE's type with the numbered ones after them, so the
+    // type-based check above can't tell them apart - they need their own, position-based check.
+    return !IsFixedShopActionSlot(*node);
 }
 
 bool ScriptTreeDataViewModel::CanMoveItemUp(const wxDataViewItem& item) const
 {
     const ScriptTreeNode* node = reinterpret_cast<const ScriptTreeNode*>(item.GetID());
-    if (!node || !node->parent || !IsChildOptionType(*node->parent, node->type))
+    if (!node || !node->parent || !IsChildOptionType(*node->parent, node->type) || IsFixedShopActionSlot(*node))
     {
         return false;
     }
@@ -1487,8 +1644,10 @@ bool ScriptTreeDataViewModel::CanMoveItemUp(const wxDataViewItem& item) const
         if (&(*it) == node)
         {
             // The neighbour must be user-managed too, so a movable row (e.g. a top-level
-            // function) can't be shuffled up past the fixed slots above it.
-            return it != siblings.begin() && IsChildOptionType(*node->parent, std::prev(it)->type);
+            // function) can't be shuffled up past the fixed slots above it - including a Custom
+            // Action entry moving up into the On Pick Up/On Pay/On Steal zone.
+            return it != siblings.begin() && IsChildOptionType(*node->parent, std::prev(it)->type)
+                && !IsFixedShopActionSlot(*std::prev(it));
         }
     }
     return false;
@@ -1497,7 +1656,7 @@ bool ScriptTreeDataViewModel::CanMoveItemUp(const wxDataViewItem& item) const
 bool ScriptTreeDataViewModel::CanMoveItemDown(const wxDataViewItem& item) const
 {
     const ScriptTreeNode* node = reinterpret_cast<const ScriptTreeNode*>(item.GetID());
-    if (!node || !node->parent || !IsChildOptionType(*node->parent, node->type))
+    if (!node || !node->parent || !IsChildOptionType(*node->parent, node->type) || IsFixedShopActionSlot(*node))
     {
         return false;
     }
@@ -1585,15 +1744,55 @@ wxDataViewItem ScriptTreeDataViewModel::AddChild(const wxDataViewItem& item, con
         insert_pos = std::find_if(siblings.begin(), siblings.end(),
             [](const ScriptTreeNode& n) { return n.type == ScriptTreeNodeType::FUNCTION; });
     }
-    auto inserted = siblings.insert(insert_pos, ScriptTreeNode{ option.type, option.default_name });
+    // A new Custom Item Shop Action entry is labeled by its position among the container's
+    // existing SHOP ACTION entries only (the fixed "On Pick Up:"/"On Pay:"/"On Steal:" slots
+    // included, but NOT any bare "Function:" headers the builder appends after them for
+    // related/single-use functions - see AddLocationRelatedFunctions()/AddFunc() - those aren't
+    // part of this numbering at all) - matching ScriptTreeBuilder's own convention (the three
+    // fixed labels for positions 0-2, "Custom Action %d" for anything beyond), so a freshly added
+    // entry continues the same numbering an ASM reload would show. It's inserted right after the
+    // last such entry too, so it never lands after a trailing function header.
+    if (option.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+    {
+        insert_pos = std::find_if(siblings.begin(), siblings.end(),
+            [](const ScriptTreeNode& n) { return n.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE; });
+    }
+    const std::size_t shop_action_index = std::count_if(siblings.begin(), siblings.end(),
+        [](const ScriptTreeNode& n) { return n.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE; });
+    const wxString default_name = (option.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE) ? option.default_name
+        : (shop_action_index < kCustomItemShopActionFixedLabels.size())
+            ? wxString(kCustomItemShopActionFixedLabels.at(shop_action_index))
+            : wxString(StrPrintf("Custom Action %d:", static_cast<int>(shop_action_index) + 1));
+    auto inserted = siblings.insert(insert_pos, ScriptTreeNode{ option.type, default_name });
     ScriptTreeNode* child = &*inserted;
     PopulateFixedChildren(*child);
     child->SetParent(parent);
+    if (option.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+    {
+        SyncCustomItemShopActions(*parent);
+    }
+
+    // Notify the new node's own addition before RemoveRedundantReturn() (which may delete a
+    // trailing Return): the view must learn about the insertion first, or a same-transaction
+    // deletion notification would ask it to locate a sibling position it doesn't know about yet,
+    // which is what the GTK backend's "deleting non-existent child" assert is complaining about.
+    wxDataViewItem child_item = child->ToItem();
+    ItemAdded(parent->ToItem(), child_item);
+    if (!child->children.empty())
+    {
+        // A node that's a container from birth (already carries fixed children, e.g. a Progress
+        // Entry's "Script Action:") needs its children announced too, via a proper ItemsAdded()
+        // for them - GTK's dataview backend doesn't retroactively discover a freshly inserted
+        // row's children on its own, and won't draw an expander for it, until they're announced
+        // this way. (An earlier fix here used ItemChanged() instead, reasoning that its
+        // row-changed signal would make GTK re-check; it happened to paper over the missing
+        // expander, but row-changed is the wrong tool for announcing new rows and made a
+        // separate, worse bug surface - see AddSibling()'s twin comment.)
+        ItemsAdded(child_item, child->GetChildren());
+    }
 
     RemoveRedundantReturn(*parent, *child);
 
-    wxDataViewItem child_item = child->ToItem();
-    ItemAdded(parent->ToItem(), child_item);
     SyncToScriptTable();
     return child_item;
 }
@@ -1612,7 +1811,16 @@ wxDataViewItem ScriptTreeDataViewModel::AddSibling(const wxDataViewItem& item, c
     {
         if (&(*it) == node)
         {
-            ScriptTreeNode sibling{ option.type, option.default_name };
+            // See the matching comment in AddChild(): labeled by position among the container's
+            // existing SHOP ACTION entries only - not any bare "Function:" headers the builder
+            // may have appended after them - matching ScriptTreeBuilder's own convention.
+            const std::size_t shop_action_index = std::count_if(siblings.begin(), siblings.end(),
+                [](const ScriptTreeNode& n) { return n.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE; });
+            const wxString default_name = (option.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE) ? option.default_name
+                : (shop_action_index < kCustomItemShopActionFixedLabels.size())
+                    ? wxString(kCustomItemShopActionFixedLabels.at(shop_action_index))
+                    : wxString(StrPrintf("Custom Action %d:", static_cast<int>(shop_action_index) + 1));
+            ScriptTreeNode sibling{ option.type, default_name };
             PopulateFixedChildren(sibling);
             // "Add Sibling" on a function's trailing terminator inserts above it rather than
             // after, where the new statement would be unreachable (see AddChild()).
@@ -1636,14 +1844,47 @@ wxDataViewItem ScriptTreeDataViewModel::AddSibling(const wxDataViewItem& item, c
                         [](const ScriptTreeNode& n) { return n.type == ScriptTreeNodeType::FUNCTION; });
                 }
             }
+            // Custom Action entries are positional - their number IS their index among the
+            // container's shop-action entries, so a new one always goes right after the last one
+            // of those (never spliced in mid-list, which would leave its number - and every
+            // number after it - wrong; and never after a trailing "Function:" header, which isn't
+            // a shop-action entry at all).
+            if (option.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+            {
+                insert_pos = std::find_if(siblings.begin(), siblings.end(),
+                    [](const ScriptTreeNode& n) { return n.type != ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE; });
+            }
             auto inserted = siblings.insert(insert_pos, sibling);
             inserted->SetParent(parent);
+            if (option.type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE)
+            {
+                SyncCustomItemShopActions(*parent);
+            }
 
-            RemoveRedundantReturn(*parent, *inserted);
-
+            // See the matching comment in AddChild(): notify this addition before
+            // RemoveRedundantReturn() may delete the trailing Return, so the view already knows
+            // about the new sibling by the time it's asked to locate the Return being removed.
             wxDataViewItem parent_item = (parent == &root) ? wxDataViewItem() : parent->ToItem();
             wxDataViewItem child_item = inserted->ToItem();
             ItemAdded(parent_item, child_item);
+            if (!inserted->children.empty())
+            {
+                // See the matching comment in AddChild(): a node born already containing fixed
+                // children (e.g. a Progress Entry's "Script Action:") needs those children
+                // announced too via ItemsAdded(), or GTK on Linux won't draw its expander / show
+                // them until something else touches the row. A prior fix used ItemChanged() here,
+                // which happened to work for that symptom by coincidence (its row-changed signal
+                // prompts GTK to re-check the row) but isn't the correct notification for "this
+                // row has new children", and was the actual cause of a newly added top-level
+                // function appearing then immediately vanishing: GTK's row-changed handling doesn't
+                // reliably reconcile a row's container/child bookkeeping the way a proper
+                // ItemsAdded() does, and calling Expand() on it right after (as AddSelectedItem()
+                // does) exposed the resulting inconsistency.
+                ItemsAdded(child_item, inserted->GetChildren());
+            }
+
+            RemoveRedundantReturn(*parent, *inserted);
+
             SyncToScriptTable();
             return child_item;
         }
@@ -1668,8 +1909,17 @@ bool ScriptTreeDataViewModel::RemoveItem(const wxDataViewItem& item)
     {
         if (&(*it) == node)
         {
+            const bool is_shop_action = parent->type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE;
             siblings.erase(it);
             ItemDeleted(parent_item, deleted_item);
+            if (is_shop_action)
+            {
+                // Removing a Custom Action from the middle leaves every one after it one position
+                // earlier - relabel the survivors to match, then persist the whole (now shorter)
+                // actions list back.
+                RenumberCustomShopActions(*parent);
+                SyncCustomItemShopActions(*parent);
+            }
             SyncToScriptTable();
             return true;
         }
@@ -1690,7 +1940,17 @@ wxDataViewItem ScriptTreeDataViewModel::MoveItemUp(const wxDataViewItem& item)
     {
         if (&(*it) == node)
         {
+            ScriptTreeNode* parent = node->parent;
+            const bool is_shop_action = parent->type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE;
             siblings.splice(std::prev(it), siblings, it);
+            if (is_shop_action)
+            {
+                // Swapping two Custom Action entries' positions must swap their labels too - each
+                // position keeps its own sequential number, and whichever entry now sits there
+                // takes it on.
+                RenumberCustomShopActions(*parent);
+                SyncCustomItemShopActions(*parent);
+            }
             Cleared();
             SyncToScriptTable();
             return node->ToItem();
@@ -1712,8 +1972,16 @@ wxDataViewItem ScriptTreeDataViewModel::MoveItemDown(const wxDataViewItem& item)
     {
         if (&(*it) == node)
         {
+            ScriptTreeNode* parent = node->parent;
+            const bool is_shop_action = parent->type == ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE;
             auto next = std::next(it);
             siblings.splice(std::next(next), siblings, it);
+            if (is_shop_action)
+            {
+                // See the matching comment in MoveItemUp().
+                RenumberCustomShopActions(*parent);
+                SyncCustomItemShopActions(*parent);
+            }
             Cleared();
             SyncToScriptTable();
             return node->ToItem();

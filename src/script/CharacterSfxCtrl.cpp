@@ -1,4 +1,5 @@
 #include <script/CharacterSfxCtrl.h>
+#include <misc/DataViewModelAssociate.h>
 
 CharacterSfxEditorCtrl::CharacterSfxEditorCtrl(wxWindow* parent)
 	: wxPanel(parent),
@@ -21,11 +22,11 @@ void CharacterSfxEditorCtrl::SetGameData(std::shared_ptr<Landstalker::GameData> 
 {
 	m_gd = gd;
 	m_dvc_ctrl->ClearColumns();
-	m_dvc_ctrl->AssociateModel(nullptr);
+	AssociateDataViewModel(m_dvc_ctrl, nullptr);
 	m_model = new CharacterSfxDataViewModel(gd);
 
 	m_model->Initialise();
-	m_dvc_ctrl->AssociateModel(m_model);
+	AssociateDataViewModel(m_dvc_ctrl, m_model);
 	m_model->DecRef();
 	m_model->InitControl(m_dvc_ctrl);
 	m_dvc_ctrl->SetSelections({});

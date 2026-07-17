@@ -1098,12 +1098,19 @@ void AddItemMapping(ScriptTreeNode* root, std::shared_ptr<ScriptFunctionTable> d
     {
         auto chr = chr_root->AddChild(ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, StrWPrintf("Item Script %02d: Item %02d (%ls), Shop: %03d%ls",
             item_idx, entry.item, gd->GetStringData()->GetItemDisplayName(entry.item).c_str(), entry.shop, entry.other ? StrWPrintf("Additional Data %04X", *entry.other).c_str() : L""));
-        std::vector<std::string> entries = { "On Pick Up:", "On Pay:", "On Steal:"};
+        // The container's own actions are structurally user-managed (added/removed/reordered via
+        // the tree editor, unlike a plain value edit) - write_back on each slot only ever
+        // overwrites its own already-existing position, so a structural change needs this to
+        // persist the whole rebuilt vector back, not any single slot's write_back.
+        chr->write_back_actions = [table, item_idx](const std::vector<ScriptTable::Action>& actions)
+        {
+            table->at(item_idx).actions = actions;
+        };
         std::set<std::string> nested_in_object;
         for (std::size_t i = 0; i < entry.actions.size(); ++i)
         {
             const auto& action = entry.actions.at(i);
-            wxString label = (i < entries.size()) ? wxString(entries.at(i)) : StrPrintf("Custom Action %d:", i + 1);
+            wxString label = (i < kCustomItemShopActionFixedLabels.size()) ? wxString(kCustomItemShopActionFixedLabels.at(i)) : StrPrintf("Custom Action %d:", i + 1);
             bool merged_function = false;
             AddMappingActionSlot(*chr, ScriptTreeNodeType::CUSTOM_ITEM_SHOP_TABLE, label, action, pool, funcs, ref_counts, nested_in_object,
                 [table, item_idx, i](const ScriptTable::Action& a) { table->at(item_idx).actions[i] = a; }, gd, merged_function);

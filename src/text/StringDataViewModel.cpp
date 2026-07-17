@@ -1,4 +1,5 @@
 #include <text/StringDataViewModel.h>
+#include <wx/settings.h>
 
 StringDataViewModel::StringDataViewModel(Landstalker::StringData::Type type, std::shared_ptr<Landstalker::StringData> sd)
 	: wxDataViewVirtualListModel(sd->GetStringCount(type)),
@@ -149,6 +150,11 @@ bool StringDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDat
         attr.SetBold(true);
         return true;
     }
+    // The "unchanged" colour was hardcoded to wxBLACK, which is illegible against a dark theme's
+    // own (dark) cell background - wxSYS_COLOUR_WINDOWTEXT is the system's actual default text
+    // colour, correct in both light and dark mode. The "changed" wxRED highlight is left as-is
+    // (readable against both).
+    const wxColour unchanged_colour = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
     if (m_type == Landstalker::StringData::Type::INTRO)
     {
         const auto& olds = m_sd->GetOrigIntroString(row);
@@ -156,25 +162,25 @@ bool StringDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDat
         switch (col)
         {
         case 1:
-            attr.SetColour((olds.GetDisplayTime() != news.GetDisplayTime()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetDisplayTime() != news.GetDisplayTime()) ? *wxRED : unchanged_colour);
             break;
         case 2:
-            attr.SetColour((olds.GetLine1X() != news.GetLine1X()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine1X() != news.GetLine1X()) ? *wxRED : unchanged_colour);
             break;
         case 3:
-            attr.SetColour((olds.GetLine1Y() != news.GetLine1Y()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine1Y() != news.GetLine1Y()) ? *wxRED : unchanged_colour);
             break;
         case 4:
-            attr.SetColour((olds.GetLine2X() != news.GetLine2X()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine2X() != news.GetLine2X()) ? *wxRED : unchanged_colour);
             break;
         case 5:
-            attr.SetColour((olds.GetLine2Y() != news.GetLine2Y()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine2Y() != news.GetLine2Y()) ? *wxRED : unchanged_colour);
             break;
         case 6:
-            attr.SetColour((olds.GetLine(0) != news.GetLine(0)) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine(0) != news.GetLine(0)) ? *wxRED : unchanged_colour);
             break;
         default:
-            attr.SetColour((olds.GetLine(1) != news.GetLine(1)) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetLine(1) != news.GetLine(1)) ? *wxRED : unchanged_colour);
             break;
         }
     }
@@ -185,19 +191,19 @@ bool StringDataViewModel::GetAttrByRow(unsigned int row, unsigned int col, wxDat
         switch (col)
         {
         case 1:
-            attr.SetColour((olds.GetColumn() != news.GetColumn()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetColumn() != news.GetColumn()) ? *wxRED : unchanged_colour);
             break;
         case 2:
-            attr.SetColour((olds.GetHeight() != news.GetHeight()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.GetHeight() != news.GetHeight()) ? *wxRED : unchanged_colour);
             break;
         default:
-            attr.SetColour((olds.Str() != news.Str()) ? *wxRED : *wxBLACK);
+            attr.SetColour((olds.Str() != news.Str()) ? *wxRED : unchanged_colour);
             break;
         }
     }
     else
     {
-        attr.SetColour(m_sd->HasStringChanged(m_type, row) ? *wxRED : *wxBLACK);
+        attr.SetColour(m_sd->HasStringChanged(m_type, row) ? *wxRED : unchanged_colour);
     }
     return true;
 }

@@ -60,9 +60,10 @@ private:
 class LookupEditorControl : public wxPanel
 {
 public:
-	LookupEditorControl(wxWindow* parent, const wxRect& rect, const wxString& value, const wxArrayString& choices)
+	LookupEditorControl(wxWindow* parent, const wxRect& rect, const wxString& value, const wxArrayString& choices, wxDataViewRenderer* renderer)
 		: wxPanel(parent, wxID_ANY, rect.GetPosition(), rect.GetSize()),
 		  m_choices(choices),
+		  m_renderer(renderer),
 		  m_text(new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER)),
 		  m_drop_btn(new wxBitmapButton(this, wxID_ANY,
 			wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_BUTTON, wxSize(16, 16)),
@@ -139,6 +140,12 @@ public:
 			return *m_pending_value;
 		}
 		return m_text->GetValue();
+	}
+
+	void SetTextColour(const wxColour& colour)
+	{
+		m_text->SetForegroundColour(colour);
+		m_text->Refresh();
 	}
 
 	void CommitPendingSelection()
@@ -239,9 +246,21 @@ private:
 		const int row_height = std::max(list->GetCharHeight() + 6, 18);
 		const int visible_rows = std::min(12, static_cast<int>(list->GetCount()));
 		const int popup_height = row_height * visible_rows + 8;
-		const int popup_width = std::max(GetSize().GetWidth(), 300);
+		int popup_width = std::max(GetSize().GetWidth(), 300);
 
 		const wxPoint screen_pt = ClientToScreen(wxPoint(0, GetSize().GetHeight()));
+		// Clamp to the containing top-level window's right edge - the 300 floor above is sized for
+		// a whole dataview column, but a combo embedded in a narrower composite editor (alongside
+		// other fields) can sit close enough to the window's edge that an unclamped popup would
+		// spill out over whatever's next to it (e.g. the dataview's own scrollbar).
+		if (wxWindow* top = wxGetTopLevelParent(this))
+		{
+			const int right_edge = top->GetScreenRect().GetRight();
+			if (screen_pt.x + popup_width > right_edge)
+			{
+				popup_width = std::max(GetSize().GetWidth(), right_edge - screen_pt.x - 4);
+			}
+		}
 		m_popup->SetSize(screen_pt.x, screen_pt.y, popup_width, popup_height);
 		if (!m_popup->IsShown())
 		{
@@ -467,6 +486,13 @@ private:
 		case WXK_ESCAPE:
 			HidePopup();
 			RestoreCommittedValue();
+			// Reverting the displayed text isn't enough on its own - without this, the cell just
+			// stays in edit mode showing the (now reverted) value instead of actually closing, so
+			// Escape looked like it didn't do anything until the user clicked away separately.
+			if (m_renderer)
+			{
+				m_renderer->CancelEditing();
+			}
 			return;
 		case WXK_RETURN:
 		case WXK_NUMPAD_ENTER:
@@ -719,6 +745,7 @@ private:
 
 	wxArrayString m_choices;
 	std::vector<int> m_filtered_indices;
+	wxDataViewRenderer* m_renderer;
 	wxTextCtrl* m_text;
 	wxBitmapButton* m_drop_btn;
 	LookupPopupWindow* m_popup;
@@ -728,6 +755,100 @@ private:
 	bool m_updating_list = false;
 	bool m_select_all_on_focus = true;
 };
+}
+
+namespace LookupEditor
+{
+wxWindow* Create(wxWindow* parent, const wxRect& rect, const wxString& value,
+                  const wxArrayString& choices, wxDataViewRenderer* renderer)
+{
+	return new LookupEditorControl(parent, rect, value, choices, renderer);
+}
+
+void CommitPendingSelection(wxWindow* ctrl)
+{
+	if (auto* editor = dynamic_cast<LookupEditorControl*>(ctrl))
+	{
+		editor->CommitPendingSelection();
+	}
+}
+
+wxString GetValueText(wxWindow* ctrl)
+{
+	if (auto* editor = dynamic_cast<LookupEditorControl*>(ctrl))
+	{
+		return editor->GetValueText();
+	}
+	return wxString();
+}
+
+wxString FormatLabel(const wxArrayString& choices, long index)
+{
+	if (index >= 0 && index < static_cast<long>(choices.GetCount()))
+	{
+		return choices[static_cast<std::size_t>(index)];
+	}
+	return wxString::Format("[%04ld] ???", index);
+}
+
+long ParseValue(const wxArrayString& choices, const wxString& text, long fallback)
+{
+	wxString t = text;
+	t.Trim(true);
+	t.Trim(false);
+
+	if (t.empty())
+	{
+		return fallback;
+	}
+
+	if (t.StartsWith("["))
+	{
+		const int close = t.Find(']');
+		if (close != wxNOT_FOUND)
+		{
+			wxString idx = t.SubString(1, close - 1);
+			long parsed = 0;
+			if (idx.ToLong(&parsed) && parsed >= 0 && parsed < static_cast<long>(choices.GetCount()))
+			{
+				return parsed;
+			}
+		}
+	}
+
+	long parsed = 0;
+	if (t.ToLong(&parsed) && parsed >= 0 && parsed < static_cast<long>(choices.GetCount()))
+	{
+		return parsed;
+	}
+
+	const wxString lower = t.Lower();
+	for (std::size_t i = 0; i < choices.GetCount(); ++i)
+	{
+		if (choices[i].Lower() == lower)
+		{
+			return static_cast<long>(i);
+		}
+	}
+
+	for (std::size_t i = 0; i < choices.GetCount(); ++i)
+	{
+		if (choices[i].Lower().Find(lower) != wxNOT_FOUND)
+		{
+			return static_cast<long>(i);
+		}
+	}
+
+	return fallback;
+}
+
+void SetTextColour(wxWindow* ctrl, const wxColour& colour)
+{
+	if (auto* editor = dynamic_cast<LookupEditorControl*>(ctrl))
+	{
+		editor->SetTextColour(colour);
+	}
+}
 }
 
 LookupDataViewRenderer::LookupDataViewRenderer(wxDataViewCellMode mode, wxArrayString choices)
@@ -801,7 +922,7 @@ bool LookupDataViewRenderer::HasEditorCtrl() const
 wxWindow* LookupDataViewRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
 {
 	m_value = value.GetLong();
-	return new LookupEditorControl(parent, labelRect, FormatLabel(m_value), m_choices);
+	return new LookupEditorControl(parent, labelRect, FormatLabel(m_value), m_choices, this);
 }
 
 bool LookupDataViewRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value)

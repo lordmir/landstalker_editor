@@ -39,10 +39,19 @@ public:
 private:
 	void OnSelectionChange(wxDataViewEvent& evt);
 	void UpdateUI();
+	void UpdateButtonStates();
 	void FireEvent(const wxEventType& e, const wxString& data = wxEmptyString, long numeric_data = 0, long extra_numeric_data = 0, long extra_extra_numeric_data = 0);
 
 	wxDataViewCtrl* m_dvc_ctrl;
 	ProgressFlagsDataViewModel* m_model;
+
+	wxButton* m_append_button = nullptr;
+	wxButton* m_insert_button = nullptr;
+	wxButton* m_delete_button = nullptr;
+	wxButton* m_move_up_button = nullptr;
+	wxButton* m_move_down_button = nullptr;
+	wxButton* m_new_quest_button = nullptr;
+	wxButton* m_delete_quest_button = nullptr;
 
 	std::shared_ptr<Landstalker::GameData> m_gd;
 
