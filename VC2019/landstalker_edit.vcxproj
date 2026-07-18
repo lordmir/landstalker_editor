@@ -9,6 +9,14 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\2d_maps\Map2DEditor.cpp" />
@@ -81,11 +89,13 @@
     <ClCompile Include="..\src\script\ProgressFlagsCtrl.cpp" />
     <ClCompile Include="..\src\script\ProgressFlagsDataViewModel.cpp" />
     <ClCompile Include="..\src\script\ProgressFlagsFrame.cpp" />
-    <ClCompile Include="..\src\script\ScriptDataViewEditorControl.cpp" />
     <ClCompile Include="..\src\script\ScriptDataViewModel.cpp" />
     <ClCompile Include="..\src\script\ScriptDataViewRenderer.cpp" />
     <ClCompile Include="..\src\script\ScriptEditorCtrl.cpp" />
+    <ClCompile Include="..\src\script\ScriptEditorDialog.cpp" />
     <ClCompile Include="..\src\script\ScriptEditorFrame.cpp" />
+    <ClCompile Include="..\src\script\ScriptEntryEditors.cpp" />
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorDialog.cpp" />
     <ClCompile Include="..\src\sprites\AnimationControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\AnimationFrameControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\EntityViewerCtrl.cpp" />
@@ -125,6 +135,8 @@
     <ClInclude Include="..\src\main\resource.h" />
     <ClInclude Include="..\src\misc\AssemblyBuilderDialog.h" />
     <ClInclude Include="..\src\misc\BaseDataViewModel.h" />
+    <ClInclude Include="..\src\misc\DataViewEditorKeys.h" />
+    <ClInclude Include="..\src\misc\DataViewModelAssociate.h" />
     <ClInclude Include="..\src\misc\ExecutorThread.h" />
     <ClInclude Include="..\src\misc\LookupChoiceControl.h" />
     <ClInclude Include="..\src\misc\LookupDataViewRenderer.h" />
@@ -162,6 +174,7 @@
     <ClInclude Include="..\src\rooms\gpu\HeightmapRenderer.h" />
     <ClInclude Include="..\src\rooms\gpu\MapRenderer.h" />
     <ClInclude Include="..\src\rooms\gpu\PixelFont.h" />
+    <ClInclude Include="..\src\rooms\gpu\RoomProjection.h" />
     <ClInclude Include="..\src\rooms\gpu\ShaderSources.h" />
     <ClInclude Include="..\src\rooms\gpu\SpriteInstance.h" />
     <ClInclude Include="..\src\rooms\gpu\SpriteRenderer.h" />
@@ -178,9 +191,12 @@
     <ClInclude Include="..\src\script\ProgressFlagsFrame.h" />
     <ClInclude Include="..\src\script\ScriptDataViewModel.h" />
     <ClInclude Include="..\src\script\ScriptDataViewRenderer.h" />
-    <ClInclude Include="..\src\script\ScriptDataViewEditorControl.h" />
     <ClInclude Include="..\src\script\ScriptEditorCtrl.h" />
+    <ClInclude Include="..\src\script\ScriptEditorDialog.h" />
     <ClInclude Include="..\src\script\ScriptEditorFrame.h" />
+    <ClInclude Include="..\src\script\ScriptEntryEditors.h" />
+    <ClInclude Include="..\src\script\ScriptEntryLink.h" />
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorDialog.h" />
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h" />
     <ClInclude Include="..\src\sprites\AnimationFrameControlFrame.h" />
     <ClInclude Include="..\src\sprites\EntityViewerCtrl.h" />
@@ -247,6 +263,19 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -258,11 +287,15 @@
     <WX_WIN Condition="'$(WX_WIN)'==''">C:\libraries\wxwidgets-3.3.2</WX_WIN>
     <ZLIB_PATH Condition="'$(ZLIB_PATH)'==''">C:\libraries\zlib</ZLIB_PATH>
     <PUGIXML_PATH Condition="'$(PUGIXML_PATH)'==''">C:\libraries\pugixml-1.16</PUGIXML_PATH>
-    <GLEW_PATH Condition="'$(GLEW_PATH)'==''">C:\libraries\glew-2.3.1</GLEW_PATH>
+    <GLEW_PATH Condition="'$(GLEW_PATH)'==''">C:\libraries\glew-cmake-2.2.0</GLEW_PATH>
     <YAMLCPP_PATH Condition="'$(YAMLCPP_PATH)'==''">C:\libraries\yaml-cpp-0.9.0</YAMLCPP_PATH>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -271,18 +304,17 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\debug\include;$(PUGIXML_PATH)\src;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH)\include;$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH)\include;$(PUGIXML_PATH)\include;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/external:I"..\third_party"
-/external:I"$(LIBPNG_PATH)"
+/external:I"$(LIBPNG_PATH)\include"
 /external:I"$(WX_WIN)\include\msvc"
 /external:I"$(WX_WIN)\include"
-/external:I"$(ZLIB_PATH)"
-/external:I"$(PUGIXML_PATH)\debug\include"
-/external:I"$(PUGIXML_PATH)\src"
+/external:I"$(ZLIB_PATH)\include"
+/external:I"$(PUGIXML_PATH)\include"
 /external:I"$(GLEW_PATH)\include"
 /external:I"$(YAMLCPP_PATH)\include" %(AdditionalOptions)</AdditionalOptions>
       <ExternalWarningLevel>Level1</ExternalWarningLevel>
@@ -290,8 +322,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);$(LIBPNG_PATH)\projects\vstudio\Debug Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(LIBPNG_PATH);$(YAMLCPP_PATH)\build\Debug;$(PUGIXML_PATH)\debug\lib;$(PUGIXML_PATH)\build\Debug;$(GLEW_PATH)\build\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>landstalkerd.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cppd.lib;libglew32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);$(LIBPNG_PATH)\lib;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH)\lib;$(YAMLCPP_PATH)\lib;$(PUGIXML_PATH)\lib;$(GLEW_PATH)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalkerd.lib;libpng16_staticd.lib;zlibstaticd.lib;pugixml_d.lib;yaml-cppd.lib;glewd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -303,18 +335,17 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH);$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH);$(PUGIXML_PATH)\release\include;$(PUGIXML_PATH)\src;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH)\include;$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH)\include;$(PUGIXML_PATH)\include;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/external:I"..\third_party"
-/external:I"$(LIBPNG_PATH)"
+/external:I"$(LIBPNG_PATH)\include"
 /external:I"$(WX_WIN)\include\msvc"
 /external:I"$(WX_WIN)\include"
-/external:I"$(ZLIB_PATH)"
-/external:I"$(PUGIXML_PATH)\release\include"
-/external:I"$(PUGIXML_PATH)\src"
+/external:I"$(ZLIB_PATH)\include"
+/external:I"$(PUGIXML_PATH)\include"
 /external:I"$(GLEW_PATH)\include"
 /external:I"$(YAMLCPP_PATH)\include" %(AdditionalOptions)</AdditionalOptions>
       <ExternalWarningLevel>Level1</ExternalWarningLevel>
@@ -324,8 +355,73 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);..\modules\liblandstalker\build\Release\;$(LIBPNG_PATH)\projects\vstudio\Release Library;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH);$(YAMLCPP_PATH)\build\Release;$(PUGIXML_PATH)\release\lib;$(PUGIXML_PATH)\build\Release;$(GLEW_PATH)\build\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>landstalker.lib;libpng16.lib;zlib.lib;pugixml.lib;yaml-cpp.lib;libglew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);..\modules\liblandstalker\build\Release\;$(LIBPNG_PATH)\lib;$(WX_WIN)\lib\vc_lib;$(ZLIB_PATH)\lib;$(YAMLCPP_PATH)\lib;$(PUGIXML_PATH)\lib;$(GLEW_PATH)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalker.lib;libpng16_static.lib;zlibstatic.lib;pugixml.lib;yaml-cpp.lib;glew.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH)\include;$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH)\include;$(PUGIXML_PATH)\include;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/external:I"..\third_party"
+/external:I"$(LIBPNG_PATH)\include"
+/external:I"$(WX_WIN)\include\msvc"
+/external:I"$(WX_WIN)\include"
+/external:I"$(ZLIB_PATH)\include"
+/external:I"$(PUGIXML_PATH)\include"
+/external:I"$(GLEW_PATH)\include"
+/external:I"$(YAMLCPP_PATH)\include" %(AdditionalOptions)</AdditionalOptions>
+      <ExternalWarningLevel>Level1</ExternalWarningLevel>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(OutDir);$(LIBPNG_PATH)\lib;$(WX_WIN)\lib\vc_x64_lib;$(ZLIB_PATH)\lib;$(YAMLCPP_PATH)\lib;$(PUGIXML_PATH)\lib;$(GLEW_PATH)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalkerd.lib;libpng16_staticd.lib;zlibstaticd.lib;pugixml_d.lib;yaml-cppd.lib;glewd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:libcmtd.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>YAML_CPP_STATIC_DEFINE;GLEW_STATIC;NDEBUG;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NOMINMAX;WIN32_LEAN_AND_MEAN</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\modules\liblandstalker\landstalker\include;..\src;..\third_party;$(LIBPNG_PATH)\include;$(WX_WIN)\include\msvc;$(WX_WIN)\include;$(ZLIB_PATH)\include;$(PUGIXML_PATH)\include;$(GLEW_PATH)\include;$(YAMLCPP_PATH)\include;..\..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/external:I"..\third_party"
+/external:I"$(LIBPNG_PATH)\include"
+/external:I"$(WX_WIN)\include\msvc"
+/external:I"$(WX_WIN)\include"
+/external:I"$(ZLIB_PATH)\include"
+/external:I"$(PUGIXML_PATH)\include"
+/external:I"$(GLEW_PATH)\include"
+/external:I"$(YAMLCPP_PATH)\include" %(AdditionalOptions)</AdditionalOptions>
+      <ExternalWarningLevel>Level1</ExternalWarningLevel>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(OutDir);..\modules\liblandstalker\build\Release\;$(LIBPNG_PATH)\lib;$(WX_WIN)\lib\vc_x64_lib;$(ZLIB_PATH)\lib;$(YAMLCPP_PATH)\lib;$(PUGIXML_PATH)\lib;$(GLEW_PATH)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>landstalker.lib;libpng16_static.lib;zlibstatic.lib;pugixml.lib;yaml-cpp.lib;glew.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/NODEFAULTLIB:libcmt.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>

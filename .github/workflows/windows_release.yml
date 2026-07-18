@@ -38,7 +38,7 @@ jobs:
       - name: 'Build Release'
         working-directory: ${{github.workspace}}/landstalker_editor
         run: |
-          cmake -S . -B build -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release -DLANDSTALKER_BUILD_TESTING=ON
+          cmake -S . -B build -A x64 -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Release -DLANDSTALKER_BUILD_TESTING=ON
           cmake --build build --config Release
           cmake --install build --prefix ./release --config Release
 
@@ -52,7 +52,7 @@ jobs:
       - name: 'Build Debug'
         working-directory: ${{github.workspace}}/landstalker_editor
         run: |
-          cmake -S . -B build_debug -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build_debug -A x64 -DLANDSTALKER_BUILD_SHARED=OFF -DCMAKE_BUILD_TYPE=Debug
           cmake --build build_debug --config Debug
           cmake --install build_debug --prefix ./debug --config Debug
 

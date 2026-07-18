@@ -137,6 +137,18 @@ function(InstallWxwidgets)
     set(wxBUILD_SAMPLES OFF CACHE BOOL "" FORCE)
     set(wxUSE_GL ON CACHE BOOL "" FORCE)
     set(wxUSE_GLCANVAS_EGL OFF CACHE BOOL "" FORCE)
+    set(wxUSE_LIBWEBP OFF CACHE STRING "" FORCE)
+    # Only base/core/gl/adv/xrc/propgrid/aui/xml are actually linked (see target_link_libraries
+    # below) - disable the other GUI modules wx builds by default to avoid statically linking in
+    # ~35MB+ of unused code (Scintilla, WebView/Edge, RichText, Ribbon, MediaCtrl, HTML, QA).
+    set(wxUSE_STC OFF CACHE BOOL "" FORCE)
+    set(wxUSE_WEBVIEW OFF CACHE BOOL "" FORCE)
+    set(wxUSE_RICHTEXT OFF CACHE BOOL "" FORCE)
+    set(wxUSE_RIBBON OFF CACHE BOOL "" FORCE)
+    set(wxUSE_MEDIACTRL OFF CACHE BOOL "" FORCE)
+    set(wxUSE_DEBUGREPORT OFF CACHE BOOL "" FORCE)
+    # wxUSE_HTML must stay ON - wx's built-in help controller (wxUSE_WXHTML_HELP, unrelated to
+    # XRC) hard-requires it and wx's chkconf.h enforces this with a hard compile error.
     message("Configuring wxWidgets...")
     FetchContent_MakeAvailable(wx)
 endfunction()

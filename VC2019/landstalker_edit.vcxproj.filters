@@ -333,9 +333,6 @@
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp">
       <Filter>src\Rooms</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\script\ScriptDataViewEditorControl.cpp">
-      <Filter>src\Script</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\script\ScriptDataViewModel.cpp">
       <Filter>src\Script</Filter>
     </ClCompile>
@@ -393,6 +390,9 @@
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp">
       <Filter>src\WX Resources</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\script\ScriptEditorDialog.cpp" />
+    <ClCompile Include="..\src\script\ScriptEntryEditors.cpp" />
+    <ClCompile Include="..\src\script\ScriptTableTreeEditorDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h">
@@ -608,9 +608,6 @@
     <ClInclude Include="..\src\main\resource.h">
       <Filter>include\Main</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\script\ScriptDataViewEditorControl.h">
-      <Filter>include\Script</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\script\ScriptDataViewModel.h">
       <Filter>include\Script</Filter>
     </ClInclude>
@@ -671,6 +668,13 @@
     <ClInclude Include="..\src\wxresource\wxcrafter.h">
       <Filter>src\WX Resources</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\misc\DataViewEditorKeys.h" />
+    <ClInclude Include="..\src\misc\DataViewModelAssociate.h" />
+    <ClInclude Include="..\src\rooms\gpu\RoomProjection.h" />
+    <ClInclude Include="..\src\script\ScriptEditorDialog.h" />
+    <ClInclude Include="..\src\script\ScriptEntryEditors.h" />
+    <ClInclude Include="..\src\script\ScriptEntryLink.h" />
+    <ClInclude Include="..\src\script\ScriptTableTreeEditorDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\wxresource\resource\images\map.ico">

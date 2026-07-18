@@ -63,7 +63,7 @@ void PaletteEditor::SelectPalette(const std::string& name)
 		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
 		m_selected_palette = m_selected_palette_entry->GetData();
 		m_locked = m_selected_palette->GetLockedColours();
-		m_indicies.resize(1 << m_bpp);
+		m_indicies.resize(1UL << m_bpp);
 		std::iota(m_indicies.begin(), m_indicies.end(), 0);
 		ForceRedraw();
 	}
