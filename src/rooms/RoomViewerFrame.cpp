@@ -301,6 +301,13 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 		m_gpuview = new MyGLCanvas(this, gd);
 		m_mgr.AddPane(m_gpuview, wxAuiPaneInfo().CenterPane().PaneBorder(false));
 		m_mgr.Update();
+		// The room page can be logically disabled while its contents are being
+		// created. On MSW, wxGLCanvas then inherits WS_DISABLED from the parent,
+		// but its wx-level enabled flag remains true and is not resynchronized
+		// when the page becomes active. Cycle the local state after attachment so
+		// the native canvas can receive mouse input.
+		m_gpuview->Disable();
+		m_gpuview->Enable();
 		m_gpuview->SetFocus();
 		SyncGpuViewControls();
 	}
