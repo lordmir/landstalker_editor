@@ -254,8 +254,54 @@ void GLCanvasLayerEditMode::HandleLeftDown(const wxMouseEvent& evt)
     m_canvas.Refresh();
 }
 
+void GLCanvasLayerEditMode::HandleLeftUp(const wxMouseEvent& evt)
+{
+    if (m_canvas.m_layer_dragging_select) {
+        int cell_x = -1;
+        int cell_y = -1;
+        if (m_canvas.BackgroundVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            m_canvas.UpdateLayerSelectionDrag(cell_x, cell_y);
+        }
+        m_canvas.FinishLayerSelectionDrag();
+    }
+    if (m_canvas.m_layer_dragging_draw) {
+        m_canvas.CommitLayerDrawStroke();
+    }
+    if (m_canvas.m_layer_dragging_selection_move) {
+        int cell_x = -1;
+        int cell_y = -1;
+        if (m_canvas.BackgroundCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            m_canvas.UpdateLayerSelectionMoveDrag(cell_x, cell_y);
+        }
+        m_canvas.CommitLayerSelectionMoveDrag();
+    }
+    if (m_canvas.m_layer_dragging_line) {
+        int cell_x = -1;
+        int cell_y = -1;
+        if (m_canvas.BackgroundVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            m_canvas.UpdateLayerLineDrag(cell_x, cell_y, evt.ShiftDown(), evt.AltDown());
+        }
+        m_canvas.CommitLayerLineDrag();
+    }
+    m_canvas.m_layer_dragging_select = false;
+    m_canvas.m_layer_dragging_draw = false;
+    m_canvas.m_layer_dragging_selection_move = false;
+    m_canvas.m_layer_dragging_line = false;
+    m_canvas.m_layer_last_draw_x = -1;
+    m_canvas.m_layer_last_draw_y = -1;
+    if (m_canvas.HasCapture()) {
+        m_canvas.ReleaseMouse();
+    }
+    m_canvas.Refresh();
+}
+
 void GLCanvasLayerEditMode::HandleRightDown(const wxMouseEvent& evt)
 {
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select) {
+        m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+        m_canvas.UpdateStatusBar();
+        return;
+    }
     if (m_canvas.m_layer_dragging_select || m_canvas.m_layer_dragging_draw ||
         m_canvas.m_layer_dragging_selection_move || m_canvas.m_layer_dragging_line) {
         if (m_canvas.m_layer_dragging_draw) {
@@ -287,6 +333,19 @@ void GLCanvasLayerEditMode::HandleRightDown(const wxMouseEvent& evt)
     if (m_canvas.BackgroundCellAt(evt.GetPosition(), x, y)) {
         m_canvas.CopyBackgroundBlockAt(x, y);
     }
+    m_canvas.Refresh();
+}
+
+void GLCanvasLayerEditMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
+{
+    if (m_canvas.m_layer_dragging_select || m_canvas.m_layer_dragging_draw ||
+        m_canvas.m_layer_dragging_selection_move || m_canvas.m_layer_dragging_line ||
+        m_canvas.m_dragging_pan) {
+        return;
+    }
+    m_canvas.m_heightmapRenderer.ClearHover();
+    m_canvas.m_background_has_hover = false;
+    m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 

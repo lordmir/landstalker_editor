@@ -16,8 +16,12 @@ public:
     void HandleMouseMove(const wxMouseEvent& evt);
     // Starts editing the selected or hovered heightmap cell.
     void HandleLeftDown(const wxMouseEvent& evt);
+    // Completes active heightmap selection, drawing, and move gestures.
+    void HandleLeftUp(const wxMouseEvent& evt);
     // Handles alternate heightmap actions such as clearing or sampling.
     void HandleRightDown(const wxMouseEvent& evt);
+    // Clears the heightmap hover when the pointer leaves the canvas.
+    void HandleMouseLeave(const wxMouseEvent& evt);
     // Draws heightmap cursors, selected-cell markers, and edit previews.
     void Render(int width, int height);
 

@@ -63,7 +63,7 @@ void PaletteEditor::SelectPalette(const std::string& name)
 		m_selected_palette_entry = m_gd->GetPalette(m_selected_palette_name);
 		m_selected_palette = m_selected_palette_entry->GetData();
 		m_locked = m_selected_palette->GetLockedColours();
-		m_indicies.resize(1UL << m_bpp);
+		m_indicies.resize(static_cast<uint32_t>(1UL << m_bpp));
 		std::iota(m_indicies.begin(), m_indicies.end(), 0);
 		ForceRedraw();
 	}
@@ -75,7 +75,7 @@ void PaletteEditor::SelectPalette(std::shared_ptr<Landstalker::Palette> pal)
 	m_selected_palette_entry = nullptr;
 	m_selected_palette = pal;
 	m_locked = m_selected_palette->GetLockedColours();
-	m_indicies.resize(1 << m_bpp);
+	m_indicies.resize(static_cast<uint32_t>(1UL << m_bpp));
 	std::iota(m_indicies.begin(), m_indicies.end(), 0);
 	ForceRedraw();
 }
@@ -85,13 +85,13 @@ void PaletteEditor::SetBitsPerPixel(uint8_t bpp)
 	if (bpp != m_bpp)
 	{
 		m_bpp = bpp;
-		m_indicies.resize(1 << m_bpp);
+		m_indicies.resize(static_cast<uint32_t>(1 << m_bpp));
 		std::iota(m_indicies.begin(), m_indicies.end(), 0);
-		if (m_pri_colour >= (1 << m_bpp))
+		if (m_pri_colour >= (1L << m_bpp))
 		{
 			SetPrimaryColour(1, true);
 		}
-		if (m_sec_colour >= (1 << m_bpp))
+		if (m_sec_colour >= (1L << m_bpp))
 		{
 			SetSecondaryColour(0, true);
 		}

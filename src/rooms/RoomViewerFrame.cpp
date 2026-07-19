@@ -213,6 +213,7 @@ RoomViewerFrame::RoomViewerFrame(wxWindow* parent, ImageList* imglst)
 	  m_mode(RoomEdit::Mode::NORMAL),
 	  m_title(""),
 	  m_gpuview(nullptr),
+	  m_direction_input_mode(GLCanvasDirectionInputMode::UpIsNorthEast),
 	  m_layerctrl(nullptr),
 	  m_entityctrl(nullptr),
 	  m_warpctrl(nullptr),
@@ -273,6 +274,15 @@ void RoomViewerFrame::SetMode(RoomEdit::Mode mode)
 	UpdateFrame();
 }
 
+void RoomViewerFrame::SetDirectionInputMode(GLCanvasDirectionInputMode mode)
+{
+	m_direction_input_mode = mode;
+	if (m_gpuview != nullptr)
+	{
+		m_gpuview->SetDirectionInputMode(mode);
+	}
+}
+
 void RoomViewerFrame::UpdateFrame()
 {
 	m_layerctrl->EnableLayers(m_mode == RoomEdit::Mode::NORMAL);
@@ -299,6 +309,7 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 	if (m_gpuview == nullptr && gd != nullptr)
 	{
 		m_gpuview = new MyGLCanvas(this, gd);
+		m_gpuview->SetDirectionInputMode(m_direction_input_mode);
 		m_mgr.AddPane(m_gpuview, wxAuiPaneInfo().CenterPane().PaneBorder(false));
 		m_mgr.Update();
 		// The room page can be logically disabled while its contents are being

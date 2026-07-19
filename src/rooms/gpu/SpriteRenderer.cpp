@@ -21,13 +21,13 @@ constexpr int PALETTE_TEXTURE_ROWS = 512;
 
 void WritePaletteRow(std::vector<uint8_t>& data, int row, const Palette& palette)
 {
-    for (int j = 0; j < PALETTE_COLOURS; ++j)
+    for (uint8_t i = 0; i < PALETTE_COLOURS; ++i)
     {
-        uint32_t c = palette.getRGBA(j);
-        data[(row * PALETTE_COLOURS + j) * 4 + 0] = (c >> 16) & 0xFF;
-        data[(row * PALETTE_COLOURS + j) * 4 + 1] = (c >> 8) & 0xFF;
-        data[(row * PALETTE_COLOURS + j) * 4 + 2] = (c >> 0) & 0xFF;
-        data[(row * PALETTE_COLOURS + j) * 4 + 3] = (c >> 24) & 0xFF;
+        uint32_t c = palette.getRGBA(i);
+        data[(row * PALETTE_COLOURS + i) * 4 + 0] = (c >> 16) & 0xFF;
+        data[(row * PALETTE_COLOURS + i) * 4 + 1] = (c >> 8) & 0xFF;
+        data[(row * PALETTE_COLOURS + i) * 4 + 2] = (c >> 0) & 0xFF;
+        data[(row * PALETTE_COLOURS + i) * 4 + 3] = (c >> 24) & 0xFF;
     }
 }
 
@@ -455,7 +455,7 @@ void SpriteRenderer::Render(
     bool show_hitboxes,
     GLint occlusion_stencil_ref,
     GLint occlusion_stencil_mask,
-    const std::function<void(GLint, GLint, float, float, float, float, float, float, float, float, float, float)>& build_entity_occlusion_stencil,
+    const std::function<void(GLint, GLint, float, float, float, float, float, float, float, float, float)>& build_entity_occlusion_stencil,
     const std::function<float(float, float)>& floor_at_point,
     const std::function<bool(float, float, float, float, float)>& shadow_occluded,
     const std::function<void(float, float, float, float, float, float, float, float, float)>& build_shadow_occlusion_stencil,
@@ -631,7 +631,6 @@ void SpriteRenderer::Render(
             float min_y = center_y - half_base;
             float max_x = center_x + half_base;
             float max_y = center_y + half_base;
-            float top_z = inst.map_z + std::max(inst.hitbox_height, 0.125f);
             auto depth_range = EntityDepthStencilRange(inst);
             bool split_hitbox_with_stencil = occlusion_mode != OcclusionMode::AlwaysOnTop && bool(build_entity_occlusion_stencil);
             auto build_occlusion_stencil = [&]() {
@@ -643,7 +642,6 @@ void SpriteRenderer::Render(
                     min_y,
                     max_x,
                     max_y,
-                    top_z,
                     sx,
                     sy,
                     sx + sw,
@@ -751,9 +749,9 @@ void SpriteRenderer::InitTexture()
     std::vector<FrameToRender> queue;
     for (int sid = 0; sid < 256; ++sid)
     {
-        if (!sd->IsSprite(sid))
+        if (!sd->IsSprite(static_cast<uint8_t>(sid)))
             continue;
-        for (const auto &fname : sd->GetSpriteFrames(sid))
+        for (const auto &fname : sd->GetSpriteFrames(static_cast<uint8_t>(sid)))
         {
             if (!global_frame_cache.count(fname))
             {
@@ -813,14 +811,14 @@ void SpriteRenderer::InitTexture()
     }
     for (int sid = 0; sid < 256; ++sid)
     {
-        if (!sd->IsSprite(sid))
+        if (!sd->IsSprite(static_cast<uint8_t>(sid)))
             continue;
-        auto anims = sd->GetSpriteAnimations(sid);
-        for (size_t aid = 0; aid < anims.size(); ++aid)
+        auto anims = sd->GetSpriteAnimations(static_cast<uint8_t>(sid));
+        for (int aid = 0; aid < static_cast<int>(anims.size()); ++aid)
         {
             for (const auto &fn : sd->GetSpriteAnimationFrames(anims[aid]))
                 if (global_frame_cache.count(fn))
-                    m_sprite_meta[sid].animations[aid].push_back(global_frame_cache[fn]);
+                    m_sprite_meta[static_cast<uint8_t>(sid)].animations[aid].push_back(global_frame_cache[fn]);
         }
     }
     glGenTextures(1, &m_texture_id);
@@ -840,9 +838,9 @@ void SpriteRenderer::InitTexture()
 
     for (int i = 0; i < 256; ++i)
     {
-        if (sd->IsEntity(i))
+        if (sd->IsEntity(static_cast<uint8_t>(i)))
         {
-            auto p = sd->GetEntityPalette(i);
+            auto p = sd->GetEntityPalette(static_cast<uint8_t>(i));
             WritePaletteRow(pal_data, ENTITY_PALETTE_ROW_OFFSET + i, *p);
         }
     }

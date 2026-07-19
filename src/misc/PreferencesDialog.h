@@ -5,11 +5,13 @@
 #include <wx/wx.h>
 #include <wx/config.h>
 
-class PreferencesDialog : public wxDialog
+// Build toolchain and output settings. Kept in this legacy filename to avoid
+// disrupting existing project layouts; the user-facing name is Build Options.
+class BuildOptionsDialog : public wxDialog
 {
 public:
-	PreferencesDialog(wxWindow* parent, wxConfig* config);
-	virtual ~PreferencesDialog();
+	BuildOptionsDialog(wxWindow* parent, wxConfig* config);
+	virtual ~BuildOptionsDialog();
 private:
 	// Settings stored once per build variant (combined region and expanded
 	// state, e.g. "US_EXPANDED").

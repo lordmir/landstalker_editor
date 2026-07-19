@@ -15,8 +15,12 @@ public:
     void HandleMouseMove(const wxMouseEvent& evt);
     // Starts a paint, erase, fill, or pick action on the active layer.
     void HandleLeftDown(const wxMouseEvent& evt);
+    // Completes active layer selection, drawing, and move gestures.
+    void HandleLeftUp(const wxMouseEvent& evt);
     // Handles alternate layer-edit actions such as sampling or clearing.
     void HandleRightDown(const wxMouseEvent& evt);
+    // Clears the layer hover when the pointer leaves the canvas.
+    void HandleMouseLeave(const wxMouseEvent& evt);
     // Draws tile cursor, brush, and layer-edit overlays.
     void Render(int width, int height);
 

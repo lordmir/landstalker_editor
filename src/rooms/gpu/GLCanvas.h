@@ -18,11 +18,15 @@
 #include "HeightmapRenderer.h"
 #include "SpriteRenderer.h"
 #include "GLCanvasRoomInfoOverlay.h"
+#include "GLCanvasInputTypes.h"
 
 wxDECLARE_EVENT(EVT_GPU_EDITOR_MODE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_OPACITY_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_BLOCK_SELECT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_HEIGHTMAP_TARGET_CHANGE, wxCommandEvent);
+
+class GLCanvasKeyboardInput;
+class GLCanvasMouseInput;
 
 struct WarpInstance {
     uint32_t instance_id;
@@ -110,7 +114,11 @@ public:
     void SetLayerPriorityHighlight(bool enabled);
     bool GetLayerPriorityHighlight() const { return m_layer_priority_highlight; }
     void ToggleLayerPriorityHighlight();
+    void SetDirectionInputMode(GLCanvasDirectionInputMode mode);
+    GLCanvasDirectionInputMode GetDirectionInputMode() const;
+    void CycleDirectionInputMode();
     bool HandleKeyDown(wxKeyEvent& evt);
+    bool HandleKeyUp(wxKeyEvent& evt);
     bool CanUndo() const;
     bool CanRedo() const;
     void Undo();
@@ -155,7 +163,6 @@ public:
     void InsertSelectedTilemapColumnBefore();
     void InsertSelectedTilemapColumnAfter();
     void DeleteSelectedTilemapColumn();
-    bool OpenSelectedObjectProperties();
     void AddEntity();
     void DeleteSelectedObject();
     void ReorderSelectedObject(int delta);
@@ -209,9 +216,13 @@ private:
     friend class GLCanvasLayerEditMode;
     friend class GLCanvasRoomInfoOverlay;
     friend class GLCanvasRoomMode;
+    friend class GLCanvasKeyboardInput;
+    friend class GLCanvasMouseInput;
 
     void OnIdle(wxIdleEvent& evt);
     void OnKeyDown(wxKeyEvent& evt);
+    void OnKeyUp(wxKeyEvent& evt);
+    void OnKillFocus(wxFocusEvent& evt);
     void OnMouseMove(wxMouseEvent& evt);
     void OnLeftDown(wxMouseEvent& evt);
     void OnLeftDClick(wxMouseEvent& evt);
@@ -235,8 +246,6 @@ private:
     void NotifyLayerOpacityChanged();
     void NotifyLayerBlockSelected();
     wxWindow* EventTarget() const;
-    bool SelectObjectAt(const wxPoint& point);
-    void CancelActiveDrag();
     void ResetLayerEditState();
     void ResetHeightmapEditState();
     void CaptureUndoState();
@@ -264,7 +273,6 @@ private:
     int HitTestTileSwapRegionResizeControl(const wxPoint& point) const;
     int HitTestDoor(const wxPoint& point) const;
     int HitTestRoomInfoLink(const wxPoint& point) const;
-    void StartEntityDrag(int entity_idx, const wxMouseEvent& evt, bool z_axis_only, bool shadow_drag = false);
     void UpdateEntityDrag(const wxMouseEvent& evt);
     void EndEntityDrag();
     void StartWarpDrag(int warp_idx, const wxMouseEvent& evt);
@@ -280,7 +288,6 @@ private:
     void UpdateEntityProjection(SpriteInstance& inst);
     void UpdateWarpFloor(WarpInstance& warp);
     void CenterCameraOnRoom();
-    void FocusCameraOnSelectedObjectIfNeeded();
     void EnsureWorldRectVisible(float min_x, float min_y, float max_x, float max_y);
     void PersistCurrentRoomEdits();
     void RefreshEntityMetadata(SpriteInstance& inst);
@@ -417,14 +424,13 @@ private:
     float ScreenToWorldY(int screen_y) const;
     void PanCameraByStep(int dx, int dy, float speed = 20.0f);
     void ChangeZoomStep(int delta, float anchor_x, float anchor_y);
-    void ResizeSelectedTileSwapByDelta(int dw, int dh);
-    void UpdateAnimations(float dt);
     void UpdateStatusBar();
     void RecordRenderedFrame();
-    std::set<uint32_t> FindCollidedEntityIds() const;
 
     std::shared_ptr<Landstalker::GameData> m_gd;
     wxGLContext* m_context = nullptr;
+    std::unique_ptr<GLCanvasKeyboardInput> m_keyboard_input;
+    std::unique_ptr<GLCanvasMouseInput> m_mouse_input;
 
     MapRenderer m_mapRenderer;
     HeightmapRenderer m_heightmapRenderer;

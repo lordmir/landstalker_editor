@@ -89,7 +89,10 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
 
     m_mnu_file->AppendSeparator();
 
-    m_mnu_preferences = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Preferences...\tF12"), _("Preferences"), wxITEM_NORMAL);
+    m_mnu_build_options = new wxMenuItem(m_mnu_file, wxID_ANY, _("&Build Options...\tF11"), _("Build Options"), wxITEM_NORMAL);
+    m_mnu_file->Append(m_mnu_build_options);
+
+    m_mnu_preferences = new wxMenuItem(m_mnu_file, wxID_PREFERENCES, _("&Preferences...\tF12"), _("Preferences"), wxITEM_NORMAL);
     m_mnu_file->Append(m_mnu_preferences);
     
     m_mnu_exit = new wxMenuItem(m_mnu_file, wxID_EXIT, _("E&xit\tAlt-X"), _("Quit"), wxITEM_NORMAL);
@@ -200,6 +203,7 @@ MainFrameBaseClass::MainFrameBaseClass(wxWindow* parent, wxWindowID id, const wx
     this->Connect(m_mnu_build_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnBuildAsm), NULL, this);
     this->Connect(m_mnu_run_emu->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnRunEmulator), NULL, this);
     this->Connect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);
+    this->Connect(m_mnu_build_options->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnBuildOptions), NULL, this);
     this->Connect(m_mnu_preferences->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnPreferences), NULL, this);
     this->Connect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Connect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
@@ -221,7 +225,8 @@ MainFrameBaseClass::~MainFrameBaseClass()
     this->Disconnect(m_mnu_build_asm->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveAsAsm), NULL, this);
     this->Disconnect(m_mnu_run_emu->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
     this->Disconnect(wxID_FILE1, wxID_FILE9, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnMRUFile), NULL, this);
-    this->Disconnect(m_mnu_preferences->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnSaveToRom), NULL, this);
+    this->Disconnect(m_mnu_build_options->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnBuildOptions), NULL, this);
+    this->Disconnect(m_mnu_preferences->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnPreferences), NULL, this);
     this->Disconnect(m_mnu_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnExit), NULL, this);
     this->Disconnect(m_mnu_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MainFrameBaseClass::OnAbout), NULL, this);
     m_browser->Disconnect(wxEVT_COMMAND_TREE_ITEM_ACTIVATED, wxTreeEventHandler(MainFrameBaseClass::OnBrowserSelect), NULL, this);

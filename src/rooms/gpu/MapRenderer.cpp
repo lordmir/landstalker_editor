@@ -82,7 +82,7 @@ void MapRenderer::UploadRoomMap(uint16_t roomnum, const Tilemap3D& map) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     std::vector<uint8_t> bs_data(2 * blockset->size() * 2 * 4, 0);
-    for(size_t i=0; i<blockset->size(); ++i) {
+    for(int i=0; i<blockset->size(); ++i) {
         for(int ty=0; ty<2; ++ty) for(int tx=0; tx<2; ++tx) {
             uint16_t val = blockset->at(i).GetTile(tx, ty).GetTileValue();
             int base = (i * 2 + ty) * 2 * 4 + tx * 4;
@@ -91,15 +91,15 @@ void MapRenderer::UploadRoomMap(uint16_t roomnum, const Tilemap3D& map) {
     }
     if (m_blockset_tex_id) glDeleteTextures(1, &m_blockset_tex_id);
     glGenTextures(1, &m_blockset_tex_id); glBindTexture(GL_TEXTURE_2D, m_blockset_tex_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, blockset->size() * 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, bs_data.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, static_cast<GLsizei>(blockset->size() * 2), 0, GL_RGBA, GL_UNSIGNED_BYTE, bs_data.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     std::vector<uint8_t> ts_data;
     size_t base_tile_count = tileset->GetTileCount();
     ts_data.reserve(base_tile_count * 64);
-    for(size_t i=0; i<base_tile_count; ++i) {
-        auto pix = tileset->GetTile(Tile(i)); ts_data.insert(ts_data.end(), pix.begin(), pix.end());
+    for(size_t i=0; i < base_tile_count; ++i) {
+        auto pix = tileset->GetTile(Tile(static_cast<uint16_t>(i))); ts_data.insert(ts_data.end(), pix.begin(), pix.end());
     }
 
     // Build per-tile animation metadata and append animated frames after the base tileset.
@@ -162,7 +162,7 @@ void MapRenderer::UploadRoomMap(uint16_t roomnum, const Tilemap3D& map) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     std::vector<uint8_t> rpal_data(16 * 4, 0);
-    for(int i=0; i<16; ++i) {
+    for(uint8_t i=0; i<16; ++i) {
         uint32_t c = pal->getRGBA(i);
         rpal_data[i*4 + 0] = (c >> 16) & 0xFF; rpal_data[i*4 + 1] = (c >> 8) & 0xFF;
         rpal_data[i*4 + 2] = (c >> 0) & 0xFF; rpal_data[i*4 + 3] = (c >> 24) & 0xFF;

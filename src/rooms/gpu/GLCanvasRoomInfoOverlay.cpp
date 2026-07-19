@@ -113,7 +113,7 @@ void GLCanvasRoomInfoOverlay::Render(int width, int height)
     glLoadIdentity();
 
     constexpr float scale = 1.0f;
-    constexpr float glyph_advance = PixelFont::kGlyphAdvance;
+    constexpr float glyph_advance = PixelFont::GLYPH_ADVANCE;
     constexpr float row_height = 10.0f;
     constexpr float padding = 6.0f;
     constexpr float column_gap = 12.0f;

@@ -246,6 +246,18 @@
     <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasCamera.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasKeyboardInput.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasMouseInput.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasRendering.cpp">
+      <Filter>src\Rooms\GPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasEditorOverlays.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
@@ -316,6 +328,9 @@
       <Filter>src\Palette</Filter>
     </ClCompile>
     <ClCompile Include="..\src\misc\PreferencesDialog.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\misc\ApplicationPreferencesDialog.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
     <ClCompile Include="..\src\script\ProgressFlagsCtrl.cpp">
@@ -530,6 +545,15 @@
     <ClInclude Include="..\src\rooms\gpu\GLCanvas.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasInputTypes.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasKeyboardInput.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasMouseInput.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasEntityEditor.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
@@ -591,6 +615,9 @@
       <Filter>include\Palette</Filter>
     </ClInclude>
     <ClInclude Include="..\src\misc\PreferencesDialog.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\ApplicationPreferencesDialog.h">
       <Filter>include\Miscellaneous</Filter>
     </ClInclude>
     <ClInclude Include="..\src\script\ProgressFlagsCtrl.h">

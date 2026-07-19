@@ -32,7 +32,7 @@ public:
         bool show_hitboxes,
         GLint occlusion_stencil_ref = 1,
         GLint occlusion_stencil_mask = 0x01,
-        const std::function<void(GLint, GLint, float, float, float, float, float, float, float, float, float, float)>& build_entity_occlusion_stencil = {},
+        const std::function<void(GLint, GLint, float, float, float, float, float, float, float, float, float)>& build_entity_occlusion_stencil = {},
         const std::function<float(float, float)>& floor_at_point = {},
         const std::function<bool(float, float, float, float, float)>& shadow_occluded = {},
         const std::function<void(float, float, float, float, float, float, float, float, float)>& build_shadow_occlusion_stencil = {},

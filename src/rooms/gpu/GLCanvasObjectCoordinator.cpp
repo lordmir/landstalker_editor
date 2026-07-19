@@ -4,12 +4,606 @@
 #include <cmath>
 
 #include "GLCanvasObjectSupport.h"
+#include "RoomProjection.h"
+#include <rooms/EntityControlFrame.h>
+#include <rooms/RoomViewerFrame.h>
+#include <rooms/TileSwapControlFrame.h>
+#include <rooms/WarpControlFrame.h>
 
 using GLCanvasObjectSupport::TileSwapRegionPart;
+using RoomProjection::PickPoint;
+using RoomProjection::ProjectEntityGridPoint;
+using RoomProjection::ProjectWarpGridPoint;
+
+// MyGLCanvas keeps a small room-control-facing API, while all object-selection
+// behavior is implemented by the room object's coordinator.
+void MyGLCanvas::ClearObjectSelection()
+{
+	GLCanvasObjectCoordinator(*this).ClearSelection();
+}
+
+void MyGLCanvas::SelectEntityByIndex(int selection)
+{
+	GLCanvasObjectCoordinator(*this).SelectEntityByIndex(selection);
+}
+
+void MyGLCanvas::SelectWarpByIndex(int selection)
+{
+	GLCanvasObjectCoordinator(*this).SelectWarpByIndex(selection);
+}
+
+void MyGLCanvas::SelectTileSwapByIndex(int selection)
+{
+	GLCanvasObjectCoordinator(*this).SelectTileSwapByIndex(selection);
+}
+
+void MyGLCanvas::SelectDoorByIndex(int selection)
+{
+	GLCanvasObjectCoordinator(*this).SelectDoorByIndex(selection);
+}
+
+int MyGLCanvas::SelectedEntityListIndex() const
+{
+	return GLCanvasObjectCoordinator::SelectedEntityListIndex(*this);
+}
+
+int MyGLCanvas::SelectedWarpListIndex() const
+{
+	return GLCanvasObjectCoordinator::SelectedWarpListIndex(*this);
+}
+
+int MyGLCanvas::SelectedTileSwapListIndex() const
+{
+	return GLCanvasObjectCoordinator::SelectedTileSwapListIndex(*this);
+}
+
+int MyGLCanvas::SelectedDoorListIndex() const
+{
+	return GLCanvasObjectCoordinator::SelectedDoorListIndex(*this);
+}
+
+void MyGLCanvas::NotifySelectionChanged()
+{
+	GLCanvasObjectCoordinator(*this).NotifySelectionChanged();
+}
+
+void MyGLCanvas::NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors)
+{
+	GLCanvasObjectCoordinator(*this).NotifyRoomDataChanged(entities, warps, swaps, doors);
+}
+
+void MyGLCanvas::RefreshObjectPlacementsFromHeightmap()
+{
+	GLCanvasObjectCoordinator(*this).RefreshPlacementsFromHeightmap();
+}
+
+void MyGLCanvas::PersistCurrentRoomEdits()
+{
+	GLCanvasObjectCoordinator(*this).PersistCurrentRoomEdits();
+}
 
 GLCanvasObjectCoordinator::GLCanvasObjectCoordinator(MyGLCanvas& canvas)
 	: m_canvas(canvas)
 {
+}
+
+void GLCanvasObjectCoordinator::ClearSelection()
+{
+	m_canvas.m_hovered_entity_idx = -1;
+	m_canvas.m_selected_entity_idx = -1;
+	m_canvas.m_hovered_warp_idx = -1;
+	m_canvas.m_selected_warp_idx = -1;
+	m_canvas.m_hovered_tileswap_region_idx = -1;
+	m_canvas.m_selected_tileswap_region_idx = -1;
+	m_canvas.m_hovered_door_idx = -1;
+	m_canvas.m_selected_door_idx = -1;
+}
+
+void GLCanvasObjectCoordinator::PrepareForRoomLoad()
+{
+	m_canvas.CancelPendingObjectAdd();
+	m_canvas.m_tileswap_preview_active = false;
+	m_canvas.m_tileswap_preview_swap_index = -1;
+	m_canvas.m_door_preview_active = false;
+	m_canvas.m_door_preview_idx = -1;
+	m_canvas.m_tileswap_preview_map.reset();
+	m_canvas.m_heightmapRenderer.ClearPreviewMap();
+	m_canvas.m_instances.clear();
+	m_canvas.m_warps.clear();
+	ClearSelection();
+}
+
+void GLCanvasObjectCoordinator::LoadRoomObjects(uint16_t roomnum)
+{
+	auto sprite_data = m_canvas.m_gd->GetSpriteData();
+	auto entities = sprite_data->GetRoomEntities(roomnum);
+	m_canvas.m_room_entities = entities;
+	float mat[9] = {32.0f, 16.0f, 0.0f, -32.0f, 16.0f, 0.0f, 512.0f, 100.0f, 1.0f};
+	uint32_t instance_id = 1;
+	for (const auto& entity : entities) {
+		float entity_x = float(entity.GetXDbl());
+		float entity_y = float(entity.GetYDbl());
+		float entity_z = float(entity.GetZDbl());
+		float hitbox_base = 1.0f;
+		float hitbox_height = 1.0f;
+		if (sprite_data->IsEntity(entity.GetType())) {
+			auto hitbox = sprite_data->GetEntityHitbox(entity.GetType());
+			hitbox_base = GLCanvasObjectSupport::HitboxBaseToBlocks(hitbox.base);
+			hitbox_height = GLCanvasObjectSupport::HitboxHeightToBlocks(hitbox.height);
+		}
+		float hitbox_offset = GLCanvasObjectSupport::HitboxDrawOffset(hitbox_base);
+		float floor_z = m_canvas.FloorUnderHitbox(
+			entity_x + hitbox_offset,
+			entity_y + hitbox_offset,
+			hitbox_base * 0.5f);
+		float ex_block = entity_x + hitbox_offset - m_canvas.m_mapRenderer.GetRoomLeft();
+		float ey_block = entity_y + hitbox_offset - m_canvas.m_mapRenderer.GetRoomTop();
+		float px = mat[0] * ex_block + mat[3] * ey_block + mat[6];
+		float py = mat[1] * ex_block + mat[4] * ey_block + mat[7] - entity_z * 32.0f;
+
+		SpriteInstance inst{};
+		inst.instance_id = instance_id++;
+		inst.entity_id = entity.GetType();
+		inst.palette = entity.GetPalette();
+		inst.x = px;
+		inst.y = py;
+		inst.map_x = entity_x;
+		inst.map_y = entity_y;
+		inst.map_z = entity_z;
+		inst.floor_z = floor_z;
+		inst.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+		inst.hitbox_base = hitbox_base;
+		inst.hitbox_height = hitbox_height;
+		inst.hitbox_offset = hitbox_offset;
+		inst.room_left = float(m_canvas.m_mapRenderer.GetRoomLeft());
+		inst.room_top = float(m_canvas.m_mapRenderer.GetRoomTop());
+		inst.dx = 0.0f;
+		inst.dy = 0.0f;
+		inst.scale = 2.0f;
+		inst.anim_timer = 0.0f;
+		inst.anim_speed = 1.0f;
+		inst.orientation = entity.GetOrientation();
+		m_canvas.m_instances.push_back(inst);
+	}
+
+	uint32_t warp_instance_id = 1;
+	uint32_t warp_key = 1;
+	for (const auto& warp : m_canvas.m_gd->GetRoomData()->GetWarpsForRoom(roomnum)) {
+		WarpInstance inst = GLCanvasObjectSupport::MakeWarpInstance(
+			warp,
+			roomnum,
+			warp_instance_id++,
+			float(m_canvas.m_mapRenderer.GetRoomLeft()),
+			float(m_canvas.m_mapRenderer.GetRoomTop()),
+			m_canvas.m_heightmapRenderer.GetZExtent(),
+			warp_key);
+		m_canvas.UpdateWarpFloor(inst);
+		m_canvas.m_warps.push_back(inst);
+		if (warp.room1 == roomnum && warp.room2 == roomnum && warp.IsValid()) {
+			WarpInstance dest_inst = GLCanvasObjectSupport::MakeWarpInstance(
+				warp,
+				roomnum,
+				warp_instance_id++,
+				float(m_canvas.m_mapRenderer.GetRoomLeft()),
+				float(m_canvas.m_mapRenderer.GetRoomTop()),
+				m_canvas.m_heightmapRenderer.GetZExtent(),
+				warp_key,
+				2);
+			m_canvas.UpdateWarpFloor(dest_inst);
+			m_canvas.m_warps.push_back(dest_inst);
+		}
+		++warp_key;
+	}
+	if (m_canvas.m_pending_warp_half && m_canvas.m_pending_warp_room == roomnum) {
+		m_canvas.m_pending_warp_instance_id = warp_instance_id++;
+		WarpInstance inst = GLCanvasObjectSupport::MakeWarpInstance(
+			m_canvas.m_pending_warp,
+			roomnum,
+			m_canvas.m_pending_warp_instance_id,
+			float(m_canvas.m_mapRenderer.GetRoomLeft()),
+			float(m_canvas.m_mapRenderer.GetRoomTop()),
+			m_canvas.m_heightmapRenderer.GetZExtent(),
+			warp_key);
+		m_canvas.UpdateWarpFloor(inst);
+		m_canvas.m_warps.push_back(inst);
+	}
+
+	GLCanvasObjectSupport::SortEntitiesGeometrically(m_canvas.m_instances);
+}
+
+void GLCanvasObjectCoordinator::RefreshPlacementsFromHeightmap()
+{
+	for (auto& inst : m_canvas.m_instances) {
+		inst.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+		inst.floor_z = m_canvas.FloorUnderHitbox(
+			inst.map_x + inst.hitbox_offset,
+			inst.map_y + inst.hitbox_offset,
+			inst.hitbox_base * 0.5f);
+		m_canvas.UpdateEntityProjection(inst);
+	}
+
+	for (auto& warp : m_canvas.m_warps) {
+		warp.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+		m_canvas.UpdateWarpFloor(warp);
+	}
+}
+
+void GLCanvasObjectCoordinator::PersistCurrentRoomEdits()
+{
+	if (m_canvas.m_room_entities.empty() && m_canvas.m_instances.empty() && m_canvas.m_warps.empty()) {
+		return;
+	}
+
+	std::vector<Landstalker::Entity> entities = m_canvas.BuildCurrentRoomEntities();
+	m_canvas.m_gd->GetSpriteData()->SetRoomEntities(m_canvas.m_current_room, entities);
+	m_canvas.m_room_entities = entities;
+
+	// A pending warp half is not persisted (it has no destination yet), so its
+	// latest editor position/size must be captured before it is filtered out.
+	if (m_canvas.m_pending_warp_half && m_canvas.m_pending_warp_room == m_canvas.m_current_room) {
+		int pending_idx = m_canvas.FindWarpIndex(m_canvas.m_pending_warp_instance_id);
+		if (pending_idx >= 0) {
+			const WarpInstance& inst = m_canvas.m_warps[static_cast<std::size_t>(pending_idx)];
+			if (inst.DestinationRoom() == 0xFFFF) {
+				Landstalker::WarpList::Warp warp = inst.warp;
+				uint8_t x = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.x)), 0, 63));
+				uint8_t y = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.y)), 0, 63));
+				if (inst.current_room_is_room1) {
+					warp.room1 = m_canvas.m_current_room;
+					warp.x1 = x;
+					warp.y1 = y;
+				} else {
+					warp.room2 = m_canvas.m_current_room;
+					warp.x2 = x;
+					warp.y2 = y;
+				}
+				warp.x_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.width)), 1, 63));
+				warp.y_size = static_cast<uint8_t>(std::clamp<int>(static_cast<int>(std::round(inst.height)), 1, 63));
+				m_canvas.m_pending_warp = warp;
+			}
+		}
+	}
+
+	m_canvas.m_gd->GetRoomData()->SetWarpsForRoom(
+		m_canvas.m_current_room,
+		m_canvas.BuildCurrentRoomWarps());
+}
+
+void GLCanvasObjectCoordinator::SelectEntityByIndex(int selection)
+{
+	ClearSelection();
+	int idx = m_canvas.FindInstanceIndex(static_cast<uint32_t>(selection));
+	if (idx >= 0) {
+		m_canvas.m_selected_entity_idx = idx;
+		FocusCameraOnSelectedObjectIfNeeded();
+	}
+	m_canvas.UpdateStatusBar();
+	m_canvas.Refresh();
+}
+
+void GLCanvasObjectCoordinator::SelectWarpByIndex(int selection)
+{
+	ClearSelection();
+	if (selection > 0) {
+		for (std::size_t i = 0; i < m_canvas.m_warps.size(); ++i) {
+			if (m_canvas.m_warps[i].warp_key == static_cast<uint32_t>(selection)) {
+				m_canvas.m_selected_warp_idx = static_cast<int>(i);
+				break;
+			}
+		}
+		FocusCameraOnSelectedObjectIfNeeded();
+	}
+	m_canvas.UpdateStatusBar();
+	m_canvas.Refresh();
+}
+
+void GLCanvasObjectCoordinator::SelectTileSwapByIndex(int selection)
+{
+	ClearSelection();
+	int swap_idx = selection - 1;
+	if (swap_idx >= 0) {
+		auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
+			m_canvas.m_gd,
+			m_canvas.m_current_room,
+			m_canvas.m_mapRenderer,
+			m_canvas.m_heightmapRenderer.GetZExtent());
+		for (const auto& region : regions) {
+			if (region.swap_index == swap_idx) {
+				m_canvas.m_selected_tileswap_region_idx = region.flat_index;
+				break;
+			}
+		}
+		FocusCameraOnSelectedObjectIfNeeded();
+	}
+	m_canvas.UpdateStatusBar();
+	m_canvas.Refresh();
+}
+
+void GLCanvasObjectCoordinator::SelectDoorByIndex(int selection)
+{
+	ClearSelection();
+	int door_idx = selection - 1;
+	if (door_idx >= 0) {
+		auto doors = GLCanvasObjectSupport::BuildDoorGeometries(
+			m_canvas.m_gd,
+			m_canvas.m_current_room,
+			m_canvas.m_mapRenderer,
+			m_canvas.m_heightmapRenderer.GetZExtent(),
+			m_canvas.m_tileswap_preview_map);
+		for (const auto& door : doors) {
+			if (door.index == door_idx) {
+				m_canvas.m_selected_door_idx = door.index;
+				break;
+			}
+		}
+		FocusCameraOnSelectedObjectIfNeeded();
+	}
+	m_canvas.UpdateStatusBar();
+	m_canvas.Refresh();
+}
+
+int GLCanvasObjectCoordinator::SelectedEntityListIndex(const MyGLCanvas& canvas)
+{
+	if (canvas.m_selected_entity_idx >= 0 &&
+		canvas.m_selected_entity_idx < static_cast<int>(canvas.m_instances.size())) {
+		return static_cast<int>(canvas.m_instances[static_cast<std::size_t>(canvas.m_selected_entity_idx)].instance_id);
+	}
+	return -1;
+}
+
+int GLCanvasObjectCoordinator::SelectedWarpListIndex(const MyGLCanvas& canvas)
+{
+	if (canvas.m_selected_warp_idx >= 0 &&
+		canvas.m_selected_warp_idx < static_cast<int>(canvas.m_warps.size())) {
+		return static_cast<int>(canvas.m_warps[static_cast<std::size_t>(canvas.m_selected_warp_idx)].warp_key);
+	}
+	return -1;
+}
+
+int GLCanvasObjectCoordinator::SelectedTileSwapListIndex(const MyGLCanvas& canvas)
+{
+	if (canvas.m_selected_tileswap_region_idx >= 0) {
+		auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
+			canvas.m_gd,
+			canvas.m_current_room,
+			canvas.m_mapRenderer,
+			canvas.m_heightmapRenderer.GetZExtent());
+		if (canvas.m_selected_tileswap_region_idx < static_cast<int>(regions.size())) {
+			return regions[static_cast<std::size_t>(canvas.m_selected_tileswap_region_idx)].swap_index + 1;
+		}
+	}
+	return -1;
+}
+
+int GLCanvasObjectCoordinator::SelectedDoorListIndex(const MyGLCanvas& canvas)
+{
+	return canvas.m_selected_door_idx >= 0 ? canvas.m_selected_door_idx + 1 : -1;
+}
+
+bool GLCanvasObjectCoordinator::SelectAt(const wxPoint& point)
+{
+	int entity_idx = m_canvas.HitTestEntityZControl(point);
+	if (entity_idx < 0) {
+		entity_idx = m_canvas.HitTestEntityBody(point);
+	}
+	if (entity_idx < 0) {
+		entity_idx = m_canvas.HitTestEntity(point);
+	}
+	if (entity_idx >= 0) {
+		ClearSelection();
+		m_canvas.m_selected_entity_idx = entity_idx;
+		return true;
+	}
+
+	int warp_idx = m_canvas.HitTestWarp(point);
+	if (warp_idx >= 0) {
+		ClearSelection();
+		m_canvas.m_selected_warp_idx = warp_idx;
+		return true;
+	}
+
+	int tileswap_idx = m_canvas.HitTestTileSwapRegion(point);
+	if (tileswap_idx >= 0) {
+		ClearSelection();
+		m_canvas.m_selected_tileswap_region_idx = tileswap_idx;
+		m_canvas.m_hovered_tileswap_region_idx = tileswap_idx;
+		return true;
+	}
+
+	int door_idx = m_canvas.HitTestDoor(point);
+	if (door_idx >= 0) {
+		ClearSelection();
+		m_canvas.m_selected_door_idx = door_idx;
+		m_canvas.m_hovered_door_idx = door_idx;
+		return true;
+	}
+
+	return false;
+}
+
+bool GLCanvasObjectCoordinator::OpenSelectedProperties()
+{
+	wxWindow* target = m_canvas.EventTarget();
+	if (!target) {
+		return false;
+	}
+
+	auto post_open = [&](const wxEventType& event_type, int selection) {
+		wxCommandEvent evt(event_type);
+		evt.SetInt(selection);
+		evt.SetExtraLong(selection);
+		evt.SetClientData(&m_canvas);
+		wxPostEvent(target, evt);
+	};
+
+	int selection = SelectedEntityListIndex(m_canvas);
+	if (selection > 0) {
+		m_canvas.CommitPendingEdits();
+		post_open(EVT_ENTITY_OPEN_PROPERTIES, selection);
+		return true;
+	}
+
+	selection = SelectedWarpListIndex(m_canvas);
+	if (selection > 0) {
+		m_canvas.CommitPendingEdits();
+		post_open(EVT_WARP_OPEN_PROPERTIES, selection);
+		return true;
+	}
+
+	selection = SelectedTileSwapListIndex(m_canvas);
+	if (selection > 0) {
+		m_canvas.CommitPendingEdits();
+		post_open(EVT_TILESWAP_OPEN_PROPERTIES, selection);
+		return true;
+	}
+
+	selection = SelectedDoorListIndex(m_canvas);
+	if (selection > 0) {
+		m_canvas.CommitPendingEdits();
+		post_open(EVT_DOOR_OPEN_PROPERTIES, selection);
+		return true;
+	}
+
+	return false;
+}
+
+void GLCanvasObjectCoordinator::NotifySelectionChanged()
+{
+	wxWindow* target = m_canvas.EventTarget();
+	if (!target) {
+		return;
+	}
+
+	auto post_selection = [&](const wxEventType& event_type, int selection) {
+		wxCommandEvent evt(event_type);
+		evt.SetInt(selection);
+		evt.SetExtraLong(selection);
+		evt.SetClientData(&m_canvas);
+		wxPostEvent(target, evt);
+	};
+
+	int selection = SelectedEntityListIndex(m_canvas);
+	if (selection > 0) {
+		post_selection(EVT_ENTITY_SELECT, selection);
+		return;
+	}
+
+	selection = SelectedWarpListIndex(m_canvas);
+	if (selection > 0) {
+		post_selection(EVT_WARP_SELECT, selection);
+		return;
+	}
+
+	selection = SelectedTileSwapListIndex(m_canvas);
+	if (selection > 0) {
+		post_selection(EVT_TILESWAP_SELECT, selection);
+		return;
+	}
+
+	selection = SelectedDoorListIndex(m_canvas);
+	if (selection > 0) {
+		post_selection(EVT_DOOR_SELECT, selection);
+	}
+}
+
+void GLCanvasObjectCoordinator::NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors)
+{
+	m_canvas.CommitPendingEdits();
+	wxWindow* target = m_canvas.EventTarget();
+	if (!target) {
+		return;
+	}
+
+	auto post_update = [&](const wxEventType& event_type, int selection) {
+		wxCommandEvent evt(event_type);
+		evt.SetInt(selection);
+		evt.SetExtraLong(selection);
+		evt.SetClientData(&m_canvas);
+		wxPostEvent(target, evt);
+	};
+
+	if (entities) {
+		post_update(EVT_ENTITY_UPDATE, SelectedEntityListIndex(m_canvas));
+	}
+	if (warps) {
+		post_update(EVT_WARP_UPDATE, SelectedWarpListIndex(m_canvas));
+	}
+	if (swaps) {
+		post_update(EVT_TILESWAP_UPDATE, SelectedTileSwapListIndex(m_canvas));
+	}
+	if (doors) {
+		post_update(EVT_DOOR_UPDATE, SelectedDoorListIndex(m_canvas));
+	}
+}
+
+void GLCanvasObjectCoordinator::FocusCameraOnSelectedObjectIfNeeded()
+{
+	if (m_canvas.m_selected_entity_idx >= 0 &&
+		m_canvas.m_selected_entity_idx < static_cast<int>(m_canvas.m_instances.size())) {
+		const SpriteInstance& inst = m_canvas.m_instances[static_cast<std::size_t>(m_canvas.m_selected_entity_idx)];
+		float center_x = inst.map_x + inst.hitbox_offset;
+		float center_y = inst.map_y + inst.hitbox_offset;
+		float half_base = std::max(inst.hitbox_base * 0.5f, 0.5f);
+		float top_z = inst.map_z + std::max(inst.hitbox_height, 0.125f);
+		PickPoint p0 = ProjectEntityGridPoint(inst, center_x - half_base, center_y - half_base, top_z);
+		PickPoint p1 = ProjectEntityGridPoint(inst, center_x + half_base, center_y + half_base, inst.map_z);
+		m_canvas.EnsureWorldRectVisible(
+			std::min(p0.x, p1.x),
+			std::min(p0.y, p1.y),
+			std::max(p0.x, p1.x),
+			std::max(p0.y, p1.y));
+		return;
+	}
+
+	if (m_canvas.m_selected_warp_idx >= 0 &&
+		m_canvas.m_selected_warp_idx < static_cast<int>(m_canvas.m_warps.size())) {
+		const WarpInstance& warp = m_canvas.m_warps[static_cast<std::size_t>(m_canvas.m_selected_warp_idx)];
+		float z = warp.floor_z;
+		PickPoint p0 = ProjectWarpGridPoint(warp, warp.x, warp.y, z);
+		PickPoint p1 = ProjectWarpGridPoint(warp, warp.x + warp.width, warp.y + warp.height, z);
+		m_canvas.EnsureWorldRectVisible(
+			std::min(p0.x, p1.x),
+			std::min(p0.y, p1.y),
+			std::max(p0.x, p1.x),
+			std::max(p0.y, p1.y));
+		return;
+	}
+
+	if (m_canvas.m_selected_tileswap_region_idx >= 0) {
+		auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
+			m_canvas.m_gd,
+			m_canvas.m_current_room,
+			m_canvas.m_mapRenderer,
+			m_canvas.m_heightmapRenderer.GetZExtent());
+		if (m_canvas.m_selected_tileswap_region_idx < static_cast<int>(regions.size())) {
+			const auto& region = regions[static_cast<std::size_t>(m_canvas.m_selected_tileswap_region_idx)];
+			m_canvas.EnsureWorldRectVisible(
+				region.bounds.min_x,
+				region.bounds.min_y,
+				region.bounds.max_x,
+				region.bounds.max_y);
+		}
+		return;
+	}
+
+	if (m_canvas.m_selected_door_idx >= 0) {
+		auto doors = GLCanvasObjectSupport::BuildDoorGeometries(
+			m_canvas.m_gd,
+			m_canvas.m_current_room,
+			m_canvas.m_mapRenderer,
+			m_canvas.m_heightmapRenderer.GetZExtent(),
+			m_canvas.m_tileswap_preview_map);
+		for (const auto& door : doors) {
+			if (door.index == m_canvas.m_selected_door_idx) {
+				m_canvas.EnsureWorldRectVisible(
+					door.bounds.min_x,
+					door.bounds.min_y,
+					door.bounds.max_x,
+					door.bounds.max_y);
+				break;
+			}
+		}
+	}
 }
 
 void GLCanvasObjectCoordinator::DeleteSelectedObject()
@@ -351,7 +945,7 @@ void GLCanvasObjectCoordinator::SelectNextObject(int direction)
 		m_canvas.m_hovered_door_idx = target.index;
 	}
 
-	m_canvas.FocusCameraOnSelectedObjectIfNeeded();
+	FocusCameraOnSelectedObjectIfNeeded();
 }
 
 void GLCanvasObjectCoordinator::SelectNextTileSwapRegion(int direction)

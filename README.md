@@ -1,11 +1,12 @@
 # Landstalker Editor
+
 A tool for extracting, viewing, editing and re-inserting the various data structures and code found in the Landstalker disassembly amd ROMs.
 
-This tool can work with assembly files from the Landstalker Disassembly project: [Landstalker Disassembly](https://github.com/lordmir/landstalker_disasm) - open one of the top-level ASM files for the desired region (e.g. `landstalker_us_expanded.asm`). This is the best way to edit the game, and this way offers the most flexibility and features (e.g. script editing). Each region's top-level ASM file comes with an `expanded` variant - this expands the available ROM space to 4MB, double the original 2MB. This offers a lot more room for expansion. The editor will run the build process to create the ROM file automatically on save, however it can be built directly by running `build.bat` or `build.sh` with the appropriate arguments. See [here](https://github.com/lordmir/landstalker_disasm/blob/master/README.md) for more details.
+This tool can work with assembly files from the Landstalker Disassembly project: [Landstalker Disassembly](https://github.com/lordmir/landstalker_disasm) - It can open one of the top-level ASM files for the desired region (e.g. `landstalker_us_expanded.asm`). This is the best way to edit the game, and this way offers the most flexibility and features (e.g. script editing). Each region's top-level ASM file comes with an `expanded` variant - this expands the available ROM space to 4MB, double the original 2MB, which offers a lot more room for expansion. The editor will run the build process to create the ROM file automatically on save, however it can be built directly by running `build.bat` or `build.sh` in the `landstalker_disasm` folder with the appropriate arguments. See [here](https://github.com/lordmir/landstalker_disasm/blob/master/README.md) for more details.
 
-This tool can also work with the six publicly avaliable retail ROM versions. However, the editor is far more restricted in this mode, and editing ROM files directly can be risky as there is less space available for modifications. ROM files built elsewhere (e.g. from the assembly) will not work with the editor - the editor relies on fixed addresses to find the relevant data sections, and the nature of the reassembly is that some sections will be reorganized internally.
+This tool can also work with the six publicly available retail ROM versions. However, the editor is far more restricted in this mode, and editing ROM files directly can be risky as there is less space available for modifications. ROM files built elsewhere (e.g. from the assembly) will not work with the editor - the editor relies on fixed addresses to find the relevant data sections, and the nature of the reassembly is that some sections will be reorganized internally and therefore become relocated to different ROM addresses. It is always recommended to work with Assembly files instead of directly with ROMs if you are planning more complex editing.
 
-# Documentation
+# Documentation / User Manual
 
 Work-in-progress documentation [here](https://github.com/lordmir/landstalker_editor/wiki).
 
@@ -51,7 +52,7 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 
 ## Credits
 
-Thank you to [odrevet](https://github.com/odrevet) and [Wiz](https://github.com/wizardwhosaysni) for their support and encouragement with this project. Also, thank you to [Gufino2](https://www.romhacking.net/community/820/) for his work on some of the original hacking/translation work on Landstalker, and the team behind [SF2DISASM](https://github.com/ShiningForceCentral/SF2DISASM) and the [SF2 Caravan](https://github.com/ShiningForceCentral/Caravan) which was the inspiration for this project.
+Thank you to [odrevet](https://github.com/odrevet) and [Wiz](https://github.com/wizardwhosaysni) for their support and encouragement with this project. Also, thank you to [Gufino2](https://www.romhacking.net/community/820/) for his work on the original hacking/translation tools for Landstalker, and the team behind [SF2DISASM](https://github.com/ShiningForceCentral/SF2DISASM) and the [SF2 Caravan](https://github.com/ShiningForceCentral/Caravan), which was the inspiration for this project.
 
 Also, full credit given to the developers of the third-party libraries used for this project:
 - [wxWidgets](https://wxwidgets.org/)

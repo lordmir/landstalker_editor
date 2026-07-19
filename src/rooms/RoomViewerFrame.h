@@ -12,6 +12,7 @@
 #include <rooms/TileSwapControlFrame.h>
 #include <blockset/BlocksetEditorCtrl.h>
 #include <rooms/TileSwapDialog.h>
+#include <rooms/gpu/GLCanvasInputTypes.h>
 
 class MyGLCanvas;
 class EntityPropertiesWindow;
@@ -36,6 +37,7 @@ public:
 
 	RoomEdit::Mode GetMode() const { return m_mode; }
 	void SetMode(RoomEdit::Mode mode);
+	void SetDirectionInputMode(GLCanvasDirectionInputMode mode);
 	void UpdateFrame();
 
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
@@ -154,6 +156,7 @@ private:
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
 	MyGLCanvas* m_gpuview;
+	GLCanvasDirectionInputMode m_direction_input_mode;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;
 	WarpControlFrame* m_warpctrl;

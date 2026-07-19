@@ -218,10 +218,10 @@ void DrawHexGlyph(char c, float x, float y, float scale, const HeightmapColor& c
     y = std::round(y);
     glColor4f(color.r, color.g, color.b, 1.0f);
     glBegin(GL_QUADS);
-    for (int row = 0; row < PixelFont::kGlyphHeight; ++row) {
+    for (int row = 0; row < PixelFont::GLYPH_HEIGHT; ++row) {
         uint8_t bits = (*glyph)[row];
-        for (int col = 0; col < PixelFont::kGlyphWidth; ++col) {
-            uint8_t mask = static_cast<uint8_t>(1u << (PixelFont::kGlyphWidth - 1 - col));
+        for (int col = 0; col < PixelFont::GLYPH_WIDTH; ++col) {
+            uint8_t mask = static_cast<uint8_t>(1u << (PixelFont::GLYPH_WIDTH - 1 - col));
             if ((bits & mask) == 0) {
                 continue;
             }
@@ -763,7 +763,6 @@ void HeightmapRenderer::BuildEntityOcclusionStencil(
     float entity_min_y,
     float entity_max_x,
     float entity_max_y,
-    float entity_top_z,
     float sprite_min_x,
     float sprite_min_y,
     float sprite_max_x,

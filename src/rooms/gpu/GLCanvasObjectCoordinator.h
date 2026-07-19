@@ -9,6 +9,36 @@ public:
     // Creates a coordinator over canvas-owned object state.
     explicit GLCanvasObjectCoordinator(MyGLCanvas& canvas);
 
+    // Clears all room-object hover and selection state.
+    void ClearSelection();
+    // Clears transient object state before the canvas switches rooms.
+    void PrepareForRoomLoad();
+    // Rebuilds room-object editor instances after the room renderers load.
+    void LoadRoomObjects(uint16_t roomnum);
+    // Reprojects room objects after the heightmap floor changes.
+    void RefreshPlacementsFromHeightmap();
+    // Persists the current room's object edits to game data.
+    void PersistCurrentRoomEdits();
+    // Selects a room object from its corresponding control-list identifier.
+    void SelectEntityByIndex(int selection);
+    void SelectWarpByIndex(int selection);
+    void SelectTileSwapByIndex(int selection);
+    void SelectDoorByIndex(int selection);
+    // Returns the selected object's identifier in its corresponding control list.
+    static int SelectedEntityListIndex(const MyGLCanvas& canvas);
+    static int SelectedWarpListIndex(const MyGLCanvas& canvas);
+    static int SelectedTileSwapListIndex(const MyGLCanvas& canvas);
+    static int SelectedDoorListIndex(const MyGLCanvas& canvas);
+    // Selects the topmost room object under a canvas point.
+    bool SelectAt(const wxPoint& point);
+    // Opens the properties editor for the selected room object.
+    bool OpenSelectedProperties();
+    // Notifies room controls that the object selection or data has changed.
+    void NotifySelectionChanged();
+    void NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors);
+    // Pans the camera when necessary to reveal the selected room object.
+    void FocusCameraOnSelectedObjectIfNeeded();
+
     // Deletes whichever object type is currently selected.
     void DeleteSelectedObject();
     // Moves the selected object earlier/later in its list.

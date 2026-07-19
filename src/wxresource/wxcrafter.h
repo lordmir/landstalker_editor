@@ -67,6 +67,7 @@ protected:
     wxMenuItem* m_mnu_run_emu;
     wxMenuItem* m_mnu_sep1;
     wxMenu* m_mnu_recent_files;
+    wxMenuItem* m_mnu_build_options;
     wxMenuItem* m_mnu_preferences;
     wxMenuItem* m_mnu_sep2;
     wxMenuItem* m_mnu_exit;
@@ -109,6 +110,10 @@ protected:
         event.Skip();
     }
     virtual void OnRunEmulator(wxCommandEvent& event)
+    {
+        event.Skip();
+    }
+    virtual void OnBuildOptions(wxCommandEvent& event)
     {
         event.Skip();
     }

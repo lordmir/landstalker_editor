@@ -54,6 +54,7 @@ protected:
     virtual void OnSave(wxCommandEvent& event);
     virtual void OnBuildAsm(wxCommandEvent& event);
     virtual void OnRunEmulator(wxCommandEvent& event);
+    virtual void OnBuildOptions(wxCommandEvent& event);
     virtual void OnPreferences(wxCommandEvent& event);
     virtual void OnMRUFile(wxCommandEvent& event);
     virtual void OnExit(wxCommandEvent& event);

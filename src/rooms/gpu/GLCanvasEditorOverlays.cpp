@@ -248,7 +248,7 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
 
     if (m_background_show_block_ids) {
         constexpr float scale = 1.0f;
-        constexpr float glyph_advance = PixelFont::kGlyphAdvance;
+        constexpr float glyph_advance = PixelFont::GLYPH_ADVANCE;
         constexpr float glyph_height = 7.0f;
         for (int y = 0; y < m_mapRenderer.GetRoomHeight(); ++y) {
             for (int x = 0; x < m_mapRenderer.GetRoomWidth(); ++x) {

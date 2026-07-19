@@ -541,7 +541,7 @@ int TileEditor::ValidateColour(int colour) const
 	else
 	{
 		auto result = std::find(cmap.begin(), cmap.end(), colour) - cmap.begin();
-		if (result < (1 << m_tileset->GetTileBitDepth()))
+		if (result < static_cast<uint32_t>(1 << m_tileset->GetTileBitDepth()))
 		{
 			return result;
 		}

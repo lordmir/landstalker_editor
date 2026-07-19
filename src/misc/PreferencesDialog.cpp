@@ -4,8 +4,8 @@
 #include <wxresource/wxcrafter.h>
 #include <misc/AssemblyBuilderDialog.h>
 
-PreferencesDialog::PreferencesDialog(wxWindow* parent, wxConfig* config)
-    : wxDialog(parent, wxID_ANY, "Preferences", wxDefaultPosition, wxSize(620, 720)),
+BuildOptionsDialog::BuildOptionsDialog(wxWindow* parent, wxConfig* config)
+    : wxDialog(parent, wxID_ANY, "Build Options", wxDefaultPosition, wxSize(620, 720)),
       m_config(config)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -95,20 +95,20 @@ PreferencesDialog::PreferencesDialog(wxWindow* parent, wxConfig* config)
     this->SetSizer(sizer);
     this->Layout();
 
-    m_ctrl_region->Bind(wxEVT_CHOICE, &PreferencesDialog::OnVariantChange, this);
-    m_ctrl_expanded->Bind(wxEVT_CHECKBOX, &PreferencesDialog::OnVariantChange, this);
-    m_reset->Bind(wxEVT_BUTTON, &PreferencesDialog::OnResetDefaults, this);
-    m_ok->Bind(wxEVT_BUTTON, &PreferencesDialog::OnOK, this);
-    m_cancel->Bind(wxEVT_BUTTON, &PreferencesDialog::OnCancel, this);
+    m_ctrl_region->Bind(wxEVT_CHOICE, &BuildOptionsDialog::OnVariantChange, this);
+    m_ctrl_expanded->Bind(wxEVT_CHECKBOX, &BuildOptionsDialog::OnVariantChange, this);
+    m_reset->Bind(wxEVT_BUTTON, &BuildOptionsDialog::OnResetDefaults, this);
+    m_ok->Bind(wxEVT_BUTTON, &BuildOptionsDialog::OnOK, this);
+    m_cancel->Bind(wxEVT_BUTTON, &BuildOptionsDialog::OnCancel, this);
 
     Init();
 }
 
-PreferencesDialog::~PreferencesDialog()
+BuildOptionsDialog::~BuildOptionsDialog()
 {
 }
 
-void PreferencesDialog::Init()
+void BuildOptionsDialog::Init()
 {
     if (m_config != nullptr)
     {
@@ -127,7 +127,7 @@ void PreferencesDialog::Init()
     ShowVariantSettings(AssemblyBuilderDialog::GetProjectRegion(), AssemblyBuilderDialog::GetProjectExpanded());
 }
 
-void PreferencesDialog::Commit()
+void BuildOptionsDialog::Commit()
 {
     if (m_config != nullptr)
     {
@@ -165,12 +165,12 @@ void PreferencesDialog::Commit()
     }
 }
 
-wxString PreferencesDialog::SelectedVariant() const
+wxString BuildOptionsDialog::SelectedVariant() const
 {
     return AssemblyBuilderDialog::BuildName(m_ctrl_region->GetStringSelection(), m_ctrl_expanded->GetValue());
 }
 
-PreferencesDialog::VariantSettings PreferencesDialog::LoadVariantSettings(const wxString& variant) const
+BuildOptionsDialog::VariantSettings BuildOptionsDialog::LoadVariantSettings(const wxString& variant) const
 {
     auto cached = m_variant_settings.find(variant);
     if (cached != m_variant_settings.end())
@@ -187,7 +187,7 @@ PreferencesDialog::VariantSettings PreferencesDialog::LoadVariantSettings(const 
     return settings;
 }
 
-void PreferencesDialog::ShowVariantSettings(const wxString& region, bool expanded)
+void BuildOptionsDialog::ShowVariantSettings(const wxString& region, bool expanded)
 {
     int selection = m_ctrl_region->FindString(region);
     m_ctrl_region->SetSelection(selection == wxNOT_FOUND ? 0 : selection);
@@ -208,7 +208,7 @@ void PreferencesDialog::ShowVariantSettings(const wxString& region, bool expande
     m_displayed_variant = SelectedVariant();
 }
 
-void PreferencesDialog::StoreDisplayedVariantSettings()
+void BuildOptionsDialog::StoreDisplayedVariantSettings()
 {
     if (m_displayed_variant.empty())
     {
@@ -221,13 +221,13 @@ void PreferencesDialog::StoreDisplayedVariantSettings()
     m_variant_settings[m_displayed_variant] = settings;
 }
 
-void PreferencesDialog::OnVariantChange(wxCommandEvent& /*evt*/)
+void BuildOptionsDialog::OnVariantChange(wxCommandEvent& /*evt*/)
 {
     StoreDisplayedVariantSettings();
     ShowVariantSettings(m_ctrl_region->GetStringSelection(), m_ctrl_expanded->GetValue());
 }
 
-void PreferencesDialog::OnResetDefaults(wxCommandEvent& /*evt*/)
+void BuildOptionsDialog::OnResetDefaults(wxCommandEvent& /*evt*/)
 {
     const auto& defaults = AssemblyBuilderDialog::GetDefaults();
     m_ctrl_clone_in_new_dir->SetValue(defaults.clone_in_new_dir);
@@ -252,13 +252,13 @@ void PreferencesDialog::OnResetDefaults(wxCommandEvent& /*evt*/)
     ShowVariantSettings(m_ctrl_region->GetStringSelection(), m_ctrl_expanded->GetValue());
 }
 
-void PreferencesDialog::OnOK(wxCommandEvent& /*evt*/)
+void BuildOptionsDialog::OnOK(wxCommandEvent& /*evt*/)
 {
     Commit();
     EndModal(wxID_OK);
 }
 
-void PreferencesDialog::OnCancel(wxCommandEvent& /*evt*/)
+void BuildOptionsDialog::OnCancel(wxCommandEvent& /*evt*/)
 {
     EndModal(wxID_CANCEL);
 }

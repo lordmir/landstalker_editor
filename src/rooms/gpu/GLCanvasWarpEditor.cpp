@@ -118,6 +118,11 @@ using PixelFont::DrawOverlayText;
 
 }  // namespace
 
+void MyGLCanvas::UpdateWarpFloor(WarpInstance& warp)
+{
+	warp.floor_z = FloorUnderRect(warp.x, warp.y, warp.x + warp.width, warp.y + warp.height);
+}
+
 GLCanvasWarpEditor::GLCanvasWarpEditor(MyGLCanvas& canvas)
 	: m_canvas(canvas)
 {

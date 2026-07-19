@@ -290,6 +290,39 @@ void GLCanvasHeightmapMode::HandleLeftDown(const wxMouseEvent& evt)
     m_canvas.Refresh();
 }
 
+void GLCanvasHeightmapMode::HandleLeftUp(const wxMouseEvent& evt)
+{
+    if (m_canvas.m_heightmap_dragging_select) {
+        int cell_x = -1;
+        int cell_y = -1;
+        if (m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            m_canvas.UpdateHeightmapSelectionDrag(cell_x, cell_y);
+        }
+        m_canvas.FinishHeightmapSelectionDrag();
+    }
+    if (m_canvas.m_heightmap_dragging_draw) {
+        m_canvas.CommitHeightmapDrawStroke();
+    }
+    if (m_canvas.m_heightmap_dragging_line) {
+        int cell_x = -1;
+        int cell_y = -1;
+        if (m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+            m_canvas.UpdateHeightmapLineDrag(cell_x, cell_y, evt.ShiftDown());
+        }
+        m_canvas.CommitHeightmapLineDrag();
+    }
+    if (m_canvas.m_heightmap_dragging_selection_move) {
+        m_canvas.CommitHeightmapSelectionMoveDrag();
+    }
+    m_canvas.m_heightmap_dragging_draw = false;
+    m_canvas.m_heightmap_last_draw_x = -1;
+    m_canvas.m_heightmap_last_draw_y = -1;
+    if (m_canvas.HasCapture()) {
+        m_canvas.ReleaseMouse();
+    }
+    m_canvas.Refresh();
+}
+
 void GLCanvasHeightmapMode::HandleRightDown(const wxMouseEvent& evt)
 {
     int x = -1;
@@ -303,10 +336,28 @@ void GLCanvasHeightmapMode::HandleRightDown(const wxMouseEvent& evt)
         m_canvas.Refresh();
         return;
     }
+    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select) {
+        m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+        m_canvas.UpdateStatusBar();
+        return;
+    }
     if (m_canvas.HeightmapCellAt(evt.GetPosition(), x, y)) {
         m_canvas.CopyHeightmapCellAt(x, y);
         m_canvas.UpdateStatusBar();
     }
+    m_canvas.Refresh();
+}
+
+void GLCanvasHeightmapMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
+{
+    if (m_canvas.m_heightmap_dragging_select || m_canvas.m_heightmap_dragging_draw ||
+        m_canvas.m_heightmap_dragging_line || m_canvas.m_heightmap_dragging_selection_move ||
+        m_canvas.m_dragging_pan) {
+        return;
+    }
+    m_canvas.m_heightmapRenderer.ClearHover();
+    m_canvas.m_background_has_hover = false;
+    m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
     m_canvas.Refresh();
 }
 

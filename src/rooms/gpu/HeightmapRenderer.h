@@ -25,7 +25,6 @@ public:
         float entity_min_y,
         float entity_max_x,
         float entity_max_y,
-        float entity_top_z,
         float sprite_min_x,
         float sprite_min_y,
         float sprite_max_x,

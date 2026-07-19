@@ -129,6 +129,16 @@ using PixelFont::DrawOverlayText;
 
 }  // namespace
 
+void MyGLCanvas::UpdateEntityProjection(SpriteInstance& inst)
+{
+	GLCanvasEntityEditor(*this).UpdateEntityProjection(inst);
+}
+
+void MyGLCanvas::RefreshEntityMetadata(SpriteInstance& inst)
+{
+	GLCanvasEntityEditor(*this).RefreshEntityMetadata(inst);
+}
+
 GLCanvasEntityEditor::GLCanvasEntityEditor(MyGLCanvas& canvas)
 	: m_canvas(canvas)
 {

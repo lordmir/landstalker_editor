@@ -29,6 +29,7 @@
 #include <landstalker/2d_maps/Blockmap2D.h>
 #include <main/ImageBufferWx.h>
 #include <misc/AssemblyBuilderDialog.h>
+#include <misc/ApplicationPreferencesDialog.h>
 #include <misc/PreferencesDialog.h>
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
@@ -488,6 +489,7 @@ void MainFrame::InitUI()
 void MainFrame::InitConfig()
 {
     AssemblyBuilderDialog::InitConfig(m_config);
+    GetRoomEditor()->SetDirectionInputMode(ApplicationPreferencesDialog::LoadDirectionInputMode(m_config));
 }
 
 MainFrame::ReturnCode MainFrame::Save()
@@ -1179,10 +1181,19 @@ void MainFrame::OnRunEmulator(wxCommandEvent& /*event*/)
     bdlg.ShowModal();
 }
 
+void MainFrame::OnBuildOptions(wxCommandEvent& /*event*/)
+{
+    BuildOptionsDialog dlg(this, m_config);
+    dlg.ShowModal();
+}
+
 void MainFrame::OnPreferences(wxCommandEvent& /*event*/)
 {
-    PreferencesDialog dlg(this, m_config);
-    dlg.ShowModal();
+    ApplicationPreferencesDialog dlg(this, m_config);
+    if (dlg.ShowModal() == wxID_OK)
+    {
+        GetRoomEditor()->SetDirectionInputMode(dlg.GetDirectionInputMode());
+    }
 }
 
 void MainFrame::OnMRUFile(wxCommandEvent& event)
