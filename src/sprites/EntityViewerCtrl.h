@@ -72,7 +72,7 @@ private:
 	std::shared_ptr<Landstalker::SpriteFrame> m_sprite;
 	std::shared_ptr<Landstalker::Palette> m_palette;
 
-	wxTimer* m_timer = nullptr;
+	wxTimer m_timer;
 
 	wxDECLARE_EVENT_TABLE();
 };

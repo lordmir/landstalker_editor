@@ -25,6 +25,7 @@
 #include <wx/progdlg.h>
 
 #include <landstalker/main/Rom.h>
+#include <landstalker/misc/Utils.h>
 #include <landstalker/2d_maps/Blockmap2D.h>
 #include <main/ImageBufferWx.h>
 #include <misc/AssemblyBuilderDialog.h>
@@ -1045,6 +1046,26 @@ bool MainFrame::CheckForFileChanges()
 {
     if (m_g && m_g->HasBeenModified())
     {
+        // Name the datasets that report changes. A "do you want to save?" prompt the user
+        // did not expect is otherwise very hard to attribute, since HasBeenModified() only
+        // reports a single bool for the whole project.
+        const std::pair<const char*, bool> datasets[] = {
+            { "rooms",    m_g->GetRoomData()->HasBeenModified() },
+            { "graphics", m_g->GetGraphicsData()->HasBeenModified() },
+            { "strings",  m_g->GetStringData()->HasBeenModified() },
+            { "sprites",  m_g->GetSpriteData()->HasBeenModified() },
+            { "script",   m_g->GetScriptData()->HasBeenModified() },
+        };
+        std::string modified;
+        for (const auto& dataset : datasets)
+        {
+            if (dataset.second)
+            {
+                modified += modified.empty() ? "" : ", ";
+                modified += dataset.first;
+            }
+        }
+        Landstalker::Debug("Unsaved changes reported by: " + (modified.empty() ? "<none>" : modified));
         return true;
     }
     return false;

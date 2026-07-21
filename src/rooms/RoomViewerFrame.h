@@ -69,6 +69,7 @@ public:
 	void ShowCharDialog();
 	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
+	void ShowMapManagerDialog();
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
@@ -96,10 +97,6 @@ private:
 	void OnImportCsv();
 	void OnImportTmx();
 	void OnImportAllTmx();
-	void OnCreateMap();
-	void OnDeleteMap();
-	void OnRenameMap();
-	void OnMoveMap(int delta);
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);

@@ -57,6 +57,8 @@
     <ClCompile Include="..\src\rooms\FlagDataViewModel.cpp" />
     <ClCompile Include="..\src\rooms\FlagDialog.cpp" />
     <ClCompile Include="..\src\rooms\LayerControlFrame.cpp" />
+    <ClCompile Include="..\src\rooms\MapFileIo.cpp" />
+    <ClCompile Include="..\src\rooms\MapManagerDialog.cpp" />
     <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp" />
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="..\src\rooms\FlagDataViewModel.h" />
     <ClInclude Include="..\src\rooms\FlagDialog.h" />
     <ClInclude Include="..\src\rooms\LayerControlFrame.h" />
+    <ClInclude Include="..\src\rooms\MapFileIo.h" />
+    <ClInclude Include="..\src\rooms\MapManagerDialog.h" />
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h" />
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvas.h" />

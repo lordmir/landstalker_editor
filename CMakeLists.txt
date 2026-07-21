@@ -26,7 +26,7 @@ if(LANDSTALKER_BUILD_TESTING)
     # modules/liblandstalker is added with EXCLUDE_FROM_ALL, which also excludes its test
     # executables - without this, a default build never produces them and ctest is left
     # running gtest_discover_tests' "<target>_NOT_BUILT" placeholders.
-    set_target_properties(lz77_tests tilemap3d_tests script_tests asm_file_tests PROPERTIES EXCLUDE_FROM_ALL FALSE)
+    set_target_properties(lz77_tests tilemap3d_tests script_tests asm_file_tests labels_tests PROPERTIES EXCLUDE_FROM_ALL FALSE)
 endif()
 
 if(WIN32)

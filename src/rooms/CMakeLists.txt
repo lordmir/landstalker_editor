@@ -9,6 +9,8 @@ target_sources(${MODULE_NAME} PRIVATE
     "FlagDataViewModel.cpp"
     "FlagDialog.cpp"
     "LayerControlFrame.cpp"
+    "MapFileIo.cpp"
+    "MapManagerDialog.cpp"
     "RoomErrorDialog.cpp"
     "RoomViewerFrame.cpp"
     "TileSwapControlFrame.cpp"

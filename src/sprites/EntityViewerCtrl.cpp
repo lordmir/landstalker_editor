@@ -10,19 +10,19 @@ EntityViewerCtrl::EntityViewerCtrl(wxWindow* parent)
 	: wxHVScrolledWindow(parent),
 	  m_rows(36),
 	  m_columns(36),
-	  m_timer(new wxTimer(this))
+	  m_timer(this)
 {
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 	SetRowColumnCount(m_rows, m_columns);
 	this->Bind(wxEVT_TIMER, &EntityViewerCtrl::OnTimer, this);
-	m_timer->Start(1000 * m_speed / 30);
+	m_timer.Start(1000 * m_speed / 30);
 }
 
 EntityViewerCtrl::~EntityViewerCtrl()
 {
-	if (m_timer->IsRunning())
+	if (m_timer.IsRunning())
 	{
-		m_timer->Stop();
+		m_timer.Stop();
 	}
 	this->Unbind(wxEVT_TIMER, &EntityViewerCtrl::OnTimer, this);
 }
@@ -56,15 +56,15 @@ bool EntityViewerCtrl::IsPlaying() const
 
 void EntityViewerCtrl::Play()
 {
-	m_timer->Start(1000 * m_speed / 30);
+	m_timer.Start(1000 * m_speed / 30);
 	m_playing = true;
 }
 
 void EntityViewerCtrl::Pause()
 {
-	if (m_timer->IsRunning())
+	if (m_timer.IsRunning())
 	{
-		m_timer->Stop();
+		m_timer.Stop();
 	}
 	m_playing = false;
 }
@@ -77,10 +77,10 @@ int EntityViewerCtrl::GetAnimSpeed() const
 void EntityViewerCtrl::SetAnimSpeed(int speed)
 {
 	m_speed = speed;
-	if (m_timer->IsRunning())
+	if (m_timer.IsRunning())
 	{
-		m_timer->Stop();
-		m_timer->Start(1000 * m_speed / 30);
+		m_timer.Stop();
+		m_timer.Start(1000 * m_speed / 30);
 	}
 }
 

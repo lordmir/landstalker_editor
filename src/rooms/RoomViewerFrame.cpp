@@ -3,17 +3,16 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
-#include <sstream>
 #include <wx/busyinfo.h>
-#include <wx/choicdlg.h>
 #include <wx/dir.h>
 #include <wx/progdlg.h>
-#include <wx/spinctrl.h>
 #include <main/ImageBufferWx.h>
 #include <rooms/FlagDialog.h>
 #include <rooms/ChestDialog.h>
 #include <rooms/CharacterDialog.h>
 #include <rooms/EntityPropertiesWindow.h>
+#include <rooms/MapFileIo.h>
+#include <rooms/MapManagerDialog.h>
 #include <rooms/RoomErrorDialog.h>
 #include <rooms/TileSwapDialog.h>
 #include <rooms/WarpPropertyWindow.h>
@@ -45,11 +44,7 @@ enum MENU_IDS
 	ID_FILE_IMPORT_TMX,
 	ID_FILE_IMPORT_ALL_TMX,
 	ID_EDIT,
-	ID_EDIT_CREATE_MAP,
-	ID_EDIT_DELETE_MAP,
-	ID_EDIT_RENAME_MAP,
-	ID_EDIT_MOVE_MAP_UP,
-	ID_EDIT_MOVE_MAP_DOWN,
+	ID_EDIT_MAPS,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
@@ -394,50 +389,12 @@ void RoomViewerFrame::SetRoomNum(uint16_t roomnum)
 
 bool RoomViewerFrame::ExportBin(const std::string& path)
 {
-	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-	WriteBytes(*data->GetBytes(), path);
-	return true;
+	return MapFileIo::ExportCmp(path, m_g->GetRoomData()->GetMapForRoom(m_roomnum));
 }
 
 bool RoomViewerFrame::ExportCsv(const std::array<std::string, 3>& paths)
 {
-	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
-	std::ofstream bg(paths[0], std::ios::out | std::ios::trunc);
-	std::ofstream fg(paths[1], std::ios::out | std::ios::trunc);
-	std::ofstream hm(paths[2], std::ios::out | std::ios::trunc);
-
-
-	for (int i = 0; i < data->GetWidth() * data->GetHeight(); ++i)
-	{
-		fg << StrPrintf("%04X", data->GetBlock(i, Tilemap3D::Layer::FG).value);
-		bg << StrPrintf("%04X", data->GetBlock(i, Tilemap3D::Layer::BG).value);
-		if ((i + 1) % data->GetWidth() == 0)
-		{
-			fg << std::endl;
-			bg << std::endl;
-		}
-		else
-		{
-			fg << ",";
-			bg << ",";
-		}
-	}
-	hm << StrPrintf("%02X", data->GetLeft()) << "," << StrPrintf("%02X",data->GetTop()) << std::endl;
-	for (int i = 0; i < data->GetHeightmapHeight(); ++i)
-		for (int j = 0; j < data->GetHeightmapWidth(); ++j)
-		{
-			hm << StrPrintf("%X%X%02X", data->GetCellProps({ j, i }), data->GetHeight({ j, i }), data->GetCellType({j, i}));
-			if ((j + 1) % data->GetHeightmapWidth() == 0)
-			{
-				hm << std::endl;
-			}
-			else
-			{
-				hm << ",";
-			}
-		}
-
-	return true;
+	return MapFileIo::ExportCsv(paths, *m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData());
 }
 
 bool RoomViewerFrame::ExportAllCsv(const std::string& dir)
@@ -473,35 +430,8 @@ bool RoomViewerFrame::ExportAllCsv(const std::string& dir)
 
 bool RoomViewerFrame::ExportTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum)
 {
-	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
-	auto blocksets = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
-	auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
-	auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
-
-	const int width = 16;
-	const int height = 64;
-	int blockwidth = MapBlock::GetBlockWidth() * tileset->GetTileWidth();
-	int blockheight = MapBlock::GetBlockHeight() * tileset->GetTileHeight();
-	int pixelwidth = blockwidth * width;
-	int pixelheight = blockheight * height;
-	ImageBufferWx buf(pixelwidth, pixelheight);
-	std::size_t i = 0;
-	for (int y = 0; y < pixelheight; y += blockheight)
-	{
-		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
-		{
-			if (i < blocksets->size())
-			{
-				buf.InsertBlock(x, y, 0, blocksets->at(i), *tileset);
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-	buf.WritePNG(bs_path, { palette }, true);
-	return MapToTmx::ExportToTmx(tmx_path, *m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData(), bs_path);
+	MapFileIo::RenderBlocksetPng(bs_path, m_g, roomnum);
+	return MapFileIo::ExportTmx(tmx_path, *m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData(), bs_path);
 }
 
 bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
@@ -535,35 +465,7 @@ bool RoomViewerFrame::ExportAllTmx(const std::string& dir)
 
 bool RoomViewerFrame::ExportRoomTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum)
 {
-	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
-	auto blocksets = m_g->GetRoomData()->GetCombinedBlocksetForRoom(roomnum);
-	auto palette = std::vector<std::shared_ptr<Palette>>{ m_g->GetRoomData()->GetPaletteForRoom(roomnum)->GetData() };
-	auto tileset = m_g->GetRoomData()->GetTilesetForRoom(roomnum)->GetData();
-
-	const int width = 16;
-	const int height = 64;
-	int blockwidth = MapBlock::GetBlockWidth() * tileset->GetTileWidth();
-	int blockheight = MapBlock::GetBlockHeight() * tileset->GetTileHeight();
-	int pixelwidth = blockwidth * width;
-	int pixelheight = blockheight * height;
-	ImageBufferWx buf(pixelwidth, pixelheight);
-	std::size_t i = 0;
-	for (int y = 0; y < pixelheight; y += blockheight)
-	{
-		for (int x = 0; x < pixelwidth; x += blockwidth, ++i)
-		{
-			if (i < blocksets->size())
-			{
-				buf.InsertBlock(x, y, 0, blocksets->at(i), *tileset);
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-	buf.WritePNG(bs_path, { palette }, true);
-
+	MapFileIo::RenderBlocksetPng(bs_path, m_g, roomnum);
 	return RoomToTmx::ExportToTmx(tmx_path, roomnum, m_g, bs_path);
 }
 
@@ -658,9 +560,11 @@ bool RoomViewerFrame::ExportPng(const std::string& path)
 
 bool RoomViewerFrame::ImportBin(const std::string& path)
 {
-	auto bytes = ReadBytes(path);
-	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
-	data->GetData()->Decode(bytes.data());
+	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
+	if (!MapFileIo::ImportCmp(path, *data))
+	{
+		return false;
+	}
 	UpdateFrame();
 	return true;
 }
@@ -712,93 +616,9 @@ bool RoomViewerFrame::ImportAllTmx(const std::string& dir)
 bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 {
 	auto data = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
-	std::ifstream bg(paths[0], std::ios::in);
-	std::ifstream fg(paths[1], std::ios::in);
-	std::ifstream hm(paths[2], std::ios::in);
-	
-	std::size_t w, h, t, l, hw, hh;
-	std::vector<std::vector<uint16_t>> foreground, background, heightmap;
-
-	auto read_csv = [](auto& iss, auto& data)
-	{
-		std::string row;
-		std::string cell;
-		while (std::getline(iss, row))
-		{
-			data.push_back(std::vector<uint16_t>());
-			std::istringstream rss(row);
-			while (std::getline(rss, cell, ','))
-			{
-				data.back().push_back(std::stoi(cell, nullptr, 16));
-			}
-		}
-	};
-	
-	read_csv(fg, foreground);
-	read_csv(bg, background);
-	read_csv(hm, heightmap);
-
-	if (heightmap.size() < 2 || heightmap.front().size() != 2)
+	if (!MapFileIo::ImportCsv(paths, *data))
 	{
 		return false;
-	}
-	if (foreground.size() == 0 || foreground.front().size() == 0)
-	{
-		return false;
-	}
-	if (background.size() == 0 || background.front().size() == 0)
-	{
-		return false;
-	}
-	w = foreground.front().size();
-	h = foreground.size();
-	hw = heightmap[1].size();
-	hh = heightmap.size() - 1;
-	l = heightmap[0][0];
-	t = heightmap[0][1];
-
-	if (background.size() != h)
-	{
-		return false;
-	}
-
-	for (std::size_t i = 0; i < h; ++i)
-	{
-		if (background[i].size() != w || foreground[i].size() != w)
-		{
-			return false;
-		}
-	}
-	for (std::size_t i = 1; i <= hh; ++i)
-	{
-		if (heightmap[i].size() != hw)
-		{
-			return false;
-		}
-	}
-
-	data->Resize(w, h);
-	data->ResizeHeightmap(hw, hh);
-	data->SetLeft(l);
-	data->SetTop(t);
-	
-	int i = 0;
-	for (std::size_t y = 0; y < h; ++y)
-	{
-		for (std::size_t x = 0; x < w; ++x)
-		{
-			data->SetBlock(background[y][x], i, Tilemap3D::Layer::BG);
-			data->SetBlock(foreground[y][x], i++, Tilemap3D::Layer::FG);
-		}
-	}
-	for (int y = 0; y < static_cast<int>(hh); ++y)
-	{
-		for (int x = 0; x < static_cast<int>(hw); ++x)
-		{
-			data->SetCellProps({ x, y }, (heightmap[y + 1][x] >> 12) & 0xF);
-			data->SetHeight({ x, y }, (heightmap[y + 1][x] >> 8) & 0xF);
-			data->SetCellType({ x, y }, heightmap[y + 1][x] & 0xFF);
-		}
 	}
 	UpdateFrame();
 	return true;
@@ -1470,16 +1290,12 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 16, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_CREATE_MAP, "Create Map...");
-	AddMenuItem(editMenu, 1, ID_EDIT_DELETE_MAP, "Delete Map...");
-	AddMenuItem(editMenu, 2, ID_EDIT_RENAME_MAP, "Rename Current Map...");
-	AddMenuItem(editMenu, 3, ID_EDIT_MOVE_MAP_UP, "Move Current Map Earlier");
-	AddMenuItem(editMenu, 4, ID_EDIT_MOVE_MAP_DOWN, "Move Current Map Later");
-	AddMenuItem(editMenu, 5, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 6, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 7, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 8, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 9, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 0, ID_EDIT_MAPS, "Maps...");
+	AddMenuItem(editMenu, 1, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 2, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 3, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 4, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 5, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
@@ -1763,20 +1579,8 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case TOOL_SHOW_BLOCKS_PANE:
 			SetPaneVisibility(m_blkctrl, !IsPaneVisible(m_blkctrl));
 			break;
-		case ID_EDIT_CREATE_MAP:
-			OnCreateMap();
-			break;
-		case ID_EDIT_DELETE_MAP:
-			OnDeleteMap();
-			break;
-		case ID_EDIT_RENAME_MAP:
-			OnRenameMap();
-			break;
-		case ID_EDIT_MOVE_MAP_UP:
-			OnMoveMap(-1);
-			break;
-		case ID_EDIT_MOVE_MAP_DOWN:
-			OnMoveMap(1);
+		case ID_EDIT_MAPS:
+			ShowMapManagerDialog();
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
@@ -2153,10 +1957,13 @@ void RoomViewerFrame::OnExportPng()
 void RoomViewerFrame::OnImportBin()
 {
 	wxFileDialog fd(this, _("Import Map From Binary"), "", "", "Room Map (*.cmp)|*.cmp|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() != wxID_CANCEL)
+	if (fd.ShowModal() == wxID_CANCEL)
 	{
-		std::string path = fd.GetPath().ToStdString();
-		ImportBin(path);
+		return;
+	}
+	if (!ImportBin(fd.GetPath().ToStdString()))
+	{
+		wxMessageBox("Unable to read map data from the selected file.", "Import Error", wxOK | wxICON_ERROR, this);
 	}
 	UpdateFrame();
 }
@@ -2164,22 +1971,20 @@ void RoomViewerFrame::OnImportBin()
 void RoomViewerFrame::OnImportCsv()
 {
 	std::array<std::string, 3> filenames;
-	wxFileDialog fd(this, _("Import Background Layer"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() != wxID_CANCEL)
+	const std::array<wxString, 3> titles = { _("Import Background Layer"), _("Import Foreground Layer"), _("Import Heightmap Data") };
+	for (std::size_t i = 0; i < filenames.size(); ++i)
 	{
-		filenames[0] = fd.GetPath().ToStdString();
+		wxFileDialog fd(this, titles[i], "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+		if (fd.ShowModal() == wxID_CANCEL)
+		{
+			return;
+		}
+		filenames[i] = fd.GetPath().ToStdString();
 	}
-	fd.Create(this, _("Import Foreground Layer"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() != wxID_CANCEL)
+	if (!ImportCsv(filenames))
 	{
-		filenames[1] = fd.GetPath().ToStdString();
+		wxMessageBox("Unable to read map data from the selected files.", "Import Error", wxOK | wxICON_ERROR, this);
 	}
-	fd.Create(this, _("Import Heightmap Data"), "", "", "CSV File (*.csv)|*.csv|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() != wxID_CANCEL)
-	{
-		filenames[2] = fd.GetPath().ToStdString();
-	}
-	ImportCsv(filenames);
 	UpdateFrame();
 }
 
@@ -2234,116 +2039,7 @@ void RoomViewerFrame::OnImportAllTmx()
 	}
 }
 
-void RoomViewerFrame::OnCreateMap()
-{
-	if (!m_g)
-	{
-		return;
-	}
-	const auto room_data = m_g->GetRoomData();
-	const auto current = room_data->GetMapForRoom(m_roomnum)->GetData();
-	std::string suggested_name;
-	for (unsigned int i = 1; suggested_name.empty(); ++i)
-	{
-		const auto candidate = Landstalker::StrPrintf("Map%03u", i);
-		if (room_data->GetMaps().count(candidate) == 0)
-		{
-			suggested_name = candidate;
-		}
-	}
-
-	wxDialog dialog(this, wxID_ANY, "Create Map");
-	auto outer = new wxBoxSizer(wxVERTICAL);
-	auto fields = new wxFlexGridSizer(2, 6, 6);
-	fields->AddGrowableCol(1, 1);
-	auto name = new wxTextCtrl(&dialog, wxID_ANY, wxString::FromUTF8(suggested_name));
-	name->SetMaxLength(30);
-	auto add_spin = [&](const char* label, int value, int minimum, int maximum)
-	{
-		fields->Add(new wxStaticText(&dialog, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-		auto control = new wxSpinCtrl(&dialog, wxID_ANY);
-		control->SetRange(minimum, maximum);
-		control->SetValue(std::clamp(value, minimum, maximum));
-		fields->Add(control, 1, wxEXPAND);
-		return control;
-	};
-	fields->Add(new wxStaticText(&dialog, wxID_ANY, "Name"), 0, wxALIGN_CENTER_VERTICAL);
-	fields->Add(name, 1, wxEXPAND);
-	auto map_width = add_spin("Map width", current->GetWidth(), 1, 64);
-	auto map_height = add_spin("Map height", current->GetHeight(), 1, 64);
-	auto heightmap_width = add_spin("Heightmap width", current->GetHeightmapWidth(), 1, 64);
-	auto heightmap_height = add_spin("Heightmap height", current->GetHeightmapHeight(), 1, 64);
-	auto heightmap_left = add_spin("Heightmap left", current->GetLeft(), 0, 63);
-	auto heightmap_top = add_spin("Heightmap top", current->GetTop(), 0, 63);
-	outer->Add(fields, 1, wxALL | wxEXPAND, 10);
-	outer->Add(dialog.CreateSeparatedButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
-	dialog.SetSizerAndFit(outer);
-	dialog.SetMinSize(wxSize(360, -1));
-	dialog.CentreOnParent();
-
-	while (dialog.ShowModal() == wxID_OK)
-	{
-		const auto map_name = name->GetValue().ToStdString();
-		if (room_data->CreateMap(map_name,
-			static_cast<uint8_t>(map_width->GetValue()),
-			static_cast<uint8_t>(map_height->GetValue()),
-			static_cast<uint8_t>(heightmap_width->GetValue()),
-			static_cast<uint8_t>(heightmap_height->GetValue()),
-			static_cast<uint8_t>(heightmap_left->GetValue()),
-			static_cast<uint8_t>(heightmap_top->GetValue())))
-		{
-			m_reset_props = true;
-			UpdateFrame();
-			return;
-		}
-		wxMessageBox("The name must be a unique C identifier of at most 30 characters, and all sizes must be valid.",
-			"Create Map", wxOK | wxICON_ERROR, &dialog);
-	}
-}
-
-void RoomViewerFrame::OnDeleteMap()
-{
-	if (!m_g)
-	{
-		return;
-	}
-	const auto room_data = m_g->GetRoomData();
-	wxArrayString choices;
-	for (const auto& map : room_data->GetMapOrder())
-	{
-		choices.Add(wxString::FromUTF8(map));
-	}
-	if (choices.empty())
-	{
-		return;
-	}
-	wxSingleChoiceDialog dialog(this, "Select a map to delete.", "Delete Map", choices);
-	if (dialog.ShowModal() != wxID_OK)
-	{
-		return;
-	}
-	const auto name = dialog.GetStringSelection().ToStdString();
-	if (room_data->IsMapReferenced(name))
-	{
-		wxMessageBox("This map is referenced by one or more rooms and cannot be deleted.",
-			"Delete Map", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	if (wxMessageBox("Delete map '" + wxString::FromUTF8(name) + "'?\nThe existing binary file will not be removed from disk.",
-		"Delete Map", wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this) != wxYES)
-	{
-		return;
-	}
-	if (!room_data->DeleteMap(name))
-	{
-		wxMessageBox("Unable to delete the selected map.", "Delete Map", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	m_reset_props = true;
-	UpdateFrame();
-}
-
-void RoomViewerFrame::OnRenameMap()
+void RoomViewerFrame::ShowMapManagerDialog()
 {
 	if (!m_g)
 	{
@@ -2353,53 +2049,28 @@ void RoomViewerFrame::OnRenameMap()
 	{
 		m_gpuview->CommitPendingEdits();
 	}
-	const auto room_data = m_g->GetRoomData();
-	const auto old_name = room_data->GetRoom(m_roomnum)->map;
-	wxTextEntryDialog dialog(this, "Enter a unique assembly label for the map.",
-		"Rename Map", wxString::FromUTF8(old_name));
-	if (dialog.ShowModal() != wxID_OK)
+	MapManagerDialog dlg(this, m_g, m_roomnum);
+	dlg.ShowModal();
+	if (dlg.HasChanges())
 	{
-		return;
-	}
-	const auto new_name = dialog.GetValue().ToStdString();
-	if (!room_data->RenameMap(old_name, new_name))
-	{
-		wxMessageBox("The map name must be a unique C identifier of at most 30 characters.", "Rename Map",
-			wxOK | wxICON_ERROR, this);
-		return;
-	}
-	m_reset_props = true;
-	UpdateFrame();
-}
-
-void RoomViewerFrame::OnMoveMap(int delta)
-{
-	if (!m_g || delta == 0)
-	{
-		return;
-	}
-	if (m_gpuview)
-	{
-		m_gpuview->CommitPendingEdits();
-	}
-	const auto room_data = m_g->GetRoomData();
-	const auto name = room_data->GetRoom(m_roomnum)->map;
-	const auto& order = room_data->GetMapOrder();
-	const auto current = std::find(order.cbegin(), order.cend(), name);
-	if (current == order.cend())
-	{
-		return;
-	}
-	const auto current_index = static_cast<int>(std::distance(order.cbegin(), current));
-	const int new_index = current_index + delta;
-	if (new_index < 0 || new_index >= static_cast<int>(order.size()))
-	{
-		return;
-	}
-	if (room_data->ReorderMap(name, static_cast<std::size_t>(new_index)))
-	{
+		if (m_gpuview)
+		{
+			m_gpuview->ReloadCurrentRoomFromGameData();
+		}
 		m_reset_props = true;
 		UpdateFrame();
+	}
+
+	const int room = dlg.GetRoomToOpen();
+	if (room >= 0 && room < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
+	{
+		SetRoomNum(static_cast<uint16_t>(room));
+		// Keep the navigation tree's selection in step with the room we just opened.
+		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
+		evt.SetString(wxString(L"Rooms/") + m_g->GetRoomData()->GetRoom(room)->GetDisplayName());
+		evt.SetInt(room);
+		evt.SetClientData(this);
+		wxPostEvent(this, evt);
 	}
 }
 
@@ -2454,30 +2125,7 @@ void RoomViewerFrame::UpdateUI() const
 		hmzoom = static_cast<wxSlider*>(tb->FindControl(HM_ZOOM));
 	}
 
-	bool can_move_map_earlier = false;
-	bool can_move_map_later = false;
-	bool can_delete_map = false;
-	if (m_g && m_roomnum < m_g->GetRoomData()->GetRoomCount())
-	{
-		const auto room_data = m_g->GetRoomData();
-		const auto& order = room_data->GetMapOrder();
-		const auto map = room_data->GetRoom(m_roomnum)->map;
-		const auto current = std::find(order.cbegin(), order.cend(), map);
-		can_delete_map = std::any_of(order.cbegin(), order.cend(), [&](const auto& name)
-		{
-			return !room_data->IsMapReferenced(name);
-		});
-		if (current != order.cend())
-		{
-			can_move_map_earlier = current != order.cbegin();
-			can_move_map_later = std::next(current) != order.cend();
-		}
-	}
-	EnableMenuItem(ID_EDIT_CREATE_MAP, m_g != nullptr);
-	EnableMenuItem(ID_EDIT_DELETE_MAP, can_delete_map);
-	EnableMenuItem(ID_EDIT_RENAME_MAP, m_g != nullptr);
-	EnableMenuItem(ID_EDIT_MOVE_MAP_UP, can_move_map_earlier);
-	EnableMenuItem(ID_EDIT_MOVE_MAP_DOWN, can_move_map_later);
+	EnableMenuItem(ID_EDIT_MAPS, m_g != nullptr);
 
 	EnableMenuItem(ID_TOOLS_LAYERS, true);
 	EnableToolbarItem("Main", TOOL_UNDO, m_gpuview != nullptr && m_gpuview->CanUndo());
