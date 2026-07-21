@@ -10,6 +10,12 @@
 
 namespace {
 
+enum ToolbarIDs
+{
+	ID_FILE_EXPORT_YML = 20000,
+	ID_FILE_IMPORT_YML
+};
+
 const int GLYPH_SCALE = 2;
 const int MAX_CODE = 256;
 
@@ -37,6 +43,17 @@ int ControlValueOf(const Landstalker::LSString::StringType& value)
 	return -1;
 }
 
+// The character a code maps to in the given charset, or blank when it maps to nothing.
+wxString LookupGlyph(const Landstalker::LSString::CharacterSet& charset, int code)
+{
+	if (code < 0 || code > 0xFF)
+	{
+		return wxString();
+	}
+	const auto it = charset.find(static_cast<uint8_t>(code));
+	return (it == charset.cend()) ? wxString() : wxString(it->second);
+}
+
 } // namespace
 
 CharsetEditorFrame::CharsetEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -50,6 +67,7 @@ CharsetEditorFrame::CharsetEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_notebook->AddPage(CreateFontPage(FontPage::INTRO), "Intro Font");
 	m_notebook->AddPage(CreateFontPage(FontPage::CREDITS), "End Credits Font");
 	m_notebook->AddPage(CreateControlCharPage(), "Control Characters");
+	m_notebook->AddPage(CreateConstantPage(), "Constants");
 	m_notebook->AddPage(CreateDiacriticPage(), "Diacritics");
 
 	m_mgr.AddPane(m_notebook, wxAuiPaneInfo().CenterPane());
@@ -80,6 +98,21 @@ wxWindow* CharsetEditorFrame::CreateControlCharPage()
 	m_control_view->AppendTextColumn("Value", wxDATAVIEW_CELL_EDITABLE, -1, wxALIGN_LEFT);
 	m_control_view->Bind(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED, &CharsetEditorFrame::OnControlValueChanged, this);
 	return m_control_view;
+}
+
+wxWindow* CharsetEditorFrame::CreateConstantPage()
+{
+	m_constant_view = new wxDataViewListCtrl(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxDV_ROW_LINES | wxDV_VERT_RULES);
+	m_constant_view->AppendTextColumn("Name", wxDATAVIEW_CELL_EDITABLE, 250, wxALIGN_LEFT);
+	m_constant_view->AppendTextColumn("Value", wxDATAVIEW_CELL_EDITABLE, 80, wxALIGN_RIGHT);
+	// Which charset a constant indexes depends on where the game uses it, which the name alone
+	// does not tell us, so show the character its value maps to in both rather than guess. A
+	// blank means the code is not a printable character in that charset - control codes, mostly.
+	m_constant_view->AppendTextColumn("Main Font", wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT);
+	m_constant_view->AppendTextColumn("Menu Font", wxDATAVIEW_CELL_INERT, -1, wxALIGN_LEFT);
+	m_constant_view->Bind(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED, &CharsetEditorFrame::OnConstantValueChanged, this);
+	return m_constant_view;
 }
 
 wxWindow* CharsetEditorFrame::CreateDiacriticPage()
@@ -128,8 +161,10 @@ void CharsetEditorFrame::ClearGameData()
 		view.second->DeleteAllItems();
 	}
 	m_control_view->DeleteAllItems();
+	m_constant_view->DeleteAllItems();
 	m_diacritic_view->DeleteAllItems();
 	m_control_names.clear();
+	m_constant_rows.clear();
 	EditorFrame::ClearGameData();
 }
 
@@ -140,6 +175,7 @@ void CharsetEditorFrame::Populate()
 	PopulateFontPage(FontPage::INTRO);
 	PopulateFontPage(FontPage::CREDITS);
 	PopulateControlChars();
+	PopulateConstants();
 	PopulateDiacritics();
 }
 
@@ -315,6 +351,40 @@ void CharsetEditorFrame::PopulateControlChars()
 	}
 }
 
+void CharsetEditorFrame::PopulateConstants()
+{
+	m_constant_view->DeleteAllItems();
+	m_constant_rows.clear();
+	if (!m_gd)
+	{
+		return;
+	}
+	for (std::size_t i = 0; i < m_charsets.constants.size(); ++i)
+	{
+		m_constant_rows.push_back(i);
+	}
+	// Listed in value order, matching the generated charset_*.inc include file.
+	const auto& constants = m_charsets.constants;
+	std::stable_sort(m_constant_rows.begin(), m_constant_rows.end(),
+		[&constants](std::size_t lhs, std::size_t rhs)
+		{
+			if (constants[lhs].value != constants[rhs].value)
+			{
+				return constants[lhs].value < constants[rhs].value;
+			}
+			return constants[lhs].name < constants[rhs].name;
+		});
+	for (const auto index : m_constant_rows)
+	{
+		wxVector<wxVariant> row;
+		row.push_back(wxVariant(wxString(constants[index].name)));
+		row.push_back(wxVariant(wxString::Format("%d", constants[index].value)));
+		row.push_back(wxVariant(LookupGlyph(m_charsets.main, constants[index].value)));
+		row.push_back(wxVariant(LookupGlyph(m_charsets.menu, constants[index].value)));
+		m_constant_view->AppendItem(row);
+	}
+}
+
 void CharsetEditorFrame::PopulateDiacritics()
 {
 	m_diacritic_view->DeleteAllItems();
@@ -397,6 +467,52 @@ void CharsetEditorFrame::OnControlValueChanged(wxDataViewEvent& evt)
 	evt.Skip();
 }
 
+void CharsetEditorFrame::OnConstantValueChanged(wxDataViewEvent& evt)
+{
+	if (!m_gd || m_updating)
+	{
+		return;
+	}
+	int row = m_constant_view->ItemToRow(evt.GetItem());
+	if (row == wxNOT_FOUND || row >= static_cast<int>(m_constant_rows.size()))
+	{
+		return;
+	}
+	auto& constant = m_charsets.constants[m_constant_rows[row]];
+	// Names are held with the "CHR_" prefix the assembler sees. The YAML drops it and puts it
+	// back on load, so a name typed without one has to be normalised or the generated include
+	// file would define a symbol the assembly does not reference.
+	auto name = m_constant_view->GetTextValue(row, 0).ToStdString();
+	if (!name.empty() && name.rfind("CHR_", 0) != 0)
+	{
+		name = "CHR_" + name;
+	}
+	if (!name.empty())
+	{
+		constant.name = name;
+	}
+	// Reject anything that is not a byte and put the old value back, rather than
+	// silently writing a constant the include file would have to skip.
+	long value = 0;
+	if (m_constant_view->GetTextValue(row, 1).ToLong(&value) && value >= 0 && value <= 0xFF)
+	{
+		constant.value = static_cast<int>(value);
+	}
+	m_updating = true;
+	m_constant_view->SetTextValue(wxString(constant.name), row, 0);
+	m_constant_view->SetTextValue(wxString::Format("%d", constant.value), row, 1);
+	m_constant_view->SetTextValue(LookupGlyph(m_charsets.main, constant.value), row, 2);
+	m_constant_view->SetTextValue(LookupGlyph(m_charsets.menu, constant.value), row, 3);
+	m_updating = false;
+	// The string-begin marker doubles as the Huffman EOS marker.
+	if (constant.name == "CHR_STR_BEGIN")
+	{
+		m_charsets.eos_marker = static_cast<uint8_t>(constant.value);
+	}
+	ApplyToGameData();
+	evt.Skip();
+}
+
 void CharsetEditorFrame::OnDiacriticValueChanged(wxDataViewEvent& evt)
 {
 	if (!m_gd)
@@ -453,4 +569,83 @@ void CharsetEditorFrame::ApplyToGameData()
 	{
 		m_gd->GetStringData()->SetCharsets(m_charsets);
 	}
+}
+
+void CharsetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
+{
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Character Set as YAML...");
+	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Character Set from YAML...");
+
+	m_mgr.Update();
+	UpdateUI();
+}
+
+void CharsetEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+}
+
+void CharsetEditorFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	switch (evt.GetId())
+	{
+	case ID_FILE_EXPORT_YML:
+		OnExportYml();
+		break;
+	case ID_FILE_IMPORT_YML:
+		OnImportYml();
+		break;
+	}
+	UpdateUI();
+}
+
+void CharsetEditorFrame::OnExportYml()
+{
+	if (!m_gd || !m_gd->GetStringData())
+	{
+		return;
+	}
+	// Offer the name the loader looks for, so an export dropped into a disassembly's
+	// metadata directory is picked up without renaming.
+	const wxString default_file = wxString::Format("charset_%s.yaml",
+		Landstalker::Charset::GetCharsetYamlName(m_gd->GetStringData()->GetRegion()));
+	wxFileDialog fd(this, _("Export Character Set as YAML"), "", default_file,
+		"YAML file (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	if (!Landstalker::Charset::SaveCharsetsToYaml(fd.GetPath().ToStdWstring(), m_charsets))
+	{
+		wxMessageBox("Failed to write \"" + fd.GetPath() + "\".", "Export Character Set",
+			wxOK | wxICON_ERROR, this);
+	}
+}
+
+void CharsetEditorFrame::OnImportYml()
+{
+	if (!m_gd || !m_gd->GetStringData())
+	{
+		return;
+	}
+	wxFileDialog fd(this, _("Import Character Set from YAML"), "", "",
+		"YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	// A failed parse leaves the target in an unspecified state, so load into a copy and
+	// only adopt it if the whole file read cleanly.
+	auto imported = m_charsets;
+	if (!Landstalker::Charset::LoadCharsetsFromYaml(fd.GetPath().ToStdWstring(), imported))
+	{
+		wxMessageBox("Could not parse \"" + fd.GetPath() + "\" as a character set YAML file.",
+			"Import Character Set", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	m_charsets = imported;
+	Populate();
+	ApplyToGameData();
 }

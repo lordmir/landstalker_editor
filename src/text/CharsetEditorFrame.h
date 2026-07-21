@@ -19,6 +19,9 @@ public:
 	bool Open();
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
 	virtual void ClearGameData();
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void ClearMenu(wxMenuBar& menu) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
 
 private:
 	enum class FontPage
@@ -31,6 +34,7 @@ private:
 
 	wxWindow* CreateFontPage(FontPage page);
 	wxWindow* CreateControlCharPage();
+	wxWindow* CreateConstantPage();
 	wxWindow* CreateDiacriticPage();
 
 	// The end credit font is indexed differently to the other fonts. Code 0 terminates a credit
@@ -44,6 +48,7 @@ private:
 	void Populate();
 	void PopulateFontPage(FontPage page);
 	void PopulateControlChars();
+	void PopulateConstants();
 	void PopulateDiacritics();
 
 	Landstalker::LSString::CharacterSet& GetCharsetFor(FontPage page);
@@ -54,19 +59,29 @@ private:
 
 	void OnFontValueChanged(wxDataViewEvent& evt);
 	void OnControlValueChanged(wxDataViewEvent& evt);
+	void OnConstantValueChanged(wxDataViewEvent& evt);
 	void OnDiacriticValueChanged(wxDataViewEvent& evt);
 	void OnAddDiacritic(wxCommandEvent& evt);
 	void OnDeleteDiacritic(wxCommandEvent& evt);
 	void RebuildDiacriticsFromGrid();
 	void ApplyToGameData();
+	void OnExportYml();
+	void OnImportYml();
 
 	wxNotebook* m_notebook = nullptr;
 	std::map<FontPage, wxDataViewListCtrl*> m_font_views;
 	wxDataViewListCtrl* m_control_view = nullptr;
+	wxDataViewListCtrl* m_constant_view = nullptr;
 	wxDataViewListCtrl* m_diacritic_view = nullptr;
 
 	Landstalker::Charset::Charsets m_charsets;
 	std::vector<std::string> m_control_names;
+	// Row order on the constants page is by value, not the order they are stored in, so
+	// each row records the index of the constant it shows.
+	std::vector<std::size_t> m_constant_rows;
+	// Set while a handler writes back into a grid, so the resulting value-changed
+	// events do not re-enter it.
+	bool m_updating = false;
 
 	mutable wxAuiManager m_mgr;
 };
