@@ -27,6 +27,7 @@ TileEditor::TileEditor(wxWindow* parent)
 	  m_ctrlwidth(1),
 	  m_ctrlheight(1),
 	  m_pixelsize(16),
+	  m_canvas_width(0),
 	  m_primary_colour(1),
 	  m_secondary_colour(0),
 	  m_selectedpixel{ -1, -1 },
@@ -71,7 +72,7 @@ void TileEditor::SetTileset(std::shared_ptr<Landstalker::Tileset> tileset)
 {
 	m_tileset = tileset;
 	m_pixels = m_tileset->GetTilePixels(m_tile.GetIndex());
-	SetRowColumnCount(m_tileset->GetTileHeight(), m_tileset->GetTileWidth());
+	SetRowColumnCount(m_tileset->GetTileHeight(), GetCanvasWidth());
 	AutoSize();
 	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
@@ -95,6 +96,33 @@ void TileEditor::SetTile(const Landstalker::Tile& tile)
 void TileEditor::Redraw()
 {
 	Refresh(true);
+}
+
+int TileEditor::GetCanvasWidth() const
+{
+	const int tile_width = (m_tileset != nullptr) ? static_cast<int>(m_tileset->GetTileWidth()) : 1;
+	if ((m_canvas_width <= 0) || (m_canvas_width > tile_width))
+	{
+		return tile_width;
+	}
+	return m_canvas_width;
+}
+
+void TileEditor::SetCanvasWidth(int columns)
+{
+	if (m_canvas_width == columns)
+	{
+		return;
+	}
+	m_canvas_width = columns;
+	if (m_tileset != nullptr)
+	{
+		SetRowColumnCount(m_tileset->GetTileHeight(), GetCanvasWidth());
+		AutoSize();
+		wxVarHScrollHelper::RefreshAll();
+		wxVarVScrollHelper::RefreshAll();
+	}
+	Redraw();
 }
 
 int TileEditor::GetPixelSize() const
@@ -209,7 +237,7 @@ void TileEditor::SetBordersEnabled(bool enabled)
 bool TileEditor::IsPointValid(const Point& point) const
 {
 	if (!m_tileset) return false;
-	return ((point.x >= 0) && (point.x < static_cast<int>(m_tileset->GetTileWidth())) &&
+	return ((point.x >= 0) && (point.x < GetCanvasWidth()) &&
 	        (point.y >= 0) && (point.y < static_cast<int>(m_tileset->GetTileHeight())));
 }
 
@@ -477,7 +505,7 @@ void TileEditor::AutoSize()
 	if (m_tileset != nullptr)
 	{
 		this->GetClientSize(&m_ctrlwidth, &m_ctrlheight);
-		int pixwidth = m_ctrlwidth / m_tileset->GetTileWidth();
+		int pixwidth = m_ctrlwidth / GetCanvasWidth();
 		int pixheight = m_ctrlheight / m_tileset->GetTileHeight();
 		int new_pixelsize = std::min(pixwidth, pixheight);
 		if (new_pixelsize <= 0)

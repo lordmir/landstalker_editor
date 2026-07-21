@@ -77,6 +77,7 @@ private:
 
 	void UpdateUI() const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
+	void UpdateTileEditorCanvas();
 
 	TilesetEditor* m_tilesetEditor = nullptr;
 	PaletteEditor* m_paletteEditor = nullptr;
@@ -88,6 +89,8 @@ private:
 	std::shared_ptr<Landstalker::Tileset> m_tileset;
 	std::shared_ptr<Landstalker::TilesetEntry> m_tileset_entry;
 	std::shared_ptr<Landstalker::AnimatedTilesetEntry> m_animated_tileset_entry;
+	// Set only for the end credit font, whose glyphs carry an editable advance width.
+	std::shared_ptr<Landstalker::EndCreditFontEntry> m_font_entry;
 	Landstalker::Tile m_tile;
 	int m_inputBuffer;
 	mutable wxAuiManager m_mgr;

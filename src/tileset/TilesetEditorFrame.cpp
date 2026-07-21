@@ -145,7 +145,11 @@ void TilesetEditorFrame::OnTileChanged(wxCommandEvent& evt)
 void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 {
 	m_tilesetEditor->RedrawTiles();
-	m_tileEditor->SetTile(m_tilesetEditor->GetSelectedTile());
+	// Inserting or deleting shifts the selection, so track it - the glyph width property and the
+	// canvas width both key off m_tile and would otherwise describe a different tile.
+	m_tile = m_tilesetEditor->GetSelectedTile();
+	m_tileEditor->SetTile(m_tile);
+	UpdateTileEditorCanvas();
 	m_tileEditor->Redraw();
 	m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -159,11 +163,29 @@ void TilesetEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void TilesetEditorFrame::UpdateTileEditorCanvas()
+{
+	if (m_tileEditor == nullptr)
+	{
+		return;
+	}
+	// A glyph occupies only the leftmost columns of its tile, so the canvas is clipped to its
+	// width. Every other tileset draws on the full tile.
+	m_tileEditor->SetCanvasWidth(m_font_entry ? m_font_entry->GetGlyphWidth(m_tile.GetIndex()) : 0);
+}
+
 void TilesetEditorFrame::ToggleAlpha()
 {
 	if (m_tilesetEditor != nullptr)
 	{
-		m_tilesetEditor->SetAlphaEnabled(!m_tilesetEditor->GetAlphaEnabled());
+		// Both panes follow the one toggle, so colour 0 does not stay a checkerboard in the tile
+		// editor while the tileset grid shows it as solid.
+		const bool enabled = !m_tilesetEditor->GetAlphaEnabled();
+		m_tilesetEditor->SetAlphaEnabled(enabled);
+		if (m_tileEditor != nullptr)
+		{
+			m_tileEditor->SetAlphaEnabled(enabled);
+		}
 	}
 }
 
@@ -448,8 +470,14 @@ void TilesetEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
 	{
 		m_tile = tileId;
 		m_tileEditor->SetTile(m_tile);
+		UpdateTileEditorCanvas();
 	}
 	FireEvent(EVT_STATUSBAR_UPDATE);
+	if (m_font_entry)
+	{
+		// The glyph width property follows the selection.
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
 	evt.Skip();
 }
 
@@ -544,6 +572,8 @@ void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxIntProperty("Tile Height", "H", 0))->Enable(false);
 		props.Append(new wxIntProperty("Tile Bitdepth", "D", 0))->Enable(false);
 		props.Append(new wxEnumProperty("Tile Block Layout", "B", m_blocktype_list))->Enable(false);
+		props.Append(new wxPropertyCategory("Font", "F"));
+		props.Append(new wxIntProperty("Glyph Width", "FW", 0));
 		RefreshProperties(props);
 	}
 	EditorFrame::InitProperties(props);
@@ -621,6 +651,15 @@ void TilesetEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("C", m_tileset->GetCompressed());
 		props.GetGrid()->SetPropertyValue("I", wxString(VecToCommaList(m_tileset->GetColourIndicies())));
 	}
+	// The property grid is shared between editors, so the font category is not necessarily present.
+	if (auto* font_category = props.GetGrid()->GetProperty("F"))
+	{
+		if (m_font_entry)
+		{
+			props.GetGrid()->SetPropertyValue("FW", static_cast<int>(m_font_entry->GetGlyphWidth(m_tile.GetIndex())));
+		}
+		font_category->Hide(m_font_entry == nullptr);
+	}
 	props.GetGrid()->SetPropertyValue("P", wxString(m_selected_palette->GetName()));
 }
 
@@ -665,6 +704,16 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (m_tileset_entry != nullptr)
 		{
 			m_tileset_entry->SetPalIndicies(VecToCommaList(m_tileset->GetColourIndicies()));
+		}
+	}
+	else if (name == "FW")
+	{
+		// A width narrower than the glyph's own pixels is ignored, so the grid may snap back to a
+		// larger value on the properties update fired below.
+		if (m_font_entry)
+		{
+			m_font_entry->SetGlyphWidth(m_tile.GetIndex(), static_cast<uint8_t>(property->GetValuePlain().GetLong()));
+			UpdateTileEditorCanvas();
 		}
 	}
 	else if (name == "ABT")
@@ -862,6 +911,7 @@ void TilesetEditorFrame::ClearGameData()
 	m_tileset = nullptr;
 	m_tileset_entry = nullptr;
 	m_animated_tileset_entry = nullptr;
+	m_font_entry = nullptr;
 	m_tilesetEditor->SetGameData(nullptr);
 	m_paletteEditor->SetGameData(nullptr);
 	m_tileEditor->SetGameData(nullptr);
@@ -886,6 +936,7 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 	retval = m_tilesetEditor->Open(pixels, uses_compression, tile_width, tile_height, tile_bitdepth);
 	m_animated = false;
 	m_animated_tileset_entry = nullptr;
+	m_font_entry = nullptr;
 	m_tileset_entry = nullptr;
 	m_tileset = nullptr;
 	if (retval)
@@ -894,6 +945,7 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTileset(m_tileset);
+		UpdateTileEditorCanvas();
 		m_tileEditor->SetTile(m_tile);
 		m_paletteEditor->SetBitsPerPixel(tile_bitdepth);
 	}
@@ -908,17 +960,20 @@ bool TilesetEditorFrame::Open(const std::string& name)
 	bool retval = m_tilesetEditor->Open(e->GetData());
 	m_animated = false;
 	m_animated_tileset_entry = nullptr;
+	m_font_entry = nullptr;
 	m_tileset_entry = nullptr;
 	m_tileset = nullptr;
 	if (retval)
 	{
 		m_tileset_entry = e;
+		m_font_entry = std::dynamic_pointer_cast<Landstalker::EndCreditFontEntry>(e);
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tileset->SetColourIndicies(CommaListToVec<uint8_t>(e->GetPaletteIndicies()));
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTile(m_tile);
 		m_tileEditor->SetTileset(m_tileset);
+		UpdateTileEditorCanvas();
 		SetActivePalette(m_tileset_entry->GetDefaultPalette());
 		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
@@ -933,6 +988,7 @@ bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 	auto e = m_gd->GetAnimatedTileset(name);
 	bool retval = m_tilesetEditor->Open(e->GetData());
 	m_animated_tileset_entry = nullptr;
+	m_font_entry = nullptr;
 	m_tileset_entry = nullptr;
 	m_tileset = nullptr;
 	if (retval)
@@ -944,6 +1000,7 @@ bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		m_tileEditor->SetTile(m_tile);
 		m_tileEditor->SetTileset(m_tileset);
+		UpdateTileEditorCanvas();
 		SetActivePalette(m_animated_tileset_entry->GetDefaultPalette());
 		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());

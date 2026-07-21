@@ -33,6 +33,14 @@ private:
 	wxWindow* CreateControlCharPage();
 	wxWindow* CreateDiacriticPage();
 
+	// The end credit font is indexed differently to the other fonts. Code 0 terminates a credit
+	// line rather than naming a character, so it has no glyph and is not listed, and the game
+	// draws glyph record (code - 1) - see _drawGlyph in endcredits2.asm. Every other font indexes
+	// its tiles by the character code itself and has a real glyph at code 0.
+	static int FirstCode(FontPage page);
+	static int CodeForRow(FontPage page, int row);
+	static int GlyphIndexForCode(FontPage page, int code);
+
 	void Populate();
 	void PopulateFontPage(FontPage page);
 	void PopulateControlChars();
@@ -42,7 +50,7 @@ private:
 	std::shared_ptr<Landstalker::Tileset> GetFontFor(FontPage page) const;
 	std::vector<std::shared_ptr<Landstalker::Palette>> GetPalettesFor(FontPage page) const;
 	wxBitmap RenderGlyph(const std::shared_ptr<Landstalker::Tileset>& font,
-	                     const std::vector<std::shared_ptr<Landstalker::Palette>>& palettes, int code) const;
+	                     const std::vector<std::shared_ptr<Landstalker::Palette>>& palettes, int glyph_index) const;
 
 	void OnFontValueChanged(wxDataViewEvent& evt);
 	void OnControlValueChanged(wxDataViewEvent& evt);

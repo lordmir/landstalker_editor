@@ -231,19 +231,34 @@ std::vector<std::shared_ptr<Landstalker::Palette>> CharsetEditorFrame::GetPalett
 }
 
 wxBitmap CharsetEditorFrame::RenderGlyph(const std::shared_ptr<Landstalker::Tileset>& font,
-	const std::vector<std::shared_ptr<Landstalker::Palette>>& palettes, int code) const
+	const std::vector<std::shared_ptr<Landstalker::Palette>>& palettes, int glyph_index) const
 {
-	if (font == nullptr || code >= static_cast<int>(font->GetTileCount()))
+	if (font == nullptr || glyph_index < 0 || glyph_index >= static_cast<int>(font->GetTileCount()))
 	{
 		return wxBitmap();
 	}
 	const int w = static_cast<int>(font->GetTileWidth());
 	const int h = static_cast<int>(font->GetTileHeight());
 	ImageBufferWx buf(w, h);
-	buf.InsertTile(0, 0, 0, Landstalker::Tile(static_cast<uint16_t>(code)), *font);
+	buf.InsertTile(0, 0, 0, Landstalker::Tile(static_cast<uint16_t>(glyph_index)), *font);
 	wxImage img = buf.MakeImage(palettes);
 	img.Rescale(w * GLYPH_SCALE, h * GLYPH_SCALE);
 	return wxBitmap(img);
+}
+
+int CharsetEditorFrame::FirstCode(FontPage page)
+{
+	return (page == FontPage::CREDITS) ? 1 : 0;
+}
+
+int CharsetEditorFrame::CodeForRow(FontPage page, int row)
+{
+	return row + FirstCode(page);
+}
+
+int CharsetEditorFrame::GlyphIndexForCode(FontPage page, int code)
+{
+	return (page == FontPage::CREDITS) ? code - 1 : code;
 }
 
 void CharsetEditorFrame::PopulateFontPage(FontPage page)
@@ -263,12 +278,12 @@ void CharsetEditorFrame::PopulateFontPage(FontPage page)
 	}
 	// List every possible code, not just those with glyphs, so codepoints without
 	// a corresponding glyph (e.g. the end credit logo codes) can still be mapped.
-	for (int code = 0; code < MAX_CODE; ++code)
+	for (int code = FirstCode(page); code < MAX_CODE; ++code)
 	{
 		wxVector<wxVariant> row;
 		row.push_back(wxVariant(wxString::Format("%d (0x%02X)", code, code)));
 		wxVariant glyph;
-		glyph << RenderGlyph(font, palettes, code);
+		glyph << RenderGlyph(font, palettes, GlyphIndexForCode(page, code));
 		row.push_back(glyph);
 		auto it = charset.find(static_cast<uint8_t>(code));
 		row.push_back(wxVariant(it != charset.end() ? wxString(it->second) : wxString()));
@@ -341,14 +356,16 @@ void CharsetEditorFrame::OnFontValueChanged(wxDataViewEvent& evt)
 		return;
 	}
 	auto& charset = GetCharsetFor(page_it->first);
+	// Rows are not codes: the credits page starts listing at code 1.
+	const int code = CodeForRow(page_it->first, row);
 	auto mapping = view->GetTextValue(row, 2).ToStdWstring();
 	if (mapping.empty())
 	{
-		charset.erase(static_cast<uint8_t>(row));
+		charset.erase(static_cast<uint8_t>(code));
 	}
 	else
 	{
-		charset[static_cast<uint8_t>(row)] = mapping;
+		charset[static_cast<uint8_t>(code)] = mapping;
 	}
 	ApplyToGameData();
 	evt.Skip();

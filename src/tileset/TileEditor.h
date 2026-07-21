@@ -48,6 +48,10 @@ public:
 	void SetTile(const Landstalker::Tile& tile);
 
 	void Redraw();
+	// Restricts the drawable canvas to the leftmost columns of the tile, for tilesets whose tiles
+	// are wider than the artwork in them - the end credit font's variable width glyphs. Zero, the
+	// default, uses the full tile width. Does not affect the tile's storage, which stays full width.
+	void SetCanvasWidth(int columns);
 	int GetPixelSize() const;
 	void SetActivePalette(const std::string& name);
 	void SetActivePalette(std::shared_ptr<Landstalker::Palette> pal);
@@ -96,6 +100,9 @@ private:
 	int  ConvertMouseXYToPixel(const wxPoint& point);
 	void ForceRedraw();
 	void AutoSize();
+	// The number of columns the canvas shows. Never the stride into m_pixels, which is always the
+	// full tile width.
+	int GetCanvasWidth() const;
 
 	bool SetColour(const Point& point, int colour);
 	void SetPixelSize(int n);
@@ -107,6 +114,7 @@ private:
 	int m_ctrlwidth;
 	int m_ctrlheight;
 	int m_pixelsize;
+	int m_canvas_width;
 	uint8_t m_primary_colour;
 	uint8_t m_secondary_colour;
 	Point m_selectedpixel;
