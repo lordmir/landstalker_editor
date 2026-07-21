@@ -1,11 +1,15 @@
 #include <script/ScriptEditorFrame.h>
 
+#include <landstalker/misc/Utils.h>
+
 #include <codecvt>
 
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_YML = 20000,
-	ID_FILE_IMPORT_YML
+	ID_FILE_IMPORT_YML,
+	ID_FILE_EXPORT_BINARY,
+	ID_FILE_IMPORT_BINARY
 };
 
 ScriptEditorFrame::ScriptEditorFrame(wxWindow* parent, ImageList* imglst)
@@ -102,6 +106,8 @@ void ScriptEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Script as YAML...");
 	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_BINARY, "Export Script as Binary...");
+	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BINARY, "Import Script from Binary...");
 
 	m_mgr.Update();
 	UpdateUI();
@@ -116,6 +122,12 @@ void ScriptEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_FILE_IMPORT_YML:
 		OnImportYml();
+		break;
+	case ID_FILE_EXPORT_BINARY:
+		OnExportBinary();
+		break;
+	case ID_FILE_IMPORT_BINARY:
+		OnImportBinary();
 		break;
 	}
 	UpdateUI();
@@ -162,6 +174,67 @@ void ScriptEditorFrame::OnImportYml()
 				wxMessageBox(std::string("Error when parsing YAML:\n") + e.what());
 			}
 		}
+	}
+}
+
+void ScriptEditorFrame::OnExportBinary()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+
+	wxFileDialog fd(this, _("Export Script as Binary"), "", "script.bin",
+		"Binary files (*.bin)|*.bin|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+
+	try
+	{
+		Landstalker::WriteBytes(m_gd->GetScriptData()->GetScript()->ToBytes(),
+			std::filesystem::path(fd.GetPath().ToStdWstring()));
+	}
+	catch (const std::exception& e)
+	{
+		wxMessageBox(e.what(), "Export Binary", wxOK | wxICON_ERROR, this);
+	}
+}
+
+void ScriptEditorFrame::OnImportBinary()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+
+	wxFileDialog fd(this, _("Import Script from Binary"), "", "script.bin",
+		"Binary files (*.bin)|*.bin|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+
+	try
+	{
+		auto bytes = Landstalker::ReadBytes(std::filesystem::path(fd.GetPath().ToStdWstring()));
+		if (bytes.empty())
+		{
+			throw std::runtime_error("The imported file did not contain any script table entries.");
+		}
+		if ((bytes.size() & 1) != 0)
+		{
+			throw std::runtime_error("The imported script table has an odd number of bytes.");
+		}
+
+		*m_gd->GetScriptData()->GetScript() = Landstalker::Script(bytes);
+		m_editor->RefreshData();
+		wxMessageBox("Import complete.", "Import Binary", wxOK | wxICON_INFORMATION, this);
+	}
+	catch (const std::exception& e)
+	{
+		wxMessageBox(e.what(), "Import Binary", wxOK | wxICON_ERROR, this);
 	}
 }
 

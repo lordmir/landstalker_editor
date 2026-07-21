@@ -126,6 +126,7 @@ private:
     std::optional<wxTreeItemId> FindNavItem(const std::wstring& path);
     std::optional<wxTreeItemId> InsertNavItem(const std::wstring& path, int img = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     void SortNavItems(const wxTreeItemId& parent);
+    void RevealNavItem(const wxTreeItemId& item);
     bool RemoveNavItem(const std::wstring& path);
     void GoToNavItem(const std::wstring& path, int data = 0);
     bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);

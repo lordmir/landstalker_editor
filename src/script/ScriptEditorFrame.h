@@ -28,6 +28,8 @@ private:
 
 	void OnExportYml();
 	void OnImportYml();
+	void OnExportBinary();
+	void OnImportBinary();
 
 	mutable bool m_reset_props = false;
 

@@ -1,5 +1,7 @@
 #include "GLCanvasObjectCoordinator.h"
 
+#include <wx/msgdlg.h>
+
 #include <algorithm>
 #include <cmath>
 
@@ -234,6 +236,14 @@ void GLCanvasObjectCoordinator::PersistCurrentRoomEdits()
 		return;
 	}
 
+	const auto warps = m_canvas.BuildCurrentRoomWarps();
+	if (Landstalker::WarpList::HasDuplicateWarps(warps)) {
+		wxMessageBox("That connection already exists. Warp direction does not create a distinct warp.",
+			"Duplicate Warp", wxOK | wxICON_ERROR, &m_canvas);
+		m_canvas.ReloadCurrentRoomFromGameData();
+		return;
+	}
+
 	std::vector<Landstalker::Entity> entities = m_canvas.BuildCurrentRoomEntities();
 	m_canvas.m_gd->GetSpriteData()->SetRoomEntities(m_canvas.m_current_room, entities);
 	m_canvas.m_room_entities = entities;
@@ -266,7 +276,7 @@ void GLCanvasObjectCoordinator::PersistCurrentRoomEdits()
 
 	m_canvas.m_gd->GetRoomData()->SetWarpsForRoom(
 		m_canvas.m_current_room,
-		m_canvas.BuildCurrentRoomWarps());
+		warps);
 }
 
 void GLCanvasObjectCoordinator::SelectEntityByIndex(int selection)

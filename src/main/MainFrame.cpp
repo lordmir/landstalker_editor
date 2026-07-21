@@ -9,7 +9,6 @@
 #include <locale>
 #include <algorithm>
 #include <filesystem>
-#include <stack>
 #include <future>
 
 #include <wx/wx.h>
@@ -866,41 +865,32 @@ void MainFrame::SortNavItems(const wxTreeItemId& parent)
 
 bool MainFrame::RemoveNavItem(const std::wstring& path)
 {
-    std::stack<wxTreeItemId> path_elems;
-    std::wistringstream ss(path);
-    wxTreeItemIdValue cookie;
-    std::wstring name;
-    auto parent = m_browser->GetRootItem();
-    auto child = parent;
-    while (std::getline(ss, name, L'/'))
+    const auto item = FindNavItem(path);
+    if (!item || m_browser->HasChildren(*item))
     {
-        child = m_browser->GetFirstChild(parent, cookie);
-        while (child.IsOk() == true)
-        {
-            auto label = m_browser->GetItemText(child);
-            if (label == name)
-            {
-                parent = child;
-                path_elems.push(child);
-                break;
-            }
-            child = m_browser->GetNextSibling(child);
-        }
-        if (!child.IsOk())
-        {
-            // Path not found
-            return false;
-        }
+        return false;
     }
-    while (!path_elems.empty() && m_browser->GetChildrenCount(path_elems.top()) == 0)
+
+    auto* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*item));
+    if (!node_data || node_data->DoNotDelete())
     {
-        TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(path_elems.top()));
-        if (node_data->DoNotDelete() == true)
+        return false;
+    }
+
+    auto parent = m_browser->GetItemParent(*item);
+    m_browser->Delete(*item);
+
+    const auto root = m_browser->GetRootItem();
+    while (parent.IsOk() && parent != root && !m_browser->HasChildren(parent))
+    {
+        node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(parent));
+        if (!node_data || node_data->DoNotDelete())
         {
             break;
         }
-        m_browser->Delete(path_elems.top());
-        path_elems.pop();
+        const auto next_parent = m_browser->GetItemParent(parent);
+        m_browser->Delete(parent);
+        parent = next_parent;
     }
     return true;
 }
@@ -916,6 +906,8 @@ bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& 
     if (GetNavItemParent(old_path) == GetNavItemParent(new_path))
     {
         m_browser->SetItemText(*old_item, new_path.substr(new_path.find_last_of(L"/") + 1));
+        m_browser->SortChildren(m_browser->GetItemParent(*old_item));
+        RevealNavItem(*old_item);
         return true;
     }
     TreeNodeData* node_data = static_cast<TreeNodeData*>(m_browser->GetItemData(*old_item));
@@ -934,7 +926,7 @@ bool MainFrame::RenameNavItem(const std::wstring& old_path, const std::wstring& 
         return false;
     }
     SortNavItems(m_browser->GetRootItem());
-    m_browser->SelectItem(*new_item);
+    RevealNavItem(*new_item);
     return true;
 }
 
@@ -943,7 +935,7 @@ bool MainFrame::AddNavItem(const std::wstring& path, int image, const TreeNodeDa
     auto item = InsertNavItem(path, image, type, value, no_delete);
     if (item)
     {
-        m_browser->SelectItem(*item);
+        RevealNavItem(*item);
         ProcessSelectedBrowserItem(*item);
     }
     return true;
@@ -968,7 +960,7 @@ void MainFrame::GoToNavItem(const std::wstring& path, int data)
     auto item = FindNavItem(path);
     if (item)
     {
-        m_browser->SelectItem(*item);
+        RevealNavItem(*item);
         ProcessSelectedBrowserItem(*item, data);
     }
 }
@@ -1194,6 +1186,21 @@ void MainFrame::OnPreferences(wxCommandEvent& /*event*/)
     {
         GetRoomEditor()->SetDirectionInputMode(dlg.GetDirectionInputMode());
     }
+}
+
+void MainFrame::RevealNavItem(const wxTreeItemId& item)
+{
+    std::vector<wxTreeItemId> ancestors;
+    for (auto parent = m_browser->GetItemParent(item); parent.IsOk(); parent = m_browser->GetItemParent(parent))
+    {
+        ancestors.push_back(parent);
+    }
+    for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it)
+    {
+        m_browser->Expand(*it);
+    }
+    m_browser->SelectItem(item);
+    m_browser->EnsureVisible(item);
 }
 
 void MainFrame::OnMRUFile(wxCommandEvent& event)

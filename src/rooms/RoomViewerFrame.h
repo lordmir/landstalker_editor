@@ -54,6 +54,9 @@ public:
 	bool ExportPng(const std::string& path);
 	bool ExportAllRoomsTmx(const std::string& dir);
 	bool ExportRoomTmx(const std::string& tmx_path, const std::string& bs_path, uint16_t roomnum);
+	bool ExportRoomMetadata(const std::string& path, uint16_t roomnum);
+	bool ExportAllRoomMetadata(const std::string& dir);
+	bool ImportRoomMetadata(const std::string& path, uint16_t roomnum);
 	bool ImportBin(const std::string& path);
 	bool ImportCsv(const std::array<std::string, 3>& paths);
 	bool ImportTmx(const std::string& paths, uint16_t roomnum);
@@ -85,11 +88,18 @@ private:
 	void OnExportAllTmx();
 	void OnExportRoomTmx();
 	void OnExportAllRoomsTmx();
+	void OnExportRoomMetadata();
+	void OnExportAllRoomMetadata();
+	void OnImportRoomMetadata();
 	void OnExportPng();
 	void OnImportBin();
 	void OnImportCsv();
 	void OnImportTmx();
 	void OnImportAllTmx();
+	void OnCreateMap();
+	void OnDeleteMap();
+	void OnRenameMap();
+	void OnMoveMap(int delta);
 	void UpdateUI() const;
 
 	void OnKeyDown(wxKeyEvent& evt);

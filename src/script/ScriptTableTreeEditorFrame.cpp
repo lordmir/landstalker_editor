@@ -6,8 +6,12 @@
 
 enum MENU_IDS
 {
-    ID_FILE_EXPORT_YML = 20000,
-    ID_FILE_IMPORT_YML,
+    ID_FILE_EXPORT_FUNCTIONS_YML = 20000,
+    ID_FILE_IMPORT_FUNCTIONS_YML,
+    ID_FILE_EXPORT_TABLE_YML,
+    ID_FILE_IMPORT_TABLE_YML,
+    ID_FILE_EXPORT_TABLE_ASM,
+    ID_FILE_IMPORT_TABLE_ASM,
     ID_FILE_EXPORT_ASM,
     ID_FILE_IMPORT_ASM
 };
@@ -40,6 +44,12 @@ bool ScriptTableTreeEditorFrame::Open(ScriptTableTreeCategory category)
         m_reset_props = true;
         FireEvent(EVT_PROPERTIES_UPDATE);
         UpdateUI();
+        // All four categories share this frame. When it is already visible, Show() does not
+        // run again to refresh the category-specific File menu.
+        if (IsShown())
+        {
+            FireEvent(EVT_MENU_INIT);
+        }
         return true;
     }
     return false;
@@ -281,10 +291,19 @@ void ScriptTableTreeEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/)
     // Down) already cover these actions directly on the controls they act on.
     ClearMenu(menu);
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
-    AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YML, "Export Script as YAML...");
-    AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YML, "Import Script from YAML...");
-    AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ASM, "Export Script as ASM...");
-    AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_ASM, "Import Script from ASM...");
+    int position = 0;
+    if (m_category == ScriptTableTreeCategory::CHARACTER ||
+        m_category == ScriptTableTreeCategory::CUTSCENE)
+    {
+        AddMenuItem(fileMenu, position++, ID_FILE_EXPORT_TABLE_YML, "Export Script Table as YAML...");
+        AddMenuItem(fileMenu, position++, ID_FILE_IMPORT_TABLE_YML, "Import Script Table from YAML...");
+        AddMenuItem(fileMenu, position++, ID_FILE_EXPORT_TABLE_ASM, "Export Script Table as ASM...");
+        AddMenuItem(fileMenu, position++, ID_FILE_IMPORT_TABLE_ASM, "Import Script Table from ASM...");
+    }
+    AddMenuItem(fileMenu, position++, ID_FILE_EXPORT_FUNCTIONS_YML, "Export Script Functions as YAML...");
+    AddMenuItem(fileMenu, position++, ID_FILE_IMPORT_FUNCTIONS_YML, "Import Script Functions from YAML...");
+    AddMenuItem(fileMenu, position++, ID_FILE_EXPORT_ASM, "Export Script Functions as ASM...");
+    AddMenuItem(fileMenu, position, ID_FILE_IMPORT_ASM, "Import Script Functions from ASM...");
 
     m_mgr.Update();
     UpdateUI();
@@ -294,11 +313,23 @@ void ScriptTableTreeEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
     switch (evt.GetId())
     {
-    case ID_FILE_EXPORT_YML:
+    case ID_FILE_EXPORT_FUNCTIONS_YML:
         m_editor->ExportScript(true);
         break;
-    case ID_FILE_IMPORT_YML:
+    case ID_FILE_IMPORT_FUNCTIONS_YML:
         m_editor->ImportScript(true);
+        break;
+    case ID_FILE_EXPORT_TABLE_YML:
+        m_editor->ExportTableYaml();
+        break;
+    case ID_FILE_IMPORT_TABLE_YML:
+        m_editor->ImportTableYaml();
+        break;
+    case ID_FILE_EXPORT_TABLE_ASM:
+        m_editor->ExportTableAsm();
+        break;
+    case ID_FILE_IMPORT_TABLE_ASM:
+        m_editor->ImportTableAsm();
         break;
     case ID_FILE_EXPORT_ASM:
         m_editor->ExportScript(false);

@@ -5,8 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <wx/busyinfo.h>
+#include <wx/choicdlg.h>
 #include <wx/dir.h>
 #include <wx/progdlg.h>
+#include <wx/spinctrl.h>
 #include <main/ImageBufferWx.h>
 #include <rooms/FlagDialog.h>
 #include <rooms/ChestDialog.h>
@@ -18,6 +20,7 @@
 #include <landstalker/misc/Labels.h>
 #include <landstalker/3d_maps/MapToTmx.h>
 #include <landstalker/3d_maps/RoomToTmx.h>
+#include <landstalker/3d_maps/RoomToYaml.h>
 #include <rooms/gpu/GLCanvas.h>
 
 wxDEFINE_EVENT(EVT_ENTITY_UPDATE, wxCommandEvent);
@@ -33,12 +36,20 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_EXPORT_ROOM_TMX,
 	ID_FILE_EXPORT_ALL_ROOMS_TMX,
+	ID_FILE_EXPORT_ROOM_METADATA,
+	ID_FILE_EXPORT_ALL_ROOM_METADATA,
 	ID_FILE_SEP1,
+	ID_FILE_IMPORT_ROOM_METADATA,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
 	ID_FILE_IMPORT_TMX,
 	ID_FILE_IMPORT_ALL_TMX,
 	ID_EDIT,
+	ID_EDIT_CREATE_MAP,
+	ID_EDIT_DELETE_MAP,
+	ID_EDIT_RENAME_MAP,
+	ID_EDIT_MOVE_MAP_UP,
+	ID_EDIT_MOVE_MAP_DOWN,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
@@ -580,6 +591,54 @@ bool RoomViewerFrame::ExportAllRoomsTmx(const std::string& dir)
 	return true;
 }
 
+bool RoomViewerFrame::ExportRoomMetadata(const std::string& path, uint16_t roomnum)
+{
+	if (!m_g || roomnum >= m_g->GetRoomData()->GetRoomCount())
+	{
+		return false;
+	}
+
+	return RoomToYaml::ExportToYaml(path, roomnum, m_g);
+}
+
+bool RoomViewerFrame::ExportAllRoomMetadata(const std::string& dir)
+{
+	if (!m_g)
+	{
+		return false;
+	}
+
+	const std::filesystem::path output_dir(dir);
+	std::error_code error;
+	std::filesystem::create_directories(output_dir, error);
+	if (error)
+	{
+		return false;
+	}
+
+	auto dialog = wxProgressDialog("Export", "Exporting Room Metadata", m_g->GetRoomData()->GetRoomCount(), this);
+	for (std::size_t i = 0; i < m_g->GetRoomData()->GetRoomCount(); ++i)
+	{
+		const auto room = m_g->GetRoomData()->GetRoom(i);
+		dialog.Update(i, Landstalker::StrWPrintf("Exporting %s...", room->GetDisplayName().c_str()));
+		wxYield();
+		if (!ExportRoomMetadata((output_dir / (room->name + ".yaml")).string(), static_cast<uint16_t>(i)))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool RoomViewerFrame::ImportRoomMetadata(const std::string& path, uint16_t roomnum)
+{
+	if (!m_g || roomnum >= m_g->GetRoomData()->GetRoomCount())
+	{
+		return false;
+	}
+	return RoomToYaml::ImportFromYaml(path, RoomToYaml::RoomKey{ roomnum }, m_g);
+}
+
 bool RoomViewerFrame::ExportPng(const std::string& path)
 {
 	auto map = m_g->GetRoomData()->GetMapForRoom(m_roomnum)->GetData();
@@ -608,10 +667,18 @@ bool RoomViewerFrame::ImportBin(const std::string& path)
 
 bool RoomViewerFrame::ImportTmx(const std::string& paths, uint16_t roomnum)
 {
+	auto current_map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
+	auto validation_map = *current_map;
+	if (!MapToTmx::ImportFromTmx(paths, validation_map))
+	{
+		return false;
+	}
+	if (!RoomToTmx::ImportFromTmx(paths, RoomToYaml::RoomKey{ roomnum }, m_g))
+	{
+		return false;
+	}
 	auto map = m_g->GetRoomData()->GetMapForRoom(roomnum)->GetData();
-	auto retval = MapToTmx::ImportFromTmx(paths, *map);
-	UpdateFrame();
-	return retval;
+	return MapToTmx::ImportFromTmx(paths, *map);
 }
 
 bool RoomViewerFrame::ImportAllTmx(const std::string& dir)
@@ -919,9 +986,9 @@ void RoomViewerFrame::RefreshLists() const
 		}
 	}
 	m_maps.Clear();
-	for (const auto& map : m_g->GetRoomData()->GetMaps())
+	for (const auto& map : m_g->GetRoomData()->GetMapOrder())
 	{
-		m_maps.Add(map.first);
+		m_maps.Add(map);
 	}
 	m_rooms.Clear();
 	m_rooms.Add("<NONE>");
@@ -963,6 +1030,7 @@ void RoomViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->Freeze();
 		props.GetGrid()->GetProperty("PBT")->SetChoices(m_pri_blocksets);
 		props.GetGrid()->GetProperty("SBT")->SetChoices(m_sec_blocksets);
+		props.GetGrid()->GetProperty("M")->SetChoices(m_maps);
 
 		const auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
 		auto tm = m_g->GetRoomData()->GetMapForRoom(m_roomnum);
@@ -1070,11 +1138,16 @@ void RoomViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	const wxString& name = property->GetName();
 	if (name == "Name")
 	{
-		const std::wstring new_name = property->GetValueAsString().ToStdWstring();
-		if (Labels::IsValid(new_name))
+		const auto new_name = Labels::NormalizePath(property->GetValueAsString().ToStdWstring());
+		if (new_name && *new_name == rd->GetDisplayName())
 		{
-			FireRenameNavItemEvent(new_name, rd->GetDisplayName());
-			Labels::Update(Labels::C_ROOMS, m_roomnum, new_name);
+			property->SetValueFromString(*new_name);
+		}
+		else if (new_name && Labels::IsValid(*new_name, Labels::C_ROOMS, m_roomnum))
+		{
+			FireRenameNavItemEvent(*new_name, rd->GetDisplayName());
+			Labels::Update(Labels::C_ROOMS, m_roomnum, *new_name);
+			property->SetValueFromString(*new_name);
 		}
 		else
 		{
@@ -1387,17 +1460,26 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_PNG, "Export Map as PNG...");
 	AddMenuItem(fileMenu, 7, ID_FILE_EXPORT_ROOM_TMX, "Export Room as Tiled TMX...");
 	AddMenuItem(fileMenu, 8, ID_FILE_EXPORT_ALL_ROOMS_TMX, "Export All Rooms as Tiled TMX...");
-	AddMenuItem(fileMenu, 9, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
-	AddMenuItem(fileMenu, 11, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
-	AddMenuItem(fileMenu, 12, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
+	AddMenuItem(fileMenu, 9, ID_FILE_EXPORT_ROOM_METADATA, "Export Room Metadata...");
+	AddMenuItem(fileMenu, 10, ID_FILE_EXPORT_ALL_ROOM_METADATA, "Export All Room Metadata...");
+	AddMenuItem(fileMenu, 11, ID_FILE_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 12, ID_FILE_IMPORT_ROOM_METADATA, "Import Room Metadata...");
+	AddMenuItem(fileMenu, 13, ID_FILE_IMPORT_BIN, "Import Map from Binary...");
+	AddMenuItem(fileMenu, 14, ID_FILE_IMPORT_CSV, "Import Map from CSV...");
+	AddMenuItem(fileMenu, 15, ID_FILE_IMPORT_TMX, "Import Room from Tiled TMX...");
+	AddMenuItem(fileMenu, 16, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 0, ID_EDIT_CREATE_MAP, "Create Map...");
+	AddMenuItem(editMenu, 1, ID_EDIT_DELETE_MAP, "Delete Map...");
+	AddMenuItem(editMenu, 2, ID_EDIT_RENAME_MAP, "Rename Current Map...");
+	AddMenuItem(editMenu, 3, ID_EDIT_MOVE_MAP_UP, "Move Current Map Earlier");
+	AddMenuItem(editMenu, 4, ID_EDIT_MOVE_MAP_DOWN, "Move Current Map Later");
+	AddMenuItem(editMenu, 5, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 6, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 7, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 8, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 9, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
@@ -1589,6 +1671,15 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_FILE_EXPORT_ALL_ROOMS_TMX:
 			OnExportAllRoomsTmx();
 			break;
+		case ID_FILE_EXPORT_ROOM_METADATA:
+			OnExportRoomMetadata();
+			break;
+		case ID_FILE_EXPORT_ALL_ROOM_METADATA:
+			OnExportAllRoomMetadata();
+			break;
+		case ID_FILE_IMPORT_ROOM_METADATA:
+			OnImportRoomMetadata();
+			break;
 		case ID_FILE_IMPORT_BIN:
 			OnImportBin();
 			break;
@@ -1671,6 +1762,21 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_TOOLS_BLOCKS:
 		case TOOL_SHOW_BLOCKS_PANE:
 			SetPaneVisibility(m_blkctrl, !IsPaneVisible(m_blkctrl));
+			break;
+		case ID_EDIT_CREATE_MAP:
+			OnCreateMap();
+			break;
+		case ID_EDIT_DELETE_MAP:
+			OnDeleteMap();
+			break;
+		case ID_EDIT_RENAME_MAP:
+			OnRenameMap();
+			break;
+		case ID_EDIT_MOVE_MAP_UP:
+			OnMoveMap(-1);
+			break;
+		case ID_EDIT_MOVE_MAP_DOWN:
+			OnMoveMap(1);
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
@@ -1946,6 +2052,93 @@ void RoomViewerFrame::OnExportAllRoomsTmx()
 	}
 }
 
+void RoomViewerFrame::OnExportRoomMetadata()
+{
+	const auto room = m_g->GetRoomData()->GetRoom(m_roomnum);
+	const wxString default_file = room->name + ".yaml";
+	wxFileDialog fd(this, _("Export Room Metadata"), "", default_file,
+		"YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*",
+		wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		try
+		{
+			if (!ExportRoomMetadata(fd.GetPath().ToStdString(), m_roomnum))
+			{
+				wxMessageBox("Unable to write room metadata.", "Export Error", wxOK | wxICON_ERROR, this);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			wxMessageBox("Unable to export room metadata:\n" + wxString::FromUTF8(e.what()),
+				"Export Error", wxOK | wxICON_ERROR, this);
+		}
+	}
+}
+
+void RoomViewerFrame::OnExportAllRoomMetadata()
+{
+	wxDirDialog dd(this, "Select Room Metadata Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		try
+		{
+			if (!ExportAllRoomMetadata(dd.GetPath().ToStdString()))
+			{
+				wxMessageBox("Unable to write all room metadata.", "Export Error", wxOK | wxICON_ERROR, this);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			wxMessageBox("Unable to export all room metadata:\n" + wxString::FromUTF8(e.what()),
+				"Export Error", wxOK | wxICON_ERROR, this);
+		}
+	}
+}
+
+void RoomViewerFrame::OnImportRoomMetadata()
+{
+	const auto room = m_g->GetRoomData()->GetRoom(m_roomnum);
+	const auto old_display_name = room->GetDisplayName();
+	wxFileDialog fd(this, _("Import Room Metadata"), "", room->name + ".yaml",
+		"YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*",
+		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+
+	try
+	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
+		if (!ImportRoomMetadata(fd.GetPath().ToStdString(), m_roomnum))
+		{
+			wxMessageBox("Unable to read room metadata.", "Import Error", wxOK | wxICON_ERROR, this);
+			return;
+		}
+
+		const auto new_display_name = m_g->GetRoomData()->GetRoom(m_roomnum)->GetDisplayName();
+		if (new_display_name != old_display_name)
+		{
+			FireRenameNavItemEvent(new_display_name, old_display_name);
+		}
+		if (m_gpuview)
+		{
+			m_gpuview->ReloadCurrentRoomFromGameData();
+		}
+		m_reset_props = true;
+		UpdateFrame();
+	}
+	catch (const std::exception& e)
+	{
+		wxMessageBox("Unable to import room metadata:\n" + wxString::FromUTF8(e.what()),
+			"Import Error", wxOK | wxICON_ERROR, this);
+	}
+}
+
 void RoomViewerFrame::OnExportPng()
 {
 	auto rd = m_g->GetRoomData()->GetRoom(m_roomnum);
@@ -1992,13 +2185,44 @@ void RoomViewerFrame::OnImportCsv()
 
 void RoomViewerFrame::OnImportTmx()
 {
-	wxFileDialog fd(this, _("Import Map From Tiled TMX"), "", "", "Tiled TMX Tilemap (*.tmx)|*.tmx|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() != wxID_CANCEL)
+	const auto room = m_g->GetRoomData()->GetRoom(m_roomnum);
+	const auto old_display_name = room->GetDisplayName();
+	wxFileDialog fd(this, _("Import Room From Tiled TMX"), "", room->name + ".tmx",
+		"Tiled TMX Tilemap (*.tmx)|*.tmx|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
 	{
-		std::string path = fd.GetPath().ToStdString();
-		ImportTmx(path, m_roomnum);
+		return;
 	}
-	UpdateFrame();
+
+	try
+	{
+		if (m_gpuview)
+		{
+			m_gpuview->CommitPendingEdits();
+		}
+		if (!ImportTmx(fd.GetPath().ToStdString(), m_roomnum))
+		{
+			wxMessageBox("Unable to read room TMX.", "Import Error", wxOK | wxICON_ERROR, this);
+			return;
+		}
+
+		const auto new_display_name = m_g->GetRoomData()->GetRoom(m_roomnum)->GetDisplayName();
+		if (new_display_name != old_display_name)
+		{
+			FireRenameNavItemEvent(new_display_name, old_display_name);
+		}
+		if (m_gpuview)
+		{
+			m_gpuview->ReloadCurrentRoomFromGameData();
+		}
+		m_reset_props = true;
+		UpdateFrame();
+	}
+	catch (const std::exception& e)
+	{
+		wxMessageBox("Unable to import room TMX:\n" + wxString::FromUTF8(e.what()),
+			"Import Error", wxOK | wxICON_ERROR, this);
+	}
 }
 
 void RoomViewerFrame::OnImportAllTmx()
@@ -2007,6 +2231,175 @@ void RoomViewerFrame::OnImportAllTmx()
 	if (dd.ShowModal() != wxID_CANCEL)
 	{
 		ImportAllTmx(dd.GetPath().ToStdString());
+	}
+}
+
+void RoomViewerFrame::OnCreateMap()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	const auto room_data = m_g->GetRoomData();
+	const auto current = room_data->GetMapForRoom(m_roomnum)->GetData();
+	std::string suggested_name;
+	for (unsigned int i = 1; suggested_name.empty(); ++i)
+	{
+		const auto candidate = Landstalker::StrPrintf("Map%03u", i);
+		if (room_data->GetMaps().count(candidate) == 0)
+		{
+			suggested_name = candidate;
+		}
+	}
+
+	wxDialog dialog(this, wxID_ANY, "Create Map");
+	auto outer = new wxBoxSizer(wxVERTICAL);
+	auto fields = new wxFlexGridSizer(2, 6, 6);
+	fields->AddGrowableCol(1, 1);
+	auto name = new wxTextCtrl(&dialog, wxID_ANY, wxString::FromUTF8(suggested_name));
+	name->SetMaxLength(30);
+	auto add_spin = [&](const char* label, int value, int minimum, int maximum)
+	{
+		fields->Add(new wxStaticText(&dialog, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+		auto control = new wxSpinCtrl(&dialog, wxID_ANY);
+		control->SetRange(minimum, maximum);
+		control->SetValue(std::clamp(value, minimum, maximum));
+		fields->Add(control, 1, wxEXPAND);
+		return control;
+	};
+	fields->Add(new wxStaticText(&dialog, wxID_ANY, "Name"), 0, wxALIGN_CENTER_VERTICAL);
+	fields->Add(name, 1, wxEXPAND);
+	auto map_width = add_spin("Map width", current->GetWidth(), 1, 64);
+	auto map_height = add_spin("Map height", current->GetHeight(), 1, 64);
+	auto heightmap_width = add_spin("Heightmap width", current->GetHeightmapWidth(), 1, 64);
+	auto heightmap_height = add_spin("Heightmap height", current->GetHeightmapHeight(), 1, 64);
+	auto heightmap_left = add_spin("Heightmap left", current->GetLeft(), 0, 63);
+	auto heightmap_top = add_spin("Heightmap top", current->GetTop(), 0, 63);
+	outer->Add(fields, 1, wxALL | wxEXPAND, 10);
+	outer->Add(dialog.CreateSeparatedButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+	dialog.SetSizerAndFit(outer);
+	dialog.SetMinSize(wxSize(360, -1));
+	dialog.CentreOnParent();
+
+	while (dialog.ShowModal() == wxID_OK)
+	{
+		const auto map_name = name->GetValue().ToStdString();
+		if (room_data->CreateMap(map_name,
+			static_cast<uint8_t>(map_width->GetValue()),
+			static_cast<uint8_t>(map_height->GetValue()),
+			static_cast<uint8_t>(heightmap_width->GetValue()),
+			static_cast<uint8_t>(heightmap_height->GetValue()),
+			static_cast<uint8_t>(heightmap_left->GetValue()),
+			static_cast<uint8_t>(heightmap_top->GetValue())))
+		{
+			m_reset_props = true;
+			UpdateFrame();
+			return;
+		}
+		wxMessageBox("The name must be a unique C identifier of at most 30 characters, and all sizes must be valid.",
+			"Create Map", wxOK | wxICON_ERROR, &dialog);
+	}
+}
+
+void RoomViewerFrame::OnDeleteMap()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	const auto room_data = m_g->GetRoomData();
+	wxArrayString choices;
+	for (const auto& map : room_data->GetMapOrder())
+	{
+		choices.Add(wxString::FromUTF8(map));
+	}
+	if (choices.empty())
+	{
+		return;
+	}
+	wxSingleChoiceDialog dialog(this, "Select a map to delete.", "Delete Map", choices);
+	if (dialog.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+	const auto name = dialog.GetStringSelection().ToStdString();
+	if (room_data->IsMapReferenced(name))
+	{
+		wxMessageBox("This map is referenced by one or more rooms and cannot be deleted.",
+			"Delete Map", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	if (wxMessageBox("Delete map '" + wxString::FromUTF8(name) + "'?\nThe existing binary file will not be removed from disk.",
+		"Delete Map", wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this) != wxYES)
+	{
+		return;
+	}
+	if (!room_data->DeleteMap(name))
+	{
+		wxMessageBox("Unable to delete the selected map.", "Delete Map", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	m_reset_props = true;
+	UpdateFrame();
+}
+
+void RoomViewerFrame::OnRenameMap()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	const auto room_data = m_g->GetRoomData();
+	const auto old_name = room_data->GetRoom(m_roomnum)->map;
+	wxTextEntryDialog dialog(this, "Enter a unique assembly label for the map.",
+		"Rename Map", wxString::FromUTF8(old_name));
+	if (dialog.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+	const auto new_name = dialog.GetValue().ToStdString();
+	if (!room_data->RenameMap(old_name, new_name))
+	{
+		wxMessageBox("The map name must be a unique C identifier of at most 30 characters.", "Rename Map",
+			wxOK | wxICON_ERROR, this);
+		return;
+	}
+	m_reset_props = true;
+	UpdateFrame();
+}
+
+void RoomViewerFrame::OnMoveMap(int delta)
+{
+	if (!m_g || delta == 0)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	const auto room_data = m_g->GetRoomData();
+	const auto name = room_data->GetRoom(m_roomnum)->map;
+	const auto& order = room_data->GetMapOrder();
+	const auto current = std::find(order.cbegin(), order.cend(), name);
+	if (current == order.cend())
+	{
+		return;
+	}
+	const auto current_index = static_cast<int>(std::distance(order.cbegin(), current));
+	const int new_index = current_index + delta;
+	if (new_index < 0 || new_index >= static_cast<int>(order.size()))
+	{
+		return;
+	}
+	if (room_data->ReorderMap(name, static_cast<std::size_t>(new_index)))
+	{
+		m_reset_props = true;
+		UpdateFrame();
 	}
 }
 
@@ -2060,6 +2453,31 @@ void RoomViewerFrame::UpdateUI() const
 		hmcell = static_cast<wxChoice*>(tb->FindControl(HM_TYPE_DROPDOWN));
 		hmzoom = static_cast<wxSlider*>(tb->FindControl(HM_ZOOM));
 	}
+
+	bool can_move_map_earlier = false;
+	bool can_move_map_later = false;
+	bool can_delete_map = false;
+	if (m_g && m_roomnum < m_g->GetRoomData()->GetRoomCount())
+	{
+		const auto room_data = m_g->GetRoomData();
+		const auto& order = room_data->GetMapOrder();
+		const auto map = room_data->GetRoom(m_roomnum)->map;
+		const auto current = std::find(order.cbegin(), order.cend(), map);
+		can_delete_map = std::any_of(order.cbegin(), order.cend(), [&](const auto& name)
+		{
+			return !room_data->IsMapReferenced(name);
+		});
+		if (current != order.cend())
+		{
+			can_move_map_earlier = current != order.cbegin();
+			can_move_map_later = std::next(current) != order.cend();
+		}
+	}
+	EnableMenuItem(ID_EDIT_CREATE_MAP, m_g != nullptr);
+	EnableMenuItem(ID_EDIT_DELETE_MAP, can_delete_map);
+	EnableMenuItem(ID_EDIT_RENAME_MAP, m_g != nullptr);
+	EnableMenuItem(ID_EDIT_MOVE_MAP_UP, can_move_map_earlier);
+	EnableMenuItem(ID_EDIT_MOVE_MAP_DOWN, can_move_map_later);
 
 	EnableMenuItem(ID_TOOLS_LAYERS, true);
 	EnableToolbarItem("Main", TOOL_UNDO, m_gpuview != nullptr && m_gpuview->CanUndo());
@@ -2502,6 +2920,12 @@ void RoomViewerFrame::UpdateWarpProperties(int warp)
 	WarpPropertyWindow dlg(this, m_roomnum, warp, &warps[warp - 1], *m_g);
 	if (dlg.ShowModal() == wxID_OK)
 	{
+		if (Landstalker::WarpList::HasDuplicateWarps(warps))
+		{
+			wxMessageBox("That connection already exists. Warp direction does not create a distinct warp.",
+				"Duplicate Warp", wxOK | wxICON_ERROR, this);
+			return;
+		}
 		if (m_gpuview)
 		{
 			m_gpuview->CaptureObjectUndoState();

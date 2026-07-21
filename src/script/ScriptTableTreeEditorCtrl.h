@@ -68,9 +68,16 @@ public:
     bool CanMoveEntryUp() const;
     bool CanMoveEntryDown() const;
 
-    // Whole-target import/export. `yaml` selects YAML, otherwise raw ASM.
+    // Function-pool import/export. `yaml` selects YAML, otherwise raw ASM.
     void ExportScript(bool yaml);
     void ImportScript(bool yaml);
+
+    // Character/cutscene table import/export. Their ASM form preserves Action variants as
+    // ScriptID/ScriptJump directives; shop and custom-item tables are not exposed here.
+    void ExportTableYaml();
+    void ImportTableYaml();
+    void ExportTableAsm();
+    void ImportTableAsm();
 
     // Commits any in-place edit currently open on the tree column, pushing its value through
     // the model (and so into the underlying script tables). The floating editor only commits
@@ -114,6 +121,9 @@ private:
     std::shared_ptr<Landstalker::ScriptFunctionTable> GetCategoryFunctions() const;
     std::vector<std::shared_ptr<Landstalker::ScriptFunctionTable>> GetFunctionPool() const;
     wxString GetCategoryName() const;
+    wxString GetFunctionYamlFilename() const;
+    wxString GetTableYamlFilename() const;
+    wxString GetTableAsmFilename() const;
 
     std::shared_ptr<Landstalker::GameData> m_gd;
     ScriptTableTreeCategory m_category = ScriptTableTreeCategory::SHOP;

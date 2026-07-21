@@ -301,6 +301,38 @@ wxString ScriptTableTreeEditorCtrl::GetCategoryName() const
     }
 }
 
+wxString ScriptTableTreeEditorCtrl::GetFunctionYamlFilename() const
+{
+    switch (m_category)
+    {
+    case ScriptTableTreeCategory::SHOP: return "shop_funcs.yaml";
+    case ScriptTableTreeCategory::ITEM: return "shop_item_funcs.yaml";
+    case ScriptTableTreeCategory::CHARACTER: return "character_funcs.yaml";
+    case ScriptTableTreeCategory::CUTSCENE: return "cutscene_funcs.yaml";
+    default: return "script_funcs.yaml";
+    }
+}
+
+wxString ScriptTableTreeEditorCtrl::GetTableYamlFilename() const
+{
+    switch (m_category)
+    {
+    case ScriptTableTreeCategory::CHARACTER: return "character_tables.yaml";
+    case ScriptTableTreeCategory::CUTSCENE: return "cutscene_tables.yaml";
+    default: return wxEmptyString;
+    }
+}
+
+wxString ScriptTableTreeEditorCtrl::GetTableAsmFilename() const
+{
+    switch (m_category)
+    {
+    case ScriptTableTreeCategory::CHARACTER: return "character_tables.asm";
+    case ScriptTableTreeCategory::CUTSCENE: return "cutscene_tables.asm";
+    default: return wxEmptyString;
+    }
+}
+
 ScriptTreeDataViewModel* ScriptTableTreeEditorCtrl::GetTreeModel() const
 {
     return m_dvc_ctrl ? static_cast<ScriptTreeDataViewModel*>(m_dvc_ctrl->GetModel()) : nullptr;
@@ -942,7 +974,7 @@ void ScriptTableTreeEditorCtrl::ImportScript(bool yaml)
     wxFileDialog dialog(this,
                         yaml ? "Import script from YAML" : "Import script from ASM",
                         wxEmptyString,
-                        wxEmptyString,
+                        yaml ? GetFunctionYamlFilename() : wxString(),
                         wildcard,
                         wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
@@ -1010,11 +1042,12 @@ void ScriptTableTreeEditorCtrl::ExportScript(bool yaml)
     CommitTreeEditing();
 
     const wxString name = GetCategoryName();
+    const wxString filename = yaml ? GetFunctionYamlFilename() : name + ".asm";
     wxString wildcard = yaml ? "YAML files (*.yaml)|*.yaml|All files (*.*)|*.*" : "Assembly files (*.asm)|*.asm|All files (*.*)|*.*";
     wxFileDialog dialog(this,
                         yaml ? "Export script as YAML" : "Export script as ASM",
                         wxEmptyString,
-                        name + (yaml ? ".yaml" : ".asm"),
+                        filename,
                         wildcard,
                         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
@@ -1053,5 +1086,185 @@ void ScriptTableTreeEditorCtrl::ExportScript(bool yaml)
     if (!ok)
     {
         wxMessageBox("Unable to write the selected file.", yaml ? "Export" : "Save", wxOK | wxICON_ERROR, this);
+    }
+}
+
+void ScriptTableTreeEditorCtrl::ImportTableYaml()
+{
+    const wxString filename = GetTableYamlFilename();
+    if (!m_gd || !m_open || filename.empty())
+    {
+        wxMessageBox("No character or cutscene table is open.", "Import YAML", wxOK | wxICON_WARNING, this);
+        return;
+    }
+
+    wxFileDialog dialog(this,
+                        "Import script table from YAML",
+                        wxEmptyString,
+                        filename,
+                        "YAML files (*.yaml;*.yml)|*.yaml;*.yml|All files (*.*)|*.*",
+                        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+    {
+        return;
+    }
+
+    // The current edit belongs to the table that is about to be replaced.
+    CancelTreeEditing();
+
+    try
+    {
+        std::ifstream in(std::filesystem::path(dialog.GetPath().ToStdWstring()), std::ios::binary);
+        if (!in)
+        {
+            throw std::runtime_error("Unable to open YAML file.");
+        }
+        std::ostringstream buffer;
+        buffer << in.rdbuf();
+        auto imported = ScriptTable::TableFromYaml(buffer.str());
+
+        auto script_data = m_gd->GetScriptData();
+        if (m_category == ScriptTableTreeCategory::CHARACTER)
+        {
+            *script_data->GetCharTable() = std::move(imported);
+        }
+        else
+        {
+            *script_data->GetCutsceneTable() = std::move(imported);
+        }
+
+        RebuildCategory(0);
+        wxMessageBox("Import complete.", "Import YAML", wxOK | wxICON_INFORMATION, this);
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(e.what(), "Import YAML", wxOK | wxICON_ERROR, this);
+    }
+}
+
+void ScriptTableTreeEditorCtrl::ExportTableYaml()
+{
+    const wxString filename = GetTableYamlFilename();
+    if (!m_gd || !m_open || filename.empty())
+    {
+        wxMessageBox("No character or cutscene table is open.", "Export YAML", wxOK | wxICON_WARNING, this);
+        return;
+    }
+
+    CommitTreeEditing();
+
+    wxFileDialog dialog(this,
+                        "Export script table as YAML",
+                        wxEmptyString,
+                        filename,
+                        "YAML files (*.yaml)|*.yaml|All files (*.*)|*.*",
+                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dialog.ShowModal() != wxID_OK)
+    {
+        return;
+    }
+
+    try
+    {
+        auto script_data = m_gd->GetScriptData();
+        const std::string yaml = m_category == ScriptTableTreeCategory::CHARACTER
+            ? ScriptTable::TableToYaml(script_data->GetCharTable())
+            : ScriptTable::TableToYaml(script_data->GetCutsceneTable());
+        std::ofstream out(std::filesystem::path(dialog.GetPath().ToStdWstring()), std::ios::binary);
+        if (!out)
+        {
+            throw std::runtime_error("Unable to open the selected file for writing.");
+        }
+        out << yaml;
+        if (!out.good())
+        {
+            throw std::runtime_error("Unable to write the selected file.");
+        }
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(e.what(), "Export YAML", wxOK | wxICON_ERROR, this);
+    }
+}
+
+void ScriptTableTreeEditorCtrl::ImportTableAsm()
+{
+    const wxString filename = GetTableAsmFilename();
+    if (!m_gd || !m_open || filename.empty())
+    {
+        wxMessageBox("No character or cutscene table is open.", "Import ASM", wxOK | wxICON_WARNING, this);
+        return;
+    }
+
+    wxFileDialog dialog(this,
+                        "Import script table from ASM",
+                        wxEmptyString,
+                        filename,
+                        "Assembly files (*.asm)|*.asm|All files (*.*)|*.*",
+                        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+    {
+        return;
+    }
+
+    CancelTreeEditing();
+
+    try
+    {
+        auto imported = ScriptTable::ReadTable(dialog.GetPath().ToStdString());
+        if (!imported || imported->empty())
+        {
+            throw std::runtime_error("The imported file did not contain any script table entries.");
+        }
+
+        auto script_data = m_gd->GetScriptData();
+        if (m_category == ScriptTableTreeCategory::CHARACTER)
+        {
+            *script_data->GetCharTable() = std::move(*imported);
+        }
+        else
+        {
+            *script_data->GetCutsceneTable() = std::move(*imported);
+        }
+
+        RebuildCategory(0);
+        wxMessageBox("Import complete.", "Import ASM", wxOK | wxICON_INFORMATION, this);
+    }
+    catch (const std::exception& e)
+    {
+        wxMessageBox(e.what(), "Import ASM", wxOK | wxICON_ERROR, this);
+    }
+}
+
+void ScriptTableTreeEditorCtrl::ExportTableAsm()
+{
+    const wxString filename = GetTableAsmFilename();
+    if (!m_gd || !m_open || filename.empty())
+    {
+        wxMessageBox("No character or cutscene table is open.", "Export ASM", wxOK | wxICON_WARNING, this);
+        return;
+    }
+
+    CommitTreeEditing();
+
+    wxFileDialog dialog(this,
+                        "Export script table as ASM",
+                        wxEmptyString,
+                        filename,
+                        "Assembly files (*.asm)|*.asm|All files (*.*)|*.*",
+                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dialog.ShowModal() != wxID_OK)
+    {
+        return;
+    }
+
+    const std::filesystem::path path(dialog.GetPath().ToStdWstring());
+    auto script_data = m_gd->GetScriptData();
+    const bool ok = m_category == ScriptTableTreeCategory::CHARACTER
+        ? ScriptTable::WriteTable(path.parent_path(), path.filename(), "Character Script Table", script_data->GetCharTable())
+        : ScriptTable::WriteTable(path.parent_path(), path.filename(), "Cutscene Script Table", script_data->GetCutsceneTable());
+    if (!ok)
+    {
+        wxMessageBox("Unable to write the selected file.", "Export ASM", wxOK | wxICON_ERROR, this);
     }
 }
