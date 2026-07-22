@@ -1584,7 +1584,15 @@ bool MyGLCanvas::CanNudgeHeightmap(int left_delta, int top_delta) const {
     }
     int new_left = static_cast<int>(map->GetLeft()) + left_delta;
     int new_top = static_cast<int>(map->GetTop()) + top_delta;
-    return new_left >= 0 && new_left <= 63 && new_top >= 0 && new_top <= 63;
+    if (new_left < 0 || new_left > 63 || new_top < 0 || new_top > 63) {
+        return false;
+    }
+    // The offset positions the heightmap within the tilemap, so it also has to leave the
+    // two overlapping. Without this the heightmap can be nudged clear of a small map -
+    // one created from scratch is only 16x16 - taking the room's entities and warps with
+    // it to somewhere they cannot be seen or reached.
+    return new_left < static_cast<int>(map->GetWidth()) &&
+           new_top < static_cast<int>(map->GetHeight());
 }
 
 void MyGLCanvas::NudgeHeightmap(int left_delta, int top_delta) {

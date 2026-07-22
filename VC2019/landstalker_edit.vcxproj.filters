@@ -405,6 +405,24 @@
     <ClCompile Include="..\src\rooms\MapManagerDialog.cpp">
       <Filter>src\Rooms</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\NewMapDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\NewRoomDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomManagerDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomConstantsCtrl.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomConstantsDataViewModel.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomConstantsFrame.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\wxresource\wxcrafter.cpp">
       <Filter>src\WX Resources</Filter>
     </ClCompile>
@@ -702,6 +720,24 @@
       <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\MapManagerDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\NewMapDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\NewRoomDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomManagerDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomConstantsCtrl.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomConstantsDataViewModel.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomConstantsFrame.h">
       <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\wxresource\wxcrafter.h">

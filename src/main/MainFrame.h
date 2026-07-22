@@ -24,6 +24,7 @@
 #include <script/ScriptTableTreeEditorFrame.h>
 #include <script/ProgressFlagsFrame.h>
 #include <script/CharacterSfxFrame.h>
+#include <rooms/RoomConstantsFrame.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/misc/Labels.h>
 
@@ -79,6 +80,7 @@ private:
         SCRIPT_FUNCTIONS,
         PROGRESS_FLAGS,
         CHARACTER_SFX,
+        ROOM_CONSTANTS,
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,
@@ -102,6 +104,7 @@ private:
         SCRIPT_FUNCTIONS,
         PROGRESS_FLAGS,
         CHARACTER_SFX,
+        ROOM_CONSTANTS,
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,
@@ -123,6 +126,7 @@ private:
     void OnRenameNavItem(wxCommandEvent& event);
     void OnDeleteNavItem(wxCommandEvent& event);
     void OnAddNavItem(wxCommandEvent& event);
+    void OnRebuildNavTree(wxCommandEvent& event);
     std::optional<wxTreeItemId> FindNavItem(const std::wstring& path);
     std::optional<wxTreeItemId> InsertNavItem(const std::wstring& path, int img = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     void SortNavItems(const wxTreeItemId& parent);
@@ -165,6 +169,7 @@ private:
     ScriptTableTreeEditorFrame* GetScriptTableEditor();
     ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
     CharacterSfxEditorFrame* GetCharacterSfxEditorFrame();
+    RoomConstantsEditorFrame* GetRoomConstantsEditorFrame();
     CharsetEditorFrame* GetCharsetEditor();
     
     Mode m_mode;

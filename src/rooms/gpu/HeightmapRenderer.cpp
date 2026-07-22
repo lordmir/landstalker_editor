@@ -355,6 +355,7 @@ void HeightmapRenderer::SetHoverPoint(float x, float y)
 
     auto map = CurrentMap();
     HeightmapPoint point{x, y};
+    float best_depth = 0.0f;
     auto project = [&](float cell_x, float cell_y, uint8_t z) {
         float hmx = cell_x - m_room_left + 12.5f;
         float hmy = cell_y - m_room_top + 12.5f;
@@ -387,8 +388,17 @@ void HeightmapRenderer::SetHoverPoint(float x, float y)
                 {cell.center.x - 32.0f, cell.center.y}
             };
             if (PointInQuad(point, quad)) {
-                m_hover_x = x_cell;
-                m_hover_y = y_cell;
+                // Cells at different heights can project onto the same screen space, so
+                // taking every hit in turn leaves whichever happened to be scanned last -
+                // often one standing behind the cell the user is pointing at. Keep the
+                // front-most instead: raising a cell moves it up the screen and bringing
+                // it forward moves it down, so the greatest screen y is nearest the
+                // viewer, which is also the one drawn on top.
+                if (m_hover_x < 0 || cell.center.y > best_depth) {
+                    best_depth = cell.center.y;
+                    m_hover_x = x_cell;
+                    m_hover_y = y_cell;
+                }
             }
         }
     }

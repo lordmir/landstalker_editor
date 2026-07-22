@@ -25,6 +25,7 @@ public:
         SCRIPT_FUNCTIONS,
         PROGRESS_FLAGS,
         CHARACTER_SFX,
+        ROOM_CONSTANTS,
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,

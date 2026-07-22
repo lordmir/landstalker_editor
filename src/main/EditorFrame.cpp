@@ -13,6 +13,7 @@ wxDEFINE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_RENAME_NAV_ITEM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DELETE_NAV_ITEM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_ADD_NAV_ITEM, wxCommandEvent);
+wxDEFINE_EVENT(EVT_REBUILD_NAV_TREE, wxCommandEvent);
 
 std::unordered_map<int, std::pair<wxMenuBar*, wxMenu*>> EditorFrame::m_menus;
 std::unordered_map<int, std::pair<wxMenu*, wxMenuItem*>> EditorFrame::m_menuitems;

@@ -55,6 +55,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::SCRIPT_TABLE, new ScriptTableTreeEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARACTER_SFX, new CharacterSfxEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::ROOM_CONSTANTS, new RoomConstantsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
@@ -91,6 +92,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     this->Connect(EVT_RENAME_NAV_ITEM, wxCommandEventHandler(MainFrame::OnRenameNavItem), nullptr, this);
     this->Connect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
     this->Connect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
+    this->Connect(EVT_REBUILD_NAV_TREE, wxCommandEventHandler(MainFrame::OnRebuildNavTree), nullptr, this);
 }
 
 MainFrame::~MainFrame()
@@ -109,6 +111,7 @@ MainFrame::~MainFrame()
     this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
     this->Disconnect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
     this->Disconnect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
+    this->Disconnect(EVT_REBUILD_NAV_TREE, wxCommandEventHandler(MainFrame::OnRebuildNavTree), nullptr, this);
 
     delete m_imgs;
     delete m_imgs32;
@@ -335,6 +338,7 @@ void MainFrame::InitUI()
     m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
 
     m_browser->AppendItem(nodeData, "Character Sound Effects", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::CHARACTER_SFX));
+    m_browser->AppendItem(nodeData, "Room Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::ROOM_CONSTANTS));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(Landstalker::StringData::Type::MAIN)));
@@ -760,6 +764,23 @@ void MainFrame::OnDeleteNavItem(wxCommandEvent& event)
 void MainFrame::OnAddNavItem(wxCommandEvent& event)
 {
     AddNavItem(event.GetString().ToStdWstring(), event.GetExtraLong(), static_cast<TreeNodeData::Node>(event.GetId()), event.GetInt(), false);
+}
+
+void MainFrame::OnRebuildNavTree(wxCommandEvent& event)
+{
+    if (!m_g)
+    {
+        return;
+    }
+    // Adding, deleting or moving a room renumbers every entry after it, so patching
+    // individual tree items cannot get this right - the tree is built again from the
+    // game data. This closes the open editor, hence reopening the room afterwards.
+    const int room = event.GetInt();
+    InitUI();
+    if (room >= 0 && room < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
+    {
+        GoToNavItem(std::wstring(L"Rooms/") + m_g->GetRoomData()->GetRoomDisplayName(static_cast<uint16_t>(room)), room);
+    }
 }
 
 std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
@@ -1311,6 +1332,11 @@ void MainFrame::RefreshEditor()
         GetCharacterSfxEditorFrame()->Open(m_extradata);
         ShowEditor(EditorType::CHARACTER_SFX);
         break;
+    case Mode::ROOM_CONSTANTS:
+        // Display room index constants
+        GetRoomConstantsEditorFrame()->Open(m_extradata);
+        ShowEditor(EditorType::ROOM_CONSTANTS);
+        break;
     case Mode::CHARSET:
         // Display character set mappings
         GetCharsetEditor()->Open();
@@ -1384,6 +1410,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
     case TreeNodeData::Node::CHARACTER_SFX:
         SetMode(Mode::CHARACTER_SFX);
         break;
+    case TreeNodeData::Node::ROOM_CONSTANTS:
+        SetMode(Mode::ROOM_CONSTANTS);
+        break;
     case TreeNodeData::Node::CHARSET:
         SetMode(Mode::CHARSET);
         break;
@@ -1456,6 +1485,11 @@ ProgressFlagsEditorFrame* MainFrame::GetProgressFlagsEditorFrame()
 CharacterSfxEditorFrame* MainFrame::GetCharacterSfxEditorFrame()
 {
     return static_cast<CharacterSfxEditorFrame*>(m_editors.at(EditorType::CHARACTER_SFX));
+}
+
+RoomConstantsEditorFrame* MainFrame::GetRoomConstantsEditorFrame()
+{
+    return static_cast<RoomConstantsEditorFrame*>(m_editors.at(EditorType::ROOM_CONSTANTS));
 }
 
 CharsetEditorFrame* MainFrame::GetCharsetEditor()

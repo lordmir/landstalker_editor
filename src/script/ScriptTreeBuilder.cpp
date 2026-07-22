@@ -914,7 +914,10 @@ void AddChrMapping(ScriptTreeNode* root, std::shared_ptr<ScriptFunctionTable> da
     int chr_idx = 0;
     for (const auto& entry : *table)
     {
-        auto chr = chr_root->AddChild(ScriptTreeNodeType::ROOT, StrWPrintf("%ls (%03d)", gd->GetStringData()->GetCharacterDisplayName(chr_idx).c_str(), chr_idx));
+        // Character ids are shown in hex everywhere they can be picked (see
+        // BuildIdPrefixedNameChoices), so show them in hex here too - the same number
+        // reading as 016 in one place and 022 in another is worse than either alone.
+        auto chr = chr_root->AddChild(ScriptTreeNodeType::ROOT, StrWPrintf("%ls (%03X)", gd->GetStringData()->GetCharacterDisplayName(chr_idx).c_str(), chr_idx));
         std::set<std::string> nested_in_object;
         bool merged_function = false;
         AddMappingActionSlot(*chr, ScriptTreeNodeType::ROOT, "On Talk:", entry, pool, funcs, ref_counts, nested_in_object,

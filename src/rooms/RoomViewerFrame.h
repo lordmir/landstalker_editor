@@ -70,7 +70,11 @@ public:
 	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
 	void ShowMapManagerDialog();
+	void ShowRoomManagerDialog();
 private:
+	// Applies the outcome of a manager dialog: refreshes the view if it changed anything,
+	// and navigates to the room the user double-clicked.
+	void ApplyManagerDialogResult(bool changed, int room_to_open);
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 	virtual void InitProperties(wxPropertyGridManager& props) const;

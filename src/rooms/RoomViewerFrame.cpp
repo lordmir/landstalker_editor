@@ -14,6 +14,7 @@
 #include <rooms/MapFileIo.h>
 #include <rooms/MapManagerDialog.h>
 #include <rooms/RoomErrorDialog.h>
+#include <rooms/RoomManagerDialog.h>
 #include <rooms/TileSwapDialog.h>
 #include <rooms/WarpPropertyWindow.h>
 #include <landstalker/misc/Labels.h>
@@ -44,6 +45,7 @@ enum MENU_IDS
 	ID_FILE_IMPORT_TMX,
 	ID_FILE_IMPORT_ALL_TMX,
 	ID_EDIT,
+	ID_EDIT_ROOMS,
 	ID_EDIT_MAPS,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
@@ -640,6 +642,20 @@ bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 			UpdateUI();
 			return true;
 		}
+	}
+	// The entity, warp and tile swap panes route their key presses here, and clicking a row
+	// in one of them takes focus off the canvas. Insert adds an object to the room, which is
+	// what the user is asking for whichever pane they happen to be in, so pass it on. Only
+	// this key: everything else - arrows, Tab, Delete, Home/End - belongs to the list, and
+	// forwarding it would move the camera or edit the room while the user navigates.
+	if (m_gpuview && key == WXK_INSERT)
+	{
+		wxKeyEvent forwarded(wxEVT_KEY_DOWN);
+		forwarded.m_keyCode = static_cast<int>(key);
+		forwarded.SetControlDown((modifiers & wxMOD_CONTROL) != 0);
+		forwarded.SetShiftDown((modifiers & wxMOD_SHIFT) != 0);
+		forwarded.SetAltDown((modifiers & wxMOD_ALT) != 0);
+		return m_gpuview->HandleKeyDown(forwarded);
 	}
 	return false;
 }
@@ -1290,12 +1306,13 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 16, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_MAPS, "Maps...");
-	AddMenuItem(editMenu, 1, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 2, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 3, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 4, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 5, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 0, ID_EDIT_ROOMS, "Rooms...");
+	AddMenuItem(editMenu, 1, ID_EDIT_MAPS, "Maps...");
+	AddMenuItem(editMenu, 2, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 3, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 4, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 5, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 6, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
@@ -1578,6 +1595,9 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_TOOLS_BLOCKS:
 		case TOOL_SHOW_BLOCKS_PANE:
 			SetPaneVisibility(m_blkctrl, !IsPaneVisible(m_blkctrl));
+			break;
+		case ID_EDIT_ROOMS:
+			ShowRoomManagerDialog();
 			break;
 		case ID_EDIT_MAPS:
 			ShowMapManagerDialog();
@@ -2051,7 +2071,51 @@ void RoomViewerFrame::ShowMapManagerDialog()
 	}
 	MapManagerDialog dlg(this, m_g, m_roomnum);
 	dlg.ShowModal();
-	if (dlg.HasChanges())
+	ApplyManagerDialogResult(dlg.HasChanges(), dlg.GetRoomToOpen());
+}
+
+void RoomViewerFrame::ShowRoomManagerDialog()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	RoomManagerDialog dlg(this, m_g, m_roomnum);
+	dlg.ShowModal();
+	if (!dlg.HasChanges())
+	{
+		// The room list is untouched, so the navigation tree is still correct; there may
+		// still be a double-clicked room to open.
+		ApplyManagerDialogResult(false, dlg.GetRoomToOpen());
+		return;
+	}
+
+	// Adding, deleting, renaming or moving a room changes the name and number of tree
+	// entries the editor cannot patch one at a time - deleting room 5 renumbers every
+	// room above it - so the tree is rebuilt from the game data instead. Pick the room to
+	// land on first: the one the user double-clicked, else the one already open, clamped
+	// in case it was the room that just went.
+	const auto room_count = static_cast<int>(m_g->GetRoomData()->GetRoomCount());
+	int room = dlg.GetRoomToOpen();
+	if (room < 0)
+	{
+		room = m_roomnum;
+	}
+	room = room_count == 0 ? -1 : std::min(room, room_count - 1);
+
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(room);
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::ApplyManagerDialogResult(bool changed, int room_to_open)
+{
+	if (changed)
 	{
 		if (m_gpuview)
 		{
@@ -2061,14 +2125,13 @@ void RoomViewerFrame::ShowMapManagerDialog()
 		UpdateFrame();
 	}
 
-	const int room = dlg.GetRoomToOpen();
-	if (room >= 0 && room < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
+	if (room_to_open >= 0 && room_to_open < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
 	{
-		SetRoomNum(static_cast<uint16_t>(room));
+		SetRoomNum(static_cast<uint16_t>(room_to_open));
 		// Keep the navigation tree's selection in step with the room we just opened.
 		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
-		evt.SetString(wxString(L"Rooms/") + m_g->GetRoomData()->GetRoom(room)->GetDisplayName());
-		evt.SetInt(room);
+		evt.SetString(wxString(L"Rooms/") + m_g->GetRoomData()->GetRoom(room_to_open)->GetDisplayName());
+		evt.SetInt(room_to_open);
 		evt.SetClientData(this);
 		wxPostEvent(this, evt);
 	}
@@ -2972,6 +3035,18 @@ void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
 	if (m_gpuview != nullptr)
 	{
 		m_gpuview->SetSelectedBlockId(block);
+		// Picking a block out of the block selector says the user wants to paint with it,
+		// so drop out of select mode rather than making them reach for the tool button.
+		// The heightmap editor already behaves this way when a cell type is picked.
+		const auto editor_mode = m_gpuview->GetEditorMode();
+		if ((editor_mode == MyGLCanvas::EditorMode::BackgroundLayer ||
+			 editor_mode == MyGLCanvas::EditorMode::ForegroundLayer) &&
+			m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Select)
+		{
+			m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+			SyncGpuViewControls();
+			UpdateUI();
+		}
 	}
 	if (m_blkctrl != nullptr)
 	{

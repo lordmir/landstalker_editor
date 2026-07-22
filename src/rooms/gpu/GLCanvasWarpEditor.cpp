@@ -359,7 +359,16 @@ void GLCanvasWarpEditor::AddWarpHalf()
 		}
 		uint32_t key = m_canvas.m_pending_warp_instance_id;
 		if (pending_idx >= 0) {
-			key = m_canvas.m_warps[static_cast<std::size_t>(pending_idx)].warp_key;
+			// A half placed in this session has no key yet - MakeWarpInstance defaults
+			// warp_key to 0, and only the room load path assigns real keys. Adopting that
+			// zero would leave both endpoints of this warp keyed by their instance ids in
+			// BuildCurrentRoomWarps, which then emits the single connection twice and
+			// trips the duplicate check, so the warp is rejected and thrown away. Only
+			// take the pending half's key when it actually has one.
+			const uint32_t pending_key = m_canvas.m_warps[static_cast<std::size_t>(pending_idx)].warp_key;
+			if (pending_key != 0) {
+				key = pending_key;
+			}
 			WarpInstance first_inst = GLCanvasObjectSupport::MakeWarpInstance(
 				warp,
 				m_canvas.m_current_room,
@@ -439,8 +448,38 @@ void GLCanvasWarpEditor::AddWarpHalf()
 
 std::pair<float, float> GLCanvasWarpEditor::FindNearestFreeWarpCell(float preferred_x, float preferred_y) const
 {
-	int start_x = std::clamp(static_cast<int>(std::round(preferred_x)), 0, 63);
-	int start_y = std::clamp(static_cast<int>(std::round(preferred_y)), 0, 63);
+	// Keep placement somewhere the room actually exists. Searching the whole 0..63 range
+	// drops warps off the edge of any smaller room - a map created from scratch is only
+	// 16x16, so most of that range is nowhere.
+	//
+	// The bound is the heightmap the warp will stand on, taken together with the tilemap
+	// it is drawn over, because the two do not always cover each other. Warp coordinates
+	// are heightmap cells offset by 12 (see FloorUnderRect), and the tilemap starts at the
+	// heightmap origin (left, top), so in warp coordinates they span [12, 12 + heightmap
+	// size) and [left, left + map size) respectively. The union is deliberate: the shipped
+	// game has two warps - rooms 207 and 210 - sitting outside their room's heightmap, and
+	// bounding to the heightmap alone would make placements like those impossible.
+	constexpr int heightmap_origin = 12;
+	int min_x = 0;
+	int min_y = 0;
+	int max_x = 63;
+	int max_y = 63;
+	if (const auto map = m_canvas.CurrentRoomMap()) {
+		const int hm_left = heightmap_origin;
+		const int hm_top = heightmap_origin;
+		const int hm_right = hm_left + static_cast<int>(map->GetHeightmapWidth()) - 1;
+		const int hm_bottom = hm_top + static_cast<int>(map->GetHeightmapHeight()) - 1;
+		const int map_left = static_cast<int>(map->GetLeft());
+		const int map_top = static_cast<int>(map->GetTop());
+		const int map_right = map_left + static_cast<int>(map->GetWidth()) - 1;
+		const int map_bottom = map_top + static_cast<int>(map->GetHeight()) - 1;
+		min_x = std::clamp(std::min(hm_left, map_left), 0, 63);
+		min_y = std::clamp(std::min(hm_top, map_top), 0, 63);
+		max_x = std::clamp(std::max(hm_right, map_right), min_x, 63);
+		max_y = std::clamp(std::max(hm_bottom, map_bottom), min_y, 63);
+	}
+	int start_x = std::clamp(static_cast<int>(std::round(preferred_x)), min_x, max_x);
+	int start_y = std::clamp(static_cast<int>(std::round(preferred_y)), min_y, max_y);
 
 	auto cell_free = [this](int x, int y) {
 		float fx = static_cast<float>(x);
@@ -459,8 +498,8 @@ std::pair<float, float> GLCanvasWarpEditor::FindNearestFreeWarpCell(float prefer
 	int best_x = start_x;
 	int best_y = start_y;
 	int best_dist = std::numeric_limits<int>::max();
-	for (int y = 0; y <= 63; ++y) {
-		for (int x = 0; x <= 63; ++x) {
+	for (int y = min_y; y <= max_y; ++y) {
+		for (int x = min_x; x <= max_x; ++x) {
 			if (!cell_free(x, y)) {
 				continue;
 			}

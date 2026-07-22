@@ -15,7 +15,8 @@ wxString MakeTitle(const std::shared_ptr<Landstalker::GameData>& gd, ScriptTable
 	switch (category)
 	{
 	case ScriptTableTreeCategory::CHARACTER:
-		return wxString(Landstalker::StrWPrintf("%ls (%03d)",
+		// Hex, to match the character script tree and every character picker.
+		return wxString(Landstalker::StrWPrintf("%ls (%03X)",
 			gd->GetStringData()->GetCharacterDisplayName(entry).c_str(), entry));
 	case ScriptTableTreeCategory::CUTSCENE:
 		return wxString(Landstalker::StrWPrintf("Cutscene Script %03d", entry));

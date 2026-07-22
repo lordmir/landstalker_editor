@@ -40,6 +40,8 @@ private:
 	// Index of the first room drawing the given map, or -1 when nothing uses it.
 	int FirstRoomUsing(const std::string& map) const;
 	std::string SuggestMapName() const;
+	// Moves a freshly created map from the end of the order to just below the selection.
+	void PlaceAfterSelection(const std::string& name);
 	// Asks for an internal name for a new map, re-prompting until it is usable or cancelled.
 	bool PromptForName(const wxString& title, const std::string& initial, std::string& name);
 	void Move(int delta);
@@ -48,6 +50,7 @@ private:
 	void OnRoomSelected(wxCommandEvent& evt);
 	void OnRoomActivated(wxCommandEvent& evt);
 	void OnAdd(wxCommandEvent& evt);
+	void OnDuplicate(wxCommandEvent& evt);
 	void OnImport(wxCommandEvent& evt);
 	void OnExport(wxCommandEvent& evt);
 	void OnRemove(wxCommandEvent& evt);
@@ -74,6 +77,7 @@ private:
 	wxStaticText* m_detail_blocksets;
 	wxStaticText* m_detail_palette;
 	wxButton* m_add;
+	wxButton* m_duplicate;
 	wxButton* m_import;
 	wxButton* m_export;
 	wxButton* m_remove;

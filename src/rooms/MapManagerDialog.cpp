@@ -13,6 +13,7 @@
 #include <landstalker/misc/Utils.h>
 #include <main/ImageBufferWx.h>
 #include <rooms/MapFileIo.h>
+#include <rooms/NewMapDialog.h>
 
 namespace
 {
@@ -38,66 +39,6 @@ std::string ToLower(const std::string& str)
 	});
 	return result;
 }
-
-// Prompts for a map name and its six dimensions.
-class NewMapDialog : public wxDialog
-{
-public:
-	NewMapDialog(wxWindow* parent, const std::string& suggested_name)
-		: wxDialog(parent, wxID_ANY, "Add Map")
-	{
-		auto* outer = new wxBoxSizer(wxVERTICAL);
-		auto* fields = new wxFlexGridSizer(2, 6, 6);
-		fields->AddGrowableCol(1, 1);
-
-		m_name = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(suggested_name));
-		m_name->SetMaxLength(30);
-		fields->Add(new wxStaticText(this, wxID_ANY, "Name"), 0, wxALIGN_CENTER_VERTICAL);
-		fields->Add(m_name, 1, wxEXPAND);
-
-		m_map_width = AddSpin(fields, "Map width", DEFAULT_MAP_SIZE, 1, 64);
-		m_map_height = AddSpin(fields, "Map height", DEFAULT_MAP_SIZE, 1, 64);
-		m_heightmap_width = AddSpin(fields, "Heightmap width", DEFAULT_MAP_SIZE, 1, 64);
-		m_heightmap_height = AddSpin(fields, "Heightmap height", DEFAULT_MAP_SIZE, 1, 64);
-		m_heightmap_left = AddSpin(fields, "Heightmap left", 0, 0, 63);
-		m_heightmap_top = AddSpin(fields, "Heightmap top", 0, 0, 63);
-
-		outer->Add(fields, 1, wxALL | wxEXPAND, 10);
-		outer->Add(CreateSeparatedButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
-		SetSizerAndFit(outer);
-		SetMinSize(wxSize(360, -1));
-		CentreOnParent();
-	}
-
-	std::string GetMapName() const { return m_name->GetValue().ToStdString(); }
-	uint8_t GetMapWidth() const { return Value(m_map_width); }
-	uint8_t GetMapHeight() const { return Value(m_map_height); }
-	uint8_t GetHeightmapWidth() const { return Value(m_heightmap_width); }
-	uint8_t GetHeightmapHeight() const { return Value(m_heightmap_height); }
-	uint8_t GetHeightmapLeft() const { return Value(m_heightmap_left); }
-	uint8_t GetHeightmapTop() const { return Value(m_heightmap_top); }
-
-private:
-	static uint8_t Value(const wxSpinCtrl* ctrl) { return static_cast<uint8_t>(ctrl->GetValue()); }
-
-	wxSpinCtrl* AddSpin(wxFlexGridSizer* fields, const char* label, int value, int minimum, int maximum)
-	{
-		fields->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-		auto* control = new wxSpinCtrl(this, wxID_ANY);
-		control->SetRange(minimum, maximum);
-		control->SetValue(value);
-		fields->Add(control, 1, wxEXPAND);
-		return control;
-	}
-
-	wxTextCtrl* m_name;
-	wxSpinCtrl* m_map_width;
-	wxSpinCtrl* m_map_height;
-	wxSpinCtrl* m_heightmap_width;
-	wxSpinCtrl* m_heightmap_height;
-	wxSpinCtrl* m_heightmap_left;
-	wxSpinCtrl* m_heightmap_top;
-};
 
 // Prompts for both of a map's names: the assembly label the disassembly is built around,
 // and the friendlier label the editor shows. The two are independent - the internal name
@@ -210,6 +151,7 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 	  m_detail_blocksets(nullptr),
 	  m_detail_palette(nullptr),
 	  m_add(nullptr),
+	  m_duplicate(nullptr),
 	  m_import(nullptr),
 	  m_export(nullptr),
 	  m_remove(nullptr),
@@ -230,6 +172,7 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 	auto* map_box = new wxStaticBoxSizer(wxVERTICAL, this, "Maps");
 	m_map_list = new wxListBox(map_box->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_SINGLE);
 	m_map_list->SetMinSize(LIST_MIN_SIZE);
+	m_map_list->SetToolTip("Double-click a map to close this dialog and open the room previewed alongside it.");
 	map_box->Add(m_map_list, 1, wxALL | wxEXPAND, 5);
 	panes->Add(map_box, 1, wxALL | wxEXPAND, 5);
 
@@ -280,6 +223,7 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 	outer->Add(buttons, 0, wxALL | wxEXPAND, 5);
 
 	m_add = new wxButton(this, wxID_ANY, "Add...");
+	m_duplicate = new wxButton(this, wxID_ANY, "Duplicate...");
 	m_import = new wxButton(this, wxID_ANY, "Import...");
 	m_export = new wxButton(this, wxID_ANY, "Export...");
 	m_remove = new wxButton(this, wxID_ANY, "Remove");
@@ -287,7 +231,7 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 	m_move_down = new wxButton(this, wxID_ANY, "Move Down");
 	m_rename = new wxButton(this, wxID_ANY, "Rename...");
 	m_close = new wxButton(this, wxID_CANCEL, "Close");
-	for (auto* button : { m_add, m_import, m_export, m_remove, m_move_up, m_move_down, m_rename })
+	for (auto* button : { m_add, m_duplicate, m_import, m_export, m_remove, m_move_up, m_move_down, m_rename })
 	{
 		buttons->Add(button, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
 	}
@@ -308,9 +252,11 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 	PopulateMapList(current_map);
 
 	m_map_list->Connect(wxEVT_LISTBOX, wxCommandEventHandler(MapManagerDialog::OnMapSelected), nullptr, this);
+	m_map_list->Connect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(MapManagerDialog::OnRoomActivated), nullptr, this);
 	m_room_list->Connect(wxEVT_LISTBOX, wxCommandEventHandler(MapManagerDialog::OnRoomSelected), nullptr, this);
 	m_room_list->Connect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(MapManagerDialog::OnRoomActivated), nullptr, this);
 	m_add->Connect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnAdd), nullptr, this);
+	m_duplicate->Connect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnDuplicate), nullptr, this);
 	m_import->Connect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnImport), nullptr, this);
 	m_export->Connect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnExport), nullptr, this);
 	m_remove->Connect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnRemove), nullptr, this);
@@ -322,9 +268,11 @@ MapManagerDialog::MapManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker
 MapManagerDialog::~MapManagerDialog()
 {
 	m_map_list->Disconnect(wxEVT_LISTBOX, wxCommandEventHandler(MapManagerDialog::OnMapSelected), nullptr, this);
+	m_map_list->Disconnect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(MapManagerDialog::OnRoomActivated), nullptr, this);
 	m_room_list->Disconnect(wxEVT_LISTBOX, wxCommandEventHandler(MapManagerDialog::OnRoomSelected), nullptr, this);
 	m_room_list->Disconnect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(MapManagerDialog::OnRoomActivated), nullptr, this);
 	m_add->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnAdd), nullptr, this);
+	m_duplicate->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnDuplicate), nullptr, this);
 	m_import->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnImport), nullptr, this);
 	m_export->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnExport), nullptr, this);
 	m_remove->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(MapManagerDialog::OnRemove), nullptr, this);
@@ -575,6 +523,7 @@ void MapManagerDialog::UpdateUI()
 {
 	const int index = GetSelectedMapIndex();
 	const int count = static_cast<int>(m_map_list->GetCount());
+	m_duplicate->Enable(index != wxNOT_FOUND);
 	m_export->Enable(index != wxNOT_FOUND);
 	m_remove->Enable(CanDeleteSelectedMap());
 	m_rename->Enable(index != wxNOT_FOUND);
@@ -634,35 +583,12 @@ bool MapManagerDialog::CanDeleteSelectedMap() const
 
 std::string MapManagerDialog::SuggestMapName() const
 {
-	const auto& maps = m_gd->GetRoomData()->GetMaps();
-	for (unsigned int i = 1; ; ++i)
-	{
-		const auto candidate = Landstalker::StrPrintf("Map%03u", i);
-		if (maps.count(candidate) == 0)
-		{
-			return candidate;
-		}
-	}
+	return ::SuggestMapName(*m_gd->GetRoomData());
 }
 
 bool MapManagerDialog::PromptForName(const wxString& title, const std::string& initial, std::string& name)
 {
-	const auto& maps = m_gd->GetRoomData()->GetMaps();
-	wxTextEntryDialog dialog(this, "Enter a unique assembly label for the map.", title,
-		wxString::FromUTF8(initial));
-	dialog.SetMaxLength(30);
-	while (dialog.ShowModal() == wxID_OK)
-	{
-		const auto candidate = dialog.GetValue().ToStdString();
-		if (Landstalker::RoomData::IsValidMapName(candidate) && maps.count(candidate) == 0)
-		{
-			name = candidate;
-			return true;
-		}
-		wxMessageBox("The name must start with a letter, only contain A-Z, a-z, 0-9 and _, and be at most 30 characters.",
-			title, wxOK | wxICON_ERROR, this);
-	}
-	return false;
+	return PromptForMapName(this, title, *m_gd->GetRoomData(), initial, name);
 }
 
 void MapManagerDialog::Move(int delta)
@@ -713,23 +639,57 @@ void MapManagerDialog::OnRoomActivated(wxCommandEvent& /*evt*/)
 
 void MapManagerDialog::OnAdd(wxCommandEvent& /*evt*/)
 {
-	NewMapDialog dialog(this, SuggestMapName());
-	while (dialog.ShowModal() == wxID_OK)
+	const auto name = PromptCreateMap(this, m_gd);
+	if (!name.empty())
 	{
-		const auto name = dialog.GetMapName();
-		if (m_gd->GetRoomData()->CreateMap(name,
-			dialog.GetMapWidth(), dialog.GetMapHeight(),
-			dialog.GetHeightmapWidth(), dialog.GetHeightmapHeight(),
-			dialog.GetHeightmapLeft(), dialog.GetHeightmapTop()))
-		{
-			m_changed = true;
-			PopulateMapList(name);
-			return;
-		}
-		wxMessageBox("The name must be unique, start with a letter, only contain A-Z, a-z, 0-9 and _, "
-			"and be at most 30 characters. All sizes must be valid.",
-			"Add Map", wxOK | wxICON_ERROR, this);
+		m_changed = true;
+		PlaceAfterSelection(name);
+		PopulateMapList(name);
 	}
+}
+
+void MapManagerDialog::PlaceAfterSelection(const std::string& name)
+{
+	// CreateMap and the importers append to the end of the order. Move the new map to sit
+	// directly below whatever was selected, which is where the user was looking when they
+	// asked for it.
+	const int index = GetSelectedMapIndex();
+	if (index == wxNOT_FOUND)
+	{
+		return;
+	}
+	const auto& order = m_gd->GetRoomData()->GetMapOrder();
+	const auto existing = std::find(order.cbegin(), order.cend(), name);
+	if (existing == order.cend())
+	{
+		return;
+	}
+	// The selection index still refers to the list as it was before the append, so it is
+	// unaffected by the new entry sitting at the end.
+	m_gd->GetRoomData()->ReorderMap(name, static_cast<std::size_t>(index) + 1);
+}
+
+void MapManagerDialog::OnDuplicate(wxCommandEvent& /*evt*/)
+{
+	const auto source = GetSelectedMap();
+	if (source.empty())
+	{
+		return;
+	}
+	const auto room_data = m_gd->GetRoomData();
+	std::string name;
+	if (!PromptForMapName(this, "Duplicate Map", *room_data, SuggestMapCopyName(*room_data, source), name))
+	{
+		return;
+	}
+	if (!DuplicateMap(m_gd, source, name))
+	{
+		wxMessageBox("Unable to duplicate the selected map.", "Duplicate Map", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	m_changed = true;
+	PlaceAfterSelection(name);
+	PopulateMapList(name);
 }
 
 void MapManagerDialog::OnImport(wxCommandEvent& /*evt*/)
@@ -797,6 +757,7 @@ void MapManagerDialog::OnImport(wxCommandEvent& /*evt*/)
 		return;
 	}
 	m_changed = true;
+	PlaceAfterSelection(name);
 	PopulateMapList(name);
 }
 

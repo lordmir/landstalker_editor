@@ -83,5 +83,10 @@ wxDECLARE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
 wxDECLARE_EVENT(EVT_RENAME_NAV_ITEM, wxCommandEvent);
 wxDECLARE_EVENT(EVT_DELETE_NAV_ITEM, wxCommandEvent);
 wxDECLARE_EVENT(EVT_ADD_NAV_ITEM, wxCommandEvent);
+// Rebuilds the whole navigation tree from the game data. For structural changes that the
+// per-item add / rename / delete events cannot express - reordering or deleting a room
+// renumbers every entry after it, so the tree has to be built again from scratch. The
+// event's int is a room to reopen afterwards, or -1 for none.
+wxDECLARE_EVENT(EVT_REBUILD_NAV_TREE, wxCommandEvent);
 
 #endif // _EDITOR_FRAME_H_

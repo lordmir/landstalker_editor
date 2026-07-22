@@ -807,9 +807,29 @@ long ParseValue(const wxArrayString& choices, const wxString& text, long fallbac
 		const int close = t.Find(']');
 		if (close != wxNOT_FOUND)
 		{
-			wxString idx = t.SubString(1, close - 1);
+			const wxString idx = t.SubString(1, close - 1);
+			// Match the bracketed id against each choice's own prefix before trying to read
+			// it as a number. The lists are not all in the same base - character ids are
+			// formatted as hex, flags and slots as decimal - so parsing the id as decimal
+			// either fails outright on a digit like A or, worse, silently resolves "[010]"
+			// to entry 10 when the label means 0x10.
+			for (std::size_t i = 0; i < choices.GetCount(); ++i)
+			{
+				const wxString& choice = choices[i];
+				const int choice_close = choice.StartsWith("[") ? choice.Find(']') : wxNOT_FOUND;
+				if (choice_close != wxNOT_FOUND &&
+					choice.SubString(1, choice_close - 1).CmpNoCase(idx) == 0)
+				{
+					return static_cast<long>(i);
+				}
+			}
 			long parsed = 0;
 			if (idx.ToLong(&parsed) && parsed >= 0 && parsed < static_cast<long>(choices.GetCount()))
+			{
+				return parsed;
+			}
+			// Last resort, for an id typed without the label's leading zeros.
+			if (idx.ToLong(&parsed, 16) && parsed >= 0 && parsed < static_cast<long>(choices.GetCount()))
 			{
 				return parsed;
 			}

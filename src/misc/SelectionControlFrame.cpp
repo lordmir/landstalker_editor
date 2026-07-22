@@ -1,4 +1,4 @@
-#include <misc/SelectionControlFrame.h>
+﻿#include <misc/SelectionControlFrame.h>
 #include <landstalker/misc/Utils.h>
 #include <rooms/RoomViewerFrame.h>
 
@@ -30,30 +30,30 @@ SelectionControlFrame::SelectionControlFrame(wxWindow* parent, ImageList* imglst
 
     m_ctrl_list->Connect(wxEVT_LISTBOX, wxCommandEventHandler(SelectionControlFrame::OnSelect), NULL, this);
     m_ctrl_list->Connect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(SelectionControlFrame::OnListDoubleClick), NULL, this);
-    m_ctrl_list->Connect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_list->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_add->Connect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnAdd), NULL, this);
-    m_ctrl_add->Connect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_add->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_delete->Connect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnDelete), NULL, this);
-    m_ctrl_delete->Connect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_delete->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_move_up->Connect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnMoveUp), NULL, this);
-    m_ctrl_move_up->Connect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_move_up->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_move_down->Connect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnMoveDown), NULL, this);
-    m_ctrl_move_down->Connect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_move_down->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
 }
 
 SelectionControlFrame::~SelectionControlFrame()
 {
     m_ctrl_list->Disconnect(wxEVT_LISTBOX, wxCommandEventHandler(SelectionControlFrame::OnSelect), NULL, this);
     m_ctrl_list->Disconnect(wxEVT_LISTBOX_DCLICK, wxCommandEventHandler(SelectionControlFrame::OnListDoubleClick), NULL, this);
-    m_ctrl_list->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_list->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_add->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnAdd), NULL, this);
-    m_ctrl_add->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_add->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_delete->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnDelete), NULL, this);
-    m_ctrl_delete->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_delete->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_move_up->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnMoveUp), NULL, this);
-    m_ctrl_move_up->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_move_up->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
     m_ctrl_move_down->Disconnect(wxEVT_BUTTON, wxCommandEventHandler(SelectionControlFrame::OnMoveDown), NULL, this);
-    m_ctrl_move_down->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
+    m_ctrl_move_down->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SelectionControlFrame::OnKeyDown), NULL, this);
 }
 
 void SelectionControlFrame::SetSelected(int selected)
@@ -137,7 +137,9 @@ void SelectionControlFrame::OnKeyDown(wxKeyEvent& evt)
 {
     if (evt.GetKeyCode() != WXK_RETURN)
     {
-        evt.Skip(HandleKeyPress(evt.GetKeyCode(), evt.GetModifiers()));
+        // Skip only what we did not act on, so the list still gets its own navigation
+        // keys and a key we did handle is not applied twice.
+        evt.Skip(!HandleKeyPress(evt.GetKeyCode(), evt.GetModifiers()));
     }
     else
     {

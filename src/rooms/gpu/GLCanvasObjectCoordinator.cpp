@@ -215,8 +215,19 @@ void GLCanvasObjectCoordinator::LoadRoomObjects(uint16_t roomnum)
 
 void GLCanvasObjectCoordinator::RefreshPlacementsFromHeightmap()
 {
+	// Every instance carries its own copy of the heightmap origin, taken when it was
+	// built, and ProjectRoomGridPoint subtracts it to place the object. Nudging the
+	// heightmap moves that origin, so the copies have to be refreshed here: leaving them
+	// stale draws entities and warps at the old offset while the heightmap itself uses
+	// the new one, and the objects then jump as soon as the room is reloaded and they are
+	// rebuilt with the current value.
+	const float room_left = float(m_canvas.m_mapRenderer.GetRoomLeft());
+	const float room_top = float(m_canvas.m_mapRenderer.GetRoomTop());
+
 	for (auto& inst : m_canvas.m_instances) {
 		inst.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+		inst.room_left = room_left;
+		inst.room_top = room_top;
 		inst.floor_z = m_canvas.FloorUnderHitbox(
 			inst.map_x + inst.hitbox_offset,
 			inst.map_y + inst.hitbox_offset,
@@ -226,6 +237,8 @@ void GLCanvasObjectCoordinator::RefreshPlacementsFromHeightmap()
 
 	for (auto& warp : m_canvas.m_warps) {
 		warp.z_extent = m_canvas.m_heightmapRenderer.GetZExtent();
+		warp.room_left = room_left;
+		warp.room_top = room_top;
 		m_canvas.UpdateWarpFloor(warp);
 	}
 }

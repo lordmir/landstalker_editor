@@ -59,7 +59,13 @@
     <ClCompile Include="..\src\rooms\LayerControlFrame.cpp" />
     <ClCompile Include="..\src\rooms\MapFileIo.cpp" />
     <ClCompile Include="..\src\rooms\MapManagerDialog.cpp" />
+    <ClCompile Include="..\src\rooms\NewMapDialog.cpp" />
+    <ClCompile Include="..\src\rooms\NewRoomDialog.cpp" />
+    <ClCompile Include="..\src\rooms\RoomConstantsCtrl.cpp" />
+    <ClCompile Include="..\src\rooms\RoomConstantsDataViewModel.cpp" />
+    <ClCompile Include="..\src\rooms\RoomConstantsFrame.cpp" />
     <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp" />
+    <ClCompile Include="..\src\rooms\RoomManagerDialog.cpp" />
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasCamera.cpp" />
@@ -166,7 +172,13 @@
     <ClInclude Include="..\src\rooms\LayerControlFrame.h" />
     <ClInclude Include="..\src\rooms\MapFileIo.h" />
     <ClInclude Include="..\src\rooms\MapManagerDialog.h" />
+    <ClInclude Include="..\src\rooms\NewMapDialog.h" />
+    <ClInclude Include="..\src\rooms\NewRoomDialog.h" />
+    <ClInclude Include="..\src\rooms\RoomConstantsCtrl.h" />
+    <ClInclude Include="..\src\rooms\RoomConstantsDataViewModel.h" />
+    <ClInclude Include="..\src\rooms\RoomConstantsFrame.h" />
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h" />
+    <ClInclude Include="..\src\rooms\RoomManagerDialog.h" />
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvas.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvasInputTypes.h" />
