@@ -71,6 +71,8 @@ public:
 	void ShowErrorDialog();
 	void ShowMapManagerDialog();
 	void ShowRoomManagerDialog();
+	void ShowTilesetManagerDialog();
+	void ShowBlocksetManagerDialog();
 private:
 	// Applies the outcome of a manager dialog: refreshes the view if it changed anything,
 	// and navigates to the room the user double-clicked.

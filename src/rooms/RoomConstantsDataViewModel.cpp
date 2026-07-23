@@ -216,7 +216,7 @@ bool RoomConstantsDataViewModel::AddRow(unsigned int row)
 	return true;
 }
 
-bool RoomConstantsDataViewModel::SwapRows(unsigned int r1, unsigned int r2)
+bool RoomConstantsDataViewModel::SwapRows(unsigned int /*r1*/, unsigned int /*r2*/)
 {
 	// Order is presentational only - the file is written sorted by room number - so
 	// there is nothing meaningful to reorder.

@@ -7,6 +7,7 @@ target_sources(${MODULE_NAME} PRIVATE
     "EntityViewerFrame.cpp"
     "FrameControlFrame.cpp"
     "SpriteEditorFrame.cpp"
+    "SpriteManagerDialog.cpp"
     "SpriteFrameEditorCtrl.cpp"
     "SubspriteControlFrame.cpp"
 )

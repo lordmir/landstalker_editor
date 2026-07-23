@@ -13,6 +13,7 @@
 #include <landstalker/palettes/Palette.h>
 #include <sprites/SpriteFrameEditorCtrl.h>
 #include <sprites/EntityViewerCtrl.h>
+#include <sprites/SpriteManagerDialog.h>
 #include <main/EditorFrame.h>
 #include <palettes/PaletteEditor.h>
 #include <tileset/TileEditor.h>
@@ -68,6 +69,7 @@ private:
 	void OnKeyDown(wxKeyEvent& evt);
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	void ProcessEvent(int id);
+	void ShowSpriteManagerDialog();
 
 	std::string ShowFrameDialog(const std::string& prompt, const std::string& title);
 

@@ -48,6 +48,7 @@ private:
 	void OnTilesetChange(wxCommandEvent& evt);
 	void OnTilePixelHover(wxCommandEvent& evt);
 
+	void ShowTilesetManagerDialog();
 	void ToggleAlpha();
 	void ToggleTileNums();
 	void ToggleGrid();
@@ -66,7 +67,6 @@ private:
 
 	void Save();
 	void SaveAs();
-	void New();
 	void ImportFromBin();
 	void ImportFromPng();
 	void ImportFromRom();

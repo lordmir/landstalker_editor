@@ -66,6 +66,8 @@
     <ClCompile Include="..\src\rooms\RoomConstantsFrame.cpp" />
     <ClCompile Include="..\src\rooms\RoomErrorDialog.cpp" />
     <ClCompile Include="..\src\rooms\RoomManagerDialog.cpp" />
+    <ClCompile Include="..\src\rooms\TilesetManagerDialog.cpp" />
+    <ClCompile Include="..\src\rooms\BlocksetManagerDialog.cpp" />
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvas.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasCamera.cpp" />
@@ -115,6 +117,7 @@
     <ClCompile Include="..\src\sprites\EntityViewerFrame.cpp" />
     <ClCompile Include="..\src\sprites\FrameControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\SpriteEditorFrame.cpp" />
+    <ClCompile Include="..\src\sprites\SpriteManagerDialog.cpp" />
     <ClCompile Include="..\src\sprites\SpriteFrameEditorCtrl.cpp" />
     <ClCompile Include="..\src\sprites\SubspriteControlFrame.cpp" />
     <ClCompile Include="..\src\text\StringDataViewModel.cpp" />
@@ -179,6 +182,8 @@
     <ClInclude Include="..\src\rooms\RoomConstantsFrame.h" />
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h" />
     <ClInclude Include="..\src\rooms\RoomManagerDialog.h" />
+    <ClInclude Include="..\src\rooms\TilesetManagerDialog.h" />
+    <ClInclude Include="..\src\rooms\BlocksetManagerDialog.h" />
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvas.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvasInputTypes.h" />
@@ -228,6 +233,7 @@
     <ClInclude Include="..\src\sprites\EntityViewerFrame.h" />
     <ClInclude Include="..\src\sprites\FrameControlFrame.h" />
     <ClInclude Include="..\src\sprites\SpriteEditorFrame.h" />
+    <ClInclude Include="..\src\sprites\SpriteManagerDialog.h" />
     <ClInclude Include="..\src\sprites\SpriteFrameEditorCtrl.h" />
     <ClInclude Include="..\src\sprites\SubspriteControlFrame.h" />
     <ClInclude Include="..\src\text\StringDataViewModel.h" />

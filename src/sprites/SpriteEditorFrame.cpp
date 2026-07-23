@@ -17,6 +17,8 @@ enum MENU_IDS
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
+	ID_EDIT,
+	ID_EDIT_SPRITES,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
 	ID_VIEW_TOGGLE_ALPHA,
@@ -160,8 +162,14 @@ SpriteEditorFrame::~SpriteEditorFrame()
 
 bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 {
-	OpenFrame(spr, frame, anim, ent);
-	m_preview->Open(m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite())[0], m_anim, m_palette);
+	if (!OpenFrame(spr, frame, anim, ent))
+	{
+		return false;
+	}
+	// A sprite with no entity still previews - the preview only needs an entity to look up a
+	// default; entity 0 is a harmless stand-in since the palette is passed explicitly.
+	const auto preview_entities = m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite());
+	m_preview->Open(preview_entities.empty() ? 0 : preview_entities[0], m_anim, m_palette);
 	m_framectrl->SetSelected(m_frame + 1);
 	m_animctrl->SetSelected(m_anim + 1);
 	m_animframectrl->SetSelected(1);
@@ -176,30 +184,51 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, boo
 	{
 		return false;
 	}
-	uint8_t entity = ent == -1 ? m_gd->GetSpriteData()->GetEntitiesFromSprite(spr)[0] : ent;
+	// A sprite added through the sprite manager has no entity pointing at it yet, so the
+	// entity-driven defaults below are unavailable: fall back to the sprite's own first
+	// animation and a default palette rather than dereferencing an empty entity list.
+	const auto sprite_data = m_gd->GetSpriteData();
+	const auto entities = sprite_data->GetEntitiesFromSprite(spr);
+	const bool has_entity = ent != -1 || !entities.empty();
+	const uint8_t entity = ent != -1 ? static_cast<uint8_t>(ent)
+		: (entities.empty() ? 0 : entities[0]);
 	m_frame = frame;
 	m_anim = anim;
 	if (frame == -1 && anim == -1)
 	{
-		m_sprite = m_gd->GetSpriteData()->GetDefaultEntityFrame(entity);
-		m_frame = m_gd->GetSpriteData()->GetDefaultAbsFrameId(entity);
-		m_anim = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
+		if (has_entity)
+		{
+			m_sprite = sprite_data->GetDefaultEntityFrame(entity);
+			m_frame = sprite_data->GetDefaultAbsFrameId(entity);
+			m_anim = sprite_data->GetDefaultEntityAnimationId(entity);
+		}
+		else
+		{
+			m_anim = 0;
+			m_frame = 0;
+			m_sprite = sprite_data->GetSpriteFrame(spr, 0, 0);
+		}
 	}
 	else if (anim == -1)
 	{
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, frame);
-		m_anim = m_gd->GetSpriteData()->GetDefaultEntityAnimationId(entity);
+		m_sprite = sprite_data->GetSpriteFrame(spr, frame);
+		m_anim = has_entity ? sprite_data->GetDefaultEntityAnimationId(entity) : 0;
 	}
 	else if (frame == -1)
 	{
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, anim, 0);
+		m_sprite = sprite_data->GetSpriteFrame(spr, anim, 0);
 	}
 	else
 	{
-		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(spr, frame);
+		m_sprite = sprite_data->GetSpriteFrame(spr, frame);
 		m_anim = anim;
 	}
-	m_palette = m_gd->GetSpriteData()->GetEntityPalette(entity);
+	if (m_sprite == nullptr)
+	{
+		return false;
+	}
+	// GetEntityPalette needs an entity; a lone sprite gets the first sprite palette instead.
+	m_palette = has_entity ? sprite_data->GetEntityPalette(entity) : sprite_data->GetSpritePalette(0);
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_paledit->SelectPalette(m_palette);
 	m_tileedit->SetActivePalette(m_palette);
@@ -341,7 +370,9 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
 	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
 	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
-	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
+	AddMenuItem(editMenu, 0, ID_EDIT_SPRITES, "Sprites...\tF10");
+	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_HITBOX, "Hitbox", wxITEM_CHECK);
@@ -395,6 +426,58 @@ void SpriteEditorFrame::ClearMenu(wxMenuBar& menu) const
 	EditorFrame::ClearMenu(menu);
 }
 
+void SpriteEditorFrame::ShowSpriteManagerDialog()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+	// Open on the sprite being edited, so the dialog lands on what is in front of you.
+	const int select = m_sprite ? m_sprite->GetSprite() : 0;
+	SpriteManagerDialog dlg(this, m_gd, select);
+	dlg.ShowModal();
+
+	const int to_open = dlg.GetSpriteToOpen();
+	if (!dlg.HasChanges() && to_open < 0)
+	{
+		return;
+	}
+
+	// A rename or delete can leave the open sprite's id meaningless, so fall back to whatever
+	// the dialog left selected, then to the first sprite there is.
+	const auto sprite_data = m_gd->GetSpriteData();
+	int target = to_open >= 0 ? to_open : select;
+	if (target < 0 || !sprite_data->IsSprite(static_cast<uint8_t>(target)))
+	{
+		target = sprite_data->IsSprite(0) ? 0 : -1;
+	}
+	std::wstring path;
+	if (target >= 0)
+	{
+		path = L"Sprites/" + Landstalker::SpriteData::GetSpriteDisplayName(static_cast<uint8_t>(target));
+	}
+
+	if (!dlg.HasChanges())
+	{
+		// Nothing moved, so the tree is still correct - just follow the double-click.
+		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
+		evt.SetString(wxString(path));
+		evt.SetInt(target);
+		evt.SetClientData(this);
+		wxPostEvent(this, evt);
+		return;
+	}
+
+	// Adding, deleting, renaming or moving a sprite changes the name and number of entries
+	// under Sprites, which the editor cannot patch one at a time, so the tree is rebuilt from
+	// the game data.
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(target);
+	evt.SetString(wxString(path));
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
 void SpriteEditorFrame::OnMenuClick(wxMenuEvent& evt)
 {
 	ProcessEvent(evt.GetId());
@@ -434,6 +517,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_FILE_IMPORT_VDPMAP:
 		OnImportVdpSpritemap();
+		break;
+	case ID_EDIT_SPRITES:
+		ShowSpriteManagerDialog();
 		break;
 	case ID_VIEW_TOGGLE_GRIDLINES:
 	case ID_TOGGLE_GRIDLINES:
@@ -890,7 +976,10 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 
 		auto sd = m_gd->GetSpriteData();
 		int sprite_index = m_sprite->GetSprite();
-		int entity_index = sd->GetEntitiesFromSprite(sprite_index)[0];
+		// A sprite the manager just created has no entity, so its palette selection is left
+		// blank rather than read from an entity that does not exist.
+		const auto property_entities = sd->GetEntitiesFromSprite(sprite_index);
+		const int entity_index = property_entities.empty() ? -1 : property_entities[0];
 
 		props.GetGrid()->SetPropertyValue("Name", wxString(sd->GetSpriteDisplayName(sprite_index)));
 		props.GetGrid()->SetPropertyValue("Label", wxString(sd->GetSpriteName(sprite_index)));
@@ -900,8 +989,10 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 		props.GetGrid()->SetPropertyValue("Size", static_cast<int>(m_sprite->GetDataLength()));
 		props.GetGrid()->GetProperty("Low Palette")->SetChoices(m_lo_palettes);
 		props.GetGrid()->GetProperty("High Palette")->SetChoices(m_hi_palettes);
-		props.GetGrid()->GetProperty("Low Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).first + 1);
-		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(sd->GetEntityPaletteIdxs(entity_index).second + 1);
+		props.GetGrid()->GetProperty("Low Palette")->SetChoiceSelection(
+			entity_index < 0 ? 0 : sd->GetEntityPaletteIdxs(entity_index).first + 1);
+		props.GetGrid()->GetProperty("High Palette")->SetChoiceSelection(
+			entity_index < 0 ? 0 : sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
 		props.GetGrid()->SetPropertyValue("Volume", static_cast<double>(sd->GetSpriteVolume(sprite_index)) / 16.0);

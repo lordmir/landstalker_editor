@@ -1,5 +1,7 @@
 #include <blockset/BlocksetEditorFrame.h>
 
+#include <rooms/BlocksetManagerDialog.h>
+
 enum MENU_IDS
 {
 	ID_FILE_EXPORT_CBS = 20000,
@@ -8,6 +10,8 @@ enum MENU_IDS
 	ID_FILE_IMPORT_CBS,
 	ID_FILE_IMPORT_CSV,
 	ID_EDIT,
+	ID_EDIT_BLOCKSETS,
+	ID_EDIT_SEP,
 	ID_EDIT_CUT,
 	ID_EDIT_COPY,
 	ID_EDIT_PASTE,
@@ -155,11 +159,15 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_CBS, "Import Blockset from Binary...");
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_CSV, "Import Blockset from CSV...");
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_CUT, "Cut");
-	AddMenuItem(editMenu, 1, ID_EDIT_COPY, "Copy");
-	AddMenuItem(editMenu, 2, ID_EDIT_PASTE, "Paste");
-	AddMenuItem(editMenu, 3, ID_EDIT_SWAP, "Swap");
-	AddMenuItem(editMenu, 4, ID_EDIT_CLEAR, "Clear");
+	// Separated from the block-level commands below it: this one manages the list of
+	// blocksets, the rest edit the blocks inside the one being viewed.
+	AddMenuItem(editMenu, 0, ID_EDIT_BLOCKSETS, "Blocksets...\tF10");
+	AddMenuItem(editMenu, 1, ID_EDIT_SEP, "", wxITEM_SEPARATOR);
+	AddMenuItem(editMenu, 2, ID_EDIT_CUT, "Cut");
+	AddMenuItem(editMenu, 3, ID_EDIT_COPY, "Copy");
+	AddMenuItem(editMenu, 4, ID_EDIT_PASTE, "Paste");
+	AddMenuItem(editMenu, 5, ID_EDIT_SWAP, "Swap");
+	AddMenuItem(editMenu, 6, ID_EDIT_CLEAR, "Clear");
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
@@ -679,6 +687,9 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 		m_editor->SetAlphaEnabled(!m_editor->GetAlphaEnabled());
 		m_editor->ForceRedraw();
 		break;
+	case ID_EDIT_BLOCKSETS:
+		ShowBlocksetManagerDialog();
+		break;
 	case ID_CUT:
 	case ID_EDIT_CUT:
 		if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::BLOCK_SELECT && m_editor->IsBlockSelectionValid())
@@ -1094,6 +1105,67 @@ void BlocksetEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 0);
 	status.SetStatusText("", 1);
 	status.SetStatusText("", 2);
+}
+
+void BlocksetEditorFrame::ShowBlocksetManagerDialog()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+	// Open on the blockset being edited, so the dialog lands on what is in front of you.
+	const std::string select = m_blocks ? m_blocks->GetName() : std::string();
+
+	BlocksetManagerDialog dlg(this, m_gd, select);
+	dlg.ShowModal();
+	const auto to_open = dlg.GetBlocksetToOpen();
+	if (!dlg.HasChanges() && to_open.empty())
+	{
+		return;
+	}
+
+	// A rename or delete can leave the open blockset's name meaningless, so fall back to
+	// whatever the dialog left selected, then to the first blockset there is.
+	const auto room_data = m_gd->GetRoomData();
+	std::string target = to_open.empty() ? select : to_open;
+	if (target.empty() || room_data->GetAllBlocksets().count(target) == 0)
+	{
+		const auto all = room_data->GetAllBlocksets();
+		target = all.empty() ? std::string() : all.cbegin()->first;
+	}
+
+	std::wstring path;
+	if (!target.empty())
+	{
+		const auto entry = room_data->GetBlockset(target);
+		const auto tileset = entry ? room_data->GetTileset(entry->GetTileset()) : nullptr;
+		if (tileset)
+		{
+			// Blocksets are nested under the tileset they belong to.
+			const auto tileset_name = tileset->GetName();
+			path = L"Blocksets/" + std::wstring(tileset_name.cbegin(), tileset_name.cend()) +
+				L"/" + std::wstring(target.cbegin(), target.cend());
+		}
+	}
+
+	if (!dlg.HasChanges())
+	{
+		// Nothing moved, so the tree is still correct - just follow the double-click.
+		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
+		evt.SetString(wxString(path));
+		evt.SetClientData(this);
+		wxPostEvent(this, evt);
+		return;
+	}
+
+	// Adding, deleting, renaming or moving a blockset changes the entries under Blocksets,
+	// which the editor cannot patch one at a time, so the tree is rebuilt from the game
+	// data. That closes this editor, hence naming what to reopen.
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(-1);
+	evt.SetString(wxString(path));
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
 }
 
 void BlocksetEditorFrame::OnExportBin()

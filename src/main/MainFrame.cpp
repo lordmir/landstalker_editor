@@ -65,6 +65,26 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     }
     this->m_mainwin->SetSizer(sizer);
     sizer->Layout();
+
+    // Back/forward buttons above the browser tree, for stepping through visited items.
+    if (m_panel_browser && m_panel_browser->GetSizer())
+    {
+        wxBoxSizer* navbar = new wxBoxSizer(wxHORIZONTAL);
+        m_nav_back = new wxBitmapButton(m_panel_browser, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_GO_BACK, wxART_BUTTON));
+        m_nav_fwd = new wxBitmapButton(m_panel_browser, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON));
+        m_nav_back->SetToolTip("Back");
+        m_nav_fwd->SetToolTip("Forward");
+        m_nav_back->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { NavigateHistory(m_nav_pos - 1); });
+        m_nav_fwd->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { NavigateHistory(m_nav_pos + 1); });
+        navbar->Add(m_nav_back, 0, wxRIGHT, 2);
+        navbar->Add(m_nav_fwd, 0);
+        m_panel_browser->GetSizer()->Insert(0, navbar, 0, wxLEFT | wxTOP | wxBOTTOM, 4);
+        m_panel_browser->Layout();
+        UpdateNavButtons();
+    }
+
     SetMode(Mode::NONE);
     m_mnu_save_as_asm->Enable(false);
     m_mnu_save_to_rom->Enable(false);
@@ -89,6 +109,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Connect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Connect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
+    this->Connect(EVT_RECORD_NAV_LOCATION, wxCommandEventHandler(MainFrame::OnRecordNavLocation), nullptr, this);
     this->Connect(EVT_RENAME_NAV_ITEM, wxCommandEventHandler(MainFrame::OnRenameNavItem), nullptr, this);
     this->Connect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
     this->Connect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
@@ -109,6 +130,7 @@ MainFrame::~MainFrame()
     this->Disconnect(wxEVT_COMMAND_MENU_SELECTED, wxMenuEventHandler(MainFrame::OnMenuClick), nullptr, this);
     this->Disconnect(wxEVT_AUI_PANE_CLOSE, wxAuiManagerEventHandler(MainFrame::OnPaneClose), nullptr, this);
     this->Disconnect(EVT_GO_TO_NAV_ITEM, wxCommandEventHandler(MainFrame::OnGoToNavItem), nullptr, this);
+    this->Disconnect(EVT_RECORD_NAV_LOCATION, wxCommandEventHandler(MainFrame::OnRecordNavLocation), nullptr, this);
     this->Disconnect(EVT_DELETE_NAV_ITEM, wxCommandEventHandler(MainFrame::OnDeleteNavItem), nullptr, this);
     this->Disconnect(EVT_ADD_NAV_ITEM, wxCommandEventHandler(MainFrame::OnAddNavItem), nullptr, this);
     this->Disconnect(EVT_REBUILD_NAV_TREE, wxCommandEventHandler(MainFrame::OnRebuildNavTree), nullptr, this);
@@ -321,9 +343,35 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
-    InsertNavItem(L"Rooms", rm_img);
-    InsertNavItem(L"Entities", ent_img);
-    InsertNavItem(L"Sprites", spr_img);
+    const auto nodeRooms = InsertNavItem(L"Rooms", rm_img);
+    // A single leaf that opens the entity editor; -1 tells it to keep its current selection.
+    InsertNavItem(L"Entities", ent_img, TreeNodeData::Node::ENTITY, -1);
+    const auto nodeSprites = InsertNavItem(L"Sprites", spr_img);
+
+    // InsertNavItem resolves a path by walking the tree, scanning every sibling with a
+    // GetItemText call to see whether the entry already exists and again to find where it
+    // goes. That is fine for adding one item, but it makes a bulk build quadratic: the last
+    // of the 800-odd rooms rescans all 800 of its siblings, twice over. The parent is
+    // already known in the loops below, so they append straight to it and use a local index
+    // to keep InsertNavItem's behaviour of folding entries that share a display name onto
+    // the first one.
+    const auto append_leaf = [&](const std::optional<wxTreeItemId>& parent,
+        std::map<std::wstring, wxTreeItemId>& index, const std::wstring& name, int img,
+        const TreeNodeData::Node& type, int value)
+    {
+        if (!parent)
+        {
+            return;
+        }
+        if (index.count(name) != 0)
+        {
+            return;
+        }
+        index.emplace(name, m_browser->AppendItem(*parent, name, img, img,
+            new TreeNodeData(type, value, img, false)));
+    };
+    std::map<std::wstring, wxTreeItemId> room_index;
+    std::map<std::wstring, wxTreeItemId> sprite_index;
 
     m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     if (m_g->GetScriptData()->HasTables())
@@ -385,17 +433,10 @@ void MainFrame::InitUI()
             continue;
         }
         const std::wstring spr_name = Landstalker::SpriteData::GetSpriteDisplayName(i);
-        InsertNavItem(L"Sprites/" + spr_name, spr_img, TreeNodeData::Node::SPRITE, i, false);
+        append_leaf(nodeSprites, sprite_index, spr_name, spr_img, TreeNodeData::Node::SPRITE, i);
     }
-    for (int i = 0; i < 255; ++i)
-    {
-        if (!m_g->GetSpriteData()->IsEntity(i))
-        {
-            continue;
-        }
-        const std::wstring ent_name = Landstalker::SpriteData::GetEntityDisplayName(i);
-        InsertNavItem(L"Entities/" + ent_name, ent_img, TreeNodeData::Node::ENTITY, i, false);
-    }
+    // Entities are no longer listed per-item under this node: the "Entities" node opens the
+    // entity editor, which carries its own selectable list.
 
     for (const auto& t : m_g->GetRoomData()->GetTilesets())
     {
@@ -472,7 +513,8 @@ void MainFrame::InitUI()
 
     for (const auto& room : m_g->GetRoomData()->GetRoomlist())
     {
-        InsertNavItem(L"Rooms/" + room->GetDisplayName(), rm_img, TreeNodeData::Node::ROOM, room->index, false);
+        append_leaf(nodeRooms, room_index, room->GetDisplayName(), rm_img,
+            TreeNodeData::Node::ROOM, room->index);
     }
 
     SortNavItems(m_browser->GetRootItem());
@@ -772,12 +814,19 @@ void MainFrame::OnRebuildNavTree(wxCommandEvent& event)
     {
         return;
     }
-    // Adding, deleting or moving a room renumbers every entry after it, so patching
-    // individual tree items cannot get this right - the tree is built again from the
-    // game data. This closes the open editor, hence reopening the room afterwards.
+    // Adding, deleting or moving a room or tileset renumbers every entry after it, so
+    // patching individual tree items cannot get this right - the tree is built again from
+    // the game data. This closes the open editor, hence reopening afterwards.
     const int room = event.GetInt();
+    const std::wstring path = event.GetString().ToStdWstring();
     InitUI();
-    if (room >= 0 && room < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
+    // A path names the item to land on outright, for the trees where a number cannot -
+    // tilesets and their animations are identified by name, not by position.
+    if (!path.empty())
+    {
+        GoToNavItem(path, room);
+    }
+    else if (room >= 0 && room < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
     {
         GoToNavItem(std::wstring(L"Rooms/") + m_g->GetRoomData()->GetRoomDisplayName(static_cast<uint16_t>(room)), room);
     }
@@ -977,13 +1026,140 @@ std::wstring MainFrame::GetNavItemParent(const std::wstring& path)
     return path.substr(0, path.find_last_of(L'/'));
 }
 
-void MainFrame::GoToNavItem(const std::wstring& path, int data)
+std::optional<wxTreeItemId> MainFrame::ResolveNavItem(const std::wstring& path)
 {
     auto item = FindNavItem(path);
+    if (!item)
+    {
+        // Room display names contain '/', which FindNavItem treats as a path separator, so a
+        // room leaf - a direct child of "Rooms" labelled with its full name - never resolves by
+        // walking. Match the remainder after "Rooms/" against the leaf labels whole instead.
+        const std::wstring prefix = L"Rooms/";
+        if (path.compare(0, prefix.size(), prefix) == 0)
+        {
+            const auto rooms_node = FindNavItem(L"Rooms");
+            if (rooms_node)
+            {
+                const std::wstring label = path.substr(prefix.size());
+                wxTreeItemIdValue cookie;
+                auto child = m_browser->GetFirstChild(*rooms_node, cookie);
+                while (child.IsOk())
+                {
+                    if (m_browser->GetItemText(child).ToStdWstring() == label)
+                    {
+                        item = child;
+                        break;
+                    }
+                    child = m_browser->GetNextSibling(child);
+                }
+            }
+        }
+    }
+    return item;
+}
+
+void MainFrame::GoToNavItem(const std::wstring& path, int data)
+{
+    const auto item = ResolveNavItem(path);
     if (item)
     {
         RevealNavItem(*item);
         ProcessSelectedBrowserItem(*item, data);
+    }
+}
+
+std::wstring MainFrame::GetNavItemPath(const wxTreeItemId& item)
+{
+    std::vector<std::wstring> parts;
+    const auto root = m_browser->GetRootItem();
+    for (auto node = item; node.IsOk() && node != root; node = m_browser->GetItemParent(node))
+    {
+        parts.push_back(m_browser->GetItemText(node).ToStdWstring());
+    }
+    std::wstring path;
+    for (auto it = parts.rbegin(); it != parts.rend(); ++it)
+    {
+        if (!path.empty())
+        {
+            path += L'/';
+        }
+        path += *it;
+    }
+    return path;
+}
+
+void MainFrame::OnRecordNavLocation(wxCommandEvent& event)
+{
+    if (!m_nav_navigating)
+    {
+        PushNavHistory({ event.GetString().ToStdWstring(), event.GetInt() });
+    }
+}
+
+void MainFrame::PushNavHistory(const NavLocation& loc)
+{
+    if (loc.path.empty())
+    {
+        return;
+    }
+    const bool have_current = m_nav_pos >= 0 && m_nav_pos < static_cast<int>(m_nav_history.size());
+    if (have_current)
+    {
+        // Exact repeat of where we are: nothing to record.
+        if (m_nav_history[m_nav_pos] == loc)
+        {
+            return;
+        }
+        // The bare open of a sub-navigating editor (sub -1) is immediately refined by the editor
+        // reporting its actual element, so replace rather than leave a redundant entry behind.
+        if (m_nav_history[m_nav_pos].path == loc.path && m_nav_history[m_nav_pos].sub == -1)
+        {
+            m_nav_history[m_nav_pos] = loc;
+            UpdateNavButtons();
+            return;
+        }
+    }
+    // A new visit truncates any forward history, then appends.
+    if (m_nav_pos + 1 < static_cast<int>(m_nav_history.size()))
+    {
+        m_nav_history.erase(m_nav_history.begin() + (m_nav_pos + 1), m_nav_history.end());
+    }
+    m_nav_history.push_back(loc);
+    m_nav_pos = static_cast<int>(m_nav_history.size()) - 1;
+
+    const std::size_t CAP = 100;
+    while (m_nav_history.size() > CAP)
+    {
+        m_nav_history.erase(m_nav_history.begin());
+        --m_nav_pos;
+    }
+    UpdateNavButtons();
+}
+
+void MainFrame::NavigateHistory(int pos)
+{
+    if (pos < 0 || pos >= static_cast<int>(m_nav_history.size()) || pos == m_nav_pos)
+    {
+        return;
+    }
+    // Replay the visit without recording it as a new one. The editor may report its restored
+    // element back asynchronously, so keep the guard up until that event has been processed.
+    m_nav_navigating = true;
+    m_nav_pos = pos;
+    GoToNavItem(m_nav_history[pos].path, m_nav_history[pos].sub);
+    CallAfter([this] { m_nav_navigating = false; });
+    UpdateNavButtons();
+}
+
+void MainFrame::UpdateNavButtons()
+{
+    if (m_nav_back)
+    {
+        m_nav_back->Enable(m_nav_pos > 0);
+    }
+    if (m_nav_fwd)
+    {
+        m_nav_fwd->Enable(m_nav_pos >= 0 && m_nav_pos + 1 < static_cast<int>(m_nav_history.size()));
     }
 }
 
@@ -1048,6 +1224,10 @@ MainFrame::ReturnCode MainFrame::CloseFiles(bool force)
     m_browser->SetImageList(m_imgs);
     m_properties->GetGrid()->Clear();
     m_g.reset();
+    // The visited-item history belongs to the file being closed.
+    m_nav_history.clear();
+    m_nav_pos = -1;
+    UpdateNavButtons();
     SetMode(Mode::NONE);
     this->SetLabel("Landstalker Editor");
     m_mnu_save_as_asm->Enable(false);
@@ -1303,8 +1483,9 @@ void MainFrame::RefreshEditor()
         ShowEditor(EditorType::MAP_2D);
         break;
     case Mode::ENTITY:
-        // Display entity
-        GetEntityViewer()->Open(m_seldata);
+        // Display entity. When replaying a back/forward location, m_extradata is the entity to
+        // restore; a plain click on the "Entities" node passes -1 to keep the current selection.
+        GetEntityViewer()->Open(m_nav_navigating ? m_extradata : -1);
         ShowEditor(EditorType::ENTITY);
         break;
     case Mode::BEHAVIOUR_SCRIPT:
@@ -1419,6 +1600,12 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
     default:
         // do nothing
         break;
+    }
+    // Record the visit for the back/forward buttons - only real items (folders are BASE), and
+    // not while a back/forward move is itself replaying a visit.
+    if (!m_nav_navigating && item_data->GetNodeType() != TreeNodeData::Node::BASE)
+    {
+        PushNavHistory({ GetNavItemPath(item), -1 });
     }
 }
 

@@ -15,6 +15,8 @@
 #include <rooms/MapManagerDialog.h>
 #include <rooms/RoomErrorDialog.h>
 #include <rooms/RoomManagerDialog.h>
+#include <rooms/BlocksetManagerDialog.h>
+#include <rooms/TilesetManagerDialog.h>
 #include <rooms/TileSwapDialog.h>
 #include <rooms/WarpPropertyWindow.h>
 #include <landstalker/misc/Labels.h>
@@ -47,6 +49,8 @@ enum MENU_IDS
 	ID_EDIT,
 	ID_EDIT_ROOMS,
 	ID_EDIT_MAPS,
+	ID_EDIT_TILESETS,
+	ID_EDIT_BLOCKSETS,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
@@ -1306,13 +1310,15 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 16, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_ROOMS, "Rooms...");
-	AddMenuItem(editMenu, 1, ID_EDIT_MAPS, "Maps...");
-	AddMenuItem(editMenu, 2, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 3, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 4, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 5, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 6, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 0, ID_EDIT_ROOMS, "Rooms...\tF10");
+	AddMenuItem(editMenu, 1, ID_EDIT_MAPS, "Maps...\tF9");
+	AddMenuItem(editMenu, 2, ID_EDIT_TILESETS, "Tilesets...");
+	AddMenuItem(editMenu, 3, ID_EDIT_BLOCKSETS, "Blocksets...");
+	AddMenuItem(editMenu, 4, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 5, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 6, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 7, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 8, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
@@ -1601,6 +1607,12 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_EDIT_MAPS:
 			ShowMapManagerDialog();
+			break;
+		case ID_EDIT_BLOCKSETS:
+			ShowBlocksetManagerDialog();
+			break;
+		case ID_EDIT_TILESETS:
+			ShowTilesetManagerDialog();
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
@@ -2074,6 +2086,118 @@ void RoomViewerFrame::ShowMapManagerDialog()
 	ApplyManagerDialogResult(dlg.HasChanges(), dlg.GetRoomToOpen());
 }
 
+void RoomViewerFrame::ShowTilesetManagerDialog()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	// Open on the tileset the current room draws with, so the dialog lands somewhere
+	// relevant rather than on slot zero.
+	const auto tileset = m_roomnum < m_g->GetRoomData()->GetRoomCount()
+		? m_g->GetRoomData()->GetTilesetForRoom(m_roomnum) : nullptr;
+	TilesetManagerDialog dlg(this, m_g, tileset ? tileset->GetName() : std::string());
+	dlg.ShowModal();
+
+	const auto to_open = dlg.GetTilesetToOpen();
+	if (!dlg.HasChanges() && to_open.empty())
+	{
+		return;
+	}
+	std::wstring path;
+	if (!to_open.empty())
+	{
+		const std::wstring name(to_open.cbegin(), to_open.cend());
+		if (dlg.IsTilesetToOpenAnimated())
+		{
+			// Animations are nested under the tileset they belong to.
+			const auto anim = m_g->GetRoomData()->GetAnimatedTileset(to_open);
+			const auto parent = anim
+				? m_g->GetRoomData()->GetTileset(static_cast<uint8_t>(anim->GetIndex().first))
+				: nullptr;
+			if (parent)
+			{
+				const auto parent_name = parent->GetName();
+				path = L"Tilesets/" + std::wstring(parent_name.cbegin(), parent_name.cend()) + L"/" + name;
+			}
+		}
+		else
+		{
+			path = L"Tilesets/" + name;
+		}
+	}
+
+	if (!dlg.HasChanges())
+	{
+		// Nothing moved, so the tree is still correct - just follow the double-click.
+		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
+		evt.SetString(wxString(path));
+		evt.SetInt(m_roomnum);
+		evt.SetClientData(this);
+		wxPostEvent(this, evt);
+		return;
+	}
+
+	// Adding, deleting, renaming or moving a tileset changes the name and number of entries
+	// under both Tilesets and Blocksets, which the editor cannot patch one at a time, so the
+	// tree is rebuilt from the game data.
+	if (m_gpuview)
+	{
+		m_gpuview->ReloadCurrentRoomFromGameData();
+	}
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(m_roomnum);
+	evt.SetString(wxString(path));
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void RoomViewerFrame::ShowBlocksetManagerDialog()
+{
+	if (!m_g)
+	{
+		return;
+	}
+	if (m_gpuview)
+	{
+		m_gpuview->CommitPendingEdits();
+	}
+	// Open on the alternate the current room selects, so the dialog lands on what is being
+	// drawn rather than on the first tileset's base.
+	std::string select;
+	if (m_roomnum < m_g->GetRoomData()->GetRoomCount())
+	{
+		const auto room = m_g->GetRoomData()->GetRoom(m_roomnum);
+		const auto entry = m_g->GetRoomData()->GetBlockset(room->tileset, room->pri_blockset,
+			static_cast<uint8_t>(room->sec_blockset + 1));
+		if (entry)
+		{
+			select = entry->GetName();
+		}
+	}
+
+	BlocksetManagerDialog dlg(this, m_g, select);
+	dlg.ShowModal();
+	if (!dlg.HasChanges())
+	{
+		return;
+	}
+	// Adding, deleting, renaming or moving a blockset changes the entries under Blocksets,
+	// which the editor cannot patch one at a time, so the tree is rebuilt from the game data.
+	if (m_gpuview)
+	{
+		m_gpuview->ReloadCurrentRoomFromGameData();
+	}
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(m_roomnum);
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
 void RoomViewerFrame::ShowRoomManagerDialog()
 {
 	if (!m_g)
@@ -2189,6 +2313,8 @@ void RoomViewerFrame::UpdateUI() const
 	}
 
 	EnableMenuItem(ID_EDIT_MAPS, m_g != nullptr);
+	EnableMenuItem(ID_EDIT_TILESETS, m_g != nullptr);
+	EnableMenuItem(ID_EDIT_BLOCKSETS, m_g != nullptr);
 
 	EnableMenuItem(ID_TOOLS_LAYERS, true);
 	EnableToolbarItem("Main", TOOL_UNDO, m_gpuview != nullptr && m_gpuview->CanUndo());

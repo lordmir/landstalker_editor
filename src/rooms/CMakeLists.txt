@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 target_sources(${MODULE_NAME} PRIVATE
+    "BlocksetManagerDialog.cpp"
     "CharacterDialog.cpp"
     "ChestDialog.cpp"
     "DoorDataViewModel.cpp"
@@ -19,6 +20,7 @@ target_sources(${MODULE_NAME} PRIVATE
     "RoomErrorDialog.cpp"
     "RoomManagerDialog.cpp"
     "RoomViewerFrame.cpp"
+    "TilesetManagerDialog.cpp"
     "TileSwapControlFrame.cpp"
     "TileSwapDataViewModel.cpp"
     "TileSwapDialog.cpp"

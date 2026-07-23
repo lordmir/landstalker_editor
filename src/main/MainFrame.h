@@ -35,6 +35,16 @@
 #endif
 
 class wxImage;
+class wxBitmapButton;
+
+// One visited location in the browser back/forward history: the nav-tree path plus an optional
+// sub-element id for editors that navigate internally (e.g. the entity editor's selected entity).
+struct NavLocation
+{
+    std::wstring path;
+    int sub = -1;
+    bool operator==(const NavLocation& o) const { return path == o.path && sub == o.sub; }
+};
 
 class MainFrame : public MainFrameBaseClass
 {
@@ -133,6 +143,16 @@ private:
     void RevealNavItem(const wxTreeItemId& item);
     bool RemoveNavItem(const std::wstring& path);
     void GoToNavItem(const std::wstring& path, int data = 0);
+    // Resolves a "Category/Name" path to a tree item, with the room fallback that matches a
+    // slashed room leaf whole (FindNavItem cannot, since it splits on '/').
+    std::optional<wxTreeItemId> ResolveNavItem(const std::wstring& path);
+    // The full "Category/.../Name" path of a tree item, for recording it in the visit history.
+    std::wstring GetNavItemPath(const wxTreeItemId& item);
+    // Browser back/forward history of visited items.
+    void PushNavHistory(const NavLocation& loc);
+    void NavigateHistory(int pos);
+    void UpdateNavButtons();
+    void OnRecordNavLocation(wxCommandEvent& event);
     bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);
     bool AddNavItem(const std::wstring& path, int image = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     bool DeleteNavItem(const std::wstring& path);
@@ -191,5 +211,13 @@ private:
     std::string m_selname;
     int m_seldata = 0;
     int m_extradata = 0;
+
+    wxBitmapButton* m_nav_back = nullptr;
+    wxBitmapButton* m_nav_fwd = nullptr;
+    // Visited nav-item paths and the current position within them; m_nav_navigating suppresses
+    // recording while a back/forward move is replaying a visit.
+    std::vector<NavLocation> m_nav_history;
+    int m_nav_pos = -1;
+    bool m_nav_navigating = false;
 };
 #endif // MAINFRAME_H

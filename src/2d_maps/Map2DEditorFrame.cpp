@@ -98,8 +98,16 @@ void Map2DEditorFrame::Open(const std::string& map_name)
 	{
 		return;
 	}
+	// These lookups miss when the name is not one the caches know, so each is checked
+	// before the next uses it - they used to throw out_of_range instead.
 	m_map = m_gd->GetTilemap(map_name);
-	m_tiles = m_gd->GetTileset(m_map->GetTileset());
+	m_tiles = m_map ? m_gd->GetTileset(m_map->GetTileset()) : nullptr;
+	if (!m_map || !m_tiles)
+	{
+		m_map = nullptr;
+		m_tiles = nullptr;
+		return;
+	}
 	m_palette = m_gd->GetPalette(m_tiles->GetDefaultPalette());
 
 	m_mapedit->Open(m_map);

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <exception>
 #include <landstalker/misc/Utils.h>
+#include <rooms/TilesetManagerDialog.h>
 #include <wx/artprov.h>
 
 enum TOOL_IDS
@@ -27,12 +28,13 @@ enum TOOL_IDS
 
 enum MENU_IDS
 {
-	ID_FILE_NEW = 20000,
-	ID_FILE_EXPORT_BIN,
+	ID_FILE_EXPORT_BIN = 20000,
 	ID_FILE_EXPORT_ALL,
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_PNG,
+	ID_EDIT,
+	ID_EDIT_TILESETS,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
 	ID_VIEW_TOGGLE_TILE_NOS,
@@ -69,6 +71,14 @@ template <class T>
 static std::vector<T> CommaListToVec(const std::string& input)
 {
 	std::vector<T> ret;
+	// A tileset with no stored palette indices is the normal case for a newly created one.
+	// Without this the stoi below throws invalid_argument on the empty token, which the
+	// catch swallows to the same result but which shows up as a first-chance exception
+	// every time such a tileset is opened.
+	if (input.empty())
+	{
+		return ret;
+	}
 	std::istringstream ss(input);
 	try
 	{
@@ -365,14 +375,86 @@ void TilesetEditorFrame::SaveAs()
 {
 }
 
-void TilesetEditorFrame::New()
+void TilesetEditorFrame::ShowTilesetManagerDialog()
 {
-	m_tileset = std::make_shared<Landstalker::Tileset>();
-	m_tileset->Clear();
-	m_tileset->InsertTilesBefore(0, 1);
-	m_tilesetEditor->RedrawTiles();
-	m_tilesetEditor->SelectTile(0);
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	if (!m_gd)
+	{
+		return;
+	}
+	// Open on whatever is being edited, so the dialog lands on the tileset in front of you.
+	std::string select;
+	if (m_animated_tileset_entry)
+	{
+		select = m_animated_tileset_entry->GetName();
+	}
+	else if (m_tileset_entry)
+	{
+		select = m_tileset_entry->GetName();
+	}
+
+	TilesetManagerDialog dlg(this, m_gd, select);
+	dlg.ShowModal();
+
+	const auto to_open = dlg.GetTilesetToOpen();
+	if (!dlg.HasChanges() && to_open.empty())
+	{
+		return;
+	}
+	// Adding, deleting, renaming or moving a tileset changes the name and number of entries
+	// under both Tilesets and Blocksets, so the navigation tree is rebuilt from the game
+	// data rather than patched item by item. That closes this editor, hence naming what to
+	// reopen - the double-clicked entry if there was one, else whatever was already open.
+	std::string target = to_open.empty() ? select : to_open;
+	bool animated = to_open.empty() ? (m_animated_tileset_entry != nullptr)
+		: dlg.IsTilesetToOpenAnimated();
+	// A rename or delete can leave the old name meaningless; fall back to the first tileset.
+	if (target.empty() ||
+		(animated ? m_gd->GetRoomData()->GetAnimatedTileset(target) == nullptr
+				  : m_gd->GetRoomData()->GetAllTilesets().count(target) == 0))
+	{
+		const auto tilesets = m_gd->GetRoomData()->GetTilesets();
+		target = tilesets.empty() ? std::string() : tilesets.front()->GetName();
+		animated = false;
+	}
+
+	std::wstring path;
+	if (!target.empty())
+	{
+		const std::wstring name(target.cbegin(), target.cend());
+		if (animated)
+		{
+			// Animations are nested under the tileset they belong to.
+			const auto anim = m_gd->GetRoomData()->GetAnimatedTileset(target);
+			const auto parent = anim
+				? m_gd->GetRoomData()->GetTileset(static_cast<uint8_t>(anim->GetIndex().first))
+				: nullptr;
+			if (parent)
+			{
+				const auto parent_name = parent->GetName();
+				path = L"Tilesets/" + std::wstring(parent_name.cbegin(), parent_name.cend()) + L"/" + name;
+			}
+		}
+		else
+		{
+			path = L"Tilesets/" + name;
+		}
+	}
+
+	if (!dlg.HasChanges())
+	{
+		// Nothing moved, so the tree is still correct - just follow the double-click.
+		wxCommandEvent evt(EVT_GO_TO_NAV_ITEM);
+		evt.SetString(wxString(path));
+		evt.SetClientData(this);
+		wxPostEvent(this, evt);
+		return;
+	}
+
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(-1);
+	evt.SetString(wxString(path));
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
 }
 
 void TilesetEditorFrame::ImportFromBin()
@@ -753,16 +835,19 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
-	AddMenuItem(fileMenu, 0, ID_FILE_NEW, "New Tileset");
-	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_BIN, "Export Tileset...");
-	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ALL, "Export All Tilesets...");
-	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
-	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_BIN, "Import Tileset...");
-	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_BIN, "Export Tileset...");
+	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_ALL, "Export All Tilesets...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
+	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BIN, "Import Tileset...");
+	// The manager is reachable from the room editor too, but this is where someone looking
+	// to add or reorder a tileset would go first.
+	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
+	AddMenuItem(editMenu, 0, ID_EDIT_TILESETS, "Tilesets...\tF10");
+	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
-	auto& toolsMenu = AddMenu(menu, 2, ID_TOOLS, "Tools");
+	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_PALETTE, "Palette", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_EDITOR, "Tile Editor", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
@@ -832,9 +917,6 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_PASTE_TILE:
 			PasteTile();
 			break;
-		case ID_FILE_NEW:
-			New();
-			break;
 		case ID_FILE_EXPORT_BIN:
 			ExportAsBin();
 			break;
@@ -849,6 +931,9 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_FILE_IMPORT_PNG:
 			ImportFromPng();
+			break;
+		case ID_EDIT_TILESETS:
+			ShowTilesetManagerDialog();
 			break;
 		case ID_VIEW_TOGGLE_GRIDLINES:
 		case ID_TOGGLE_GRIDLINES:
@@ -956,7 +1041,11 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 
 bool TilesetEditorFrame::Open(const std::string& name)
 {
-	auto e = m_gd->GetTileset(name);
+	auto e = m_gd ? m_gd->GetTileset(name) : nullptr;
+	if (!e)
+	{
+		return false;
+	}
 	bool retval = m_tilesetEditor->Open(e->GetData());
 	m_animated = false;
 	m_animated_tileset_entry = nullptr;
@@ -985,7 +1074,11 @@ bool TilesetEditorFrame::Open(const std::string& name)
 
 bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 {
-	auto e = m_gd->GetAnimatedTileset(name);
+	auto e = m_gd ? m_gd->GetAnimatedTileset(name) : nullptr;
+	if (!e)
+	{
+		return false;
+	}
 	bool retval = m_tilesetEditor->Open(e->GetData());
 	m_animated_tileset_entry = nullptr;
 	m_font_entry = nullptr;

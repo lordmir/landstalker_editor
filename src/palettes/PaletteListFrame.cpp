@@ -1,6 +1,14 @@
 #include <palettes/PaletteListFrame.h>
 #include <misc/DataViewModelAssociate.h>
+#include <algorithm>
 #include <cstdint>
+#include <optional>
+#include <wx/button.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <wx/textdlg.h>
+#include <wx/msgdlg.h>
+#include <landstalker/misc/Labels.h>
 
 enum MENU_IDS
 {
@@ -15,10 +23,24 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
       m_model(nullptr),
       m_renderer(nullptr),
       m_prev_colour(-1),
-	  m_title("")
+	  m_title(""),
+      m_button_panel(nullptr),
+      m_add(nullptr),
+      m_remove(nullptr),
+      m_move_up(nullptr),
+      m_move_down(nullptr),
+      m_rename(nullptr)
 {
 	m_mgr.SetManagedWindow(this);
-	m_list = new wxDataViewCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_NO_HEADER | wxDV_VARIABLE_LINE_HEIGHT | wxWANTS_CHARS);
+
+    // The list and its buttons share a panel so the buttons have somewhere to sit; a right-hand
+    // column keeps them out of the way of the hover-to-select swatches - moving the mouse
+    // sideways to a button does not sweep across other rows and change the selection.
+    wxPanel* content = new wxPanel(this, wxID_ANY);
+    wxBoxSizer* hsizer = new wxBoxSizer(wxHORIZONTAL);
+    content->SetSizer(hsizer);
+
+	m_list = new wxDataViewCtrl(content, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDV_NO_HEADER | wxDV_VARIABLE_LINE_HEIGHT | wxWANTS_CHARS);
 
     wxDataViewTextRenderer* tr = new wxDataViewTextRenderer("string", wxDATAVIEW_CELL_INERT);
     m_renderer = new DataViewCtrlPaletteRenderer(this, wxDATAVIEW_CELL_ACTIVATABLE);
@@ -33,8 +55,29 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
     m_list->Connect(wxEVT_CHAR, wxKeyEventHandler(PaletteListFrame::OnKeyPress), nullptr, this);
     m_list->GetMainWindow()->Connect(wxEVT_MOTION, wxMouseEventHandler(PaletteListFrame::OnMouseMove), nullptr, this);
     m_list->GetMainWindow()->Connect(wxEVT_LEAVE_WINDOW, wxMouseEventHandler(PaletteListFrame::OnMouseLeave), nullptr, this);
+    hsizer->Add(m_list, 1, wxALL | wxEXPAND, 5);
 
-	m_mgr.AddPane(m_list, wxAuiPaneInfo().CenterPane());
+    m_button_panel = new wxPanel(content, wxID_ANY);
+    wxBoxSizer* bsizer = new wxBoxSizer(wxVERTICAL);
+    m_button_panel->SetSizer(bsizer);
+    m_add = new wxButton(m_button_panel, wxID_ANY, "Add");
+    m_remove = new wxButton(m_button_panel, wxID_ANY, "Remove");
+    m_move_up = new wxButton(m_button_panel, wxID_ANY, "Move Up");
+    m_move_down = new wxButton(m_button_panel, wxID_ANY, "Move Down");
+    m_rename = new wxButton(m_button_panel, wxID_ANY, "Rename...");
+    for (auto* b : { m_add, m_remove, m_move_up, m_move_down, m_rename })
+    {
+        bsizer->Add(b, 0, wxEXPAND | wxBOTTOM, 4);
+    }
+    m_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnAddPalette(); });
+    m_remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnRemovePalette(); });
+    m_move_up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMovePalette(-1); });
+    m_move_down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMovePalette(1); });
+    m_rename->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnRenamePalette(); });
+    hsizer->Add(m_button_panel, 0, wxALL | wxEXPAND, 5);
+    m_button_panel->Hide();
+
+	m_mgr.AddPane(content, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
@@ -129,6 +172,265 @@ void PaletteListFrame::Update()
         AssociateDataViewModel(m_list, m_model);
         m_model->DecRef();
         m_list->GetColumn(1)->SetWidth(m_renderer->GetTotalWidth(m_model->GetColumnMaxElements()));
+    }
+    if (m_button_panel)
+    {
+        m_button_panel->Show(m_gd != nullptr && IsEditableMode());
+        m_button_panel->GetParent()->Layout();
+    }
+    UpdatePaletteButtons();
+}
+
+bool PaletteListFrame::IsEditableMode() const
+{
+    return m_mode == Mode::ROOM || m_mode == Mode::SPRITE_LO || m_mode == Mode::SPRITE_HI;
+}
+
+std::size_t PaletteListFrame::GetPaletteCount() const
+{
+    if (!m_gd)
+    {
+        return 0;
+    }
+    switch (m_mode)
+    {
+    case Mode::ROOM:      return m_gd->GetRoomData()->GetRoomPalettes().size();
+    case Mode::SPRITE_LO: return m_gd->GetSpriteData()->GetLoPaletteCount();
+    case Mode::SPRITE_HI: return m_gd->GetSpriteData()->GetHiPaletteCount();
+    default:              return 0;
+    }
+}
+
+const std::wstring& PaletteListFrame::PaletteLabelCategory() const
+{
+    switch (m_mode)
+    {
+    case Mode::SPRITE_LO: return Landstalker::Labels::C_LOW_PALETTES;
+    case Mode::SPRITE_HI: return Landstalker::Labels::C_HIGH_PALETTES;
+    case Mode::ROOM:
+    default:              return Landstalker::Labels::C_ROOM_PALETTES;
+    }
+}
+
+std::wstring PaletteListFrame::PaletteDisplayName(int row) const
+{
+    switch (m_mode)
+    {
+    case Mode::SPRITE_LO: return m_gd->GetSpriteData()->GetSpriteLowPaletteDisplayName(static_cast<uint8_t>(row));
+    case Mode::SPRITE_HI: return m_gd->GetSpriteData()->GetSpriteHighPaletteDisplayName(static_cast<uint8_t>(row));
+    case Mode::ROOM:
+    default:              return m_gd->GetRoomData()->GetRoomPaletteDisplayName(static_cast<uint8_t>(row));
+    }
+}
+
+int PaletteListFrame::GetSelectedRow() const
+{
+    const auto sel = m_list->GetSelection();
+    if (!sel.IsOk())
+    {
+        return -1;
+    }
+    const int row = static_cast<int>(reinterpret_cast<std::intptr_t>(sel.GetID())) - 1;
+    return (row >= 0 && row < static_cast<int>(GetPaletteCount())) ? row : -1;
+}
+
+void PaletteListFrame::SelectRow(int row)
+{
+    if (row < 0 || row >= static_cast<int>(GetPaletteCount()))
+    {
+        return;
+    }
+    const auto item = wxDataViewItem(reinterpret_cast<void*>(static_cast<std::intptr_t>(row) + 1));
+    m_list->Select(item);
+    m_list->EnsureVisible(item);
+}
+
+void PaletteListFrame::UpdatePaletteButtons()
+{
+    if (!m_button_panel)
+    {
+        return;
+    }
+    const bool editable = m_gd != nullptr && IsEditableMode();
+    const int count = static_cast<int>(GetPaletteCount());
+    const int row = GetSelectedRow();
+    const bool sel = editable && row >= 0;
+    const std::size_t cap = (m_mode == Mode::ROOM)
+        ? Landstalker::RoomData::MAX_ROOM_PALETTES : Landstalker::SpriteData::MAX_SPRITE_PALETTES;
+
+    m_add->Enable(editable && count < static_cast<int>(cap));
+    // A palette can only go once nothing draws it, and the last one can never go; the in-use
+    // refusal is reported on click so the user learns what is blocking it.
+    m_remove->Enable(sel && count > 1);
+    m_move_up->Enable(sel && row > 0);
+    m_move_down->Enable(sel && row < count - 1);
+    m_rename->Enable(sel);
+}
+
+void PaletteListFrame::OnAddPalette()
+{
+    if (!m_gd || !IsEditableMode())
+    {
+        return;
+    }
+    std::optional<uint8_t> added;
+    switch (m_mode)
+    {
+    case Mode::ROOM:      added = m_gd->GetRoomData()->AddRoomPalette(); break;
+    case Mode::SPRITE_LO: added = m_gd->GetSpriteData()->AddLoPalette(); break;
+    case Mode::SPRITE_HI: added = m_gd->GetSpriteData()->AddHiPalette(); break;
+    default: return;
+    }
+    if (!added)
+    {
+        wxMessageBox("The palette list is full.", "Add Palette", wxOK | wxICON_ERROR, this);
+        return;
+    }
+    Update();
+    SelectRow(*added);
+    UpdatePaletteButtons();
+}
+
+void PaletteListFrame::OnRemovePalette()
+{
+    if (!m_gd || !IsEditableMode())
+    {
+        return;
+    }
+    const int row = GetSelectedRow();
+    if (row < 0)
+    {
+        return;
+    }
+    const auto name = wxString(PaletteDisplayName(row));
+
+    // Refuse while the palette is still referenced, naming the first few users. Build the list
+    // by concatenation rather than Format to avoid mixing narrow literals into %s.
+    std::size_t user_count = 0;
+    wxString user_list;
+    const auto append = [&user_list](const wxString& item)
+    {
+        if (!user_list.IsEmpty()) user_list += ", ";
+        user_list += item;
+    };
+    if (m_mode == Mode::ROOM)
+    {
+        const auto rooms = m_gd->GetRoomData()->GetRoomsUsingRoomPalette(static_cast<uint8_t>(row));
+        user_count = rooms.size();
+        for (std::size_t i = 0; i < rooms.size() && i < 3; ++i)
+        {
+            append(wxString(m_gd->GetRoomData()->GetRoomDisplayName(rooms[i])));
+        }
+    }
+    else
+    {
+        const auto entities = (m_mode == Mode::SPRITE_LO)
+            ? m_gd->GetSpriteData()->GetEntitiesUsingLoPalette(static_cast<uint8_t>(row))
+            : m_gd->GetSpriteData()->GetEntitiesUsingHiPalette(static_cast<uint8_t>(row));
+        user_count = entities.size();
+        for (std::size_t i = 0; i < entities.size() && i < 3; ++i)
+        {
+            append(wxString(Landstalker::SpriteData::GetEntityDisplayName(entities[i])));
+        }
+    }
+    if (user_count > 3)
+    {
+        append(wxString::Format("and %d more", static_cast<int>(user_count - 3)));
+    }
+    if (user_count > 0)
+    {
+        const wxString what = (m_mode == Mode::ROOM)
+            ? (user_count == 1 ? wxString("1 room") : wxString::Format("%d rooms", static_cast<int>(user_count)))
+            : (user_count == 1 ? wxString("1 entity") : wxString::Format("%d entities", static_cast<int>(user_count)));
+        wxMessageBox("'" + name + "' cannot be deleted: " + what + " still use it.\n\n  " + user_list +
+            "\n\nRepoint them at another palette first.", "Remove Palette", wxOK | wxICON_ERROR, this);
+        return;
+    }
+
+    if (wxMessageBox(wxString::Format("Delete palette '%s'?\n\nThis cannot be undone. Palettes "
+        "above it move down one slot.", name),
+        "Remove Palette", wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this) != wxYES)
+    {
+        return;
+    }
+
+    bool ok = false;
+    switch (m_mode)
+    {
+    case Mode::ROOM:      ok = m_gd->GetRoomData()->DeleteRoomPalette(static_cast<uint8_t>(row)); break;
+    case Mode::SPRITE_LO: ok = m_gd->GetSpriteData()->DeleteLoPalette(static_cast<uint8_t>(row)); break;
+    case Mode::SPRITE_HI: ok = m_gd->GetSpriteData()->DeleteHiPalette(static_cast<uint8_t>(row)); break;
+    default: return;
+    }
+    if (!ok)
+    {
+        wxMessageBox("Unable to delete the palette.", "Remove Palette", wxOK | wxICON_ERROR, this);
+        return;
+    }
+    Update();
+    SelectRow(std::min(row, static_cast<int>(GetPaletteCount()) - 1));
+    UpdatePaletteButtons();
+}
+
+void PaletteListFrame::OnMovePalette(int delta)
+{
+    if (!m_gd || !IsEditableMode())
+    {
+        return;
+    }
+    const int row = GetSelectedRow();
+    const int nrow = row + delta;
+    if (row < 0 || nrow < 0 || nrow >= static_cast<int>(GetPaletteCount()))
+    {
+        return;
+    }
+    bool ok = false;
+    switch (m_mode)
+    {
+    case Mode::ROOM:      ok = m_gd->GetRoomData()->SwapRoomPalettes(static_cast<uint8_t>(row), static_cast<uint8_t>(nrow)); break;
+    case Mode::SPRITE_LO: ok = m_gd->GetSpriteData()->SwapLoPalettes(static_cast<uint8_t>(row), static_cast<uint8_t>(nrow)); break;
+    case Mode::SPRITE_HI: ok = m_gd->GetSpriteData()->SwapHiPalettes(static_cast<uint8_t>(row), static_cast<uint8_t>(nrow)); break;
+    default: return;
+    }
+    if (ok)
+    {
+        Update();
+        SelectRow(nrow);
+        UpdatePaletteButtons();
+    }
+}
+
+void PaletteListFrame::OnRenamePalette()
+{
+    if (!m_gd || !IsEditableMode())
+    {
+        return;
+    }
+    const int row = GetSelectedRow();
+    if (row < 0)
+    {
+        return;
+    }
+    const auto old_name = PaletteDisplayName(row);
+    wxTextEntryDialog dlg(this, "Display name for this palette (used only in the editor):",
+        "Rename Palette", wxString(old_name));
+    while (dlg.ShowModal() == wxID_OK)
+    {
+        const auto name = dlg.GetValue().ToStdWstring();
+        if (name == old_name)
+        {
+            return;
+        }
+        if (!Landstalker::Labels::IsValid(name, PaletteLabelCategory(), row))
+        {
+            wxMessageBox("The name must not be empty, must be unique, and must not contain "
+                "non-printable characters.", "Rename Palette", wxOK | wxICON_ERROR, this);
+            continue;
+        }
+        Landstalker::Labels::Update(PaletteLabelCategory(), row, name);
+        Update();
+        SelectRow(row);
+        return;
     }
 }
 
@@ -322,6 +624,8 @@ void PaletteListFrame::OnMouseMove(wxMouseEvent& evt)
             m_renderer->SetCursorPosition(colour);
             m_model->ValueChanged(itm, 1);
         }
+        // The buttons act on the hovered row, so keep their enabled state in step with it.
+        UpdatePaletteButtons();
         FireEvent(EVT_STATUSBAR_UPDATE);
     }
     else

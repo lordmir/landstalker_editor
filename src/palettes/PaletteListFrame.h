@@ -44,6 +44,24 @@ private:
 	void OnMenuImport();
 	void OnMenuExport();
 
+	// Only the flat, editable lists (room and sprite low/high palettes) get the add/remove/move
+	// buttons; the others are fixed-shape and stay button-less, as the derived data they hold
+	// cannot be reordered independently.
+	bool IsEditableMode() const;
+	std::size_t GetPaletteCount() const;
+	// The row the palette buttons act on - the last one the mouse hovered, since the list
+	// selects on hover so a single click still edits a swatch.
+	int GetSelectedRow() const;
+	void SelectRow(int row);
+	void UpdatePaletteButtons();
+	void OnAddPalette();
+	void OnRemovePalette();
+	void OnMovePalette(int delta);
+	void OnRenamePalette();
+	// The label category and display name for the current editable mode.
+	const std::wstring& PaletteLabelCategory() const;
+	std::wstring PaletteDisplayName(int row) const;
+
 	Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	wxDataViewCtrl* m_list;
@@ -52,6 +70,13 @@ private:
 	mutable wxDataViewItem m_prev_itm;
 	mutable int m_prev_colour;
 	std::string m_title;
+
+	wxPanel* m_button_panel;
+	wxButton* m_add;
+	wxButton* m_remove;
+	wxButton* m_move_up;
+	wxButton* m_move_down;
+	wxButton* m_rename;
 };
 
 #endif // _PALETTE_LIST_FRAME_H_

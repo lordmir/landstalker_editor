@@ -366,6 +366,9 @@
     <ClCompile Include="..\src\sprites\SpriteEditorFrame.cpp">
       <Filter>src\Sprites</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sprites\SpriteManagerDialog.cpp">
+      <Filter>src\Sprites</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\sprites\SpriteFrameEditorCtrl.cpp">
       <Filter>src\Sprites</Filter>
     </ClCompile>
@@ -412,6 +415,12 @@
       <Filter>src\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\RoomManagerDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\TilesetManagerDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\BlocksetManagerDialog.cpp">
       <Filter>src\Rooms</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\RoomConstantsCtrl.cpp">
@@ -677,6 +686,9 @@
     <ClInclude Include="..\src\sprites\SpriteEditorFrame.h">
       <Filter>include\Sprites</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\sprites\SpriteManagerDialog.h">
+      <Filter>include\Sprites</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\sprites\SpriteFrameEditorCtrl.h">
       <Filter>include\Sprites</Filter>
     </ClInclude>
@@ -729,6 +741,12 @@
       <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\RoomManagerDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\TilesetManagerDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\BlocksetManagerDialog.h">
       <Filter>include\Rooms</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\RoomConstantsCtrl.h">

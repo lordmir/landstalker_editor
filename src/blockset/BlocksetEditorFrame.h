@@ -55,6 +55,7 @@ private:
 	virtual void OnMenuClick(wxMenuEvent& evt);
 	virtual void ClearMenu(wxMenuBar& menu) const;
 
+	void ShowBlocksetManagerDialog();
 	void OnExportBin();
 	void OnExportPng();
 	void OnExportCsv();

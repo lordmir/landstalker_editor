@@ -80,6 +80,9 @@ wxDECLARE_EVENT(EVT_PROPERTIES_CLEAR, wxCommandEvent);
 wxDECLARE_EVENT(EVT_MENU_INIT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_MENU_CLEAR, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GO_TO_NAV_ITEM, wxCommandEvent);
+// Posted by an editor to record its current sub-element (String = nav path, Int = sub id) in
+// the browser's back/forward history, without navigating anywhere.
+wxDECLARE_EVENT(EVT_RECORD_NAV_LOCATION, wxCommandEvent);
 wxDECLARE_EVENT(EVT_RENAME_NAV_ITEM, wxCommandEvent);
 wxDECLARE_EVENT(EVT_DELETE_NAV_ITEM, wxCommandEvent);
 wxDECLARE_EVENT(EVT_ADD_NAV_ITEM, wxCommandEvent);
