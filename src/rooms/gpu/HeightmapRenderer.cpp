@@ -355,7 +355,6 @@ void HeightmapRenderer::SetHoverPoint(float x, float y)
 
     auto map = CurrentMap();
     HeightmapPoint point{x, y};
-    float best_depth = 0.0f;
     auto project = [&](float cell_x, float cell_y, uint8_t z) {
         float hmx = cell_x - m_room_left + 12.5f;
         float hmy = cell_y - m_room_top + 12.5f;
@@ -364,7 +363,16 @@ void HeightmapRenderer::SetHoverPoint(float x, float y)
             16.0f * hmx + 16.0f * hmy - m_z_extent * z + 100.0f
         };
     };
+    auto neighbor_height = [&](int cell_x, int cell_y) {
+        if (cell_x < 0 || cell_y < 0 || cell_x >= map->GetHeightmapWidth() || cell_y >= map->GetHeightmapHeight()) {
+            return uint8_t{0};
+        }
+        uint8_t z = map->GetHeight({cell_x, cell_y});
+        return z == 0xFF ? uint8_t{0} : z;
+    };
 
+    bool found = false;
+    HeightmapCell best{};
     for (int y_cell = 0; y_cell < map->GetHeightmapHeight(); ++y_cell) {
         for (int x_cell = 0; x_cell < map->GetHeightmapWidth(); ++x_cell) {
             uint8_t z = map->GetHeight({x_cell, y_cell});
@@ -387,20 +395,40 @@ void HeightmapRenderer::SetHoverPoint(float x, float y)
                 {cell.center.x, cell.center.y + 16.0f},
                 {cell.center.x - 32.0f, cell.center.y}
             };
-            if (PointInQuad(point, quad)) {
-                // Cells at different heights can project onto the same screen space, so
-                // taking every hit in turn leaves whichever happened to be scanned last -
-                // often one standing behind the cell the user is pointing at. Keep the
-                // front-most instead: raising a cell moves it up the screen and bringing
-                // it forward moves it down, so the greatest screen y is nearest the
-                // viewer, which is also the one drawn on top.
-                if (m_hover_x < 0 || cell.center.y > best_depth) {
-                    best_depth = cell.center.y;
-                    m_hover_x = x_cell;
-                    m_hover_y = y_cell;
-                }
+            bool hit = PointInQuad(point, quad);
+            if (!hit && m_z_extent > 0.0f) {
+                // Raised cells also fill their east/south wall faces; a click on a
+                // visible wall should select the cell that owns it.
+                auto wall_hit = [&](uint8_t low_z, HeightmapPoint edge_a, HeightmapPoint edge_b) {
+                    if (cell.z <= low_z) {
+                        return false;
+                    }
+                    HeightmapPoint low_center = project(float(x_cell), float(y_cell), low_z);
+                    HeightmapPoint wall[4] = {
+                        OffsetPoint(cell.center, edge_a.x, edge_a.y),
+                        OffsetPoint(cell.center, edge_b.x, edge_b.y),
+                        OffsetPoint(low_center, edge_b.x, edge_b.y),
+                        OffsetPoint(low_center, edge_a.x, edge_a.y)
+                    };
+                    return PointInQuad(point, wall);
+                };
+                hit = wall_hit(neighbor_height(x_cell + 1, y_cell), {32.0f, 0.0f}, {0.0f, 16.0f}) ||
+                      wall_hit(neighbor_height(x_cell, y_cell + 1), {0.0f, 16.0f}, {-32.0f, 0.0f});
+            }
+
+            // Cells at different heights can project onto the same screen space. The
+            // renderer draws in HeightmapDrawOrder with a first-drawn-wins stencil, so
+            // the visible cell at any pixel is the earliest hit in that same order.
+            if (hit && (!found || HeightmapDrawOrder(cell, best))) {
+                best = cell;
+                found = true;
             }
         }
+    }
+
+    if (found) {
+        m_hover_x = best.x;
+        m_hover_y = best.y;
     }
 }
 

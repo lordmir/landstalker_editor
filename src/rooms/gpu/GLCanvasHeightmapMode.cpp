@@ -209,13 +209,24 @@ bool GLCanvasHeightmapMode::HandleKeyDown(wxKeyEvent& evt)
 
 void GLCanvasHeightmapMode::HandleMouseMove(const wxMouseEvent& evt)
 {
+    int prev_hover_x = m_canvas.m_heightmapRenderer.GetHoverX();
+    int prev_hover_y = m_canvas.m_heightmapRenderer.GetHoverY();
     m_canvas.m_heightmapRenderer.SetHoverPoint(
         m_canvas.ScreenToWorldX(evt.GetPosition().x),
         m_canvas.ScreenToWorldY(evt.GetPosition().y));
+    if (m_canvas.m_heightmapRenderer.GetHoverX() != prev_hover_x ||
+        m_canvas.m_heightmapRenderer.GetHoverY() != prev_hover_y) {
+        m_canvas.UpdateStatusBar();
+    }
     int x = -1;
     int y = -1;
+    // Prefer the draw-order pick; the flat-plane virtual cell is only a fallback
+    // so drags can extend past the map edge. Overriding a successful pick with
+    // the virtual cell would target a different cell than the one clicked
+    // whenever the cell under the cursor is raised.
     bool has_cell = m_canvas.HeightmapCellAt(evt.GetPosition(), x, y);
-    if ((m_canvas.m_heightmap_dragging_select || m_canvas.m_heightmap_dragging_line) &&
+    if (!has_cell &&
+        (m_canvas.m_heightmap_dragging_select || m_canvas.m_heightmap_dragging_line) &&
         m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), x, y)) {
         has_cell = true;
     }
@@ -292,10 +303,14 @@ void GLCanvasHeightmapMode::HandleLeftDown(const wxMouseEvent& evt)
 
 void GLCanvasHeightmapMode::HandleLeftUp(const wxMouseEvent& evt)
 {
+    auto drag_end_cell = [this, &evt](int& cell_x, int& cell_y) {
+        return m_canvas.HeightmapCellAt(evt.GetPosition(), cell_x, cell_y) ||
+               m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y);
+    };
     if (m_canvas.m_heightmap_dragging_select) {
         int cell_x = -1;
         int cell_y = -1;
-        if (m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+        if (drag_end_cell(cell_x, cell_y)) {
             m_canvas.UpdateHeightmapSelectionDrag(cell_x, cell_y);
         }
         m_canvas.FinishHeightmapSelectionDrag();
@@ -306,7 +321,7 @@ void GLCanvasHeightmapMode::HandleLeftUp(const wxMouseEvent& evt)
     if (m_canvas.m_heightmap_dragging_line) {
         int cell_x = -1;
         int cell_y = -1;
-        if (m_canvas.HeightmapVirtualCellAt(evt.GetPosition(), cell_x, cell_y)) {
+        if (drag_end_cell(cell_x, cell_y)) {
             m_canvas.UpdateHeightmapLineDrag(cell_x, cell_y, evt.ShiftDown());
         }
         m_canvas.CommitHeightmapLineDrag();
@@ -320,6 +335,7 @@ void GLCanvasHeightmapMode::HandleLeftUp(const wxMouseEvent& evt)
     if (m_canvas.HasCapture()) {
         m_canvas.ReleaseMouse();
     }
+    m_canvas.UpdateStatusBar();
     m_canvas.Refresh();
 }
 
@@ -358,6 +374,7 @@ void GLCanvasHeightmapMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
     m_canvas.m_heightmapRenderer.ClearHover();
     m_canvas.m_background_has_hover = false;
     m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
+    m_canvas.UpdateStatusBar();
     m_canvas.Refresh();
 }
 

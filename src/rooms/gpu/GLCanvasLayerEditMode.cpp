@@ -161,6 +161,9 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
 void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
 {
     m_canvas.m_heightmapRenderer.ClearHover();
+    bool prev_has_hover = m_canvas.m_background_has_hover;
+    int prev_hover_x = m_canvas.m_background_hover_x;
+    int prev_hover_y = m_canvas.m_background_hover_y;
     int cell_x = -1;
     int cell_y = -1;
     if (m_canvas.BackgroundCellAt(evt.GetPosition(), cell_x, cell_y)) {
@@ -169,6 +172,11 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
         m_canvas.m_background_hover_y = cell_y;
     } else {
         m_canvas.m_background_has_hover = false;
+    }
+    if (m_canvas.m_background_has_hover != prev_has_hover ||
+        (m_canvas.m_background_has_hover &&
+         (m_canvas.m_background_hover_x != prev_hover_x || m_canvas.m_background_hover_y != prev_hover_y))) {
+        m_canvas.UpdateStatusBar();
     }
 
     int drag_x = m_canvas.m_background_hover_x;
@@ -346,6 +354,7 @@ void GLCanvasLayerEditMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
     m_canvas.m_heightmapRenderer.ClearHover();
     m_canvas.m_background_has_hover = false;
     m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
+    m_canvas.UpdateStatusBar();
     m_canvas.Refresh();
 }
 

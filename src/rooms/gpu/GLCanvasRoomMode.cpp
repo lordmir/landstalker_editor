@@ -433,9 +433,15 @@ void GLCanvasRoomMode::HandleMouseMove(const wxMouseEvent& evt)
         return;
     }
 
+    int prev_hover_x = m_canvas.m_heightmapRenderer.GetHoverX();
+    int prev_hover_y = m_canvas.m_heightmapRenderer.GetHoverY();
     m_canvas.m_heightmapRenderer.SetHoverPoint(
         m_canvas.ScreenToWorldX(evt.GetPosition().x),
         m_canvas.ScreenToWorldY(evt.GetPosition().y));
+    if (m_canvas.m_heightmapRenderer.GetHoverX() != prev_hover_x ||
+        m_canvas.m_heightmapRenderer.GetHoverY() != prev_hover_y) {
+        m_canvas.UpdateStatusBar();
+    }
 
     int hovered_control = m_canvas.HitTestEntityZControl(evt.GetPosition());
     int hovered_body = hovered_control >= 0 ? hovered_control : m_canvas.HitTestEntityBody(evt.GetPosition());
@@ -693,6 +699,7 @@ void GLCanvasRoomMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
     m_canvas.m_hovered_door_idx = -1;
     m_canvas.m_heightmapRenderer.ClearHover();
     m_canvas.SetCursor(wxCursor(wxCURSOR_ARROW));
+    m_canvas.UpdateStatusBar();
     m_canvas.Refresh();
 }
 

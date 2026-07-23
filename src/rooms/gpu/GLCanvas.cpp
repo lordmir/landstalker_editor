@@ -453,24 +453,57 @@ void MyGLCanvas::UpdateStatusBar() {
         mode_name = "HM_EDIT";
     }
 
-    int cursor_x = -1;
-    int cursor_y = -1;
-    if (IsAnyEditMode() && m_background_has_selection) {
-        cursor_x = m_background_selected_x;
-        cursor_y = m_background_selected_y;
+    auto map = CurrentRoomMap();
+    auto describe_hm_cell = [&](int cell_x, int cell_y) {
+        uint16_t value = map->GetHeightmapCell({cell_x, cell_y});
+        return wxString::Format("%d,%d Z:%X R:%X T:%02X",
+            cell_x, cell_y, (value >> 8) & 0x0F, (value >> 12) & 0x0F, value & 0xFF);
+    };
+
+    wxString hover_text = "HOVER: -";
+    wxString selection_text = "SEL: -";
+    if (map) {
+        if (IsLayerEditMode()) {
+            if (m_background_has_hover) {
+                hover_text = wxString::Format("HOVER: %d,%d", m_background_hover_x, m_background_hover_y);
+            }
+            if (m_background_has_selection) {
+                selection_text = wxString::Format("SEL: %d,%d", m_background_selected_x, m_background_selected_y);
+            }
+        } else {
+            int hover_x = m_heightmapRenderer.GetHoverX();
+            int hover_y = m_heightmapRenderer.GetHoverY();
+            if (hover_x >= 0 && hover_y >= 0 &&
+                hover_x < map->GetHeightmapWidth() && hover_y < map->GetHeightmapHeight()) {
+                hover_text = "HOVER: " + describe_hm_cell(hover_x, hover_y);
+            }
+            if (IsHeightmapEditMode() && HasSelectedHeightmapCell()) {
+                selection_text = "SEL: " + describe_hm_cell(PrimaryHeightmapCellX(), PrimaryHeightmapCellY());
+                if (m_heightmap_selected_cells.size() > 1) {
+                    selection_text << wxString::Format(" (+%zu)", m_heightmap_selected_cells.size() - 1);
+                }
+            }
+        }
     }
 
-    wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
     const char* occlusion_names[] = {"TOP", "GHOST", "HIDE"};
-    evt.SetString(wxString::Format("MODE: %s | CUR: %d,%d | FPS: %.2f | Entities: %zu | Room: %d (%ls) | Cam: %.0f, %.0f | HM: %s %.0f | BG: %.1f FG: %.1f SPR: %.1f OCC: %s BOX: %s",
-        mode_name, cursor_x, cursor_y,
-        m_fps, m_instances.size(), m_current_room, name.c_str(), m_cam_x, m_cam_y,
-        m_show_heightmap ? "ON" : "OFF", m_heightmapRenderer.GetZExtent(),
-        OpacityForIndex(m_bg_opacity_idx), OpacityForIndex(m_fg_opacity_idx), OpacityForIndex(m_sprite_opacity_idx),
-        occlusion_names[m_entity_occlusion_idx % 3], m_show_hitboxes ? "ON" : "OFF"));
-    evt.SetInt(0);
-    evt.SetClientData(target);
-    wxPostEvent(target, evt);
+    const wxString field_text[] = {
+        wxString::Format("MODE: %s - Room %d (%ls)", mode_name, m_current_room, name.c_str()),
+        hover_text,
+        selection_text,
+        wxString::Format("FPS: %.2f | Entities: %zu | Cam: %.0f, %.0f | HM: %s %.0f | BG: %.1f FG: %.1f SPR: %.1f | OCC: %s BOX: %s",
+            m_fps, m_instances.size(), m_cam_x, m_cam_y,
+            m_show_heightmap ? "ON" : "OFF", m_heightmapRenderer.GetZExtent(),
+            OpacityForIndex(m_bg_opacity_idx), OpacityForIndex(m_fg_opacity_idx), OpacityForIndex(m_sprite_opacity_idx),
+            occlusion_names[m_entity_occlusion_idx % 3], m_show_hitboxes ? "ON" : "OFF")
+    };
+    for (int field = 0; field < 4; ++field) {
+        wxCommandEvent evt(EVT_STATUSBAR_UPDATE);
+        evt.SetString(field_text[field]);
+        evt.SetInt(field);
+        evt.SetClientData(target);
+        wxPostEvent(target, evt);
+    }
 }
 
 void MyGLCanvas::OnSize(wxSizeEvent& evt) {
