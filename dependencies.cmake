@@ -34,7 +34,7 @@ function(InstallZlib)
     FetchContent_Declare(
         zlib
         GIT_REPOSITORY https://github.com/madler/zlib.git
-        GIT_TAG "da607da739fa6047df13e66a2af6b8bec7c2a498" # "v1.3.2"
+        GIT_TAG "v1.3.2" # "v1.3.2"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -61,7 +61,7 @@ function(InstallLibpng)
     FetchContent_Declare(
         png
         GIT_REPOSITORY https://github.com/pnggroup/libpng.git
-        GIT_TAG "2b978915d82377df13fcbb1fb56660195ded868a" # "v1.6.50"
+        GIT_TAG "v1.6.50" # "v1.6.50"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -80,7 +80,7 @@ function(InstallPugixml)
     FetchContent_Declare(
         pugixml
         GIT_REPOSITORY https://github.com/zeux/pugixml
-        GIT_TAG "ee86beb30e4973f5feffe3ce63bfa4fbadf72f38" # "v1.15"
+        GIT_TAG "v1.15" # "v1.15"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -93,7 +93,7 @@ function(InstallYamlcpp)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG "56e3bb550c91fd7005566f19c079cb7a503223cf" # "yaml-cpp-0.9.0"
+        GIT_TAG "yaml-cpp-0.9.0" # "yaml-cpp-0.9.0"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -114,7 +114,7 @@ function(InstallBoost)
     FetchContent_Declare(
         boost
         GIT_REPOSITORY https://github.com/boostorg/boost.git
-        GIT_TAG "ef7fea34711a189472893b88205b1dd3c275677b" # "boost-1.89.0"
+        GIT_TAG "boost-1.89.0" # "boost-1.89.0"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -127,7 +127,7 @@ function(InstallWxwidgets)
     FetchContent_Declare(
         wx
         GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets.git
-        GIT_TAG "49c6810948f40c457e3d0848b9111627b5b61de5" # "wxWidgets-3.3.1"
+        GIT_TAG "wxWidgets-3.3.3" # "wxWidgets-3.3.3"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )
@@ -138,17 +138,12 @@ function(InstallWxwidgets)
     set(wxUSE_GL ON CACHE BOOL "" FORCE)
     set(wxUSE_GLCANVAS_EGL OFF CACHE BOOL "" FORCE)
     set(wxUSE_LIBWEBP OFF CACHE STRING "" FORCE)
-    # Only base/core/gl/adv/xrc/propgrid/aui/xml are actually linked (see target_link_libraries
-    # below) - disable the other GUI modules wx builds by default to avoid statically linking in
-    # ~35MB+ of unused code (Scintilla, WebView/Edge, RichText, Ribbon, MediaCtrl, HTML, QA).
     set(wxUSE_STC OFF CACHE BOOL "" FORCE)
     set(wxUSE_WEBVIEW OFF CACHE BOOL "" FORCE)
     set(wxUSE_RICHTEXT OFF CACHE BOOL "" FORCE)
     set(wxUSE_RIBBON OFF CACHE BOOL "" FORCE)
     set(wxUSE_MEDIACTRL OFF CACHE BOOL "" FORCE)
     set(wxUSE_DEBUGREPORT OFF CACHE BOOL "" FORCE)
-    # wxUSE_HTML must stay ON - wx's built-in help controller (wxUSE_WXHTML_HELP, unrelated to
-    # XRC) hard-requires it and wx's chkconf.h enforces this with a hard compile error.
     message("Configuring wxWidgets...")
     FetchContent_MakeAvailable(wx)
 endfunction()
