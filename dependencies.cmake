@@ -127,7 +127,7 @@ function(InstallWxwidgets)
     FetchContent_Declare(
         wx
         GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets.git
-        GIT_TAG "wxWidgets-3.3.3" # "wxWidgets-3.3.3"
+        GIT_TAG "v3.3.3.1" # "wxWidgets-3.3.3"
         GIT_SHALLOW TRUE
         EXCLUDE_FROM_ALL
     )

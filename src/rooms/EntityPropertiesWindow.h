@@ -26,6 +26,7 @@
 #include <landstalker/main/GameData.h>
 #include <script/ScriptTreeNode.h>
 #include <script/ScriptTreeDataViewModel.h>
+#include <behaviours/BehaviourScriptEditorCtrl.h>
 
 class wxBitmapButton;
 
@@ -48,12 +49,11 @@ public:
 
 private:
     void UpdateUI();
-    void UpdateBehaviourScript();
+    void UpdateBehaviourScript(int behaviour_id);
     void UpdateBehaviourControls(int behaviour_id);
     void UpdateBehaviourUsage(int behaviour_id);
     bool ApplyBehaviourNameChange();
     void RevertBehaviourNameChange();
-    bool CommitBehaviourScript();
 
     // Points the Script combo at the mapping of the currently selected dialogue slot.
     void RefreshDialogueMapScript();
@@ -147,7 +147,7 @@ private:
     wxTextCtrl* m_ctrl_behaviour_name;
     wxBitmapButton* m_ctrl_behaviour_name_apply;
     wxBitmapButton* m_ctrl_behaviour_name_cancel;
-    wxTextCtrl* m_ctrl_behaviour_script;
+    BehaviourScriptEditorCtrl* m_ctrl_behaviour_script;
     wxTextCtrl* m_ctrl_behaviour_usage;
     LookupChoiceControl* m_ctrl_dlg_map_dialogue;
     wxChoice* m_ctrl_dlg_map_script;

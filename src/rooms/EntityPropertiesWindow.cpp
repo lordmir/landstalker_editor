@@ -8,7 +8,6 @@
 #include <landstalker/misc/Utils.h>
 #include <landstalker/main/SpriteData.h>
 #include <landstalker/main/GameData.h>
-#include <landstalker/behaviours/BehaviourYamlConverter.h>
 #include <script/ScriptTableTreeEditorDialog.h>
 #include <script/ScriptTreeActionEditors.h>
 #include <cmath>
@@ -362,17 +361,12 @@ EntityPropertiesWindow::EntityPropertiesWindow(wxWindow* parent, std::shared_ptr
     m_ctrl_chest_content = new LookupChoiceControl(properties_page, ID_CHEST_CONTENT, "", items, wxDefaultPosition, wxDLG_UNIT(this, wxSize(150, -1)));
     szr2i->Add(m_ctrl_chest_content, 1, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-    m_ctrl_behaviour_script = new wxTextCtrl(
-        behaviour_page,
-        wxID_ANY,
-        wxEmptyString,
-        wxDefaultPosition,
-        wxDLG_UNIT(this, wxSize(-1, -1)),
-        wxTE_MULTILINE | wxTE_RICH2);
-    auto script_font = m_ctrl_behaviour_script->GetFont();
-    script_font.SetFamily(wxFONTFAMILY_TELETYPE);
-    script_font.SetPointSize(10);
-    m_ctrl_behaviour_script->SetFont(script_font);
+    // The same command-list control the Behaviour Script Editor uses (including its
+    // append/insert/delete/move buttons) - edits commit straight into SpriteData through its
+    // model, so unlike the rest of this dialog they are not gated on OK (the same live-commit
+    // semantics the character script tree on the Dialogue tab has).
+    m_ctrl_behaviour_script = new BehaviourScriptEditorCtrl(behaviour_page);
+    m_ctrl_behaviour_script->SetGameData(gd);
     behaviour_sizer->Add(m_ctrl_behaviour_script, 1, wxALL | wxEXPAND, 5);
 
     behaviour_sizer->Add(new wxStaticText(behaviour_page, wxID_ANY, "Also Used By:"), 0, wxLEFT | wxRIGHT | wxTOP, 10);
@@ -499,7 +493,7 @@ void EntityPropertiesWindow::UpdateUI()
         behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour_tab, behaviour_id);
     }
     UpdateBehaviourControls(behaviour_id);
-    UpdateBehaviourScript();
+    UpdateBehaviourScript(behaviour_id);
     UpdateBehaviourUsage(behaviour_id);
 
     if (ComboSelectionOrParsed(m_ctrl_entity_type, (*m_entities)[m_id - 1].GetType()) == 0x12) // Chest
@@ -569,26 +563,18 @@ void EntityPropertiesWindow::UpdateBehaviourControls(int behaviour_id)
     }
 }
 
-void EntityPropertiesWindow::UpdateBehaviourScript()
+void EntityPropertiesWindow::UpdateBehaviourScript(int behaviour_id)
 {
     if (!m_gd || !m_gd->GetSpriteData())
     {
-        m_ctrl_behaviour_script->ChangeValue(_("No game data loaded."));
         return;
     }
 
-    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
-    try
+    // Only reopen on an actual script change - this runs from UpdateUI() on every control
+    // event in the dialog, and Open() tears down and rebuilds the whole dataview model.
+    if (m_ctrl_behaviour_script->GetOpenScriptId() != behaviour_id)
     {
-        const auto script = m_gd->GetSpriteData()->GetScript(behaviour_id);
-        const std::wstring script_name = Landstalker::SpriteData::GetBehaviourDisplayName(behaviour_id);
-        std::wstring text = Landstalker::StrWPrintf(L"# [%04d] %ls\n\n", behaviour_id, script_name.c_str());
-        text += Landstalker::utf8_to_wstr(Landstalker::BehaviourYamlConverter::ToYaml(script.second));
-        m_ctrl_behaviour_script->ChangeValue(text);
-    }
-    catch (const std::exception& e)
-    {
-        m_ctrl_behaviour_script->ChangeValue(Landstalker::StrPrintf("Unable to load behaviour script %d:\n%s", behaviour_id, e.what()));
+        m_ctrl_behaviour_script->Open(behaviour_id);
     }
 }
 
@@ -661,28 +647,6 @@ void EntityPropertiesWindow::RevertBehaviourNameChange()
 {
     const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
     m_ctrl_behaviour_name->ChangeValue(Landstalker::SpriteData::GetBehaviourDisplayName(behaviour_id));
-}
-
-bool EntityPropertiesWindow::CommitBehaviourScript()
-{
-    if (!m_gd || !m_gd->GetSpriteData())
-    {
-        return true;
-    }
-
-    const int behaviour_id = ComboSelectionOrParsed(m_ctrl_behaviour, (*m_entities)[m_id - 1].GetBehaviour());
-    try
-    {
-        const auto commands = Landstalker::BehaviourYamlConverter::FromYaml(
-            Landstalker::wstr_to_utf8(m_ctrl_behaviour_script->GetValue().ToStdWstring()));
-        m_gd->GetSpriteData()->SetScript(behaviour_id, commands);
-    }
-    catch (const std::exception& e)
-    {
-        wxMessageBox(e.what(), _("Error parsing behaviour YAML"), wxOK | wxICON_ERROR, this);
-        return false;
-    }
-    return true;
 }
 
 void EntityPropertiesWindow::OnChange(wxCommandEvent& e)
@@ -1153,10 +1117,8 @@ void EntityPropertiesWindow::OnClickOK(wxCommandEvent& /*evt*/)
     {
         return;
     }
-    if (!CommitBehaviourScript())
-    {
-        return;
-    }
+    // No behaviour script commit step: the embedded BehaviourScriptEditorCtrl writes each edit
+    // straight into SpriteData as it is made.
     entity->SetBehaviour(behaviour_selection);
     entity->SetDialogue(ComboSelectionOrParsed(m_ctrl_dialogue, entity->GetDialogue()));
     entity->SetOrientation(static_cast<Landstalker::Orientation>(m_ctrl_orientation->GetSelection()));

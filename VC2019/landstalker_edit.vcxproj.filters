@@ -129,6 +129,15 @@
     <ClCompile Include="..\src\misc\AssemblyBuilderDialog.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\behaviours\BehaviourCommandDataViewRenderer.cpp">
+      <Filter>src\Behaviours</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\behaviours\BehaviourCommandEditor.cpp">
+      <Filter>src\Behaviours</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\behaviours\BehaviourScriptDataViewModel.cpp">
+      <Filter>src\Behaviours</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorCtrl.cpp">
       <Filter>src\Behaviours</Filter>
     </ClCompile>
@@ -451,6 +460,15 @@
     </ClInclude>
     <ClInclude Include="..\src\misc\AssemblyBuilderDialog.h">
       <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\behaviours\BehaviourCommandDataViewRenderer.h">
+      <Filter>include\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\behaviours\BehaviourCommandEditor.h">
+      <Filter>include\Behaviours</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\behaviours\BehaviourScriptDataViewModel.h">
+      <Filter>include\Behaviours</Filter>
     </ClInclude>
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorCtrl.h">
       <Filter>include\Behaviours</Filter>

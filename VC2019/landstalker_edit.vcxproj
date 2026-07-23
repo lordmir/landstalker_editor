@@ -21,6 +21,9 @@
   <ItemGroup>
     <ClCompile Include="..\src\2d_maps\Map2DEditor.cpp" />
     <ClCompile Include="..\src\2d_maps\Map2DEditorFrame.cpp" />
+    <ClCompile Include="..\src\behaviours\BehaviourCommandDataViewRenderer.cpp" />
+    <ClCompile Include="..\src\behaviours\BehaviourCommandEditor.cpp" />
+    <ClCompile Include="..\src\behaviours\BehaviourScriptDataViewModel.cpp" />
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorCtrl.cpp" />
     <ClCompile Include="..\src\behaviours\BehaviourScriptEditorFrame.cpp" />
     <ClCompile Include="..\src\script\ScriptTableTreeEditorCtrl.cpp" />
@@ -132,6 +135,9 @@
   <ItemGroup>
     <ClInclude Include="..\src\2d_maps\Map2DEditor.h" />
     <ClInclude Include="..\src\2d_maps\Map2DEditorFrame.h" />
+    <ClInclude Include="..\src\behaviours\BehaviourCommandDataViewRenderer.h" />
+    <ClInclude Include="..\src\behaviours\BehaviourCommandEditor.h" />
+    <ClInclude Include="..\src\behaviours\BehaviourScriptDataViewModel.h" />
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorCtrl.h" />
     <ClInclude Include="..\src\behaviours\BehaviourScriptEditorFrame.h" />
     <ClInclude Include="..\src\script\ScriptTableTreeEditorCtrl.h" />

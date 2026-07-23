@@ -383,7 +383,11 @@ void MainFrame::InitUI()
         m_browser->AppendItem(nodeScript, "Cutscenes", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CUTSCENE) << 16));
         m_browser->AppendItem(nodeScript, "Progress Flags", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::PROGRESS_FLAGS));
     }
-    m_browser->AppendItem(nodeScript, "Entity Scripts", bscr_img, bscr_img, new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT));
+    // A single top-level leaf (placed directly below "Script") that opens the behaviour script
+    // editor; -1 tells it to keep its current selection (script navigation lives in the editor's
+    // own left-hand list, like the entity editor's).
+    m_browser->InsertItem(nodeRoot, nodeScript, "Entity Scripts", bscr_img, bscr_img,
+        new TreeNodeData(TreeNodeData::Node::BEHAVIOUR_SCRIPT, static_cast<std::size_t>(-1)));
 
     m_browser->AppendItem(nodeData, "Character Sound Effects", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::CHARACTER_SFX));
     m_browser->AppendItem(nodeData, "Room Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::ROOM_CONSTANTS));
@@ -1489,8 +1493,11 @@ void MainFrame::RefreshEditor()
         ShowEditor(EditorType::ENTITY);
         break;
     case Mode::BEHAVIOUR_SCRIPT:
-        // Display entity
-        GetBehaviourScriptEditor()->Open(m_extradata);
+        // The "Entity Scripts" node carries -1: keep whichever script the editor already has
+        // open (falling back to script 0 on the very first visit). Per-script navigation is the
+        // editor's own left-hand list.
+        GetBehaviourScriptEditor()->Open(m_seldata >= 0 ? m_seldata
+            : std::max(GetBehaviourScriptEditor()->GetOpenScriptId(), 0));
         ShowEditor(EditorType::BEHAVIOUR_SCRIPT);
         break;
     case Mode::SCRIPT:
