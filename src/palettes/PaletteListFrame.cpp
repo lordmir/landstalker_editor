@@ -168,6 +168,7 @@ void PaletteListFrame::Update()
             break;
         }
         m_renderer->Reset();
+        m_list->UnselectAll();
         m_model = new DataViewCtrlPaletteModel(entries, labels);
         AssociateDataViewModel(m_list, m_model);
         m_model->DecRef();
