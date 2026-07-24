@@ -1,10 +1,12 @@
 #include <sprites/SpriteFrameEditorCtrl.h>
 
+#include <algorithm>
 #include <fstream>
 #include <wx/wx.h>
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
+#include <wx/rawbmp.h>
 
 #include <landstalker/misc/LZ77.h>
 #include <sprites/SubspriteControlFrame.h>
@@ -13,9 +15,14 @@ wxBEGIN_EVENT_TABLE(SpriteFrameEditorCtrl, wxHVScrolledWindow)
 EVT_PAINT(SpriteFrameEditorCtrl::OnPaint)
 EVT_SIZE(SpriteFrameEditorCtrl::OnSize)
 EVT_LEFT_DOWN(SpriteFrameEditorCtrl::OnMouseDown)
+EVT_LEFT_UP(SpriteFrameEditorCtrl::OnMouseUp)
+EVT_RIGHT_DOWN(SpriteFrameEditorCtrl::OnRightDown)
+EVT_RIGHT_UP(SpriteFrameEditorCtrl::OnMouseUp)
 EVT_LEFT_DCLICK(SpriteFrameEditorCtrl::OnDoubleClick)
 EVT_MOTION(SpriteFrameEditorCtrl::OnMouseMove)
 EVT_LEAVE_WINDOW(SpriteFrameEditorCtrl::OnMouseLeave)
+EVT_ENTER_WINDOW(SpriteFrameEditorCtrl::OnMouseEnter)
+EVT_MOUSE_CAPTURE_LOST(SpriteFrameEditorCtrl::OnCaptureLost)
 EVT_SET_FOCUS(SpriteFrameEditorCtrl::OnTilesetFocus)
 wxEND_EVENT_TABLE()
 
@@ -33,10 +40,8 @@ static const uint8_t UNKNOWN_TILE[32] = {
 SpriteFrameEditorCtrl::SpriteFrameEditorCtrl(wxWindow* parent)
 	: wxHVScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS),
 	m_pixelsize(8),
-	m_selectable(false),
 	m_selectedtile(-1),
 	m_hoveredtile(-1),
-	m_tilebase(0),
 	m_columns(MAX_WIDTH),
 	m_rows(MAX_HEIGHT),
 	m_cellwidth(8),
@@ -53,7 +58,6 @@ SpriteFrameEditorCtrl::SpriteFrameEditorCtrl(wxWindow* parent)
 	m_gd(nullptr),
 	m_ctrlwidth(1),
 	m_ctrlheight(1),
-	m_redraw_all(true),
 	m_pendingswap(-1)
 {
 	m_tiles = std::make_shared<Landstalker::Tileset>();
@@ -80,6 +84,7 @@ bool SpriteFrameEditorCtrl::Open(wxString filename, int sprite_id)
 	bool result = m_sprite->Open(filename.ToStdString());
 	if (result)
 	{
+		ClearHistory();
 		UpdateTileBuffer();
 		ForceRedraw();
 	}
@@ -90,6 +95,7 @@ bool SpriteFrameEditorCtrl::Open(std::vector<uint8_t>& pixels, int sprite_id)
 {
 	m_sprite_id = sprite_id;
 	m_sprite->SetBits(pixels);
+	ClearHistory();
 	UpdateTileBuffer();
 	ForceRedraw();
 	return true;
@@ -100,6 +106,7 @@ bool SpriteFrameEditorCtrl::Open(std::shared_ptr<Landstalker::SpriteFrame> frame
 	m_sprite = frame;
 	m_pal = pal;
 	m_sprite_id = sprite_id;
+	ClearHistory();
 	UpdateTileBuffer();
 	ForceRedraw();
 	return true;
@@ -107,21 +114,13 @@ bool SpriteFrameEditorCtrl::Open(std::shared_ptr<Landstalker::SpriteFrame> frame
 
 void SpriteFrameEditorCtrl::RedrawTiles(int index)
 {
-	int subsprite = m_selected_subsprite;
-	if (subsprite > 0 && subsprite <= static_cast<int>(m_sprite->GetSubSpriteCount()))
-	{
-		if (subsprite != m_selected_subsprite)
-		{
-			index = -1;
-		}
-	}
-	else
+	// A stale subsprite selection (e.g. after deletions) invalidates the layout, so clear
+	// it and fall back to a full redraw.
+	if ((m_selected_subsprite != -1) &&
+	    ((m_selected_subsprite <= 0) || (m_selected_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount()))))
 	{
 		m_selected_subsprite = -1;
-		if (subsprite != -1)
-		{
-			index = -1;
-		}
+		index = -1;
 	}
 	if ((index < 0) || (index >= static_cast<int>(m_sprite->GetTileCount())))
 	{
@@ -130,9 +129,11 @@ void SpriteFrameEditorCtrl::RedrawTiles(int index)
 	}
 	else
 	{
+		// The tile's pixels changed: queue a per-tile patch of the cached bitmap. A full
+		// re-render here ran once per painted pixel and made drawing crawl.
 		m_redraw_list.insert(index);
 		UpdateSpriteTile(index);
-		Refresh(false);
+		RefreshTileRect(index);
 	}
 }
 
@@ -272,6 +273,7 @@ void SpriteFrameEditorCtrl::MoveSubSpriteUp()
 	{
 		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 		{
+			PushUndo();
 			orig_s = new_s;
 			FireEvent(EVT_SUBSPRITE_UPDATE);
 		}
@@ -292,6 +294,7 @@ void SpriteFrameEditorCtrl::MoveSubSpriteDown()
 	{
 		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 		{
+			PushUndo();
 			orig_s = new_s;
 			FireEvent(EVT_SUBSPRITE_UPDATE);
 		}
@@ -312,6 +315,7 @@ void SpriteFrameEditorCtrl::MoveSubSpriteLeft()
 	{
 		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 		{
+			PushUndo();
 			orig_s = new_s;
 			FireEvent(EVT_SUBSPRITE_UPDATE);
 		}
@@ -332,6 +336,7 @@ void SpriteFrameEditorCtrl::MoveSubSpriteRight()
 	{
 		if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 		{
+			PushUndo();
 			orig_s = new_s;
 			FireEvent(EVT_SUBSPRITE_UPDATE);
 		}
@@ -353,6 +358,7 @@ void SpriteFrameEditorCtrl::ExpandSubSpriteWidth()
 	++new_s.w;
 	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 	{
+		PushUndo();
 		orig_s = new_s;
 		FireEvent(EVT_SUBSPRITE_UPDATE);
 	}
@@ -373,6 +379,7 @@ void SpriteFrameEditorCtrl::ContractSubSpriteWidth()
 	--new_s.w;
 	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 	{
+		PushUndo();
 		orig_s = new_s;
 		FireEvent(EVT_SUBSPRITE_UPDATE);
 	}
@@ -393,6 +400,7 @@ void SpriteFrameEditorCtrl::ExpandSubSpriteHeight()
 	++new_s.h;
 	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 	{
+		PushUndo();
 		orig_s = new_s;
 		FireEvent(EVT_SUBSPRITE_UPDATE);
 	}
@@ -413,6 +421,7 @@ void SpriteFrameEditorCtrl::ContractSubSpriteHeight()
 	--new_s.h;
 	if (!CheckSubSpriteCollision(new_s, GetSelectedSubSprite() - 1))
 	{
+		PushUndo();
 		orig_s = new_s;
 		FireEvent(EVT_SUBSPRITE_UPDATE);
 	}
@@ -480,7 +489,13 @@ void SpriteFrameEditorCtrl::SelectPrevSubSprite()
 
 void SpriteFrameEditorCtrl::ClearCell()
 {
-	m_tiles->SetTile(GetSelectedTile(), Landstalker::ByteVector(m_tiles->GetTileWidth() * m_tiles->GetTileHeight()));
+	const auto blank = Landstalker::ByteVector(m_tiles->GetTileWidth() * m_tiles->GetTileHeight());
+	if (m_tiles->GetTile(GetSelectedTile()) == blank)
+	{
+		return;
+	}
+	PushUndo();
+	m_tiles->SetTile(GetSelectedTile(), blank);
 	FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
 	RedrawTiles(GetSelectedTile().GetIndex());
 }
@@ -500,6 +515,11 @@ void SpriteFrameEditorCtrl::PasteCell()
 {
 	if (m_clipboard.size() == m_tiles->GetTileWidth() * m_tiles->GetTileHeight())
 	{
+		if (m_tiles->GetTile(GetSelectedTile()) == m_clipboard)
+		{
+			return;
+		}
+		PushUndo();
 		m_tiles->SetTile(GetSelectedTile(), m_clipboard);
 		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
 		RedrawTiles(GetSelectedTile().GetIndex());
@@ -514,36 +534,905 @@ void SpriteFrameEditorCtrl::SwapCell()
 	}
 	else
 	{
-		m_swapbuffer = m_tiles->GetTilePixels(m_pendingswap);
-		m_tiles->SetTile(m_pendingswap, m_tiles->GetTilePixels(m_selectedtile));
-		m_tiles->SetTile(m_selectedtile, m_swapbuffer);
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_pendingswap));
-		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
+		if (m_pendingswap != m_selectedtile)
+		{
+			PushUndo();
+			m_swapbuffer = m_tiles->GetTilePixels(m_pendingswap);
+			m_tiles->SetTile(m_pendingswap, m_tiles->GetTilePixels(m_selectedtile));
+			m_tiles->SetTile(m_selectedtile, m_swapbuffer);
+			FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_pendingswap));
+			FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(GetSelectedTile().GetIndex()));
+		}
 		m_pendingswap = -1;
+	}
+}
+
+bool SpriteFrameEditorCtrl::CanUndo() const
+{
+	return !m_undo_stack.empty();
+}
+
+bool SpriteFrameEditorCtrl::CanRedo() const
+{
+	return !m_redo_stack.empty();
+}
+
+void SpriteFrameEditorCtrl::Undo()
+{
+	if (!m_sprite || !m_tiles || m_undo_stack.empty())
+	{
+		return;
+	}
+	m_redo_stack.push_back(MakeUndoState());
+	auto state = std::move(m_undo_stack.back());
+	m_undo_stack.pop_back();
+	RestoreUndoState(state);
+}
+
+void SpriteFrameEditorCtrl::Redo()
+{
+	if (!m_sprite || !m_tiles || m_redo_stack.empty())
+	{
+		return;
+	}
+	m_undo_stack.push_back(MakeUndoState());
+	auto state = std::move(m_redo_stack.back());
+	m_redo_stack.pop_back();
+	RestoreUndoState(state);
+}
+
+void SpriteFrameEditorCtrl::PushUndo()
+{
+	if (!m_sprite || !m_tiles)
+	{
+		return;
+	}
+	PushUndoState(MakeUndoState());
+}
+
+void SpriteFrameEditorCtrl::PushUndoState(UndoState&& state)
+{
+	// A new edit invalidates anything that was undone.
+	m_redo_stack.clear();
+	m_undo_stack.push_back(std::move(state));
+	while (m_undo_stack.size() > 100)
+	{
+		m_undo_stack.pop_front();
+	}
+}
+
+void SpriteFrameEditorCtrl::ClearHistory()
+{
+	m_undo_stack.clear();
+	m_redo_stack.clear();
+}
+
+SpriteFrameEditorCtrl::UndoState SpriteFrameEditorCtrl::MakeUndoState() const
+{
+	return { m_tiles->GetBits(false), m_sprite->GetSubSprites() };
+}
+
+void SpriteFrameEditorCtrl::RestoreUndoState(const UndoState& state)
+{
+	m_tiles->SetBits(state.tiles, false);
+	m_sprite->SetSubSprites(state.subsprites);
+	// The sprite's own tileset is always derived from the canvas and the subsprite layout.
+	UpdateAllSpriteTiles();
+	// A restored layout can have fewer subsprites, invalidating the selection.
+	if (m_selected_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount()))
+	{
+		m_selected_subsprite = -1;
+	}
+	m_pendingswap = -1;
+	ForceRedraw();
+}
+
+void SpriteFrameEditorCtrl::SetMode(Mode mode)
+{
+	if (m_mode == mode)
+	{
+		return;
+	}
+	EndSubSpriteDrag();
+	CancelShape();
+	EndStroke();
+	m_drawing = false;
+	m_hoveredpixel = { -1, -1 };
+	m_mode = mode;
+	SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
+	Refresh();
+}
+
+SpriteFrameEditorCtrl::Mode SpriteFrameEditorCtrl::GetMode() const
+{
+	return m_mode;
+}
+
+void SpriteFrameEditorCtrl::SetDrawTool(Tool tool)
+{
+	if (m_tool != tool)
+	{
+		CancelShape();
+		m_tool = tool;
+	}
+}
+
+SpriteFrameEditorCtrl::Tool SpriteFrameEditorCtrl::GetDrawTool() const
+{
+	return m_tool;
+}
+
+void SpriteFrameEditorCtrl::SetPrimaryColour(uint8_t colour)
+{
+	if (colour < 16)
+	{
+		m_primary_colour = colour;
+	}
+}
+
+uint8_t SpriteFrameEditorCtrl::GetPrimaryColour() const
+{
+	return m_primary_colour;
+}
+
+void SpriteFrameEditorCtrl::SetSecondaryColour(uint8_t colour)
+{
+	if (colour < 16)
+	{
+		m_secondary_colour = colour;
+	}
+}
+
+uint8_t SpriteFrameEditorCtrl::GetSecondaryColour() const
+{
+	return m_secondary_colour;
+}
+
+bool SpriteFrameEditorCtrl::IsPixelHoverValid() const
+{
+	return (m_hoveredpixel.x >= 0) && (m_hoveredpixel.y >= 0);
+}
+
+wxPoint SpriteFrameEditorCtrl::GetHoveredPixel() const
+{
+	return m_hoveredpixel;
+}
+
+int SpriteFrameEditorCtrl::GetColourAtPixel(const wxPoint& pixel) const
+{
+	if ((m_tiles == nullptr) || (pixel.x < 0) || (pixel.y < 0))
+	{
+		return -1;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const int tile = (pixel.x / tw) + (pixel.y / th) * MAX_WIDTH;
+	if ((tile >= static_cast<int>(m_tiles->GetTileCount())) || !IsTileInSprite(tile))
+	{
+		return -1;
+	}
+	const auto& pixels = m_tiles->GetTilePixels(tile);
+	const std::size_t idx = (pixel.x % tw) + (pixel.y % th) * tw;
+	return (idx < pixels.size()) ? pixels[idx] : -1;
+}
+
+wxPoint SpriteFrameEditorCtrl::MouseToLogical(const wxPoint& point) const
+{
+	return { point.x + static_cast<int>(GetVisibleColumnsBegin()) * m_cellwidth,
+	         point.y + static_cast<int>(GetVisibleRowsBegin()) * m_cellheight };
+}
+
+std::vector<SpriteFrameEditorCtrl::SubSpriteHandle> SpriteFrameEditorCtrl::GetSubSpriteHandles()
+{
+	std::vector<SubSpriteHandle> handles;
+	if ((m_mode != Mode::SUBSPRITE) || (m_sprite == nullptr) || (m_selected_subsprite <= 0) ||
+	    (m_selected_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount())))
+	{
+		return handles;
+	}
+	const auto& s = m_sprite->GetSubSprite(m_selected_subsprite - 1);
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const wxPoint o = SpriteToScreenXY({ s.x, s.y });
+	const int w = static_cast<int>(s.w) * tw * m_pixelsize;
+	const int h = static_cast<int>(s.h) * th * m_pixelsize;
+	handles = {
+		{ o.x,         o.y,         EDGE_LEFT | EDGE_TOP },
+		{ o.x + w / 2, o.y,         EDGE_TOP },
+		{ o.x + w,     o.y,         EDGE_RIGHT | EDGE_TOP },
+		{ o.x,         o.y + h / 2, EDGE_LEFT },
+		{ o.x + w,     o.y + h / 2, EDGE_RIGHT },
+		{ o.x,         o.y + h,     EDGE_LEFT | EDGE_BOTTOM },
+		{ o.x + w / 2, o.y + h,     EDGE_BOTTOM },
+		{ o.x + w,     o.y + h,     EDGE_RIGHT | EDGE_BOTTOM },
+	};
+	return handles;
+}
+
+bool SpriteFrameEditorCtrl::HitTestSubSpriteHandles(const wxPoint& logical, int& edges)
+{
+	// Generous hit area so the handles stay usable at low zoom, where a 1x1 subsprite
+	// is only 8 pixels across.
+	const int hit = std::max(4, m_pixelsize / 2 + 2);
+	for (const auto& h : GetSubSpriteHandles())
+	{
+		if ((std::abs(logical.x - h.x) <= hit) && (std::abs(logical.y - h.y) <= hit))
+		{
+			edges = h.edges;
+			return true;
+		}
+	}
+	return false;
+}
+
+void SpriteFrameEditorCtrl::UpdateSubSpriteCursor(const wxPoint& logical)
+{
+	int edges = 0;
+	if (HitTestSubSpriteHandles(logical, edges))
+	{
+		const bool l = (edges & EDGE_LEFT) != 0;
+		const bool r = (edges & EDGE_RIGHT) != 0;
+		const bool t = (edges & EDGE_TOP) != 0;
+		const bool b = (edges & EDGE_BOTTOM) != 0;
+		if ((l && t) || (r && b))
+		{
+			SetMouseCursor(wxStockCursor::wxCURSOR_SIZENWSE);
+		}
+		else if ((r && t) || (l && b))
+		{
+			SetMouseCursor(wxStockCursor::wxCURSOR_SIZENESW);
+		}
+		else if (l || r)
+		{
+			SetMouseCursor(wxStockCursor::wxCURSOR_SIZEWE);
+		}
+		else
+		{
+			SetMouseCursor(wxStockCursor::wxCURSOR_SIZENS);
+		}
+	}
+	else if (m_hovered_subsprite > 0)
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_SIZING);
+	}
+	else
+	{
+		SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
+	}
+}
+
+void SpriteFrameEditorCtrl::DoSubSpriteDrag(const wxPoint& logical)
+{
+	if ((m_drag_subsprite <= 0) || (m_drag_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount())))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	auto& s = m_sprite->GetSubSprite(m_drag_subsprite - 1);
+	// Snapped to the tile grid: the canvas<->sprite tile mapping assumes tile alignment.
+	const int tx = std::clamp(logical.x / m_cellwidth - m_drag_offset.x, 0, MAX_WIDTH - static_cast<int>(s.w));
+	const int ty = std::clamp(logical.y / m_cellheight - m_drag_offset.y, 0, MAX_HEIGHT - static_cast<int>(s.h));
+	// Walk one tile at a time towards the target, so a drag into another subsprite clamps
+	// against its edge (and slides along it) instead of ignoring the move altogether.
+	int cx = s.x / tw + ORIGIN_X;
+	int cy = s.y / th + ORIGIN_Y;
+	Landstalker::SpriteFrame::SubSprite cand = s;
+	bool progress = true;
+	while (progress && ((cx != tx) || (cy != ty)))
+	{
+		progress = false;
+		if (cx != tx)
+		{
+			const int step = (cx < tx) ? 1 : -1;
+			cand.x = (cx + step - ORIGIN_X) * tw;
+			cand.y = (cy - ORIGIN_Y) * th;
+			if (!CheckSubSpriteCollision(cand, m_drag_subsprite - 1))
+			{
+				cx += step;
+				progress = true;
+			}
+		}
+		if (cy != ty)
+		{
+			const int step = (cy < ty) ? 1 : -1;
+			cand.x = (cx - ORIGIN_X) * tw;
+			cand.y = (cy + step - ORIGIN_Y) * th;
+			if (!CheckSubSpriteCollision(cand, m_drag_subsprite - 1))
+			{
+				cy += step;
+				progress = true;
+			}
+		}
+	}
+	Landstalker::SpriteFrame::SubSprite new_s = s;
+	new_s.x = (cx - ORIGIN_X) * tw;
+	new_s.y = (cy - ORIGIN_Y) * th;
+	if (new_s == s)
+	{
+		return;
+	}
+	if (!m_drag_undo_pushed)
+	{
+		PushUndo();
+		m_drag_undo_pushed = true;
+	}
+	s = new_s;
+	FireEvent(EVT_SUBSPRITE_UPDATE);
+}
+
+void SpriteFrameEditorCtrl::DoSubSpriteResize(const wxPoint& logical)
+{
+	if ((m_drag_subsprite <= 0) || (m_drag_subsprite > static_cast<int>(m_sprite->GetSubSpriteCount())))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	auto& s = m_sprite->GetSubSprite(m_drag_subsprite - 1);
+	const int left = s.x / tw + ORIGIN_X;
+	const int top = s.y / th + ORIGIN_Y;
+	const int right = left + static_cast<int>(s.w);
+	const int bottom = top + static_cast<int>(s.h);
+	const int mx = logical.x / m_cellwidth;
+	const int my = logical.y / m_cellheight;
+	Landstalker::SpriteFrame::SubSprite new_s = s;
+	// The dragged edge follows the mouse tile; the opposite edge stays put. Width and
+	// height are hardware-limited to 1-4 tiles. Growth steps one tile at a time so an
+	// edge dragged into a neighbouring subsprite clamps against it; shrinking can never
+	// collide, so it jumps straight to the target.
+	const auto fits = [&](const Landstalker::SpriteFrame::SubSprite& cand)
+	{
+		return !CheckSubSpriteCollision(cand, m_drag_subsprite - 1);
+	};
+	if (m_drag_edges & EDGE_RIGHT)
+	{
+		const int target = std::clamp(mx + 1, left + 1, std::min(left + 4, MAX_WIDTH));
+		int r = std::min(right, target);
+		while (r < target)
+		{
+			auto cand = new_s;
+			cand.w = static_cast<std::size_t>(r + 1 - left);
+			if (!fits(cand)) break;
+			++r;
+		}
+		new_s.w = static_cast<std::size_t>(r - left);
+	}
+	if (m_drag_edges & EDGE_LEFT)
+	{
+		const int target = std::clamp(mx, std::max(right - 4, 0), right - 1);
+		int l = std::max(left, target);
+		while (l > target)
+		{
+			auto cand = new_s;
+			cand.x = (l - 1 - ORIGIN_X) * tw;
+			cand.w = static_cast<std::size_t>(right - (l - 1));
+			if (!fits(cand)) break;
+			--l;
+		}
+		new_s.x = (l - ORIGIN_X) * tw;
+		new_s.w = static_cast<std::size_t>(right - l);
+	}
+	if (m_drag_edges & EDGE_BOTTOM)
+	{
+		const int target = std::clamp(my + 1, top + 1, std::min(top + 4, MAX_HEIGHT));
+		int b = std::min(bottom, target);
+		while (b < target)
+		{
+			auto cand = new_s;
+			cand.h = static_cast<std::size_t>(b + 1 - top);
+			if (!fits(cand)) break;
+			++b;
+		}
+		new_s.h = static_cast<std::size_t>(b - top);
+	}
+	if (m_drag_edges & EDGE_TOP)
+	{
+		const int target = std::clamp(my, std::max(bottom - 4, 0), bottom - 1);
+		int t = std::max(top, target);
+		while (t > target)
+		{
+			auto cand = new_s;
+			cand.y = (t - 1 - ORIGIN_Y) * th;
+			cand.h = static_cast<std::size_t>(bottom - (t - 1));
+			if (!fits(cand)) break;
+			--t;
+		}
+		new_s.y = (t - ORIGIN_Y) * th;
+		new_s.h = static_cast<std::size_t>(bottom - t);
+	}
+	if (new_s == s)
+	{
+		return;
+	}
+	if (CheckSubSpriteCollision(new_s, m_drag_subsprite - 1))
+	{
+		return;
+	}
+	if (!m_drag_undo_pushed)
+	{
+		PushUndo();
+		m_drag_undo_pushed = true;
+	}
+	s = new_s;
+	FireEvent(EVT_SUBSPRITE_UPDATE);
+}
+
+void SpriteFrameEditorCtrl::DrawSubSpriteHandles(wxDC& dc)
+{
+	const auto handles = GetSubSpriteHandles();
+	if (handles.empty())
+	{
+		return;
+	}
+	const int side = std::clamp(m_pixelsize, 6, 10);
+	dc.SetPen(*wxBLACK_PEN);
+	dc.SetBrush(*wxWHITE_BRUSH);
+	for (const auto& h : handles)
+	{
+		dc.DrawRectangle(h.x - side / 2, h.y - side / 2, side, side);
+	}
+}
+
+void SpriteFrameEditorCtrl::FlushSpriteTileSync()
+{
+	for (const int tile : m_pending_sync)
+	{
+		UpdateSpriteTile(tile);
+	}
+	m_pending_sync.clear();
+}
+
+void SpriteFrameEditorCtrl::StartDrawAction(const wxPoint& logical)
+{
+	if ((m_tiles == nullptr) || (m_pixelsize <= 0))
+	{
+		return;
+	}
+	const int gx = logical.x / m_pixelsize;
+	const int gy = logical.y / m_pixelsize;
+	switch (m_tool)
+	{
+	case Tool::Pencil:
+		MouseDrawMove(logical);
+		break;
+	case Tool::Fill:
+		FloodFillAt(gx, gy, m_secondary_active ? m_secondary_colour : m_primary_colour);
+		break;
+	default:
+		// Shape tools: anchor here, preview while dragging, commit on release.
+		m_shape_active = true;
+		m_shape_secondary = m_secondary_active;
+		m_shape_start = wxPoint(gx, gy);
+		m_shape_end = m_shape_start;
+		RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+		break;
+	}
+}
+
+void SpriteFrameEditorCtrl::MouseDrawMove(const wxPoint& logical)
+{
+	if ((m_tiles == nullptr) || (m_pixelsize <= 0))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const int gx = logical.x / m_pixelsize;
+	const int gy = logical.y / m_pixelsize;
+
+	// Hovered tile and pixel; the pixel cursor only shows over drawable (in-sprite) tiles.
+	int tile = -1;
+	wxPoint pixel(-1, -1);
+	if ((gx >= 0) && (gy >= 0) && (gx < MAX_WIDTH * tw) && (gy < MAX_HEIGHT * th))
+	{
+		tile = (gx / tw) + (gy / th) * MAX_WIDTH;
+		if (IsTileInSprite(tile))
+		{
+			pixel = wxPoint(gx, gy);
+		}
+	}
+	const int old_tile = m_hoveredtile;
+	if (tile != old_tile)
+	{
+		m_hoveredtile = tile;
+		FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
+		RefreshTileRect(old_tile);
+		RefreshTileRect(tile);
+	}
+	if (pixel != m_hoveredpixel)
+	{
+		if (IsPixelHoverValid())
+		{
+			RefreshGlobalPixel(m_hoveredpixel);
+		}
+		m_hoveredpixel = pixel;
+		if (pixel.x >= 0)
+		{
+			RefreshGlobalPixel(pixel);
+		}
+		if (tile == old_tile)
+		{
+			// The status bar shows the pixel coordinates; the tile branch above already
+			// fired for cross-tile moves.
+			FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
+		}
+	}
+	if (m_drawing && m_shape_active)
+	{
+		// Shape drag in progress: track the end point and repaint old and new extents.
+		if (m_shape_end != wxPoint(gx, gy))
+		{
+			const wxPoint old_end = m_shape_end;
+			m_shape_end = wxPoint(gx, gy);
+			RefreshRect(GlobalPixelBoxToClient(m_shape_start, old_end));
+			RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+		}
+	}
+	if (m_drawing && (m_tool == Tool::Pencil))
+	{
+		if (!m_stroke_dirty)
+		{
+			// Provisional snapshot: pushed to the undo stack only once this stroke
+			// actually changes a pixel.
+			m_stroke_snapshot = MakeUndoState();
+		}
+		const uint8_t colour = m_secondary_active ? m_secondary_colour : m_primary_colour;
+		bool changed = false;
+		wxRect damage;
+		if (m_last_drawn.x < 0)
+		{
+			changed = PaintGlobalPixel(gx, gy, colour, damage);
+		}
+		else
+		{
+			// Joined to the previous sample so fast strokes don't leave gaps.
+			PlotShapeLine(m_last_drawn, wxPoint(gx, gy), [&](int x, int y)
+				{
+					changed |= PaintGlobalPixel(x, y, colour, damage);
+				});
+		}
+		m_last_drawn = wxPoint(gx, gy);
+		if (changed)
+		{
+			if (!m_stroke_dirty)
+			{
+				PushUndoState(std::move(m_stroke_snapshot));
+			}
+			m_stroke_dirty = true;
+			// Once per motion sample, not per pixel: keeps the sprite tileset fresh for
+			// the animation preview even mid-stroke.
+			FlushSpriteTileSync();
+			damage.Inflate(1, 1);
+			RefreshRect(damage);
+			// No Update() here: leaving the repaint pending lets Windows batch several
+			// mouse samples into one paint; the Bresenham join keeps the line unbroken.
+		}
+	}
+}
+
+bool SpriteFrameEditorCtrl::PaintGlobalPixel(int gx, int gy, uint8_t colour, wxRect& damage)
+{
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	if ((gx < 0) || (gy < 0) || (gx >= MAX_WIDTH * tw) || (gy >= MAX_HEIGHT * th))
+	{
+		return false;
+	}
+	const int tile = (gx / tw) + (gy / th) * MAX_WIDTH;
+	if ((tile >= static_cast<int>(m_tiles->GetTileCount())) || !IsTileInSprite(tile))
+	{
+		return false;
+	}
+	auto& pixels = m_tiles->GetTilePixels(tile);
+	const std::size_t idx = (gx % tw) + (gy % th) * tw;
+	if ((idx >= pixels.size()) || (pixels[idx] == colour))
+	{
+		return false;
+	}
+	pixels[idx] = colour;
+	// The canvas is the master copy; the sprite's own tileset is brought back in step once
+	// per operation via FlushSpriteTileSync - a whole-tile copy per pixel is wasteful.
+	m_pending_sync.insert(tile);
+	m_redraw_list.insert(tile);
+	damage.Union(wxRect(gx * m_pixelsize - GetVisibleColumnsBegin() * m_cellwidth,
+	                    gy * m_pixelsize - GetVisibleRowsBegin() * m_cellheight,
+	                    m_pixelsize + 1, m_pixelsize + 1));
+	return true;
+}
+
+wxRect SpriteFrameEditorCtrl::GlobalPixelBoxToClient(const wxPoint& a, const wxPoint& b) const
+{
+	const int sx = static_cast<int>(GetVisibleColumnsBegin()) * m_cellwidth;
+	const int sy = static_cast<int>(GetVisibleRowsBegin()) * m_cellheight;
+	const int x0 = std::min(a.x, b.x);
+	const int x1 = std::max(a.x, b.x);
+	const int y0 = std::min(a.y, b.y);
+	const int y1 = std::max(a.y, b.y);
+	wxRect rect(x0 * m_pixelsize - sx, y0 * m_pixelsize - sy,
+	            (x1 - x0 + 1) * m_pixelsize + 1, (y1 - y0 + 1) * m_pixelsize + 1);
+	rect.Inflate(2, 2);
+	return rect;
+}
+
+void SpriteFrameEditorCtrl::RefreshGlobalPixel(const wxPoint& pixel)
+{
+	RefreshRect(GlobalPixelBoxToClient(pixel, pixel));
+}
+
+std::vector<wxPoint> SpriteFrameEditorCtrl::MakeShapePoints(Tool tool, const wxPoint& a, const wxPoint& b) const
+{
+	// Geometry shared with the tileset editor - see ImageBufferWx.
+	switch (tool)
+	{
+	case Tool::Line:             return MakeShapeToolPoints(ShapeTool::Line, a, b);
+	case Tool::RectangleOutline: return MakeShapeToolPoints(ShapeTool::RectangleOutline, a, b);
+	case Tool::RectangleFilled:  return MakeShapeToolPoints(ShapeTool::RectangleFilled, a, b);
+	case Tool::CircleOutline:    return MakeShapeToolPoints(ShapeTool::CircleOutline, a, b);
+	case Tool::CircleFilled:     return MakeShapeToolPoints(ShapeTool::CircleFilled, a, b);
+	default:                     return {};
+	}
+}
+
+void SpriteFrameEditorCtrl::CommitShape()
+{
+	if (!m_shape_active)
+	{
+		return;
+	}
+	m_shape_active = false;
+	// Erase the preview regardless of whether the commit changes anything.
+	RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+	if ((m_tiles == nullptr) || (m_sprite == nullptr))
+	{
+		return;
+	}
+	auto snapshot = MakeUndoState();
+	const uint8_t colour = m_shape_secondary ? m_secondary_colour : m_primary_colour;
+	bool changed = false;
+	wxRect damage;
+	for (const auto& p : MakeShapePoints(m_tool, m_shape_start, m_shape_end))
+	{
+		changed |= PaintGlobalPixel(p.x, p.y, colour, damage);
+	}
+	if (changed)
+	{
+		FlushSpriteTileSync();
+		PushUndoState(std::move(snapshot));
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void SpriteFrameEditorCtrl::CancelShape()
+{
+	if (m_shape_active)
+	{
+		m_shape_active = false;
+		RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+	}
+}
+
+void SpriteFrameEditorCtrl::FloodFillAt(int gx, int gy, uint8_t colour)
+{
+	// Fills the contiguous same-colour region across the whole sprite, bounded by the
+	// subsprite areas: unlike the tileset editor's per-tile fill, a sprite's tiles form
+	// one continuous piece of artwork.
+	if ((m_tiles == nullptr) || (m_sprite == nullptr))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const int target = GetColourAtPixel({ gx, gy });
+	if ((target < 0) || (target == colour))
+	{
+		return;
+	}
+	auto snapshot = MakeUndoState();
+	bool changed = false;
+	wxRect damage;
+	std::vector<wxPoint> stack{ wxPoint(gx, gy) };
+	while (!stack.empty())
+	{
+		const wxPoint p = stack.back();
+		stack.pop_back();
+		if ((p.x < 0) || (p.y < 0) || (p.x >= MAX_WIDTH * tw) || (p.y >= MAX_HEIGHT * th))
+		{
+			continue;
+		}
+		const int tile = (p.x / tw) + (p.y / th) * MAX_WIDTH;
+		if ((tile >= static_cast<int>(m_tiles->GetTileCount())) || !IsTileInSprite(tile))
+		{
+			continue;
+		}
+		auto& pixels = m_tiles->GetTilePixels(tile);
+		uint8_t& value = pixels[(p.x % tw) + (p.y % th) * tw];
+		if (value != static_cast<uint8_t>(target))
+		{
+			continue;
+		}
+		value = colour;
+		m_pending_sync.insert(tile);
+		m_redraw_list.insert(tile);
+		damage.Union(wxRect(p.x * m_pixelsize - GetVisibleColumnsBegin() * m_cellwidth,
+		                    p.y * m_pixelsize - GetVisibleRowsBegin() * m_cellheight,
+		                    m_pixelsize + 1, m_pixelsize + 1));
+		changed = true;
+		stack.emplace_back(p.x + 1, p.y);
+		stack.emplace_back(p.x - 1, p.y);
+		stack.emplace_back(p.x, p.y + 1);
+		stack.emplace_back(p.x, p.y - 1);
+	}
+	if (changed)
+	{
+		FlushSpriteTileSync();
+		PushUndoState(std::move(snapshot));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+	}
+}
+
+wxColour SpriteFrameEditorCtrl::GetPaletteColour(int index) const
+{
+	if ((m_pal == nullptr) || (index < 0))
+	{
+		return *wxBLACK;
+	}
+	return wxColour(m_pal->getBGRA(index) & 0xFFFFFF);
+}
+
+void SpriteFrameEditorCtrl::DrawPixelCursor(wxDC& dc)
+{
+	if ((m_mode != Mode::DRAW) || !IsPixelHoverValid() || m_shape_active)
+	{
+		return;
+	}
+	wxPen cursor(GetPaletteColour(m_secondary_active ? m_secondary_colour : m_primary_colour));
+	cursor.SetWidth(std::min((m_pixelsize + 1) / 2, 3));
+	dc.SetPen(cursor);
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.DrawRectangle(m_hoveredpixel.x * m_pixelsize, m_hoveredpixel.y * m_pixelsize,
+	                 m_pixelsize + 1, m_pixelsize + 1);
+}
+
+void SpriteFrameEditorCtrl::DrawShapePreview(wxDC& dc)
+{
+	if (!m_shape_active)
+	{
+		return;
+	}
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(wxBrush(GetPaletteColour(m_shape_secondary ? m_secondary_colour : m_primary_colour)));
+	for (const auto& p : MakeShapePoints(m_tool, m_shape_start, m_shape_end))
+	{
+		dc.DrawRectangle(p.x * m_pixelsize, p.y * m_pixelsize, m_pixelsize, m_pixelsize);
 	}
 }
 
 void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 {
-	if (m_redraw_all == true)
+	// Same pipeline as the tileset/blockset/map editors: tiles render at native resolution
+	// into m_tiles_bmp when data changes (patched per tile for pixel edits), and each paint
+	// is one scaled blit of the damaged cells plus overlays, clipped to the damaged area.
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+	if (!m_gd || (m_sprite == nullptr) || (m_tiles == nullptr))
 	{
-		m_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
+		dc.Clear();
+		return;
 	}
-	m_memdc.SelectObject(m_bmp);
-	if (m_redraw_all == true)
+	if (m_tiles_bmp_dirty || (m_tiles_bmp == nullptr))
 	{
-		m_memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-		m_memdc.Clear();
+		RenderTilesBitmap();
 	}
-	if (!m_gd)
+	else if (!m_redraw_list.empty())
 	{
-		m_memdc.SelectObject(wxNullBitmap);
+		PatchTilesBitmap();
+	}
+	m_redraw_list.clear();
+	if (m_tiles_bmp == nullptr)
+	{
+		dc.Clear();
 		return;
 	}
 
-	m_memdc.SetTextForeground(wxColour(255, 255, 255));
-	m_memdc.SetTextBackground(wxColour(150, 150, 150));
-	m_memdc.SetBackgroundMode(wxSOLID);
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	if ((m_cellwidth <= 0) || (m_cellheight <= 0))
+	{
+		dc.Clear();
+		return;
+	}
+
+	wxRect damage = GetUpdateRegion().GetBox();
+	damage.Offset(GetVisibleColumnsBegin() * m_cellwidth, GetVisibleRowsBegin() * m_cellheight);
+	dc.SetClippingRegion(damage);
+	dc.Clear();
+
+	const int sx = std::max(static_cast<int>(GetVisibleColumnsBegin()), damage.GetLeft() / m_cellwidth);
+	const int ex = std::min({ static_cast<int>(GetVisibleColumnsEnd()) + 1, MAX_WIDTH, damage.GetRight() / m_cellwidth + 1 });
+	const int sy = std::max(static_cast<int>(GetVisibleRowsBegin()), damage.GetTop() / m_cellheight);
+	const int ey = std::min({ static_cast<int>(GetVisibleRowsEnd()) + 1, MAX_HEIGHT, damage.GetBottom() / m_cellheight + 1 });
+	if ((ex <= sx) || (ey <= sy))
+	{
+		return;
+	}
+
+	// Backdrop: dark outside the sprite, normal checkerboard inside the subsprite areas.
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(m_enablealpha ? *m_dark_alpha_brush : wxBrush(wxColor(64, 64, 64)));
+	dc.DrawRectangle(sx * m_cellwidth, sy * m_cellheight, (ex - sx) * m_cellwidth, (ey - sy) * m_cellheight);
+	dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
+	{
+		const auto& s = m_sprite->GetSubSprite(i);
+		dc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }),
+			{ static_cast<int>(s.w * tw * m_pixelsize), static_cast<int>(s.h * th * m_pixelsize) });
+	}
+
+	// One scaled blit of the damaged cells out of the native-resolution bitmap.
+	wxMemoryDC tiles(*m_tiles_bmp);
+	dc.StretchBlit({ sx * m_cellwidth, sy * m_cellheight }, { (ex - sx) * m_cellwidth, (ey - sy) * m_cellheight },
+		&tiles, { sx * tw, sy * th }, { (ex - sx) * tw, (ey - sy) * th },
+		wxCOPY, true, { sx * tw, sy * th });
+	tiles.SelectObject(wxNullBitmap);
+
+	DrawOverlays(dc, sx, ex, sy, ey);
+	DrawSelectionBorders(dc);
+
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	// The subsprite editing tool needs visible targets, so its rectangles stay on even
+	// when gridlines/borders are toggled off.
+	if (m_enableborders || (m_mode == Mode::SUBSPRITE))
+	{
+		for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
+		{
+			const auto& s = m_sprite->GetSubSprite(i);
+			dc.SetPen(wxPen(i + 1 == m_hovered_subsprite ? wxColor(255, 128, 128) : *wxRED, i + 1 == m_selected_subsprite ? 3 : 1));
+			dc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * tw * m_pixelsize), static_cast<int>(s.h * th * m_pixelsize) });
+		}
+		dc.SetPen(wxPen(*wxGREEN, 2));
+		dc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
+		dc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
+	}
+	DrawSubSpriteHandles(dc);
+	DrawPixelCursor(dc);
+	DrawShapePreview(dc);
+	if (m_enablehitbox)
+	{
+		auto hitbox = m_gd->GetSpriteData()->GetSpriteHitbox(m_sprite_id);
+		dc.SetPen(wxPen(*wxYELLOW, 1));
+		// The subsprite handles select a white brush; without resetting it the polygon
+		// gets partially filled.
+		dc.SetBrush(*wxTRANSPARENT_BRUSH);
+		wxPoint hitbox_fg_points[] = {
+			SpriteToScreenXY({ hitbox.base * 2, 0}),
+			SpriteToScreenXY({ 0, hitbox.base}),
+			SpriteToScreenXY({ -hitbox.base * 2, 0}),
+			SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
+			SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
+			SpriteToScreenXY({ 0, hitbox.base}),
+			SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
+			SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
+			SpriteToScreenXY({ hitbox.base * 2, 0}),
+			SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
+			SpriteToScreenXY({ 0, -hitbox.base - hitbox.height}),
+			SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
+			SpriteToScreenXY({ -hitbox.base * 2, 0}),
+			SpriteToScreenXY({ 0, hitbox.base}),
+			SpriteToScreenXY({ hitbox.base * 2, 0}),
+		};
+		dc.DrawPolygon(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), &hitbox_fg_points[0]);
+	}
+}
+
+void SpriteFrameEditorCtrl::DrawOverlays(wxDC& dc, int sx, int ex, int sy, int ey)
+{
+	dc.SetTextForeground(wxColour(255, 255, 255));
+	dc.SetTextBackground(wxColour(150, 150, 150));
+	dc.SetBackgroundMode(wxSOLID);
 
 	if (m_pixelsize > 3)
 	{
@@ -554,91 +1443,81 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-	if (m_sprite != nullptr)
+	for (int y = sy; y < ey; ++y)
 	{
-		if (m_redraw_all == true)
+		for (int x = sx; x < ex; ++x)
 		{
-			m_redraw_list.clear();
-			for (int y = 0; y < MAX_HEIGHT; ++y)
+			if (m_enableborders)
 			{
-				for (int x = 0; x < MAX_WIDTH; ++x)
+				dc.SetPen(*m_border_pen);
+				dc.SetBrush(*wxTRANSPARENT_BRUSH);
+				dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
+			}
+			if (m_enabletilenumbers)
+			{
+				const int pos = x + y * MAX_WIDTH;
+				auto label = (wxString::Format("%03d", pos));
+				auto extent = dc.GetTextExtent(label);
+				if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
 				{
-					if (!DrawTileAtPosition(m_memdc, x + y * MAX_WIDTH))
-					{
-						m_redraw_list.insert(x + y * MAX_WIDTH);
-					}
+					dc.DrawText(label, { x * m_cellwidth + 2, y * m_cellheight + 2 });
 				}
 			}
-			m_redraw_all = false;
-		}
-		else
-		{
-			auto it = m_redraw_list.begin();
-			while (it != m_redraw_list.end())
-			{
-				if ((*it >= 0) && (*it < static_cast<int>(m_tiles->GetTileCount())))
-				{
-					if (DrawTileAtPosition(m_memdc, *it))
-					{
-						m_redraw_list.erase(it++);
-					}
-					else
-					{
-						++it;
-					}
-				}
-				else
-				{
-					m_redraw_list.erase(it++);
-				}
-			}
-		}
-		DrawSelectionBorders(m_memdc);
-
-		m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-		if (m_enableborders)
-		{
-			for (int i = 0; i < static_cast<int>(m_sprite->GetSubSpriteCount()); ++i)
-			{
-				const auto& s = m_sprite->GetSubSprite(i);
-				m_memdc.SetPen(wxPen(i + 1 == m_hovered_subsprite ? wxColor(255, 128, 128) : *wxRED, i + 1 == m_selected_subsprite ? 3 : 1));
-				m_memdc.DrawRectangle(SpriteToScreenXY({ s.x, s.y }), { static_cast<int>(s.w * m_sprite->GetTileWidth() * m_pixelsize), static_cast<int>(s.h * m_sprite->GetTileHeight() * m_pixelsize) });
-			}
-		}
-		if (m_enableborders)
-		{
-			m_memdc.SetPen(wxPen(*wxGREEN, 2));
-			m_memdc.DrawLine(SpriteToScreenXY({ -10, 0 }), SpriteToScreenXY({ 10, 0 }));
-			m_memdc.DrawLine(SpriteToScreenXY({ 0, -10 }), SpriteToScreenXY({ 0, 10 }));
-		}
-		if (m_enablehitbox)
-		{
-			auto hitbox = m_gd->GetSpriteData()->GetSpriteHitbox(m_sprite_id);
-			m_memdc.SetPen(wxPen(*wxYELLOW, 1));
-			wxPoint hitbox_fg_points[] = {
-				SpriteToScreenXY({ hitbox.base * 2, 0}),
-				SpriteToScreenXY({ 0, hitbox.base}),
-				SpriteToScreenXY({ -hitbox.base * 2, 0}),
-				SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
-				SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
-				SpriteToScreenXY({ 0, hitbox.base}),
-				SpriteToScreenXY({ 0, hitbox.base - hitbox.height}),
-				SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
-				SpriteToScreenXY({ hitbox.base * 2, 0}),
-				SpriteToScreenXY({ hitbox.base * 2, 0 - hitbox.height}),
-				SpriteToScreenXY({ 0, -hitbox.base - hitbox.height}),
-				SpriteToScreenXY({ -hitbox.base * 2, -hitbox.height}),
-				SpriteToScreenXY({ -hitbox.base * 2, 0}),
-				SpriteToScreenXY({ 0, hitbox.base}),
-				SpriteToScreenXY({ hitbox.base * 2, 0}),
-			};
-			m_memdc.DrawPolygon(sizeof(hitbox_fg_points) / sizeof(hitbox_fg_points[0]), &hitbox_fg_points[0]);
 		}
 	}
+}
 
-	PaintBitmap(dc);
-	m_memdc.SelectObject(wxNullBitmap);
+void SpriteFrameEditorCtrl::PatchTilesBitmap()
+{
+	if (m_tiles_bmp == nullptr)
+	{
+		RenderTilesBitmap();
+		return;
+	}
+	wxAlphaPixelData data(*m_tiles_bmp);
+	if (!data)
+	{
+		RenderTilesBitmap();
+		return;
+	}
+	// Re-render just the changed tiles into the cached bitmap; the pixel editor fires one
+	// change per painted pixel, and a full re-render for each made drawing crawl.
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const auto& pal = GetSelectedPalette();
+	for (const int pos : m_redraw_list)
+	{
+		if ((pos < 0) || (pos >= static_cast<int>(m_tiles->GetTileCount())) || (pos >= MAX_WIDTH * MAX_HEIGHT))
+		{
+			continue;
+		}
+		const auto tile_bytes = m_tiles->GetTile(pos);
+		const int x0 = (pos % MAX_WIDTH) * tw;
+		const int y0 = (pos / MAX_WIDTH) * th;
+		const int lightness = IsTileInSprite(pos) ? 100 : 50;
+		wxAlphaPixelData::Iterator p(data);
+		for (int y = 0; y < th; ++y)
+		{
+			p.MoveTo(data, x0, y0 + y);
+			for (int x = 0; x < tw; ++x)
+			{
+				const std::size_t i = x + y * tw;
+				const uint32_t c = (i < tile_bytes.size()) ? pal.getBGRA(tile_bytes[i]) : 0;
+				wxColour colour(c & 0xFFFFFF);
+				if (lightness != 100)
+				{
+					colour = colour.ChangeLightness(lightness);
+				}
+				const unsigned char a = c >> 24;
+				// The bitmap stores premultiplied alpha, as AlphaBlend expects.
+				p.Red() = (colour.Red() * a) / 255;
+				p.Green() = (colour.Green() * a) / 255;
+				p.Blue() = (colour.Blue() * a) / 255;
+				p.Alpha() = a;
+				++p;
+			}
+		}
+	}
 }
 
 void SpriteFrameEditorCtrl::OnPaint(wxPaintEvent& /*evt*/)
@@ -664,6 +1543,56 @@ void SpriteFrameEditorCtrl::OnSize(wxSizeEvent& evt)
 
 void SpriteFrameEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 {
+	if ((m_mode == Mode::DRAW) && (m_sprite != nullptr))
+	{
+		m_drawing = true;
+		m_secondary_active = false;
+		m_last_drawn = { -1, -1 };
+		StartDrawAction(MouseToLogical(evt.GetPosition()));
+		evt.Skip();
+		return;
+	}
+	if ((m_mode == Mode::SUBSPRITE) && (m_sprite != nullptr))
+	{
+		const wxPoint logical = MouseToLogical(evt.GetPosition());
+		int edges = 0;
+		if (HitTestSubSpriteHandles(logical, edges))
+		{
+			m_resizing_subsprite = true;
+			m_drag_subsprite = m_selected_subsprite;
+			m_drag_edges = edges;
+			m_drag_undo_pushed = false;
+			CaptureMouse();
+		}
+		else
+		{
+			const int tile = ConvertXYToTile(evt.GetPosition());
+			const int ss = (tile >= 0) ? GetSubspriteAt(tile) : -1;
+			if (ss > 0)
+			{
+				if (ss != m_selected_subsprite)
+				{
+					SelectSubSprite(ss);
+					FireEvent(EVT_SUBSPRITE_SELECT, ss);
+				}
+				const auto& s = m_sprite->GetSubSprite(ss - 1);
+				const wxPoint t = { logical.x / m_cellwidth, logical.y / m_cellheight };
+				m_drag_offset = { t.x - (s.x / static_cast<int>(m_tiles->GetTileWidth()) + ORIGIN_X),
+				                  t.y - (s.y / static_cast<int>(m_tiles->GetTileHeight()) + ORIGIN_Y) };
+				m_drag_subsprite = ss;
+				m_dragging_subsprite = true;
+				m_drag_undo_pushed = false;
+				CaptureMouse();
+			}
+			else if (m_selected_subsprite != -1)
+			{
+				SelectSubSprite(-1);
+				FireEvent(EVT_SUBSPRITE_SELECT, -1);
+			}
+		}
+		evt.Skip();
+		return;
+	}
 	if (!m_enableselection) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
 	int selected_subsprite = GetSubspriteAt(sel);
@@ -692,32 +1621,205 @@ void SpriteFrameEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 	evt.Skip();
 }
 
+void SpriteFrameEditorCtrl::OnMouseUp(wxMouseEvent& evt)
+{
+	if (m_dragging_subsprite || m_resizing_subsprite)
+	{
+		EndSubSpriteDrag();
+	}
+	if (m_mode == Mode::DRAW)
+	{
+		if (evt.LeftUp())
+		{
+			if (evt.RightIsDown())
+			{
+				m_secondary_active = true;
+			}
+			else
+			{
+				m_drawing = false;
+				m_secondary_active = false;
+			}
+		}
+		if (evt.RightUp())
+		{
+			m_secondary_active = false;
+			if (!evt.LeftIsDown())
+			{
+				m_drawing = false;
+			}
+		}
+		if (!m_drawing)
+		{
+			m_last_drawn = { -1, -1 };
+			if (m_shape_active)
+			{
+				CommitShape();
+			}
+			EndStroke();
+		}
+	}
+	evt.Skip();
+}
+
+// Fires the deferred change notification if the finished stroke painted anything.
+void SpriteFrameEditorCtrl::EndStroke()
+{
+	if (m_stroke_dirty)
+	{
+		m_stroke_dirty = false;
+		FlushSpriteTileSync();
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+	}
+}
+
+void SpriteFrameEditorCtrl::OnCaptureLost(wxMouseCaptureLostEvent& /*evt*/)
+{
+	// Capture already gone - just drop the drag state.
+	m_dragging_subsprite = false;
+	m_resizing_subsprite = false;
+	m_drag_subsprite = -1;
+	m_drag_edges = 0;
+}
+
+void SpriteFrameEditorCtrl::EndSubSpriteDrag()
+{
+	if (HasCapture())
+	{
+		ReleaseMouse();
+	}
+	m_dragging_subsprite = false;
+	m_resizing_subsprite = false;
+	m_drag_subsprite = -1;
+	m_drag_edges = 0;
+}
+
+void SpriteFrameEditorCtrl::OnRightDown(wxMouseEvent& evt)
+{
+	if ((m_mode == Mode::DRAW) && (m_sprite != nullptr))
+	{
+		m_drawing = true;
+		m_secondary_active = true;
+		m_last_drawn = { -1, -1 };
+		StartDrawAction(MouseToLogical(evt.GetPosition()));
+		evt.Skip();
+		return;
+	}
+	if ((m_mode != Mode::SUBSPRITE) || (m_sprite == nullptr) ||
+	    m_dragging_subsprite || m_resizing_subsprite)
+	{
+		evt.Skip();
+		return;
+	}
+	const int tile = ConvertXYToTile(evt.GetPosition());
+	const int ss = (tile >= 0) ? GetSubspriteAt(tile) : -1;
+	const wxPoint logical = MouseToLogical(evt.GetPosition());
+	const int tx = logical.x / m_cellwidth;
+	const int ty = logical.y / m_cellheight;
+	if ((ss > 0) && (ss != m_selected_subsprite))
+	{
+		SelectSubSprite(ss);
+		FireEvent(EVT_SUBSPRITE_SELECT, ss);
+	}
+	wxMenu menu;
+	auto* add = menu.Append(wxID_ANY, "Add Subsprite Here\tIns");
+	add->Enable((tile >= 0) && (ss <= 0) &&
+		(m_sprite->GetSubSpriteCount() < Landstalker::SpriteFrame::MAX_SUBSPRITES));
+	auto* del = menu.Append(wxID_ANY, "Delete Subsprite\tDel");
+	del->Enable(ss > 0);
+	menu.Bind(wxEVT_MENU, [this, tx, ty](wxCommandEvent&) { AddSubSpriteAt(tx, ty); }, add->GetId());
+	menu.Bind(wxEVT_MENU, [this, ss](wxCommandEvent&) { FireEvent(EVT_SUBSPRITE_DELETE, ss); }, del->GetId());
+	PopupMenu(&menu);
+}
+
+void SpriteFrameEditorCtrl::AddSubSpriteAt(int tx, int ty)
+{
+	if ((m_sprite == nullptr) ||
+	    (m_sprite->GetSubSpriteCount() >= Landstalker::SpriteFrame::MAX_SUBSPRITES) ||
+	    (tx < 0) || (ty < 0) || (tx >= MAX_WIDTH) || (ty >= MAX_HEIGHT))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const Landstalker::SpriteFrame::SubSprite new_s((tx - ORIGIN_X) * tw, (ty - ORIGIN_Y) * th, 1, 1);
+	if (CheckSubSpriteCollision(new_s, -1))
+	{
+		return;
+	}
+	PushUndo();
+	// AddSubSpriteBefore picks its own free spot; the reference lets it be moved to the click.
+	auto& s = m_sprite->AddSubSpriteBefore(0);
+	s = new_s;
+	m_selected_subsprite = 1;
+	FireEvent(EVT_SUBSPRITE_UPDATE);
+	FireEvent(EVT_SUBSPRITE_SELECT, 1);
+}
+
 void SpriteFrameEditorCtrl::OnDoubleClick(wxMouseEvent& evt)
 {
+	// Rapid clicks arrive as down/up/dclick/up; treating the dclick as another mouse-down
+	// stops every second pencil click being dropped.
+	if (m_mode == Mode::DRAW)
+	{
+		OnMouseDown(evt);
+		return;
+	}
 	evt.Skip();
 }
 
 void SpriteFrameEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 {
-	if (!m_enablehover) return;
 	if (m_sprite == nullptr) return;
+	if (m_mode == Mode::DRAW)
+	{
+		MouseDrawMove(MouseToLogical(evt.GetPosition()));
+		evt.Skip();
+		return;
+	}
+	if (m_mode == Mode::SUBSPRITE)
+	{
+		const wxPoint logical = MouseToLogical(evt.GetPosition());
+		if (m_resizing_subsprite)
+		{
+			DoSubSpriteResize(logical);
+		}
+		else if (m_dragging_subsprite)
+		{
+			DoSubSpriteDrag(logical);
+		}
+		else
+		{
+			const int tile = ConvertXYToTile(evt.GetPosition());
+			const int hovered_subsprite = (tile >= 0) ? GetSubspriteAt(tile) : -1;
+			if (hovered_subsprite != m_hovered_subsprite)
+			{
+				m_hovered_subsprite = hovered_subsprite;
+				Refresh();
+			}
+			UpdateSubSpriteCursor(logical);
+		}
+		evt.Skip();
+		return;
+	}
+	if (!m_enablehover) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
 	int hovered_tile = (evt.GetModifiers() & wxMOD_CONTROL) ? -1 : sel;
-	if ((m_hoveredtile != -1) && (hovered_tile != m_hoveredtile))
-	{
-		m_redraw_list.insert(m_hoveredtile);
-	}
 	if (hovered_tile != m_hoveredtile)
 	{
+		const int old = m_hoveredtile;
 		m_hoveredtile = hovered_tile;
 		FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
+		RefreshTileRect(old);
+		RefreshTileRect(m_hoveredtile);
 	}
 	int hovered_subsprite = GetSubspriteAt(sel);
 	if (hovered_subsprite != m_hovered_subsprite)
 	{
+		// Only the subsprite border highlight changes, and that is repainted as an overlay -
+		// no need to re-render any tiles.
 		m_hovered_subsprite = hovered_subsprite;
-		RedrawTiles();
+		Refresh();
 	}
 	if (hovered_subsprite > 0 && (evt.GetModifiers() & wxMOD_CONTROL) > 0)
 	{
@@ -732,19 +1834,67 @@ void SpriteFrameEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 
 void SpriteFrameEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 {
+	if (m_dragging_subsprite || m_resizing_subsprite)
+	{
+		// The mouse is captured; the drag continues outside the window.
+		evt.Skip();
+		return;
+	}
+	if (m_mode == Mode::DRAW)
+	{
+		// The stroke pauses outside the window; OnMouseEnter decides whether it resumes
+		// from the real button state. An in-progress shape is cancelled outright: its
+		// anchor would be stale by the time the pointer returns.
+		CancelShape();
+		m_last_drawn = { -1, -1 };
+		EndStroke();
+		if (IsPixelHoverValid())
+		{
+			RefreshGlobalPixel(m_hoveredpixel);
+			m_hoveredpixel = { -1, -1 };
+			FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
+		}
+	}
 	SetMouseCursor(wxStockCursor::wxCURSOR_ARROW);
 	if (!m_enablehover) return;
 	if (m_hoveredtile != -1)
 	{
-		m_redraw_list.insert(m_hoveredtile);
+		const int old = m_hoveredtile;
 		m_hoveredtile = -1;
 		FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
+		RefreshTileRect(old);
 	}
 	if (m_hovered_subsprite != -1)
 	{
 		m_hovered_subsprite = -1;
-		RedrawTiles();
+		Refresh();
+	}
+	evt.Skip();
+}
+
+void SpriteFrameEditorCtrl::OnMouseEnter(wxMouseEvent& evt)
+{
+	if (m_mode == Mode::DRAW)
+	{
+		// Resume a stroke that left the canvas with the button still held, or end it if
+		// the button was released while outside - that release never reaches this window.
+		if (m_drawing)
+		{
+			if (evt.LeftIsDown())
+			{
+				m_secondary_active = false;
+			}
+			else if (evt.RightIsDown())
+			{
+				m_secondary_active = true;
+			}
+			else
+			{
+				m_drawing = false;
+				m_secondary_active = false;
+			}
+		}
+		m_last_drawn = { -1, -1 };
 	}
 	evt.Skip();
 }
@@ -839,7 +1989,16 @@ bool SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 	case WXK_DELETE:
 		if (modifiers == 0)
 		{
-			ClearCell();
+			// In subsprite mode Delete removes the selected subsprite; tiles are cleared
+			// from select mode (or with Shift, which deletes the subsprite there instead).
+			if (m_mode == Mode::SUBSPRITE)
+			{
+				DeleteSubSprite();
+			}
+			else
+			{
+				ClearCell();
+			}
 		}
 		else if (modifiers == wxMOD_SHIFT)
 		{
@@ -1019,6 +2178,8 @@ void SpriteFrameEditorCtrl::UpdateSpriteTile(int tile)
 
 void SpriteFrameEditorCtrl::UpdateAllSpriteTiles()
 {
+	// Everything is about to be rewritten from the canvas; pending per-tile syncs are moot.
+	m_pending_sync.clear();
 	int cur_tile = 0;
 	m_sprite->PrepareSubSprites();
 	for (const auto& s : m_sprite->GetSubSprites())
@@ -1049,89 +2210,54 @@ bool SpriteFrameEditorCtrl::UpdateRowCount()
 	return false;
 }
 
-void SpriteFrameEditorCtrl::DrawTile(wxDC& dc, int x, int y, int tile)
+void SpriteFrameEditorCtrl::RenderTilesBitmap()
 {
-	wxPen pen = dc.GetPen();
-	wxBrush brush = dc.GetBrush();
-
-	pen.SetStyle(wxPENSTYLE_TRANSPARENT);
-	brush.SetStyle(wxBRUSHSTYLE_SOLID);
-	dc.SetPen(pen);
-
-	auto tile_bytes = m_tiles->GetTile(tile);
+	// Every cell rendered once at native resolution (with out-of-sprite tiles darkened),
+	// rebuilt only when the sprite or its tiles change. Building a bitmap per tile per
+	// paint made opening the editor crawl.
+	if ((m_tiles == nullptr) || (m_sprite == nullptr))
+	{
+		return;
+	}
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
 	const auto& pal = GetSelectedPalette();
+	wxImage img(MAX_WIDTH * tw, MAX_HEIGHT * th);
+	img.SetAlpha();
 	std::vector<uint32_t> tile_pixels;
-	for (const auto& b : tile_bytes)
+	for (int pos = 0; pos < MAX_WIDTH * MAX_HEIGHT; ++pos)
 	{
-		tile_pixels.push_back(pal.getBGRA(b));
+		if (pos >= static_cast<int>(m_tiles->GetTileCount()))
+		{
+			break;
+		}
+		const auto tile_bytes = m_tiles->GetTile(pos);
+		tile_pixels.clear();
+		tile_pixels.reserve(tile_bytes.size());
+		for (const auto& b : tile_bytes)
+		{
+			tile_pixels.push_back(pal.getBGRA(b));
+		}
+		WriteTileToImage(img, (pos % MAX_WIDTH) * tw, (pos / MAX_WIDTH) * th,
+			tile_pixels, tw, th, IsTileInSprite(pos) ? 100 : 50);
 	}
-
-	for (int i = 0; i < static_cast<int>(tile_pixels.size()); ++i)
-	{
-		int xx = x + (i % m_tiles->GetTileWidth()) * m_pixelsize;
-		int yy = y + (i / m_tiles->GetTileWidth()) * m_pixelsize;
-		if (IsTileInSprite(tile))
-		{
-			brush.SetColour(wxColour(tile_pixels[i]));
-		}
-		else
-		{
-			brush.SetColour(wxColour(tile_pixels[i]).ChangeLightness(50));
-		}
-		dc.SetBrush(brush);
-		// Has alpha
-		if ((tile_pixels[i] & 0xFF000000) > 0)
-		{
-			dc.DrawRectangle({ xx, yy, m_pixelsize, m_pixelsize });
-		}
-	}
-
+	m_tiles_bmp = std::make_unique<wxBitmap>(img, 32);
+	m_tiles_bmp_dirty = false;
 }
 
-bool SpriteFrameEditorCtrl::DrawTileAtPosition(wxDC& dc, int pos)
+void SpriteFrameEditorCtrl::RefreshTileRect(int tile)
 {
-	bool retval = false;
-	int sx = GetVisibleColumnsBegin();
-	int ex = GetVisibleColumnsEnd();
-	int sy = GetVisibleRowsBegin();
-	int ey = GetVisibleRowsEnd();
-
-	dc.SetBrush(*wxTRANSPARENT_BRUSH);
-	//auto p = m_sprite->GetTilePosition(pos);
-	//auto ss = SpriteToScreenXY({ p.first, p.second });
-	auto x = pos % MAX_WIDTH;
-	auto y = pos / MAX_WIDTH;
-	if ((y >= sy) && (y <= ey) && (x >= sx) && (x <= ex))
+	// Repaints a single cell. Hover changes happen on every mouse move, and a full-window
+	// Refresh for each is what made the cursor lag.
+	if (tile < 0)
 	{
-		dc.SetPen(*wxTRANSPARENT_PEN);
-		if (m_enablealpha)
-		{
-			dc.SetBrush(IsTileInSprite(pos) ? *m_alpha_brush : *m_dark_alpha_brush);
-		}
-		else
-		{
-			dc.SetBrush(IsTileInSprite(pos) ? *wxBLACK_BRUSH : wxBrush(wxColor(64, 64, 64)));
-		}
-		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
-		DrawTile(dc, x * m_cellwidth, y * m_cellheight, pos);
-		if (m_enableborders)
-		{
-			dc.SetPen(*m_border_pen);
-			dc.SetBrush(*wxTRANSPARENT_BRUSH);
-			dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
-		}
-		if (m_enabletilenumbers)
-		{
-			auto label = (wxString::Format("%03d", pos));
-			auto extent = dc.GetTextExtent(label);
-			if ((extent.GetWidth() < m_cellwidth - 2) && (extent.GetHeight() < m_cellheight - 2))
-			{
-				dc.DrawText(label, { x * m_cellwidth + 2, y * m_cellheight + 2 });
-			}
-		}
-		retval = true;
+		return;
 	}
-	return retval;
+	wxRect rect(((tile % MAX_WIDTH) - GetVisibleColumnsBegin()) * m_cellwidth,
+	            ((tile / MAX_WIDTH) - GetVisibleRowsBegin()) * m_cellheight,
+	            m_cellwidth + 1, m_cellheight + 1);
+	rect.Inflate(1, 1);
+	RefreshRect(rect);
 }
 
 void SpriteFrameEditorCtrl::DrawSelectionBorders(wxDC& dc)
@@ -1160,29 +2286,6 @@ void SpriteFrameEditorCtrl::DrawSelectionBorders(wxDC& dc)
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.SetPen(*m_selected_border_pen);
 		dc.DrawRectangle({ p.x, p.y, m_cellwidth, m_cellheight });
-	}
-}
-
-void SpriteFrameEditorCtrl::PaintBitmap(wxDC& dc)
-{
-	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-	dc.Clear();
-	int sx = GetVisibleColumnsBegin() * m_sprite->GetTileWidth() * m_pixelsize;
-	int sy = GetVisibleRowsBegin() * m_sprite->GetTileHeight() * m_pixelsize;
-
-	int vX, vY, vW, vH;                 // Dimensions of client area in pixels
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	while (upd)
-	{
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		// Alternatively we can do this:
-		// wxRect rect(upd.GetRect());
-		// Repaint this rectangle
-		dc.Blit(vX + sx, vY + sy, vW, vH, &m_memdc, vX + sx, vY + sy);
-		upd++;
 	}
 }
 
@@ -1220,7 +2323,7 @@ void SpriteFrameEditorCtrl::InitialiseBrushesAndPens()
 
 void SpriteFrameEditorCtrl::ForceRedraw()
 {
-	m_redraw_all = true;
+	m_tiles_bmp_dirty = true;
 	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
 	Refresh();
@@ -1278,7 +2381,6 @@ void SpriteFrameEditorCtrl::SelectSubSprite(int sel)
 	{
 		m_selected_subsprite = -1;
 	}
-	m_redraw_all = true;
 	Refresh();
 }
 
@@ -1295,7 +2397,6 @@ int SpriteFrameEditorCtrl::GetHoveredSubSprite() const
 void SpriteFrameEditorCtrl::ClearSubSpriteSelection()
 {
 	m_selected_subsprite = -1;
-	m_redraw_all = true;
 	Refresh();
 }
 
@@ -1313,7 +2414,6 @@ void SpriteFrameEditorCtrl::SetSelectionEnabled(bool enabled)
 {
 	if (m_enableselection != enabled)
 	{
-		m_redraw_list.insert(m_selectedtile);
 		if (enabled == false)
 		{
 			m_selectedtile = -1;
@@ -1332,7 +2432,6 @@ void SpriteFrameEditorCtrl::SetHoverEnabled(bool enabled)
 {
 	if (m_enablehover != enabled)
 	{
-		m_redraw_list.insert(m_selectedtile);
 		if (enabled == false)
 		{
 			m_hoveredtile = -1;
@@ -1467,15 +2566,15 @@ int SpriteFrameEditorCtrl::GetSubspriteAt(int tile) const
 
 void SpriteFrameEditorCtrl::SelectTile(int tile)
 {
-	if ((m_selectedtile != -1) && (tile != m_selectedtile))
-	{
-		m_redraw_list.insert(m_selectedtile);
-	}
 	if (tile != m_selectedtile)
 	{
+		const int old = m_selectedtile;
 		FireEvent(EVT_SPRITE_FRAME_SELECT, std::to_string(tile));
 		m_selectedtile = tile;
-		Refresh();
+		// The selection border is an overlay: repaint just the two affected cells rather
+		// than the whole window.
+		RefreshTileRect(old);
+		RefreshTileRect(tile);
 	}
 }
 

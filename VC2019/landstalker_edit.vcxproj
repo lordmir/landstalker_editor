@@ -126,7 +126,6 @@
     <ClCompile Include="..\src\text\StringDataViewModel.cpp" />
     <ClCompile Include="..\src\text\CharsetEditorFrame.cpp" />
     <ClCompile Include="..\src\text\StringEditorFrame.cpp" />
-    <ClCompile Include="..\src\tileset\TileEditor.cpp" />
     <ClCompile Include="..\src\tileset\TilesetEditor.cpp" />
     <ClCompile Include="..\src\tileset\TilesetEditorFrame.cpp" />
     <ClCompile Include="..\src\wxresource\wxcrafter.cpp" />
@@ -245,7 +244,6 @@
     <ClInclude Include="..\src\text\StringDataViewModel.h" />
     <ClInclude Include="..\src\text\CharsetEditorFrame.h" />
     <ClInclude Include="..\src\text\StringEditorFrame.h" />
-    <ClInclude Include="..\src\tileset\TileEditor.h" />
     <ClInclude Include="..\src\tileset\TilesetEditor.h" />
     <ClInclude Include="..\src\tileset\TilesetEditorFrame.h" />
     <ClInclude Include="..\src\wxresource\wxcrafter.h" />

@@ -5,6 +5,7 @@
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
 #include <main/EditorFrame.h>
+#include <main/ImageBufferWx.h>
 
 wxBEGIN_EVENT_TABLE(BlocksetEditorCtrl, wxVScrolledWindow)
 EVT_PAINT(BlocksetEditorCtrl::OnPaint)
@@ -50,7 +51,6 @@ BlocksetEditorCtrl::BlocksetEditorCtrl(EditorFrame* parent)
 	  m_enableselection(true),
 	  m_enablehover(true),
 	  m_enablealpha(true),
-	  m_redraw_all(true),
 	  m_drawtile(0),
 	  m_frame(parent)
 {
@@ -93,6 +93,7 @@ bool BlocksetEditorCtrl::Open(const std::string& name)
 	m_hoveredtile = -1;
 	m_hoveredblock = -1;
 	m_drawtile = Landstalker::Tile();
+	ClearHistory();
 	UpdateRowCount();
 	ForceRedraw();
 	return true;
@@ -119,6 +120,7 @@ bool BlocksetEditorCtrl::OpenRoom(uint16_t roomnum)
 	m_enabletileborders = false;
 	m_selectable = true;
 	m_pixelsize = 2;
+	ClearHistory();
 	UpdateRowCount();
 	ForceRedraw();
 	return true;
@@ -442,12 +444,12 @@ bool BlocksetEditorCtrl::InsertBlock(int row)
 {
 	if (m_blocks && row >= 0 && row <= static_cast<int>(m_blocks->size()))
 	{
+		PushUndo();
 		m_blocks->insert(m_blocks->cbegin() + row, Landstalker::MapBlock());
-		for (int i = row; i < static_cast<int>(m_blocks->size()); ++i)
-		{
-			m_redraw_list.insert(i);
-			Refresh(true);
-		}
+		// The cached bitmap holds every block at its old position; a full re-render is due.
+		m_tiles_bmp_dirty = true;
+		UpdateRowCount();
+		ForceRedraw();
 		return true;
 	}
 	return false;
@@ -457,15 +459,119 @@ bool BlocksetEditorCtrl::DeleteBlock(int row)
 {
 	if (m_blocks && row >= 0 && row < static_cast<int>(m_blocks->size()))
 	{
+		PushUndo();
 		m_blocks->erase(m_blocks->cbegin() + row);
-		for (int i = row; i < static_cast<int>(m_blocks->size()); ++i)
+		if (m_selectedblock >= static_cast<int>(m_blocks->size()))
 		{
-			m_redraw_list.insert(i);
-			Refresh(true);
+			m_selectedblock = static_cast<int>(m_blocks->size()) - 1;
 		}
+		m_tiles_bmp_dirty = true;
+		UpdateRowCount();
+		ForceRedraw();
 		return true;
 	}
 	return false;
+}
+
+bool BlocksetEditorCtrl::CanUndo() const
+{
+	return !m_undo_stack.empty();
+}
+
+bool BlocksetEditorCtrl::CanRedo() const
+{
+	return !m_redo_stack.empty();
+}
+
+void BlocksetEditorCtrl::Undo()
+{
+	if (!m_blocks || m_undo_stack.empty())
+	{
+		return;
+	}
+	m_redo_stack.push_back(*m_blocks);
+	auto state = std::move(m_undo_stack.back());
+	m_undo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void BlocksetEditorCtrl::Redo()
+{
+	if (!m_blocks || m_redo_stack.empty())
+	{
+		return;
+	}
+	m_undo_stack.push_back(*m_blocks);
+	auto state = std::move(m_redo_stack.back());
+	m_redo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void BlocksetEditorCtrl::BeginUndoGroup()
+{
+	if (m_undo_group_depth++ == 0)
+	{
+		m_undo_group_pushed = false;
+	}
+}
+
+void BlocksetEditorCtrl::EndUndoGroup()
+{
+	if (m_undo_group_depth > 0)
+	{
+		--m_undo_group_depth;
+	}
+}
+
+void BlocksetEditorCtrl::PushUndo()
+{
+	if (!m_blocks)
+	{
+		return;
+	}
+	if (m_undo_group_depth > 0)
+	{
+		// Only the first mutation in a group snapshots; the rest belong to the same entry.
+		if (m_undo_group_pushed)
+		{
+			return;
+		}
+		m_undo_group_pushed = true;
+	}
+	// A new edit invalidates anything that was undone.
+	m_redo_stack.clear();
+	m_undo_stack.push_back(*m_blocks);
+	while (m_undo_stack.size() > 100)
+	{
+		m_undo_stack.pop_front();
+	}
+}
+
+void BlocksetEditorCtrl::RestoreHistoryState(Landstalker::Blockset&& state)
+{
+	*m_blocks = std::move(state);
+	// A restored state can have a different block count, invalidating selection and layout.
+	if (m_selectedblock >= static_cast<int>(m_blocks->size()))
+	{
+		m_selectedblock = static_cast<int>(m_blocks->size()) - 1;
+	}
+	if (m_hoveredblock >= static_cast<int>(m_blocks->size()))
+	{
+		m_hoveredblock = -1;
+		m_hoveredtile = -1;
+	}
+	m_tiles_bmp_dirty = true;
+	UpdateRowCount();
+	ForceRedraw();
+	RefreshStatusbar();
+}
+
+void BlocksetEditorCtrl::ClearHistory()
+{
+	m_undo_stack.clear();
+	m_redo_stack.clear();
+	m_undo_group_depth = 0;
+	m_undo_group_pushed = false;
 }
 
 bool BlocksetEditorCtrl::IsBlockSelectionValid() const
@@ -525,6 +631,7 @@ void BlocksetEditorCtrl::SetBlockSelection(int block)
 	}
 	if (b != m_selectedblock)
 	{
+		const int old = m_selectedblock;
 		if (m_selectedblock != -1)
 		{
 			m_redraw_list.insert(m_selectedblock);
@@ -541,7 +648,8 @@ void BlocksetEditorCtrl::SetBlockSelection(int block)
 		}
 		FireBlockEvent(EVT_BLOCK_SELECT, "");
 		RefreshStatusbar();
-		Refresh();
+		RefreshBlock(old);
+		RefreshBlock(m_selectedblock);
 	}
 }
 
@@ -560,6 +668,7 @@ void BlocksetEditorCtrl::SetTileHover(int block, int tile)
 	}
 	if (b != m_hoveredblock || t != m_hoveredtile)
 	{
+		const int old = m_hoveredblock;
 		if (m_hoveredblock != -1)
 		{
 			m_redraw_list.insert(m_hoveredblock);
@@ -576,7 +685,8 @@ void BlocksetEditorCtrl::SetTileHover(int block, int tile)
 			}
 		}
 		RefreshStatusbar();
-		Refresh();
+		RefreshBlock(old);
+		RefreshBlock(m_hoveredblock);
 	}
 }
 
@@ -595,6 +705,7 @@ void BlocksetEditorCtrl::SetTileSelection(int block, int tile)
 	}
 	if (b != m_selectedblock || t != m_selectedtile)
 	{
+		const int old = m_selectedblock;
 		if (m_selectedblock != -1)
 		{
 			m_redraw_list.insert(m_selectedblock);
@@ -612,7 +723,8 @@ void BlocksetEditorCtrl::SetTileSelection(int block, int tile)
 		}
 		FireEvent(EVT_BLOCK_SELECT, "");
 		RefreshStatusbar();
-		Refresh();
+		RefreshBlock(old);
+		RefreshBlock(m_selectedblock);
 	}
 }
 
@@ -731,9 +843,11 @@ void BlocksetEditorCtrl::SetBlock(int block, const Landstalker::MapBlock& new_bl
 {
 	if (m_blocks && IsBlockIndexValid(block))
 	{
+		PushUndo();
 		m_blocks->at(block) = new_block;
+		m_tiles_bmp_dirty = true;
 		m_redraw_list.insert(block);
-		Refresh();
+		RefreshBlock(block);
 	}
 }
 
@@ -741,9 +855,11 @@ void BlocksetEditorCtrl::SetTile(int block_idx, int tile_idx, const Landstalker:
 {
 	if (m_blocks && IsBlockIndexValid(block_idx) && IsTileIndexValid(tile_idx))
 	{
+		PushUndo();
 		m_blocks->at(block_idx).SetTile(tile_idx, new_tile);
+		m_tiles_bmp_dirty = true;
 		m_redraw_list.insert(block_idx);
-		Refresh();
+		RefreshBlock(block_idx);
 	}
 }
 
@@ -845,101 +961,32 @@ bool BlocksetEditorCtrl::UpdateRowCount()
 	return false;
 }
 
-bool BlocksetEditorCtrl::DrawTile(wxDC& dc, int x, int y, const Landstalker::Tile& tile)
+void BlocksetEditorCtrl::RenderTilesBitmap()
 {
-	bool retval = false;
-	int s = GetVisibleRowsBegin();
-	int e = GetVisibleRowsEnd();
-
-	const int tile_width = m_pixelsize * m_tileset->GetTileWidth();
-	const int tile_height = m_pixelsize * m_tileset->GetTileHeight();
-	const int xx = x * tile_width;
-	const int yy = y * tile_height;
-	const int ycell = y / Landstalker::MapBlock::GetBlockHeight();
-
-	dc.SetBrush(*wxTRANSPARENT_BRUSH);
-	if ((ycell >= s) && (ycell < e))
+	// The whole blockset at native resolution in one image: block content only changes on
+	// explicit edits, so this renders once and every paint just blits from it. Building a
+	// bitmap per tile per paint is what made opening the editor crawl.
+	if ((m_tileset == nullptr) || (m_pal == nullptr) || (m_columns <= 0))
 	{
-		dc.SetPen(*wxTRANSPARENT_PEN);
-		dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-		dc.DrawRectangle({ xx, yy, tile_width, tile_height });
-		DrawTilePixels(dc, xx, yy, tile);
-		if (m_enableborders)
-		{
-			dc.SetPen(*m_tile_border_pen);
-			dc.SetBrush(*wxTRANSPARENT_BRUSH);
-			dc.DrawRectangle({ xx, yy, tile_width + 1, tile_height + 1 });
-		}
-		retval = true;
+		return;
 	}
-	return retval;
-}
-
-void BlocksetEditorCtrl::DrawTilePixels(wxDC& dc, int x, int y, const Landstalker::Tile& tile)
-{
-	wxPen pen = dc.GetPen();
-	wxBrush brush = dc.GetBrush();
-
-	pen.SetStyle(wxPENSTYLE_TRANSPARENT);
-	brush.SetStyle(wxBRUSHSTYLE_SOLID);
-	dc.SetPen(pen);
-
-	auto tile_pixels = m_tileset->GetTileBGRA(tile, GetSelectedPalette());
-
-	for (std::size_t i = 0; i < tile_pixels.size(); ++i)
+	const int tw = static_cast<int>(m_tileset->GetTileWidth());
+	const int th = static_cast<int>(m_tileset->GetTileHeight());
+	const int bw = static_cast<int>(Landstalker::MapBlock::GetBlockWidth());
+	const int bh = static_cast<int>(Landstalker::MapBlock::GetBlockHeight());
+	ImageBufferWx buf(m_columns * bw * tw, m_rows * bh * th);
+	for (std::size_t i = 0; i < m_blocks->size(); ++i)
 	{
-		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
-		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
-		brush.SetColour(wxColour(tile_pixels[i]));
-		dc.SetBrush(brush);
-		// Has alpha
-		if ((tile_pixels[i] & 0xFF000000) > 0)
+		const int bx = (i % m_columns) * bw;
+		const int by = (i / m_columns) * bh;
+		for (int t = 0; t < static_cast<int>(Landstalker::MapBlock::GetBlockSize()); ++t)
 		{
-			dc.DrawRectangle({ xx, yy, m_pixelsize, m_pixelsize });
+			buf.InsertTile((bx + t % bw) * tw, (by + t / bw) * th, 0,
+				m_blocks->at(i).GetTile(t % bw, t / bw), *m_tileset, false);
 		}
 	}
-}
-
-bool BlocksetEditorCtrl::DrawBlock(wxDC& dc, int x, int y, const Landstalker::MapBlock& block)
-{
-	bool retval = true;
-	for (int i = 0; i < static_cast<int>(Landstalker::MapBlock::GetBlockSize()); ++i)
-	{
-		Position pos = {i % static_cast<int>(Landstalker::MapBlock::GetBlockWidth()), i / static_cast<int>(Landstalker::MapBlock::GetBlockWidth())};
-		const int xx = x * Landstalker::MapBlock::GetBlockWidth() + pos.x;
-		const int yy = y * Landstalker::MapBlock::GetBlockHeight() + pos.y;
-		if (!DrawTile(dc, xx, yy, block.GetTile(pos.x, pos.y)))
-		{
-			retval = false;
-		}
-	}
-	if (m_enableborders)
-	{
-		dc.SetPen(*m_border_pen);
-		dc.SetBrush(*wxTRANSPARENT_BRUSH);
-		dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
-		DrawBlockPriority(dc, x, y, block);
-	}
-	if (m_enableblocknumbers)
-	{
-		for (int i = 0; i < static_cast<int>(Landstalker::MapBlock::GetBlockSize()); ++i)
-		{
-			const auto& tile = block.GetTile(i);
-			auto label = Landstalker::StrPrintf("%03d%s%s%s", tile.GetIndex(),
-				tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_HFLIP) ? "H" : "",
-				tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_VFLIP) ? "V" : "",
-				tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_PRIORITY) ? "P" : "");
-			auto extent = dc.GetTextExtent(label);
-			if ((extent.GetWidth() < m_tilewidth - 2) && (extent.GetHeight() <m_tileheight - 2))
-			{
-				dc.DrawText(label, {
-					(x * GetBlockWidth() + (i % static_cast<int>(Landstalker::MapBlock::GetBlockWidth()))) * m_tilewidth + 2,
-					(y * GetBlockHeight() + (i / static_cast<int>(Landstalker::MapBlock::GetBlockHeight()))) * m_tileheight + 2
-				});
-			}
-		}
-	}
-	return retval;
+	m_tiles_bmp = std::make_unique<wxBitmap>(buf.MakeImage({ m_pal }, true));
+	m_tiles_bmp_dirty = false;
 }
 
 bool BlocksetEditorCtrl::DrawBlockPriority(wxDC& dc, int x, int y, const Landstalker::MapBlock& block)
@@ -1092,28 +1139,6 @@ void BlocksetEditorCtrl::DrawSelectionBorders(wxDC& dc)
 	}
 }
 
-void BlocksetEditorCtrl::PaintBitmap(wxDC& dc)
-{
-	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-	dc.Clear();
-	int sy = GetVisibleRowsBegin() * m_cellheight;
-
-	int vX, vY, vW, vH;                 // Dimensions of client area in pixels
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	while (upd)
-	{
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		// Alternatively we can do this:
-		// wxRect rect(upd.GetRect());
-		// Repaint this rectangle
-		dc.Blit(vX, vY + sy, vW, vH, &m_memdc, vX, vY + sy);
-		upd++;
-	}
-}
-
 void BlocksetEditorCtrl::InitialiseBrushesAndPens()
 {
 	m_alpha_brush = std::make_unique<wxBrush>();
@@ -1139,9 +1164,24 @@ void BlocksetEditorCtrl::InitialiseBrushesAndPens()
 
 void BlocksetEditorCtrl::ForceRedraw()
 {
-	m_redraw_all = true;
+	m_tiles_bmp_dirty = true;
 	wxVarVScrollHelper::RefreshAll();
 	Refresh();
+}
+
+void BlocksetEditorCtrl::RefreshBlock(int block)
+{
+	// Repaints a single cell. Hover and selection changes happen on every mouse move, and a
+	// full-window Refresh for each is what made the cursor lag.
+	if ((block < 0) || (m_columns <= 0))
+	{
+		return;
+	}
+	const int s = GetVisibleRowsBegin();
+	wxRect rect((block % m_columns) * m_cellwidth, (block / m_columns - s) * m_cellheight,
+	            m_cellwidth + 1, m_cellheight + 1);
+	rect.Inflate(1, 1);
+	RefreshRect(rect);
 }
 
 Landstalker::Palette& BlocksetEditorCtrl::GetSelectedPalette()
@@ -1236,19 +1276,80 @@ int BlocksetEditorCtrl::ConvertXYToTileIdx(const wxPoint& point) const
 
 void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 {
-	if (m_redraw_all == true)
+	// Same pipeline as the tileset editor: everything renders at native resolution into
+	// m_tiles_bmp when data changes, and each paint is one scaled blit of the damaged
+	// cells plus overlays, all clipped to the damaged area. The previous design - a
+	// zoom-scaled cache bitmap filled with per-tile draws - took seconds to open a
+	// blockset and grew with the square of the zoom factor.
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+	if ((m_blocks == nullptr) || (m_tileset == nullptr) || (m_pal == nullptr) || (m_columns <= 0))
 	{
-		m_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
+		dc.Clear();
+		return;
 	}
-	m_memdc.SelectObject(m_bmp);
-	if (m_redraw_all == true)
+	if (m_tiles_bmp_dirty || (m_tiles_bmp == nullptr))
 	{
-		m_memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-		m_memdc.Clear();
+		RenderTilesBitmap();
 	}
-	m_memdc.SetTextForeground(wxColour(255, 255, 255));
-	m_memdc.SetTextBackground(wxColour(150, 150, 150));
-	m_memdc.SetBackgroundMode(wxSOLID);
+	// Direct painting has no per-cell cache to maintain; these are only bookkeeping now.
+	m_redraw_list.clear();
+	if (m_tiles_bmp == nullptr)
+	{
+		dc.Clear();
+		return;
+	}
+
+	wxRect damage = GetUpdateRegion().GetBox();
+	damage.Offset(0, GetVisibleRowsBegin() * m_cellheight);
+	dc.SetClippingRegion(damage);
+	dc.Clear();
+
+	int s = GetVisibleRowsBegin();
+	int e = std::min(static_cast<int>(GetVisibleRowsEnd()) + 1, m_rows);
+	s = std::max(s, damage.GetTop() / m_cellheight);
+	e = std::min(e, damage.GetBottom() / m_cellheight + 1);
+	const int c0 = std::max(0, damage.GetLeft() / m_cellwidth);
+	const int c1 = std::min(m_columns, damage.GetRight() / m_cellwidth + 1);
+	if ((e <= s) || (c1 <= c0))
+	{
+		return;
+	}
+	const int count = static_cast<int>(m_blocks->size());
+
+	// Backdrop for the transparent colour: full-width rows in one rectangle, plus the
+	// partial last row if it is in view.
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	const int last_full_row = count / m_columns;
+	const int full_rows_end = std::min(e, last_full_row);
+	if (full_rows_end > s)
+	{
+		dc.DrawRectangle(0, s * m_cellheight, m_columns * m_cellwidth, (full_rows_end - s) * m_cellheight);
+	}
+	const int remainder = count % m_columns;
+	if ((remainder > 0) && (last_full_row >= s) && (last_full_row < e))
+	{
+		dc.DrawRectangle(0, last_full_row * m_cellheight, remainder * m_cellwidth, m_cellheight);
+	}
+
+	// One scaled blit of the damaged cells out of the native-resolution blockset bitmap.
+	const int ntw = static_cast<int>(m_tileset->GetTileWidth()) * GetBlockWidth();
+	const int nth = static_cast<int>(m_tileset->GetTileHeight()) * GetBlockHeight();
+	wxMemoryDC tiles(*m_tiles_bmp);
+	dc.StretchBlit({ c0 * m_cellwidth, s * m_cellheight }, { (c1 - c0) * m_cellwidth, (e - s) * m_cellheight },
+		&tiles, { c0 * ntw, s * nth }, { (c1 - c0) * ntw, (e - s) * nth },
+		wxCOPY, true, { c0 * ntw, s * nth });
+	tiles.SelectObject(wxNullBitmap);
+
+	DrawOverlays(dc, s, e, c0, c1);
+	DrawSelectionBorders(dc);
+}
+
+void BlocksetEditorCtrl::DrawOverlays(wxDC& dc, int s, int e, int c0, int c1)
+{
+	dc.SetTextForeground(wxColour(255, 255, 255));
+	dc.SetTextBackground(wxColour(150, 150, 150));
+	dc.SetBackgroundMode(wxSOLID);
 
 	if (m_pixelsize > 1)
 	{
@@ -1259,47 +1360,54 @@ void BlocksetEditorCtrl::OnDraw(wxDC& dc)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-	if (m_redraw_all == true)
+	const int count = static_cast<int>(m_blocks->size());
+	const int bw = static_cast<int>(Landstalker::MapBlock::GetBlockWidth());
+	const int bh = static_cast<int>(Landstalker::MapBlock::GetBlockHeight());
+	for (int y = s; y < e; ++y)
 	{
-		m_redraw_list.clear();
-		for (std::size_t i = 0; i < m_blocks->size(); ++i)
+		for (int x = c0; x < c1; ++x)
 		{
-			const auto pos = ToBlockPosition(i);
-			if (!DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(i)))
+			const int i = x + y * m_columns;
+			if (i >= count)
 			{
-				m_redraw_list.insert(i);
+				break;
+			}
+			const auto& block = m_blocks->at(i);
+			if (m_enableborders)
+			{
+				dc.SetBrush(*wxTRANSPARENT_BRUSH);
+				dc.SetPen(*m_tile_border_pen);
+				for (int t = 0; t < bw * bh; ++t)
+				{
+					dc.DrawRectangle({ x * m_cellwidth + (t % bw) * m_tilewidth,
+					                   y * m_cellheight + (t / bw) * m_tileheight,
+					                   m_tilewidth + 1, m_tileheight + 1 });
+				}
+				dc.SetPen(*m_border_pen);
+				dc.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
+				DrawBlockPriority(dc, x, y, block);
+			}
+			if (m_enableblocknumbers)
+			{
+				for (int t = 0; t < bw * bh; ++t)
+				{
+					const auto& tile = block.GetTile(t);
+					auto label = Landstalker::StrPrintf("%03d%s%s%s", tile.GetIndex(),
+						tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_HFLIP) ? "H" : "",
+						tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_VFLIP) ? "V" : "",
+						tile.Attributes().getAttribute(Landstalker::TileAttributes::Attribute::ATTR_PRIORITY) ? "P" : "");
+					auto extent = dc.GetTextExtent(label);
+					if ((extent.GetWidth() < m_tilewidth - 2) && (extent.GetHeight() < m_tileheight - 2))
+					{
+						dc.DrawText(label, {
+							x * m_cellwidth + (t % bw) * m_tilewidth + 2,
+							y * m_cellheight + (t / bw) * m_tileheight + 2
+						});
+					}
+				}
 			}
 		}
-		m_redraw_all = false;
 	}
-	else
-	{
-		auto it = m_redraw_list.begin();
-		while (it != m_redraw_list.end())
-		{
-			if ((*it >= 0) && (*it < static_cast<int>(m_blocks->size())))
-			{
-				auto pos = ToBlockPosition(*it);
-				if (DrawBlock(m_memdc, pos.x, pos.y, m_blocks->at(*it)))
-				{
-					it = m_redraw_list.erase(it);
-				}
-				else
-				{
-					++it;
-				}
-			}
-			else
-			{
-				it = m_redraw_list.erase(it);
-			}
-		}
-	}
-
-	DrawSelectionBorders(m_memdc);
-	PaintBitmap(dc);
-	m_memdc.SelectObject(wxNullBitmap);
 }
 
 void BlocksetEditorCtrl::OnPaint(wxPaintEvent& /*evt*/)
@@ -1331,6 +1439,7 @@ void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 		case Mode::BLOCK_SELECT:
 			if (m_hoveredblock != block_idx)
 			{
+				const int old = m_hoveredblock;
 				if (m_hoveredblock != -1)
 				{
 					m_redraw_list.insert(m_hoveredblock);
@@ -1338,13 +1447,15 @@ void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 				m_hoveredblock = block_idx;
 				FireBlockEvent(EVT_BLOCK_HOVER, "");
 				RefreshStatusbar();
-				Refresh();
+				RefreshBlock(old);
+				RefreshBlock(m_hoveredblock);
 			}
 			break;
 		case Mode::TILE_SELECT:
 		case Mode::PENCIL:
 			if (m_hoveredblock != block_idx || m_hoveredtile != tile_idx)
 			{
+				const int old = m_hoveredblock;
 				if (m_hoveredblock != -1)
 				{
 					m_redraw_list.insert(m_hoveredblock);
@@ -1353,7 +1464,8 @@ void BlocksetEditorCtrl::OnMouseMove(wxMouseEvent& evt)
 				m_hoveredtile = tile_idx;
 				FireBlockEvent(EVT_BLOCK_HOVER, "");
 				RefreshStatusbar();
-				Refresh();
+				RefreshBlock(old);
+				RefreshBlock(m_hoveredblock);
 			}
 			break;
 		}
@@ -1367,12 +1479,13 @@ void BlocksetEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 	{
 		if (m_hoveredblock != -1)
 		{
+			const int old = m_hoveredblock;
 			m_redraw_list.insert(m_hoveredblock);
 			m_hoveredblock = -1;
 			m_hoveredtile = -1;
 			FireBlockEvent(EVT_BLOCK_HOVER, "");
 			RefreshStatusbar();
-			Refresh();
+			RefreshBlock(old);
 		}
 	}
 	evt.Skip();
@@ -1382,6 +1495,8 @@ void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 {
 	int block_idx = ConvertXYToBlockIdx(evt.GetPosition());
 	int tile_idx = ConvertXYToTileIdx(evt.GetPosition());
+	const int old_hover = m_hoveredblock;
+	const int old_selection = m_selectedblock;
 	bool refresh = false;
 	switch (m_mode)
 	{
@@ -1435,6 +1550,8 @@ void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 		if (evt.LeftDown())
 		{
 			SetHoveredTile(m_drawtile);
+			// Nudges the frame to refresh undo/redo enablement after the edit.
+			FireBlockEvent(EVT_BLOCK_SELECT, "");
 		}
 		else if (evt.RightDown())
 		{
@@ -1446,7 +1563,9 @@ void BlocksetEditorCtrl::OnMouseDown(wxMouseEvent& evt)
 	if (refresh)
 	{
 		RefreshStatusbar();
-		Refresh();
+		RefreshBlock(old_hover);
+		RefreshBlock(old_selection);
+		RefreshBlock(block_idx);
 	}
 	evt.Skip();
 }

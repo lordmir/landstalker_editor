@@ -3,6 +3,7 @@
 
 #include <wx/wx.h>
 #include <wx/vscroll.h>
+#include <deque>
 #include <map>
 #include <set>
 #include <memory>
@@ -81,6 +82,11 @@ public:
 	bool InsertColumn(int column);
 	bool DeleteColumn(int column);
 
+	bool CanUndo() const;
+	bool CanRedo() const;
+	void Undo();
+	void Redo();
+
 	bool IsSelectionValid() const;
 	bool IsHoverValid() const;
 	TilePosition GetSelection() const;
@@ -99,9 +105,13 @@ private:
 
 	bool UpdateRowCount();
 	void DrawTile(wxDC& dc, int x, int y, const Landstalker::Tile& tile);
-	bool DrawTileAtPosition(wxDC& dc, int x, int y);
+	void RenderTilesBitmap();
+	void RefreshMapTile(int tile);
+	void DrawOverlays(wxDC& dc, int sx, int ex, int sy, int ey);
 	void DrawSelectionBorders(wxDC& dc);
-	void PaintBitmap(wxDC& dc);
+	void PushUndo();
+	void RestoreHistoryState(Landstalker::Tilemap2D&& state);
+	void ClearHistory();
 	void InitialiseBrushesAndPens();
 	void ForceRedraw();
 	std::shared_ptr<Landstalker::Palette> GetSelectedPalette();
@@ -129,6 +139,14 @@ private:
 	std::shared_ptr<Landstalker::GameData> m_g;
 	std::shared_ptr<Landstalker::PaletteEntry> m_active_palette;
 	Landstalker::Palette m_default_palette;
+	// The map rendered once at native resolution; painting blits scaled from this.
+	// Allocating a bitmap per tile per paint made opening the editor crawl.
+	std::unique_ptr<wxBitmap> m_tiles_bmp;
+	bool m_tiles_bmp_dirty = true;
+
+	// Undo history as whole-tilemap snapshots - a few kilobytes each.
+	std::deque<Landstalker::Tilemap2D> m_undo_stack;
+	std::deque<Landstalker::Tilemap2D> m_redo_stack;
 
 	Mode m_mode;
 
@@ -144,7 +162,6 @@ private:
 	bool m_enablehover;
 	bool m_enablealpha;
 
-	bool m_redraw_all;
 	std::set<int> m_redraw_list;
 	Landstalker::Tile m_drawtile;
 
@@ -154,9 +171,6 @@ private:
 	std::unique_ptr<wxPen> m_highlighted_border_pen;
 	std::unique_ptr<wxBrush> m_highlighted_brush;
 	std::unique_ptr<wxBitmap> m_stipple;
-
-	wxMemoryDC m_memdc;
-	wxBitmap m_bmp;
 
 	wxDECLARE_EVENT_TABLE();
 };

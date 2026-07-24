@@ -712,15 +712,19 @@ void RoomViewerFrame::ShowErrorDialog()
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 {
-	status.SetFieldsCount(3);
-	status.SetStatusText("", 0);
-	status.SetStatusText("", 1);
-	status.SetStatusText("", 1);
+	status.SetFieldsCount(4);
+	// Mode/room, hovered cell, selected cell(s), render stats.
+	const int widths[] = { -2, -1, -1, -3 };
+	status.SetStatusWidths(4, widths);
+	for (int field = 0; field < 4; ++field)
+	{
+		status.SetStatusText("", field);
+	}
 }
 
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
-	if (status.GetFieldsCount() != 3)
+	if (status.GetFieldsCount() != 4 || evt.GetString().empty())
 	{
 		return;
 	}

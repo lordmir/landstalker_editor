@@ -38,6 +38,7 @@ private:
 	void OnTileChanged(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
 	void OnTileSelect(wxCommandEvent& evt);
+	void OnMapChanged(wxCommandEvent& evt);
 	void OnTileEditRequested(wxCommandEvent& evt);
 	void OnTilesetSelect(wxCommandEvent& evt);
 	void OnPaletteSelect(wxCommandEvent& evt);

@@ -33,6 +33,9 @@ enum MENU_IDS
 	ID_FILE_EXPORT_PNG,
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_CSV,
+	ID_EDIT,
+	ID_EDIT_UNDO,
+	ID_EDIT_REDO,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
 	ID_VIEW_TOGGLE_TILE_NOS,
@@ -40,7 +43,8 @@ enum MENU_IDS
 	ID_TOOLS,
 	ID_TOOLS_TILES,
 	ID_TOOLS_TILEMAP_TOOLBAR,
-	ID_TOOLS_TILESET_TOOLBAR
+	ID_TOOLS_TILESET_TOOLBAR,
+	ID_TOOLS_TOOLS_TOOLBAR
 };
 
 wxBEGIN_EVENT_TABLE(Map2DEditorFrame, wxWindow)
@@ -48,6 +52,7 @@ EVT_SLIDER(ID_ZOOM_SLIDER, Map2DEditorFrame::OnZoomChange)
 EVT_SLIDER(ID_TILESET_ZOOM, Map2DEditorFrame::OnTilesetZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_MAP_SELECT, Map2DEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_MAP_HOVER, Map2DEditorFrame::OnTileHovered)
+EVT_COMMAND(wxID_ANY, EVT_MAP_CHANGE, Map2DEditorFrame::OnMapChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, Map2DEditorFrame::OnTileSelect)
 EVT_COMMAND(wxID_ANY, EVT_MAP_EDIT_REQUEST, Map2DEditorFrame::OnTileEditRequested)
 EVT_COMBOBOX(ID_TILESET_SELECT, Map2DEditorFrame::OnTilesetSelect)
@@ -331,6 +336,13 @@ void Map2DEditorFrame::OnTileHovered(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void Map2DEditorFrame::OnMapChanged(wxCommandEvent& evt)
+{
+	// Keeps undo/redo enablement in step with canvas-driven edits (pencil clicks).
+	UpdateUI();
+	evt.Skip();
+}
+
 void Map2DEditorFrame::OnTileSelect(wxCommandEvent& evt)
 {
 	int tileId = std::stoi(evt.GetString().ToStdString());
@@ -559,17 +571,25 @@ void Map2DEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
 	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BIN, "Import Tileset from Binary...");
 	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_CSV, "Import Tileset from CSV...");
-	auto& viewMenu = AddMenu(menu, 1, ID_VIEW, "View");
+	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
+	AddMenuItem(editMenu, 0, ID_EDIT_UNDO, "Undo\tCtrl+Z");
+	AddMenuItem(editMenu, 1, ID_EDIT_REDO, "Redo\tCtrl+Y");
+	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
-	auto& toolsMenu = AddMenu(menu, 2, ID_TOOLS, "Tools");
+	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_TILES, "Tiles", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_TILEMAP_TOOLBAR, "Tilemap Toolbar", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_TOOLS_TOOLBAR, "Tools Toolbar", wxITEM_CHECK);
 
 	wxAuiToolBar* tilemap_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 
+	// Same IDs as the Edit menu entries, so they share the handler and enable state.
+	tilemap_tb->AddTool(ID_EDIT_UNDO, "Undo", ilist.GetImage("undo"), "Undo (Ctrl+Z)");
+	tilemap_tb->AddTool(ID_EDIT_REDO, "Redo", ilist.GetImage("redo"), "Redo (Ctrl+Y)");
+	tilemap_tb->AddSeparator();
 	tilemap_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	tilemap_tb->AddTool(ID_TOGGLE_TILE_NUMBERS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
 	tilemap_tb->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
@@ -584,9 +604,6 @@ void Map2DEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tilemap_tb->AddTool(ID_HFLIP_TILE, "Horizontally Flip Tile", ilist.GetImage("hflip"), "Horizontally Flip Tile");
 	tilemap_tb->AddTool(ID_VFLIP_TILE, "Vertically Flip Tile", ilist.GetImage("vflip"), "Vertically Flip Tile");
 	tilemap_tb->AddTool(ID_TOGGLE_TILE_PRIORITY, "Toggle Tile Priority", ilist.GetImage("priority"), "Toggle Tile Priority");
-	tilemap_tb->AddSeparator();
-	tilemap_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_RADIO);
-	tilemap_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_RADIO);
 	tilemap_tb->AddSeparator();
 	tilemap_tb->AddLabel(wxID_ANY, "Zoom:");
 	m_zoomslider = new wxSlider(tilemap_tb, ID_ZOOM_SLIDER, m_zoom, 1, 16, wxDefaultPosition, wxSize(80, wxDefaultCoord));
@@ -608,6 +625,14 @@ void Map2DEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tileset_tb->AddLabel(wxID_ANY, "Zoom:");
 	tileset_tb->AddControl(m_tileset_zoomslider, "Zoom");
 	AddToolbar(m_mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(2));
+
+	// Check items with the exclusivity managed in UpdateUI, matching the tileset editor's
+	// tools toolbar: wxAuiToolBar cannot untoggle a radio item programmatically.
+	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
+	tools_tb->SetToolBitmapSize(wxSize(16, 16));
+	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
+	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
 	
 	InitCombos();
 	UpdateUI();
@@ -654,6 +679,15 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_TOOLS_TILESET_TOOLBAR:
 		SetToolbarVisibility("Tileset", !IsToolbarVisible("Tileset"));
+		break;
+	case ID_TOOLS_TOOLS_TOOLBAR:
+		SetToolbarVisibility("Tools", !IsToolbarVisible("Tools"));
+		break;
+	case ID_EDIT_UNDO:
+		m_mapedit->Undo();
+		break;
+	case ID_EDIT_REDO:
+		m_mapedit->Redo();
 		break;
 	case ID_INSERT_ROW_BEFORE:
 		if (m_mapedit->IsSelectionValid())
@@ -759,6 +793,7 @@ void Map2DEditorFrame::UpdateUI() const
 	CheckMenuItem(ID_TOOLS_TILES, IsPaneVisible(m_tileset));
 	CheckMenuItem(ID_TOOLS_TILEMAP_TOOLBAR, IsToolbarVisible("Tilemap"));
 	CheckMenuItem(ID_TOOLS_TILESET_TOOLBAR, IsToolbarVisible("Tileset"));
+	CheckMenuItem(ID_TOOLS_TOOLS_TOOLBAR, IsToolbarVisible("Tools"));
 	if (m_mapedit != nullptr)
 	{
 		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_mapedit->GetAlphaEnabled());
@@ -767,14 +802,14 @@ void Map2DEditorFrame::UpdateUI() const
 		CheckToolbarItem("Tilemap", ID_TOGGLE_GRIDLINES, m_mapedit->GetBordersEnabled());
 		CheckMenuItem(ID_VIEW_TOGGLE_TILE_NOS, m_mapedit->GetTileNumbersEnabled());
 		CheckToolbarItem("Tilemap", ID_TOGGLE_TILE_NUMBERS, m_mapedit->GetTileNumbersEnabled());
-		switch (m_mapedit->GetMode())
-		{
-		case Map2DEditor::Mode::SELECT:
-			CheckToolbarItem("Tilemap", ID_SELECT, true);
-			break;
-		case Map2DEditor::Mode::PENCIL:
-			CheckToolbarItem("Tilemap", ID_PENCIL, true);
-		}
+		EnableMenuItem(ID_EDIT_UNDO, m_mapedit->CanUndo());
+		EnableMenuItem(ID_EDIT_REDO, m_mapedit->CanRedo());
+		EnableToolbarItem("Tilemap", ID_EDIT_UNDO, m_mapedit->CanUndo());
+		EnableToolbarItem("Tilemap", ID_EDIT_REDO, m_mapedit->CanRedo());
+		// Mode buttons live on the Tools toolbar as check items, with exclusivity here.
+		const auto mode = m_mapedit->GetMode();
+		CheckToolbarItem("Tools", ID_SELECT, mode == Map2DEditor::Mode::SELECT);
+		CheckToolbarItem("Tools", ID_PENCIL, mode == Map2DEditor::Mode::PENCIL);
 	}
 	if (m_tileset != nullptr)
 	{

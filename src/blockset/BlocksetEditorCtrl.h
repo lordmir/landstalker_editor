@@ -3,6 +3,7 @@
 
 #include <wx/wx.h>
 #include <wx/vscroll.h>
+#include <deque>
 #include <map>
 #include <set>
 #include <memory>
@@ -87,6 +88,14 @@ public:
 	bool InsertBlock(int row);
 	bool DeleteBlock(int row);
 
+	bool CanUndo() const;
+	bool CanRedo() const;
+	void Undo();
+	void Redo();
+	// Groups several mutations (e.g. the two halves of a swap) into one undo entry.
+	void BeginUndoGroup();
+	void EndUndoGroup();
+
 	bool IsBlockSelectionValid() const;
 	bool IsBlockHoverValid() const;
 	bool IsTileSelectionValid() const;
@@ -119,12 +128,14 @@ private:
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
 
 	bool UpdateRowCount();
-	bool DrawTile(wxDC& dc, int x, int y, const Landstalker::Tile& tile);
-	void DrawTilePixels(wxDC& dc, int x, int y, const Landstalker::Tile& tile);
-	bool DrawBlock(wxDC& dc, int x, int y, const Landstalker::MapBlock& block);
+	void RenderTilesBitmap();
 	bool DrawBlockPriority(wxDC& dc, int x, int y, const Landstalker::MapBlock& block);
+	void DrawOverlays(wxDC& dc, int s, int e, int c0, int c1);
 	void DrawSelectionBorders(wxDC& dc);
-	void PaintBitmap(wxDC& dc);
+	void RefreshBlock(int block);
+	void PushUndo();
+	void RestoreHistoryState(Landstalker::Blockset&& state);
+	void ClearHistory();
 	void InitialiseBrushesAndPens();
 	Landstalker::Palette& GetSelectedPalette();
 	Position ToBlockPosition(int index) const;
@@ -181,7 +192,6 @@ private:
 	bool m_enablehover;
 	bool m_enablealpha;
 
-	bool m_redraw_all;
 	std::set<int> m_redraw_list;
 	Landstalker::Tile m_drawtile;
 
@@ -195,8 +205,16 @@ private:
 	std::unique_ptr<wxBitmap> m_stipple;
 	EditorFrame* m_frame;
 
-	wxMemoryDC m_memdc;
-	wxBitmap m_bmp;
+	// The blockset rendered once at native resolution; painting blits scaled from this.
+	// Allocating a bitmap per tile per paint made opening the editor crawl.
+	std::unique_ptr<wxBitmap> m_tiles_bmp;
+	bool m_tiles_bmp_dirty = true;
+
+	// Undo history as whole-blockset snapshots - a few kilobytes each.
+	std::deque<Landstalker::Blockset> m_undo_stack;
+	std::deque<Landstalker::Blockset> m_redo_stack;
+	int m_undo_group_depth = 0;
+	bool m_undo_group_pushed = false;
 
 	wxDECLARE_EVENT_TABLE();
 };

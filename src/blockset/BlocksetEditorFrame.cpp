@@ -12,6 +12,9 @@ enum MENU_IDS
 	ID_EDIT,
 	ID_EDIT_BLOCKSETS,
 	ID_EDIT_SEP,
+	ID_EDIT_UNDO,
+	ID_EDIT_REDO,
+	ID_EDIT_SEP2,
 	ID_EDIT_CUT,
 	ID_EDIT_COPY,
 	ID_EDIT_PASTE,
@@ -24,6 +27,7 @@ enum MENU_IDS
 	ID_TOOLS,
 	ID_TOOLS_TILES,
 	ID_TOOLS_TOOLBAR,
+	ID_TOOLS_TOOLS_TOOLBAR,
 	ID_TOOLS_SEP,
 	ID_TOOLS_BLOCK_SELECT,
 	ID_TOOLS_TILE_SELECT,
@@ -163,11 +167,14 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	// blocksets, the rest edit the blocks inside the one being viewed.
 	AddMenuItem(editMenu, 0, ID_EDIT_BLOCKSETS, "Blocksets...\tF10");
 	AddMenuItem(editMenu, 1, ID_EDIT_SEP, "", wxITEM_SEPARATOR);
-	AddMenuItem(editMenu, 2, ID_EDIT_CUT, "Cut");
-	AddMenuItem(editMenu, 3, ID_EDIT_COPY, "Copy");
-	AddMenuItem(editMenu, 4, ID_EDIT_PASTE, "Paste");
-	AddMenuItem(editMenu, 5, ID_EDIT_SWAP, "Swap");
-	AddMenuItem(editMenu, 6, ID_EDIT_CLEAR, "Clear");
+	AddMenuItem(editMenu, 2, ID_EDIT_UNDO, "Undo\tCtrl+Z");
+	AddMenuItem(editMenu, 3, ID_EDIT_REDO, "Redo\tCtrl+Y");
+	AddMenuItem(editMenu, 4, ID_EDIT_SEP2, "", wxITEM_SEPARATOR);
+	AddMenuItem(editMenu, 5, ID_EDIT_CUT, "Cut");
+	AddMenuItem(editMenu, 6, ID_EDIT_COPY, "Copy");
+	AddMenuItem(editMenu, 7, ID_EDIT_PASTE, "Paste");
+	AddMenuItem(editMenu, 8, ID_EDIT_SWAP, "Swap");
+	AddMenuItem(editMenu, 9, ID_EDIT_CLEAR, "Clear");
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
@@ -175,13 +182,18 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_TILES, "Tiles Pane", wxITEM_CHECK);
 	AddMenuItem(toolsMenu, 1, ID_TOOLS_TOOLBAR, "Blockset Toolbar", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 2, ID_TOOLS_SEP, "", wxITEM_SEPARATOR);
-	AddMenuItem(toolsMenu, 3, ID_TOOLS_BLOCK_SELECT, "Block Select Mode", wxITEM_RADIO);
-	AddMenuItem(toolsMenu, 4, ID_TOOLS_TILE_SELECT, "Tile Select Mode", wxITEM_RADIO);
-	AddMenuItem(toolsMenu, 5, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 2, ID_TOOLS_TOOLS_TOOLBAR, "Tools Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_SEP, "", wxITEM_SEPARATOR);
+	AddMenuItem(toolsMenu, 4, ID_TOOLS_BLOCK_SELECT, "Block Select Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 5, ID_TOOLS_TILE_SELECT, "Tile Select Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 6, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
 
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 
+	// Same IDs as the Edit menu entries, so they share the handler and enable state.
+	toolbar->AddTool(ID_EDIT_UNDO, "Undo", ilist.GetImage("undo"), "Undo (Ctrl+Z)");
+	toolbar->AddTool(ID_EDIT_REDO, "Redo", ilist.GetImage("redo"), "Redo (Ctrl+Y)");
+	toolbar->AddSeparator();
 	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_TILE_NUMBERS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
@@ -200,10 +212,6 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_VFLIP_TILE, "Vertically Flip Tile", ilist.GetImage("vflip"), "Vertically Flip Tile");
 	toolbar->AddTool(ID_TOGGLE_TILE_PRIORITY, "Toggle Tile Priority", ilist.GetImage("priority"), "Toggle Tile Priority");
 	toolbar->AddSeparator();
-	toolbar->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("sel_block"), "Block Select", wxITEM_RADIO);
-	toolbar->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("sel_tile"), "Tile Select", wxITEM_RADIO);
-	toolbar->AddTool(ID_PENCIL, "Draw Tiles", ilist.GetImage("pencil"), "Draw Tiles", wxITEM_RADIO);
-	toolbar->AddSeparator();
 	toolbar->AddLabel(wxID_ANY, "Zoom:");
 	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord));
 	toolbar->AddControl(m_zoomslider, "Zoom");
@@ -213,6 +221,16 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddControl(m_palette_select, "Palette");
 
 	AddToolbar(m_mgr, *toolbar, "Blockset", "Blockset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
+
+	// Check items with the exclusivity managed in UpdateUI, matching the tileset editor's
+	// tools toolbar: wxAuiToolBar cannot untoggle a radio item programmatically.
+	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
+	tools_tb->SetToolBitmapSize(wxSize(16, 16));
+	tools_tb->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("sel_block"), "Block Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("sel_tile"), "Tile Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PENCIL, "Draw Tiles", ilist.GetImage("pencil"), "Draw Tiles", wxITEM_CHECK);
+	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
+
 	InitPaletteList();
 	if (m_palette_select != nullptr)
 	{
@@ -657,6 +675,19 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	case ID_TOOLS_TOOLBAR:
 		SetToolbarVisibility("Blockset", !IsToolbarVisible("Blockset"));
 		break;
+	case ID_TOOLS_TOOLS_TOOLBAR:
+		SetToolbarVisibility("Tools", !IsToolbarVisible("Tools"));
+		break;
+	case ID_EDIT_UNDO:
+		m_editor->Undo();
+		UpdateUI();
+		FireEvent(EVT_PROPERTIES_UPDATE);
+		break;
+	case ID_EDIT_REDO:
+		m_editor->Redo();
+		UpdateUI();
+		FireEvent(EVT_PROPERTIES_UPDATE);
+		break;
 	case ID_FILE_EXPORT_CBS:
 		OnExportBin();
 		break;
@@ -736,9 +767,12 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 			}
 			else
 			{
+				// Both halves of the swap belong to a single undo entry.
+				m_editor->BeginUndoGroup();
 				auto temp = m_editor->GetBlock(m_blockswap);
 				m_editor->SetBlock(m_blockswap, m_editor->GetSelectedBlock());
 				m_editor->SetSelectedBlock(temp);
+				m_editor->EndUndoGroup();
 				m_blockswap = -1;
 				m_tileswap = -1;
 			}
@@ -752,9 +786,12 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 			}
 			else
 			{
+				// Both halves of the swap belong to a single undo entry.
+				m_editor->BeginUndoGroup();
 				auto temp = m_editor->GetTile(m_blockswap, m_tileswap);
 				m_editor->SetTile(m_blockswap, m_tileswap, m_editor->GetTile(b, t));
 				m_editor->SetTile(b, t, temp);
+				m_editor->EndUndoGroup();
 				m_blockswap = -1;
 				m_tileswap = -1;
 			}
@@ -1010,6 +1047,8 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	default:
 		break;
 	}
+	// Keeps undo/redo enablement (among others) in step with whatever the command changed.
+	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
@@ -1017,8 +1056,18 @@ void BlocksetEditorFrame::UpdateUI() const
 {
 	CheckMenuItem(ID_TOOLS_TILES, IsPaneVisible(m_tileset));
 	CheckMenuItem(ID_TOOLS_TOOLBAR, IsToolbarVisible("Blockset"));
+	CheckMenuItem(ID_TOOLS_TOOLS_TOOLBAR, IsToolbarVisible("Tools"));
 	if (m_editor != nullptr)
 	{
+		EnableMenuItem(ID_EDIT_UNDO, m_editor->CanUndo());
+		EnableMenuItem(ID_EDIT_REDO, m_editor->CanRedo());
+		EnableToolbarItem("Blockset", ID_EDIT_UNDO, m_editor->CanUndo());
+		EnableToolbarItem("Blockset", ID_EDIT_REDO, m_editor->CanRedo());
+		// Mode buttons live on the Tools toolbar as check items, with exclusivity here.
+		const auto mode = m_editor->GetMode();
+		CheckToolbarItem("Tools", ID_BLOCK_SELECT, mode == BlocksetEditorCtrl::Mode::BLOCK_SELECT);
+		CheckToolbarItem("Tools", ID_TILE_SELECT, mode == BlocksetEditorCtrl::Mode::TILE_SELECT);
+		CheckToolbarItem("Tools", ID_PENCIL, mode == BlocksetEditorCtrl::Mode::PENCIL);
 		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
 		CheckToolbarItem("Blockset", ID_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
 		CheckMenuItem(ID_VIEW_TOGGLE_GRIDLINES, m_editor->GetBordersEnabled());
@@ -1029,7 +1078,6 @@ void BlocksetEditorFrame::UpdateUI() const
 		{
 		case BlocksetEditorCtrl::Mode::BLOCK_SELECT:
 			CheckMenuItem(ID_TOOLS_BLOCK_SELECT, true);
-			CheckToolbarItem("Blockset", ID_BLOCK_SELECT, true);
 			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, m_editor->IsBlockSelectionValid());
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, m_editor->IsBlockSelectionValid());
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, m_editor->IsBlockSelectionValid());
@@ -1049,7 +1097,6 @@ void BlocksetEditorFrame::UpdateUI() const
 			break;
 		case BlocksetEditorCtrl::Mode::TILE_SELECT:
 			CheckMenuItem(ID_TOOLS_TILE_SELECT, true);
-			CheckToolbarItem("Blockset", ID_TILE_SELECT, true);
 			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
@@ -1069,7 +1116,6 @@ void BlocksetEditorFrame::UpdateUI() const
 			break;
 		case BlocksetEditorCtrl::Mode::PENCIL:
 			CheckMenuItem(ID_TOOLS_TILE_DRAW, true);
-			CheckToolbarItem("Blockset", ID_PENCIL, true);
 			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);

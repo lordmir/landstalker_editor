@@ -711,9 +711,9 @@ void MainFrame::OnStatusBarClear(wxCommandEvent& event)
 void MainFrame::OnPropertiesInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-    Freeze();
+    m_properties->Freeze();
 	frame->InitProperties(*this->m_properties);
-    Thaw();
+    m_properties->Thaw();
 	event.Skip();
 }
 
@@ -722,9 +722,12 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
     if (frame && m_properties->GetGrid())
     {
-        Freeze();
+        // Freeze only the property pane. Freezing the whole frame forces a complete
+        // repaint - navigation tree included - on every thaw, which showed up as the
+        // browser flashing each time an editor refreshed its properties.
+        m_properties->Freeze();
         frame->UpdateProperties(*this->m_properties);
-        Thaw();
+        m_properties->Thaw();
     }
 	event.Skip();
 }
@@ -732,9 +735,9 @@ void MainFrame::OnPropertiesUpdate(wxCommandEvent& event)
 void MainFrame::OnPropertiesClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-    Freeze();
+    m_properties->Freeze();
 	frame->ClearProperties(*this->m_properties);
-    Thaw();
+    m_properties->Thaw();
 	event.Skip();
 }
 
@@ -750,18 +753,20 @@ void MainFrame::OnPropertyChange(wxPropertyGridEvent& event)
 void MainFrame::OnMenuInit(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-    Freeze();
+    // Freeze only the editor host: the toolbars being rebuilt live inside it, and thawing
+    // the whole frame repainted the navigation tree - the visible flash on editor open.
+    m_mainwin->Freeze();
 	frame->InitMenu(*this->m_menubar, *m_imgs);
-    Thaw();
+    m_mainwin->Thaw();
 	event.Skip();
 }
 
 void MainFrame::OnMenuClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
-    Freeze();
+    m_mainwin->Freeze();
 	frame->ClearMenu(*this->m_menubar);
-    Thaw();
+    m_mainwin->Thaw();
 	event.Skip();
 }
 
@@ -1169,7 +1174,8 @@ void MainFrame::UpdateNavButtons()
 
 void MainFrame::ShowEditor(EditorType editor)
 {
-    Freeze();
+    // Editor swapping only touches children of the editor host panel.
+    m_mainwin->Freeze();
     if (!m_editors.at(editor)->IsShown())
     {
         m_activeEditor = m_editors.at(editor);
@@ -1185,7 +1191,7 @@ void MainFrame::ShowEditor(EditorType editor)
         this->m_mainwin->GetSizer()->Add(m_activeEditor, 1, wxALL | wxEXPAND);
         this->m_mainwin->GetSizer()->Layout();
     }
-    Thaw();
+    m_mainwin->Thaw();
 }
 
 void MainFrame::HideAllEditors()

@@ -3,6 +3,7 @@
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
 #include <algorithm>
+#include <main/ImageBufferWx.h>
 
 wxBEGIN_EVENT_TABLE(Map2DEditor, wxHVScrolledWindow)
 EVT_PAINT(Map2DEditor::OnPaint)
@@ -41,7 +42,6 @@ Map2DEditor::Map2DEditor(wxWindow* parent)
 	  m_enableselection(true),
 	  m_enablehover(true),
 	  m_enablealpha(true),
-	  m_redraw_all(true),
       m_drawtile(Tile(0))
 {
 	SetRowColumnCount(1, 1);
@@ -66,6 +66,7 @@ bool Map2DEditor::Save(const wxString& filename, Tilemap2D::Compression compress
 bool Map2DEditor::Open(const wxString& filename, Tilemap2D::Compression compression, int base)
 {
 	auto retval = m_map->Open(filename.ToStdString(), compression, base);
+	ClearHistory();
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
 	return retval;
 }
@@ -84,6 +85,7 @@ bool Map2DEditor::Open(const std::vector<Tile>& map, int width, int height, int 
 bool Map2DEditor::Open(const std::vector<uint8_t>& map, Tilemap2D::Compression compression, int width, int height, int base)
 {
 	auto retval = m_map->Open(map, width, height, compression, base);
+	ClearHistory();
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
 	return retval;
 }
@@ -99,6 +101,7 @@ bool Map2DEditor::Open(std::shared_ptr<Tilemap2DEntry> map)
 	m_tileset_entry = m_g->GetTileset(map->GetTileset());
 	m_tileset = m_tileset_entry->GetData();
 	m_active_palette = m_g->GetPalette(m_g->GetTileset(map->GetTileset())->GetDefaultPalette());
+	ClearHistory();
 	RedrawAll();
 	return true;
 }
@@ -110,6 +113,7 @@ bool Map2DEditor::New(int width, int height, int base)
 	m_map->Clear();
 	m_map->Resize(width, height);
 	m_map->FillIncrementing(base);
+	ClearHistory();
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
 	return false;
 }
@@ -151,14 +155,37 @@ void Map2DEditor::RedrawTiles(int index)
 
 void Map2DEditor::RedrawMapTile(const TilePosition& tp)
 {
-	m_redraw_list.insert(tp.x + tp.y * m_map->GetWidth());
-	Refresh(true);
+	RedrawMapTile(tp.x + tp.y * m_map->GetWidth());
 }
 
 void Map2DEditor::RedrawMapTile(int index)
 {
+	// Called for data changes (unlike the hover paths), so the cached bitmap is stale.
+	m_tiles_bmp_dirty = true;
 	m_redraw_list.insert(index);
-	Refresh(true);
+	RefreshMapTile(index);
+}
+
+void Map2DEditor::RefreshMapTile(int tile)
+{
+	// Repaints a single cell. Hover and edits happen per mouse event, and a full-window
+	// Refresh for each is what made the cursor lag.
+	if ((tile < 0) || !m_tileset || !m_map)
+	{
+		return;
+	}
+	const int cellwidth = m_tileset->GetTileWidth() * m_pixelsize;
+	const int cellheight = m_tileset->GetTileHeight() * m_pixelsize;
+	const int w = GetTilemapWidth();
+	if ((cellwidth <= 0) || (cellheight <= 0) || (w <= 0))
+	{
+		return;
+	}
+	wxRect rect((tile % w - GetVisibleColumnsBegin()) * cellwidth,
+	            (tile / w - GetVisibleRowsBegin()) * cellheight,
+	            cellwidth + 1, cellheight + 1);
+	rect.Inflate(1, 1);
+	RefreshRect(rect);
 }
 
 void Map2DEditor::SetPixelSize(int n)
@@ -394,9 +421,88 @@ Tile Map2DEditor::GetTileAtPosition(const TilePosition& tp) const
 
 void Map2DEditor::SetTileAtPosition(const TilePosition& tp, const Tile& tile)
 {
+	// No-op writes are skipped so repeated pencil clicks don't pollute the undo history.
+	if (!IsPositionValid(tp) || (m_map->GetTile(tp.x, tp.y) == tile))
+	{
+		return;
+	}
+	PushUndo();
 	m_map->SetTile(tile, tp.x, tp.y);
 	RedrawMapTile(tp);
 	FireEvent(EVT_MAP_CHANGE, std::to_string(ToIndex(tp)));
+}
+
+bool Map2DEditor::CanUndo() const
+{
+	return !m_undo_stack.empty();
+}
+
+bool Map2DEditor::CanRedo() const
+{
+	return !m_redo_stack.empty();
+}
+
+void Map2DEditor::Undo()
+{
+	if (!m_map || m_undo_stack.empty())
+	{
+		return;
+	}
+	m_redo_stack.push_back(*m_map);
+	auto state = std::move(m_undo_stack.back());
+	m_undo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void Map2DEditor::Redo()
+{
+	if (!m_map || m_redo_stack.empty())
+	{
+		return;
+	}
+	m_undo_stack.push_back(*m_map);
+	auto state = std::move(m_redo_stack.back());
+	m_redo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void Map2DEditor::PushUndo()
+{
+	if (!m_map)
+	{
+		return;
+	}
+	// A new edit invalidates anything that was undone.
+	m_redo_stack.clear();
+	m_undo_stack.push_back(*m_map);
+	while (m_undo_stack.size() > 100)
+	{
+		m_undo_stack.pop_front();
+	}
+}
+
+void Map2DEditor::RestoreHistoryState(Landstalker::Tilemap2D&& state)
+{
+	*m_map = std::move(state);
+	// A restored state can have different dimensions, invalidating selection and layout.
+	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
+	const int count = static_cast<int>(m_map->GetWidth() * m_map->GetHeight());
+	if (m_selectedtile >= count)
+	{
+		m_selectedtile = -1;
+	}
+	if (m_hoveredtile >= count)
+	{
+		m_hoveredtile = -1;
+	}
+	ForceRedraw();
+	FireEvent(EVT_MAP_CHANGE, "");
+}
+
+void Map2DEditor::ClearHistory()
+{
+	m_undo_stack.clear();
+	m_redo_stack.clear();
 }
 
 bool Map2DEditor::IsPositionValid(const TilePosition& tp) const
@@ -437,72 +543,38 @@ bool Map2DEditor::UpdateRowCount()
 
 void Map2DEditor::DrawTile(wxDC& dc, int x, int y, const Tile& tile)
 {
-	wxPen pen = dc.GetPen();
-	wxBrush brush = dc.GetBrush();
-
-	pen.SetStyle(wxPENSTYLE_TRANSPARENT);
-	brush.SetStyle(wxBRUSHSTYLE_SOLID);
-	dc.SetPen(pen);
-
-	auto tile_pixels = m_tileset->GetTileBGRA(tile, *GetSelectedPalette());
-
-	for (std::size_t i = 0; i < tile_pixels.size(); ++i)
-	{
-		int xx = x + (i % m_tileset->GetTileWidth()) * m_pixelsize;
-		int yy = y + (i / m_tileset->GetTileWidth()) * m_pixelsize;
-		brush.SetColour(wxColour(tile_pixels[i]));
-		dc.SetBrush(brush);
-		// Has alpha
-		if ((tile_pixels[i] & 0xFF000000) > 0)
-		{
-			dc.DrawRectangle({ xx, yy, m_pixelsize, m_pixelsize });
-		}
-	}
+	// Direct render of one tile, for content not in the cached map bitmap - the draw-tool
+	// hover preview. Everything else goes through DrawCachedTile.
+	const int tw = static_cast<int>(m_tileset->GetTileWidth());
+	const int th = static_cast<int>(m_tileset->GetTileHeight());
+	wxBitmap bmp = MakeTileBitmap(m_tileset->GetTileBGRA(tile, *GetSelectedPalette()), tw, th);
+	wxMemoryDC tdc(bmp);
+	dc.StretchBlit({ x, y }, { tw * m_pixelsize, th * m_pixelsize },
+		&tdc, { 0, 0 }, { tw, th }, wxCOPY, true, { 0, 0 });
 }
 
-bool Map2DEditor::DrawTileAtPosition(wxDC& dc, int x, int y)
+void Map2DEditor::RenderTilesBitmap()
 {
-	bool retval = false;
-	wxPosition s = GetVisibleBegin();
-	wxPosition e = GetVisibleEnd();
-
-	int cellwidth = m_tileset->GetTileWidth() * m_pixelsize;
-	int cellheight = m_tileset->GetTileHeight() * m_pixelsize;
-
-	dc.SetBrush(*wxTRANSPARENT_BRUSH);
-	if ((x >= s.GetCol()) && (x < e.GetCol()) &&
-		(y >= s.GetRow()) && (y < e.GetRow()))
+	// The whole map at native resolution in one image, rebuilt only when the map data or
+	// palette changes. Building a bitmap per tile per paint made opening the editor crawl.
+	if ((m_tileset == nullptr) || (m_map == nullptr))
 	{
-		dc.SetPen(*wxTRANSPARENT_PEN);
-		dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-		dc.DrawRectangle({ x * cellwidth, y * cellheight, cellwidth, cellheight });
-		auto t = m_map->GetTile(x, y);
-		if (m_enablehover && (m_mode != Mode::SELECT) && IsHoverValid() && ToIndex({ x,y }) == m_hoveredtile)
-		{
-			// Preview when in draw mode
-			t = m_drawtile;
-		}
-		DrawTile(dc, x * cellwidth, y * cellheight, t);
-		if (m_enableborders)
-		{
-			dc.SetPen(*m_border_pen);
-			dc.SetBrush(*wxTRANSPARENT_BRUSH);
-			dc.DrawRectangle({ x * cellwidth, y * cellheight, cellwidth + 1, cellheight + 1 });
-		}
-		if (m_enabletilenumbers)
-		{
-			auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? 'H' : ' ',
-				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? 'V' : ' ',
-				t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? '!' : ' ');
-			auto extent = dc.GetTextExtent(label);
-			if ((extent.GetWidth() < cellwidth - 2) && (extent.GetHeight() < cellheight - 2))
-			{
-				dc.DrawText(label, { x * cellwidth + 2, y * cellheight + 2 });
-			}
-		}
-		retval = true;
+		return;
 	}
-	return retval;
+	const int tw = static_cast<int>(m_tileset->GetTileWidth());
+	const int th = static_cast<int>(m_tileset->GetTileHeight());
+	const int w = static_cast<int>(m_map->GetWidth());
+	const int h = static_cast<int>(m_map->GetHeight());
+	ImageBufferWx buf(w * tw, h * th);
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			buf.InsertTile(x * tw, y * th, 0, m_map->GetTile(x, y), *m_tileset, false);
+		}
+	}
+	m_tiles_bmp = std::make_unique<wxBitmap>(buf.MakeImage({ GetSelectedPalette() }, true));
+	m_tiles_bmp_dirty = false;
 }
 
 void Map2DEditor::DrawSelectionBorders(wxDC& dc)
@@ -532,29 +604,6 @@ void Map2DEditor::DrawSelectionBorders(wxDC& dc)
 	}
 }
 
-void Map2DEditor::PaintBitmap(wxDC& dc)
-{
-	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-	dc.Clear();
-	int sx = GetVisibleColumnsBegin() * m_tileset->GetTileWidth() * m_pixelsize;
-	int sy = GetVisibleRowsBegin() * m_tileset->GetTileHeight() * m_pixelsize;
-
-	int vX, vY, vW, vH;                 // Dimensions of client area in pixels
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	while (upd)
-	{
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		// Alternatively we can do this:
-		// wxRect rect(upd.GetRect());
-		// Repaint this rectangle
-		dc.Blit(vX + sx, vY + sy, vW, vH, &m_memdc, vX + sx, vY + sy);
-		upd++;
-	}
-}
-
 void Map2DEditor::InitialiseBrushesAndPens()
 {
 	m_alpha_brush = std::make_unique<wxBrush>();
@@ -578,7 +627,7 @@ void Map2DEditor::InitialiseBrushesAndPens()
 
 void Map2DEditor::ForceRedraw()
 {
-	m_redraw_all = true;
+	m_tiles_bmp_dirty = true;
 	wxVarHScrollHelper::RefreshAll();
 	wxVarVScrollHelper::RefreshAll();
 	Refresh();
@@ -638,38 +687,88 @@ void Map2DEditor::SelectTile(const TilePosition& tp)
 	}
 	if (tile != m_selectedtile)
 	{
+		const int old = m_selectedtile;
 		FireEvent(EVT_MAP_SELECT, std::to_string(m_selectedtile));
 		m_selectedtile = tile;
 		m_drawtile = tile;
-		Refresh();
+		RefreshMapTile(old);
+		RefreshMapTile(tile);
 	}
 }
 
 void Map2DEditor::OnDraw(wxDC& dc)
 {
-	if (!m_tileset)
+	// Same pipeline as the tileset and blockset editors: content renders at native
+	// resolution into m_tiles_bmp when data changes, and each paint is one scaled blit of
+	// the damaged cells plus overlays, all clipped to the damaged area. The previous
+	// design - a zoom-scaled cache filled with per-cell draws - made opening slow.
+	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+	if (!m_tileset || !m_map)
+	{
+		dc.Clear();
+		return;
+	}
+	if (m_tiles_bmp_dirty || (m_tiles_bmp == nullptr))
+	{
+		RenderTilesBitmap();
+	}
+	// Direct painting has no per-cell cache to maintain; these are only bookkeeping now.
+	m_redraw_list.clear();
+	if (m_tiles_bmp == nullptr)
+	{
+		dc.Clear();
+		return;
+	}
+
+	const int tw = static_cast<int>(m_tileset->GetTileWidth());
+	const int th = static_cast<int>(m_tileset->GetTileHeight());
+	const int cellwidth = tw * m_pixelsize;
+	const int cellheight = th * m_pixelsize;
+	const int w = static_cast<int>(m_map->GetWidth());
+	const int h = static_cast<int>(m_map->GetHeight());
+	if ((cellwidth <= 0) || (cellheight <= 0))
+	{
+		dc.Clear();
+		return;
+	}
+
+	wxRect damage = GetUpdateRegion().GetBox();
+	damage.Offset(GetVisibleColumnsBegin() * cellwidth, GetVisibleRowsBegin() * cellheight);
+	dc.SetClippingRegion(damage);
+	dc.Clear();
+
+	const int sx = std::max(static_cast<int>(GetVisibleColumnsBegin()), damage.GetLeft() / cellwidth);
+	const int ex = std::min({ static_cast<int>(GetVisibleColumnsEnd()) + 1, w, damage.GetRight() / cellwidth + 1 });
+	const int sy = std::max(static_cast<int>(GetVisibleRowsBegin()), damage.GetTop() / cellheight);
+	const int ey = std::min({ static_cast<int>(GetVisibleRowsEnd()) + 1, h, damage.GetBottom() / cellheight + 1 });
+	if ((ex <= sx) || (ey <= sy))
 	{
 		return;
 	}
-	int columns = m_map->GetWidth();
-	int rows = m_map->GetHeight();
-	int cellwidth = m_tileset->GetTileWidth() * m_pixelsize;
-	int cellheight = m_tileset->GetTileHeight() * m_pixelsize;
 
-	if (m_redraw_all == true)
-	{
-		m_bmp.Create(cellwidth * columns + 1, cellheight * rows + 1);
-	}
-	m_memdc.SelectObject(m_bmp);
-	if (m_redraw_all == true)
-	{
-		m_memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-		m_memdc.Clear();
-	}
+	// Checkerboard backdrop in one rectangle - the map is a full rectangle of tiles.
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	dc.DrawRectangle(sx * cellwidth, sy * cellheight, (ex - sx) * cellwidth, (ey - sy) * cellheight);
 
-	m_memdc.SetTextForeground(wxColour(255, 255, 255));
-	m_memdc.SetTextBackground(wxColour(150, 150, 150));
-	m_memdc.SetBackgroundMode(wxSOLID);
+	// One scaled blit of the damaged cells out of the native-resolution map bitmap.
+	wxMemoryDC tiles(*m_tiles_bmp);
+	dc.StretchBlit({ sx * cellwidth, sy * cellheight }, { (ex - sx) * cellwidth, (ey - sy) * cellheight },
+		&tiles, { sx * tw, sy * th }, { (ex - sx) * tw, (ey - sy) * th },
+		wxCOPY, true, { sx * tw, sy * th });
+	tiles.SelectObject(wxNullBitmap);
+
+	DrawOverlays(dc, sx, ex, sy, ey);
+	DrawSelectionBorders(dc);
+}
+
+void Map2DEditor::DrawOverlays(wxDC& dc, int sx, int ex, int sy, int ey)
+{
+	const int cellwidth = m_tileset->GetTileWidth() * m_pixelsize;
+	const int cellheight = m_tileset->GetTileHeight() * m_pixelsize;
+	dc.SetTextForeground(wxColour(255, 255, 255));
+	dc.SetTextBackground(wxColour(150, 150, 150));
+	dc.SetBackgroundMode(wxSOLID);
 
 	if (m_pixelsize > 3)
 	{
@@ -680,45 +779,42 @@ void Map2DEditor::OnDraw(wxDC& dc)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	m_memdc.SetBrush(*wxTRANSPARENT_BRUSH);
-	if (m_redraw_all == true)
+	const bool preview = m_enablehover && (m_mode != Mode::SELECT) && IsHoverValid();
+	for (int y = sy; y < ey; ++y)
 	{
-		m_redraw_list.clear();
-		for (std::size_t x = 0; x < m_map->GetWidth(); ++x)
-			for (std::size_t y = 0; y < m_map->GetHeight(); ++y)
-			{
-				int i = x + y * m_map->GetWidth();
-				if (!DrawTileAtPosition(m_memdc, x, y))
-				{
-					m_redraw_list.insert(i);
-				}
-			}
-		m_redraw_all = false;
-	}
-	else
-	{
-		auto it = m_redraw_list.begin();
-		while (it != m_redraw_list.end())
+		for (int x = sx; x < ex; ++x)
 		{
-			if ((*it >= 0) && (*it < static_cast<int>(m_map->GetWidth() * m_map->GetHeight())))
+			auto t = m_map->GetTile(x, y);
+			if (preview && (ToIndex({ x, y }) == m_hoveredtile))
 			{
-				int x = *it % m_map->GetWidth();
-				int y = *it / m_map->GetWidth();
-				if (DrawTileAtPosition(m_memdc, x, y))
+				// Draw-mode preview of the draw tile under the cursor - not part of the map
+				// data, so it is not in the cached bitmap. Restore the backdrop first so its
+				// transparent pixels show the checkerboard, not the underlying map tile.
+				t = m_drawtile;
+				dc.SetPen(*wxTRANSPARENT_PEN);
+				dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+				dc.DrawRectangle(x * cellwidth, y * cellheight, cellwidth, cellheight);
+				DrawTile(dc, x * cellwidth, y * cellheight, t);
+			}
+			if (m_enableborders)
+			{
+				dc.SetPen(*m_border_pen);
+				dc.SetBrush(*wxTRANSPARENT_BRUSH);
+				dc.DrawRectangle({ x * cellwidth, y * cellheight, cellwidth + 1, cellheight + 1 });
+			}
+			if (m_enabletilenumbers)
+			{
+				auto label = wxString::Format("%03d%c%c%c", t.GetIndex(), t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_HFLIP) ? 'H' : ' ',
+					t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_VFLIP) ? 'V' : ' ',
+					t.Attributes().getAttribute(TileAttributes::Attribute::ATTR_PRIORITY) ? '!' : ' ');
+				auto extent = dc.GetTextExtent(label);
+				if ((extent.GetWidth() < cellwidth - 2) && (extent.GetHeight() < cellheight - 2))
 				{
-					m_redraw_list.erase(it++);
-				}
-				else
-				{
-					++it;
+					dc.DrawText(label, { x * cellwidth + 2, y * cellheight + 2 });
 				}
 			}
 		}
 	}
-
-	DrawSelectionBorders(m_memdc);
-	PaintBitmap(dc);
-	m_memdc.SelectObject(wxNullBitmap);
 }
 
 void Map2DEditor::OnPaint(wxPaintEvent& /*evt*/)
@@ -746,9 +842,11 @@ void Map2DEditor::OnMouseMove(wxMouseEvent& evt)
 	}
 	if (sel != m_hoveredtile)
 	{
+		const int old = m_hoveredtile;
 		m_hoveredtile = sel;
 		FireEvent(EVT_MAP_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
+		RefreshMapTile(old);
+		RefreshMapTile(m_hoveredtile);
 	}
 	evt.Skip();
 }
@@ -758,10 +856,11 @@ void Map2DEditor::OnMouseLeave(wxMouseEvent& evt)
 	if (!m_enablehover) return;
 	if (m_hoveredtile != -1)
 	{
+		const int old = m_hoveredtile;
 		m_redraw_list.insert(m_hoveredtile);
 		m_hoveredtile = -1;
 		FireEvent(EVT_MAP_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
+		RefreshMapTile(old);
 	}
 	evt.Skip();
 }
@@ -813,6 +912,7 @@ bool Map2DEditor::InsertRow(int row)
 	{
 		return false;
 	}
+	PushUndo();
 	auto pos = GetSelection();
 	m_map->InsertRow(row, GetSelectedTile());
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
@@ -827,6 +927,7 @@ bool Map2DEditor::DeleteRow(int row)
 	{
 		return false;
 	}
+	PushUndo();
 	auto pos = GetSelection();
 	m_map->DeleteRow(row);
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
@@ -841,6 +942,7 @@ bool Map2DEditor::InsertColumn(int column)
 	{
 		return false;
 	}
+	PushUndo();
 	auto pos = GetSelection();
 	m_map->InsertColumn(column, GetSelectedTile());
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());
@@ -855,6 +957,7 @@ bool Map2DEditor::DeleteColumn(int column)
 	{
 		return false;
 	}
+	PushUndo();
 	auto pos = GetSelection();
 	m_map->DeleteColumn(column);
 	SetRowColumnCount(m_map->GetHeight(), m_map->GetWidth());

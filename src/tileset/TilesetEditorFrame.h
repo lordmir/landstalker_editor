@@ -14,7 +14,6 @@
 #include <main/EditorFrame.h>
 #include <tileset/TilesetEditor.h>
 #include <palettes/PaletteEditor.h>
-#include <tileset/TileEditor.h>
 
 
 class TilesetEditorFrame : public EditorFrame
@@ -44,9 +43,12 @@ private:
 	void OnPaletteChanged(wxCommandEvent& evt);
 	void OnPaletteColourSelect(wxCommandEvent& evt);
 	void OnPaletteColourHover(wxCommandEvent& evt);
-	void OnTileChanged(wxCommandEvent& evt);
 	void OnTilesetChange(wxCommandEvent& evt);
-	void OnTilePixelHover(wxCommandEvent& evt);
+	void OnTilePixelChanged(wxCommandEvent& evt);
+	// Coalesces status bar rebuilds behind a short one-shot timer: hover events arrive per
+	// mouse sample, and rebuilding the status bar for each one starves the input queue.
+	void RequestStatusBarUpdate();
+	void OnStatusBarTimer(wxTimerEvent& evt);
 
 	void ShowTilesetManagerDialog();
 	void ToggleAlpha();
@@ -62,8 +64,9 @@ private:
 	void PasteTile();
 
 	void ToggleDrawGrid();
-	void ClearTile();
+	void SelectDrawSelect();
 	void SelectDrawPencil();
+	void SelectDrawTool(TilesetEditor::Tool tool);
 
 	void Save();
 	void SaveAs();
@@ -77,12 +80,11 @@ private:
 
 	void UpdateUI() const;
 	void RefreshProperties(wxPropertyGridManager& props) const;
-	void UpdateTileEditorCanvas();
 
 	TilesetEditor* m_tilesetEditor = nullptr;
 	PaletteEditor* m_paletteEditor = nullptr;
-	TileEditor* m_tileEditor = nullptr;
 	mutable wxSlider* m_zoomslider = nullptr;
+	wxTimer m_statusbar_timer;
 	mutable wxPGChoices m_palette_list;
 	mutable wxPGChoices m_blocktype_list;
 	std::shared_ptr<Landstalker::PaletteEntry> m_selected_palette;

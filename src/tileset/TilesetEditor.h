@@ -5,6 +5,8 @@
 #include <wx/vscroll.h>
 
 #include <vector>
+#include <deque>
+#include <functional>
 #include <memory>
 #include <set>
 #include <map>
@@ -18,6 +20,19 @@
 class TilesetEditor : public wxVScrolledWindow
 {
 public:
+	// The active drawing tool when drawing mode is enabled. Shape tools anchor on mouse
+	// down, preview while dragging and commit as a single undo step on release.
+	enum class Tool
+	{
+		Pencil,
+		Line,
+		RectangleOutline,
+		RectangleFilled,
+		CircleOutline,
+		CircleFilled,
+		Fill
+	};
+
 	TilesetEditor(wxWindow* parent);
 	TilesetEditor(wxWindow* parent, std::shared_ptr<Landstalker::Tileset>);
 	~TilesetEditor();
@@ -52,11 +67,36 @@ public:
 	void SetAlphaEnabled(bool enabled);
 	bool GetBordersEnabled() const;
 	void SetBordersEnabled(bool enabled);
+	bool GetDrawingEnabled() const;
+	void SetDrawingEnabled(bool enabled);
+	Tool GetDrawTool() const;
+	void SetDrawTool(Tool tool);
+	bool GetPixelGridEnabled() const;
+	void SetPixelGridEnabled(bool enabled);
+
+	void SetPrimaryColour(uint8_t colour);
+	uint8_t GetPrimaryColour() const;
+	void SetSecondaryColour(uint8_t colour);
+	uint8_t GetSecondaryColour() const;
+	// Restricts drawing on a tile to its leftmost columns, for tilesets whose tiles are wider
+	// than the artwork in them - the end credit font's variable width glyphs. A returned limit
+	// of zero or less allows the full tile width.
+	void SetDrawWidthLimiter(std::function<int(int)> limiter);
+
+	bool IsPixelHoverValid() const;
+	wxPoint GetHoveredPixel() const;
+	int GetColourAtPixel(const Landstalker::Tile& tile, const wxPoint& point) const;
+	int GetColour(int index) const;
 
 	bool IsSelectionValid() const;
 	Landstalker::Tile GetSelectedTile() const;
 	bool IsHoverValid() const;
 	Landstalker::Tile GetHoveredTile() const;
+
+	bool CanUndo() const;
+	bool CanRedo() const;
+	void Undo();
+	void Redo();
 
 	void SelectTile(int tile);
 	void InsertTileBefore(const Landstalker::Tile& tile);
@@ -77,19 +117,42 @@ private:
 	void OnPaint(wxPaintEvent& evt);
 	void OnSize(wxSizeEvent& evt);
 	void OnMouseDown(wxMouseEvent& evt);
+	void OnRightDown(wxMouseEvent& evt);
+	void OnMouseUp(wxMouseEvent& evt);
 	void OnDoubleClick(wxMouseEvent& evt);
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
+	void OnMouseEnter(wxMouseEvent& evt);
 	void OnTilesetFocus(wxFocusEvent& evt);
 	int  ConvertXYToTile(const wxPoint& point);
+	bool ConvertXYToTilePixel(const wxPoint& point, int& tile, wxPoint& pixel) const;
+	void MouseDraw(const wxPoint& mousepos);
+	bool PaintGlobalPixel(int gx, int gy, uint8_t colour, wxRect& damage);
+	void StartDrawAction(const wxPoint& mousepos);
+	void CommitShape();
+	void CancelShape();
+	void FloodFillAt(int gx, int gy, uint8_t colour);
+	std::vector<wxPoint> MakeShapePoints(Tool tool, const wxPoint& a, const wxPoint& b) const;
+	wxRect GlobalPixelBoxToClient(const wxPoint& a, const wxPoint& b) const;
+	void RefreshTileRect(int tile);
+	void RefreshPixelRect(int tile, const wxPoint& pixel);
+	int  ValidateColour(int colour) const;
+	wxColour GetPaletteColour(int index) const;
 
 	bool UpdateRowCount();
-	void DrawAllTiles(wxDC& dest);
-	void DrawTileList(wxDC& dest);
-	void DrawGrid(wxDC& dest);
+	void RenderTilesetBitmap();
+	void UpdateTilesetBitmap();
+	void DrawGrid(wxDC& dest, const wxRect& damage);
 	void DrawSelectionBorders(wxDC& dc);
-	void PaintBitmap(wxDC& src, wxDC& dst);
+	void DrawPixelGrid(wxDC& dc, const wxRect& damage);
+	void DrawGlyphLimitOverlay(wxDC& dc, const wxRect& damage);
+	void DrawPixelCursor(wxDC& dc);
+	void DrawShapePreview(wxDC& dc);
 	void InitialiseBrushesAndPens();
+
+	void PushUndo(std::vector<uint8_t>&& state);
+	void RestoreHistoryState(std::vector<uint8_t>&& state);
+	void ClearHistory();
 
 	void FireEvent(const wxEventType& e, const std::string& data);
 
@@ -112,6 +175,32 @@ private:
 	bool m_enableselection;
 	bool m_enablehover;
 	bool m_enablealpha;
+	bool m_enabledrawing;
+	bool m_enablepixelgrid;
+
+	bool m_drawing;
+	bool m_secondary_active;
+	uint8_t m_primary_colour;
+	uint8_t m_secondary_colour;
+	wxPoint m_hoveredpixel;
+	// Previous stroke point in tileset-wide pixel coordinates, or (-1,-1) between strokes.
+	wxPoint m_last_drawn;
+	Tool m_tool;
+	// In-progress shape drag, in tileset-wide pixel coordinates.
+	bool m_shape_active;
+	bool m_shape_secondary;
+	wxPoint m_shape_start;
+	wxPoint m_shape_end;
+	// True while the current stroke has painted something; the change event fires once on
+	// stroke end rather than per pixel.
+	bool m_stroke_dirty;
+	// Undo history as whole-tileset snapshots: a few kilobytes each, which buys a much
+	// simpler implementation than per-operation deltas.
+	std::deque<std::vector<uint8_t>> m_undo_stack;
+	std::deque<std::vector<uint8_t>> m_redo_stack;
+	// Snapshot taken when a stroke starts, pushed to the undo stack on its first painted pixel.
+	std::vector<uint8_t> m_stroke_snapshot;
+	std::function<int(int)> m_draw_width_limiter;
 
 	std::string m_name;
 
@@ -134,11 +223,12 @@ private:
 	std::unique_ptr<wxPen> m_highlighted_border_pen;
 	std::unique_ptr<wxBrush> m_highlighted_brush;
 	std::unique_ptr<wxBitmap> m_stipple;
+	// The tileset rendered at native (unzoomed) resolution; the paint handler scales the
+	// visible band out of this in a single blit. Kept small on purpose - a zoomed backing
+	// bitmap grows with the square of the zoom factor and makes GDI crawl.
 	std::unique_ptr<wxBitmap> m_tiles_bmp;
 
 	ImageBufferWx m_buf;
-	wxBitmap m_bmp;
-	wxBitmap m_bg_bmp;
 
 	wxDECLARE_EVENT_TABLE();
 };

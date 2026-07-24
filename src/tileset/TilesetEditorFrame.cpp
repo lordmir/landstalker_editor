@@ -23,7 +23,14 @@ enum TOOL_IDS
 	ID_PASTE_TILE,
 	ID_ZOOM_SLIDER,
 	ID_DRAW_TOGGLE_GRIDLINES,
+	ID_SELECT,
 	ID_PENCIL,
+	ID_LINE,
+	ID_RECT_FILLED,
+	ID_RECT_OUTLINE,
+	ID_CIRCLE_FILLED,
+	ID_CIRCLE_OUTLINE,
+	ID_FILL,
 };
 
 enum MENU_IDS
@@ -34,6 +41,8 @@ enum MENU_IDS
 	ID_FILE_IMPORT_BIN,
 	ID_FILE_IMPORT_PNG,
 	ID_EDIT,
+	ID_EDIT_UNDO,
+	ID_EDIT_REDO,
 	ID_EDIT_TILESETS,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
@@ -41,9 +50,9 @@ enum MENU_IDS
 	ID_VIEW_TOGGLE_ALPHA,
 	ID_TOOLS,
 	ID_TOOLS_PALETTE,
-	ID_TOOLS_EDITOR,
 	ID_TOOLS_TILESET_TOOLBAR,
-	ID_TOOLS_DRAW_TOOLBAR
+	ID_TOOLS_DRAW_TOOLBAR,
+	ID_TOOLS_TOOLS_TOOLBAR
 };
 
 wxBEGIN_EVENT_TABLE(TilesetEditorFrame, wxWindow)
@@ -51,8 +60,7 @@ EVT_COMMAND(wxID_ANY, EVT_PALETTE_CHANGE, TilesetEditorFrame::OnPaletteChanged)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, TilesetEditorFrame::OnPaletteColourSelect)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, TilesetEditorFrame::OnPaletteColourHover)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, TilesetEditorFrame::OnTileEditRequested)
-EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, TilesetEditorFrame::OnTileChanged)
-EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, TilesetEditorFrame::OnTilePixelHover)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_TILE_CHANGE, TilesetEditorFrame::OnTilePixelChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_HOVER, TilesetEditorFrame::OnTileSelectionChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_CHANGE, TilesetEditorFrame::OnTilesetChange)
 EVT_SLIDER(ID_ZOOM_SLIDER, TilesetEditorFrame::OnZoom)
@@ -104,14 +112,20 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent, ImageList* imglst)
 	  m_title("")
 {
 	m_mgr.SetManagedWindow(this);
+	m_statusbar_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &TilesetEditorFrame::OnStatusBarTimer, this);
 
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
-	m_tileEditor = new TileEditor(this);
+
+	// Drawing happens directly on the tileset canvas; the limiter stops the pencil straying
+	// past a glyph's width when the end credit font is open.
+	m_tilesetEditor->SetDrawWidthLimiter([this](int tile) {
+		return m_font_entry ? static_cast<int>(m_font_entry->GetGlyphWidth(tile)) : 0;
+	});
 
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
-	m_mgr.AddPane(m_tileEditor, wxAuiPaneInfo().Left().Layer(1).MinSize(100, 100).BestSize(450, 450).FloatingSize(450,450).Caption("Editor"));
 	m_mgr.AddPane(m_paletteEditor, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700,100).Caption("Palette"));
 	m_mgr.AddPane(m_tilesetEditor, wxAuiPaneInfo().CenterPane());
 
@@ -132,70 +146,60 @@ void TilesetEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 2);
 }
 
+void TilesetEditorFrame::RequestStatusBarUpdate()
+{
+	if (!m_statusbar_timer.IsRunning())
+	{
+		m_statusbar_timer.StartOnce(50);
+	}
+}
+
+void TilesetEditorFrame::OnStatusBarTimer(wxTimerEvent& /*evt*/)
+{
+	// UpdateStatusBar reads the live editor state, so whatever happened during the timer
+	// window is reflected in this one rebuild.
+	FireEvent(EVT_STATUSBAR_UPDATE);
+}
+
 void TilesetEditorFrame::OnZoom(wxCommandEvent& evt)
 {
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	RequestStatusBarUpdate();
 	m_tilesetEditor->SetPixelSize(m_zoomslider->GetValue());
 	evt.Skip();
 }
 
 void TilesetEditorFrame::OnTileSelectionChanged(wxCommandEvent& evt)
 {
-	FireEvent(EVT_STATUSBAR_UPDATE);
-	evt.Skip();
-}
-
-void TilesetEditorFrame::OnTileChanged(wxCommandEvent& evt)
-{
-	auto tile = std::stoi(evt.GetString().ToStdString());
-	m_tilesetEditor->RedrawTiles(tile);
+	RequestStatusBarUpdate();
 	evt.Skip();
 }
 
 void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 {
 	m_tilesetEditor->RedrawTiles();
-	// Inserting or deleting shifts the selection, so track it - the glyph width property and the
-	// canvas width both key off m_tile and would otherwise describe a different tile.
+	// Inserting or deleting shifts the selection, so track it - the glyph width property keys
+	// off m_tile and would otherwise describe a different tile.
 	m_tile = m_tilesetEditor->GetSelectedTile();
-	m_tileEditor->SetTile(m_tile);
-	UpdateTileEditorCanvas();
-	m_tileEditor->Redraw();
 	m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 	FireEvent(EVT_PROPERTIES_UPDATE);
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	RequestStatusBarUpdate();
+	// Keeps the Undo/Redo menu enablement in step with mouse-driven edits.
+	UpdateUI();
 	evt.Skip();
 }
 
-void TilesetEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
+void TilesetEditorFrame::OnTilePixelChanged(wxCommandEvent& evt)
 {
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	RequestStatusBarUpdate();
+	UpdateUI();
 	evt.Skip();
-}
-
-void TilesetEditorFrame::UpdateTileEditorCanvas()
-{
-	if (m_tileEditor == nullptr)
-	{
-		return;
-	}
-	// A glyph occupies only the leftmost columns of its tile, so the canvas is clipped to its
-	// width. Every other tileset draws on the full tile.
-	m_tileEditor->SetCanvasWidth(m_font_entry ? m_font_entry->GetGlyphWidth(m_tile.GetIndex()) : 0);
 }
 
 void TilesetEditorFrame::ToggleAlpha()
 {
 	if (m_tilesetEditor != nullptr)
 	{
-		// Both panes follow the one toggle, so colour 0 does not stay a checkerboard in the tile
-		// editor while the tileset grid shows it as solid.
-		const bool enabled = !m_tilesetEditor->GetAlphaEnabled();
-		m_tilesetEditor->SetAlphaEnabled(enabled);
-		if (m_tileEditor != nullptr)
-		{
-			m_tileEditor->SetAlphaEnabled(enabled);
-		}
+		m_tilesetEditor->SetAlphaEnabled(!m_tilesetEditor->GetAlphaEnabled());
 	}
 }
 
@@ -352,19 +356,36 @@ void TilesetEditorFrame::PasteTile()
 
 void TilesetEditorFrame::ToggleDrawGrid()
 {
-	if (m_tileEditor != nullptr)
+	if (m_tilesetEditor != nullptr)
 	{
-		m_tileEditor->SetBordersEnabled(!m_tileEditor->GetBordersEnabled());
+		m_tilesetEditor->SetPixelGridEnabled(!m_tilesetEditor->GetPixelGridEnabled());
 	}
 }
 
-void TilesetEditorFrame::ClearTile()
+void TilesetEditorFrame::SelectDrawSelect()
 {
-	m_tileEditor->Clear();
+	if (m_tilesetEditor != nullptr)
+	{
+		m_tilesetEditor->SetDrawingEnabled(false);
+		m_tilesetEditor->SetSelectionEnabled(true);
+	}
 }
 
 void TilesetEditorFrame::SelectDrawPencil()
 {
+	SelectDrawTool(TilesetEditor::Tool::Pencil);
+}
+
+void TilesetEditorFrame::SelectDrawTool(TilesetEditor::Tool tool)
+{
+	if (m_tilesetEditor != nullptr)
+	{
+		// The drawing tools own the mouse: no selection, and the selection-based toolbar
+		// operations grey out (see UpdateUI).
+		m_tilesetEditor->SetDrawingEnabled(true);
+		m_tilesetEditor->SetSelectionEnabled(false);
+		m_tilesetEditor->SetDrawTool(tool);
+	}
 }
 
 void TilesetEditorFrame::Save()
@@ -527,9 +548,9 @@ void TilesetEditorFrame::InjectIntoRom()
 void TilesetEditorFrame::UpdateUI() const
 {
 	CheckMenuItem(ID_TOOLS_PALETTE, IsPaneVisible(m_paletteEditor));
-	CheckMenuItem(ID_TOOLS_EDITOR, IsPaneVisible(m_tileEditor));
 	CheckMenuItem(ID_TOOLS_TILESET_TOOLBAR, IsToolbarVisible("Tileset"));
 	CheckMenuItem(ID_TOOLS_DRAW_TOOLBAR, IsToolbarVisible("Draw"));
+	CheckMenuItem(ID_TOOLS_TOOLS_TOOLBAR, IsToolbarVisible("Tools"));
 	if (m_tilesetEditor != nullptr)
 	{
 		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_tilesetEditor->GetAlphaEnabled());
@@ -538,10 +559,31 @@ void TilesetEditorFrame::UpdateUI() const
 		CheckToolbarItem("Tileset", ID_TOGGLE_GRIDLINES, m_tilesetEditor->GetBordersEnabled());
 		CheckMenuItem(ID_VIEW_TOGGLE_TILE_NOS, m_tilesetEditor->GetTileNumbersEnabled());
 		CheckToolbarItem("Tileset", ID_TOGGLE_TILE_NOS, m_tilesetEditor->GetTileNumbersEnabled());
-	}
-	if (m_tileEditor != nullptr)
-	{
-		CheckToolbarItem("Draw", ID_DRAW_TOGGLE_GRIDLINES, m_tileEditor->GetBordersEnabled());
+		CheckToolbarItem("Draw", ID_DRAW_TOGGLE_GRIDLINES, m_tilesetEditor->GetPixelGridEnabled());
+		const bool drawing = m_tilesetEditor->GetDrawingEnabled();
+		const auto tool = m_tilesetEditor->GetDrawTool();
+		CheckToolbarItem("Tools", ID_SELECT, !drawing);
+		CheckToolbarItem("Tools", ID_PENCIL, drawing && (tool == TilesetEditor::Tool::Pencil));
+		CheckToolbarItem("Tools", ID_LINE, drawing && (tool == TilesetEditor::Tool::Line));
+		CheckToolbarItem("Tools", ID_RECT_FILLED, drawing && (tool == TilesetEditor::Tool::RectangleFilled));
+		CheckToolbarItem("Tools", ID_RECT_OUTLINE, drawing && (tool == TilesetEditor::Tool::RectangleOutline));
+		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, drawing && (tool == TilesetEditor::Tool::CircleFilled));
+		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, drawing && (tool == TilesetEditor::Tool::CircleOutline));
+		CheckToolbarItem("Tools", ID_FILL, drawing && (tool == TilesetEditor::Tool::Fill));
+		// The drawing tools disable selection, so the operations that act on the selected
+		// tile grey out with them.
+		const bool sel = !drawing;
+		EnableToolbarItem("Tileset", ID_ADD_TILE_BEFORE_SEL, sel);
+		EnableToolbarItem("Tileset", ID_ADD_TILE_AFTER_SEL, sel);
+		EnableToolbarItem("Tileset", ID_DELETE_TILE, sel);
+		EnableToolbarItem("Tileset", ID_SWAP_TILES, sel);
+		EnableToolbarItem("Tileset", ID_CUT_TILE, sel);
+		EnableToolbarItem("Tileset", ID_COPY_TILE, sel);
+		EnableToolbarItem("Tileset", ID_PASTE_TILE, sel);
+		EnableMenuItem(ID_EDIT_UNDO, m_tilesetEditor->CanUndo());
+		EnableMenuItem(ID_EDIT_REDO, m_tilesetEditor->CanRedo());
+		EnableToolbarItem("Tileset", ID_EDIT_UNDO, m_tilesetEditor->CanUndo());
+		EnableToolbarItem("Tileset", ID_EDIT_REDO, m_tilesetEditor->CanRedo());
 	}
 }
 
@@ -551,10 +593,8 @@ void TilesetEditorFrame::OnTileEditRequested(wxCommandEvent& evt)
 	if (tileId >= 0)
 	{
 		m_tile = tileId;
-		m_tileEditor->SetTile(m_tile);
-		UpdateTileEditorCanvas();
 	}
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	RequestStatusBarUpdate();
 	if (m_font_entry)
 	{
 		// The glyph width property follows the selection.
@@ -567,20 +607,19 @@ void TilesetEditorFrame::OnPaletteChanged(wxCommandEvent& evt)
 {
 	m_paletteEditor->Refresh();
 	m_tilesetEditor->RedrawTiles();
-	m_tileEditor->Refresh();
 	evt.Skip();
 }
 
 void TilesetEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 {
-	m_tileEditor->SetPrimaryColour(m_paletteEditor->GetPrimaryColour());
-	m_tileEditor->SetSecondaryColour(m_paletteEditor->GetSecondaryColour());
+	m_tilesetEditor->SetPrimaryColour(m_paletteEditor->GetPrimaryColour());
+	m_tilesetEditor->SetSecondaryColour(m_paletteEditor->GetSecondaryColour());
 	evt.Skip();
 }
 
 void TilesetEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
 {
-	FireEvent(EVT_STATUSBAR_UPDATE);
+	RequestStatusBarUpdate();
 	evt.Skip();
 }
 
@@ -589,12 +628,15 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*
 	std::ostringstream ss;
 	ss << "Selected Tile " << m_tile.GetIndex();
 	int colour = m_paletteEditor->GetHoveredColour();
-	if (m_tileEditor->IsHoverValid())
+	if (m_tilesetEditor->IsPixelHoverValid())
 	{
-		const auto selection = m_tileEditor->GetHoveredPixel();
-		int idx = m_tileEditor->GetColourAtPixel(selection);
-		colour = m_tileEditor->GetColour(idx);
-		ss << ": (" << selection.x << ", " << selection.y << "): " << idx;
+		const auto pixel = m_tilesetEditor->GetHoveredPixel();
+		int idx = m_tilesetEditor->GetColourAtPixel(m_tilesetEditor->GetHoveredTile(), pixel);
+		if (idx >= 0)
+		{
+			colour = m_tilesetEditor->GetColour(idx);
+			ss << ": (" << pixel.x << ", " << pixel.y << "): " << idx;
+		}
 	}
 	status.SetStatusText(ss.str(), 0);
 	ss.str(std::string());
@@ -782,7 +824,6 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		m_tileset->SetColourIndicies(CommaListToVec<uint8_t>(property->GetValueAsString().ToStdString()));
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
 		m_tilesetEditor->RedrawTiles();
-		m_tileEditor->Refresh();
 		if (m_tileset_entry != nullptr)
 		{
 			m_tileset_entry->SetPalIndicies(VecToCommaList(m_tileset->GetColourIndicies()));
@@ -795,7 +836,6 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 		if (m_font_entry)
 		{
 			m_font_entry->SetGlyphWidth(m_tile.GetIndex(), static_cast<uint8_t>(property->GetValuePlain().GetLong()));
-			UpdateTileEditorCanvas();
 		}
 	}
 	else if (name == "ABT")
@@ -842,19 +882,25 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	// The manager is reachable from the room editor too, but this is where someone looking
 	// to add or reorder a tileset would go first.
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_TILESETS, "Tilesets...\tF10");
+	AddMenuItem(editMenu, 0, ID_EDIT_UNDO, "Undo\tCtrl+Z");
+	AddMenuItem(editMenu, 1, ID_EDIT_REDO, "Redo\tCtrl+Y");
+	AddMenuItem(editMenu, 2, ID_EDIT_TILESETS, "Tilesets...\tF10");
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_TILE_NOS, "Tile Numbers", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
 	auto& toolsMenu = AddMenu(menu, 3, ID_TOOLS, "Tools");
 	AddMenuItem(toolsMenu, 0, ID_TOOLS_PALETTE, "Palette", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 1, ID_TOOLS_EDITOR, "Tile Editor", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 2, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
-	AddMenuItem(toolsMenu, 3, ID_TOOLS_DRAW_TOOLBAR, "Draw Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 1, ID_TOOLS_TILESET_TOOLBAR, "Tileset Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 2, ID_TOOLS_DRAW_TOOLBAR, "Draw Toolbar", wxITEM_CHECK);
+	AddMenuItem(toolsMenu, 3, ID_TOOLS_TOOLS_TOOLBAR, "Tools Toolbar", wxITEM_CHECK);
 	
 	wxAuiToolBar* tileset_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	tileset_tb->SetToolBitmapSize(wxSize(16, 16));
+	// Same IDs as the Edit menu entries, so they share the handler and enable state.
+	tileset_tb->AddTool(ID_EDIT_UNDO, "Undo", ilist.GetImage("undo"), "Undo (Ctrl+Z)");
+	tileset_tb->AddTool(ID_EDIT_REDO, "Redo", ilist.GetImage("redo"), "Redo (Ctrl+Y)");
+	tileset_tb->AddSeparator();
 	tileset_tb->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	tileset_tb->AddTool(ID_TOGGLE_TILE_NOS, "Toggle Tile Numbers", ilist.GetImage("tile_nums"), "Toggle Tile Numbers", wxITEM_CHECK);
 	tileset_tb->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
@@ -870,17 +916,31 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", ilist.GetImage("paste"), "Paste Tile");
 	tileset_tb->AddSeparator();
 	tileset_tb->AddLabel(wxID_ANY, "Zoom:");
-	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 16, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	// Zoom runs high enough to draw individual pixels comfortably.
+	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 32, wxDefaultPosition, wxSize(80, wxDefaultCoord));
 	tileset_tb->AddControl(m_zoomslider, "Zoom");
 	AddToolbar(m_mgr, *tileset_tb, "Tileset", "Tileset Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 	
 	wxAuiToolBar* draw_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	draw_tb->SetToolBitmapSize(wxSize(16, 16));
-	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
-	draw_tb->AddSeparator();
-	draw_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_RADIO);
+	draw_tb->AddTool(ID_DRAW_TOGGLE_GRIDLINES, "Toggle Pixel Gridlines", ilist.GetImage("gridlines"), "Toggle Pixel Gridlines", wxITEM_CHECK);
 	AddToolbar(m_mgr, *draw_tb, "Draw", "Drawing Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1));
-	
+
+	// Check items with the exclusivity managed in UpdateUI, matching the room editor's tools
+	// toolbar: wxAuiToolBar cannot untoggle a radio item programmatically, which left the
+	// pencil looking permanently selected.
+	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
+	tools_tb->SetToolBitmapSize(wxSize(16, 16));
+	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
+	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_OUTLINE, "Draw Outlined Rectangle", ilist.GetImage("rect_outline"), "Draw Outlined Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_FILLED, "Draw Filled Circle", ilist.GetImage("circle_filled"), "Draw Filled Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_OUTLINE, "Draw Outlined Circle", ilist.GetImage("circle_outline"), "Draw Outlined Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_FILL, "Fill", ilist.GetImage("fill"), "Fill", wxITEM_CHECK);
+	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
+
 	UpdateUI();
 
 	m_mgr.Update();
@@ -932,6 +992,12 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_FILE_IMPORT_PNG:
 			ImportFromPng();
 			break;
+		case ID_EDIT_UNDO:
+			m_tilesetEditor->Undo();
+			break;
+		case ID_EDIT_REDO:
+			m_tilesetEditor->Redo();
+			break;
 		case ID_EDIT_TILESETS:
 			ShowTilesetManagerDialog();
 			break;
@@ -950,20 +1016,41 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_DRAW_TOGGLE_GRIDLINES:
 			ToggleDrawGrid();
 			break;
+		case ID_SELECT:
+			SelectDrawSelect();
+			break;
 		case ID_PENCIL:
 			SelectDrawPencil();
 			break;
+		case ID_LINE:
+			SelectDrawTool(TilesetEditor::Tool::Line);
+			break;
+		case ID_RECT_FILLED:
+			SelectDrawTool(TilesetEditor::Tool::RectangleFilled);
+			break;
+		case ID_RECT_OUTLINE:
+			SelectDrawTool(TilesetEditor::Tool::RectangleOutline);
+			break;
+		case ID_CIRCLE_FILLED:
+			SelectDrawTool(TilesetEditor::Tool::CircleFilled);
+			break;
+		case ID_CIRCLE_OUTLINE:
+			SelectDrawTool(TilesetEditor::Tool::CircleOutline);
+			break;
+		case ID_FILL:
+			SelectDrawTool(TilesetEditor::Tool::Fill);
+			break;
 		case ID_TOOLS_PALETTE:
 			SetPaneVisibility(m_paletteEditor, !IsPaneVisible(m_paletteEditor));
-			break;
-		case ID_TOOLS_EDITOR:
-			SetPaneVisibility(m_tileEditor, !IsPaneVisible(m_tileEditor));
 			break;
 		case ID_TOOLS_TILESET_TOOLBAR:
 			SetToolbarVisibility("Tileset", !IsToolbarVisible("Tileset"));
 			break;
 		case ID_TOOLS_DRAW_TOOLBAR:
 			SetToolbarVisibility("Draw", !IsToolbarVisible("Draw"));
+			break;
+		case ID_TOOLS_TOOLS_TOOLBAR:
+			SetToolbarVisibility("Tools", !IsToolbarVisible("Tools"));
 			break;
 		case ID_ZOOM_SLIDER:
 			break;
@@ -984,7 +1071,6 @@ void TilesetEditorFrame::ClearMenu(wxMenuBar& menu) const
 void TilesetEditorFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 {
 	m_gd = gd;
-	m_tileEditor->SetGameData(gd);
 	m_paletteEditor->SetGameData(gd);
 	m_tilesetEditor->SetGameData(gd);
 }
@@ -999,7 +1085,6 @@ void TilesetEditorFrame::ClearGameData()
 	m_font_entry = nullptr;
 	m_tilesetEditor->SetGameData(nullptr);
 	m_paletteEditor->SetGameData(nullptr);
-	m_tileEditor->SetGameData(nullptr);
 }
 
 void TilesetEditorFrame::SetActivePalette(std::string name)
@@ -1011,8 +1096,8 @@ void TilesetEditorFrame::SetActivePalette(std::string name)
 	m_selected_palette = m_gd->GetPalette(name);
 	m_tilesetEditor->SetActivePalette(name);
 	m_paletteEditor->SelectPalette(name);
-	m_tileEditor->SetActivePalette(name);
-	FireEvent(EVT_PROPERTIES_UPDATE);
+	// No properties event here: every caller (Open, OpenAnimated, OnPropertyChange) fires
+	// one itself, and each refresh costs ~100ms of property grid rebuild.
 }
 
 bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compression, int tile_width, int tile_height, int tile_bitdepth)
@@ -1029,9 +1114,6 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
-		m_tileEditor->SetTileset(m_tileset);
-		UpdateTileEditorCanvas();
-		m_tileEditor->SetTile(m_tile);
 		m_paletteEditor->SetBitsPerPixel(tile_bitdepth);
 	}
 	UpdateUI();
@@ -1060,9 +1142,6 @@ bool TilesetEditorFrame::Open(const std::string& name)
 		m_tileset->SetColourIndicies(CommaListToVec<uint8_t>(e->GetPaletteIndicies()));
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
-		m_tileEditor->SetTile(m_tile);
-		m_tileEditor->SetTileset(m_tileset);
-		UpdateTileEditorCanvas();
 		SetActivePalette(m_tileset_entry->GetDefaultPalette());
 		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
@@ -1091,9 +1170,6 @@ bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 		m_tileset = m_tilesetEditor->GetTileset();
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
-		m_tileEditor->SetTile(m_tile);
-		m_tileEditor->SetTileset(m_tileset);
-		UpdateTileEditorCanvas();
 		SetActivePalette(m_animated_tileset_entry->GetDefaultPalette());
 		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());

@@ -16,7 +16,6 @@
 #include <sprites/SpriteManagerDialog.h>
 #include <main/EditorFrame.h>
 #include <palettes/PaletteEditor.h>
-#include <tileset/TileEditor.h>
 #include <sprites/SubspriteControlFrame.h>
 #include <sprites/FrameControlFrame.h>
 #include <sprites/AnimationControlFrame.h>
@@ -65,6 +64,11 @@ private:
 	void RefreshProperties(wxPropertyGridManager& props) const;
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	void UpdateUI() const;
+	// Refreshes only the undo/redo enable state, and only when it changed - cheap enough to
+	// call once per painted pixel during a stroke, unlike the full UpdateUI.
+	void UpdateUndoRedoUI() const;
+	void RefreshAfterUndoRedo();
+	void SelectDrawTool(SpriteFrameEditorCtrl::Tool tool);
 
 	void OnKeyDown(wxKeyEvent& evt);
 	virtual void OnMenuClick(wxMenuEvent& evt);
@@ -103,7 +107,6 @@ private:
 	void OnButtonClicked(wxCommandEvent& evt);
 	void OnPaletteColourSelect(wxCommandEvent& evt);
 	void OnPaletteColourHover(wxCommandEvent& evt);
-	void OnTilePixelHover(wxCommandEvent& evt);
 
 	void OnExportFrm();
 	void OnExportTiles();
@@ -123,7 +126,6 @@ private:
 	SpriteFrameEditorCtrl* m_spriteeditor = nullptr;
 	EntityViewerCtrl* m_preview = nullptr;
 	PaletteEditor* m_paledit = nullptr;
-	TileEditor* m_tileedit = nullptr;
 	FrameControlFrame* m_framectrl = nullptr;
 	SubspriteControlFrame* m_subspritectrl = nullptr;
 	AnimationControlFrame* m_animctrl = nullptr;
@@ -154,6 +156,8 @@ private:
 	int m_zoom = 1;
 	int m_speed = 2;
 	mutable bool m_status_init = false;
+	mutable bool m_last_can_undo = false;
+	mutable bool m_last_can_redo = false;
 
 	std::string m_name;
 

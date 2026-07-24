@@ -19,6 +19,9 @@ enum MENU_IDS
 	ID_FILE_IMPORT_VDPMAP,
 	ID_EDIT,
 	ID_EDIT_SPRITES,
+	ID_EDIT_SEP,
+	ID_EDIT_UNDO,
+	ID_EDIT_REDO,
 	ID_VIEW,
 	ID_VIEW_TOGGLE_GRIDLINES,
 	ID_VIEW_TOGGLE_ALPHA,
@@ -26,11 +29,11 @@ enum MENU_IDS
 	ID_VIEW_SEP1,
 	ID_VIEW_SEP2,
 	ID_VIEW_TOOLBAR,
+	ID_VIEW_TOOLS_TOOLBAR,
 	ID_VIEW_FRAMES,
 	ID_VIEW_SUBSPRITES,
 	ID_VIEW_ANIMATIONS,
 	ID_VIEW_ANIM_FRAMES,
-	ID_VIEW_EDITOR,
 	ID_VIEW_PALETTE,
 	ID_VIEW_PREVIEW,
 	ID_TOGGLE_GRIDLINES = 30000,
@@ -44,7 +47,16 @@ enum MENU_IDS
 	ID_CLEAR_TILE,
 	ID_ZOOM,
 	ID_PLAY_PAUSE,
-	ID_PLAY_SPEED
+	ID_PLAY_SPEED,
+	ID_SELECT,
+	ID_SUBSPRITE_MODE,
+	ID_PENCIL,
+	ID_LINE,
+	ID_RECT_FILLED,
+	ID_RECT_OUTLINE,
+	ID_CIRCLE_FILLED,
+	ID_CIRCLE_OUTLINE,
+	ID_FILL
 };
 
 wxBEGIN_EVENT_TABLE(SpriteEditorFrame, wxWindow)
@@ -55,8 +67,6 @@ EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_SELECT, SpriteEditorFrame::OnTileSelected
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, SpriteEditorFrame::OnPaletteColourSelect)
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColourHover)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileHovered)
-EVT_COMMAND(wxID_ANY, EVT_TILE_PIXEL_HOVER, SpriteEditorFrame::OnTilePixelHover)
-EVT_COMMAND(wxID_ANY, EVT_TILE_CHANGE, SpriteEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_CHANGE, SpriteEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEditRequested)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_SELECT, SpriteEditorFrame::OnFrameSelect)
@@ -89,7 +99,6 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_spriteeditor = new SpriteFrameEditorCtrl(this);
 	m_preview = new EntityViewerCtrl(this);
 	m_paledit = new PaletteEditor(this);
-	m_tileedit = new TileEditor(this);
 	m_framectrl = new FrameControlFrame(this, imglst);
 	m_subspritectrl = new SubspriteControlFrame(this, imglst);
 	m_animctrl = new AnimationControlFrame(this, imglst);
@@ -99,7 +108,6 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
-	m_mgr.AddPane(m_tileedit, wxAuiPaneInfo().Left().Layer(2).MinSize(100, 100).BestSize(450, 450).FloatingSize(450, 450).Caption("Editor"));
 	m_mgr.AddPane(m_paledit, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700, 100).Caption("Palette"));
 	m_mgr.AddPane(m_framectrl, wxAuiPaneInfo().Left().Layer(2).Resizable(false).MinSize(220, 150)
 		.BestSize(220, 200).FloatingSize(220, 200).Caption("Frames"));
@@ -121,7 +129,6 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_spriteeditor->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_preview->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_tileedit->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_subspritectrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_animctrl->Connect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -130,7 +137,6 @@ SpriteEditorFrame::SpriteEditorFrame(wxWindow* parent, ImageList* imglst)
 	m_spriteeditor->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_preview->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_tileedit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_subspritectrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_animctrl->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -144,7 +150,6 @@ SpriteEditorFrame::~SpriteEditorFrame()
 	m_spriteeditor->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_preview->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_tileedit->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_subspritectrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_animctrl->Disconnect(wxEVT_CHAR, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -153,7 +158,6 @@ SpriteEditorFrame::~SpriteEditorFrame()
 	m_spriteeditor->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_preview->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_paledit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
-	m_tileedit->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_framectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_subspritectrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
 	m_animctrl->Disconnect(wxEVT_KEY_DOWN, wxKeyEventHandler(SpriteEditorFrame::OnKeyDown), nullptr, this);
@@ -231,10 +235,8 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, boo
 	m_palette = has_entity ? sprite_data->GetEntityPalette(entity) : sprite_data->GetSpritePalette(0);
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_paledit->SelectPalette(m_palette);
-	m_tileedit->SetActivePalette(m_palette);
-	m_tileedit->SetTile(Landstalker::Tile(0));
-	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
-	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
+	m_spriteeditor->SetPrimaryColour(m_paledit->GetPrimaryColour());
+	m_spriteeditor->SetSecondaryColour(m_paledit->GetSecondaryColour());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
 	
@@ -254,7 +256,6 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, boo
 void SpriteEditorFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 {
 	m_gd = gd;
-	m_tileedit->SetGameData(gd);
 	m_paledit->SetGameData(gd);
 	m_animctrl->SetGameData(gd);
 	m_spriteeditor->SetGameData(gd);
@@ -266,7 +267,6 @@ void SpriteEditorFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 void SpriteEditorFrame::ClearGameData()
 {
 	m_gd = nullptr;
-	m_tileedit->SetGameData(nullptr);
 	m_paledit->SetGameData(nullptr);
 	m_animctrl->ClearGameData();
 	m_preview->ClearGameData();
@@ -288,7 +288,6 @@ void SpriteEditorFrame::SetActivePalette(const std::string& name)
 			m_spriteeditor->SetActivePalette(m_palette);
 			m_preview->SetActivePalette(m_palette);
 			m_paledit->SelectPalette(m_palette);
-			m_tileedit->SetActivePalette(m_palette);
 		}
 	}
 }
@@ -307,7 +306,6 @@ void SpriteEditorFrame::SetActivePalette(const std::vector<std::string>& names)
 		m_spriteeditor->SetActivePalette(m_palette);
 		m_preview->SetActivePalette(m_palette);
 		m_paledit->SelectPalette(m_palette);
-		m_tileedit->SetActivePalette(m_palette);
 	}
 }
 
@@ -315,13 +313,11 @@ void SpriteEditorFrame::Redraw() const
 {
 	m_spriteeditor->UpdateSubSprites();
 	m_paledit->Refresh(true);
-	m_tileedit->Redraw();
 }
 
 void SpriteEditorFrame::RedrawTiles(int index) const
 {
 	m_spriteeditor->RedrawTiles(index);
-	m_tileedit->Redraw();
 	m_preview->Refresh(true);
 }
 
@@ -372,13 +368,16 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_SPRITES, "Sprites...\tF10");
+	AddMenuItem(editMenu, 1, ID_EDIT_SEP, "", wxITEM_SEPARATOR);
+	AddMenuItem(editMenu, 2, ID_EDIT_UNDO, "Undo\tCtrl+Z");
+	AddMenuItem(editMenu, 3, ID_EDIT_REDO, "Redo\tCtrl+Y");
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_TOGGLE_GRIDLINES, "Gridlines", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 1, ID_VIEW_TOGGLE_ALPHA, "Show Alpha as Black", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 2, ID_VIEW_TOGGLE_HITBOX, "Hitbox", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 3, ID_VIEW_SEP2, "", wxITEM_SEPARATOR);
 	AddMenuItem(viewMenu, 4, ID_VIEW_TOOLBAR, "Toolbar", wxITEM_CHECK);
-	AddMenuItem(viewMenu, 5, ID_VIEW_EDITOR, "Tile Editor", wxITEM_CHECK);
+	AddMenuItem(viewMenu, 5, ID_VIEW_TOOLS_TOOLBAR, "Tools Toolbar", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 6, ID_VIEW_PALETTE, "Palette", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 7, ID_VIEW_PREVIEW, "Preview", wxITEM_CHECK);
 	AddMenuItem(viewMenu, 8, ID_VIEW_FRAMES, "Frames", wxITEM_CHECK);
@@ -390,6 +389,10 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord), wxSL_HORIZONTAL | wxSL_INVERSE);
 	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 10, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	// Same IDs as the Edit menu entries, so they share the handler and enable state.
+	toolbar->AddTool(ID_EDIT_UNDO, "Undo", ilist.GetImage("undo"), "Undo (Ctrl+Z)");
+	toolbar->AddTool(ID_EDIT_REDO, "Redo", ilist.GetImage("redo"), "Redo (Ctrl+Y)");
+	toolbar->AddSeparator();
 	toolbar->AddTool(ID_TOGGLE_GRIDLINES, "Toggle Gridlines", ilist.GetImage("gridlines"), "Toggle Gridlines", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_ALPHA, "Toggle Alpha", ilist.GetImage("alpha"), "Toggle Alpha", wxITEM_CHECK);
 	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("ehitbox"), "Toggle Hitbox", wxITEM_CHECK);
@@ -412,6 +415,22 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	AddToolbar(m_mgr, *toolbar, "Sprite", "Sprite Tools", wxAuiPaneInfo().ToolbarPane().Top().Row(1).Position(1));
 
+	// Vertical tools toolbar, matching the other editors. Check items with exclusivity
+	// managed in UpdateUI, since wxAuiToolBar cannot untoggle radio items programmatically.
+	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
+	tools_tb->SetToolBitmapSize(wxSize(16, 16));
+	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_SUBSPRITE_MODE, "Edit Subsprites", ilist.GetImage("entity"),
+		"Edit Subsprites (drag to move, handles to resize, right-click or Ins/Del to add and remove)", wxITEM_CHECK);
+	tools_tb->AddSeparator();
+	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
+	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_OUTLINE, "Draw Outlined Rectangle", ilist.GetImage("rect_outline"), "Draw Outlined Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_FILLED, "Draw Filled Circle", ilist.GetImage("circle_filled"), "Draw Filled Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_OUTLINE, "Draw Outlined Circle", ilist.GetImage("circle_outline"), "Draw Outlined Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_FILL, "Fill", ilist.GetImage("fill"), "Fill", wxITEM_CHECK);
+	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
 
 	UpdateUI();
 
@@ -521,6 +540,47 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_EDIT_SPRITES:
 		ShowSpriteManagerDialog();
 		break;
+	case ID_EDIT_UNDO:
+		if (m_spriteeditor->CanUndo())
+		{
+			m_spriteeditor->Undo();
+			RefreshAfterUndoRedo();
+		}
+		break;
+	case ID_EDIT_REDO:
+		if (m_spriteeditor->CanRedo())
+		{
+			m_spriteeditor->Redo();
+			RefreshAfterUndoRedo();
+		}
+		break;
+	case ID_SELECT:
+		m_spriteeditor->SetMode(SpriteFrameEditorCtrl::Mode::SELECT);
+		break;
+	case ID_SUBSPRITE_MODE:
+		m_spriteeditor->SetMode(SpriteFrameEditorCtrl::Mode::SUBSPRITE);
+		break;
+	case ID_PENCIL:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::Pencil);
+		break;
+	case ID_LINE:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::Line);
+		break;
+	case ID_RECT_FILLED:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::RectangleFilled);
+		break;
+	case ID_RECT_OUTLINE:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::RectangleOutline);
+		break;
+	case ID_CIRCLE_FILLED:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::CircleFilled);
+		break;
+	case ID_CIRCLE_OUTLINE:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::CircleOutline);
+		break;
+	case ID_FILL:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::Fill);
+		break;
 	case ID_VIEW_TOGGLE_GRIDLINES:
 	case ID_TOGGLE_GRIDLINES:
 		m_spriteeditor->SetBordersEnabled(!m_spriteeditor->GetBordersEnabled());
@@ -579,8 +639,8 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_VIEW_TOOLBAR:
 		SetToolbarVisibility("Sprite", !IsToolbarVisible("Sprite"));
 		break;
-	case ID_VIEW_EDITOR:
-		SetPaneVisibility(m_tileedit, !IsPaneVisible(m_tileedit));
+	case ID_VIEW_TOOLS_TOOLBAR:
+		SetToolbarVisibility("Tools", !IsToolbarVisible("Tools"));
 		break;
 	case ID_VIEW_PALETTE:
 		SetPaneVisibility(m_paledit, !IsPaneVisible(m_paledit));
@@ -1135,7 +1195,22 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 void SpriteEditorFrame::UpdateUI() const
 {
 	CheckMenuItem(ID_VIEW_TOOLBAR, IsToolbarVisible("Sprite"));
-	CheckMenuItem(ID_VIEW_EDITOR, IsPaneVisible(m_tileedit));
+	CheckMenuItem(ID_VIEW_TOOLS_TOOLBAR, IsToolbarVisible("Tools"));
+	if (m_spriteeditor != nullptr)
+	{
+		const auto mode = m_spriteeditor->GetMode();
+		const auto tool = m_spriteeditor->GetDrawTool();
+		const bool draw = (mode == SpriteFrameEditorCtrl::Mode::DRAW);
+		CheckToolbarItem("Tools", ID_SELECT, mode == SpriteFrameEditorCtrl::Mode::SELECT);
+		CheckToolbarItem("Tools", ID_SUBSPRITE_MODE, mode == SpriteFrameEditorCtrl::Mode::SUBSPRITE);
+		CheckToolbarItem("Tools", ID_PENCIL, draw && (tool == SpriteFrameEditorCtrl::Tool::Pencil));
+		CheckToolbarItem("Tools", ID_LINE, draw && (tool == SpriteFrameEditorCtrl::Tool::Line));
+		CheckToolbarItem("Tools", ID_RECT_FILLED, draw && (tool == SpriteFrameEditorCtrl::Tool::RectangleFilled));
+		CheckToolbarItem("Tools", ID_RECT_OUTLINE, draw && (tool == SpriteFrameEditorCtrl::Tool::RectangleOutline));
+		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, draw && (tool == SpriteFrameEditorCtrl::Tool::CircleFilled));
+		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, draw && (tool == SpriteFrameEditorCtrl::Tool::CircleOutline));
+		CheckToolbarItem("Tools", ID_FILL, draw && (tool == SpriteFrameEditorCtrl::Tool::Fill));
+	}
 	CheckMenuItem(ID_VIEW_PALETTE, IsPaneVisible(m_paledit));
 	CheckMenuItem(ID_VIEW_PREVIEW, IsPaneVisible(m_preview));
 	CheckMenuItem(ID_VIEW_FRAMES, IsPaneVisible(m_framectrl));
@@ -1144,6 +1219,12 @@ void SpriteEditorFrame::UpdateUI() const
 	CheckMenuItem(ID_VIEW_ANIM_FRAMES, IsPaneVisible(m_animframectrl));
 	if (m_spriteeditor != nullptr && m_sprite != nullptr)
 	{
+		m_last_can_undo = m_spriteeditor->CanUndo();
+		m_last_can_redo = m_spriteeditor->CanRedo();
+		EnableMenuItem(ID_EDIT_UNDO, m_last_can_undo);
+		EnableMenuItem(ID_EDIT_REDO, m_last_can_redo);
+		EnableToolbarItem("Sprite", ID_EDIT_UNDO, m_last_can_undo);
+		EnableToolbarItem("Sprite", ID_EDIT_REDO, m_last_can_redo);
 		EnableMenuItem(ID_VIEW_TOGGLE_ALPHA, true);
 		EnableToolbarItem("Sprite", ID_TOGGLE_ALPHA, true);
 		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_spriteeditor->GetAlphaEnabled());
@@ -1157,11 +1238,14 @@ void SpriteEditorFrame::UpdateUI() const
 		CheckMenuItem(ID_VIEW_TOGGLE_HITBOX, m_spriteeditor->GetHitboxEnabled());
 		CheckToolbarItem("Sprite", ID_TOGGLE_HITBOX, m_spriteeditor->GetHitboxEnabled());
 		CheckToolbarItem("Sprite", ID_COMPRESS_FRAME, m_sprite->GetData()->GetCompressed());
-		EnableToolbarItem("Sprite", ID_CUT_TILE, m_spriteeditor->IsSelectionValid());
-		EnableToolbarItem("Sprite", ID_COPY_TILE, m_spriteeditor->IsSelectionValid());
-		EnableToolbarItem("Sprite", ID_PASTE_TILE, m_spriteeditor->IsSelectionValid() && !m_spriteeditor->IsClipboardEmpty());
-		EnableToolbarItem("Sprite", ID_SWAP_TILES, m_spriteeditor->IsSelectionValid());
-		EnableToolbarItem("Sprite", ID_CLEAR_TILE, m_spriteeditor->IsSelectionValid());
+		// The cell operations act on the tile selection, which only select mode drives.
+		const bool select_mode = (m_spriteeditor->GetMode() == SpriteFrameEditorCtrl::Mode::SELECT);
+		const bool cell_ops = select_mode && m_spriteeditor->IsSelectionValid();
+		EnableToolbarItem("Sprite", ID_CUT_TILE, cell_ops);
+		EnableToolbarItem("Sprite", ID_COPY_TILE, cell_ops);
+		EnableToolbarItem("Sprite", ID_PASTE_TILE, cell_ops && !m_spriteeditor->IsClipboardEmpty());
+		EnableToolbarItem("Sprite", ID_SWAP_TILES, cell_ops);
+		EnableToolbarItem("Sprite", ID_CLEAR_TILE, cell_ops);
 		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, true);
 		CheckToolbarItem("Sprite", ID_PLAY_PAUSE, m_preview->IsPlaying());
 		if (m_zoomslider != nullptr)
@@ -1177,6 +1261,12 @@ void SpriteEditorFrame::UpdateUI() const
 	}
 	else
 	{
+		m_last_can_undo = false;
+		m_last_can_redo = false;
+		EnableMenuItem(ID_EDIT_UNDO, false);
+		EnableMenuItem(ID_EDIT_REDO, false);
+		EnableToolbarItem("Sprite", ID_EDIT_UNDO, false);
+		EnableToolbarItem("Sprite", ID_EDIT_REDO, false);
 		EnableMenuItem(ID_VIEW_TOGGLE_ALPHA, false);
 		EnableMenuItem(ID_VIEW_TOGGLE_GRIDLINES, false);
 		EnableMenuItem(ID_VIEW_TOGGLE_HITBOX, false);
@@ -1199,6 +1289,39 @@ void SpriteEditorFrame::UpdateUI() const
 			EnableToolbarItem("Sprite", ID_PLAY_SPEED, false);
 		}
 	}
+}
+
+void SpriteEditorFrame::UpdateUndoRedoUI() const
+{
+	if (m_spriteeditor == nullptr)
+	{
+		return;
+	}
+	const bool can_undo = m_spriteeditor->CanUndo();
+	const bool can_redo = m_spriteeditor->CanRedo();
+	if ((can_undo != m_last_can_undo) || (can_redo != m_last_can_redo))
+	{
+		m_last_can_undo = can_undo;
+		m_last_can_redo = can_redo;
+		EnableMenuItem(ID_EDIT_UNDO, can_undo);
+		EnableMenuItem(ID_EDIT_REDO, can_redo);
+		EnableToolbarItem("Sprite", ID_EDIT_UNDO, can_undo);
+		EnableToolbarItem("Sprite", ID_EDIT_REDO, can_redo);
+	}
+}
+
+void SpriteEditorFrame::RefreshAfterUndoRedo()
+{
+	// A restored state can differ in both artwork and subsprite layout, so every view of the
+	// frame is refreshed: the canvas redraws itself during the restore, the rest is done here.
+	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	m_preview->Refresh(true);
+}
+
+void SpriteEditorFrame::SelectDrawTool(SpriteFrameEditorCtrl::Tool tool)
+{
+	m_spriteeditor->SetDrawTool(tool);
+	m_spriteeditor->SetMode(SpriteFrameEditorCtrl::Mode::DRAW);
 }
 
 void SpriteEditorFrame::OnKeyDown(wxKeyEvent& evt)
@@ -1271,6 +1394,7 @@ void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
 		{
 			pos = 1;
 		}
+		m_spriteeditor->PushUndo();
 		m_sprite->GetData()->AddSubSpriteBefore(pos - 1);
 		m_spriteeditor->UpdateSubSprites();
 		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -1281,9 +1405,10 @@ void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnSubSpriteDelete(wxCommandEvent& evt)
 {
-	if (m_sprite->GetData()->GetSubSpriteCount() > 0)
+	int pos = evt.GetInt();
+	if (pos > 0 && pos <= static_cast<int>(m_sprite->GetData()->GetSubSpriteCount()))
 	{
-		int pos = evt.GetInt();
+		m_spriteeditor->PushUndo();
 		m_sprite->GetData()->DeleteSubSprite(pos - 1);
 		m_spriteeditor->UpdateSubSprites();
 		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -1297,6 +1422,7 @@ void SpriteEditorFrame::OnSubSpriteMoveUp(wxCommandEvent& evt)
 		std::size_t pos = evt.GetInt();
 		if (pos > 1 && pos <= m_sprite->GetData()->GetSubSpriteCount())
 		{
+			m_spriteeditor->PushUndo();
 			m_sprite->GetData()->SwapSubSprite(pos - 1, pos - 2);
 			m_spriteeditor->UpdateSubSprites();
 			m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -1313,6 +1439,7 @@ void SpriteEditorFrame::OnSubSpriteMoveDown(wxCommandEvent& evt)
 		std::size_t pos = evt.GetInt();
 		if (pos > 0 && pos < m_sprite->GetData()->GetSubSpriteCount())
 		{
+			m_spriteeditor->PushUndo();
 			m_sprite->GetData()->SwapSubSprite(pos - 1, pos);
 			m_spriteeditor->UpdateSubSprites();
 			m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -1326,6 +1453,8 @@ void SpriteEditorFrame::OnSubSpriteUpdate(wxCommandEvent& /*evt*/)
 {
 	m_spriteeditor->UpdateSubSprites();
 	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+	// Keyboard subsprite moves arrive here without passing through ProcessEvent/UpdateUI.
+	UpdateUndoRedoUI();
 }
 
 void SpriteEditorFrame::OnAnimationSelect(wxCommandEvent& evt)
@@ -1567,11 +1696,6 @@ void SpriteEditorFrame::OnTileHovered(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnTileSelected(wxCommandEvent& evt)
 {
-	int tile = std::stoi(evt.GetString().ToStdString());
-	if (tile != -1)
-	{
-		m_tileedit->SetTile(tile);
-	}
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
 }
@@ -1580,10 +1704,10 @@ void SpriteEditorFrame::OnTileChanged(wxCommandEvent& evt)
 {
 	int tile = std::stoi(evt.GetString().ToStdString());
 	m_spriteeditor->RedrawTiles(tile);
-	if (m_tileedit->GetTile() == tile)
-	{
-		m_tileedit->SetTile(tile);
-	}
+	m_preview->Refresh(true);
+	// Fires at most once per stroke/operation; only the (guarded) undo state refresh runs
+	// here, not the full UpdateUI.
+	UpdateUndoRedoUI();
 	evt.Skip();
 }
 
@@ -1600,19 +1724,13 @@ void SpriteEditorFrame::OnButtonClicked(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 {
-	m_tileedit->SetPrimaryColour(m_paledit->GetPrimaryColour());
-	m_tileedit->SetSecondaryColour(m_paledit->GetSecondaryColour());
+	m_spriteeditor->SetPrimaryColour(m_paledit->GetPrimaryColour());
+	m_spriteeditor->SetSecondaryColour(m_paledit->GetSecondaryColour());
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
 }
 
 void SpriteEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
-{
-	FireEvent(EVT_STATUSBAR_UPDATE);
-	evt.Skip();
-}
-
-void SpriteEditorFrame::OnTilePixelHover(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
@@ -1696,9 +1814,6 @@ void SpriteEditorFrame::OnImportFrm()
 		std::string path = fd.GetPath().ToStdString();
 		ImportFrm(path);
 	}
-	m_tileedit->SetTile(Landstalker::Tile(0));
-	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
-	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	Update();
 }
@@ -1712,9 +1827,6 @@ void SpriteEditorFrame::OnImportTiles()
 		std::string path = fd.GetPath().ToStdString();
 		ImportTiles(path);
 	}
-	m_tileedit->SetTile(Landstalker::Tile(0));
-	m_tileedit->SetTileset(m_spriteeditor->GetTileset());
-	m_tileedit->SetTile(m_spriteeditor->GetFirstTile());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	Update();
 }
@@ -1729,8 +1841,6 @@ void SpriteEditorFrame::OnImportVdpSpritemap()
 		ImportVdpSpritemap(path);
 	}
 	m_spriteeditor->SelectTile(0);
-	m_tileedit->SetTile(Landstalker::Tile(0));
-	m_tileedit->SetTileset(m_sprite->GetData()->GetTileset());
 	Update();
 }
 
@@ -1754,12 +1864,22 @@ void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*e
 	if (m_spriteeditor->IsSelectionValid())
 	{
 		ss << "Tile: " << m_spriteeditor->GetSelectedTile().GetIndex();
-		if (m_tileedit->IsHoverValid())
+	}
+	if (m_spriteeditor->IsPixelHoverValid())
+	{
+		const auto pixel = m_spriteeditor->GetHoveredPixel();
+		const int idx = m_spriteeditor->GetColourAtPixel(pixel);
+		if (idx >= 0)
 		{
-			const auto selection = m_tileedit->GetHoveredPixel();
-			int idx = m_tileedit->GetColourAtPixel(selection);
-			colour = m_tileedit->GetColour(idx);
-			ss << ": (" << selection.x << ", " << selection.y << "): " << idx;
+			colour = idx;
+			// Sprite-space coordinates, matching the tile position readout.
+			const int tw = static_cast<int>(m_spriteeditor->GetTileset()->GetTileWidth());
+			const int th = static_cast<int>(m_spriteeditor->GetTileset()->GetTileHeight());
+			if (ss.tellp() > 0)
+			{
+				ss << ", ";
+			}
+			ss << "Pixel: (" << (pixel.x - 16 * tw) << ", " << (pixel.y - 16 * th) << "): " << idx;
 		}
 	}
 	status.SetStatusText(ss.str(), 0);

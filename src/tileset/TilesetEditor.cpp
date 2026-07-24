@@ -4,7 +4,10 @@
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
 #include <wx/dcbuffer.h>
+#include <wx/rawbmp.h>
 
+#include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <landstalker/misc/LZ77.h>
 #include <landstalker/misc/Utils.h>
@@ -13,9 +16,13 @@ wxBEGIN_EVENT_TABLE(TilesetEditor, wxHVScrolledWindow)
 EVT_PAINT(TilesetEditor::OnPaint)
 EVT_SIZE(TilesetEditor::OnSize)
 EVT_LEFT_DOWN(TilesetEditor::OnMouseDown)
+EVT_RIGHT_DOWN(TilesetEditor::OnRightDown)
+EVT_LEFT_UP(TilesetEditor::OnMouseUp)
+EVT_RIGHT_UP(TilesetEditor::OnMouseUp)
 EVT_LEFT_DCLICK(TilesetEditor::OnDoubleClick)
 EVT_MOTION(TilesetEditor::OnMouseMove)
 EVT_LEAVE_WINDOW(TilesetEditor::OnMouseLeave)
+EVT_ENTER_WINDOW(TilesetEditor::OnMouseEnter)
 EVT_SET_FOCUS(TilesetEditor::OnTilesetFocus)
 wxEND_EVENT_TABLE()
 
@@ -44,6 +51,20 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	m_enableselection(true),
 	m_enablehover(true),
 	m_enablealpha(true),
+	m_enabledrawing(false),
+	m_enablepixelgrid(true),
+	m_drawing(false),
+	m_secondary_active(false),
+	m_primary_colour(1),
+	m_secondary_colour(0),
+	m_hoveredpixel(-1, -1),
+	m_last_drawn(-1, -1),
+	m_tool(Tool::Pencil),
+	m_shape_active(false),
+	m_shape_secondary(false),
+	m_shape_start(-1, -1),
+	m_shape_end(-1, -1),
+	m_stroke_dirty(false),
 	m_gd(nullptr),
 	m_ctrlwidth(1),
 	m_ctrlheight(1),
@@ -75,6 +96,7 @@ void TilesetEditor::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 		m_selected_palette = nullptr;
 		m_selected_palette_entry = nullptr;
 		m_selected_palette_name = "";
+		ClearHistory();
 	}
 }
 
@@ -99,6 +121,7 @@ bool TilesetEditor::Open(std::shared_ptr<Landstalker::Tileset> ts)
 	{
 		m_tileset = ts;
 
+		ClearHistory();
 		UpdateRowCount();
 		ForceRedraw();
 		return true;
@@ -141,44 +164,148 @@ wxCoord TilesetEditor::OnGetRowHeight(size_t /*row*/) const
 
 void TilesetEditor::OnDraw(wxDC& dc)
 {
-	if (m_redraw_all == true)
-	{
-		m_bg_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
-		m_bmp.Create(m_cellwidth * m_columns + 1, m_cellheight * m_rows + 1);
-		m_buf.Resize(m_tilewidth * m_columns, m_tileheight * m_rows);
-	}
-	wxMemoryDC background(m_bg_bmp);
-	wxMemoryDC memdc(m_bmp);
-	if (m_redraw_all == true)
-	{
-		background.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-		background.Clear();
-	}
-	if (m_tileset != nullptr)
-	{
-
-		if (m_redraw_all)
-		{
-			DrawAllTiles(background);
-		}
-		else if (!m_redraw_list.empty())
-		{
-			DrawTileList(background);
-		}
-		PaintBitmap(background, memdc);
-		DrawGrid(memdc);
-		DrawSelectionBorders(memdc);
-	}
-	else
-	{
-		memdc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
-		memdc.Clear();
-	}
 	dc.SetBackground(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_APPWORKSPACE)));
+	if (m_tileset == nullptr)
+	{
+		dc.Clear();
+		return;
+	}
+	if (m_redraw_all)
+	{
+		RenderTilesetBitmap();
+	}
+	else if (!m_redraw_list.empty())
+	{
+		UpdateTilesetBitmap();
+	}
+	if (m_tiles_bmp == nullptr)
+	{
+		dc.Clear();
+		return;
+	}
+
+	// Constrain everything - the background clear included - to the damaged area: pencil
+	// strokes and cursor moves invalidate only a few pixels, and the repaint cost must be
+	// proportional to that, not to the window size.
+	wxRect damage = GetUpdateRegion().GetBox();
+	damage.Offset(0, GetVisibleRowsBegin() * m_cellheight);
+	dc.SetClippingRegion(damage);
 	dc.Clear();
-	PaintBitmap(memdc, dc);
-	background.SelectObject(wxNullBitmap);
-	memdc.SelectObject(wxNullBitmap);
+
+	int s = GetVisibleRowsBegin();
+	int e = std::min(static_cast<int>(GetVisibleRowsEnd()) + 1, m_rows);
+	s = std::max(s, damage.GetTop() / m_cellheight);
+	e = std::min(e, damage.GetBottom() / m_cellheight + 1);
+	const int c0 = std::max(0, damage.GetLeft() / m_cellwidth);
+	const int c1 = std::min(m_columns, damage.GetRight() / m_cellwidth + 1);
+	if ((e <= s) || (c1 <= c0))
+	{
+		return;
+	}
+	const int count = static_cast<int>(m_tileset->GetTileCount());
+
+	// Backdrop for the transparent colour: full-width rows in one rectangle, plus the
+	// partial last row if it is in view.
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
+	const int last_full_row = count / m_columns;
+	const int full_rows_end = std::min(e, last_full_row);
+	if (full_rows_end > s)
+	{
+		dc.DrawRectangle(0, s * m_cellheight, m_columns * m_cellwidth, (full_rows_end - s) * m_cellheight);
+	}
+	const int remainder = count % m_columns;
+	if ((remainder > 0) && (last_full_row >= s) && (last_full_row < e))
+	{
+		dc.DrawRectangle(0, last_full_row * m_cellheight, remainder * m_cellwidth, m_cellheight);
+	}
+
+	// One scaled blit of the damaged cells. All tile rendering happens at native resolution
+	// in m_tiles_bmp, so the per-paint GDI work stays constant regardless of zoom.
+	wxMemoryDC tiles(*m_tiles_bmp);
+	dc.StretchBlit({ c0 * m_cellwidth, s * m_cellheight }, { (c1 - c0) * m_cellwidth, (e - s) * m_cellheight },
+		&tiles, { c0 * m_tilewidth, s * m_tileheight }, { (c1 - c0) * m_tilewidth, (e - s) * m_tileheight },
+		wxCOPY, true, { c0 * m_tilewidth, s * m_tileheight });
+	tiles.SelectObject(wxNullBitmap);
+
+	// Pixel grid first, cell borders after, so the tile boundaries stay visible on top of
+	// the pixel grid lines they coincide with.
+	DrawPixelGrid(dc, damage);
+	DrawGrid(dc, damage);
+	DrawGlyphLimitOverlay(dc, damage);
+	DrawSelectionBorders(dc);
+	DrawPixelCursor(dc);
+	DrawShapePreview(dc);
+}
+
+void TilesetEditor::RenderTilesetBitmap()
+{
+	m_buf.Resize(m_tilewidth * m_columns, m_tileheight * m_rows);
+	int x = 0;
+	int y = 0;
+	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
+	{
+		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset, false);
+		if (++x >= m_columns)
+		{
+			x = 0;
+			y++;
+		}
+	}
+	m_tiles_bmp = std::make_unique<wxBitmap>(m_buf.MakeImage({ m_selected_palette }, true));
+	m_redraw_all = false;
+	m_redraw_list.clear();
+}
+
+void TilesetEditor::UpdateTilesetBitmap()
+{
+	if (m_tiles_bmp == nullptr)
+	{
+		RenderTilesetBitmap();
+		return;
+	}
+	wxAlphaPixelData data(*m_tiles_bmp);
+	if (!data)
+	{
+		RenderTilesetBitmap();
+		return;
+	}
+	// Re-render just the changed tiles at native resolution and write them straight into the
+	// tileset bitmap's pixels. Converting the whole tileset to a wxImage on every paint - the
+	// way a full redraw does - is what made pencil strokes crawl.
+	ImageBufferWx tilebuf(m_tilewidth, m_tileheight);
+	for (const int tile : m_redraw_list)
+	{
+		if ((tile < 0) || (tile >= static_cast<int>(m_tileset->GetTileCount())))
+		{
+			continue;
+		}
+		const int x0 = (tile % m_columns) * m_tilewidth;
+		const int y0 = (tile / m_columns) * m_tileheight;
+		// Keep the CPU-side buffer in sync so the next full re-render starts from current pixels.
+		m_buf.InsertTile(x0, y0, 0, tile, *m_tileset, false);
+		tilebuf.InsertTile(0, 0, 0, tile, *m_tileset, false);
+		const wxImage img = tilebuf.MakeImage({ m_selected_palette }, true);
+		const unsigned char* rgb = img.GetData();
+		const unsigned char* alpha = img.GetAlpha();
+		wxAlphaPixelData::Iterator p(data);
+		for (int y = 0; y < m_tileheight; ++y)
+		{
+			p.MoveTo(data, x0, y0 + y);
+			for (int x = 0; x < m_tilewidth; ++x)
+			{
+				const int i = x + y * m_tilewidth;
+				const unsigned char a = alpha ? alpha[i] : 0xFF;
+				// The bitmap stores premultiplied alpha, as AlphaBlend expects.
+				p.Red() = (rgb[i * 3] * a) / 255;
+				p.Green() = (rgb[i * 3 + 1] * a) / 255;
+				p.Blue() = (rgb[i * 3 + 2] * a) / 255;
+				p.Alpha() = a;
+				++p;
+			}
+		}
+	}
+	m_redraw_list.clear();
 }
 
 void TilesetEditor::OnPaint(wxPaintEvent& /*evt*/)
@@ -201,6 +328,17 @@ void TilesetEditor::OnSize(wxSizeEvent& evt)
 
 void TilesetEditor::OnMouseDown(wxMouseEvent& evt)
 {
+	// The tools never move the selection: selection is switched off in draw mode, and a
+	// stray click must not re-target the tile the toolbar operations act on.
+	if (m_enabledrawing)
+	{
+		m_drawing = true;
+		m_secondary_active = false;
+		m_last_drawn = wxPoint(-1, -1);
+		StartDrawAction(evt.GetPosition());
+		evt.Skip();
+		return;
+	}
 	if (!m_enableselection) return;
 	int sel = ConvertXYToTile(evt.GetPosition());
 	SelectTile(sel);
@@ -208,8 +346,93 @@ void TilesetEditor::OnMouseDown(wxMouseEvent& evt)
 	evt.Skip();
 }
 
+void TilesetEditor::OnRightDown(wxMouseEvent& evt)
+{
+	if (m_enabledrawing)
+	{
+		m_drawing = true;
+		m_secondary_active = true;
+		m_last_drawn = wxPoint(-1, -1);
+		StartDrawAction(evt.GetPosition());
+	}
+	evt.Skip();
+}
+
+void TilesetEditor::StartDrawAction(const wxPoint& mousepos)
+{
+	if ((m_tileset == nullptr) || (m_pixelsize <= 0))
+	{
+		return;
+	}
+	const int gx = mousepos.x / m_pixelsize;
+	const int gy = GetVisibleRowsBegin() * m_tileheight + mousepos.y / m_pixelsize;
+	switch (m_tool)
+	{
+	case Tool::Pencil:
+		MouseDraw(mousepos);
+		break;
+	case Tool::Fill:
+		FloodFillAt(gx, gy, m_secondary_active ? m_secondary_colour : m_primary_colour);
+		break;
+	default:
+		// Shape tools: anchor here, preview while dragging, commit on release.
+		m_shape_active = true;
+		m_shape_secondary = m_secondary_active;
+		m_shape_start = wxPoint(gx, gy);
+		m_shape_end = m_shape_start;
+		RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+		break;
+	}
+}
+
+void TilesetEditor::OnMouseUp(wxMouseEvent& evt)
+{
+	if (evt.LeftUp())
+	{
+		if (evt.RightIsDown())
+		{
+			m_secondary_active = true;
+		}
+		else
+		{
+			m_drawing = false;
+			m_secondary_active = false;
+		}
+	}
+	if (evt.RightUp())
+	{
+		m_secondary_active = false;
+		if (!evt.LeftIsDown())
+		{
+			m_drawing = false;
+		}
+	}
+	if (!m_drawing)
+	{
+		m_last_drawn = wxPoint(-1, -1);
+		if (m_shape_active)
+		{
+			CommitShape();
+		}
+		if (m_stroke_dirty)
+		{
+			// One change event per stroke, now that it is finished.
+			m_stroke_dirty = false;
+			FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+		}
+	}
+	evt.Skip();
+}
+
 void TilesetEditor::OnDoubleClick(wxMouseEvent& evt)
 {
+	// Rapid clicks arrive as down/up/dclick/up; treating the dclick as another mouse-down
+	// stops every second pencil click being dropped.
+	if (m_enabledrawing)
+	{
+		OnMouseDown(evt);
+		return;
+	}
 	int sel = ConvertXYToTile(evt.GetPosition());
 	if (sel != -1)
 	{
@@ -220,26 +443,58 @@ void TilesetEditor::OnDoubleClick(wxMouseEvent& evt)
 
 void TilesetEditor::OnMouseMove(wxMouseEvent& evt)
 {
-	if (!m_enablehover) return;
-	int sel = ConvertXYToTile(evt.GetPosition());
-	if (sel != m_hoveredtile)
-	{
-		m_hoveredtile = sel;
-		FireEvent(EVT_TILESET_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
-	}
+	if (!m_enablehover && !m_enabledrawing) return;
+	MouseDraw(evt.GetPosition());
 	evt.Skip();
 }
 
 void TilesetEditor::OnMouseLeave(wxMouseEvent& evt)
 {
+	// The stroke pauses while the pointer is outside - no motion events arrive out there -
+	// and OnMouseEnter decides whether it resumes from the real button state. Dropping the
+	// anchor makes re-entry start a fresh segment rather than joining a line across the
+	// excursion. An in-progress shape is cancelled outright: its anchor would be stale by
+	// the time the pointer returns.
+	CancelShape();
+	m_hoveredpixel = wxPoint(-1, -1);
+	m_last_drawn = wxPoint(-1, -1);
+	if (m_stroke_dirty)
+	{
+		m_stroke_dirty = false;
+		FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+	}
 	if (!m_enablehover) return;
 	if (m_hoveredtile != -1)
 	{
+		const int old = m_hoveredtile;
 		m_hoveredtile = -1;
 		FireEvent(EVT_TILESET_HOVER, std::to_string(m_hoveredtile));
-		Refresh();
+		RefreshTileRect(old);
 	}
+	evt.Skip();
+}
+
+void TilesetEditor::OnMouseEnter(wxMouseEvent& evt)
+{
+	// Resume a stroke that left the canvas with the button still held, or end it if the
+	// button was released while outside - that release never reaches this window.
+	if (m_drawing)
+	{
+		if (evt.LeftIsDown())
+		{
+			m_secondary_active = false;
+		}
+		else if (evt.RightIsDown())
+		{
+			m_secondary_active = true;
+		}
+		else
+		{
+			m_drawing = false;
+			m_secondary_active = false;
+		}
+	}
+	m_last_drawn = wxPoint(-1, -1);
 	evt.Skip();
 }
 
@@ -264,6 +519,337 @@ int TilesetEditor::ConvertXYToTile(const wxPoint& point)
 		sel = -1;
 	}
 	return sel;
+}
+
+bool TilesetEditor::ConvertXYToTilePixel(const wxPoint& point, int& tile, wxPoint& pixel) const
+{
+	tile = -1;
+	pixel = wxPoint(-1, -1);
+	if ((m_tileset == nullptr) || (m_cellwidth <= 0) || (m_cellheight <= 0))
+	{
+		return false;
+	}
+	int s = GetVisibleRowsBegin();
+	int x = point.x / m_cellwidth;
+	int y = s + point.y / m_cellheight;
+	int sel = x + y * m_columns;
+	if ((sel >= static_cast<int>(m_tileset->GetTileCount())) || (x < 0) || (y < 0) || (x >= m_columns))
+	{
+		return false;
+	}
+	tile = sel;
+	pixel.x = (point.x % m_cellwidth) / m_pixelsize;
+	pixel.y = (point.y % m_cellheight) / m_pixelsize;
+	return true;
+}
+
+void TilesetEditor::MouseDraw(const wxPoint& mousepos)
+{
+	int tile = -1;
+	wxPoint pixel(-1, -1);
+	ConvertXYToTilePixel(mousepos, tile, pixel);
+	const int old_tile = m_hoveredtile;
+	const wxPoint old_pixel = m_hoveredpixel;
+	m_hoveredpixel = pixel;
+	// Repaint only what changed - a full-window Refresh on every mouse event makes the
+	// pencil crawl on large tilesets.
+	// Hover events are safe to fire per sample: the frame batches status bar rebuilds
+	// behind a short timer, so the cost here is just a posted flag-set.
+	if (m_enablehover && (tile != old_tile))
+	{
+		m_hoveredtile = tile;
+		FireEvent(EVT_TILESET_HOVER, std::to_string(m_hoveredtile));
+		RefreshTileRect(old_tile);
+		RefreshTileRect(tile);
+	}
+	if (m_enabledrawing && (pixel != old_pixel))
+	{
+		if (tile == old_tile)
+		{
+			// The status bar shows the pixel coordinates; the tile-change branch above
+			// already fired for cross-tile moves.
+			FireEvent(EVT_TILESET_HOVER, std::to_string(m_hoveredtile));
+		}
+		RefreshPixelRect(old_tile, old_pixel);
+		RefreshPixelRect(tile, pixel);
+	}
+	if (m_drawing && m_enabledrawing && (m_pixelsize > 0) && m_shape_active)
+	{
+		// Shape drag in progress: track the end point and repaint old and new extents.
+		const int sgx = mousepos.x / m_pixelsize;
+		const int sgy = GetVisibleRowsBegin() * m_tileheight + mousepos.y / m_pixelsize;
+		if (m_shape_end != wxPoint(sgx, sgy))
+		{
+			const wxPoint old_end = m_shape_end;
+			m_shape_end = wxPoint(sgx, sgy);
+			RefreshRect(GlobalPixelBoxToClient(m_shape_start, old_end));
+			RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+		}
+	}
+	if (m_drawing && m_enabledrawing && (m_pixelsize > 0) && (m_tool == Tool::Pencil))
+	{
+		if (!m_stroke_dirty)
+		{
+			// Provisional snapshot: pushed to the undo stack only once this stroke actually
+			// changes a pixel.
+			m_stroke_snapshot = m_tileset->GetBits(false);
+		}
+		const uint8_t colour = m_secondary_active ? m_secondary_colour : m_primary_colour;
+		const int gx = mousepos.x / m_pixelsize;
+		const int gy = GetVisibleRowsBegin() * m_tileheight + mousepos.y / m_pixelsize;
+		bool changed = false;
+		wxRect damage;
+		if (m_last_drawn.x < 0)
+		{
+			changed = PaintGlobalPixel(gx, gy, colour, damage);
+		}
+		else
+		{
+			// Joined to the previous sample so fast strokes don't leave gaps.
+			PlotShapeLine(m_last_drawn, wxPoint(gx, gy), [&](int x, int y)
+				{
+					changed |= PaintGlobalPixel(x, y, colour, damage);
+				});
+		}
+		m_last_drawn = wxPoint(gx, gy);
+		if (changed)
+		{
+			if (!m_stroke_dirty)
+			{
+				PushUndo(std::move(m_stroke_snapshot));
+			}
+			m_stroke_dirty = true;
+			damage.Inflate(1, 1);
+			RefreshRect(damage);
+			// No Update() here: WM_PAINT is low priority, so leaving the repaint pending lets
+			// Windows batch several mouse samples into one paint instead of forcing a full
+			// synchronous cycle per event. The Bresenham join above keeps the line unbroken
+			// regardless of how far apart the samples land.
+		}
+	}
+}
+
+bool TilesetEditor::PaintGlobalPixel(int gx, int gy, uint8_t colour, wxRect& damage)
+{
+	if ((gx < 0) || (gy < 0) || (gx >= m_columns * m_tilewidth))
+	{
+		return false;
+	}
+	const int tile = (gx / m_tilewidth) + (gy / m_tileheight) * m_columns;
+	if (tile >= static_cast<int>(m_tileset->GetTileCount()))
+	{
+		return false;
+	}
+	const int px = gx % m_tilewidth;
+	const int py = gy % m_tileheight;
+	const int limit = m_draw_width_limiter ? m_draw_width_limiter(tile) : 0;
+	if ((limit > 0) && (px >= limit))
+	{
+		return false;
+	}
+	auto& pixels = m_tileset->GetTilePixels(tile);
+	const std::size_t idx = px + py * m_tilewidth;
+	if ((idx >= pixels.size()) || (pixels[idx] == colour))
+	{
+		return false;
+	}
+	pixels[idx] = colour;
+	m_redraw_list.insert(tile);
+	const int s = GetVisibleRowsBegin();
+	damage.Union(wxRect(gx * m_pixelsize, (gy - s * m_tileheight) * m_pixelsize,
+	                    m_pixelsize + 1, m_pixelsize + 1));
+	return true;
+}
+
+wxRect TilesetEditor::GlobalPixelBoxToClient(const wxPoint& a, const wxPoint& b) const
+{
+	const int s = GetVisibleRowsBegin() * m_tileheight;
+	const int x0 = std::min(a.x, b.x);
+	const int x1 = std::max(a.x, b.x);
+	const int y0 = std::min(a.y, b.y);
+	const int y1 = std::max(a.y, b.y);
+	wxRect rect(x0 * m_pixelsize, (y0 - s) * m_pixelsize,
+	            (x1 - x0 + 1) * m_pixelsize + 1, (y1 - y0 + 1) * m_pixelsize + 1);
+	rect.Inflate(2, 2);
+	return rect;
+}
+
+std::vector<wxPoint> TilesetEditor::MakeShapePoints(Tool tool, const wxPoint& a, const wxPoint& b) const
+{
+	// Geometry shared with the sprite editor - see ImageBufferWx.
+	switch (tool)
+	{
+	case Tool::Line:             return MakeShapeToolPoints(ShapeTool::Line, a, b);
+	case Tool::RectangleOutline: return MakeShapeToolPoints(ShapeTool::RectangleOutline, a, b);
+	case Tool::RectangleFilled:  return MakeShapeToolPoints(ShapeTool::RectangleFilled, a, b);
+	case Tool::CircleOutline:    return MakeShapeToolPoints(ShapeTool::CircleOutline, a, b);
+	case Tool::CircleFilled:     return MakeShapeToolPoints(ShapeTool::CircleFilled, a, b);
+	default:                     return {};
+	}
+}
+
+void TilesetEditor::CommitShape()
+{
+	if (!m_shape_active)
+	{
+		return;
+	}
+	m_shape_active = false;
+	// Erase the preview regardless of whether the commit changes anything.
+	RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+	if (m_tileset == nullptr)
+	{
+		return;
+	}
+	auto snapshot = m_tileset->GetBits(false);
+	const uint8_t colour = m_shape_secondary ? m_secondary_colour : m_primary_colour;
+	bool changed = false;
+	wxRect damage;
+	for (const auto& p : MakeShapePoints(m_tool, m_shape_start, m_shape_end))
+	{
+		changed |= PaintGlobalPixel(p.x, p.y, colour, damage);
+	}
+	if (changed)
+	{
+		PushUndo(std::move(snapshot));
+		FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void TilesetEditor::CancelShape()
+{
+	if (m_shape_active)
+	{
+		m_shape_active = false;
+		RefreshRect(GlobalPixelBoxToClient(m_shape_start, m_shape_end));
+	}
+}
+
+void TilesetEditor::FloodFillAt(int gx, int gy, uint8_t colour)
+{
+	// Fills within the clicked tile only: adjacent tiles in the grid are unrelated pieces of
+	// artwork, so bleeding across cell boundaries is never what is wanted.
+	if ((m_tileset == nullptr) || (gx < 0) || (gy < 0) || (gx >= m_columns * m_tilewidth))
+	{
+		return;
+	}
+	const int tile = (gx / m_tilewidth) + (gy / m_tileheight) * m_columns;
+	if (tile >= static_cast<int>(m_tileset->GetTileCount()))
+	{
+		return;
+	}
+	const int px = gx % m_tilewidth;
+	const int py = gy % m_tileheight;
+	const int limit = m_draw_width_limiter ? m_draw_width_limiter(tile) : 0;
+	const int width = ((limit > 0) && (limit < m_tilewidth)) ? limit : m_tilewidth;
+	if (px >= width)
+	{
+		return;
+	}
+	auto& pixels = m_tileset->GetTilePixels(tile);
+	const std::size_t start = px + py * m_tilewidth;
+	if (start >= pixels.size())
+	{
+		return;
+	}
+	const uint8_t target = pixels[start];
+	if (target == colour)
+	{
+		return;
+	}
+	auto snapshot = m_tileset->GetBits(false);
+	std::vector<wxPoint> stack{ wxPoint(px, py) };
+	while (!stack.empty())
+	{
+		const wxPoint p = stack.back();
+		stack.pop_back();
+		if ((p.x < 0) || (p.x >= width) || (p.y < 0) || (p.y >= m_tileheight))
+		{
+			continue;
+		}
+		uint8_t& value = pixels[p.x + p.y * m_tilewidth];
+		if (value != target)
+		{
+			continue;
+		}
+		value = colour;
+		stack.emplace_back(p.x + 1, p.y);
+		stack.emplace_back(p.x - 1, p.y);
+		stack.emplace_back(p.x, p.y + 1);
+		stack.emplace_back(p.x, p.y - 1);
+	}
+	PushUndo(std::move(snapshot));
+	m_redraw_list.insert(tile);
+	RefreshTileRect(tile);
+	FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(tile));
+}
+
+void TilesetEditor::RefreshTileRect(int tile)
+{
+	if ((tile < 0) || (m_columns <= 0))
+	{
+		return;
+	}
+	const int s = GetVisibleRowsBegin();
+	wxRect rect((tile % m_columns) * m_cellwidth, (tile / m_columns - s) * m_cellheight,
+	            m_cellwidth + 1, m_cellheight + 1);
+	// Cover the hover border pen.
+	rect.Inflate(1, 1);
+	RefreshRect(rect);
+}
+
+void TilesetEditor::RefreshPixelRect(int tile, const wxPoint& pixel)
+{
+	if ((tile < 0) || (pixel.x < 0) || (pixel.y < 0) || (m_columns <= 0))
+	{
+		return;
+	}
+	const int s = GetVisibleRowsBegin();
+	wxRect rect((tile % m_columns) * m_cellwidth + pixel.x * m_pixelsize,
+	            (tile / m_columns - s) * m_cellheight + pixel.y * m_pixelsize,
+	            m_pixelsize + 1, m_pixelsize + 1);
+	// Cover the pixel cursor pen, which straddles the pixel boundary.
+	rect.Inflate(3, 3);
+	RefreshRect(rect);
+}
+
+int TilesetEditor::ValidateColour(int colour) const
+{
+	if (m_tileset == nullptr)
+	{
+		return -1;
+	}
+	auto cmap = m_tileset->GetColourIndicies();
+	if (cmap.empty())
+	{
+		if (colour < (1 << m_tileset->GetTileBitDepth()))
+		{
+			return colour;
+		}
+	}
+	else
+	{
+		const int result = static_cast<int>(std::find(cmap.begin(), cmap.end(), colour) - cmap.begin());
+		if (result < (1 << m_tileset->GetTileBitDepth()))
+		{
+			return result;
+		}
+	}
+	return -1;
+}
+
+wxColour TilesetEditor::GetPaletteColour(int index) const
+{
+	if ((m_selected_palette == nullptr) || (index < 0))
+	{
+		return *wxBLACK;
+	}
+	const auto cmap = m_tileset->GetColourIndicies();
+	const uint32_t colour = m_selected_palette->getBGRA(
+		(index < static_cast<int>(cmap.size())) ? cmap[index] : index);
+	return wxColour(colour & 0xFFFFFF);
 }
 
 bool TilesetEditor::UpdateRowCount()
@@ -297,93 +883,12 @@ bool TilesetEditor::UpdateRowCount()
 	return false;
 }
 
-void TilesetEditor::DrawAllTiles(wxDC& dest)
+void TilesetEditor::DrawGrid(wxDC& dest, const wxRect& damage)
 {
-	int x = 0;
-	int y = 0;
-	dest.SetBrush(*wxTRANSPARENT_BRUSH);
-	dest.SetPen(*wxTRANSPARENT_PEN);
-	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
+	if (!m_enableborders && !m_enabletilenumbers)
 	{
-		dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
-		m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, i, *m_tileset);
-		x++;
-		if (x >= m_columns)
-		{
-			x = 0;
-			y++;
-		}
+		return;
 	}
-	auto img = m_buf.MakeImage( { m_selected_palette }, true);
-	m_tiles_bmp = std::make_unique<wxBitmap>(img);
-	wxMemoryDC tiles(*m_tiles_bmp);
-	dest.StretchBlit({ 0,0 },
-		{ img.GetWidth() * m_pixelsize, img.GetHeight() * m_pixelsize },
-		&tiles, { 0,0 }, { img.GetWidth(), img.GetHeight() }, wxCOPY, true, { 0,0 });
-	m_redraw_all = false;
-	m_redraw_list.clear();
-}
-
-void TilesetEditor::DrawTileList(wxDC& dest)
-{
-	dest.SetBrush(*wxTRANSPARENT_BRUSH);
-	dest.SetPen(*wxTRANSPARENT_PEN);
-	dest.SetBrush(m_enablealpha ? *m_alpha_brush : *wxBLACK_BRUSH);
-	int s = GetVisibleRowsBegin();
-	int e = GetVisibleRowsEnd();
-	auto it = m_redraw_list.begin();
-	while (it != m_redraw_list.end())
-	{
-		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
-		{
-			const int x = *it % m_columns;
-			const int y = *it / m_columns;
-			if ((y >= s) && (y <= e))
-			{
-				m_buf.InsertTile(x * m_tilewidth, y * m_tileheight, 0, *it, *m_tileset, false);
-			}
-		}
-		it++;
-	}
-	auto img = m_buf.MakeImage({ m_selected_palette }, true);
-	m_tiles_bmp = std::make_unique<wxBitmap>(img);
-	wxMemoryDC tiles(*m_tiles_bmp);
-
-	it = m_redraw_list.begin();
-	while (it != m_redraw_list.end())
-	{
-		if ((*it >= 0) && (*it < static_cast<int>(m_tileset->GetTileCount())))
-		{
-			const int x = *it % m_columns;
-			const int y = *it / m_columns;
-			if ((y >= s) && (y <= e))
-			{
-				dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth, m_cellheight });
-				dest.StretchBlit({ x * m_cellwidth, y * m_cellheight },
-					{ m_cellwidth, m_cellheight },
-					&tiles,
-					{ x * m_tilewidth, y * m_tileheight },
-					{ m_tilewidth, m_tileheight },
-					wxCOPY, true, { x * m_tilewidth, y * m_tileheight });
-				it = m_redraw_list.erase(it);
-			}
-			else
-			{
-				it++;
-			}
-		}
-		else
-		{
-			it = m_redraw_list.erase(it);
-		}
-	}
-}
-
-void TilesetEditor::DrawGrid(wxDC& dest)
-{
-	int x = 0;
-	int y = 0;
 	dest.SetPen(*m_border_pen);
 	dest.SetBrush(*wxTRANSPARENT_BRUSH);
 	dest.SetTextForeground(wxColour(255, 255, 255));
@@ -399,12 +904,22 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 		m_border_pen->SetStyle(wxPENSTYLE_TRANSPARENT);
 	}
 
-	for (std::size_t i = 0; i < m_tileset->GetTileCount(); ++i)
+	int s = GetVisibleRowsBegin();
+	int e = std::min(static_cast<int>(GetVisibleRowsEnd()) + 1, m_rows);
+	s = std::max(s, damage.GetTop() / m_cellheight);
+	e = std::min(e, damage.GetBottom() / m_cellheight + 1);
+	const int c0 = std::max(0, damage.GetLeft() / m_cellwidth);
+	const int c1 = std::min(m_columns, damage.GetRight() / m_cellwidth + 1);
+	const int count = static_cast<int>(m_tileset->GetTileCount());
+	for (int y = s; y < e; ++y)
 	{
-		int s = GetVisibleRowsBegin();
-		int e = GetVisibleRowsEnd();
-		if (y >= s && y <= e)
+		for (int x = c0; x < c1; ++x)
 		{
+			const int i = x + y * m_columns;
+			if (i >= count)
+			{
+				break;
+			}
 			if (m_enableborders)
 			{
 				dest.DrawRectangle({ x * m_cellwidth, y * m_cellheight, m_cellwidth + 1, m_cellheight + 1 });
@@ -419,12 +934,121 @@ void TilesetEditor::DrawGrid(wxDC& dest)
 				}
 			}
 		}
-		x++;
-		if (x >= m_columns)
+	}
+}
+
+void TilesetEditor::DrawPixelGrid(wxDC& dc, const wxRect& damage)
+{
+	// Only worth showing when zoomed in far enough for the pencil to be usable.
+	if (!m_enabledrawing || !m_enablepixelgrid || (m_pixelsize < 4))
+	{
+		return;
+	}
+	// Solid pen on purpose: GDI rasterizes dotted lines on the CPU, and a window full of
+	// them made every full repaint (e.g. switching tools) noticeably laggy.
+	dc.SetPen(wxPen(wxColour(96, 96, 96)));
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	const int s = GetVisibleRowsBegin();
+	const int e = std::min(static_cast<int>(GetVisibleRowsEnd()) + 1, m_rows);
+	// Only the grid lines crossing the damaged area within the given pixel-space region.
+	const auto draw_region = [&](int px0, int px1, int py0, int py1)
+	{
+		px0 = std::max(px0, damage.GetLeft() / m_pixelsize);
+		px1 = std::min(px1, damage.GetRight() / m_pixelsize + 1);
+		py0 = std::max(py0, damage.GetTop() / m_pixelsize);
+		py1 = std::min(py1, damage.GetBottom() / m_pixelsize + 1);
+		if ((px1 < px0) || (py1 < py0))
 		{
-			x = 0;
-			y++;
+			return;
 		}
+		for (int y = py0; y <= py1; ++y)
+		{
+			dc.DrawLine(px0 * m_pixelsize, y * m_pixelsize, px1 * m_pixelsize, y * m_pixelsize);
+		}
+		for (int x = px0; x <= px1; ++x)
+		{
+			dc.DrawLine(x * m_pixelsize, py0 * m_pixelsize, x * m_pixelsize, py1 * m_pixelsize);
+		}
+	};
+	// The full-width rows, then the partial last row - no grid over cells with no tile.
+	const int count = static_cast<int>(m_tileset->GetTileCount());
+	const int last_full_row = count / m_columns;
+	const int remainder = count % m_columns;
+	const int full_rows_end = std::min(e, last_full_row);
+	if (full_rows_end > s)
+	{
+		draw_region(0, m_tilewidth * m_columns, s * m_tileheight, full_rows_end * m_tileheight);
+	}
+	if ((remainder > 0) && (last_full_row >= s) && (last_full_row < e))
+	{
+		draw_region(0, m_tilewidth * remainder, last_full_row * m_tileheight, (last_full_row + 1) * m_tileheight);
+	}
+}
+
+void TilesetEditor::DrawGlyphLimitOverlay(wxDC& dc, const wxRect& damage)
+{
+	// Marks the columns past a glyph's width on variable-width font tilesets; the pencil
+	// refuses them, so show why. The limiter returns 0 (no limit) for everything else.
+	if (!m_draw_width_limiter || (m_tileset == nullptr))
+	{
+		return;
+	}
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(wxBrush(wxColour(200, 64, 64), wxBRUSHSTYLE_CROSSDIAG_HATCH));
+	dc.SetBackgroundMode(wxTRANSPARENT);
+	int s = GetVisibleRowsBegin();
+	int e = std::min(static_cast<int>(GetVisibleRowsEnd()) + 1, m_rows);
+	s = std::max(s, damage.GetTop() / m_cellheight);
+	e = std::min(e, damage.GetBottom() / m_cellheight + 1);
+	const int c0 = std::max(0, damage.GetLeft() / m_cellwidth);
+	const int c1 = std::min(m_columns, damage.GetRight() / m_cellwidth + 1);
+	const int count = static_cast<int>(m_tileset->GetTileCount());
+	for (int y = s; y < e; ++y)
+	{
+		for (int x = c0; x < c1; ++x)
+		{
+			const int i = x + y * m_columns;
+			if (i >= count)
+			{
+				break;
+			}
+			const int limit = m_draw_width_limiter(i);
+			if ((limit > 0) && (limit < m_tilewidth))
+			{
+				dc.DrawRectangle(x * m_cellwidth + limit * m_pixelsize, y * m_cellheight,
+				                 (m_tilewidth - limit) * m_pixelsize + 1, m_cellheight + 1);
+			}
+		}
+	}
+}
+
+void TilesetEditor::DrawPixelCursor(wxDC& dc)
+{
+	if (!m_enabledrawing || (m_hoveredtile == -1) ||
+	    (m_hoveredpixel.x < 0) || (m_hoveredpixel.y < 0))
+	{
+		return;
+	}
+	const int cx = (m_hoveredtile % m_columns) * m_cellwidth + m_hoveredpixel.x * m_pixelsize;
+	const int cy = (m_hoveredtile / m_columns) * m_cellheight + m_hoveredpixel.y * m_pixelsize;
+	wxPen cursor(GetPaletteColour(m_secondary_active ? m_secondary_colour : m_primary_colour));
+	cursor.SetWidth(std::min((m_pixelsize + 1) / 2, 3));
+	dc.SetPen(cursor);
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.DrawRectangle(cx, cy, m_pixelsize + 1, m_pixelsize + 1);
+}
+
+void TilesetEditor::DrawShapePreview(wxDC& dc)
+{
+	if (!m_shape_active)
+	{
+		return;
+	}
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.SetBrush(wxBrush(GetPaletteColour(m_shape_secondary ? m_secondary_colour : m_primary_colour)));
+	for (const auto& p : MakeShapePoints(m_tool, m_shape_start, m_shape_end))
+	{
+		dc.DrawRectangle(p.x * m_pixelsize, p.y * m_pixelsize, m_pixelsize, m_pixelsize);
 	}
 }
 
@@ -455,26 +1079,6 @@ void TilesetEditor::DrawSelectionBorders(wxDC& dc)
 	}
 }
 
-void TilesetEditor::PaintBitmap(wxDC& src, wxDC& dst)
-{
-	int sy = GetVisibleRowsBegin() * m_cellheight;
-	
-	int vX, vY, vW, vH;                 // Dimensions of client area in pixels
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	while (upd)
-	{
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		// Alternatively we can do this:
-		// wxRect rect(upd.GetRect());
-		// Repaint this rectangle
-		dst.Blit(vX, vY + sy, vW, vH, &src, vX, vY + sy);
-		upd++;
-	}
-}
-
 void TilesetEditor::InitialiseBrushesAndPens()
 {
 	m_alpha_brush = std::make_unique<wxBrush>(*wxBLACK);
@@ -490,7 +1094,8 @@ void TilesetEditor::InitialiseBrushesAndPens()
 	imagememDC->SelectObject(wxNullBitmap);
 	m_alpha_brush->SetStyle(wxBRUSHSTYLE_STIPPLE_MASK);
 	m_alpha_brush->SetStipple(*m_stipple);
-	m_border_pen = std::make_unique<wxPen>(*wxMEDIUM_GREY_PEN);
+	// Amber, so tile boundaries stand apart from the grey pixel grid when drawing.
+	m_border_pen = std::make_unique<wxPen>(wxColour(200, 150, 60));
 	m_selected_border_pen = std::make_unique<wxPen>(*wxRED_PEN);
 	m_highlighted_border_pen = std::make_unique<wxPen>(*wxBLUE_PEN);
 	m_highlighted_brush = std::make_unique<wxBrush>(*wxTRANSPARENT_BRUSH);
@@ -634,6 +1239,127 @@ void TilesetEditor::SetBordersEnabled(bool enabled)
 	}
 }
 
+bool TilesetEditor::GetDrawingEnabled() const
+{
+	return m_enabledrawing;
+}
+
+void TilesetEditor::SetDrawingEnabled(bool enabled)
+{
+	if (m_enabledrawing != enabled)
+	{
+		m_enabledrawing = enabled;
+		m_drawing = false;
+		m_secondary_active = false;
+		m_last_drawn = wxPoint(-1, -1);
+		m_shape_active = false;
+		Refresh();
+	}
+}
+
+TilesetEditor::Tool TilesetEditor::GetDrawTool() const
+{
+	return m_tool;
+}
+
+void TilesetEditor::SetDrawTool(Tool tool)
+{
+	if (m_tool != tool)
+	{
+		CancelShape();
+		m_tool = tool;
+	}
+}
+
+bool TilesetEditor::GetPixelGridEnabled() const
+{
+	return m_enablepixelgrid;
+}
+
+void TilesetEditor::SetPixelGridEnabled(bool enabled)
+{
+	if (m_enablepixelgrid != enabled)
+	{
+		m_enablepixelgrid = enabled;
+		Refresh();
+	}
+}
+
+void TilesetEditor::SetPrimaryColour(uint8_t colour)
+{
+	const int result = ValidateColour(colour);
+	if (result >= 0)
+	{
+		m_primary_colour = static_cast<uint8_t>(result);
+	}
+}
+
+uint8_t TilesetEditor::GetPrimaryColour() const
+{
+	return m_primary_colour;
+}
+
+void TilesetEditor::SetSecondaryColour(uint8_t colour)
+{
+	const int result = ValidateColour(colour);
+	if (result >= 0)
+	{
+		m_secondary_colour = static_cast<uint8_t>(result);
+	}
+}
+
+uint8_t TilesetEditor::GetSecondaryColour() const
+{
+	return m_secondary_colour;
+}
+
+void TilesetEditor::SetDrawWidthLimiter(std::function<int(int)> limiter)
+{
+	m_draw_width_limiter = std::move(limiter);
+}
+
+bool TilesetEditor::IsPixelHoverValid() const
+{
+	return (m_hoveredtile != -1) && (m_hoveredpixel.x >= 0) && (m_hoveredpixel.y >= 0);
+}
+
+wxPoint TilesetEditor::GetHoveredPixel() const
+{
+	return m_hoveredpixel;
+}
+
+int TilesetEditor::GetColourAtPixel(const Landstalker::Tile& tile, const wxPoint& point) const
+{
+	if ((m_tileset == nullptr) || (tile.GetIndex() >= m_tileset->GetTileCount()))
+	{
+		return -1;
+	}
+	const auto pixels = m_tileset->GetTile(tile);
+	const std::size_t idx = point.x + point.y * m_tileset->GetTileWidth();
+	if (idx >= pixels.size())
+	{
+		return -1;
+	}
+	return pixels[idx];
+}
+
+int TilesetEditor::GetColour(int index) const
+{
+	const auto cmap = m_tileset->GetColourIndicies();
+	if (index >= static_cast<int>(cmap.size()))
+	{
+		if (index < (1 << m_tileset->GetTileBitDepth()))
+		{
+			return index;
+		}
+	}
+	else if (index >= 0)
+	{
+		return cmap[index];
+	}
+	return -1;
+}
+
 bool TilesetEditor::IsSelectionValid() const
 {
 	return ((m_selectedtile != -1) && (m_selectedtile < static_cast<int>(m_tileset->GetTileCount())));
@@ -654,12 +1380,80 @@ Landstalker::Tile TilesetEditor::GetHoveredTile() const
 	return Landstalker::Tile(m_hoveredtile);
 }
 
+bool TilesetEditor::CanUndo() const
+{
+	return !m_undo_stack.empty();
+}
+
+bool TilesetEditor::CanRedo() const
+{
+	return !m_redo_stack.empty();
+}
+
+void TilesetEditor::Undo()
+{
+	if (!m_tileset || m_undo_stack.empty())
+	{
+		return;
+	}
+	m_redo_stack.push_back(m_tileset->GetBits(false));
+	auto state = std::move(m_undo_stack.back());
+	m_undo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void TilesetEditor::Redo()
+{
+	if (!m_tileset || m_redo_stack.empty())
+	{
+		return;
+	}
+	m_undo_stack.push_back(m_tileset->GetBits(false));
+	auto state = std::move(m_redo_stack.back());
+	m_redo_stack.pop_back();
+	RestoreHistoryState(std::move(state));
+}
+
+void TilesetEditor::PushUndo(std::vector<uint8_t>&& state)
+{
+	// A new edit invalidates anything that was undone.
+	m_redo_stack.clear();
+	m_undo_stack.push_back(std::move(state));
+	// A few kilobytes per entry, so a deep history is affordable - but not unbounded.
+	while (m_undo_stack.size() > 100)
+	{
+		m_undo_stack.pop_front();
+	}
+}
+
+void TilesetEditor::RestoreHistoryState(std::vector<uint8_t>&& state)
+{
+	m_tileset->SetBits(state, false);
+	// A restored state can have a different tile count, invalidating the selection and the
+	// layout both.
+	if (m_selectedtile >= static_cast<int>(m_tileset->GetTileCount()))
+	{
+		m_selectedtile = static_cast<int>(m_tileset->GetTileCount()) - 1;
+	}
+	UpdateRowCount();
+	ForceRedraw();
+	FireEvent(EVT_TILESET_CHANGE, "");
+}
+
+void TilesetEditor::ClearHistory()
+{
+	m_undo_stack.clear();
+	m_redo_stack.clear();
+	m_stroke_dirty = false;
+}
+
 void TilesetEditor::SelectTile(int tile)
 {
 	if ((m_selectedtile != -1) && (tile != m_selectedtile))
 	{
-		if (m_pendingswap)
+		if (m_pendingswap != -1)
 		{
+			PushUndo(m_tileset->GetBits(false));
 			m_redraw_list.insert(tile);
 			m_redraw_list.insert(m_selectedtile);
 			m_tileset->SwapTile(m_pendingswap, tile);
@@ -669,8 +1463,12 @@ void TilesetEditor::SelectTile(int tile)
 	}
 	if (tile != m_selectedtile)
 	{
+		// Repaint just the two affected cells. A full refresh here sat directly in front of
+		// the first pixel of every pencil stroke that starts on a new tile.
+		const int old = m_selectedtile;
 		m_selectedtile = tile;
-		Refresh();
+		RefreshTileRect(old);
+		RefreshTileRect(tile);
 	}
 }
 
@@ -678,6 +1476,7 @@ void TilesetEditor::InsertTileBefore(const Landstalker::Tile& tile)
 {
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
+		PushUndo(m_tileset->GetBits(false));
 		m_tileset->InsertTilesBefore(tile.GetIndex());
 		for (int i = tile.GetIndex(); i < static_cast<int>(m_tileset->GetTileCount()); ++i)
 		{
@@ -694,6 +1493,7 @@ void TilesetEditor::InsertTileAfter(const Landstalker::Tile& tile)
 {
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
+		PushUndo(m_tileset->GetBits(false));
 		m_tileset->InsertTilesBefore(tile.GetIndex() + 1);
 		for (std::size_t i = tile.GetIndex(); i < m_tileset->GetTileCount(); ++i)
 		{
@@ -707,6 +1507,7 @@ void TilesetEditor::InsertTileAfter(const Landstalker::Tile& tile)
 
 void TilesetEditor::InsertTilesAtEnd(int count)
 {
+	PushUndo(m_tileset->GetBits(false));
 	m_tileset->InsertTilesBefore(m_tileset->GetTileCount(), count);
 	UpdateRowCount();
 	Refresh();
@@ -717,6 +1518,7 @@ void TilesetEditor::DeleteTileAt(const Landstalker::Tile& tile)
 {
 	if (tile.GetIndex() <= m_tileset->GetTileCount())
 	{
+		PushUndo(m_tileset->GetBits(false));
 		m_tileset->DeleteTile(tile.GetIndex());
 		if (!IsSelectionValid())
 		{
@@ -748,6 +1550,7 @@ void TilesetEditor::PasteTile(const Landstalker::Tile& tile)
 {
 	if ((tile.GetIndex() <= m_tileset->GetTileCount()) && !IsClipboardEmpty())
 	{
+		PushUndo(m_tileset->GetBits(false));
 		m_tileset->GetTilePixels(tile.GetTileValue()) = m_clipboard;
 		m_redraw_list.insert(tile.GetTileValue());
 		Refresh();
