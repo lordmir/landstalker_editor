@@ -4,9 +4,16 @@
 #include <string>
 #include <sstream>
 #include <exception>
+#include <algorithm>
+#include <array>
 #include <landstalker/misc/Utils.h>
+#include <landstalker/misc/Labels.h>
+#include <landstalker/main/ImageBuffer.h>
+#include <landstalker/palettes/Palette.h>
 #include <rooms/TilesetManagerDialog.h>
+#include <tileset/TilesetImportDialog.h>
 #include <wx/artprov.h>
+#include <wx/numdlg.h>
 
 enum TOOL_IDS
 {
@@ -502,6 +509,162 @@ void TilesetEditorFrame::ImportFromBin()
 
 void TilesetEditorFrame::ImportFromPng()
 {
+	wxFileDialog fd(this, _("Import Tileset From PNG"), "", "",
+		"PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	const std::string path = fd.GetPath().ToStdString();
+	const auto image = Landstalker::ImageBuffer::ReadIndexedPNG(path);
+	if (!image.ok)
+	{
+		wxMessageBox("The PNG image could not be decoded.", "Import Tileset from PNG",
+			wxOK | wxICON_ERROR, this);
+		return;
+	}
+	if (!image.indexed)
+	{
+		wxMessageBox("The PNG must be a colour-indexed (palette) image.", "Import Tileset from PNG",
+			wxOK | wxICON_ERROR, this);
+		return;
+	}
+
+	// Read the tile geometry and depth from the tileset being edited; the image is cut to fit it,
+	// dropping any partial column or row at the far right / bottom edge.
+	const int tw = static_cast<int>(m_tileset->GetTileWidth());
+	const int th = static_cast<int>(m_tileset->GetTileHeight());
+	const std::size_t bit_depth = m_tileset->GetTileBitDepth();
+	const std::size_t max_tiles = 1024;
+
+	const std::size_t recognised = std::min(m_tileset->CountWholeTiles(image.width, image.height), max_tiles);
+	if (recognised == 0)
+	{
+		wxMessageBox(wxString::Format("The image is too small to hold a whole %dx%d tile.", tw, th),
+			"Import Tileset from PNG", wxOK | wxICON_ERROR, this);
+		return;
+	}
+
+	// Reject the whole import if any colour in those tiles lies outside the tileset's palette.
+	const int max_index = m_tileset->MaxColourIndexInTiles(image.pixels, image.width, image.height, recognised);
+	const int palette_size = 1 << bit_depth;
+	if (max_index >= palette_size)
+	{
+		wxMessageBox(wxString::Format("The image uses colour index %d, but this tileset is %d bits "
+			"per pixel (indices 0-%d).", max_index, static_cast<int>(bit_depth), palette_size - 1),
+			"Import Tileset from PNG", wxOK | wxICON_ERROR, this);
+		return;
+	}
+
+	// Work out which palette flow applies. A room tileset (one RoomData owns) matches against the
+	// room palettes; any other >=4bpp tileset can overwrite its own palette; below 4bpp there is no
+	// palette to import.
+	const std::string name = m_tileset_entry ? m_tileset_entry->GetName()
+		: (m_animated_tileset_entry ? m_animated_tileset_entry->GetName() : std::string());
+	const bool is_room = m_gd->GetRoomData() && !name.empty() &&
+		m_gd->GetRoomData()->GetTileset(name) != nullptr;
+	TilesetImportDialog::PaletteMode mode = TilesetImportDialog::PaletteMode::None;
+	if (bit_depth >= 4)
+	{
+		mode = is_room ? TilesetImportDialog::PaletteMode::RoomMatch
+			: TilesetImportDialog::PaletteMode::Overwrite;
+	}
+
+	// The tileset's present palette, for previewing tiles that are not being recoloured.
+	std::array<uint16_t, 16> current_palette{};
+	current_palette.fill(0);
+	if (m_selected_palette)
+	{
+		// Only read as many entries as the depth uses: a sub-4bpp palette (e.g. the 2bpp font) may
+		// hold fewer than 16 colours, and getGenesisColour is unchecked.
+		const auto pal = m_selected_palette->GetData();
+		for (int i = 0; i < 16 && i < palette_size; ++i)
+		{
+			current_palette[i] = pal->getGenesisColour(static_cast<uint8_t>(i));
+		}
+	}
+	wxArrayString room_names;
+	if (mode == TilesetImportDialog::PaletteMode::RoomMatch)
+	{
+		const auto& palettes = m_gd->GetRoomData()->GetRoomPalettes();
+		for (std::size_t i = 0; i < palettes.size(); ++i)
+		{
+			room_names.Add(wxString(m_gd->GetRoomData()->GetRoomPaletteDisplayName(static_cast<uint8_t>(i))));
+		}
+	}
+	const std::string overwrite_name = m_selected_palette ? m_selected_palette->GetName() : std::string();
+
+	TilesetImportDialog dlg(this, m_gd, image, tw, th, static_cast<int>(bit_depth),
+		static_cast<int>(recognised), mode, room_names, overwrite_name, current_palette);
+	if (dlg.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+
+	const int count = dlg.GetTileCount();
+	m_tileset->SetTilesFromIndexedImage(image.pixels, image.width, image.height,
+		static_cast<std::size_t>(count));
+
+	// The end credit font carries a per-glyph advance width; give each imported glyph the full tile
+	// width so nothing is clipped until the user narrows it.
+	if (m_font_entry)
+	{
+		for (int i = 0; i < count; ++i)
+		{
+			m_font_entry->SetGlyphWidth(static_cast<std::size_t>(i), static_cast<uint8_t>(tw));
+		}
+	}
+
+	// Apply the palette choice.
+	if (mode == TilesetImportDialog::PaletteMode::RoomMatch)
+	{
+		int pidx = dlg.RoomExistingIndex();
+		if (dlg.RoomCreateNew())
+		{
+			if (const auto added = m_gd->GetRoomData()->AddRoomPalette())
+			{
+				pidx = *added;
+				const auto pal = m_gd->GetRoomData()->GetRoomPalette(static_cast<uint8_t>(pidx))->GetData();
+				const auto cols = dlg.RoomColours();
+				for (int n = 0; n < static_cast<int>(cols.size()); ++n)
+				{
+					pal->SetNthUnlockedGenesisColour(static_cast<uint8_t>(n), cols[n]);
+				}
+				const auto new_name = dlg.RoomNewName();
+				if (!new_name.empty())
+				{
+					Landstalker::Labels::Update(Landstalker::Labels::C_ROOM_PALETTES, pidx, new_name);
+				}
+			}
+		}
+		if (pidx >= 0 && m_tileset_entry)
+		{
+			// Point the tileset at the matched/created room palette so it previews with those colours.
+			const auto internal = m_gd->GetRoomData()->GetRoomPalette(static_cast<uint8_t>(pidx))->GetName();
+			m_tileset_entry->SetDefaultPalette(internal);
+			SetActivePalette(internal);
+		}
+	}
+	else if (mode == TilesetImportDialog::PaletteMode::Overwrite && dlg.Overwrite() && m_selected_palette)
+	{
+		// Overwrite only the palette's editable slots, reading each from the same index in the image.
+		const auto pal = m_selected_palette->GetData();
+		Landstalker::Palette::Colour colour;
+		for (int n = 0; n < pal->GetSize(); ++n)
+		{
+			const uint8_t index = pal->GetNthUnlockedIndex(static_cast<uint8_t>(n));
+			colour.FromRGB(index < image.palette.size() ? image.palette[index] : 0);
+			pal->SetNthUnlockedGenesisColour(static_cast<uint8_t>(n), colour.GetGenesis());
+		}
+	}
+
+	// The import resizes the tileset, so recompute the grid's row count before redrawing - otherwise
+	// the editor keeps showing the old number of rows.
+	m_tilesetEditor->UpdateRowCount();
+	m_tilesetEditor->ForceRedraw();
+	m_tilesetEditor->SelectTile(0);
+	m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
+	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
 void TilesetEditorFrame::ImportFromRom()
@@ -918,6 +1081,7 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_ALL, "Export All Tilesets...");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_PNG, "Export Tileset as PNG...");
 	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_BIN, "Import Tileset...");
+	AddMenuItem(fileMenu, 4, ID_FILE_IMPORT_PNG, "Import Tileset from PNG...");
 	// The manager is reachable from the room editor too, but this is where someone looking
 	// to add or reorder a tileset would go first.
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");

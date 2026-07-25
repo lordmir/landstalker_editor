@@ -41,6 +41,15 @@ int DataViewCtrlPaletteModel::GetColumnMaxElements() const
 	return max;
 }
 
+std::shared_ptr<Landstalker::PaletteEntry> DataViewCtrlPaletteModel::GetPaletteEntry(unsigned int row) const
+{
+	if (row >= m_palettes.size())
+	{
+		return nullptr;
+	}
+	return m_palettes[row];
+}
+
 void DataViewCtrlPaletteModel::GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const
 {
 	if (col == static_cast<int>(Col::NAME))

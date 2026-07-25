@@ -41,6 +41,8 @@ public:
 	void Update();
 	// Raises the current sprite's reserved tile count to fit the current frame when it grew past it.
 	void EnsureMaxTileCount();
+	// Repacks the current frame's subsprites into the minimum-waste arrangement (toolbar action).
+	void OnOptimiseSubsprites();
 
 	bool Save();
 	bool SaveAs(wxString filename, bool compressed = false);
@@ -120,6 +122,9 @@ private:
 	void OnImportTiles();
 	void OnImportVdpSpritemap();
 	void OnImportSpriteMetadata();
+	void OnImportSpriteSheetNew();
+	void OnImportSpriteSheetCurrent();
+	void RebuildTreeAndOpenSprite(int id);
 
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
@@ -162,6 +167,12 @@ private:
 	mutable bool m_last_can_redo = false;
 
 	std::string m_name;
+
+	// Low/high palette names the sprite-sheet import dialog chose. A dialog-imported sprite has no
+	// entity to derive a palette from, so while this sprite (m_forced_palette_sprite) is open every
+	// frame is shown with these palettes, surviving frame/animation navigation.
+	int m_forced_palette_sprite = -1;
+	std::vector<std::string> m_forced_palette_names;
 
 	wxDECLARE_EVENT_TABLE();
 };

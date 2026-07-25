@@ -6,6 +6,7 @@
 #include <palettes/DataViewCtrlPaletteRenderer.h>
 #include <main/EditorFrame.h>
 #include <landstalker/main/GameData.h>
+#include <landstalker/main/ImageBuffer.h>
 
 class PaletteListFrame : public EditorFrame
 {
@@ -43,6 +44,19 @@ private:
 	void OnKeyPress(wxKeyEvent& evt);
 	void OnMenuImport();
 	void OnMenuExport();
+	// PNG palette import: bring the colours from an indexed PNG's palette into a game palette,
+	// taking only the editable (unlocked) indices - e.g. 2-14 for a room palette - or asking how
+	// many for a variable-width palette. One creates a new list entry, the other overwrites the
+	// selected palette.
+	void OnImportPngNewEntry();
+	void OnImportPngOverwrite();
+	bool PickAndReadPng(Landstalker::ImageBuffer::IndexedImage& out);
+	bool ApplyPngPalette(std::shared_ptr<Landstalker::Palette> pal,
+		const Landstalker::ImageBuffer::IndexedImage& img);
+	// The palette entry behind the current list selection, for any mode, via the data view model.
+	std::shared_ptr<Landstalker::PaletteEntry> GetSelectedPaletteEntry() const;
+	// The palette entry at `row` of the current editable mode, or nullptr outside those modes.
+	std::shared_ptr<Landstalker::PaletteEntry> GetPaletteEntry(int row) const;
 
 	// Only the flat, editable lists (room and sprite low/high palettes) get the add/remove/move
 	// buttons; the others are fixed-shape and stay button-less, as the derived data they hold

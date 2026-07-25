@@ -375,6 +375,9 @@
     <ClCompile Include="..\src\sprites\SpriteEditorFrame.cpp">
       <Filter>src\Sprites</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\sprites\SpriteImportDialog.cpp">
+      <Filter>src\Sprites</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\sprites\SpriteManagerDialog.cpp">
       <Filter>src\Sprites</Filter>
     </ClCompile>
@@ -397,6 +400,9 @@
       <Filter>src\Tileset</Filter>
     </ClCompile>
     <ClCompile Include="..\src\tileset\TilesetEditorFrame.cpp">
+      <Filter>src\Tileset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tileset\TilesetImportDialog.cpp">
       <Filter>src\Tileset</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\TileSwapDialog.cpp">
@@ -704,6 +710,9 @@
     <ClInclude Include="..\src\sprites\SpriteEditorFrame.h">
       <Filter>include\Sprites</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\sprites\SpriteImportDialog.h">
+      <Filter>include\Sprites</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\sprites\SpriteManagerDialog.h">
       <Filter>include\Sprites</Filter>
     </ClInclude>
@@ -723,6 +732,9 @@
       <Filter>include\Text</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tileset\TilesetEditorFrame.h">
+      <Filter>include\Tileset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tileset\TilesetImportDialog.h">
       <Filter>include\Tileset</Filter>
     </ClInclude>
     <ClInclude Include="..\src\tileset\TilesetEditor.h">

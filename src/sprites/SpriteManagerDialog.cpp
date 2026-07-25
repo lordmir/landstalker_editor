@@ -59,44 +59,6 @@ bool PromptForName(wxWindow* parent, const wxString& title, const Landstalker::S
 	return false;
 }
 
-// Prompts for both of a sprite's names: the assembly label and the editor's display name.
-class RenameSpriteDialog : public wxDialog
-{
-public:
-	RenameSpriteDialog(wxWindow* parent, const std::string& internal_name, const std::wstring& display_name)
-		: wxDialog(parent, wxID_ANY, "Rename Sprite")
-	{
-		auto* outer = new wxBoxSizer(wxVERTICAL);
-		outer->Add(new wxStaticText(this, wxID_ANY,
-			"The internal name is the assembly label: a unique identifier of at most 30\n"
-			"characters, starting with a letter. The display name is used only in the editor."),
-			0, wxLEFT | wxRIGHT | wxTOP, 10);
-
-		auto* fields = new wxFlexGridSizer(2, 6, 6);
-		fields->AddGrowableCol(1, 1);
-		fields->Add(new wxStaticText(this, wxID_ANY, "Internal name"), 0, wxALIGN_CENTER_VERTICAL);
-		m_internal = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(internal_name));
-		m_internal->SetMaxLength(30);
-		fields->Add(m_internal, 1, wxEXPAND);
-		fields->Add(new wxStaticText(this, wxID_ANY, "Display name"), 0, wxALIGN_CENTER_VERTICAL);
-		m_display = new wxTextCtrl(this, wxID_ANY, wxString(display_name));
-		fields->Add(m_display, 1, wxEXPAND);
-
-		outer->Add(fields, 1, wxALL | wxEXPAND, 10);
-		outer->Add(CreateSeparatedButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
-		SetSizerAndFit(outer);
-		SetMinSize(wxSize(440, -1));
-		CentreOnParent();
-	}
-
-	std::string GetInternalName() const { return m_internal->GetValue().ToStdString(); }
-	std::wstring GetDisplayName() const { return m_display->GetValue().ToStdWstring(); }
-
-private:
-	wxTextCtrl* m_internal;
-	wxTextCtrl* m_display;
-};
-
 }
 
 SpriteManagerDialog::SpriteManagerDialog(wxWindow* parent,
@@ -520,7 +482,7 @@ void SpriteManagerDialog::OnRename(wxCommandEvent& /*evt*/)
 	const auto old_name = sprite_data->GetSpriteName(sid);
 	const auto old_display = sprite_data->GetSpriteDisplayName(sid);
 
-	RenameSpriteDialog dialog(this, old_name, old_display);
+	SpriteNameDialog dialog(this, old_name, old_display);
 	while (dialog.ShowModal() == wxID_OK)
 	{
 		const auto name = dialog.GetInternalName();

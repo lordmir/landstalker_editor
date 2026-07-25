@@ -120,6 +120,7 @@
     <ClCompile Include="..\src\sprites\EntityViewerFrame.cpp" />
     <ClCompile Include="..\src\sprites\FrameControlFrame.cpp" />
     <ClCompile Include="..\src\sprites\SpriteEditorFrame.cpp" />
+    <ClCompile Include="..\src\sprites\SpriteImportDialog.cpp" />
     <ClCompile Include="..\src\sprites\SpriteManagerDialog.cpp" />
     <ClCompile Include="..\src\sprites\SpriteFrameEditorCtrl.cpp" />
     <ClCompile Include="..\src\sprites\SubspriteControlFrame.cpp" />
@@ -128,6 +129,7 @@
     <ClCompile Include="..\src\text\StringEditorFrame.cpp" />
     <ClCompile Include="..\src\tileset\TilesetEditor.cpp" />
     <ClCompile Include="..\src\tileset\TilesetEditorFrame.cpp" />
+    <ClCompile Include="..\src\tileset\TilesetImportDialog.cpp" />
     <ClCompile Include="..\src\wxresource\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp" />
   </ItemGroup>
@@ -239,6 +241,7 @@
     <ClInclude Include="..\src\sprites\EntityViewerFrame.h" />
     <ClInclude Include="..\src\sprites\FrameControlFrame.h" />
     <ClInclude Include="..\src\sprites\SpriteEditorFrame.h" />
+    <ClInclude Include="..\src\sprites\SpriteImportDialog.h" />
     <ClInclude Include="..\src\sprites\SpriteManagerDialog.h" />
     <ClInclude Include="..\src\sprites\SpriteFrameEditorCtrl.h" />
     <ClInclude Include="..\src\sprites\SubspriteControlFrame.h" />
@@ -247,6 +250,7 @@
     <ClInclude Include="..\src\text\StringEditorFrame.h" />
     <ClInclude Include="..\src\tileset\TilesetEditor.h" />
     <ClInclude Include="..\src\tileset\TilesetEditorFrame.h" />
+    <ClInclude Include="..\src\tileset\TilesetImportDialog.h" />
     <ClInclude Include="..\src\wxresource\wxcrafter.h" />
   </ItemGroup>
   <ItemGroup>

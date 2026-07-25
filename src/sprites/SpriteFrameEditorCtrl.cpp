@@ -148,6 +148,23 @@ void SpriteFrameEditorCtrl::UpdateSubSprites()
 	RedrawTiles();
 }
 
+void SpriteFrameEditorCtrl::ApplyOptimisedSubsprites(
+	const std::vector<Landstalker::SpriteFrame::SubSprite>& subsprites)
+{
+	if (!m_sprite || !m_tiles || subsprites.empty())
+	{
+		return;
+	}
+	// Push the pre-change state first (same order the interactive subsprite edits use), then swap in
+	// the new layout and re-derive the sprite's tiles from the canvas.
+	PushUndo();
+	m_sprite->SetSubSprites(subsprites);
+	UpdateAllSpriteTiles();
+	SelectSubSprite(-1);
+	RedrawTiles();
+	FireEvent(EVT_SUBSPRITE_UPDATE);
+}
+
 void SpriteFrameEditorCtrl::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 {
 	m_gd = gd;
@@ -3051,9 +3068,12 @@ bool SpriteFrameEditorCtrl::UpdateRowCount()
 	{
 		return false;
 	}
-	m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
-	m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
-	return false;
+	const int cw = m_pixelsize * static_cast<int>(m_sprite->GetTileWidth());
+	const int ch = m_pixelsize * static_cast<int>(m_sprite->GetTileHeight());
+	const bool changed = (cw != m_cellwidth) || (ch != m_cellheight);
+	m_cellwidth = cw;
+	m_cellheight = ch;
+	return changed;
 }
 
 void SpriteFrameEditorCtrl::RenderTilesBitmap()

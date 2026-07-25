@@ -38,6 +38,10 @@ public:
 	void Open(uint8_t entity, uint8_t animation, std::shared_ptr<Landstalker::Palette> pal);
 	void Open(uint8_t entity, std::shared_ptr<Landstalker::Palette> pal);
 	void Open(std::shared_ptr<Landstalker::SpriteFrame> frame, std::shared_ptr<Landstalker::Palette> pal);
+	// Previews a sprite by its graphics id, animating its own frames. Unlike the entity overloads
+	// this does not resolve the sprite through an entity, so a sprite no entity points at (e.g. a
+	// freshly imported one) previews itself rather than entity 0's sprite.
+	void OpenSprite(uint8_t sprite, uint8_t animation, std::shared_ptr<Landstalker::Palette> pal);
 
 
 private:

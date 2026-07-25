@@ -51,6 +51,10 @@ public:
 	bool New(int r, int c);
 	void RedrawTiles(int index = -1);
 	void ForceRedraw();
+	// Recomputes the grid's row/column count from the tileset's current tile count. Callers that
+	// resize the underlying tileset directly (rather than via the editor's own insert/delete) must
+	// call this so the display picks up the new size.
+	bool UpdateRowCount();
 
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
@@ -192,7 +196,6 @@ private:
 	int  ValidateColour(int colour) const;
 	wxColour GetPaletteColour(int index) const;
 
-	bool UpdateRowCount();
 	void RenderTilesetBitmap();
 	void UpdateTilesetBitmap();
 	void DrawGrid(wxDC& dest, const wxRect& damage);

@@ -8,12 +8,15 @@
 #include <wx/sizer.h>
 #include <wx/textdlg.h>
 #include <wx/msgdlg.h>
+#include <wx/numdlg.h>
 #include <landstalker/misc/Labels.h>
 
 enum MENU_IDS
 {
     ID_FILE_EXPORT = 21000,
-    ID_FILE_IMPORT
+    ID_FILE_IMPORT,
+    ID_FILE_IMPORT_PNG_NEW,
+    ID_FILE_IMPORT_PNG_OVERWRITE
 };
 
 PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
@@ -576,6 +579,8 @@ void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export All Palettes...");
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Palettes...");
+    AddMenuItem(fileMenu, 2, ID_FILE_IMPORT_PNG_NEW, "Import Palette from PNG as New Entry...");
+    AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_PNG_OVERWRITE, "Import Palette from PNG, Overwrite Selected...");
     UpdateUI();
     m_mgr.Update();
 }
@@ -592,6 +597,12 @@ void PaletteListFrame::OnMenuClick(wxMenuEvent& evt)
             break;
         case ID_FILE_IMPORT:
             OnMenuImport();
+            break;
+        case ID_FILE_IMPORT_PNG_NEW:
+            OnImportPngNewEntry();
+            break;
+        case ID_FILE_IMPORT_PNG_OVERWRITE:
+            OnImportPngOverwrite();
             break;
         default:
             wxMessageBox(wxString::Format("Unrecognised Event %d", evt.GetId()));
@@ -689,4 +700,201 @@ void PaletteListFrame::OnMenuExport()
         ExportAllPalettes(path);
         Update();
     }
+}
+
+std::shared_ptr<Landstalker::PaletteEntry> PaletteListFrame::GetPaletteEntry(int row) const
+{
+    if (!m_gd || row < 0 || row >= static_cast<int>(GetPaletteCount()))
+    {
+        return nullptr;
+    }
+    switch (m_mode)
+    {
+    case Mode::ROOM:      return m_gd->GetRoomData()->GetRoomPalette(row);
+    case Mode::SPRITE_LO: return m_gd->GetSpriteData()->GetLoPalette(row);
+    case Mode::SPRITE_HI: return m_gd->GetSpriteData()->GetHiPalette(row);
+    default:              return nullptr;
+    }
+}
+
+std::shared_ptr<Landstalker::PaletteEntry> PaletteListFrame::GetSelectedPaletteEntry() const
+{
+    // Read straight from the data view model, so this works in every mode - including the fixed
+    // ones that concatenate several palette lists and have no simple row-to-entry mapping.
+    if (!m_model)
+    {
+        return nullptr;
+    }
+    const auto sel = m_list->GetSelection();
+    if (!sel.IsOk())
+    {
+        return nullptr;
+    }
+    const int row = static_cast<int>(reinterpret_cast<std::intptr_t>(sel.GetID())) - 1;
+    if (row < 0)
+    {
+        return nullptr;
+    }
+    return m_model->GetPaletteEntry(row);
+}
+
+bool PaletteListFrame::PickAndReadPng(Landstalker::ImageBuffer::IndexedImage& out)
+{
+    wxFileDialog fd(this, _("Import Palette from PNG"), "", "",
+        "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (fd.ShowModal() == wxID_CANCEL)
+    {
+        return false;
+    }
+    out = Landstalker::ImageBuffer::ReadIndexedPNG(fd.GetPath().ToStdString());
+    if (!out.ok)
+    {
+        wxMessageBox("The PNG image could not be decoded.", "Import Palette from PNG",
+            wxOK | wxICON_ERROR, this);
+        return false;
+    }
+    if (!out.indexed || out.palette.empty())
+    {
+        wxMessageBox("The PNG must be a colour-indexed (palette) image.", "Import Palette from PNG",
+            wxOK | wxICON_ERROR, this);
+        return false;
+    }
+    return true;
+}
+
+bool PaletteListFrame::ApplyPngPalette(std::shared_ptr<Landstalker::Palette> pal,
+    const Landstalker::ImageBuffer::IndexedImage& img)
+{
+    const int png_colours = static_cast<int>(img.palette.size());
+    Landstalker::Palette::Colour colour;
+    if (pal->IsVarWidth())
+    {
+        // The width is not fixed, so let the user decide how many of the PNG's colours to take.
+        const int cap = std::min(pal->GetSize(), png_colours);
+        if (cap <= 0)
+        {
+            wxMessageBox("The PNG palette holds no colours to import.", "Import Palette from PNG",
+                wxOK | wxICON_ERROR, this);
+            return false;
+        }
+        const long count = wxGetNumberFromUser(
+            wxString::Format("The PNG palette holds %d colour(s).\nHow many would you like to import?",
+                png_colours),
+            "Number of colours:", "Import Palette from PNG", cap, 1, cap, this);
+        if (count <= 0)
+        {
+            return false;
+        }
+        for (int i = 0; i < static_cast<int>(count); ++i)
+        {
+            colour.FromRGB(img.palette[i]);
+            pal->SetNthUnlockedGenesisColour(static_cast<uint8_t>(i), colour.GetGenesis());
+        }
+    }
+    else
+    {
+        // Fixed width: take only the editable (unlocked) indices, reading each from the same index
+        // in the PNG palette - so a room palette pulls colours 2-14 and leaves 0, 1 and 15 alone.
+        const int highest = pal->GetNthUnlockedIndex(static_cast<uint8_t>(pal->GetSize() - 1));
+        if (png_colours <= highest)
+        {
+            wxMessageBox(wxString::Format("The PNG palette has %d colour(s), but this palette needs "
+                "colours up to index %d. Export it to see the expected layout.", png_colours, highest),
+                "Import Palette from PNG", wxOK | wxICON_ERROR, this);
+            return false;
+        }
+        for (int nth = 0; nth < pal->GetSize(); ++nth)
+        {
+            const uint8_t index = pal->GetNthUnlockedIndex(static_cast<uint8_t>(nth));
+            colour.FromRGB(img.palette[index]);
+            pal->SetNthUnlockedGenesisColour(static_cast<uint8_t>(nth), colour.GetGenesis());
+        }
+    }
+    return true;
+}
+
+void PaletteListFrame::OnImportPngOverwrite()
+{
+    if (!m_gd)
+    {
+        return;
+    }
+    const auto entry = GetSelectedPaletteEntry();
+    if (!entry)
+    {
+        wxMessageBox("Select a palette to overwrite first.", "Import Palette from PNG",
+            wxOK | wxICON_INFORMATION, this);
+        return;
+    }
+    Landstalker::ImageBuffer::IndexedImage img;
+    if (!PickAndReadPng(img))
+    {
+        return;
+    }
+    if (!ApplyPngPalette(entry->GetData(), img))
+    {
+        return;
+    }
+    const int row = GetSelectedRow();
+    Update();
+    if (row >= 0)
+    {
+        SelectRow(row);
+    }
+}
+
+void PaletteListFrame::OnImportPngNewEntry()
+{
+    if (!m_gd)
+    {
+        return;
+    }
+    if (!IsEditableMode())
+    {
+        wxMessageBox("This palette list cannot be expanded. Use 'Overwrite Selected' instead.",
+            "Import Palette from PNG", wxOK | wxICON_INFORMATION, this);
+        return;
+    }
+    const std::size_t cap = (m_mode == Mode::ROOM)
+        ? Landstalker::RoomData::MAX_ROOM_PALETTES : Landstalker::SpriteData::MAX_SPRITE_PALETTES;
+    if (GetPaletteCount() >= cap)
+    {
+        wxMessageBox("The palette list is full.", "Import Palette from PNG", wxOK | wxICON_ERROR, this);
+        return;
+    }
+    Landstalker::ImageBuffer::IndexedImage img;
+    if (!PickAndReadPng(img))
+    {
+        return;
+    }
+
+    std::optional<uint8_t> added;
+    switch (m_mode)
+    {
+    case Mode::ROOM:      added = m_gd->GetRoomData()->AddRoomPalette(); break;
+    case Mode::SPRITE_LO: added = m_gd->GetSpriteData()->AddLoPalette(); break;
+    case Mode::SPRITE_HI: added = m_gd->GetSpriteData()->AddHiPalette(); break;
+    default: return;
+    }
+    if (!added)
+    {
+        wxMessageBox("The palette list is full.", "Import Palette from PNG", wxOK | wxICON_ERROR, this);
+        return;
+    }
+    if (!ApplyPngPalette(GetPaletteEntry(*added)->GetData(), img))
+    {
+        // Roll the freshly added palette back so a cancelled or rejected import leaves nothing behind.
+        switch (m_mode)
+        {
+        case Mode::ROOM:      m_gd->GetRoomData()->DeleteRoomPalette(*added); break;
+        case Mode::SPRITE_LO: m_gd->GetSpriteData()->DeleteLoPalette(*added); break;
+        case Mode::SPRITE_HI: m_gd->GetSpriteData()->DeleteHiPalette(*added); break;
+        default: break;
+        }
+        Update();
+        return;
+    }
+    Update();
+    SelectRow(*added);
+    UpdatePaletteButtons();
 }

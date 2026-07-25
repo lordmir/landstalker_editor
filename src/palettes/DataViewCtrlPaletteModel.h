@@ -24,6 +24,10 @@ public:
 
     int GetColumnMaxElements() const;
 
+    // The palette entry shown on `row`, or nullptr if out of range. Lets callers act on the exact
+    // palette a list row stands for, whatever the mode's underlying source.
+    std::shared_ptr<Landstalker::PaletteEntry> GetPaletteEntry(unsigned int row) const;
+
     virtual void GetValueByRow(wxVariant& variant, unsigned int row, unsigned int col) const override;
     virtual bool GetAttrByRow(unsigned int row, unsigned int col, wxDataViewItemAttr& attr) const override;
     virtual bool SetValueByRow(const wxVariant& variant, unsigned int row, unsigned int col) override;

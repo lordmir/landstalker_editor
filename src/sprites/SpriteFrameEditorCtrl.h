@@ -76,6 +76,9 @@ public:
 	bool Open(std::shared_ptr<Landstalker::SpriteFrame> frame, std::shared_ptr<Landstalker::Palette> pal, int sprite_id);
 	void RedrawTiles(int index = -1);
 	void UpdateSubSprites();
+	// Replaces the frame's subsprite layout wholesale (e.g. from the optimiser), re-deriving the
+	// tiles from the canvas. Pushes an undo state first, so the change can be undone like any edit.
+	void ApplyOptimisedSubsprites(const std::vector<Landstalker::SpriteFrame::SubSprite>& subsprites);
 
 	void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
 	void ClearGameData();

@@ -65,6 +65,11 @@ public:
 		auto* fields = new wxFlexGridSizer(2, 6, 6);
 		fields->AddGrowableCol(1, 1);
 
+		fields->Add(new wxStaticText(this, wxID_ANY, "Name"), 0, wxALIGN_CENTER_VERTICAL);
+		m_name = new wxTextCtrl(this, wxID_ANY);
+		m_name->SetHint("(optional display name)");
+		fields->Add(m_name, 1, wxEXPAND);
+
 		fields->Add(new wxStaticText(this, wxID_ANY, "Sprite"), 0, wxALIGN_CENTER_VERTICAL);
 		m_sprite = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_sprites.names);
 		if (!m_sprites.names.IsEmpty())
@@ -110,9 +115,13 @@ public:
 	}
 	int GetLowPalette() const { return m_lo->GetSelection() - 1; }
 	int GetHighPalette() const { return m_hi->GetSelection() - 1; }
+	// The display name to give the entity, or empty to leave it at the default EntityNN label.
+	// (Not GetName - that is a non-virtual wxWindow method returning wxString.)
+	std::wstring GetEntityName() const { return m_name->GetValue().Trim().Trim(false).ToStdWstring(); }
 
 private:
 	SpriteChoices m_sprites;
+	wxTextCtrl* m_name;
 	wxChoice* m_sprite;
 	wxChoice* m_lo;
 	wxChoice* m_hi;
@@ -934,6 +943,13 @@ void EntityViewerFrame::OnAddEntity()
 		wxMessageBox("Unable to create the entity. Every non-item id may already be in use.",
 			"New Entity", wxOK | wxICON_ERROR, this);
 		return;
+	}
+	// Apply the display name if one was given and is valid; otherwise the entity keeps its default
+	// EntityNN label.
+	const auto name = dialog.GetEntityName();
+	if (!name.empty() && Landstalker::Labels::IsValid(name, Landstalker::Labels::C_ENTITIES, *added))
+	{
+		Landstalker::Labels::Update(Landstalker::Labels::C_ENTITIES, *added, name);
 	}
 	PopulateEntityList();
 	Open(*added);

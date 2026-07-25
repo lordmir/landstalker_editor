@@ -142,6 +142,34 @@ void EntityViewerCtrl::Open(uint8_t entity, uint8_t animation, std::shared_ptr<L
 	Refresh(true);
 }
 
+void EntityViewerCtrl::OpenSprite(uint8_t sprite, uint8_t animation, std::shared_ptr<Landstalker::Palette> pal)
+{
+	// No entity backs this preview; -1 marks that so nothing tries to read entity properties from it.
+	m_entity_id = -1;
+	m_sprite_id = sprite;
+	m_animation = animation;
+	m_frame = 0;
+	m_palette = pal;
+	auto sd = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite_id, m_animation, m_frame);
+	if (sd)
+	{
+		m_sprite = sd->GetData();
+		m_cellwidth = m_pixelsize * m_sprite->GetTileWidth();
+		m_cellheight = m_pixelsize * m_sprite->GetTileHeight();
+		// Always (re)start playback: a lone sprite has no "item" freeze case, and the timer may have
+		// been left stopped by a prior pause, so previewing one should animate from the off.
+		Play();
+	}
+	else
+	{
+		m_sprite = nullptr;
+		m_palette = nullptr;
+		m_cellwidth = m_pixelsize;
+		m_cellheight = m_pixelsize;
+	}
+	Refresh(true);
+}
+
 void EntityViewerCtrl::Open(uint8_t entity, std::shared_ptr<Landstalker::Palette> pal)
 {
 	m_entity_id = entity;

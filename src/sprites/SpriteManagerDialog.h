@@ -9,6 +9,46 @@
 
 #include <landstalker/main/GameData.h>
 
+// Prompts for a sprite's two names: the internal assembly label and the editor's display name.
+// Reused when renaming a sprite and when importing one that needs a fresh name.
+class SpriteNameDialog : public wxDialog
+{
+public:
+	SpriteNameDialog(wxWindow* parent, const std::string& internal_name,
+		const std::wstring& display_name, const wxString& title = "Rename Sprite")
+		: wxDialog(parent, wxID_ANY, title)
+	{
+		auto* outer = new wxBoxSizer(wxVERTICAL);
+		outer->Add(new wxStaticText(this, wxID_ANY,
+			"The internal name is the assembly label: a unique identifier of at most 30\n"
+			"characters, starting with a letter. The display name is used only in the editor."),
+			0, wxLEFT | wxRIGHT | wxTOP, 10);
+
+		auto* fields = new wxFlexGridSizer(2, 6, 6);
+		fields->AddGrowableCol(1, 1);
+		fields->Add(new wxStaticText(this, wxID_ANY, "Internal name"), 0, wxALIGN_CENTER_VERTICAL);
+		m_internal = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(internal_name));
+		m_internal->SetMaxLength(30);
+		fields->Add(m_internal, 1, wxEXPAND);
+		fields->Add(new wxStaticText(this, wxID_ANY, "Display name"), 0, wxALIGN_CENTER_VERTICAL);
+		m_display = new wxTextCtrl(this, wxID_ANY, wxString(display_name));
+		fields->Add(m_display, 1, wxEXPAND);
+
+		outer->Add(fields, 1, wxALL | wxEXPAND, 10);
+		outer->Add(CreateSeparatedButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+		SetSizerAndFit(outer);
+		SetMinSize(wxSize(440, -1));
+		CentreOnParent();
+	}
+
+	std::string GetInternalName() const { return m_internal->GetValue().ToStdString(); }
+	std::wstring GetDisplayName() const { return m_display->GetValue().ToStdWstring(); }
+
+private:
+	wxTextCtrl* m_internal;
+	wxTextCtrl* m_display;
+};
+
 // Manages the game's sprites: add, remove, reorder, rename, import and export.
 //
 // A sprite is keyed by a dense graphics id that entities reference directly, so the list is

@@ -1,10 +1,14 @@
 #include <sprites/SpriteEditorFrame.h>
+#include <sprites/SpriteImportDialog.h>
 #include <main/MainFrame.h>
 
 #include <wx/propgrid/advprops.h>
+#include <wx/textdlg.h>
+#include <cctype>
 #include <fstream>
 #include <filesystem>
 #include <landstalker/misc/Utils.h>
+#include <landstalker/misc/Labels.h>
 
 enum MENU_IDS
 {
@@ -18,6 +22,8 @@ enum MENU_IDS
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
 	ID_FILE_IMPORT_SPRITE_METADATA,
+	ID_FILE_IMPORT_SPRITESHEET_NEW,
+	ID_FILE_IMPORT_SPRITESHEET_CURRENT,
 	ID_EDIT,
 	ID_EDIT_SPRITES,
 	ID_EDIT_SEP,
@@ -41,6 +47,7 @@ enum MENU_IDS
 	ID_TOGGLE_ALPHA,
 	ID_TOGGLE_HITBOX,
 	ID_COMPRESS_FRAME,
+	ID_OPTIMISE_SUBSPRITES,
 	ID_SWAP_TILES,
 	ID_CUT_TILE,
 	ID_COPY_TILE,
@@ -176,10 +183,18 @@ bool SpriteEditorFrame::Open(uint8_t spr, int frame, int anim, int ent)
 	{
 		return false;
 	}
-	// A sprite with no entity still previews - the preview only needs an entity to look up a
-	// default; entity 0 is a harmless stand-in since the palette is passed explicitly.
+	// A sprite with no entity previews itself by its graphics id; one with an entity previews
+	// through that entity so it picks up the entity's default animation. Going through entity 0
+	// for a lone sprite would wrongly show entity 0's sprite, not this one.
 	const auto preview_entities = m_gd->GetSpriteData()->GetEntitiesFromSprite(m_sprite->GetSprite());
-	m_preview->Open(preview_entities.empty() ? 0 : preview_entities[0], m_anim, m_palette);
+	if (preview_entities.empty())
+	{
+		m_preview->OpenSprite(m_sprite->GetSprite(), static_cast<uint8_t>(m_anim < 0 ? 0 : m_anim), m_palette);
+	}
+	else
+	{
+		m_preview->Open(preview_entities[0], m_anim, m_palette);
+	}
 	m_framectrl->SetSelected(m_frame + 1);
 	m_animctrl->SetSelected(m_anim + 1);
 	m_animframectrl->SetSelected(1);
@@ -239,6 +254,23 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, boo
 	}
 	// GetEntityPalette needs an entity; a lone sprite gets the first sprite palette instead.
 	m_palette = has_entity ? sprite_data->GetEntityPalette(entity) : sprite_data->GetSpritePalette(0);
+	// A sprite imported through the dialog carries the low/high palettes the user picked; keep the
+	// preview on those for every frame of it rather than reverting to the default sprite palette.
+	if (m_forced_palette_sprite == static_cast<int>(spr) && !m_forced_palette_names.empty())
+	{
+		std::vector<std::shared_ptr<Landstalker::Palette>> pals;
+		for (const auto& pal_name : m_forced_palette_names)
+		{
+			if (const auto pe = m_gd->GetPalette(pal_name))
+			{
+				pals.push_back(pe->GetData());
+			}
+		}
+		if (!pals.empty())
+		{
+			m_palette = std::make_shared<Landstalker::Palette>(pals);
+		}
+	}
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_paledit->SelectPalette(m_palette);
 	m_spriteeditor->SetPrimaryColour(m_paledit->GetPrimaryColour());
@@ -360,6 +392,24 @@ void SpriteEditorFrame::EnsureMaxTileCount()
 	}
 }
 
+void SpriteEditorFrame::OnOptimiseSubsprites()
+{
+	if (!m_gd || !m_sprite)
+	{
+		return;
+	}
+	const auto subs = m_gd->GetSpriteData()->ComputeOptimalSubsprites(m_sprite->GetName());
+	if (!subs)
+	{
+		wxMessageBox("This frame could not be repacked within 6 subsprites.",
+			"Optimise Subsprites", wxOK | wxICON_INFORMATION, this);
+		return;
+	}
+	// Apply through the canvas so the tiles re-derive from it and the change joins the undo history.
+	m_spriteeditor->ApplyOptimisedSubsprites(*subs);
+	FireEvent(EVT_PROPERTIES_UPDATE);
+}
+
 bool SpriteEditorFrame::Save()
 {
 	return m_spriteeditor->Save(m_filename, m_spriteeditor->GetCompressed());
@@ -390,6 +440,8 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
 	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
 	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_SPRITE_METADATA, "Import Sprite Metadata from YAML...");
+	AddMenuItem(fileMenu, 11, ID_FILE_IMPORT_SPRITESHEET_NEW, "Import Sprite Sheet into New Sprite...");
+	AddMenuItem(fileMenu, 12, ID_FILE_IMPORT_SPRITESHEET_CURRENT, "Import Sprite Sheet into Current Sprite...");
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_SPRITES, "Sprites...\tF10");
 	AddMenuItem(editMenu, 1, ID_EDIT_SEP, "", wxITEM_SEPARATOR);
@@ -411,8 +463,10 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 
 	auto* parent = m_mgr.GetManagedWindow();
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
-	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord), wxSL_HORIZONTAL | wxSL_INVERSE);
-	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 10, wxDefaultPosition, wxSize(80, wxDefaultCoord));
+	// Both sliders read "right = more": zoom grows to the right (no inverse), and the speed slider
+	// is inverted because its underlying value is a frame period (a smaller value animates faster).
+	m_zoomslider = new wxSlider(toolbar, ID_ZOOM, m_zoom, 1, 8, wxDefaultPosition, wxSize(80, wxDefaultCoord), wxSL_HORIZONTAL);
+	m_speedslider = new wxSlider(toolbar, ID_PLAY_SPEED, m_speed, 1, 10, wxDefaultPosition, wxSize(80, wxDefaultCoord), wxSL_HORIZONTAL | wxSL_INVERSE);
 	// Same IDs as the Edit menu entries, so they share the handler and enable state.
 	toolbar->AddTool(ID_EDIT_UNDO, "Undo", ilist.GetImage("undo"), "Undo (Ctrl+Z)");
 	toolbar->AddTool(ID_EDIT_REDO, "Redo", ilist.GetImage("redo"), "Redo (Ctrl+Y)");
@@ -422,6 +476,8 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("ehitbox"), "Toggle Hitbox", wxITEM_CHECK);
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_COMPRESS_FRAME, "Compress Frame", ilist.GetImage("compress"), "Compress Frame", wxITEM_CHECK);
+	toolbar->AddTool(ID_OPTIMISE_SUBSPRITES, "Optimise Subsprites", ilist.GetImage("entity"),
+		"Repack this frame's subsprites to waste the fewest tiles (max 6 subsprites)");
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_CUT_TILE, "Cut", ilist.GetImage("cut"), "Cut");
 	toolbar->AddTool(ID_COPY_TILE, "Copy", ilist.GetImage("copy"), "Copy");
@@ -570,6 +626,12 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_FILE_IMPORT_SPRITE_METADATA:
 		OnImportSpriteMetadata();
 		break;
+	case ID_FILE_IMPORT_SPRITESHEET_NEW:
+		OnImportSpriteSheetNew();
+		break;
+	case ID_FILE_IMPORT_SPRITESHEET_CURRENT:
+		OnImportSpriteSheetCurrent();
+		break;
 	case ID_EDIT_SPRITES:
 		ShowSpriteManagerDialog();
 		break;
@@ -634,6 +696,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_COMPRESS_FRAME:
 		m_sprite->GetData()->SetCompressed(!m_sprite->GetData()->GetCompressed());
+		break;
+	case ID_OPTIMISE_SUBSPRITES:
+		OnOptimiseSubsprites();
 		break;
 	case ID_CUT_TILE:
 		if (m_spriteeditor->IsSelectionValid())
@@ -947,6 +1012,12 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(new wxEnumProperty("High Palette", "High Palette", m_hi_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 1", "Projectile/Misc Palette 1", m_misc_palettes));
 		props.Append(new wxEnumProperty("Projectile/Misc Palette 2", "Projectile/Misc Palette 2", m_misc_palettes));
+		wxPGProperty* tile_prop = new wxIntProperty("Max Tile Count", "Max Tile Count", sd->GetSpriteMaxTileCount(sprite_index));
+		tile_prop->SetAttribute(wxPG_ATTR_MIN, 1);
+		tile_prop->SetAttribute(wxPG_ATTR_MAX, 65535);
+		tile_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		tile_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(tile_prop);
 		props.Append(new wxPropertyCategory("Frame", "Frame"));
 		auto prop_cmp = new wxBoolProperty("Compressed", "Compressed", m_sprite->GetData()->GetCompressed());
 		prop_cmp->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
@@ -977,12 +1048,6 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
 		height_prop->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(height_prop);
-		wxPGProperty* tile_prop = new wxIntProperty("Max Tile Count", "Max Tile Count", sd->GetSpriteMaxTileCount(sprite_index));
-		tile_prop->SetAttribute(wxPG_ATTR_MIN, 1);
-		tile_prop->SetAttribute(wxPG_ATTR_MAX, 65535);
-		tile_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
-		tile_prop->SetEditor(wxPGEditor_SpinCtrl);
-		props.Append(tile_prop);
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
@@ -1967,6 +2032,254 @@ void SpriteEditorFrame::OnImportSpriteMetadata()
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	FireEvent(EVT_STATUSBAR_UPDATE);
+}
+
+namespace
+{
+	// A valid sprite label must start with a letter and hold only [A-Za-z0-9_]. Turns a file stem
+	// into something close so the name prompt starts from a usable suggestion.
+	std::string SanitiseSpriteName(const std::string& raw)
+	{
+		std::string out;
+		for (char c : raw)
+		{
+			if (std::isalnum(static_cast<unsigned char>(c)) || c == '_')
+			{
+				out.push_back(c);
+			}
+		}
+		while (!out.empty() && !std::isalpha(static_cast<unsigned char>(out.front())))
+		{
+			out.erase(out.begin());
+		}
+		if (out.size() > 30)
+		{
+			out.resize(30);
+		}
+		return out.empty() ? std::string("Sprite") : out;
+	}
+
+	wxString DescribeSpriteSheetImportError(Landstalker::SpriteData::SpriteSheetImportResult result)
+	{
+		using R = Landstalker::SpriteData::SpriteSheetImportResult;
+		switch (result)
+		{
+		case R::BadName:         return "The sprite name is invalid or already in use.";
+		case R::YamlMissing:     return "The metadata YAML file could not be found.";
+		case R::YamlInvalid:     return "The YAML could not be parsed or has no 'spritesheet' block.";
+		case R::PngMissing:      return "The PNG image named by the YAML could not be found.";
+		case R::PngUnreadable:   return "The PNG image could not be decoded.";
+		case R::PngNotIndexed:   return "The PNG must be a colour-indexed (palette) image.";
+		case R::PngWrongSize:    return "The PNG size does not match the grid in the YAML.";
+		case R::PngBadColour:    return "The PNG uses colour indices above 15; sprites are 4bpp.";
+		case R::FrameTooComplex: return "A frame is too large to represent with 8 hardware sprites.";
+		case R::NoFrames:        return "The sheet describes no frames.";
+		case R::IdSpaceFull:     return "There is no free sprite slot to import into.";
+		default:                 return "The sprite sheet could not be imported.";
+		}
+	}
+
+	// Turns the dialog's low/high palette choices into the palette names the preview should use,
+	// creating and colouring a new low/high palette for any half the user asked to add. The names
+	// come back in draw order (low then high) for building a combined preview palette.
+	std::vector<std::string> ResolveImportPalettes(Landstalker::SpriteData* sd,
+		const SpriteImportDialog::PaletteResult& low, const SpriteImportDialog::PaletteResult& high)
+	{
+		std::vector<std::string> names;
+		const auto resolve = [&](const SpriteImportDialog::PaletteResult& r, bool high_half) {
+			if (!r.used)
+			{
+				return;
+			}
+			uint8_t idx = 0;
+			if (r.create_new)
+			{
+				const auto add = high_half ? sd->AddHiPalette() : sd->AddLoPalette();
+				if (!add)
+				{
+					return;
+				}
+				idx = *add;
+				const auto pal = (high_half ? sd->GetHiPalette(idx) : sd->GetLoPalette(idx))->GetData();
+				for (int n = 0; n < static_cast<int>(r.colours.size()); ++n)
+				{
+					pal->SetNthUnlockedGenesisColour(static_cast<uint8_t>(n), r.colours[n]);
+				}
+				if (!r.new_name.empty())
+				{
+					Landstalker::Labels::Update(high_half ? Landstalker::Labels::C_HIGH_PALETTES
+						: Landstalker::Labels::C_LOW_PALETTES, idx, r.new_name);
+				}
+			}
+			else
+			{
+				idx = static_cast<uint8_t>(r.existing_index);
+			}
+			const auto entry = high_half ? sd->GetHiPalette(idx) : sd->GetLoPalette(idx);
+			if (entry)
+			{
+				names.push_back(entry->GetName());
+			}
+		};
+		resolve(low, false);
+		resolve(high, true);
+		return names;
+	}
+
+	// Shared front-half of both sprite-sheet imports: decode the PNG, reject anything that is not a
+	// readable indexed image (reporting why), then seed `info` with the plain defaults and, if a
+	// sibling .yaml/.yml sits beside the PNG, its geometry, animations and metadata. Returns false
+	// (having shown a message) when the image cannot be used.
+	bool LoadSpriteSheetImageAndInfo(wxWindow* parent, const std::filesystem::path& png_path,
+		Landstalker::ImageBuffer::IndexedImage& image, Landstalker::SpriteData::SpriteSheetInfo& info)
+	{
+		image = Landstalker::ImageBuffer::ReadIndexedPNG(png_path.string());
+		if (!image.ok)
+		{
+			wxMessageBox("The PNG image could not be decoded.", "Import Sprite Sheet",
+				wxOK | wxICON_ERROR, parent);
+			return false;
+		}
+		if (!image.indexed)
+		{
+			wxMessageBox("The PNG must be a colour-indexed (palette) image.", "Import Sprite Sheet",
+				wxOK | wxICON_ERROR, parent);
+			return false;
+		}
+		// Plain defaults; a sibling YAML overrides them (count -1 => every whole cell).
+		info.cell_width = 32;
+		info.cell_height = 32;
+		info.frame_count = -1;
+		info.origin_x = 16;
+		info.origin_y = 16;
+		for (const char* ext : { ".yaml", ".yml" })
+		{
+			if (Landstalker::SpriteData::ReadSpriteSheetInfo(
+				std::filesystem::path(png_path).replace_extension(ext), info))
+			{
+				break;
+			}
+		}
+		return true;
+	}
+}
+
+// Rebuilds the Sprites branch of the nav tree from the game data and jumps to sprite `id`, the
+// way to surface an import that added a sprite or replaced one's frames and animations wholesale.
+void SpriteEditorFrame::RebuildTreeAndOpenSprite(int id)
+{
+	const std::wstring path = L"Sprites/" +
+		Landstalker::SpriteData::GetSpriteDisplayName(static_cast<uint8_t>(id));
+	wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+	evt.SetInt(id);
+	evt.SetString(wxString(path));
+	evt.SetClientData(this);
+	wxPostEvent(this, evt);
+}
+
+void SpriteEditorFrame::OnImportSpriteSheetNew()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+	wxFileDialog fd(this, _("Import Sprite Sheet PNG"), "", "",
+		"PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	const std::filesystem::path png_path = fd.GetPath().ToStdString();
+
+	Landstalker::ImageBuffer::IndexedImage image;
+	Landstalker::SpriteData::SpriteSheetInfo info;
+	if (!LoadSpriteSheetImageAndInfo(this, png_path, image, info))
+	{
+		return;
+	}
+
+	SpriteImportDialog dlg(this, m_gd, image, SanitiseSpriteName(png_path.stem().string()),
+		info.cell_width, info.cell_height, info.frame_count, info.origin_x, info.origin_y,
+		info.found, info.animation_names);
+	if (dlg.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+
+	const auto sprite_data = m_gd->GetSpriteData();
+	Landstalker::SpriteData::SpriteSheetImportResult result;
+	const auto added = sprite_data->ImportSpriteSheetPixels(dlg.GetInternalName(), image.pixels,
+		static_cast<int>(image.width), static_cast<int>(image.height),
+		dlg.GetCellWidth(), dlg.GetCellHeight(), dlg.GetFrameCount(), dlg.GetOrigin(), info, result);
+	if (!added)
+	{
+		wxMessageBox(DescribeSpriteSheetImportError(result), "Import Sprite Sheet", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	Landstalker::Labels::Update(Landstalker::Labels::C_SPRITES, *added, dlg.GetDisplayName());
+
+	// Resolve (or create) the low and high palettes the dialog chose, and remember them so the
+	// reopened sprite previews with those colours (it has no entity to derive a palette from).
+	m_forced_palette_sprite = *added;
+	m_forced_palette_names = ResolveImportPalettes(sprite_data.get(), dlg.GetLowResult(), dlg.GetHighResult());
+	RebuildTreeAndOpenSprite(*added);
+}
+
+void SpriteEditorFrame::OnImportSpriteSheetCurrent()
+{
+	if (!m_gd || !m_sprite)
+	{
+		return;
+	}
+	const auto sprite_data = m_gd->GetSpriteData();
+	const uint8_t sid = m_sprite->GetSprite();
+	if (wxMessageBox(wxString::Format(
+		"Replace the frames and animations of '%s' with an imported sprite sheet?\n\n"
+		"This overwrites the sprite's current graphics and cannot be undone.",
+		wxString::FromUTF8(sprite_data->GetSpriteName(sid))),
+		"Import Sprite Sheet into Current Sprite", wxYES_NO | wxICON_WARNING, this) != wxYES)
+	{
+		return;
+	}
+	wxFileDialog fd(this, _("Import Sprite Sheet PNG"), "", "",
+		"PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	const std::filesystem::path png_path = fd.GetPath().ToStdString();
+
+	Landstalker::ImageBuffer::IndexedImage image;
+	Landstalker::SpriteData::SpriteSheetInfo info;
+	if (!LoadSpriteSheetImageAndInfo(this, png_path, image, info))
+	{
+		return;
+	}
+
+	// The dialog runs in existing-sprite mode: it shows the sprite's names read-only rather than
+	// asking for new ones, since the import keeps the sprite's identity.
+	SpriteImportDialog dlg(this, m_gd, image, sprite_data->GetSpriteName(sid),
+		info.cell_width, info.cell_height, info.frame_count, info.origin_x, info.origin_y,
+		info.found, info.animation_names, false,
+		Landstalker::SpriteData::GetSpriteDisplayName(sid));
+	if (dlg.ShowModal() != wxID_OK)
+	{
+		return;
+	}
+
+	Landstalker::SpriteData::SpriteSheetImportResult result;
+	if (!sprite_data->ImportSpriteSheetIntoExistingPixels(sid, image.pixels,
+		static_cast<int>(image.width), static_cast<int>(image.height),
+		dlg.GetCellWidth(), dlg.GetCellHeight(), dlg.GetFrameCount(), dlg.GetOrigin(), info, result))
+	{
+		wxMessageBox(DescribeSpriteSheetImportError(result), "Import Sprite Sheet", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	// Apply the low/high palettes the dialog chose to the preview, and reopen the sprite from
+	// scratch so its editor, lists and preview all refresh.
+	m_forced_palette_sprite = sid;
+	m_forced_palette_names = ResolveImportPalettes(sprite_data.get(), dlg.GetLowResult(), dlg.GetHighResult());
+	RebuildTreeAndOpenSprite(sid);
 }
 
 void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const
