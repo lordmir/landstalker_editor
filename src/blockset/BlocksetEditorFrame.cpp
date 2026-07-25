@@ -32,6 +32,13 @@ enum MENU_IDS
 	ID_TOOLS_BLOCK_SELECT,
 	ID_TOOLS_TILE_SELECT,
 	ID_TOOLS_TILE_DRAW,
+	ID_TOOLS_BOX_SELECT,
+	ID_TOOLS_LINE,
+	ID_TOOLS_RECT_FILLED,
+	ID_TOOLS_RECT_OUTLINE,
+	ID_TOOLS_CIRCLE_FILLED,
+	ID_TOOLS_CIRCLE_OUTLINE,
+	ID_TOOLS_FILL,
 	ID_TOGGLE_GRIDLINES = 30000,
 	ID_TOGGLE_TILE_NUMBERS,
 	ID_TOGGLE_ALPHA,
@@ -49,6 +56,13 @@ enum MENU_IDS
 	ID_BLOCK_SELECT,
 	ID_TILE_SELECT,
 	ID_PENCIL,
+	ID_BOX_SELECT,
+	ID_LINE,
+	ID_RECT_FILLED,
+	ID_RECT_OUTLINE,
+	ID_CIRCLE_FILLED,
+	ID_CIRCLE_OUTLINE,
+	ID_FILL,
 	ID_ZOOM,
 	ID_PALETTE_SELECT,
 	ID_TILE_UP,
@@ -70,6 +84,7 @@ EVT_SLIDER(wxID_ANY, BlocksetEditorFrame::OnZoomChange)
 EVT_TOOL(wxID_ANY, BlocksetEditorFrame::OnButtonClicked)
 EVT_COMBOBOX(ID_PALETTE_SELECT, BlocksetEditorFrame::OnPaletteSelect)
 EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, BlocksetEditorFrame::OnBlockSelect)
+EVT_COMMAND(wxID_ANY, EVT_BLOCK_HOVER, BlocksetEditorFrame::OnBlockHover)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, BlocksetEditorFrame::OnTileSelect)
 EVT_COMMAND(wxID_ANY, EVT_TILE_SELECT, BlocksetEditorFrame::OnTileSelect)
 wxEND_EVENT_TABLE()
@@ -141,6 +156,15 @@ void BlocksetEditorFrame::SetDrawTile(const Landstalker::Tile& tile)
 	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
+void BlocksetEditorFrame::CycleDrawTile(int delta)
+{
+	auto tile = m_editor->GetDrawTile();
+	tile.SetIndex(static_cast<uint16_t>(((tile.GetIndex() + delta) % 1024 + 1024) % 1024));
+	SetDrawTile(tile);
+	// Track the tiles pane selection; out-of-range indices simply have no cell to select.
+	m_tileset->SelectTile(tile.GetIndex());
+}
+
 void BlocksetEditorFrame::Redraw()
 {
 	m_editor->RedrawTiles();
@@ -186,7 +210,14 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(toolsMenu, 3, ID_TOOLS_SEP, "", wxITEM_SEPARATOR);
 	AddMenuItem(toolsMenu, 4, ID_TOOLS_BLOCK_SELECT, "Block Select Mode", wxITEM_RADIO);
 	AddMenuItem(toolsMenu, 5, ID_TOOLS_TILE_SELECT, "Tile Select Mode", wxITEM_RADIO);
-	AddMenuItem(toolsMenu, 6, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 6, ID_TOOLS_BOX_SELECT, "Box Select Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 7, ID_TOOLS_TILE_DRAW, "Tile Draw Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 8, ID_TOOLS_LINE, "Draw Line Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 9, ID_TOOLS_RECT_FILLED, "Draw Filled Rectangle Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 10, ID_TOOLS_RECT_OUTLINE, "Draw Outlined Rectangle Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 11, ID_TOOLS_CIRCLE_FILLED, "Draw Filled Circle Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 12, ID_TOOLS_CIRCLE_OUTLINE, "Draw Outlined Circle Mode", wxITEM_RADIO);
+	AddMenuItem(toolsMenu, 13, ID_TOOLS_FILL, "Fill Mode", wxITEM_RADIO);
 
 	wxAuiToolBar* toolbar = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_HORIZONTAL);
 
@@ -228,7 +259,15 @@ void BlocksetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tools_tb->SetToolBitmapSize(wxSize(16, 16));
 	tools_tb->AddTool(ID_BLOCK_SELECT, "Block Select", ilist.GetImage("sel_block"), "Block Select", wxITEM_CHECK);
 	tools_tb->AddTool(ID_TILE_SELECT, "Tile Select", ilist.GetImage("sel_tile"), "Tile Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_BOX_SELECT, "Select Tiles", ilist.GetImage("select_rect"),
+		"Select Tiles (drag to move, Shift+drag to copy, Ctrl+drag to stamp, Ctrl+C/X/V, Ctrl+H/E/P to toggle flips/priority)", wxITEM_CHECK);
 	tools_tb->AddTool(ID_PENCIL, "Draw Tiles", ilist.GetImage("pencil"), "Draw Tiles", wxITEM_CHECK);
+	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_OUTLINE, "Draw Outlined Rectangle", ilist.GetImage("rect_outline"), "Draw Outlined Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_FILLED, "Draw Filled Circle", ilist.GetImage("circle_filled"), "Draw Filled Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_OUTLINE, "Draw Outlined Circle", ilist.GetImage("circle_outline"), "Draw Outlined Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_FILL, "Fill", ilist.GetImage("fill"), "Fill", wxITEM_CHECK);
 	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
 
 	InitPaletteList();
@@ -462,6 +501,13 @@ void BlocksetEditorFrame::OnPaletteSelect(wxCommandEvent& evt)
 void BlocksetEditorFrame::OnBlockSelect(wxCommandEvent& evt)
 {
 	UpdateUI();
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
+void BlocksetEditorFrame::OnBlockHover(wxCommandEvent& evt)
+{
+	FireEvent(EVT_STATUSBAR_UPDATE);
 	evt.Skip();
 }
 
@@ -470,7 +516,12 @@ void BlocksetEditorFrame::OnTileSelect(wxCommandEvent& evt)
 	int tile_id = std::stoi(evt.GetString().ToStdString());
 	if (tile_id >= 0)
 	{
-		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+		// Picking a tile arms drawing, but doesn't yank an already-selected shape tool
+		// back to the pencil.
+		if (!BlocksetEditorCtrl::IsDrawMode(m_editor->GetMode()))
+		{
+			m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+		}
 		m_editor->SetDrawTile(tile_id);
 		m_tileset->SelectTile(tile_id);
 	}
@@ -480,6 +531,14 @@ void BlocksetEditorFrame::OnTileSelect(wxCommandEvent& evt)
 
 void BlocksetEditorFrame::OnKeyPress(wxKeyEvent& evt)
 {
+	// Box-selection shortcuts (Esc, Delete, Ctrl+C/X/V/A, Ctrl+H/E/P) take precedence
+	// while that mode is active.
+	if (m_editor->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()))
+	{
+		UpdateUI();
+		FireEvent(EVT_STATUSBAR_UPDATE);
+		return;
+	}
 	switch (evt.GetKeyCode())
 	{
 	case WXK_LEFT:
@@ -588,6 +647,18 @@ void BlocksetEditorFrame::OnKeyPress(wxKeyEvent& evt)
 	case WXK_SPACE:
 		ProcessEvent(ID_DRAW_TILE);
 		break;
+	// Cycles the draw tile through all 1024 possible indices, valid or not:
+	// +/-1 plain, +/-10 with Shift, +/-100 with Ctrl.
+	case '+':
+	case '=':
+	case WXK_NUMPAD_ADD:
+		CycleDrawTile(evt.ControlDown() ? 100 : (evt.ShiftDown() ? 10 : 1));
+		break;
+	case '-':
+	case '_':
+	case WXK_NUMPAD_SUBTRACT:
+		CycleDrawTile(evt.ControlDown() ? -100 : (evt.ShiftDown() ? -10 : -1));
+		break;
 	case 'c':
 	case 'C':
 		if (evt.GetModifiers() == wxMOD_CONTROL)
@@ -662,7 +733,7 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 		b = m_editor->GetBlockSelection();
 		t = m_editor->GetTileSelection();
 	}
-	else if (m_editor->GetMode() == BlocksetEditorCtrl::Mode::PENCIL)
+	else if (BlocksetEditorCtrl::IsDrawMode(m_editor->GetMode()))
 	{
 		b = m_editor->GetBlockHover();
 		t = m_editor->GetTileHover();
@@ -830,9 +901,15 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 		UpdateUI();
 		FireEvent(EVT_PROPERTIES_UPDATE);
 		break;
+	// With a box selection active these act on the whole rectangle (same as Ctrl+H/E/P);
+	// otherwise they toggle the single selected tile as before.
 	case ID_HFLIP_TILE:
 	{
-		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		if (m_editor->HasBoxSelection())
+		{
+			m_editor->ToggleBoxAttribute(Landstalker::TileAttributes::Attribute::ATTR_HFLIP);
+		}
+		else if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
 		{
 			m_editor->ToggleHFlip(b, t);
 		}
@@ -840,7 +917,11 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	}
 	case ID_VFLIP_TILE:
 	{
-		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		if (m_editor->HasBoxSelection())
+		{
+			m_editor->ToggleBoxAttribute(Landstalker::TileAttributes::Attribute::ATTR_VFLIP);
+		}
+		else if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
 		{
 			m_editor->ToggleVFlip(b, t);
 		}
@@ -848,7 +929,11 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	}
 	case ID_TOGGLE_TILE_PRIORITY:
 	{
-		if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
+		if (m_editor->HasBoxSelection())
+		{
+			m_editor->ToggleBoxAttribute(Landstalker::TileAttributes::Attribute::ATTR_PRIORITY);
+		}
+		else if (m_editor->IsTileIndexValid(t) && m_editor->IsBlockIndexValid(b))
 		{
 			m_editor->TogglePriority(b, t);
 		}
@@ -867,6 +952,41 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	case ID_PENCIL:
 	case ID_TOOLS_TILE_DRAW:
 		m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+		UpdateUI();
+		break;
+	case ID_BOX_SELECT:
+	case ID_TOOLS_BOX_SELECT:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::BOX_SELECT);
+		UpdateUI();
+		break;
+	case ID_LINE:
+	case ID_TOOLS_LINE:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::LINE);
+		UpdateUI();
+		break;
+	case ID_RECT_FILLED:
+	case ID_TOOLS_RECT_FILLED:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::RECTANGLE_FILLED);
+		UpdateUI();
+		break;
+	case ID_RECT_OUTLINE:
+	case ID_TOOLS_RECT_OUTLINE:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::RECTANGLE_OUTLINE);
+		UpdateUI();
+		break;
+	case ID_CIRCLE_FILLED:
+	case ID_TOOLS_CIRCLE_FILLED:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::CIRCLE_FILLED);
+		UpdateUI();
+		break;
+	case ID_CIRCLE_OUTLINE:
+	case ID_TOOLS_CIRCLE_OUTLINE:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::CIRCLE_OUTLINE);
+		UpdateUI();
+		break;
+	case ID_FILL:
+	case ID_TOOLS_FILL:
+		m_editor->SetMode(BlocksetEditorCtrl::Mode::FILL);
 		UpdateUI();
 		break;
 	case ID_BLOCK_UP:
@@ -1024,7 +1144,10 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	case ID_SELECT_TILE:
 		if (m_editor->IsTileHoverValid())
 		{
-			m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			if (!BlocksetEditorCtrl::IsDrawMode(m_editor->GetMode()))
+			{
+				m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			}
 			m_editor->SetDrawTile(m_editor->GetHoveredTile().GetIndex());
 			m_tileset->SelectTile(m_editor->GetHoveredTile().GetIndex());
 			UpdateUI();
@@ -1033,7 +1156,10 @@ void BlocksetEditorFrame::ProcessEvent(int id)
 	case ID_DRAW_TILE:
 		if (m_editor->IsTileHoverValid())
 		{
-			m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			if (!BlocksetEditorCtrl::IsDrawMode(m_editor->GetMode()))
+			{
+				m_editor->SetMode(BlocksetEditorCtrl::Mode::PENCIL);
+			}
 			m_editor->SetHoveredTile(m_editor->GetDrawTile());
 			UpdateUI();
 		}
@@ -1068,12 +1194,19 @@ void BlocksetEditorFrame::UpdateUI() const
 		CheckToolbarItem("Tools", ID_BLOCK_SELECT, mode == BlocksetEditorCtrl::Mode::BLOCK_SELECT);
 		CheckToolbarItem("Tools", ID_TILE_SELECT, mode == BlocksetEditorCtrl::Mode::TILE_SELECT);
 		CheckToolbarItem("Tools", ID_PENCIL, mode == BlocksetEditorCtrl::Mode::PENCIL);
+		CheckToolbarItem("Tools", ID_BOX_SELECT, mode == BlocksetEditorCtrl::Mode::BOX_SELECT);
+		CheckToolbarItem("Tools", ID_LINE, mode == BlocksetEditorCtrl::Mode::LINE);
+		CheckToolbarItem("Tools", ID_RECT_FILLED, mode == BlocksetEditorCtrl::Mode::RECTANGLE_FILLED);
+		CheckToolbarItem("Tools", ID_RECT_OUTLINE, mode == BlocksetEditorCtrl::Mode::RECTANGLE_OUTLINE);
+		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, mode == BlocksetEditorCtrl::Mode::CIRCLE_FILLED);
+		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, mode == BlocksetEditorCtrl::Mode::CIRCLE_OUTLINE);
+		CheckToolbarItem("Tools", ID_FILL, mode == BlocksetEditorCtrl::Mode::FILL);
 		CheckMenuItem(ID_VIEW_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
 		CheckToolbarItem("Blockset", ID_TOGGLE_ALPHA, !m_editor->GetAlphaEnabled());
 		CheckMenuItem(ID_VIEW_TOGGLE_GRIDLINES, m_editor->GetBordersEnabled());
 		CheckToolbarItem("Blockset", ID_TOGGLE_GRIDLINES, m_editor->GetBordersEnabled());
 		CheckMenuItem(ID_VIEW_TOGGLE_TILE_NOS, m_editor->GetTileNumbersEnabled());
-		CheckToolbarItem("Tilemap", ID_TOGGLE_TILE_NUMBERS, m_editor->GetTileNumbersEnabled());
+		CheckToolbarItem("Blockset", ID_TOGGLE_TILE_NUMBERS, m_editor->GetTileNumbersEnabled());
 		switch (m_editor->GetMode())
 		{
 		case BlocksetEditorCtrl::Mode::BLOCK_SELECT:
@@ -1115,7 +1248,37 @@ void BlocksetEditorFrame::UpdateUI() const
 			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsTileSelectionValid());
 			break;
 		case BlocksetEditorCtrl::Mode::PENCIL:
-			CheckMenuItem(ID_TOOLS_TILE_DRAW, true);
+		case BlocksetEditorCtrl::Mode::LINE:
+		case BlocksetEditorCtrl::Mode::RECTANGLE_FILLED:
+		case BlocksetEditorCtrl::Mode::RECTANGLE_OUTLINE:
+		case BlocksetEditorCtrl::Mode::CIRCLE_FILLED:
+		case BlocksetEditorCtrl::Mode::CIRCLE_OUTLINE:
+		case BlocksetEditorCtrl::Mode::FILL:
+			// All the draw modes share the pencil's hover-based enablement.
+			switch (mode)
+			{
+			case BlocksetEditorCtrl::Mode::LINE:
+				CheckMenuItem(ID_TOOLS_LINE, true);
+				break;
+			case BlocksetEditorCtrl::Mode::RECTANGLE_FILLED:
+				CheckMenuItem(ID_TOOLS_RECT_FILLED, true);
+				break;
+			case BlocksetEditorCtrl::Mode::RECTANGLE_OUTLINE:
+				CheckMenuItem(ID_TOOLS_RECT_OUTLINE, true);
+				break;
+			case BlocksetEditorCtrl::Mode::CIRCLE_FILLED:
+				CheckMenuItem(ID_TOOLS_CIRCLE_FILLED, true);
+				break;
+			case BlocksetEditorCtrl::Mode::CIRCLE_OUTLINE:
+				CheckMenuItem(ID_TOOLS_CIRCLE_OUTLINE, true);
+				break;
+			case BlocksetEditorCtrl::Mode::FILL:
+				CheckMenuItem(ID_TOOLS_FILL, true);
+				break;
+			default:
+				CheckMenuItem(ID_TOOLS_TILE_DRAW, true);
+				break;
+			}
 			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
 			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
@@ -1131,7 +1294,28 @@ void BlocksetEditorFrame::UpdateUI() const
 			EnableMenuItem(ID_EDIT_COPY, m_editor->IsTileHoverValid());
 			EnableMenuItem(ID_EDIT_PASTE, m_editor->IsTileHoverValid() && m_tileclipboard.has_value());
 			EnableMenuItem(ID_EDIT_SWAP, m_editor->IsTileHoverValid());
-			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsTileHoverValid());                                                   
+			EnableMenuItem(ID_EDIT_CLEAR, m_editor->IsTileHoverValid());
+			break;
+		case BlocksetEditorCtrl::Mode::BOX_SELECT:
+			CheckMenuItem(ID_TOOLS_BOX_SELECT, true);
+			EnableToolbarItem("Blockset", ID_DELETE_BLOCK, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_BEFORE, false);
+			EnableToolbarItem("Blockset", ID_INSERT_BLOCK_AFTER, false);
+			// The flip/priority buttons act on the whole box selection here.
+			EnableToolbarItem("Blockset", ID_VFLIP_TILE, m_editor->HasBoxSelection());
+			EnableToolbarItem("Blockset", ID_HFLIP_TILE, m_editor->HasBoxSelection());
+			EnableToolbarItem("Blockset", ID_TOGGLE_TILE_PRIORITY, m_editor->HasBoxSelection());
+			// Cut/copy/paste run through the box selection's own keyboard handling.
+			EnableToolbarItem("Blockset", ID_CUT, false);
+			EnableToolbarItem("Blockset", ID_COPY, false);
+			EnableToolbarItem("Blockset", ID_PASTE, false);
+			EnableToolbarItem("Blockset", ID_SWAP, false);
+			EnableToolbarItem("Blockset", ID_CLEAR, false);
+			EnableMenuItem(ID_EDIT_CUT, false);
+			EnableMenuItem(ID_EDIT_COPY, false);
+			EnableMenuItem(ID_EDIT_PASTE, false);
+			EnableMenuItem(ID_EDIT_SWAP, false);
+			EnableMenuItem(ID_EDIT_CLEAR, false);
 			break;
 		}
 		if (m_editor != nullptr && m_palette_select != nullptr)
@@ -1151,6 +1335,73 @@ void BlocksetEditorFrame::InitStatusBar(wxStatusBar& status) const
 	status.SetStatusText("", 0);
 	status.SetStatusText("", 1);
 	status.SetStatusText("", 2);
+}
+
+void BlocksetEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*evt*/) const
+{
+	std::ostringstream ss;
+	if (m_editor->IsBlockSelectionValid())
+	{
+		ss << "Block: " << m_editor->GetBlockSelection();
+		if (m_editor->IsTileSelectionValid() &&
+		    (m_editor->GetMode() != BlocksetEditorCtrl::Mode::BLOCK_SELECT))
+		{
+			ss << ", Tile: " << m_editor->GetTileSelection();
+		}
+	}
+	if (m_editor->IsBlockHoverValid())
+	{
+		if (ss.tellp() > 0)
+		{
+			ss << " ";
+		}
+		ss << "(Cursor at block " << m_editor->GetBlockHover();
+		if (m_editor->IsTileHoverValid() &&
+		    (m_editor->GetMode() != BlocksetEditorCtrl::Mode::BLOCK_SELECT))
+		{
+			ss << ", tile " << m_editor->GetTileHover();
+		}
+		ss << ")";
+	}
+	status.SetStatusText(ss.str(), 0);
+	ss.str(std::string());
+	switch (m_editor->GetMode())
+	{
+	case BlocksetEditorCtrl::Mode::BLOCK_SELECT:
+		ss << "BLOCK SELECT";
+		break;
+	case BlocksetEditorCtrl::Mode::TILE_SELECT:
+		ss << "TILE SELECT";
+		break;
+	case BlocksetEditorCtrl::Mode::PENCIL:
+		ss << "DRAW - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::BOX_SELECT:
+		ss << "BOX SELECT";
+		break;
+	case BlocksetEditorCtrl::Mode::LINE:
+		ss << "DRAW LINE - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::RECTANGLE_FILLED:
+		ss << "DRAW FILLED RECTANGLE - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::RECTANGLE_OUTLINE:
+		ss << "DRAW RECTANGLE - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::CIRCLE_FILLED:
+		ss << "DRAW FILLED CIRCLE - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::CIRCLE_OUTLINE:
+		ss << "DRAW CIRCLE - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	case BlocksetEditorCtrl::Mode::FILL:
+		ss << "FILL - Tile " << m_editor->GetDrawTile().GetTileValue();
+		break;
+	default:
+		break;
+	}
+	status.SetStatusText(ss.str(), 1);
+	status.SetStatusText(wxString::Format("Zoom: %d", m_zoom), 2);
 }
 
 void BlocksetEditorFrame::ShowBlocksetManagerDialog()

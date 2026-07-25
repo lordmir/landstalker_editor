@@ -31,7 +31,10 @@ public:
 	};
 
 	// The active drawing tool in DRAW mode. Shape tools anchor on mouse down, preview
-	// while dragging and commit as a single undo step on release.
+	// while dragging and commit as a single undo step on release. Picker samples the
+	// pixel under the cursor into the primary (left) or secondary (right) colour.
+	// PixelSelect drags out a rectangle of pixels that can be moved, duplicated,
+	// deleted, flipped and copied/pasted.
 	enum class Tool
 	{
 		Pencil,
@@ -40,7 +43,9 @@ public:
 		RectangleFilled,
 		CircleOutline,
 		CircleFilled,
-		Fill
+		Fill,
+		Picker,
+		PixelSelect
 	};
 
 	SpriteFrameEditorCtrl(wxWindow* parent);
@@ -60,6 +65,10 @@ public:
 	// Hovered pixel in canvas-wide pixel coordinates (tile = /8, offset = %8).
 	wxPoint GetHoveredPixel() const;
 	int GetColourAtPixel(const wxPoint& pixel) const;
+
+	// Pixel-selection operations the frame's toolbar buttons drive directly.
+	bool HasPixelSelection() const;
+	void FlipSelection(bool horizontal);
 
 	bool Save(wxString filename, bool compressed = false);
 	bool Open(wxString filename, int sprite_id);
@@ -203,6 +212,8 @@ private:
 	bool PaintGlobalPixel(int gx, int gy, uint8_t colour, wxRect& damage);
 	void CommitShape();
 	void CancelShape();
+	void CancelStroke();
+	bool CancelActiveDrawOp();
 	void FloodFillAt(int gx, int gy, uint8_t colour);
 	std::vector<wxPoint> MakeShapePoints(Tool tool, const wxPoint& a, const wxPoint& b) const;
 	wxRect GlobalPixelBoxToClient(const wxPoint& a, const wxPoint& b) const;
@@ -211,6 +222,44 @@ private:
 	wxColour GetPaletteColour(int index) const;
 	void DrawPixelCursor(wxDC& dc);
 	void DrawShapePreview(wxDC& dc);
+	void PickColourAt(int gx, int gy, bool secondary);
+	void CycleColour(int delta, bool secondary);
+
+	// Pixel selection (PixelSelect tool). The rectangle lives in canvas pixel coords.
+	// A "floating" selection carries lifted or pasted content that hasn't been stamped
+	// onto the canvas yet.
+	enum class SelDrag
+	{
+		None,
+		Marquee,
+		Move,       // lift, clear source with secondary, stamp on release
+		Duplicate,  // shift: lift without clearing, stamp on release
+		Stamp       // ctrl: lift without clearing, stamp continuously while dragging
+	};
+	struct PixelClipboard
+	{
+		wxRect rect;
+		std::vector<uint8_t> data;
+	};
+	void BeginSelectionAction(int gx, int gy);
+	void UpdateSelectionDrag(int gx, int gy);
+	void FinishSelectionDrag();
+	void CancelSelectionDrag();
+	void ClearPixelSelection(bool confirm_floating);
+	void ConfirmFloating();
+	void DiscardFloating();
+	void LiftSelection(bool erase_source);
+	bool StampFloating();
+	void RenderFloatBitmap();
+	void FillSelection(uint8_t colour);
+	void CopySelection();
+	void CutSelection();
+	void PastePixels();
+	void SelectAllPixels();
+	void SelectHoveredCell();
+	std::vector<uint8_t> ReadRect(const wxRect& rect) const;
+	void RefreshSelectionRect(const wxRect& rect);
+	void DrawPixelSelection(wxDC& dc);
 
 	bool UpdateRowCount();
 	void RenderTilesBitmap();
@@ -280,11 +329,14 @@ private:
 
 	wxStockCursor m_cursor = wxStockCursor::wxCURSOR_ARROW;
 
-	static const int MAX_WIDTH = 32;
-	static const int MAX_HEIGHT = 32;
-	static const int ORIGIN_X = 16;
-	static const int ORIGIN_Y = 16;
-	static const int MAX_SIZE = 1024;
+	// constexpr rather than const: std::min/std::clamp take references, which ODR-uses the
+	// member, and a plain in-class const has no definition for the linker (GCC rejects it;
+	// C++17 constexpr statics are implicitly inline).
+	static constexpr int MAX_WIDTH = 32;
+	static constexpr int MAX_HEIGHT = 32;
+	static constexpr int ORIGIN_X = 16;
+	static constexpr int ORIGIN_Y = 16;
+	static constexpr int MAX_SIZE = 1024;
 
 	// All sprite tiles rendered once at native resolution (out-of-sprite tiles darkened);
 	// painting blits scaled from this. Allocating a bitmap per tile per paint made
@@ -326,6 +378,20 @@ private:
 	// Tiles painted since the last sync into the sprite's own tileset; synced once per
 	// operation rather than per pixel (each sync copies the whole tile).
 	std::set<int> m_pending_sync;
+
+	// Pixel-selection state.
+	static constexpr uint8_t SEL_TRANSPARENT = 0xFF;  // out-of-sprite marker in lifted data
+	wxRect m_sel_rect;                 // empty = no selection
+	SelDrag m_sel_drag = SelDrag::None;
+	wxPoint m_sel_anchor = { 0, 0 };   // marquee anchor, or grab offset within the rect
+	bool m_sel_floating = false;
+	bool m_sel_from_paste = false;     // paste floats persist after release until confirmed
+	bool m_sel_op_changed = false;     // whether the current drag has altered the canvas
+	std::vector<uint8_t> m_float_data;
+	std::unique_ptr<wxBitmap> m_float_bmp;
+	UndoState m_sel_snapshot;          // pre-drag state, pushed on commit / restored on cancel
+	bool m_sel_snapshot_valid = false;
+	PixelClipboard m_pixel_clipboard;
 	// Snapshot taken when a stroke starts, pushed to the undo stack on its first painted pixel.
 	UndoState m_stroke_snapshot;
 
@@ -338,5 +404,7 @@ wxDECLARE_EVENT(EVT_SPRITE_FRAME_EDIT_REQUEST, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SPRITE_FRAME_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SPRITE_FRAME_TILE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SPRITE_FRAME_ACTIVATE, wxCommandEvent);
+// Fired when the picker samples a colour: int = colour index | 0x100 if secondary.
+wxDECLARE_EVENT(EVT_SPRITE_FRAME_COLOUR_PICK, wxCommandEvent);
 
 #endif // _SPRITE_FRAME_EDITOR_CTRL_H_

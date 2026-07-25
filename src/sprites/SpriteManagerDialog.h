@@ -20,7 +20,19 @@
 class SpriteManagerDialog : public wxDialog
 {
 public:
-	SpriteManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, int select_id);
+	// Optional operation to run as soon as the dialog opens, for the browser's quick
+	// add/delete buttons. On success the dialog closes itself (reporting the added sprite
+	// as the one to open); on failure or cancellation it stays open so the user can see
+	// why and continue by hand.
+	enum class InitialAction
+	{
+		NONE,
+		ADD,
+		REMOVE
+	};
+
+	SpriteManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, int select_id,
+		InitialAction initial_action = InitialAction::NONE);
 	virtual ~SpriteManagerDialog();
 
 	// True if any operation modified the game data, so the caller knows to refresh.
@@ -29,6 +41,7 @@ public:
 	int GetSpriteToOpen() const { return m_to_open; }
 
 private:
+	void RunInitialAction(InitialAction action);
 	void PopulateList(int select_id);
 	void PopulateDetails();
 	void PopulatePreview();

@@ -100,7 +100,7 @@ private:
 }
 
 SpriteManagerDialog::SpriteManagerDialog(wxWindow* parent,
-	std::shared_ptr<Landstalker::GameData> gd, int select_id)
+	std::shared_ptr<Landstalker::GameData> gd, int select_id, InitialAction initial_action)
 	: wxDialog(parent, wxID_ANY, "Sprites", wxDefaultPosition, { 640, 460 }),
 	  m_gd(gd),
 	  m_changed(false),
@@ -195,6 +195,35 @@ SpriteManagerDialog::SpriteManagerDialog(wxWindow* parent,
 	m_move_up->Connect(wxEVT_BUTTON, wxCommandEventHandler(SpriteManagerDialog::OnMoveUp), nullptr, this);
 	m_move_down->Connect(wxEVT_BUTTON, wxCommandEventHandler(SpriteManagerDialog::OnMoveDown), nullptr, this);
 	m_rename->Connect(wxEVT_BUTTON, wxCommandEventHandler(SpriteManagerDialog::OnRename), nullptr, this);
+
+	if (initial_action != InitialAction::NONE)
+	{
+		// Deferred so the operation's own dialogs open over a fully shown manager.
+		CallAfter([this, initial_action]() { RunInitialAction(initial_action); });
+	}
+}
+
+void SpriteManagerDialog::RunInitialAction(InitialAction action)
+{
+	wxCommandEvent dummy;
+	if (action == InitialAction::ADD)
+	{
+		OnAdd(dummy);
+		if (m_changed)
+		{
+			// Close and hand back the new sprite, as if it had been double-clicked.
+			m_to_open = GetSelectedSprite();
+			EndModal(wxID_OK);
+		}
+	}
+	else if (action == InitialAction::REMOVE)
+	{
+		OnRemove(dummy);
+		if (m_changed)
+		{
+			EndModal(wxID_OK);
+		}
+	}
 }
 
 SpriteManagerDialog::~SpriteManagerDialog()

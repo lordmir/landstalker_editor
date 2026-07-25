@@ -21,8 +21,19 @@
 class BlocksetManagerDialog : public wxDialog
 {
 public:
+	// Optional operation to run as soon as the dialog opens, for the browser's quick
+	// add/delete buttons. On success the dialog closes itself (reporting the added
+	// blockset as the one to open); on failure or cancellation it stays open so the user
+	// can see why and continue by hand.
+	enum class InitialAction
+	{
+		NONE,
+		ADD,
+		REMOVE
+	};
+
 	BlocksetManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd,
-		const std::string& select);
+		const std::string& select, InitialAction initial_action = InitialAction::NONE);
 	virtual ~BlocksetManagerDialog();
 
 	// True if any operation modified the game data, so the caller knows to refresh.
@@ -67,6 +78,7 @@ private:
 	// Names the rooms blocking a delete, for the refusal message.
 	wxString DescribeRooms(const std::vector<uint16_t>& rooms) const;
 
+	void RunInitialAction(InitialAction action);
 	void OnSelectionChanged(wxTreeEvent& evt);
 	void OnItemActivated(wxTreeEvent& evt);
 	void OnAdd(wxCommandEvent& evt);

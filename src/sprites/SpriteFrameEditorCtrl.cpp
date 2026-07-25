@@ -32,6 +32,7 @@ wxDEFINE_EVENT(EVT_SPRITE_FRAME_EDIT_REQUEST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SPRITE_FRAME_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SPRITE_FRAME_TILE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SPRITE_FRAME_ACTIVATE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SPRITE_FRAME_COLOUR_PICK, wxCommandEvent);
 
 static const uint8_t UNKNOWN_TILE[32] = {
 	0x11, 0xFF, 0xFF, 0x11, 0x1F, 0xF1, 0x1F, 0xF1, 0x11, 0x11, 0x1F, 0xF1, 0x11, 0x11, 0xFF, 0x11,
@@ -605,6 +606,16 @@ void SpriteFrameEditorCtrl::ClearHistory()
 {
 	m_undo_stack.clear();
 	m_redo_stack.clear();
+	// Called when a frame is (re)opened: any selection or float belongs to the old frame.
+	m_sel_rect = wxRect();
+	m_sel_drag = SelDrag::None;
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+	m_float_bmp.reset();
+	m_float_data.clear();
+	// The pixel clipboard survives on purpose, so content can be pasted across frames.
 }
 
 SpriteFrameEditorCtrl::UndoState SpriteFrameEditorCtrl::MakeUndoState() const
@@ -614,6 +625,13 @@ SpriteFrameEditorCtrl::UndoState SpriteFrameEditorCtrl::MakeUndoState() const
 
 void SpriteFrameEditorCtrl::RestoreUndoState(const UndoState& state)
 {
+	// Any selection or pending float refers to canvas content that is about to change.
+	m_sel_rect = wxRect();
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_float_bmp.reset();
+	m_float_data.clear();
+	m_pending_sync.clear();
 	m_tiles->SetBits(state.tiles, false);
 	m_sprite->SetSubSprites(state.subsprites);
 	// The sprite's own tileset is always derived from the canvas and the subsprite layout.
@@ -636,6 +654,12 @@ void SpriteFrameEditorCtrl::SetMode(Mode mode)
 	EndSubSpriteDrag();
 	CancelShape();
 	EndStroke();
+	if (m_sel_drag != SelDrag::None)
+	{
+		CancelSelectionDrag();
+	}
+	// Switching tool/mode confirms a pending paste and drops the selection.
+	ClearPixelSelection(true);
 	m_drawing = false;
 	m_hoveredpixel = { -1, -1 };
 	m_mode = mode;
@@ -653,6 +677,12 @@ void SpriteFrameEditorCtrl::SetDrawTool(Tool tool)
 	if (m_tool != tool)
 	{
 		CancelShape();
+		if (m_sel_drag != SelDrag::None)
+		{
+			CancelSelectionDrag();
+		}
+		// Switching tool confirms a pending paste and drops the selection.
+		ClearPixelSelection(true);
 		m_tool = tool;
 	}
 }
@@ -999,6 +1029,15 @@ void SpriteFrameEditorCtrl::StartDrawAction(const wxPoint& logical)
 	case Tool::Fill:
 		FloodFillAt(gx, gy, m_secondary_active ? m_secondary_colour : m_primary_colour);
 		break;
+	case Tool::Picker:
+		PickColourAt(gx, gy, m_secondary_active);
+		break;
+	case Tool::PixelSelect:
+		if (!m_secondary_active)
+		{
+			BeginSelectionAction(gx, gy);
+		}
+		break;
 	default:
 		// Shape tools: anchor here, preview while dragging, commit on release.
 		m_shape_active = true;
@@ -1057,6 +1096,15 @@ void SpriteFrameEditorCtrl::MouseDrawMove(const wxPoint& logical)
 			// fired for cross-tile moves.
 			FireEvent(EVT_SPRITE_FRAME_HOVER, std::to_string(m_hoveredtile));
 		}
+	}
+	if (m_drawing && (m_tool == Tool::Picker))
+	{
+		// Dragging with the picker keeps sampling, like holding an eyedropper.
+		PickColourAt(gx, gy, m_secondary_active);
+	}
+	if ((m_tool == Tool::PixelSelect) && (m_sel_drag != SelDrag::None))
+	{
+		UpdateSelectionDrag(gx, gy);
 	}
 	if (m_drawing && m_shape_active)
 	{
@@ -1286,7 +1334,8 @@ wxColour SpriteFrameEditorCtrl::GetPaletteColour(int index) const
 
 void SpriteFrameEditorCtrl::DrawPixelCursor(wxDC& dc)
 {
-	if ((m_mode != Mode::DRAW) || !IsPixelHoverValid() || m_shape_active)
+	if ((m_mode != Mode::DRAW) || !IsPixelHoverValid() || m_shape_active ||
+	    (m_tool == Tool::PixelSelect))
 	{
 		return;
 	}
@@ -1310,6 +1359,646 @@ void SpriteFrameEditorCtrl::DrawShapePreview(wxDC& dc)
 	{
 		dc.DrawRectangle(p.x * m_pixelsize, p.y * m_pixelsize, m_pixelsize, m_pixelsize);
 	}
+}
+
+void SpriteFrameEditorCtrl::PickColourAt(int gx, int gy, bool secondary)
+{
+	const int c = GetColourAtPixel({ gx, gy });
+	if (c < 0)
+	{
+		return;
+	}
+	if (secondary)
+	{
+		if (m_secondary_colour == c)
+		{
+			return;
+		}
+		SetSecondaryColour(static_cast<uint8_t>(c));
+	}
+	else
+	{
+		if (m_primary_colour == c)
+		{
+			return;
+		}
+		SetPrimaryColour(static_cast<uint8_t>(c));
+	}
+	FireEvent(EVT_SPRITE_FRAME_COLOUR_PICK, (secondary ? 0x100 : 0) | c);
+}
+
+void SpriteFrameEditorCtrl::CycleColour(int delta, bool secondary)
+{
+	uint8_t& colour = secondary ? m_secondary_colour : m_primary_colour;
+	colour = static_cast<uint8_t>((colour + delta + 16) & 0x0F);
+	// Same notification as the eyedropper, so the palette pane and status bar follow.
+	FireEvent(EVT_SPRITE_FRAME_COLOUR_PICK, (secondary ? 0x100 : 0) | colour);
+	if (IsPixelHoverValid())
+	{
+		// The pen cursor outline is drawn in the active colour.
+		RefreshGlobalPixel(m_hoveredpixel);
+	}
+}
+
+void SpriteFrameEditorCtrl::CancelStroke()
+{
+	if (!m_stroke_dirty)
+	{
+		return;
+	}
+	m_stroke_dirty = false;
+	m_pending_sync.clear();
+	if (!m_undo_stack.empty())
+	{
+		// The stroke pushed its pre-state when its first pixel landed; pop that back
+		// without disturbing the redo stack.
+		auto state = std::move(m_undo_stack.back());
+		m_undo_stack.pop_back();
+		RestoreUndoState(state);
+	}
+}
+
+bool SpriteFrameEditorCtrl::CancelActiveDrawOp()
+{
+	if (m_shape_active)
+	{
+		CancelShape();
+		m_drawing = false;
+		return true;
+	}
+	if (m_stroke_dirty)
+	{
+		CancelStroke();
+		m_drawing = false;
+		return true;
+	}
+	if (m_sel_drag != SelDrag::None)
+	{
+		CancelSelectionDrag();
+		return true;
+	}
+	if (m_sel_floating)
+	{
+		// Esc cancels a pending paste outright rather than confirming it.
+		DiscardFloating();
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		return true;
+	}
+	if (HasPixelSelection())
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		return true;
+	}
+	return false;
+}
+
+bool SpriteFrameEditorCtrl::HasPixelSelection() const
+{
+	return (m_sel_rect.width > 0) && (m_sel_rect.height > 0);
+}
+
+void SpriteFrameEditorCtrl::BeginSelectionAction(int gx, int gy)
+{
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const int cw = MAX_WIDTH * tw;
+	const int ch = MAX_HEIGHT * th;
+	if (HasPixelSelection() && m_sel_rect.Contains(wxPoint(gx, gy)))
+	{
+		m_sel_anchor = wxPoint(gx - m_sel_rect.x, gy - m_sel_rect.y);
+		m_sel_op_changed = false;
+		if (m_sel_floating)
+		{
+			// Dragging a pending paste just moves the float; it stays unconfirmed.
+			m_sel_drag = SelDrag::Move;
+		}
+		else
+		{
+			m_sel_snapshot = MakeUndoState();
+			m_sel_snapshot_valid = true;
+			if (wxGetKeyState(WXK_CONTROL))
+			{
+				m_sel_drag = SelDrag::Stamp;
+			}
+			else if (wxGetKeyState(WXK_SHIFT))
+			{
+				m_sel_drag = SelDrag::Duplicate;
+			}
+			else
+			{
+				m_sel_drag = SelDrag::Move;
+			}
+			LiftSelection(m_sel_drag == SelDrag::Move);
+		}
+		CaptureMouse();
+	}
+	else
+	{
+		// Clicking outside confirms a pending paste, clears the selection and starts a
+		// fresh marquee from here.
+		ClearPixelSelection(true);
+		if ((gx >= 0) && (gy >= 0) && (gx < cw) && (gy < ch))
+		{
+			m_sel_drag = SelDrag::Marquee;
+			m_sel_anchor = wxPoint(gx, gy);
+			m_sel_rect = wxRect(gx, gy, 1, 1);
+			RefreshSelectionRect(m_sel_rect);
+			CaptureMouse();
+		}
+	}
+}
+
+void SpriteFrameEditorCtrl::UpdateSelectionDrag(int gx, int gy)
+{
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	const int cw = MAX_WIDTH * tw;
+	const int ch = MAX_HEIGHT * th;
+	switch (m_sel_drag)
+	{
+	case SelDrag::Marquee:
+	{
+		const int px = std::clamp(gx, 0, cw - 1);
+		const int py = std::clamp(gy, 0, ch - 1);
+		const wxRect next(wxPoint(std::min(m_sel_anchor.x, px), std::min(m_sel_anchor.y, py)),
+		                  wxSize(std::abs(px - m_sel_anchor.x) + 1, std::abs(py - m_sel_anchor.y) + 1));
+		if (next != m_sel_rect)
+		{
+			RefreshSelectionRect(m_sel_rect);
+			m_sel_rect = next;
+			RefreshSelectionRect(m_sel_rect);
+		}
+		break;
+	}
+	case SelDrag::Move:
+	case SelDrag::Duplicate:
+	case SelDrag::Stamp:
+	{
+		wxPoint tl(gx - m_sel_anchor.x, gy - m_sel_anchor.y);
+		tl.x = std::clamp(tl.x, 0, cw - m_sel_rect.width);
+		tl.y = std::clamp(tl.y, 0, ch - m_sel_rect.height);
+		if (tl != m_sel_rect.GetTopLeft())
+		{
+			RefreshSelectionRect(m_sel_rect);
+			m_sel_rect.x = tl.x;
+			m_sel_rect.y = tl.y;
+			if (m_sel_drag == SelDrag::Stamp)
+			{
+				// Continuous duplication: every step leaves a copy on the canvas.
+				m_sel_op_changed |= StampFloating();
+			}
+			RefreshSelectionRect(m_sel_rect);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+void SpriteFrameEditorCtrl::FinishSelectionDrag()
+{
+	if (HasCapture())
+	{
+		ReleaseMouse();
+	}
+	if ((m_sel_drag == SelDrag::Move) || (m_sel_drag == SelDrag::Duplicate) ||
+	    (m_sel_drag == SelDrag::Stamp))
+	{
+		if (!m_sel_from_paste)
+		{
+			if (m_sel_drag != SelDrag::Stamp)
+			{
+				m_sel_op_changed |= StampFloating();
+			}
+			m_sel_floating = false;
+			m_float_bmp.reset();
+			// A drag that ends where it started leaves the canvas untouched (erase and
+			// re-stamp cancel out); comparing against the snapshot avoids a junk undo
+			// entry for that case.
+			bool push = false;
+			if (m_sel_snapshot_valid && m_sel_op_changed)
+			{
+				const auto now = MakeUndoState();
+				push = (now.tiles != m_sel_snapshot.tiles) ||
+				       (now.subsprites != m_sel_snapshot.subsprites);
+			}
+			if (push)
+			{
+				PushUndoState(std::move(m_sel_snapshot));
+				FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+			}
+			RefreshSelectionRect(m_sel_rect);
+		}
+	}
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+}
+
+void SpriteFrameEditorCtrl::CancelSelectionDrag()
+{
+	if (HasCapture())
+	{
+		ReleaseMouse();
+	}
+	switch (m_sel_drag)
+	{
+	case SelDrag::Marquee:
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		break;
+	}
+	case SelDrag::Move:
+	case SelDrag::Duplicate:
+	case SelDrag::Stamp:
+		if (m_sel_from_paste)
+		{
+			// Cancelling mid-drag drops the pending paste entirely.
+			DiscardFloating();
+			const wxRect old = m_sel_rect;
+			m_sel_rect = wxRect();
+			RefreshSelectionRect(old);
+		}
+		else if (m_sel_snapshot_valid)
+		{
+			// Puts the canvas back exactly as it was before the lift.
+			m_sel_floating = false;
+			m_float_bmp.reset();
+			RestoreUndoState(m_sel_snapshot);
+		}
+		break;
+	default:
+		break;
+	}
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+}
+
+void SpriteFrameEditorCtrl::ClearPixelSelection(bool confirm_floating)
+{
+	if (m_sel_floating)
+	{
+		if (confirm_floating)
+		{
+			ConfirmFloating();
+		}
+		else
+		{
+			DiscardFloating();
+		}
+	}
+	if (HasPixelSelection())
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+	}
+}
+
+void SpriteFrameEditorCtrl::ConfirmFloating()
+{
+	if (!m_sel_floating)
+	{
+		return;
+	}
+	auto snapshot = MakeUndoState();
+	const bool changed = StampFloating();
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_float_bmp.reset();
+	if (changed)
+	{
+		PushUndoState(std::move(snapshot));
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+	}
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void SpriteFrameEditorCtrl::DiscardFloating()
+{
+	if (!m_sel_floating)
+	{
+		return;
+	}
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_float_bmp.reset();
+	m_float_data.clear();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void SpriteFrameEditorCtrl::LiftSelection(bool erase_source)
+{
+	m_float_data = ReadRect(m_sel_rect);
+	if (erase_source)
+	{
+		bool changed = false;
+		wxRect damage;
+		for (int y = 0; y < m_sel_rect.height; ++y)
+		{
+			for (int x = 0; x < m_sel_rect.width; ++x)
+			{
+				changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y,
+				                            m_secondary_colour, damage);
+			}
+		}
+		if (changed)
+		{
+			FlushSpriteTileSync();
+			damage.Inflate(1, 1);
+			RefreshRect(damage);
+			m_sel_op_changed = true;
+		}
+	}
+	m_sel_floating = true;
+	m_sel_from_paste = false;
+	RenderFloatBitmap();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+bool SpriteFrameEditorCtrl::StampFloating()
+{
+	if (m_float_data.size() !=
+	    static_cast<std::size_t>(m_sel_rect.width) * static_cast<std::size_t>(m_sel_rect.height))
+	{
+		return false;
+	}
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < m_sel_rect.height; ++y)
+	{
+		for (int x = 0; x < m_sel_rect.width; ++x)
+		{
+			const uint8_t v = m_float_data[x + y * m_sel_rect.width];
+			if (v == SEL_TRANSPARENT)
+			{
+				continue;
+			}
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, v, damage);
+		}
+	}
+	if (changed)
+	{
+		FlushSpriteTileSync();
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+	return changed;
+}
+
+void SpriteFrameEditorCtrl::RenderFloatBitmap()
+{
+	const auto& pal = GetSelectedPalette();
+	wxImage img(m_sel_rect.width, m_sel_rect.height);
+	img.SetAlpha();
+	unsigned char* rgb = img.GetData();
+	unsigned char* alpha = img.GetAlpha();
+	for (std::size_t i = 0; i < m_float_data.size(); ++i)
+	{
+		const uint8_t v = m_float_data[i];
+		if (v == SEL_TRANSPARENT)
+		{
+			alpha[i] = 0;
+			continue;
+		}
+		const uint32_t c = pal.getBGRA(v);
+		rgb[i * 3] = c & 0xFF;
+		rgb[i * 3 + 1] = (c >> 8) & 0xFF;
+		rgb[i * 3 + 2] = (c >> 16) & 0xFF;
+		alpha[i] = c >> 24;
+	}
+	m_float_bmp = std::make_unique<wxBitmap>(img, 32);
+}
+
+void SpriteFrameEditorCtrl::FillSelection(uint8_t colour)
+{
+	if (!HasPixelSelection() || m_sel_floating)
+	{
+		return;
+	}
+	auto snapshot = MakeUndoState();
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < m_sel_rect.height; ++y)
+	{
+		for (int x = 0; x < m_sel_rect.width; ++x)
+		{
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, colour, damage);
+		}
+	}
+	if (changed)
+	{
+		FlushSpriteTileSync();
+		PushUndoState(std::move(snapshot));
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void SpriteFrameEditorCtrl::FlipSelection(bool horizontal)
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	const int w = m_sel_rect.width;
+	const int h = m_sel_rect.height;
+	const auto flip = [&](const std::vector<uint8_t>& src)
+	{
+		std::vector<uint8_t> out(src.size());
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				out[x + y * w] = horizontal ? src[(w - 1 - x) + y * w]
+				                            : src[x + (h - 1 - y) * w];
+			}
+		}
+		return out;
+	};
+	if (m_sel_floating)
+	{
+		m_float_data = flip(m_float_data);
+		RenderFloatBitmap();
+		RefreshSelectionRect(m_sel_rect);
+		return;
+	}
+	auto snapshot = MakeUndoState();
+	const auto flipped = flip(ReadRect(m_sel_rect));
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const uint8_t v = flipped[x + y * w];
+			if (v == SEL_TRANSPARENT)
+			{
+				continue;
+			}
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, v, damage);
+		}
+	}
+	if (changed)
+	{
+		FlushSpriteTileSync();
+		PushUndoState(std::move(snapshot));
+		FireEvent(EVT_SPRITE_FRAME_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void SpriteFrameEditorCtrl::CopySelection()
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	m_pixel_clipboard.rect = m_sel_rect;
+	m_pixel_clipboard.data = m_sel_floating ? m_float_data : ReadRect(m_sel_rect);
+}
+
+void SpriteFrameEditorCtrl::CutSelection()
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	CopySelection();
+	if (m_sel_floating)
+	{
+		// Cutting a pending paste just removes the float; the canvas never had it.
+		DiscardFloating();
+	}
+	else
+	{
+		FillSelection(m_secondary_colour);
+	}
+}
+
+void SpriteFrameEditorCtrl::PastePixels()
+{
+	if (m_pixel_clipboard.data.empty())
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	wxRect r = m_pixel_clipboard.rect;
+	r.x = std::clamp(r.x, 0, MAX_WIDTH * tw - r.width);
+	r.y = std::clamp(r.y, 0, MAX_HEIGHT * th - r.height);
+	m_sel_rect = r;
+	m_float_data = m_pixel_clipboard.data;
+	m_sel_floating = true;
+	m_sel_from_paste = true;
+	RenderFloatBitmap();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void SpriteFrameEditorCtrl::SelectAllPixels()
+{
+	if ((m_sprite == nullptr) || (m_sprite->GetSubSpriteCount() == 0))
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	int minx = MAX_WIDTH;
+	int miny = MAX_HEIGHT;
+	int maxx = 0;
+	int maxy = 0;
+	for (const auto& s : m_sprite->GetSubSprites())
+	{
+		const int sxb = s.x / tw + ORIGIN_X;
+		const int syb = s.y / th + ORIGIN_Y;
+		minx = std::min(minx, sxb);
+		miny = std::min(miny, syb);
+		maxx = std::max(maxx, sxb + static_cast<int>(s.w));
+		maxy = std::max(maxy, syb + static_cast<int>(s.h));
+	}
+	if ((maxx <= minx) || (maxy <= miny))
+	{
+		return;
+	}
+	m_sel_rect = wxRect(minx * tw, miny * th, (maxx - minx) * tw, (maxy - miny) * th);
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void SpriteFrameEditorCtrl::SelectHoveredCell()
+{
+	const int tile = (m_hoveredtile != -1) ? m_hoveredtile : m_selectedtile;
+	if (tile < 0)
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	const int tw = static_cast<int>(m_tiles->GetTileWidth());
+	const int th = static_cast<int>(m_tiles->GetTileHeight());
+	m_sel_rect = wxRect((tile % MAX_WIDTH) * tw, (tile / MAX_WIDTH) * th, tw, th);
+	RefreshSelectionRect(m_sel_rect);
+}
+
+std::vector<uint8_t> SpriteFrameEditorCtrl::ReadRect(const wxRect& rect) const
+{
+	std::vector<uint8_t> out(static_cast<std::size_t>(rect.width) * static_cast<std::size_t>(rect.height),
+	                         SEL_TRANSPARENT);
+	for (int y = 0; y < rect.height; ++y)
+	{
+		for (int x = 0; x < rect.width; ++x)
+		{
+			const int c = GetColourAtPixel({ rect.x + x, rect.y + y });
+			if (c >= 0)
+			{
+				out[x + y * rect.width] = static_cast<uint8_t>(c);
+			}
+		}
+	}
+	return out;
+}
+
+void SpriteFrameEditorCtrl::RefreshSelectionRect(const wxRect& rect)
+{
+	if ((rect.width <= 0) || (rect.height <= 0))
+	{
+		return;
+	}
+	RefreshRect(GlobalPixelBoxToClient(rect.GetTopLeft(), rect.GetBottomRight()));
+}
+
+void SpriteFrameEditorCtrl::DrawPixelSelection(wxDC& dc)
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	if (m_sel_floating && (m_float_bmp != nullptr))
+	{
+		wxMemoryDC mem(*m_float_bmp);
+		dc.StretchBlit(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+		               m_sel_rect.width * m_pixelsize, m_sel_rect.height * m_pixelsize,
+		               &mem, 0, 0, m_sel_rect.width, m_sel_rect.height, wxCOPY, true);
+		mem.SelectObject(wxNullBitmap);
+	}
+	// White underlay + black dashes stays visible over any artwork.
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.SetPen(*wxWHITE_PEN);
+	dc.DrawRectangle(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+	                 m_sel_rect.width * m_pixelsize + 1, m_sel_rect.height * m_pixelsize + 1);
+	dc.SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SHORT_DASH));
+	dc.DrawRectangle(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+	                 m_sel_rect.width * m_pixelsize + 1, m_sel_rect.height * m_pixelsize + 1);
 }
 
 void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
@@ -1400,6 +2089,7 @@ void SpriteFrameEditorCtrl::OnDraw(wxDC& dc)
 	DrawSubSpriteHandles(dc);
 	DrawPixelCursor(dc);
 	DrawShapePreview(dc);
+	DrawPixelSelection(dc);
 	if (m_enablehitbox)
 	{
 		auto hitbox = m_gd->GetSpriteData()->GetSpriteHitbox(m_sprite_id);
@@ -1629,17 +2319,36 @@ void SpriteFrameEditorCtrl::OnMouseUp(wxMouseEvent& evt)
 	}
 	if (m_mode == Mode::DRAW)
 	{
+		if (evt.LeftUp() && (m_sel_drag != SelDrag::None))
+		{
+			if (evt.RightIsDown())
+			{
+				CancelSelectionDrag();
+			}
+			else
+			{
+				FinishSelectionDrag();
+			}
+			m_drawing = false;
+			evt.Skip();
+			return;
+		}
 		if (evt.LeftUp())
 		{
 			if (evt.RightIsDown())
 			{
-				m_secondary_active = true;
-			}
-			else
-			{
+				// Releasing the left button with the right still held cancels the
+				// operation in progress, matching classic paint programs.
+				CancelShape();
+				CancelStroke();
 				m_drawing = false;
 				m_secondary_active = false;
+				m_last_drawn = { -1, -1 };
+				evt.Skip();
+				return;
 			}
+			m_drawing = false;
+			m_secondary_active = false;
 		}
 		if (evt.RightUp())
 		{
@@ -1680,6 +2389,9 @@ void SpriteFrameEditorCtrl::OnCaptureLost(wxMouseCaptureLostEvent& /*evt*/)
 	m_resizing_subsprite = false;
 	m_drag_subsprite = -1;
 	m_drag_edges = 0;
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
 }
 
 void SpriteFrameEditorCtrl::EndSubSpriteDrag()
@@ -1842,6 +2554,12 @@ void SpriteFrameEditorCtrl::OnMouseLeave(wxMouseEvent& evt)
 	}
 	if (m_mode == Mode::DRAW)
 	{
+		if (m_sel_drag != SelDrag::None)
+		{
+			// The mouse is captured; the selection drag continues outside the window.
+			evt.Skip();
+			return;
+		}
 		// The stroke pauses outside the window; OnMouseEnter decides whether it resumes
 		// from the real button state. An in-progress shape is cancelled outright: its
 		// anchor would be stale by the time the pointer returns.
@@ -1907,76 +2625,122 @@ void SpriteFrameEditorCtrl::OnTilesetFocus(wxFocusEvent& evt)
 
 bool SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 {
+	const bool pixel_select = (m_mode == Mode::DRAW) && (m_tool == Tool::PixelSelect);
 	switch (key)
 	{
 	case WXK_ESCAPE:
+		// In draw mode Esc cancels whatever is in flight (shape, stroke, drag, pending
+		// paste), then clears the pixel selection; otherwise the subsprite selection.
+		if ((m_mode == Mode::DRAW) && CancelActiveDrawOp())
+		{
+			break;
+		}
 		ClearSelections();
 		break;
+	// Movement keys: in subsprite mode they nudge the selected subsprite (Shift resizes);
+	// in select mode they move the tile selection. All other subsprite bindings (Tab,
+	// Insert/Delete, priority) are likewise only live in subsprite mode.
 	case WXK_UP:
 	case 'w':
 	case 'W':
-		if (modifiers == 0)
+		if (m_mode == Mode::SUBSPRITE)
+		{
+			if ((modifiers == 0) || (modifiers == wxMOD_CONTROL))
+			{
+				MoveSubSpriteUp();
+			}
+			else if (modifiers == wxMOD_SHIFT)
+			{
+				ContractSubSpriteHeight();
+			}
+		}
+		else if ((m_mode == Mode::SELECT) && (modifiers == 0))
 		{
 			MoveSelectionUp();
 		}
-		else if (modifiers == wxMOD_CONTROL)
+		else
 		{
-			MoveSubSpriteUp();
-		}
-		else if (modifiers == wxMOD_SHIFT)
-		{
-			ContractSubSpriteHeight();
+			return false;
 		}
 		break;
 	case WXK_DOWN:
 	case 's':
 	case 'S':
-		if (modifiers == 0)
+		if (m_mode == Mode::SUBSPRITE)
+		{
+			if ((modifiers == 0) || (modifiers == wxMOD_CONTROL))
+			{
+				MoveSubSpriteDown();
+			}
+			else if (modifiers == wxMOD_SHIFT)
+			{
+				ExpandSubSpriteHeight();
+			}
+		}
+		else if ((m_mode == Mode::SELECT) && (modifiers == 0))
 		{
 			MoveSelectionDown();
 		}
-		else if (modifiers == wxMOD_CONTROL)
+		else
 		{
-			MoveSubSpriteDown();
-		}
-		else if (modifiers == wxMOD_SHIFT)
-		{
-			ExpandSubSpriteHeight();
+			return false;
 		}
 		break;
 	case WXK_LEFT:
 	case 'a':
 	case 'A':
-		if (modifiers == 0)
+		if (pixel_select && (modifiers == wxMOD_CONTROL) && (key != WXK_LEFT))
+		{
+			SelectAllPixels();
+		}
+		else if (m_mode == Mode::SUBSPRITE)
+		{
+			if ((modifiers == 0) || (modifiers == wxMOD_CONTROL))
+			{
+				MoveSubSpriteLeft();
+			}
+			else if (modifiers == wxMOD_SHIFT)
+			{
+				ContractSubSpriteWidth();
+			}
+		}
+		else if ((m_mode == Mode::SELECT) && (modifiers == 0))
 		{
 			MoveSelectionLeft();
 		}
-		else if (modifiers == wxMOD_CONTROL)
+		else
 		{
-			MoveSubSpriteLeft();
-		}
-		else if (modifiers == wxMOD_SHIFT)
-		{
-			ContractSubSpriteWidth();
+			return false;
 		}
 		break;
 	case WXK_RIGHT:
 	case 'd':
 	case 'D':
-		if (modifiers == 0)
+		if (m_mode == Mode::SUBSPRITE)
+		{
+			if ((modifiers == 0) || (modifiers == wxMOD_CONTROL))
+			{
+				MoveSubSpriteRight();
+			}
+			else if (modifiers == wxMOD_SHIFT)
+			{
+				ExpandSubSpriteWidth();
+			}
+		}
+		else if ((m_mode == Mode::SELECT) && (modifiers == 0))
 		{
 			MoveSelectionRight();
 		}
-		else if (modifiers == wxMOD_CONTROL)
+		else
 		{
-			MoveSubSpriteRight();
-		}
-		else if (modifiers == wxMOD_SHIFT)
-		{
-			ExpandSubSpriteWidth();
+			return false;
 		}
 		break;
 	case WXK_TAB:
+		if (m_mode != Mode::SUBSPRITE)
+		{
+			return false;
+		}
 		if (modifiers == 0)
 		{
 			SelectNextSubSprite();
@@ -1987,54 +2751,115 @@ bool SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 		}
 		break;
 	case WXK_DELETE:
-		if (modifiers == 0)
+		if (m_mode == Mode::SUBSPRITE)
 		{
-			// In subsprite mode Delete removes the selected subsprite; tiles are cleared
-			// from select mode (or with Shift, which deletes the subsprite there instead).
-			if (m_mode == Mode::SUBSPRITE)
+			if ((modifiers == 0) || (modifiers == wxMOD_SHIFT))
 			{
 				DeleteSubSprite();
+			}
+		}
+		else if (modifiers == 0)
+		{
+			// With a pixel selection Delete wipes the rectangle to the secondary
+			// colour; otherwise it clears the selected tile.
+			if (pixel_select && HasPixelSelection())
+			{
+				FillSelection(m_secondary_colour);
 			}
 			else
 			{
 				ClearCell();
 			}
 		}
-		else if (modifiers == wxMOD_SHIFT)
+		else
 		{
-			DeleteSubSprite();
+			return false;
 		}
 		break;
 	case WXK_INSERT:
+		if (m_mode != Mode::SUBSPRITE)
+		{
+			return false;
+		}
 		InsertSubSprite();
 		break;
 	case '[':
 	case '{':
+		if (m_mode != Mode::SUBSPRITE)
+		{
+			return false;
+		}
 		IncreaseSubSpritePriority();
 		break;
 	case ']':
 	case '}':
+		if (m_mode != Mode::SUBSPRITE)
+		{
+			return false;
+		}
 		DecreaseSubSpritePriority();
 		break;
 	case 'x':
 	case 'X':
 		if (modifiers == wxMOD_CONTROL)
 		{
-			CutCell();
+			if (pixel_select)
+			{
+				CutSelection();
+			}
+			else
+			{
+				CutCell();
+			}
 		}
 		break;
 	case 'c':
 	case 'C':
 		if (modifiers == wxMOD_CONTROL)
 		{
-			CopyCell();
+			if (pixel_select)
+			{
+				CopySelection();
+			}
+			else
+			{
+				CopyCell();
+			}
 		}
 		break;
 	case 'v':
 	case 'V':
 		if (modifiers == wxMOD_CONTROL)
 		{
-			PasteCell();
+			if (pixel_select)
+			{
+				PastePixels();
+			}
+			else
+			{
+				PasteCell();
+			}
+		}
+		break;
+	case 'b':
+	case 'B':
+		if ((modifiers == wxMOD_CONTROL) && pixel_select)
+		{
+			SelectHoveredCell();
+		}
+		break;
+	case 'h':
+	case 'H':
+		if ((modifiers == wxMOD_CONTROL) && pixel_select)
+		{
+			FlipSelection(true);
+		}
+		break;
+	case 'e':
+	case 'E':
+		if ((modifiers == wxMOD_CONTROL) && pixel_select)
+		{
+			FlipSelection(false);
 		}
 		break;
 	case 'p':
@@ -2043,6 +2868,27 @@ bool SpriteFrameEditorCtrl::HandleKeyDown(int key, int modifiers)
 		{
 			SwapCell();
 		}
+		break;
+	// The main-row plus shares a key with equals, so the unshifted key cycles the primary
+	// colour and the shifted one ('+' proper) the secondary; the numpad keys distinguish
+	// by the Shift modifier alone.
+	case '+':
+	case '=':
+	case WXK_NUMPAD_ADD:
+		if (m_mode != Mode::DRAW)
+		{
+			return false;
+		}
+		CycleColour(1, (modifiers & wxMOD_SHIFT) != 0);
+		break;
+	case '-':
+	case '_':
+	case WXK_NUMPAD_SUBTRACT:
+		if (m_mode != Mode::DRAW)
+		{
+			return false;
+		}
+		CycleColour(-1, (modifiers & wxMOD_SHIFT) != 0);
 		break;
 	default:
 		return false;

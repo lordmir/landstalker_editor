@@ -44,12 +44,15 @@ private:
 	void OnButtonClicked(wxCommandEvent& evt);
 	void OnPaletteSelect(wxCommandEvent& evt);
 	void OnBlockSelect(wxCommandEvent& evt);
+	void OnBlockHover(wxCommandEvent& evt);
 	void OnTileSelect(wxCommandEvent& evt);
 	void OnKeyPress(wxKeyEvent& evt);
+	void CycleDrawTile(int delta);
 	void ProcessEvent(int id);
 	virtual void UpdateUI() const override;
 
 	virtual void InitStatusBar(wxStatusBar& status) const;
+	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;
 
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);

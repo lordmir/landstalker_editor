@@ -167,7 +167,7 @@ std::string ReadTextFile(const std::string& path)
 }
 
 BlocksetManagerDialog::BlocksetManagerDialog(wxWindow* parent,
-	std::shared_ptr<Landstalker::GameData> gd, const std::string& select)
+	std::shared_ptr<Landstalker::GameData> gd, const std::string& select, InitialAction initial_action)
 	: wxDialog(parent, wxID_ANY, "Blocksets", wxDefaultPosition, { 760, 500 }),
 	  m_gd(gd),
 	  m_changed(false),
@@ -265,6 +265,39 @@ BlocksetManagerDialog::BlocksetManagerDialog(wxWindow* parent,
 	m_move_up->Connect(wxEVT_BUTTON, wxCommandEventHandler(BlocksetManagerDialog::OnMoveUp), nullptr, this);
 	m_move_down->Connect(wxEVT_BUTTON, wxCommandEventHandler(BlocksetManagerDialog::OnMoveDown), nullptr, this);
 	m_rename->Connect(wxEVT_BUTTON, wxCommandEventHandler(BlocksetManagerDialog::OnRename), nullptr, this);
+
+	if (initial_action != InitialAction::NONE)
+	{
+		// Deferred so the operation's own dialogs open over a fully shown manager.
+		CallAfter([this, initial_action]() { RunInitialAction(initial_action); });
+	}
+}
+
+void BlocksetManagerDialog::RunInitialAction(InitialAction action)
+{
+	wxCommandEvent dummy;
+	if (action == InitialAction::ADD)
+	{
+		OnAdd(dummy);
+		if (m_changed)
+		{
+			// Close and hand back the new blockset, as if it had been double-clicked.
+			const auto selection = GetSelection();
+			if (selection.valid && selection.kind == Kind::BLOCKSET)
+			{
+				m_to_open = selection.name;
+			}
+			EndModal(wxID_OK);
+		}
+	}
+	else if (action == InitialAction::REMOVE)
+	{
+		OnRemove(dummy);
+		if (m_changed)
+		{
+			EndModal(wxID_OK);
+		}
+	}
 }
 
 BlocksetManagerDialog::~BlocksetManagerDialog()

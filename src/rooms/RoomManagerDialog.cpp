@@ -170,7 +170,8 @@ wxString DescribeReferences(const Landstalker::GameData::RoomReferences& refs)
 
 }
 
-RoomManagerDialog::RoomManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, uint16_t roomnum)
+RoomManagerDialog::RoomManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, uint16_t roomnum,
+	InitialAction initial_action)
 	: wxDialog(parent, wxID_ANY, "Rooms", wxDefaultPosition, { 720, 460 }),
 	  m_gd(gd),
 	  m_changed(false),
@@ -285,6 +286,35 @@ RoomManagerDialog::RoomManagerDialog(wxWindow* parent, std::shared_ptr<Landstalk
 	m_move_up->Connect(wxEVT_BUTTON, wxCommandEventHandler(RoomManagerDialog::OnMoveUp), nullptr, this);
 	m_move_down->Connect(wxEVT_BUTTON, wxCommandEventHandler(RoomManagerDialog::OnMoveDown), nullptr, this);
 	m_rename->Connect(wxEVT_BUTTON, wxCommandEventHandler(RoomManagerDialog::OnRename), nullptr, this);
+
+	if (initial_action != InitialAction::NONE)
+	{
+		// Deferred so the operation's own dialogs open over a fully shown manager.
+		CallAfter([this, initial_action]() { RunInitialAction(initial_action); });
+	}
+}
+
+void RoomManagerDialog::RunInitialAction(InitialAction action)
+{
+	wxCommandEvent dummy;
+	if (action == InitialAction::ADD)
+	{
+		OnAdd(dummy);
+		if (m_changed)
+		{
+			// Close and hand back the new room, as if it had been double-clicked.
+			m_room_to_open = GetSelectedRoom();
+			EndModal(wxID_OK);
+		}
+	}
+	else if (action == InitialAction::REMOVE)
+	{
+		OnDelete(dummy);
+		if (m_changed)
+		{
+			EndModal(wxID_OK);
+		}
+	}
 }
 
 RoomManagerDialog::~RoomManagerDialog()

@@ -15,6 +15,7 @@
 wxBEGIN_EVENT_TABLE(TilesetEditor, wxHVScrolledWindow)
 EVT_PAINT(TilesetEditor::OnPaint)
 EVT_SIZE(TilesetEditor::OnSize)
+EVT_KEY_DOWN(TilesetEditor::OnKeyDown)
 EVT_LEFT_DOWN(TilesetEditor::OnMouseDown)
 EVT_RIGHT_DOWN(TilesetEditor::OnRightDown)
 EVT_LEFT_UP(TilesetEditor::OnMouseUp)
@@ -23,6 +24,7 @@ EVT_LEFT_DCLICK(TilesetEditor::OnDoubleClick)
 EVT_MOTION(TilesetEditor::OnMouseMove)
 EVT_LEAVE_WINDOW(TilesetEditor::OnMouseLeave)
 EVT_ENTER_WINDOW(TilesetEditor::OnMouseEnter)
+EVT_MOUSE_CAPTURE_LOST(TilesetEditor::OnCaptureLost)
 EVT_SET_FOCUS(TilesetEditor::OnTilesetFocus)
 wxEND_EVENT_TABLE()
 
@@ -32,14 +34,13 @@ wxDEFINE_EVENT(EVT_TILESET_EDIT_REQUEST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESET_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESET_TILE_CHANGE, wxCommandEvent);
 wxDEFINE_EVENT(EVT_TILESET_ACTIVATE, wxCommandEvent);
+wxDEFINE_EVENT(EVT_TILESET_COLOUR_PICK, wxCommandEvent);
 
 TilesetEditor::TilesetEditor(wxWindow* parent)
 	: wxVScrolledWindow(parent, wxID_ANY),
 	m_pixelsize(8),
-	m_selectable(false),
 	m_selectedtile(-1),
 	m_hoveredtile(-1),
-	m_tilebase(0),
 	m_columns(0),
 	m_rows(0),
 	m_tilewidth(0),
@@ -236,6 +237,7 @@ void TilesetEditor::OnDraw(wxDC& dc)
 	DrawSelectionBorders(dc);
 	DrawPixelCursor(dc);
 	DrawShapePreview(dc);
+	DrawPixelSelection(dc);
 }
 
 void TilesetEditor::RenderTilesetBitmap()
@@ -326,8 +328,128 @@ void TilesetEditor::OnSize(wxSizeEvent& evt)
 	Refresh(false);
 }
 
+void TilesetEditor::OnKeyDown(wxKeyEvent& evt)
+{
+	if (m_enabledrawing && HandleDrawKey(evt))
+	{
+		return;
+	}
+	evt.Skip();
+}
+
+bool TilesetEditor::HandleDrawKey(wxKeyEvent& evt)
+{
+	const bool pixel_select = (m_tool == Tool::PixelSelect);
+	const bool ctrl = evt.ControlDown();
+	switch (evt.GetKeyCode())
+	{
+	// The main-row plus shares a key with equals, so the unshifted key cycles the primary
+	// colour and the shifted one ('+' proper) the secondary; the numpad keys distinguish
+	// by the Shift modifier alone.
+	case '+':
+	case '=':
+	case WXK_NUMPAD_ADD:
+		CycleColour(1, evt.ShiftDown());
+		return true;
+	case '-':
+	case '_':
+	case WXK_NUMPAD_SUBTRACT:
+		CycleColour(-1, evt.ShiftDown());
+		return true;
+	case WXK_ESCAPE:
+		return CancelActiveDrawOp();
+	case WXK_DELETE:
+		if (pixel_select && HasPixelSelection() && !m_sel_floating)
+		{
+			FillSelection(m_secondary_colour);
+			return true;
+		}
+		return false;
+	case 'c':
+	case 'C':
+		if (ctrl && pixel_select)
+		{
+			CopySelection();
+			return true;
+		}
+		return false;
+	case 'x':
+	case 'X':
+		if (ctrl && pixel_select)
+		{
+			CutSelection();
+			return true;
+		}
+		return false;
+	case 'v':
+	case 'V':
+		if (ctrl && pixel_select)
+		{
+			PastePixels();
+			return true;
+		}
+		return false;
+	case 'a':
+	case 'A':
+		if (ctrl && pixel_select)
+		{
+			SelectAllPixels();
+			return true;
+		}
+		return false;
+	case 'b':
+	case 'B':
+		if (ctrl && pixel_select)
+		{
+			SelectHoveredCell();
+			return true;
+		}
+		return false;
+	case 'h':
+	case 'H':
+		if (ctrl && pixel_select)
+		{
+			FlipSelection(true);
+			return true;
+		}
+		return false;
+	case 'e':
+	case 'E':
+		if (ctrl && pixel_select)
+		{
+			FlipSelection(false);
+			return true;
+		}
+		return false;
+	default:
+		return false;
+	}
+}
+
+void TilesetEditor::CycleColour(int delta, bool secondary)
+{
+	if (m_tileset == nullptr)
+	{
+		return;
+	}
+	const int count = 1 << m_tileset->GetTileBitDepth();
+	uint8_t& colour = secondary ? m_secondary_colour : m_primary_colour;
+	colour = static_cast<uint8_t>((colour + delta + count) % count);
+	// The palette pane tracks palette colours, not pen indices, so translate.
+	const int pal_colour = GetColour(colour);
+	FireEvent(EVT_TILESET_COLOUR_PICK,
+		std::to_string((secondary ? 0x100 : 0) | (pal_colour >= 0 ? pal_colour : 0)));
+	if ((m_hoveredtile != -1) && (m_hoveredpixel.x >= 0))
+	{
+		// The pen cursor outline is drawn in the active colour.
+		RefreshPixelRect(m_hoveredtile, m_hoveredpixel);
+	}
+}
+
 void TilesetEditor::OnMouseDown(wxMouseEvent& evt)
 {
+	// Clicking the canvas takes the keyboard, so the colour-cycling keys work.
+	SetFocus();
 	// The tools never move the selection: selection is switched off in draw mode, and a
 	// stray click must not re-target the tile the toolbar operations act on.
 	if (m_enabledrawing)
@@ -374,6 +496,15 @@ void TilesetEditor::StartDrawAction(const wxPoint& mousepos)
 	case Tool::Fill:
 		FloodFillAt(gx, gy, m_secondary_active ? m_secondary_colour : m_primary_colour);
 		break;
+	case Tool::Picker:
+		PickColourAt(gx, gy, m_secondary_active);
+		break;
+	case Tool::PixelSelect:
+		if (!m_secondary_active)
+		{
+			BeginSelectionAction(gx, gy);
+		}
+		break;
 	default:
 		// Shape tools: anchor here, preview while dragging, commit on release.
 		m_shape_active = true;
@@ -387,17 +518,36 @@ void TilesetEditor::StartDrawAction(const wxPoint& mousepos)
 
 void TilesetEditor::OnMouseUp(wxMouseEvent& evt)
 {
+	if (evt.LeftUp() && (m_sel_drag != SelDrag::None))
+	{
+		if (evt.RightIsDown())
+		{
+			CancelSelectionDrag();
+		}
+		else
+		{
+			FinishSelectionDrag();
+		}
+		m_drawing = false;
+		evt.Skip();
+		return;
+	}
 	if (evt.LeftUp())
 	{
 		if (evt.RightIsDown())
 		{
-			m_secondary_active = true;
-		}
-		else
-		{
+			// Releasing the left button with the right still held cancels the operation
+			// in progress, matching classic paint programs.
+			CancelShape();
+			CancelStroke();
 			m_drawing = false;
 			m_secondary_active = false;
+			m_last_drawn = wxPoint(-1, -1);
+			evt.Skip();
+			return;
 		}
+		m_drawing = false;
+		m_secondary_active = false;
 	}
 	if (evt.RightUp())
 	{
@@ -450,6 +600,12 @@ void TilesetEditor::OnMouseMove(wxMouseEvent& evt)
 
 void TilesetEditor::OnMouseLeave(wxMouseEvent& evt)
 {
+	if (m_sel_drag != SelDrag::None)
+	{
+		// The mouse is captured; the selection drag continues outside the window.
+		evt.Skip();
+		return;
+	}
 	// The stroke pauses while the pointer is outside - no motion events arrive out there -
 	// and OnMouseEnter decides whether it resumes from the real button state. Dropping the
 	// anchor makes re-entry start a fresh segment rather than joining a line across the
@@ -572,6 +728,18 @@ void TilesetEditor::MouseDraw(const wxPoint& mousepos)
 		}
 		RefreshPixelRect(old_tile, old_pixel);
 		RefreshPixelRect(tile, pixel);
+	}
+	if (m_drawing && m_enabledrawing && (m_pixelsize > 0) && (m_tool == Tool::Picker))
+	{
+		// Dragging with the picker keeps sampling, like holding an eyedropper.
+		PickColourAt(mousepos.x / m_pixelsize,
+			GetVisibleRowsBegin() * m_tileheight + mousepos.y / m_pixelsize, m_secondary_active);
+	}
+	if (m_enabledrawing && (m_pixelsize > 0) && (m_tool == Tool::PixelSelect) &&
+	    (m_sel_drag != SelDrag::None))
+	{
+		UpdateSelectionDrag(mousepos.x / m_pixelsize,
+			GetVisibleRowsBegin() * m_tileheight + mousepos.y / m_pixelsize);
 	}
 	if (m_drawing && m_enabledrawing && (m_pixelsize > 0) && m_shape_active)
 	{
@@ -784,6 +952,637 @@ void TilesetEditor::FloodFillAt(int gx, int gy, uint8_t colour)
 	m_redraw_list.insert(tile);
 	RefreshTileRect(tile);
 	FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(tile));
+}
+
+void TilesetEditor::PickColourAt(int gx, int gy, bool secondary)
+{
+	const int c = GetColourAtGlobalPixel(gx, gy);
+	if (c < 0)
+	{
+		return;
+	}
+	uint8_t& target = secondary ? m_secondary_colour : m_primary_colour;
+	if (target == c)
+	{
+		return;
+	}
+	target = static_cast<uint8_t>(c);
+	const int pal_colour = GetColour(c);
+	FireEvent(EVT_TILESET_COLOUR_PICK,
+		std::to_string((secondary ? 0x100 : 0) | (pal_colour >= 0 ? pal_colour : 0)));
+}
+
+void TilesetEditor::CancelStroke()
+{
+	if (!m_stroke_dirty)
+	{
+		return;
+	}
+	m_stroke_dirty = false;
+	if (!m_undo_stack.empty())
+	{
+		// The stroke pushed its pre-state when its first pixel landed; pop that back
+		// without disturbing the redo stack.
+		auto state = std::move(m_undo_stack.back());
+		m_undo_stack.pop_back();
+		RestoreHistoryState(std::move(state));
+	}
+}
+
+bool TilesetEditor::CancelActiveDrawOp()
+{
+	if (m_shape_active)
+	{
+		CancelShape();
+		m_drawing = false;
+		return true;
+	}
+	if (m_stroke_dirty)
+	{
+		CancelStroke();
+		m_drawing = false;
+		return true;
+	}
+	if (m_sel_drag != SelDrag::None)
+	{
+		CancelSelectionDrag();
+		return true;
+	}
+	if (m_sel_floating)
+	{
+		// Esc cancels a pending paste outright rather than confirming it.
+		DiscardFloating();
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		return true;
+	}
+	if (HasPixelSelection())
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		return true;
+	}
+	return false;
+}
+
+bool TilesetEditor::HasPixelSelection() const
+{
+	return (m_sel_rect.width > 0) && (m_sel_rect.height > 0);
+}
+
+int TilesetEditor::GetColourAtGlobalPixel(int gx, int gy) const
+{
+	if ((m_tileset == nullptr) || (gx < 0) || (gy < 0) || (gx >= m_columns * m_tilewidth))
+	{
+		return -1;
+	}
+	const int tile = (gx / m_tilewidth) + (gy / m_tileheight) * m_columns;
+	if (tile >= static_cast<int>(m_tileset->GetTileCount()))
+	{
+		return -1;
+	}
+	const int px = gx % m_tilewidth;
+	const int limit = m_draw_width_limiter ? m_draw_width_limiter(tile) : 0;
+	if ((limit > 0) && (px >= limit))
+	{
+		// Pixels beyond a glyph's width are undrawable, so they never travel with a
+		// selection either.
+		return -1;
+	}
+	const auto& pixels = m_tileset->GetTilePixels(tile);
+	const std::size_t idx = px + (gy % m_tileheight) * m_tilewidth;
+	return (idx < pixels.size()) ? pixels[idx] : -1;
+}
+
+void TilesetEditor::BeginSelectionAction(int gx, int gy)
+{
+	const int cw = m_columns * m_tilewidth;
+	const int ch = m_rows * m_tileheight;
+	if (HasPixelSelection() && m_sel_rect.Contains(wxPoint(gx, gy)))
+	{
+		m_sel_anchor = wxPoint(gx - m_sel_rect.x, gy - m_sel_rect.y);
+		m_sel_op_changed = false;
+		if (m_sel_floating)
+		{
+			// Dragging a pending paste just moves the float; it stays unconfirmed.
+			m_sel_drag = SelDrag::Move;
+		}
+		else
+		{
+			m_sel_snapshot = m_tileset->GetBits(false);
+			m_sel_snapshot_valid = true;
+			if (wxGetKeyState(WXK_CONTROL))
+			{
+				m_sel_drag = SelDrag::Stamp;
+			}
+			else if (wxGetKeyState(WXK_SHIFT))
+			{
+				m_sel_drag = SelDrag::Duplicate;
+			}
+			else
+			{
+				m_sel_drag = SelDrag::Move;
+			}
+			LiftSelection(m_sel_drag == SelDrag::Move);
+		}
+		CaptureMouse();
+	}
+	else
+	{
+		// Clicking outside confirms a pending paste, clears the selection and starts a
+		// fresh marquee from here.
+		ClearPixelSelection(true);
+		if ((gx >= 0) && (gy >= 0) && (gx < cw) && (gy < ch))
+		{
+			m_sel_drag = SelDrag::Marquee;
+			m_sel_anchor = wxPoint(gx, gy);
+			m_sel_rect = wxRect(gx, gy, 1, 1);
+			RefreshSelectionRect(m_sel_rect);
+			CaptureMouse();
+		}
+	}
+}
+
+void TilesetEditor::UpdateSelectionDrag(int gx, int gy)
+{
+	const int cw = m_columns * m_tilewidth;
+	const int ch = m_rows * m_tileheight;
+	switch (m_sel_drag)
+	{
+	case SelDrag::Marquee:
+	{
+		const int px = std::clamp(gx, 0, cw - 1);
+		const int py = std::clamp(gy, 0, ch - 1);
+		const wxRect next(wxPoint(std::min(m_sel_anchor.x, px), std::min(m_sel_anchor.y, py)),
+		                  wxSize(std::abs(px - m_sel_anchor.x) + 1, std::abs(py - m_sel_anchor.y) + 1));
+		if (next != m_sel_rect)
+		{
+			RefreshSelectionRect(m_sel_rect);
+			m_sel_rect = next;
+			RefreshSelectionRect(m_sel_rect);
+		}
+		break;
+	}
+	case SelDrag::Move:
+	case SelDrag::Duplicate:
+	case SelDrag::Stamp:
+	{
+		wxPoint tl(gx - m_sel_anchor.x, gy - m_sel_anchor.y);
+		tl.x = std::clamp(tl.x, 0, cw - m_sel_rect.width);
+		tl.y = std::clamp(tl.y, 0, ch - m_sel_rect.height);
+		if (tl != m_sel_rect.GetTopLeft())
+		{
+			RefreshSelectionRect(m_sel_rect);
+			m_sel_rect.x = tl.x;
+			m_sel_rect.y = tl.y;
+			if (m_sel_drag == SelDrag::Stamp)
+			{
+				// Continuous duplication: every step leaves a copy on the canvas.
+				m_sel_op_changed |= StampFloating();
+			}
+			RefreshSelectionRect(m_sel_rect);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+void TilesetEditor::FinishSelectionDrag()
+{
+	if (HasCapture())
+	{
+		ReleaseMouse();
+	}
+	if ((m_sel_drag == SelDrag::Move) || (m_sel_drag == SelDrag::Duplicate) ||
+	    (m_sel_drag == SelDrag::Stamp))
+	{
+		if (!m_sel_from_paste)
+		{
+			if (m_sel_drag != SelDrag::Stamp)
+			{
+				m_sel_op_changed |= StampFloating();
+			}
+			m_sel_floating = false;
+			m_float_bmp.reset();
+			// A drag that ends where it started leaves the tileset untouched (erase and
+			// re-stamp cancel out); comparing against the snapshot avoids a junk undo
+			// entry for that case.
+			bool push = false;
+			if (m_sel_snapshot_valid && m_sel_op_changed)
+			{
+				push = (m_tileset->GetBits(false) != m_sel_snapshot);
+			}
+			if (push)
+			{
+				PushUndo(std::move(m_sel_snapshot));
+				FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+			}
+			RefreshSelectionRect(m_sel_rect);
+		}
+	}
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+}
+
+void TilesetEditor::CancelSelectionDrag()
+{
+	if (HasCapture())
+	{
+		ReleaseMouse();
+	}
+	switch (m_sel_drag)
+	{
+	case SelDrag::Marquee:
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+		break;
+	}
+	case SelDrag::Move:
+	case SelDrag::Duplicate:
+	case SelDrag::Stamp:
+		if (m_sel_from_paste)
+		{
+			// Cancelling mid-drag drops the pending paste entirely.
+			DiscardFloating();
+			const wxRect old = m_sel_rect;
+			m_sel_rect = wxRect();
+			RefreshSelectionRect(old);
+		}
+		else if (m_sel_snapshot_valid)
+		{
+			// Puts the tileset back exactly as it was before the lift.
+			m_sel_floating = false;
+			m_float_bmp.reset();
+			RestoreHistoryState(std::move(m_sel_snapshot));
+		}
+		break;
+	default:
+		break;
+	}
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+}
+
+void TilesetEditor::ClearPixelSelection(bool confirm_floating)
+{
+	if (m_sel_floating)
+	{
+		if (confirm_floating)
+		{
+			ConfirmFloating();
+		}
+		else
+		{
+			DiscardFloating();
+		}
+	}
+	if (HasPixelSelection())
+	{
+		const wxRect old = m_sel_rect;
+		m_sel_rect = wxRect();
+		RefreshSelectionRect(old);
+	}
+}
+
+void TilesetEditor::ConfirmFloating()
+{
+	if (!m_sel_floating)
+	{
+		return;
+	}
+	auto snapshot = m_tileset->GetBits(false);
+	const bool changed = StampFloating();
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_float_bmp.reset();
+	if (changed)
+	{
+		PushUndo(std::move(snapshot));
+		FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+	}
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void TilesetEditor::DiscardFloating()
+{
+	if (!m_sel_floating)
+	{
+		return;
+	}
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_float_bmp.reset();
+	m_float_data.clear();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void TilesetEditor::LiftSelection(bool erase_source)
+{
+	m_float_data = ReadRect(m_sel_rect);
+	if (erase_source)
+	{
+		bool changed = false;
+		wxRect damage;
+		for (int y = 0; y < m_sel_rect.height; ++y)
+		{
+			for (int x = 0; x < m_sel_rect.width; ++x)
+			{
+				changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y,
+				                            m_secondary_colour, damage);
+			}
+		}
+		if (changed)
+		{
+			damage.Inflate(1, 1);
+			RefreshRect(damage);
+			m_sel_op_changed = true;
+		}
+	}
+	m_sel_floating = true;
+	m_sel_from_paste = false;
+	RenderFloatBitmap();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+bool TilesetEditor::StampFloating()
+{
+	if (m_float_data.size() !=
+	    static_cast<std::size_t>(m_sel_rect.width) * static_cast<std::size_t>(m_sel_rect.height))
+	{
+		return false;
+	}
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < m_sel_rect.height; ++y)
+	{
+		for (int x = 0; x < m_sel_rect.width; ++x)
+		{
+			const uint8_t v = m_float_data[x + y * m_sel_rect.width];
+			if (v == SEL_TRANSPARENT)
+			{
+				continue;
+			}
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, v, damage);
+		}
+	}
+	if (changed)
+	{
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+	return changed;
+}
+
+void TilesetEditor::RenderFloatBitmap()
+{
+	wxImage img(m_sel_rect.width, m_sel_rect.height);
+	img.SetAlpha();
+	unsigned char* rgb = img.GetData();
+	unsigned char* alpha = img.GetAlpha();
+	for (std::size_t i = 0; i < m_float_data.size(); ++i)
+	{
+		const uint8_t v = m_float_data[i];
+		const int pal_colour = (v == SEL_TRANSPARENT) ? -1 : GetColour(v);
+		if ((pal_colour < 0) || (m_selected_palette == nullptr))
+		{
+			alpha[i] = 0;
+			continue;
+		}
+		const uint32_t c = m_selected_palette->getBGRA(pal_colour);
+		rgb[i * 3] = c & 0xFF;
+		rgb[i * 3 + 1] = (c >> 8) & 0xFF;
+		rgb[i * 3 + 2] = (c >> 16) & 0xFF;
+		alpha[i] = c >> 24;
+	}
+	m_float_bmp = std::make_unique<wxBitmap>(img, 32);
+}
+
+void TilesetEditor::FillSelection(uint8_t colour)
+{
+	if (!HasPixelSelection() || m_sel_floating)
+	{
+		return;
+	}
+	auto snapshot = m_tileset->GetBits(false);
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < m_sel_rect.height; ++y)
+	{
+		for (int x = 0; x < m_sel_rect.width; ++x)
+		{
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, colour, damage);
+		}
+	}
+	if (changed)
+	{
+		PushUndo(std::move(snapshot));
+		FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void TilesetEditor::FlipSelection(bool horizontal)
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	const int w = m_sel_rect.width;
+	const int h = m_sel_rect.height;
+	const auto flip = [&](const std::vector<uint8_t>& src)
+	{
+		std::vector<uint8_t> out(src.size());
+		for (int y = 0; y < h; ++y)
+		{
+			for (int x = 0; x < w; ++x)
+			{
+				out[x + y * w] = horizontal ? src[(w - 1 - x) + y * w]
+				                            : src[x + (h - 1 - y) * w];
+			}
+		}
+		return out;
+	};
+	if (m_sel_floating)
+	{
+		m_float_data = flip(m_float_data);
+		RenderFloatBitmap();
+		RefreshSelectionRect(m_sel_rect);
+		return;
+	}
+	auto snapshot = m_tileset->GetBits(false);
+	const auto flipped = flip(ReadRect(m_sel_rect));
+	bool changed = false;
+	wxRect damage;
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			const uint8_t v = flipped[x + y * w];
+			if (v == SEL_TRANSPARENT)
+			{
+				continue;
+			}
+			changed |= PaintGlobalPixel(m_sel_rect.x + x, m_sel_rect.y + y, v, damage);
+		}
+	}
+	if (changed)
+	{
+		PushUndo(std::move(snapshot));
+		FireEvent(EVT_TILESET_TILE_CHANGE, std::to_string(m_selectedtile));
+		damage.Inflate(1, 1);
+		RefreshRect(damage);
+	}
+}
+
+void TilesetEditor::CopySelection()
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	m_pixel_clipboard.rect = m_sel_rect;
+	m_pixel_clipboard.data = m_sel_floating ? m_float_data : ReadRect(m_sel_rect);
+}
+
+void TilesetEditor::CutSelection()
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	CopySelection();
+	if (m_sel_floating)
+	{
+		// Cutting a pending paste just removes the float; the tileset never had it.
+		DiscardFloating();
+	}
+	else
+	{
+		FillSelection(m_secondary_colour);
+	}
+}
+
+void TilesetEditor::PastePixels()
+{
+	if (m_pixel_clipboard.data.empty())
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	wxRect r = m_pixel_clipboard.rect;
+	r.x = std::clamp(r.x, 0, std::max(0, m_columns * m_tilewidth - r.width));
+	r.y = std::clamp(r.y, 0, std::max(0, m_rows * m_tileheight - r.height));
+	m_sel_rect = r;
+	m_float_data = m_pixel_clipboard.data;
+	m_sel_floating = true;
+	m_sel_from_paste = true;
+	RenderFloatBitmap();
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void TilesetEditor::SelectAllPixels()
+{
+	if (m_tileset == nullptr)
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	m_sel_rect = wxRect(0, 0, m_columns * m_tilewidth, m_rows * m_tileheight);
+	RefreshSelectionRect(m_sel_rect);
+}
+
+void TilesetEditor::SelectHoveredCell()
+{
+	const int tile = (m_hoveredtile != -1) ? m_hoveredtile : m_selectedtile;
+	if (tile < 0)
+	{
+		return;
+	}
+	ClearPixelSelection(true);
+	m_sel_rect = wxRect((tile % m_columns) * m_tilewidth, (tile / m_columns) * m_tileheight,
+	                    m_tilewidth, m_tileheight);
+	RefreshSelectionRect(m_sel_rect);
+}
+
+std::vector<uint8_t> TilesetEditor::ReadRect(const wxRect& rect) const
+{
+	std::vector<uint8_t> out(static_cast<std::size_t>(rect.width) * static_cast<std::size_t>(rect.height),
+	                         SEL_TRANSPARENT);
+	for (int y = 0; y < rect.height; ++y)
+	{
+		for (int x = 0; x < rect.width; ++x)
+		{
+			const int c = GetColourAtGlobalPixel(rect.x + x, rect.y + y);
+			if (c >= 0)
+			{
+				out[x + y * rect.width] = static_cast<uint8_t>(c);
+			}
+		}
+	}
+	return out;
+}
+
+void TilesetEditor::RefreshSelectionRect(const wxRect& rect)
+{
+	if ((rect.width <= 0) || (rect.height <= 0))
+	{
+		return;
+	}
+	RefreshRect(GlobalPixelBoxToClient(rect.GetTopLeft(), rect.GetBottomRight()));
+}
+
+void TilesetEditor::DrawPixelSelection(wxDC& dc)
+{
+	if (!HasPixelSelection())
+	{
+		return;
+	}
+	if (m_sel_floating && (m_float_bmp != nullptr))
+	{
+		wxMemoryDC mem(*m_float_bmp);
+		dc.StretchBlit(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+		               m_sel_rect.width * m_pixelsize, m_sel_rect.height * m_pixelsize,
+		               &mem, 0, 0, m_sel_rect.width, m_sel_rect.height, wxCOPY, true);
+		mem.SelectObject(wxNullBitmap);
+	}
+	// White underlay + black dashes stays visible over any artwork.
+	dc.SetBrush(*wxTRANSPARENT_BRUSH);
+	dc.SetPen(*wxWHITE_PEN);
+	dc.DrawRectangle(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+	                 m_sel_rect.width * m_pixelsize + 1, m_sel_rect.height * m_pixelsize + 1);
+	dc.SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SHORT_DASH));
+	dc.DrawRectangle(m_sel_rect.x * m_pixelsize, m_sel_rect.y * m_pixelsize,
+	                 m_sel_rect.width * m_pixelsize + 1, m_sel_rect.height * m_pixelsize + 1);
+}
+
+void TilesetEditor::ResetSelectionState()
+{
+	m_sel_rect = wxRect();
+	m_sel_drag = SelDrag::None;
+	m_sel_floating = false;
+	m_sel_from_paste = false;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
+	m_float_bmp.reset();
+	m_float_data.clear();
+	// The pixel clipboard survives on purpose, so content can be pasted across tilesets.
+}
+
+void TilesetEditor::OnCaptureLost(wxMouseCaptureLostEvent& /*evt*/)
+{
+	// Capture already gone - just drop the drag state.
+	m_sel_drag = SelDrag::None;
+	m_sel_snapshot_valid = false;
+	m_sel_op_changed = false;
 }
 
 void TilesetEditor::RefreshTileRect(int tile)
@@ -1025,7 +1824,8 @@ void TilesetEditor::DrawGlyphLimitOverlay(wxDC& dc, const wxRect& damage)
 void TilesetEditor::DrawPixelCursor(wxDC& dc)
 {
 	if (!m_enabledrawing || (m_hoveredtile == -1) ||
-	    (m_hoveredpixel.x < 0) || (m_hoveredpixel.y < 0))
+	    (m_hoveredpixel.x < 0) || (m_hoveredpixel.y < 0) ||
+	    (m_tool == Tool::PixelSelect))
 	{
 		return;
 	}
@@ -1248,6 +2048,15 @@ void TilesetEditor::SetDrawingEnabled(bool enabled)
 {
 	if (m_enabledrawing != enabled)
 	{
+		if (!enabled)
+		{
+			// Leaving draw mode confirms a pending paste and drops the selection.
+			if (m_sel_drag != SelDrag::None)
+			{
+				CancelSelectionDrag();
+			}
+			ClearPixelSelection(true);
+		}
 		m_enabledrawing = enabled;
 		m_drawing = false;
 		m_secondary_active = false;
@@ -1267,6 +2076,12 @@ void TilesetEditor::SetDrawTool(Tool tool)
 	if (m_tool != tool)
 	{
 		CancelShape();
+		if (m_sel_drag != SelDrag::None)
+		{
+			CancelSelectionDrag();
+		}
+		// Switching tool confirms a pending paste and drops the selection.
+		ClearPixelSelection(true);
 		m_tool = tool;
 	}
 }
@@ -1428,6 +2243,8 @@ void TilesetEditor::PushUndo(std::vector<uint8_t>&& state)
 
 void TilesetEditor::RestoreHistoryState(std::vector<uint8_t>&& state)
 {
+	// Any selection or pending float refers to content that is about to change.
+	ResetSelectionState();
 	m_tileset->SetBits(state, false);
 	// A restored state can have a different tile count, invalidating the selection and the
 	// layout both.
@@ -1445,6 +2262,8 @@ void TilesetEditor::ClearHistory()
 	m_undo_stack.clear();
 	m_redo_stack.clear();
 	m_stroke_dirty = false;
+	// Called when a tileset is (re)opened: any selection or float belongs to the old one.
+	ResetSelectionState();
 }
 
 void TilesetEditor::SelectTile(int tile)

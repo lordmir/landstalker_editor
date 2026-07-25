@@ -107,6 +107,7 @@ private:
 	void OnButtonClicked(wxCommandEvent& evt);
 	void OnPaletteColourSelect(wxCommandEvent& evt);
 	void OnPaletteColourHover(wxCommandEvent& evt);
+	void OnColourPicked(wxCommandEvent& evt);
 
 	void OnExportFrm();
 	void OnExportTiles();

@@ -31,6 +31,10 @@ enum TOOL_IDS
 	ID_CIRCLE_FILLED,
 	ID_CIRCLE_OUTLINE,
 	ID_FILL,
+	ID_PICKER,
+	ID_PIXEL_SELECT,
+	ID_HFLIP_SEL,
+	ID_VFLIP_SEL,
 };
 
 enum MENU_IDS
@@ -63,6 +67,7 @@ EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, TilesetEditorFrame::OnTileEditRequeste
 EVT_COMMAND(wxID_ANY, EVT_TILESET_TILE_CHANGE, TilesetEditorFrame::OnTilePixelChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_HOVER, TilesetEditorFrame::OnTileSelectionChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_CHANGE, TilesetEditorFrame::OnTilesetChange)
+EVT_COMMAND(wxID_ANY, EVT_TILESET_COLOUR_PICK, TilesetEditorFrame::OnColourPicked)
 EVT_SLIDER(ID_ZOOM_SLIDER, TilesetEditorFrame::OnZoom)
 wxEND_EVENT_TABLE()
 
@@ -570,6 +575,11 @@ void TilesetEditorFrame::UpdateUI() const
 		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, drawing && (tool == TilesetEditor::Tool::CircleFilled));
 		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, drawing && (tool == TilesetEditor::Tool::CircleOutline));
 		CheckToolbarItem("Tools", ID_FILL, drawing && (tool == TilesetEditor::Tool::Fill));
+		CheckToolbarItem("Tools", ID_PICKER, drawing && (tool == TilesetEditor::Tool::Picker));
+		CheckToolbarItem("Tools", ID_PIXEL_SELECT, drawing && (tool == TilesetEditor::Tool::PixelSelect));
+		// The flips act on the pixel selection, which only that tool creates.
+		EnableToolbarItem("Tileset", ID_HFLIP_SEL, drawing && (tool == TilesetEditor::Tool::PixelSelect));
+		EnableToolbarItem("Tileset", ID_VFLIP_SEL, drawing && (tool == TilesetEditor::Tool::PixelSelect));
 		// The drawing tools disable selection, so the operations that act on the selected
 		// tile grey out with them.
 		const bool sel = !drawing;
@@ -610,10 +620,28 @@ void TilesetEditorFrame::OnPaletteChanged(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void TilesetEditorFrame::OnColourPicked(wxCommandEvent& evt)
+{
+	// Keeps the palette pane's primary/secondary markers in step with keyboard cycling.
+	const int value = std::stoi(evt.GetString().ToStdString());
+	if (value & 0x100)
+	{
+		m_paletteEditor->SetSecondaryColour(value & 0xFF);
+	}
+	else
+	{
+		m_paletteEditor->SetPrimaryColour(value & 0xFF);
+	}
+	RequestStatusBarUpdate();
+	evt.Skip();
+}
+
 void TilesetEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 {
 	m_tilesetEditor->SetPrimaryColour(m_paletteEditor->GetPrimaryColour());
 	m_tilesetEditor->SetSecondaryColour(m_paletteEditor->GetSecondaryColour());
+	// The status bar shows the pen colours.
+	RequestStatusBarUpdate();
 	evt.Skip();
 }
 
@@ -660,9 +688,20 @@ void TilesetEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*
 	ss.str(std::string());
 	if (m_zoomslider != nullptr)
 	{
-		ss << "Zoom: " << m_zoomslider->GetValue();
-		status.SetStatusText(ss.str(), 2);
+		ss << "Zoom: " << m_zoomslider->GetValue() << ", ";
 	}
+	ss << "Pen: " << static_cast<int>(m_tilesetEditor->GetPrimaryColour())
+	   << " / " << static_cast<int>(m_tilesetEditor->GetSecondaryColour());
+	if (m_tilesetEditor->IsPixelHoverValid())
+	{
+		const int idx = m_tilesetEditor->GetColourAtPixel(m_tilesetEditor->GetHoveredTile(),
+			m_tilesetEditor->GetHoveredPixel());
+		if (idx >= 0)
+		{
+			ss << ", Hover: " << idx;
+		}
+	}
+	status.SetStatusText(ss.str(), 2);
 }
 
 void TilesetEditorFrame::InitProperties(wxPropertyGridManager& props) const
@@ -915,6 +954,11 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tileset_tb->AddTool(ID_COPY_TILE, "Copy Tile", ilist.GetImage("copy"), "Copy Tile");
 	tileset_tb->AddTool(ID_PASTE_TILE, "Paste Tile", ilist.GetImage("paste"), "Paste Tile");
 	tileset_tb->AddSeparator();
+	tileset_tb->AddTool(ID_HFLIP_SEL, "Flip Selection Horizontally", ilist.GetImage("hflip"),
+		"Flip Selection Horizontally (Ctrl+H)");
+	tileset_tb->AddTool(ID_VFLIP_SEL, "Flip Selection Vertically", ilist.GetImage("vflip"),
+		"Flip Selection Vertically (Ctrl+E)");
+	tileset_tb->AddSeparator();
 	tileset_tb->AddLabel(wxID_ANY, "Zoom:");
 	// Zoom runs high enough to draw individual pixels comfortably.
 	m_zoomslider = new wxSlider(tileset_tb, ID_ZOOM_SLIDER, 8, 1, 32, wxDefaultPosition, wxSize(80, wxDefaultCoord));
@@ -932,6 +976,10 @@ void TilesetEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
 	tools_tb->SetToolBitmapSize(wxSize(16, 16));
 	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PIXEL_SELECT, "Select Pixels", ilist.GetImage("select_rect"),
+		"Select Pixels (drag to move, Shift+drag to copy, Ctrl+drag to stamp, Ctrl+C/X/V, Ctrl+H/E to flip)", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PICKER, "Colour Picker", ilist.GetImage("dropper"),
+		"Colour Picker (left click: primary, right click: secondary)", wxITEM_CHECK);
 	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
 	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
 	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
@@ -1018,6 +1066,18 @@ void TilesetEditorFrame::OnMenuClick(wxMenuEvent& evt)
 			break;
 		case ID_SELECT:
 			SelectDrawSelect();
+			break;
+		case ID_PIXEL_SELECT:
+			SelectDrawTool(TilesetEditor::Tool::PixelSelect);
+			break;
+		case ID_PICKER:
+			SelectDrawTool(TilesetEditor::Tool::Picker);
+			break;
+		case ID_HFLIP_SEL:
+			m_tilesetEditor->FlipSelection(true);
+			break;
+		case ID_VFLIP_SEL:
+			m_tilesetEditor->FlipSelection(false);
 			break;
 		case ID_PENCIL:
 			SelectDrawPencil();

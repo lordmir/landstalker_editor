@@ -131,6 +131,8 @@ ImageList::ImageList(bool img32x32)
 		m_images["data_table"] = wxBITMAP_PNG_FROM_DATA(datatable_16x16);
 		m_images["delete"] = wxBITMAP_PNG_FROM_DATA(DELETE_16x16);
 		m_images["delete_column"] = wxBITMAP_PNG_FROM_DATA(delete_col_16x16);
+		m_images["dropper"] = wxBITMAP_PNG_FROM_DATA(dropper_16x16);
+		m_images["select_rect"] = wxBITMAP_PNG_FROM_DATA(select_rect_16x16);
 		m_images["image"] = wxBITMAP_PNG_FROM_DATA(img_16x16);
 		m_images["insert_column_after"] = wxBITMAP_PNG_FROM_DATA(insert_col_after_16x16);
 		m_images["insert_column_before"] = wxBITMAP_PNG_FROM_DATA(insert_col_before_16x16);

@@ -28,15 +28,13 @@ public:
 	bool ImportBin(const std::string& filename, uint16_t base, int width = 0, int height = 0) const;
 	bool ImportCsv(const std::string& filename) const;
 private:
-	enum class State
-	{
-		SELECT,
-		PENCIL
-	};
 	void OnZoomChange(wxCommandEvent& evt);
 	void OnTilesetZoomChange(wxCommandEvent& evt);
 	void OnTileChanged(wxCommandEvent& evt);
 	void OnTileHovered(wxCommandEvent& evt);
+	void OnTilePicked(wxCommandEvent& evt);
+	void OnKeyPress(wxKeyEvent& evt);
+	void CycleDrawTile(int delta);
 	void OnTileSelect(wxCommandEvent& evt);
 	void OnMapChanged(wxCommandEvent& evt);
 	void OnTileEditRequested(wxCommandEvent& evt);

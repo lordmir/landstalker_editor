@@ -153,6 +153,36 @@ private:
     void NavigateHistory(int pos);
     void UpdateNavButtons();
     void OnRecordNavLocation(wxCommandEvent& event);
+    // The browser's quick add/delete/manager buttons. They apply to the category the
+    // highlighted tree item falls under, and only to categories whose elements are managed
+    // through a manager dialog (rooms, sprites, tilesets, blocksets).
+    struct AssetSelection
+    {
+        enum class Category
+        {
+            NONE,
+            TILESET,
+            BLOCKSET,
+            ROOM,
+            SPRITE
+        };
+        Category category = Category::NONE;
+        std::string name;  // Highlighted element, for the name-keyed categories.
+        int id = -1;       // Highlighted element, for rooms and sprites.
+    };
+    enum class AssetAction
+    {
+        OPEN,
+        ADD,
+        REMOVE
+    };
+    AssetSelection GetAssetSelection();
+    void UpdateAssetButtons();
+    void ShowAssetManagerForSelection(AssetAction action);
+    void ShowTilesetAssetManager(const AssetSelection& sel, AssetAction action);
+    void ShowBlocksetAssetManager(const AssetSelection& sel, AssetAction action);
+    void ShowRoomAssetManager(const AssetSelection& sel, AssetAction action);
+    void ShowSpriteAssetManager(const AssetSelection& sel, AssetAction action);
     bool RenameNavItem(const std::wstring& old_path, const std::wstring& new_path);
     bool AddNavItem(const std::wstring& path, int image = -1, const TreeNodeData::Node& type = TreeNodeData::Node::BASE, int value = 0, bool no_delete = true);
     bool DeleteNavItem(const std::wstring& path);
@@ -214,6 +244,9 @@ private:
 
     wxBitmapButton* m_nav_back = nullptr;
     wxBitmapButton* m_nav_fwd = nullptr;
+    wxBitmapButton* m_asset_add = nullptr;
+    wxBitmapButton* m_asset_remove = nullptr;
+    wxBitmapButton* m_asset_manager = nullptr;
     // Visited nav-item paths and the current position within them; m_nav_navigating suppresses
     // recording while a back/forward move is replaying a visit.
     std::vector<NavLocation> m_nav_history;

@@ -18,7 +18,19 @@
 class RoomManagerDialog : public wxDialog
 {
 public:
-	RoomManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, uint16_t roomnum);
+	// Optional operation to run as soon as the dialog opens, for the browser's quick
+	// add/delete buttons. On success the dialog closes itself (reporting the added room
+	// as the one to open); on failure or cancellation it stays open so the user can see
+	// why and continue by hand.
+	enum class InitialAction
+	{
+		NONE,
+		ADD,
+		REMOVE
+	};
+
+	RoomManagerDialog(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd, uint16_t roomnum,
+		InitialAction initial_action = InitialAction::NONE);
 	virtual ~RoomManagerDialog();
 
 	// True if any operation modified the game data, so the caller knows to refresh.
@@ -27,6 +39,7 @@ public:
 	int GetRoomToOpen() const { return m_room_to_open; }
 
 private:
+	void RunInitialAction(InitialAction action);
 	void PopulateRoomList(int select);
 	void PopulateDetails();
 	void PopulatePreview();

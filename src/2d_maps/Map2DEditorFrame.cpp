@@ -16,7 +16,14 @@ enum TOOL_IDS
 	ID_VFLIP_TILE,
 	ID_TOGGLE_TILE_PRIORITY,
 	ID_SELECT,
+	ID_BOX_SELECT,
 	ID_PENCIL,
+	ID_LINE,
+	ID_RECT_FILLED,
+	ID_RECT_OUTLINE,
+	ID_CIRCLE_FILLED,
+	ID_CIRCLE_OUTLINE,
+	ID_FILL,
 	ID_ZOOM_SLIDER,
 	ID_TILESET_TOGGLE_GRIDLINES,
 	ID_TILESET_ALPHA,
@@ -52,6 +59,7 @@ EVT_SLIDER(ID_ZOOM_SLIDER, Map2DEditorFrame::OnZoomChange)
 EVT_SLIDER(ID_TILESET_ZOOM, Map2DEditorFrame::OnTilesetZoomChange)
 EVT_COMMAND(wxID_ANY, EVT_MAP_SELECT, Map2DEditorFrame::OnTileChanged)
 EVT_COMMAND(wxID_ANY, EVT_MAP_HOVER, Map2DEditorFrame::OnTileHovered)
+EVT_COMMAND(wxID_ANY, EVT_MAP_TILE_PICK, Map2DEditorFrame::OnTilePicked)
 EVT_COMMAND(wxID_ANY, EVT_MAP_CHANGE, Map2DEditorFrame::OnMapChanged)
 EVT_COMMAND(wxID_ANY, EVT_TILESET_SELECT, Map2DEditorFrame::OnTileSelect)
 EVT_COMMAND(wxID_ANY, EVT_MAP_EDIT_REQUEST, Map2DEditorFrame::OnTileEditRequested)
@@ -91,6 +99,12 @@ Map2DEditorFrame::Map2DEditorFrame(wxWindow* parent, ImageList* imglst)
 	// tell the manager to "commit" all the changes just made
 	m_mgr.Update();
 	UpdateUI();
+
+	// Key events don't bubble up from focused children, so route both canvases' keys
+	// through the frame handler, as the blockset editor does.
+	this->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Map2DEditorFrame::OnKeyPress), nullptr, this);
+	m_mapedit->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Map2DEditorFrame::OnKeyPress), nullptr, this);
+	m_tileset->Connect(wxEVT_KEY_DOWN, wxKeyEventHandler(Map2DEditorFrame::OnKeyPress), nullptr, this);
 }
 
 Map2DEditorFrame::~Map2DEditorFrame()
@@ -185,6 +199,46 @@ void Map2DEditorFrame::SetTileset(const std::string& name)
 void Map2DEditorFrame::SetDrawTile(const Tile& tile)
 {
 	m_mapedit->SetDrawTile(tile);
+	FireEvent(EVT_STATUSBAR_UPDATE);
+}
+
+void Map2DEditorFrame::OnKeyPress(wxKeyEvent& evt)
+{
+	// Box-selection shortcuts (Esc, Delete, Ctrl+C/X/V/A, Ctrl+H/E/P) take precedence
+	// while that mode is active.
+	if (m_mapedit->HandleKeyDown(evt.GetKeyCode(), evt.GetModifiers()))
+	{
+		FireEvent(EVT_STATUSBAR_UPDATE);
+		return;
+	}
+	switch (evt.GetKeyCode())
+	{
+	// Cycles the draw tile through all 1024 possible indices, valid or not:
+	// +/-1 plain, +/-10 with Shift, +/-100 with Ctrl.
+	case '+':
+	case '=':
+	case WXK_NUMPAD_ADD:
+		CycleDrawTile(evt.ControlDown() ? 100 : (evt.ShiftDown() ? 10 : 1));
+		break;
+	case '-':
+	case '_':
+	case WXK_NUMPAD_SUBTRACT:
+		CycleDrawTile(evt.ControlDown() ? -100 : (evt.ShiftDown() ? -10 : -1));
+		break;
+	default:
+		evt.Skip();
+		break;
+	}
+}
+
+void Map2DEditorFrame::CycleDrawTile(int delta)
+{
+	auto tile = m_mapedit->GetDrawTile();
+	tile.SetIndex(static_cast<uint16_t>(((tile.GetIndex() + delta) % 1024 + 1024) % 1024));
+	m_tile = tile;
+	m_mapedit->SetDrawTile(tile);
+	// Track the tiles pane selection; out-of-range indices simply have no cell to select.
+	m_tileset->SelectTile(tile.GetIndex());
 	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
@@ -336,6 +390,16 @@ void Map2DEditorFrame::OnTileHovered(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void Map2DEditorFrame::OnTilePicked(wxCommandEvent& evt)
+{
+	// A right-click pick on the canvas: keep the frame's tile, the tiles pane and the
+	// status bar in step with the canvas's new draw tile.
+	m_tile = m_mapedit->GetDrawTile();
+	m_tileset->SelectTile(m_tile.GetIndex());
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
 void Map2DEditorFrame::OnMapChanged(wxCommandEvent& evt)
 {
 	// Keeps undo/redo enablement in step with canvas-driven edits (pencil clicks).
@@ -349,7 +413,12 @@ void Map2DEditorFrame::OnTileSelect(wxCommandEvent& evt)
 	if (tileId >= 0)
 	{
 		m_tile = tileId;
-		m_mapedit->SetMode(Map2DEditor::Mode::PENCIL);
+		// Picking a tile arms drawing, but doesn't yank an already-selected shape tool
+		// back to the pencil.
+		if (!Map2DEditor::IsDrawMode(m_mapedit->GetMode()))
+		{
+			m_mapedit->SetMode(Map2DEditor::Mode::PENCIL);
+		}
 		m_mapedit->SetDrawTile(m_tile);
 	}
 	FireEvent(EVT_STATUSBAR_UPDATE);
@@ -438,8 +507,29 @@ std::string Map2DEditorFrame::PrettyPrintMode() const
 	case Map2DEditor::Mode::SELECT:
 		ss << "SELECT";
 		break;
+	case Map2DEditor::Mode::BOX_SELECT:
+		ss << "BOX SELECT";
+		break;
 	case Map2DEditor::Mode::PENCIL:
 		ss << "DRAW - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::LINE:
+		ss << "DRAW LINE - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::RECTANGLE_FILLED:
+		ss << "DRAW FILLED RECTANGLE - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::RECTANGLE_OUTLINE:
+		ss << "DRAW RECTANGLE - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::CIRCLE_FILLED:
+		ss << "DRAW FILLED CIRCLE - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::CIRCLE_OUTLINE:
+		ss << "DRAW CIRCLE - Tile " << m_mapedit->GetDrawTile().GetTileValue();
+		break;
+	case Map2DEditor::Mode::FILL:
+		ss << "FILL - Tile " << m_mapedit->GetDrawTile().GetTileValue();
 		break;
 	default:
 		ss << "?";
@@ -631,7 +721,15 @@ void Map2DEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
 	tools_tb->SetToolBitmapSize(wxSize(16, 16));
 	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
+	tools_tb->AddTool(ID_BOX_SELECT, "Select Cells", ilist.GetImage("select_rect"),
+		"Select Cells (drag to move, Shift+drag to copy, Ctrl+drag to stamp, Ctrl+C/X/V, Ctrl+H/E/P to toggle flips/priority)", wxITEM_CHECK);
 	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
+	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_RECT_OUTLINE, "Draw Outlined Rectangle", ilist.GetImage("rect_outline"), "Draw Outlined Rectangle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_FILLED, "Draw Filled Circle", ilist.GetImage("circle_filled"), "Draw Filled Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_CIRCLE_OUTLINE, "Draw Outlined Circle", ilist.GetImage("circle_outline"), "Draw Outlined Circle", wxITEM_CHECK);
+	tools_tb->AddTool(ID_FILL, "Fill", ilist.GetImage("fill"), "Fill", wxITEM_CHECK);
 	AddToolbar(m_mgr, *tools_tb, "Tools", "Tools", wxAuiPaneInfo().ToolbarPane().Left().Row(1).Position(1));
 	
 	InitCombos();
@@ -731,8 +829,14 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 			m_mapedit->DeleteColumn(m_mapedit->GetSelection().x);
 		}
 		break;
+	// With a box selection active these act on the whole rectangle (same as Ctrl+H/E/P);
+	// otherwise they toggle the single selected tile as before.
 	case ID_HFLIP_TILE:
-		if (m_mapedit->IsSelectionValid())
+		if (m_mapedit->HasBoxSelection())
+		{
+			m_mapedit->ToggleBoxAttribute(TileAttributes::Attribute::ATTR_HFLIP);
+		}
+		else if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
 			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_HFLIP);
@@ -740,7 +844,11 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		}
 		break;
 	case ID_VFLIP_TILE:
-		if (m_mapedit->IsSelectionValid())
+		if (m_mapedit->HasBoxSelection())
+		{
+			m_mapedit->ToggleBoxAttribute(TileAttributes::Attribute::ATTR_VFLIP);
+		}
+		else if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
 			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_VFLIP);
@@ -748,7 +856,11 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		}
 		break;
 	case ID_TOGGLE_TILE_PRIORITY:
-		if (m_mapedit->IsSelectionValid())
+		if (m_mapedit->HasBoxSelection())
+		{
+			m_mapedit->ToggleBoxAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
+		}
+		else if (m_mapedit->IsSelectionValid())
 		{
 			auto tile = m_mapedit->GetSelectedTile();
 			tile.Attributes().toggleAttribute(TileAttributes::Attribute::ATTR_PRIORITY);
@@ -758,8 +870,29 @@ void Map2DEditorFrame::OnMenuClick(wxMenuEvent& evt)
 	case ID_SELECT:
 		m_mapedit->SetMode(Map2DEditor::Mode::SELECT);
 		break;
+	case ID_BOX_SELECT:
+		m_mapedit->SetMode(Map2DEditor::Mode::BOX_SELECT);
+		break;
 	case ID_PENCIL:
 		m_mapedit->SetMode(Map2DEditor::Mode::PENCIL);
+		break;
+	case ID_LINE:
+		m_mapedit->SetMode(Map2DEditor::Mode::LINE);
+		break;
+	case ID_RECT_FILLED:
+		m_mapedit->SetMode(Map2DEditor::Mode::RECTANGLE_FILLED);
+		break;
+	case ID_RECT_OUTLINE:
+		m_mapedit->SetMode(Map2DEditor::Mode::RECTANGLE_OUTLINE);
+		break;
+	case ID_CIRCLE_FILLED:
+		m_mapedit->SetMode(Map2DEditor::Mode::CIRCLE_FILLED);
+		break;
+	case ID_CIRCLE_OUTLINE:
+		m_mapedit->SetMode(Map2DEditor::Mode::CIRCLE_OUTLINE);
+		break;
+	case ID_FILL:
+		m_mapedit->SetMode(Map2DEditor::Mode::FILL);
 		break;
 	case ID_TILESET_ALPHA:
 		m_tileset->SetAlphaEnabled(!m_tileset->GetAlphaEnabled());
@@ -785,6 +918,7 @@ void Map2DEditorFrame::ClearMenu(wxMenuBar& menu) const
 	m_palette_select = nullptr;
 	m_tileset_select = nullptr;
 	m_zoomslider = nullptr;
+	m_tileset_zoomslider = nullptr;
 	EditorFrame::ClearMenu(menu);
 }
 
@@ -809,7 +943,14 @@ void Map2DEditorFrame::UpdateUI() const
 		// Mode buttons live on the Tools toolbar as check items, with exclusivity here.
 		const auto mode = m_mapedit->GetMode();
 		CheckToolbarItem("Tools", ID_SELECT, mode == Map2DEditor::Mode::SELECT);
+		CheckToolbarItem("Tools", ID_BOX_SELECT, mode == Map2DEditor::Mode::BOX_SELECT);
 		CheckToolbarItem("Tools", ID_PENCIL, mode == Map2DEditor::Mode::PENCIL);
+		CheckToolbarItem("Tools", ID_LINE, mode == Map2DEditor::Mode::LINE);
+		CheckToolbarItem("Tools", ID_RECT_FILLED, mode == Map2DEditor::Mode::RECTANGLE_FILLED);
+		CheckToolbarItem("Tools", ID_RECT_OUTLINE, mode == Map2DEditor::Mode::RECTANGLE_OUTLINE);
+		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, mode == Map2DEditor::Mode::CIRCLE_FILLED);
+		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, mode == Map2DEditor::Mode::CIRCLE_OUTLINE);
+		CheckToolbarItem("Tools", ID_FILL, mode == Map2DEditor::Mode::FILL);
 	}
 	if (m_tileset != nullptr)
 	{

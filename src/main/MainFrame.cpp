@@ -31,6 +31,10 @@
 #include <misc/AssemblyBuilderDialog.h>
 #include <misc/ApplicationPreferencesDialog.h>
 #include <misc/PreferencesDialog.h>
+#include <rooms/BlocksetManagerDialog.h>
+#include <rooms/RoomManagerDialog.h>
+#include <rooms/TilesetManagerDialog.h>
+#include <sprites/SpriteManagerDialog.h>
 
 MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     : MainFrameBaseClass(parent),
@@ -80,9 +84,28 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
         m_nav_fwd->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { NavigateHistory(m_nav_pos + 1); });
         navbar->Add(m_nav_back, 0, wxRIGHT, 2);
         navbar->Add(m_nav_fwd, 0);
+        // Quick asset buttons: add to / delete from the highlighted category, and open its
+        // manager dialog. They light up for the categories a manager dialog exists for.
+        m_asset_add = new wxBitmapButton(m_panel_browser, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_PLUS, wxART_BUTTON));
+        m_asset_remove = new wxBitmapButton(m_panel_browser, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_MINUS, wxART_BUTTON));
+        m_asset_manager = new wxBitmapButton(m_panel_browser, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_LIST_VIEW, wxART_BUTTON));
+        m_asset_add->SetToolTip("Add a new item to the highlighted category");
+        m_asset_remove->SetToolTip("Delete the highlighted item");
+        m_asset_manager->SetToolTip("Open the manager for the highlighted category");
+        m_asset_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ShowAssetManagerForSelection(AssetAction::ADD); });
+        m_asset_remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ShowAssetManagerForSelection(AssetAction::REMOVE); });
+        m_asset_manager->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ShowAssetManagerForSelection(AssetAction::OPEN); });
+        navbar->AddSpacer(8);
+        navbar->Add(m_asset_add, 0, wxRIGHT, 2);
+        navbar->Add(m_asset_remove, 0, wxRIGHT, 2);
+        navbar->Add(m_asset_manager, 0);
         m_panel_browser->GetSizer()->Insert(0, navbar, 0, wxLEFT | wxTOP | wxBOTTOM, 4);
         m_panel_browser->Layout();
         UpdateNavButtons();
+        UpdateAssetButtons();
     }
 
     SetMode(Mode::NONE);
@@ -302,6 +325,14 @@ void MainFrame::InitUI()
     Freeze();
     m_browser->DeleteAllItems();
     m_browser->SetImageList(m_imgs);
+    // The grid is about to be emptied, so first drop every editor's claim on it.
+    // SetGameData below posts properties-update events, and an editor whose flag still
+    // said "my properties are in the grid" would dereference entries that no longer
+    // exist once those events land.
+    for (const auto& editor : m_editors)
+    {
+        editor.second->ClearProperties(*m_properties);
+    }
     m_properties->GetGrid()->Clear();
     for (const auto& editor : m_editors)
     {
@@ -352,23 +383,57 @@ void MainFrame::InitUI()
     // GetItemText call to see whether the entry already exists and again to find where it
     // goes. That is fine for adding one item, but it makes a bulk build quadratic: the last
     // of the 800-odd rooms rescans all 800 of its siblings, twice over. The parent is
-    // already known in the loops below, so they append straight to it and use a local index
-    // to keep InsertNavItem's behaviour of folding entries that share a display name onto
-    // the first one.
+    // already known in the loops below, so this appends straight to it, with a local
+    // path-keyed index replacing the sibling scans. It keeps the rest of InsertNavItem's
+    // behaviour: slashes in a display name nest the entry inside folders, and entries that
+    // share a full name fold onto the first one.
     const auto append_leaf = [&](const std::optional<wxTreeItemId>& parent,
         std::map<std::wstring, wxTreeItemId>& index, const std::wstring& name, int img,
         const TreeNodeData::Node& type, int value)
     {
+        static const int CLOSED_FOLDER_ICON = m_imgs->GetIdx("closed_folder");
+        static const int OPEN_FOLDER_ICON = m_imgs->GetIdx("open_folder");
         if (!parent)
         {
             return;
         }
-        if (index.count(name) != 0)
+        wxTreeItemId at = *parent;
+        std::wstring path;
+        std::size_t start = 0;
+        while (true)
         {
-            return;
+            const auto sep = name.find(L'/', start);
+            const bool last = (sep == std::wstring::npos);
+            const std::wstring part = last ? name.substr(start) : name.substr(start, sep - start);
+            path += (path.empty() ? L"" : L"/") + part;
+            const auto existing = index.find(path);
+            if (existing != index.end())
+            {
+                if (last)
+                {
+                    return;
+                }
+                at = existing->second;
+            }
+            else if (last)
+            {
+                at = m_browser->AppendItem(at, part, img, img, new TreeNodeData(type, value, img, false));
+                index.emplace(path, at);
+            }
+            else
+            {
+                at = m_browser->AppendItem(at, part, CLOSED_FOLDER_ICON, CLOSED_FOLDER_ICON,
+                    new TreeNodeData(TreeNodeData::Node::BASE, 0, CLOSED_FOLDER_ICON, false));
+                m_browser->SetItemImage(at, OPEN_FOLDER_ICON, wxTreeItemIcon_Expanded);
+                m_browser->SetItemImage(at, OPEN_FOLDER_ICON, wxTreeItemIcon_SelectedExpanded);
+                index.emplace(path, at);
+            }
+            if (last)
+            {
+                return;
+            }
+            start = sep + 1;
         }
-        index.emplace(name, m_browser->AppendItem(*parent, name, img, img,
-            new TreeNodeData(type, value, img, false)));
     };
     std::map<std::wstring, wxTreeItemId> room_index;
     std::map<std::wstring, wxTreeItemId> sprite_index;
@@ -534,6 +599,9 @@ void MainFrame::InitUI()
         m_mnu_run_emu->Enable(true);
     }
     Thaw();
+    // Rebuilding the tree drops its selection, so the quick asset buttons go dormant
+    // until something is highlighted again.
+    UpdateAssetButtons();
 }
 
 void MainFrame::InitConfig()
@@ -839,6 +907,323 @@ void MainFrame::OnRebuildNavTree(wxCommandEvent& event)
     {
         GoToNavItem(std::wstring(L"Rooms/") + m_g->GetRoomData()->GetRoomDisplayName(static_cast<uint16_t>(room)), room);
     }
+}
+
+MainFrame::AssetSelection MainFrame::GetAssetSelection()
+{
+    AssetSelection sel;
+    if (!m_g || (m_browser == nullptr))
+    {
+        return sel;
+    }
+    const auto item = m_browser->GetSelection();
+    if (!item.IsOk())
+    {
+        return sel;
+    }
+    // The top-level ancestor names the category. Node types alone can't: TILESET nodes,
+    // for instance, also stand for fonts and UI graphics under the Graphics branch.
+    const auto root = m_browser->GetRootItem();
+    auto top = item;
+    while (top.IsOk() && (top != root) && (m_browser->GetItemParent(top) != root))
+    {
+        top = m_browser->GetItemParent(top);
+    }
+    if (!top.IsOk() || (top == root))
+    {
+        return sel;
+    }
+    const wxString category = m_browser->GetItemText(top);
+    if (category == "Tilesets")
+    {
+        sel.category = AssetSelection::Category::TILESET;
+    }
+    else if (category == "Blocksets")
+    {
+        sel.category = AssetSelection::Category::BLOCKSET;
+    }
+    else if (category == "Rooms")
+    {
+        sel.category = AssetSelection::Category::ROOM;
+    }
+    else if (category == "Sprites")
+    {
+        sel.category = AssetSelection::Category::SPRITE;
+    }
+    else
+    {
+        return sel;
+    }
+    // The element the highlight refers to: the item itself, or - for nodes nested under
+    // one, like sprite frames - the nearest ancestor that is an element of the category.
+    for (auto node = item; node.IsOk() && (node != root); node = m_browser->GetItemParent(node))
+    {
+        const auto* data = static_cast<TreeNodeData*>(m_browser->GetItemData(node));
+        if (data == nullptr)
+        {
+            continue;
+        }
+        switch (data->GetNodeType())
+        {
+        case TreeNodeData::Node::TILESET:
+        case TreeNodeData::Node::ANIM_TILESET:
+            if (sel.category == AssetSelection::Category::TILESET)
+            {
+                sel.name = m_browser->GetItemText(node).ToStdString();
+                return sel;
+            }
+            break;
+        case TreeNodeData::Node::BLOCKSET:
+            if (sel.category == AssetSelection::Category::BLOCKSET)
+            {
+                sel.name = m_browser->GetItemText(node).ToStdString();
+                return sel;
+            }
+            break;
+        case TreeNodeData::Node::ROOM:
+            if (sel.category == AssetSelection::Category::ROOM)
+            {
+                sel.id = static_cast<int>(data->GetValue());
+                return sel;
+            }
+            break;
+        case TreeNodeData::Node::SPRITE:
+            if (sel.category == AssetSelection::Category::SPRITE)
+            {
+                sel.id = static_cast<int>(data->GetValue());
+                return sel;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return sel;
+}
+
+void MainFrame::UpdateAssetButtons()
+{
+    if (m_asset_add == nullptr)
+    {
+        return;
+    }
+    const auto sel = GetAssetSelection();
+    const bool has_category = sel.category != AssetSelection::Category::NONE;
+    const bool has_element = !sel.name.empty() || (sel.id >= 0);
+    m_asset_add->Enable(has_category);
+    m_asset_remove->Enable(has_element);
+    m_asset_manager->Enable(has_category);
+}
+
+void MainFrame::ShowAssetManagerForSelection(AssetAction action)
+{
+    const auto sel = GetAssetSelection();
+    if (!m_g || (sel.category == AssetSelection::Category::NONE))
+    {
+        return;
+    }
+    if ((action == AssetAction::REMOVE) && sel.name.empty() && (sel.id < 0))
+    {
+        // Nothing highlighted to delete.
+        return;
+    }
+    switch (sel.category)
+    {
+    case AssetSelection::Category::TILESET:
+        ShowTilesetAssetManager(sel, action);
+        break;
+    case AssetSelection::Category::BLOCKSET:
+        ShowBlocksetAssetManager(sel, action);
+        break;
+    case AssetSelection::Category::ROOM:
+        ShowRoomAssetManager(sel, action);
+        break;
+    case AssetSelection::Category::SPRITE:
+        ShowSpriteAssetManager(sel, action);
+        break;
+    default:
+        break;
+    }
+    UpdateAssetButtons();
+}
+
+void MainFrame::ShowTilesetAssetManager(const AssetSelection& sel, AssetAction action)
+{
+    TilesetManagerDialog dlg(this, m_g, sel.name,
+        action == AssetAction::ADD ? TilesetManagerDialog::InitialAction::ADD
+        : action == AssetAction::REMOVE ? TilesetManagerDialog::InitialAction::REMOVE
+        : TilesetManagerDialog::InitialAction::NONE);
+    dlg.ShowModal();
+
+    const auto to_open = dlg.GetTilesetToOpen();
+    if (!dlg.HasChanges() && to_open.empty())
+    {
+        return;
+    }
+    // Land on the double-clicked (or freshly added) entry if there is one, else whatever
+    // was highlighted. A rename or delete can leave that name meaningless, so fall back to
+    // the first tileset.
+    const auto room_data = m_g->GetRoomData();
+    std::string target = to_open.empty() ? sel.name : to_open;
+    bool animated = to_open.empty()
+        ? (!target.empty() && room_data->GetAnimatedTileset(target) != nullptr)
+        : dlg.IsTilesetToOpenAnimated();
+    if (target.empty() ||
+        (animated ? room_data->GetAnimatedTileset(target) == nullptr
+                  : room_data->GetAllTilesets().count(target) == 0))
+    {
+        const auto tilesets = room_data->GetTilesets();
+        target = tilesets.empty() ? std::string() : tilesets.front()->GetName();
+        animated = false;
+    }
+
+    std::wstring path;
+    if (!target.empty())
+    {
+        const std::wstring name(target.cbegin(), target.cend());
+        if (animated)
+        {
+            // Animations are nested under the tileset they belong to.
+            const auto anim = room_data->GetAnimatedTileset(target);
+            const auto parent = anim
+                ? room_data->GetTileset(static_cast<uint8_t>(anim->GetIndex().first))
+                : nullptr;
+            if (parent)
+            {
+                const auto parent_name = parent->GetName();
+                path = L"Tilesets/" + std::wstring(parent_name.cbegin(), parent_name.cend()) + L"/" + name;
+            }
+        }
+        else
+        {
+            path = L"Tilesets/" + name;
+        }
+    }
+
+    if (!dlg.HasChanges())
+    {
+        GoToNavItem(path);
+        return;
+    }
+    wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+    evt.SetInt(-1);
+    evt.SetString(wxString(path));
+    OnRebuildNavTree(evt);
+}
+
+void MainFrame::ShowBlocksetAssetManager(const AssetSelection& sel, AssetAction action)
+{
+    BlocksetManagerDialog dlg(this, m_g, sel.name,
+        action == AssetAction::ADD ? BlocksetManagerDialog::InitialAction::ADD
+        : action == AssetAction::REMOVE ? BlocksetManagerDialog::InitialAction::REMOVE
+        : BlocksetManagerDialog::InitialAction::NONE);
+    dlg.ShowModal();
+
+    const auto to_open = dlg.GetBlocksetToOpen();
+    if (!dlg.HasChanges() && to_open.empty())
+    {
+        return;
+    }
+    // Land on the double-clicked (or freshly added) entry if there is one, else whatever
+    // was highlighted; fall back to the first blockset if that name no longer exists.
+    const auto room_data = m_g->GetRoomData();
+    std::string target = to_open.empty() ? sel.name : to_open;
+    if (target.empty() || room_data->GetAllBlocksets().count(target) == 0)
+    {
+        const auto all = room_data->GetAllBlocksets();
+        target = all.empty() ? std::string() : all.cbegin()->first;
+    }
+
+    std::wstring path;
+    if (!target.empty())
+    {
+        const auto entry = room_data->GetBlockset(target);
+        const auto tileset = entry ? room_data->GetTileset(entry->GetTileset()) : nullptr;
+        if (tileset)
+        {
+            // Blocksets are nested under the tileset they belong to.
+            const auto tileset_name = tileset->GetName();
+            path = L"Blocksets/" + std::wstring(tileset_name.cbegin(), tileset_name.cend()) +
+                L"/" + std::wstring(target.cbegin(), target.cend());
+        }
+    }
+
+    if (!dlg.HasChanges())
+    {
+        GoToNavItem(path);
+        return;
+    }
+    wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+    evt.SetInt(-1);
+    evt.SetString(wxString(path));
+    OnRebuildNavTree(evt);
+}
+
+void MainFrame::ShowRoomAssetManager(const AssetSelection& sel, AssetAction action)
+{
+    RoomManagerDialog dlg(this, m_g, sel.id >= 0 ? static_cast<uint16_t>(sel.id) : 0,
+        action == AssetAction::ADD ? RoomManagerDialog::InitialAction::ADD
+        : action == AssetAction::REMOVE ? RoomManagerDialog::InitialAction::REMOVE
+        : RoomManagerDialog::InitialAction::NONE);
+    dlg.ShowModal();
+
+    const int to_open = dlg.GetRoomToOpen();
+    if (!dlg.HasChanges())
+    {
+        if (to_open >= 0 && to_open < static_cast<int>(m_g->GetRoomData()->GetRoomCount()))
+        {
+            GoToNavItem(std::wstring(L"Rooms/") +
+                m_g->GetRoomData()->GetRoomDisplayName(static_cast<uint16_t>(to_open)), to_open);
+        }
+        return;
+    }
+    // Deleting room 5 renumbers every room above it, so the tree is rebuilt. Land on the
+    // double-clicked (or freshly added) room, else the highlighted one, clamped in case it
+    // was the room that just went.
+    const auto room_count = static_cast<int>(m_g->GetRoomData()->GetRoomCount());
+    int room = to_open >= 0 ? to_open : std::max(sel.id, 0);
+    room = room_count == 0 ? -1 : std::min(room, room_count - 1);
+    wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+    evt.SetInt(room);
+    OnRebuildNavTree(evt);
+}
+
+void MainFrame::ShowSpriteAssetManager(const AssetSelection& sel, AssetAction action)
+{
+    SpriteManagerDialog dlg(this, m_g, sel.id >= 0 ? sel.id : 0,
+        action == AssetAction::ADD ? SpriteManagerDialog::InitialAction::ADD
+        : action == AssetAction::REMOVE ? SpriteManagerDialog::InitialAction::REMOVE
+        : SpriteManagerDialog::InitialAction::NONE);
+    dlg.ShowModal();
+
+    const int to_open = dlg.GetSpriteToOpen();
+    if (!dlg.HasChanges() && to_open < 0)
+    {
+        return;
+    }
+    // Land on the double-clicked (or freshly added) sprite, else the highlighted one; a
+    // rename or delete can leave that id meaningless, so fall back to the first sprite.
+    const auto sprite_data = m_g->GetSpriteData();
+    int target = to_open >= 0 ? to_open : sel.id;
+    if (target < 0 || !sprite_data->IsSprite(static_cast<uint8_t>(target)))
+    {
+        target = sprite_data->IsSprite(0) ? 0 : -1;
+    }
+    std::wstring path;
+    if (target >= 0)
+    {
+        path = L"Sprites/" + Landstalker::SpriteData::GetSpriteDisplayName(static_cast<uint8_t>(target));
+    }
+
+    if (!dlg.HasChanges())
+    {
+        GoToNavItem(path, target);
+        return;
+    }
+    wxCommandEvent evt(EVT_REBUILD_NAV_TREE);
+    evt.SetInt(target);
+    evt.SetString(wxString(path));
+    OnRebuildNavTree(evt);
 }
 
 std::optional<wxTreeItemId> MainFrame::FindNavItem(const std::wstring& path)
@@ -1551,6 +1936,7 @@ ImageList& MainFrame::GetImageList()
 void MainFrame::OnBrowserSelect(wxTreeEvent& event)
 {
     ProcessSelectedBrowserItem(event.GetItem());
+    UpdateAssetButtons();
     event.Skip();
 }
 

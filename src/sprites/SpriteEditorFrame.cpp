@@ -45,6 +45,8 @@ enum MENU_IDS
 	ID_COPY_TILE,
 	ID_PASTE_TILE,
 	ID_CLEAR_TILE,
+	ID_HFLIP_SEL,
+	ID_VFLIP_SEL,
 	ID_ZOOM,
 	ID_PLAY_PAUSE,
 	ID_PLAY_SPEED,
@@ -56,7 +58,9 @@ enum MENU_IDS
 	ID_RECT_OUTLINE,
 	ID_CIRCLE_FILLED,
 	ID_CIRCLE_OUTLINE,
-	ID_FILL
+	ID_FILL,
+	ID_PICKER,
+	ID_PIXEL_SELECT
 };
 
 wxBEGIN_EVENT_TABLE(SpriteEditorFrame, wxWindow)
@@ -68,6 +72,7 @@ EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_SELECT, SpriteEditorFrame::OnPaletteCol
 EVT_COMMAND(wxID_ANY, EVT_PALETTE_COLOUR_HOVER, SpriteEditorFrame::OnPaletteColourHover)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_HOVER, SpriteEditorFrame::OnTileHovered)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_CHANGE, SpriteEditorFrame::OnTileChanged)
+EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_COLOUR_PICK, SpriteEditorFrame::OnColourPicked)
 EVT_COMMAND(wxID_ANY, EVT_SPRITE_FRAME_EDIT_REQUEST, SpriteEditorFrame::OnTileEditRequested)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_SELECT, SpriteEditorFrame::OnFrameSelect)
 EVT_COMMAND(wxID_ANY, EVT_FRAME_ADD, SpriteEditorFrame::OnFrameAdd)
@@ -405,6 +410,11 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_SWAP_TILES, "Swap", ilist.GetImage("swap"), "Swap");
 	toolbar->AddTool(ID_CLEAR_TILE, "Clear", ilist.GetImage("delete"), "Clear");
 	toolbar->AddSeparator();
+	toolbar->AddTool(ID_HFLIP_SEL, "Flip Selection Horizontally", ilist.GetImage("hflip"),
+		"Flip Selection Horizontally (Ctrl+H)");
+	toolbar->AddTool(ID_VFLIP_SEL, "Flip Selection Vertically", ilist.GetImage("vflip"),
+		"Flip Selection Vertically (Ctrl+E)");
+	toolbar->AddSeparator();
 	toolbar->AddLabel(wxID_ANY, "Zoom:");
 	toolbar->AddControl(m_zoomslider, "Zoom");
 	toolbar->AddSeparator();
@@ -423,6 +433,10 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	tools_tb->AddTool(ID_SUBSPRITE_MODE, "Edit Subsprites", ilist.GetImage("entity"),
 		"Edit Subsprites (drag to move, handles to resize, right-click or Ins/Del to add and remove)", wxITEM_CHECK);
 	tools_tb->AddSeparator();
+	tools_tb->AddTool(ID_PIXEL_SELECT, "Select Pixels", ilist.GetImage("select_rect"),
+		"Select Pixels (drag to move, Shift+drag to copy, Ctrl+drag to stamp, Ctrl+C/X/V, Ctrl+H/E to flip)", wxITEM_CHECK);
+	tools_tb->AddTool(ID_PICKER, "Colour Picker", ilist.GetImage("dropper"),
+		"Colour Picker (left click: primary, right click: secondary)", wxITEM_CHECK);
 	tools_tb->AddTool(ID_PENCIL, "Pencil", ilist.GetImage("pencil"), "Pencil", wxITEM_CHECK);
 	tools_tb->AddTool(ID_LINE, "Draw Line", ilist.GetImage("line"), "Draw Line", wxITEM_CHECK);
 	tools_tb->AddTool(ID_RECT_FILLED, "Draw Filled Rectangle", ilist.GetImage("rect_filled"), "Draw Filled Rectangle", wxITEM_CHECK);
@@ -581,6 +595,12 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_FILL:
 		SelectDrawTool(SpriteFrameEditorCtrl::Tool::Fill);
 		break;
+	case ID_PICKER:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::Picker);
+		break;
+	case ID_PIXEL_SELECT:
+		SelectDrawTool(SpriteFrameEditorCtrl::Tool::PixelSelect);
+		break;
 	case ID_VIEW_TOGGLE_GRIDLINES:
 	case ID_TOGGLE_GRIDLINES:
 		m_spriteeditor->SetBordersEnabled(!m_spriteeditor->GetBordersEnabled());
@@ -625,6 +645,12 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		{
 			m_spriteeditor->ClearCell();
 		}
+		break;
+	case ID_HFLIP_SEL:
+		m_spriteeditor->FlipSelection(true);
+		break;
+	case ID_VFLIP_SEL:
+		m_spriteeditor->FlipSelection(false);
 		break;
 	case ID_PLAY_PAUSE:
 		if (m_preview->IsPlaying())
@@ -1210,6 +1236,8 @@ void SpriteEditorFrame::UpdateUI() const
 		CheckToolbarItem("Tools", ID_CIRCLE_FILLED, draw && (tool == SpriteFrameEditorCtrl::Tool::CircleFilled));
 		CheckToolbarItem("Tools", ID_CIRCLE_OUTLINE, draw && (tool == SpriteFrameEditorCtrl::Tool::CircleOutline));
 		CheckToolbarItem("Tools", ID_FILL, draw && (tool == SpriteFrameEditorCtrl::Tool::Fill));
+		CheckToolbarItem("Tools", ID_PICKER, draw && (tool == SpriteFrameEditorCtrl::Tool::Picker));
+		CheckToolbarItem("Tools", ID_PIXEL_SELECT, draw && (tool == SpriteFrameEditorCtrl::Tool::PixelSelect));
 	}
 	CheckMenuItem(ID_VIEW_PALETTE, IsPaneVisible(m_paledit));
 	CheckMenuItem(ID_VIEW_PREVIEW, IsPaneVisible(m_preview));
@@ -1246,6 +1274,11 @@ void SpriteEditorFrame::UpdateUI() const
 		EnableToolbarItem("Sprite", ID_PASTE_TILE, cell_ops && !m_spriteeditor->IsClipboardEmpty());
 		EnableToolbarItem("Sprite", ID_SWAP_TILES, cell_ops);
 		EnableToolbarItem("Sprite", ID_CLEAR_TILE, cell_ops);
+		// The flips act on the pixel selection, which only that tool creates.
+		const bool flips = (m_spriteeditor->GetMode() == SpriteFrameEditorCtrl::Mode::DRAW) &&
+			(m_spriteeditor->GetDrawTool() == SpriteFrameEditorCtrl::Tool::PixelSelect);
+		EnableToolbarItem("Sprite", ID_HFLIP_SEL, flips);
+		EnableToolbarItem("Sprite", ID_VFLIP_SEL, flips);
 		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, true);
 		CheckToolbarItem("Sprite", ID_PLAY_PAUSE, m_preview->IsPlaying());
 		if (m_zoomslider != nullptr)
@@ -1279,6 +1312,8 @@ void SpriteEditorFrame::UpdateUI() const
 		EnableToolbarItem("Sprite", ID_PASTE_TILE, false);
 		EnableToolbarItem("Sprite", ID_SWAP_TILES, false);
 		EnableToolbarItem("Sprite", ID_CLEAR_TILE, false);
+		EnableToolbarItem("Sprite", ID_HFLIP_SEL, false);
+		EnableToolbarItem("Sprite", ID_VFLIP_SEL, false);
 		EnableToolbarItem("Sprite", ID_PLAY_PAUSE, false);
 		if (m_zoomslider != nullptr)
 		{
@@ -1344,11 +1379,22 @@ void SpriteEditorFrame::OnFrameAdd(wxCommandEvent& /*evt*/)
 	auto dlg = wxTextEntryDialog(this, "Enter a unique name for the new frame", "New frame");
 	do
 	{
-		dlg.ShowModal();
+		// Cancelling used to fall through and create a frame with an empty name.
+		if (dlg.ShowModal() != wxID_OK)
+		{
+			return;
+		}
 		name = dlg.GetValue().ToStdString();
-	} while (m_gd->GetSpriteData()->SpriteFrameExists(name));
+	} while (name.empty() || m_gd->GetSpriteData()->SpriteFrameExists(name));
 	m_gd->GetSpriteData()->AddSpriteFrame(m_sprite->GetSprite(), name);
-	m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(name);
+	auto new_frame = m_gd->GetSpriteData()->GetSpriteFrame(name);
+	// Seed the new frame as a duplicate of the one being edited - a copy is almost always
+	// a better starting point for a new animation frame than a blank canvas.
+	if (new_frame && new_frame->GetData() && m_sprite->GetData())
+	{
+		*new_frame->GetData() = *m_sprite->GetData();
+	}
+	m_sprite = new_frame;
 	m_framectrl->SetSprite(m_sprite->GetSprite());
 	m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 	int sel = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), name);
@@ -1400,6 +1446,10 @@ void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
 		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
 		m_spriteeditor->SelectSubSprite(pos);
 		m_subspritectrl->SetSelected(pos);
+		// Adding a subsprite is a subsprite-editing act: switch to the tool that can
+		// place and size it.
+		m_spriteeditor->SetMode(SpriteFrameEditorCtrl::Mode::SUBSPRITE);
+		UpdateUI();
 	}
 }
 
@@ -1412,6 +1462,8 @@ void SpriteEditorFrame::OnSubSpriteDelete(wxCommandEvent& evt)
 		m_sprite->GetData()->DeleteSubSprite(pos - 1);
 		m_spriteeditor->UpdateSubSprites();
 		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
+		m_spriteeditor->SetMode(SpriteFrameEditorCtrl::Mode::SUBSPRITE);
+		UpdateUI();
 	}
 }
 
@@ -1730,6 +1782,22 @@ void SpriteEditorFrame::OnPaletteColourSelect(wxCommandEvent& evt)
 	evt.Skip();
 }
 
+void SpriteEditorFrame::OnColourPicked(wxCommandEvent& evt)
+{
+	// Keeps the palette pane's primary/secondary markers in step with the eyedropper.
+	const int value = evt.GetInt();
+	if (value & 0x100)
+	{
+		m_paledit->SetSecondaryColour(value & 0xFF);
+	}
+	else
+	{
+		m_paledit->SetPrimaryColour(value & 0xFF);
+	}
+	FireEvent(EVT_STATUSBAR_UPDATE);
+	evt.Skip();
+}
+
 void SpriteEditorFrame::OnPaletteColourHover(wxCommandEvent& evt)
 {
 	FireEvent(EVT_STATUSBAR_UPDATE);
@@ -1900,6 +1968,18 @@ void SpriteEditorFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& /*e
 		ss << "Cursor at (" << pos.first << "," << pos.second << ")";
 	}
 	status.SetStatusText(ss.str(), 1);
+	ss.str(std::string());
+	ss << "Pen: " << static_cast<int>(m_spriteeditor->GetPrimaryColour())
+	   << " / " << static_cast<int>(m_spriteeditor->GetSecondaryColour());
+	if (m_spriteeditor->IsPixelHoverValid())
+	{
+		const int idx = m_spriteeditor->GetColourAtPixel(m_spriteeditor->GetHoveredPixel());
+		if (idx >= 0)
+		{
+			ss << ", Hover: " << idx;
+		}
+	}
+	status.SetStatusText(ss.str(), 2);
 }
 
 void SpriteEditorFrame::FireRenameNavItemEvent(const std::wstring& old_name, const std::wstring& new_name)

@@ -28,11 +28,34 @@ public:
 		int y;
 	};
 
+	// BOX_SELECT drags out a rectangle of tile slots (spanning blocks) that can be moved
+	// (Shift+drag to duplicate, Ctrl+drag to stamp continuously), cleared, copied/pasted
+	// and have its H/V/P attribute bits toggled en masse. The shape modes drag out lines,
+	// rectangles and circles of the draw tile across the slot grid; FILL flood-fills
+	// contiguous identical slots with it.
 	enum class Mode
 	{
 		BLOCK_SELECT,
 		TILE_SELECT,
-		PENCIL
+		PENCIL,
+		BOX_SELECT,
+		LINE,
+		RECTANGLE_OUTLINE,
+		RECTANGLE_FILLED,
+		CIRCLE_OUTLINE,
+		CIRCLE_FILLED,
+		FILL
+	};
+
+	static bool IsShapeMode(Mode mode);
+	static bool IsDrawMode(Mode mode);
+
+	// How a box selection's H/V/P attribute operations behave.
+	enum class AttrToggleMode
+	{
+		FlipMirror,  // tristate set/clear and mirror the slot layout (a true flip)
+		TriState,    // tristate set/clear only; slots stay where they are
+		Toggle       // invert each slot's own bit, no tristate logic
 	};
 
 	BlocksetEditorCtrl(EditorFrame* parent);
@@ -123,7 +146,76 @@ public:
 	int GetControlBlockWidth() const;
 	void ForceRedraw();
 
+	// Box-selection keyboard interface; returns true if the key was consumed.
+	bool HandleKeyDown(int key, int modifiers);
+	// Box-selection operations the frame's toolbar buttons drive directly.
+	bool HasBoxSelection() const;
+	void ToggleBoxAttribute(Landstalker::TileAttributes::Attribute attr,
+		AttrToggleMode toggle_mode = AttrToggleMode::FlipMirror);
+
 private:
+	// H/V/P key handling: box ops in BOX_SELECT, draw-tile flags in the draw modes.
+	// Other modes fall through to the frame's per-tile handling.
+	bool HandleAttributeKey(Landstalker::TileAttributes::Attribute attr, int modifiers);
+	// Box selection (BOX_SELECT mode), in tile-slot coordinates: the blockset shown as a
+	// grid of columns*2 x rows*2 tiles. A "floating" selection carries lifted or pasted
+	// tiles that haven't been stamped back yet.
+	enum class SelDrag
+	{
+		None,
+		Marquee,
+		Move,       // lift, clear source slots, stamp on release
+		Duplicate,  // shift: lift without clearing, stamp on release
+		Stamp       // ctrl: lift without clearing, stamp continuously while dragging
+	};
+	struct SlotClipboard
+	{
+		wxRect rect;
+		std::vector<Landstalker::Tile> tiles;
+	};
+	wxPoint RawSlotFromPoint(const wxPoint& point) const;
+	bool IsSlotValid(int sx, int sy) const;
+	Landstalker::Tile GetSlotTile(int sx, int sy) const;
+	bool SetSlotTile(int sx, int sy, const Landstalker::Tile& tile);
+	void BeginBoxAction(int sx, int sy);
+	void UpdateBoxDrag(int sx, int sy);
+	void FinishBoxDrag();
+	void CancelBoxDrag();
+	bool CancelActiveBoxOp();
+	void ClearBoxSelection(bool confirm_floating);
+	void ConfirmBoxFloating();
+	void DiscardBoxFloating();
+	void LiftBoxSelection(bool erase_source);
+	bool StampBoxFloating();
+	void RenderBoxFloatBitmap();
+	void ClearBoxCells();
+	void AdjustBoxTileIds(int delta);
+	void CopyBoxSelection();
+	void CutBoxSelection();
+	void PasteBoxCells();
+	void SelectAllBoxCells();
+	std::vector<Landstalker::Tile> ReadBoxRect(const wxRect& rect) const;
+	void RefreshBoxRect(const wxRect& rect);
+	// Shape tools (LINE/RECTANGLE_*/CIRCLE_* modes) and FILL, in tile-slot coordinates.
+	void BeginShapeDrag(int sx, int sy);
+	void UpdateShapeDrag(int sx, int sy);
+	void CommitShapeDrag();
+	void CancelShapeDrag();
+	std::vector<wxPoint> MakeShapeSlots() const;
+	void RefreshShapeRect();
+	void DrawShapePreview(wxDC& dc);
+	void FloodFillAt(int sx, int sy);
+	// Continuous pencil strokes (PENCIL mode): slots paint while the button is held, with
+	// coalesced mouse samples joined by line segments, as in the pixel editors.
+	void BeginStroke(int sx, int sy);
+	void StrokeTo(int sx, int sy);
+	void EndStroke();
+	void CancelStroke();
+	void DrawBoxSelection(wxDC& dc);
+	void ResetBoxSelectionState();
+	void PushUndoState(Landstalker::Blockset&& state);
+	void OnMouseUp(wxMouseEvent& evt);
+	void OnCaptureLost(wxMouseCaptureLostEvent& evt);
 	void RefreshStatusbar();
 	virtual wxCoord OnGetRowHeight(size_t row) const override;
 
@@ -138,10 +230,6 @@ private:
 	void ClearHistory();
 	void InitialiseBrushesAndPens();
 	Landstalker::Palette& GetSelectedPalette();
-	Position ToBlockPosition(int index) const;
-	int ToBlockIndex(const Position& tp) const;
-	Position ToTilePosition(int index);
-	int ToTileIndex(const Position& tp);
 	int ConvertXYToBlockIdx(const wxPoint& point) const;
 	int ConvertXYToTileIdx(const wxPoint& point) const;
 
@@ -169,7 +257,6 @@ private:
 	int m_rows;
 
 	int m_pixelsize;
-	bool m_selectable;
 	int m_selectedblock;
 	int m_hoveredblock;
 	int m_selectedtile;
@@ -192,8 +279,33 @@ private:
 	bool m_enablehover;
 	bool m_enablealpha;
 
-	std::set<int> m_redraw_list;
 	Landstalker::Tile m_drawtile;
+
+	// Box-selection state. Slots over missing blocks in a partial last row carry this
+	// sentinel in lifted data and are never stamped.
+	static constexpr uint16_t SEL_INVALID_TILE = 0xFFFF;
+	wxRect m_sel_rect;                 // empty = no selection
+	SelDrag m_sel_drag = SelDrag::None;
+	wxPoint m_sel_anchor = { 0, 0 };   // marquee anchor, or grab offset within the rect
+	bool m_sel_floating = false;
+	bool m_sel_from_paste = false;     // paste floats persist after release until confirmed
+	bool m_sel_op_changed = false;     // whether the current drag has altered the blockset
+	std::vector<Landstalker::Tile> m_float_tiles;
+	std::unique_ptr<wxBitmap> m_float_bmp;
+	// Pre-drag state: pushed on commit, restored on cancel; null when no drag op is live.
+	std::unique_ptr<Landstalker::Blockset> m_sel_snapshot;
+	SlotClipboard m_slot_clipboard;
+
+	// Shape-tool drag state: nothing touches the blockset until the drag commits on release.
+	bool m_shape_active = false;
+	wxPoint m_shape_anchor = { 0, 0 };
+	wxPoint m_shape_current = { 0, 0 };
+
+	// Pencil-stroke state: the whole stroke is one undo entry, pushed on release.
+	bool m_stroke_active = false;
+	bool m_stroke_changed = false;
+	wxPoint m_stroke_last = { 0, 0 };
+	std::unique_ptr<Landstalker::Blockset> m_stroke_snapshot;
 
 	std::unique_ptr<wxBrush> m_alpha_brush;
 	std::unique_ptr<wxPen> m_priority_pen;
