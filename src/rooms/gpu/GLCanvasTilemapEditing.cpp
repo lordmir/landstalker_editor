@@ -13,7 +13,7 @@
 using namespace Landstalker;
 using PickPoint = RoomProjection::PickPoint;
 
-static void PostLayerBlockSelection(wxWindow* target, MyGLCanvas* canvas, int block_id) {
+static void PostLayerBlockSelection(wxWindow* target, GLCanvas* canvas, int block_id) {
     if (!target) {
         return;
     }
@@ -23,7 +23,7 @@ static void PostLayerBlockSelection(wxWindow* target, MyGLCanvas* canvas, int bl
     wxPostEvent(target, evt);
 }
 
-void MyGLCanvas::ClearEditSelection() {
+void GLCanvas::ClearEditSelection() {
     m_background_has_selection = false;
     m_background_selected_x = 0;
     m_background_selected_y = 0;
@@ -45,7 +45,7 @@ void MyGLCanvas::ClearEditSelection() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::BeginLayerSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection, bool parallelogram_selection) {
+void GLCanvas::BeginLayerSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection, bool parallelogram_selection) {
     m_layer_dragging_select = true;
     m_layer_selection_add = add_to_selection && !subtract_from_selection;
     m_layer_selection_subtract = subtract_from_selection;
@@ -68,7 +68,7 @@ void MyGLCanvas::BeginLayerSelectionDrag(int x, int y, bool add_to_selection, bo
     NotifyLayerBlockSelected();
 }
 
-void MyGLCanvas::UpdateLayerSelectionDrag(int x, int y) {
+void GLCanvas::UpdateLayerSelectionDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
@@ -141,7 +141,7 @@ void MyGLCanvas::UpdateLayerSelectionDrag(int x, int y) {
     m_background_selected_y = m_layer_selection_anchor_y;
 }
 
-void MyGLCanvas::FinishLayerSelectionDrag() {
+void GLCanvas::FinishLayerSelectionDrag() {
     m_layer_dragging_select = false;
     m_layer_selection_add = false;
     m_layer_selection_subtract = false;
@@ -150,11 +150,11 @@ void MyGLCanvas::FinishLayerSelectionDrag() {
     NotifyLayerBlockSelected();
 }
 
-bool MyGLCanvas::IsLayerCellSelected(int x, int y) const {
+bool GLCanvas::IsLayerCellSelected(int x, int y) const {
     return m_layer_selected_cells.find({x, y}) != m_layer_selected_cells.end();
 }
 
-void MyGLCanvas::BeginLayerSelectionMoveDrag(int x, int y) {
+void GLCanvas::BeginLayerSelectionMoveDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || !IsLayerCellSelected(x, y)) {
         return;
@@ -184,7 +184,7 @@ void MyGLCanvas::BeginLayerSelectionMoveDrag(int x, int y) {
     }
 }
 
-void MyGLCanvas::UpdateLayerSelectionMoveDrag(int x, int y) {
+void GLCanvas::UpdateLayerSelectionMoveDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || !m_layer_dragging_selection_move) {
         return;
@@ -222,7 +222,7 @@ void MyGLCanvas::UpdateLayerSelectionMoveDrag(int x, int y) {
     m_layer_selection_move_delta_y = std::clamp(dy, min_dy, max_dy);
 }
 
-void MyGLCanvas::CommitLayerSelectionMoveDrag() {
+void GLCanvas::CommitLayerSelectionMoveDrag() {
     auto map = CurrentRoomMap();
     if (!map || !m_layer_dragging_selection_move) {
         CancelLayerSelectionMoveDrag();
@@ -278,7 +278,7 @@ void MyGLCanvas::CommitLayerSelectionMoveDrag() {
     NotifyLayerBlockSelected();
 }
 
-void MyGLCanvas::CancelLayerSelectionMoveDrag() {
+void GLCanvas::CancelLayerSelectionMoveDrag() {
     m_layer_dragging_selection_move = false;
     m_layer_selection_move_anchor_x = -1;
     m_layer_selection_move_anchor_y = -1;
@@ -287,7 +287,7 @@ void MyGLCanvas::CancelLayerSelectionMoveDrag() {
     m_layer_selection_move_values.clear();
 }
 
-std::pair<int, int> MyGLCanvas::SnapLayerLineEnd(int start_x, int start_y, int end_x, int end_y) const {
+std::pair<int, int> GLCanvas::SnapLayerLineEnd(int start_x, int start_y, int end_x, int end_y) const {
     int dx = end_x - start_x;
     int dy = end_y - start_y;
     if (dx == 0 && dy == 0) {
@@ -312,7 +312,7 @@ std::pair<int, int> MyGLCanvas::SnapLayerLineEnd(int start_x, int start_y, int e
     });
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenLineCells(int start_x, int start_y, int end_x, int end_y) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildLayerScreenLineCells(int start_x, int start_y, int end_x, int end_y) const {
     std::set<std::pair<int, int>> unique_cells;
     const int width = m_mapRenderer.GetRoomWidth();
     const int height = m_mapRenderer.GetRoomHeight();
@@ -350,7 +350,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenLineCells(int start
     return {unique_cells.begin(), unique_cells.end()};
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenCircleCells(
+std::vector<std::pair<int, int>> GLCanvas::BuildLayerScreenCircleCells(
     int start_x,
     int start_y,
     int end_x,
@@ -401,7 +401,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerScreenCircleCells(
     return cells;
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewRectCells(
+std::vector<std::pair<int, int>> GLCanvas::BuildLayerSkewRectCells(
     int start_x,
     int start_y,
     int end_x,
@@ -448,7 +448,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewRectCells(
     return cells;
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewCircleCells(
+std::vector<std::pair<int, int>> GLCanvas::BuildLayerSkewCircleCells(
     int start_x,
     int start_y,
     int end_x,
@@ -507,14 +507,14 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerSkewCircleCells(
     return cells;
 }
 
-void MyGLCanvas::BeginLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
+void GLCanvas::BeginLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
     m_layer_dragging_line = true;
     m_layer_line_start_x = x;
     m_layer_line_start_y = y;
     UpdateLayerLineDrag(x, y, shift_down, alt_down);
 }
 
-void MyGLCanvas::UpdateLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
+void GLCanvas::UpdateLayerLineDrag(int x, int y, bool shift_down, bool alt_down) {
     auto map = CurrentRoomMap();
     if (!map || !m_layer_dragging_line) {
         return;
@@ -568,7 +568,7 @@ void MyGLCanvas::UpdateLayerLineDrag(int x, int y, bool shift_down, bool alt_dow
     }
 }
 
-void MyGLCanvas::CommitLayerLineDrag() {
+void GLCanvas::CommitLayerLineDrag() {
     if (!m_layer_dragging_line || !m_background_clipboard_valid) {
         CancelLayerLineDrag();
         return;
@@ -591,7 +591,7 @@ void MyGLCanvas::CommitLayerLineDrag() {
     }
 }
 
-void MyGLCanvas::CancelLayerLineDrag() {
+void GLCanvas::CancelLayerLineDrag() {
     m_layer_dragging_line = false;
     m_layer_line_preview_cells.clear();
     m_layer_line_start_x = -1;
@@ -601,7 +601,7 @@ void MyGLCanvas::CancelLayerLineDrag() {
     m_layer_draw_dirty = false;
 }
 
-void MyGLCanvas::BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection) {
+void GLCanvas::BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection, bool subtract_from_selection) {
     m_heightmap_dragging_select = true;
     m_heightmap_selection_add = add_to_selection && !subtract_from_selection;
     m_heightmap_selection_subtract = subtract_from_selection;
@@ -623,7 +623,7 @@ void MyGLCanvas::BeginHeightmapSelectionDrag(int x, int y, bool add_to_selection
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::UpdateHeightmapSelectionDrag(int x, int y) {
+void GLCanvas::UpdateHeightmapSelectionDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
@@ -667,7 +667,7 @@ void MyGLCanvas::UpdateHeightmapSelectionDrag(int x, int y) {
     }
 }
 
-void MyGLCanvas::FinishHeightmapSelectionDrag() {
+void GLCanvas::FinishHeightmapSelectionDrag() {
     m_heightmap_dragging_select = false;
     m_heightmap_selection_add = false;
     m_heightmap_selection_subtract = false;
@@ -675,11 +675,11 @@ void MyGLCanvas::FinishHeightmapSelectionDrag() {
     NotifyHeightmapTargetChanged();
 }
 
-bool MyGLCanvas::IsHeightmapCellSelected(int x, int y) const {
+bool GLCanvas::IsHeightmapCellSelected(int x, int y) const {
     return m_heightmap_selected_cells.find({x, y}) != m_heightmap_selected_cells.end();
 }
 
-void MyGLCanvas::BeginHeightmapSelectionMoveDrag(int x, int y) {
+void GLCanvas::BeginHeightmapSelectionMoveDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || !IsHeightmapCellSelected(x, y)) {
         return;
@@ -704,7 +704,7 @@ void MyGLCanvas::BeginHeightmapSelectionMoveDrag(int x, int y) {
     }
 }
 
-void MyGLCanvas::UpdateHeightmapSelectionMoveDrag(int x, int y) {
+void GLCanvas::UpdateHeightmapSelectionMoveDrag(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || !m_heightmap_dragging_selection_move) {
         return;
@@ -749,7 +749,7 @@ void MyGLCanvas::UpdateHeightmapSelectionMoveDrag(int x, int y) {
     }
 }
 
-void MyGLCanvas::CommitHeightmapSelectionMoveDrag() {
+void GLCanvas::CommitHeightmapSelectionMoveDrag() {
     auto map = CurrentRoomMap();
     if (!map || !m_heightmap_dragging_selection_move) {
         CancelHeightmapSelectionMoveDrag();
@@ -765,7 +765,6 @@ void MyGLCanvas::CommitHeightmapSelectionMoveDrag() {
 
     CaptureUndoState();
 
-    static constexpr uint16_t kClearedHeightmapCell = 0x4000;
     for (const auto& source : m_heightmap_selection_move_values) {
         int x = source.first.first;
         int y = source.first.second;
@@ -813,7 +812,7 @@ void MyGLCanvas::CommitHeightmapSelectionMoveDrag() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::CancelHeightmapSelectionMoveDrag() {
+void GLCanvas::CancelHeightmapSelectionMoveDrag() {
     m_heightmap_dragging_selection_move = false;
     m_heightmap_selection_move_anchor_x = -1;
     m_heightmap_selection_move_anchor_y = -1;
@@ -823,13 +822,13 @@ void MyGLCanvas::CancelHeightmapSelectionMoveDrag() {
     m_heightmap_line_preview_cells.clear();
 }
 
-bool MyGLCanvas::IsHeightmapBrushTool() const {
+bool GLCanvas::IsHeightmapBrushTool() const {
     return m_drawing_tool == DrawingTool::Draw ||
            m_drawing_tool == DrawingTool::FloodFill ||
            IsHeightmapShapeTool();
 }
 
-bool MyGLCanvas::IsHeightmapShapeTool() const {
+bool GLCanvas::IsHeightmapShapeTool() const {
     return m_drawing_tool == DrawingTool::Line ||
            m_drawing_tool == DrawingTool::FilledRect ||
            m_drawing_tool == DrawingTool::OutlineRect ||
@@ -837,11 +836,11 @@ bool MyGLCanvas::IsHeightmapShapeTool() const {
            m_drawing_tool == DrawingTool::OutlineCircle;
 }
 
-bool MyGLCanvas::IsHeightmapPreviewTool() const {
+bool GLCanvas::IsHeightmapPreviewTool() const {
     return IsHeightmapBrushTool() || m_drawing_tool == DrawingTool::Stamp;
 }
 
-std::pair<int, int> MyGLCanvas::SnapHeightmapLineEnd(int start_x, int start_y, int end_x, int end_y) const {
+std::pair<int, int> GLCanvas::SnapHeightmapLineEnd(int start_x, int start_y, int end_x, int end_y) const {
     int dx = end_x - start_x;
     int dy = end_y - start_y;
     int abs_dx = std::abs(dx);
@@ -863,7 +862,7 @@ std::pair<int, int> MyGLCanvas::SnapHeightmapLineEnd(int start_x, int start_y, i
     return {snapped_x, snapped_y};
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapLineCells(int start_x, int start_y, int end_x, int end_y) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildHeightmapLineCells(int start_x, int start_y, int end_x, int end_y) const {
     std::vector<std::pair<int, int>> cells;
     int dx = std::abs(end_x - start_x);
     int sx = start_x < end_x ? 1 : -1;
@@ -890,7 +889,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapLineCells(int start_x
     return cells;
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapRectCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildHeightmapRectCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
     std::vector<std::pair<int, int>> cells;
     int min_x = std::min(start_x, end_x);
     int max_x = std::max(start_x, end_x);
@@ -907,7 +906,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapRectCells(int start_x
     return cells;
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildHeightmapCircleCells(int start_x, int start_y, int end_x, int end_y, bool filled) const {
     std::vector<std::pair<int, int>> cells;
     int min_x = std::min(start_x, end_x);
     int max_x = std::max(start_x, end_x);
@@ -939,7 +938,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapCircleCells(int start
     return cells;
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapFloodFillCells(int x, int y) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildHeightmapFloodFillCells(int x, int y) const {
     std::vector<std::pair<int, int>> cells;
     auto map = CurrentRoomMap();
     if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
@@ -977,7 +976,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildHeightmapFloodFillCells(int x,
     return cells;
 }
 
-std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildHeightmapStampCells(int x, int y) const {
+std::map<std::pair<int, int>, uint16_t> GLCanvas::BuildHeightmapStampCells(int x, int y) const {
     std::map<std::pair<int, int>, uint16_t> cells;
     auto map = CurrentRoomMap();
     int primary_x = PrimaryHeightmapCellX();
@@ -1005,7 +1004,7 @@ std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildHeightmapStampCells(int
     return cells;
 }
 
-void MyGLCanvas::ApplyHeightmapStampAt(int x, int y) {
+void GLCanvas::ApplyHeightmapStampAt(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
@@ -1035,7 +1034,7 @@ void MyGLCanvas::ApplyHeightmapStampAt(int x, int y) {
     CommitHeightmapDrawStroke();
 }
 
-void MyGLCanvas::ApplyHeightmapFloodFillAt(int x, int y) {
+void GLCanvas::ApplyHeightmapFloodFillAt(int x, int y) {
     if (!m_heightmap_clipboard_valid) {
         return;
     }
@@ -1049,14 +1048,14 @@ void MyGLCanvas::ApplyHeightmapFloodFillAt(int x, int y) {
     }
 }
 
-void MyGLCanvas::BeginHeightmapLineDrag(int x, int y, bool shift_down) {
+void GLCanvas::BeginHeightmapLineDrag(int x, int y, bool shift_down) {
     m_heightmap_dragging_line = true;
     m_heightmap_line_start_x = x;
     m_heightmap_line_start_y = y;
     UpdateHeightmapLineDrag(x, y, shift_down);
 }
 
-void MyGLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
+void GLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
     auto map = CurrentRoomMap();
     if (!map || m_heightmap_line_start_x < 0 || m_heightmap_line_start_y < 0) {
         m_heightmap_line_preview_cells.clear();
@@ -1100,7 +1099,7 @@ void MyGLCanvas::UpdateHeightmapLineDrag(int x, int y, bool shift_down) {
     }
 }
 
-void MyGLCanvas::CommitHeightmapLineDrag() {
+void GLCanvas::CommitHeightmapLineDrag() {
     if (!m_heightmap_dragging_line || !m_heightmap_clipboard_valid) {
         CancelHeightmapLineDrag();
         return;
@@ -1123,7 +1122,7 @@ void MyGLCanvas::CommitHeightmapLineDrag() {
     }
 }
 
-void MyGLCanvas::CancelHeightmapLineDrag() {
+void GLCanvas::CancelHeightmapLineDrag() {
     m_heightmap_dragging_line = false;
     m_heightmap_line_preview_cells.clear();
     m_heightmap_line_start_x = -1;
@@ -1133,10 +1132,17 @@ void MyGLCanvas::CancelHeightmapLineDrag() {
     m_heightmap_draw_dirty = false;
 }
 
-void MyGLCanvas::ClampBackgroundSelection() {
+void GLCanvas::ClampBackgroundSelection() {
     auto map = CurrentRoomMap();
-    int width = IsHeightmapEditMode() && map ? map->GetHeightmapWidth() : m_mapRenderer.GetRoomWidth();
-    int height = IsHeightmapEditMode() && map ? map->GetHeightmapHeight() : m_mapRenderer.GetRoomHeight();
+    // Take dimensions from the map data, not the renderer: the renderer's cached
+    // size lags the data until ReloadCurrentRoomMapView, so clamping against it
+    // right after a row/column edit would leave the selection out of bounds.
+    int width = m_mapRenderer.GetRoomWidth();
+    int height = m_mapRenderer.GetRoomHeight();
+    if (map) {
+        width = IsHeightmapEditMode() ? map->GetHeightmapWidth() : map->GetWidth();
+        height = IsHeightmapEditMode() ? map->GetHeightmapHeight() : map->GetHeight();
+    }
     if (width <= 0 || height <= 0) {
         m_background_has_selection = false;
         m_background_selected_x = 0;
@@ -1162,28 +1168,52 @@ void MyGLCanvas::ClampBackgroundSelection() {
     m_background_has_selection = true;
 }
 
-void MyGLCanvas::MoveBackgroundSelection(int dx, int dy) {
-    if (!m_background_has_selection) {
+void GLCanvas::SetSelectedCell(int x, int y) {
+    auto map = CurrentRoomMap();
+    const bool heightmap = IsHeightmapEditMode();
+    int width = 0;
+    int height = 0;
+    if (map) {
+        width = heightmap ? map->GetHeightmapWidth() : map->GetWidth();
+        height = heightmap ? map->GetHeightmapHeight() : map->GetHeight();
+    }
+    if (width <= 0 || height <= 0) {
+        m_background_has_selection = false;
         m_background_selected_x = 0;
         m_background_selected_y = 0;
-        m_heightmap_selection_anchor_x = 0;
-        m_heightmap_selection_anchor_y = 0;
-        m_background_has_selection = true;
+        return;
     }
-    m_background_selected_x += dx;
-    m_background_selected_y += dy;
-    ClampBackgroundSelection();
-    m_heightmap_selection_anchor_x = m_background_selected_x;
-    m_heightmap_selection_anchor_y = m_background_selected_y;
-    if (IsHeightmapEditMode()) {
+    x = std::clamp(x, 0, width - 1);
+    y = std::clamp(y, 0, height - 1);
+    m_background_selected_x = x;
+    m_background_selected_y = y;
+    m_heightmap_selection_anchor_x = x;
+    m_heightmap_selection_anchor_y = y;
+    m_layer_selection_anchor_x = x;
+    m_layer_selection_anchor_y = y;
+    if (heightmap) {
         m_heightmap_selected_cells.clear();
-        m_heightmap_selected_cells.insert({m_heightmap_selection_anchor_x, m_heightmap_selection_anchor_y});
+        m_heightmap_selected_cells.insert({x, y});
+    } else {
+        m_layer_selected_cells.clear();
+        m_layer_selected_cells.insert({x, y});
+    }
+    m_background_has_selection = true;
+}
+
+void GLCanvas::MoveBackgroundSelection(int dx, int dy) {
+    int base_x = m_background_has_selection ? m_background_selected_x : 0;
+    int base_y = m_background_has_selection ? m_background_selected_y : 0;
+    // Route through SetSelectedCell so the highlighted cell set follows the move
+    // in both layer and heightmap modes, not just the primary index.
+    SetSelectedCell(base_x + dx, base_y + dy);
+    if (IsHeightmapEditMode()) {
         NotifyHeightmapTargetChanged();
     }
     NotifyLayerBlockSelected();
 }
 
-std::shared_ptr<Tilemap3D> MyGLCanvas::CurrentRoomMap() const {
+std::shared_ptr<Tilemap3D> GLCanvas::CurrentRoomMap() const {
     auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
     if (!rd) {
         return nullptr;
@@ -1192,7 +1222,7 @@ std::shared_ptr<Tilemap3D> MyGLCanvas::CurrentRoomMap() const {
     return map_entry ? map_entry->GetData() : nullptr;
 }
 
-int MyGLCanvas::SelectedBackgroundBlockIndex() const {
+int GLCanvas::SelectedBackgroundBlockIndex() const {
     if (!m_background_has_selection || m_background_selected_x < 0 || m_background_selected_y < 0) {
         return -1;
     }
@@ -1202,7 +1232,7 @@ int MyGLCanvas::SelectedBackgroundBlockIndex() const {
     return m_background_selected_y * m_mapRenderer.GetRoomWidth() + m_background_selected_x;
 }
 
-int MyGLCanvas::SelectedHeightmapCellX() const {
+int GLCanvas::SelectedHeightmapCellX() const {
     auto map = CurrentRoomMap();
     if (!map || !m_background_has_selection) {
         return -1;
@@ -1213,7 +1243,7 @@ int MyGLCanvas::SelectedHeightmapCellX() const {
     return m_background_selected_x;
 }
 
-int MyGLCanvas::SelectedHeightmapCellY() const {
+int GLCanvas::SelectedHeightmapCellY() const {
     auto map = CurrentRoomMap();
     if (!map || !m_background_has_selection) {
         return -1;
@@ -1224,7 +1254,7 @@ int MyGLCanvas::SelectedHeightmapCellY() const {
     return m_background_selected_y;
 }
 
-int MyGLCanvas::PrimaryHeightmapCellX() const {
+int GLCanvas::PrimaryHeightmapCellX() const {
     auto map = CurrentRoomMap();
     if (!map || !m_background_has_selection) {
         return -1;
@@ -1235,7 +1265,7 @@ int MyGLCanvas::PrimaryHeightmapCellX() const {
     return m_heightmap_selection_anchor_x;
 }
 
-int MyGLCanvas::PrimaryHeightmapCellY() const {
+int GLCanvas::PrimaryHeightmapCellY() const {
     auto map = CurrentRoomMap();
     if (!map || !m_background_has_selection) {
         return -1;
@@ -1272,7 +1302,7 @@ uint16_t WithHeightmapCellProps(uint16_t value, uint8_t props) {
 }
 }
 
-uint16_t MyGLCanvas::SelectedHeightmapCellValue() const {
+uint16_t GLCanvas::SelectedHeightmapCellValue() const {
     if (IsHeightmapBrushTool() && m_heightmap_clipboard_valid) {
         return m_heightmap_clipboard_cell;
     }
@@ -1285,39 +1315,39 @@ uint16_t MyGLCanvas::SelectedHeightmapCellValue() const {
     return 0;
 }
 
-bool MyGLCanvas::HasSelectedLayerCell() const {
+bool GLCanvas::HasSelectedLayerCell() const {
     return !m_layer_selected_cells.empty() && SelectedBackgroundBlockIndex() >= 0;
 }
 
-bool MyGLCanvas::HasSelectedHeightmapCell() const {
+bool GLCanvas::HasSelectedHeightmapCell() const {
     return !m_heightmap_selected_cells.empty() && PrimaryHeightmapCellX() >= 0 && PrimaryHeightmapCellY() >= 0;
 }
 
-bool MyGLCanvas::HasHeightmapEditTarget() const {
+bool GLCanvas::HasHeightmapEditTarget() const {
     return HasSelectedHeightmapCell() || (IsHeightmapBrushTool() && m_heightmap_clipboard_valid);
 }
 
-bool MyGLCanvas::CanInsertSelectedHeightmapRow() const {
+bool GLCanvas::CanInsertSelectedHeightmapRow() const {
     auto map = CurrentRoomMap();
     return HasSelectedHeightmapCell() && map && map->GetHeightmapWidth() < 64;
 }
 
-bool MyGLCanvas::CanInsertSelectedHeightmapColumn() const {
+bool GLCanvas::CanInsertSelectedHeightmapColumn() const {
     auto map = CurrentRoomMap();
     return HasSelectedHeightmapCell() && map && map->GetHeightmapHeight() < 64;
 }
 
-bool MyGLCanvas::CanDeleteSelectedHeightmapRow() const {
+bool GLCanvas::CanDeleteSelectedHeightmapRow() const {
     auto map = CurrentRoomMap();
     return HasSelectedHeightmapCell() && map && map->GetHeightmapWidth() > 1;
 }
 
-bool MyGLCanvas::CanDeleteSelectedHeightmapColumn() const {
+bool GLCanvas::CanDeleteSelectedHeightmapColumn() const {
     auto map = CurrentRoomMap();
     return HasSelectedHeightmapCell() && map && map->GetHeightmapHeight() > 1;
 }
 
-bool MyGLCanvas::CanIncreaseSelectedHeightmapHeight() const {
+bool GLCanvas::CanIncreaseSelectedHeightmapHeight() const {
     if (IsHeightmapBrushTool()) {
         return m_heightmap_clipboard_valid && HeightmapCellHeight(m_heightmap_clipboard_cell) < 15;
     }
@@ -1330,7 +1360,7 @@ bool MyGLCanvas::CanIncreaseSelectedHeightmapHeight() const {
     return false;
 }
 
-bool MyGLCanvas::CanDecreaseSelectedHeightmapHeight() const {
+bool GLCanvas::CanDecreaseSelectedHeightmapHeight() const {
     if (IsHeightmapBrushTool()) {
         return m_heightmap_clipboard_valid && HeightmapCellHeight(m_heightmap_clipboard_cell) > 0;
     }
@@ -1343,33 +1373,33 @@ bool MyGLCanvas::CanDecreaseSelectedHeightmapHeight() const {
     return false;
 }
 
-bool MyGLCanvas::CanDeleteSelectedTilemapRow() const {
+bool GLCanvas::CanDeleteSelectedTilemapRow() const {
     auto map = CurrentRoomMap();
     return HasSelectedLayerCell() && map && map->GetWidth() > 1;
 }
 
-bool MyGLCanvas::CanDeleteSelectedTilemapColumn() const {
+bool GLCanvas::CanDeleteSelectedTilemapColumn() const {
     auto map = CurrentRoomMap();
     return HasSelectedLayerCell() && map && map->GetHeight() > 1;
 }
 
-uint8_t MyGLCanvas::GetSelectedHeightmapType() const {
+uint8_t GLCanvas::GetSelectedHeightmapType() const {
     return HeightmapCellType(SelectedHeightmapCellValue());
 }
 
-bool MyGLCanvas::IsSelectedHeightmapPlayerPassable() const {
+bool GLCanvas::IsSelectedHeightmapPlayerPassable() const {
     return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x04) == 0;
 }
 
-bool MyGLCanvas::IsSelectedHeightmapNpcPassable() const {
+bool GLCanvas::IsSelectedHeightmapNpcPassable() const {
     return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x02) == 0;
 }
 
-bool MyGLCanvas::IsSelectedHeightmapRaftTrack() const {
+bool GLCanvas::IsSelectedHeightmapRaftTrack() const {
     return (HeightmapCellProps(SelectedHeightmapCellValue()) & 0x01) == 0;
 }
 
-void MyGLCanvas::SetSelectedHeightmapType(uint8_t type) {
+void GLCanvas::SetSelectedHeightmapType(uint8_t type) {
     if (IsHeightmapBrushTool()) {
         if (m_heightmap_clipboard_valid) {
             m_heightmap_clipboard_cell = WithHeightmapCellType(m_heightmap_clipboard_cell, type);
@@ -1392,7 +1422,7 @@ void MyGLCanvas::SetSelectedHeightmapType(uint8_t type) {
     Refresh();
 }
 
-void MyGLCanvas::ToggleSelectedHeightmapPlayerPassable() {
+void GLCanvas::ToggleSelectedHeightmapPlayerPassable() {
     if (IsHeightmapBrushTool()) {
         if (m_heightmap_clipboard_valid) {
             uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
@@ -1418,7 +1448,7 @@ void MyGLCanvas::ToggleSelectedHeightmapPlayerPassable() {
     Refresh();
 }
 
-void MyGLCanvas::ToggleSelectedHeightmapNpcPassable() {
+void GLCanvas::ToggleSelectedHeightmapNpcPassable() {
     if (IsHeightmapBrushTool()) {
         if (m_heightmap_clipboard_valid) {
             uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
@@ -1444,7 +1474,7 @@ void MyGLCanvas::ToggleSelectedHeightmapNpcPassable() {
     Refresh();
 }
 
-void MyGLCanvas::ToggleSelectedHeightmapRaftTrack() {
+void GLCanvas::ToggleSelectedHeightmapRaftTrack() {
     if (IsHeightmapBrushTool()) {
         if (m_heightmap_clipboard_valid) {
             uint8_t props = HeightmapCellProps(m_heightmap_clipboard_cell);
@@ -1470,7 +1500,7 @@ void MyGLCanvas::ToggleSelectedHeightmapRaftTrack() {
     Refresh();
 }
 
-void MyGLCanvas::AdjustSelectedHeightmapHeight(int delta) {
+void GLCanvas::AdjustSelectedHeightmapHeight(int delta) {
     if (IsHeightmapBrushTool()) {
         if (m_heightmap_clipboard_valid) {
             int height = std::clamp(static_cast<int>(HeightmapCellHeight(m_heightmap_clipboard_cell)) + delta, 0, 15);
@@ -1496,7 +1526,7 @@ void MyGLCanvas::AdjustSelectedHeightmapHeight(int delta) {
     Refresh();
 }
 
-void MyGLCanvas::ClearSelectedHeightmapCells() {
+void GLCanvas::ClearSelectedHeightmapCells() {
     if (!HasSelectedHeightmapCell()) {
         return;
     }
@@ -1507,7 +1537,6 @@ void MyGLCanvas::ClearSelectedHeightmapCells() {
     }
 
     bool changed = false;
-    static constexpr uint16_t kClearedHeightmapCell = 0x4000;
     for (const auto& cell : m_heightmap_selected_cells) {
         int x = cell.first;
         int y = cell.second;
@@ -1536,7 +1565,7 @@ void MyGLCanvas::ClearSelectedHeightmapCells() {
     Refresh();
 }
 
-void MyGLCanvas::ClearSelectedLayerCells() {
+void GLCanvas::ClearSelectedLayerCells() {
     auto map = CurrentRoomMap();
     if (!map || !HasSelectedLayerCell()) {
         return;
@@ -1577,7 +1606,7 @@ void MyGLCanvas::ClearSelectedLayerCells() {
     Refresh();
 }
 
-bool MyGLCanvas::CanNudgeHeightmap(int left_delta, int top_delta) const {
+bool GLCanvas::CanNudgeHeightmap(int left_delta, int top_delta) const {
     auto map = CurrentRoomMap();
     if (!map) {
         return false;
@@ -1595,7 +1624,7 @@ bool MyGLCanvas::CanNudgeHeightmap(int left_delta, int top_delta) const {
            new_top < static_cast<int>(map->GetHeight());
 }
 
-void MyGLCanvas::NudgeHeightmap(int left_delta, int top_delta) {
+void GLCanvas::NudgeHeightmap(int left_delta, int top_delta) {
     auto map = CurrentRoomMap();
     if (!map || !CanNudgeHeightmap(left_delta, top_delta)) {
         return;
@@ -1610,38 +1639,42 @@ void MyGLCanvas::NudgeHeightmap(int left_delta, int top_delta) {
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedHeightmapRowBefore() {
+void GLCanvas::InsertSelectedHeightmapRowBefore() {
     auto map = CurrentRoomMap();
     int x = SelectedHeightmapCellX();
     if (!map || x < 0 || map->GetHeightmapWidth() >= 64) {
         return;
     }
     CaptureUndoState();
-    map->InsertHeightmapRow(static_cast<uint8_t>(x));
-    ClampBackgroundSelection();
+    // Insert a blank row before the selection; the new row takes its place, so
+    // the selection stays on the same index.
+    map->InsertHeightmapRowAt(static_cast<uint8_t>(x));
+    SetSelectedCell(x, m_background_selected_y);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedHeightmapRowAfter() {
+void GLCanvas::InsertSelectedHeightmapRowAfter() {
     auto map = CurrentRoomMap();
     int x = SelectedHeightmapCellX();
     if (!map || x < 0 || map->GetHeightmapWidth() >= 64) {
         return;
     }
     CaptureUndoState();
-    map->InsertHeightmapRow(static_cast<uint8_t>(x));
-    ++m_background_selected_x;
-    ClampBackgroundSelection();
+    // Insert a blank row after the selection and move onto the new row.
+    map->InsertHeightmapRowAt(static_cast<uint8_t>(x + 1));
+    SetSelectedCell(x + 1, m_background_selected_y);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-void MyGLCanvas::DeleteSelectedHeightmapRow() {
+void GLCanvas::DeleteSelectedHeightmapRow() {
     auto map = CurrentRoomMap();
     int x = SelectedHeightmapCellX();
     if (!map || x < 0 || map->GetHeightmapWidth() <= 1) {
@@ -1649,45 +1682,52 @@ void MyGLCanvas::DeleteSelectedHeightmapRow() {
     }
     CaptureUndoState();
     map->DeleteHeightmapRow(static_cast<uint8_t>(x));
-    ClampBackgroundSelection();
+    // Keep the selection on the same index; SetSelectedCell clamps it into the
+    // shrunk heightmap so a repeated delete targets a valid, highlighted cell.
+    SetSelectedCell(x, m_background_selected_y);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedHeightmapColumnBefore() {
+void GLCanvas::InsertSelectedHeightmapColumnBefore() {
     auto map = CurrentRoomMap();
     int y = SelectedHeightmapCellY();
     if (!map || y < 0 || map->GetHeightmapHeight() >= 64) {
         return;
     }
     CaptureUndoState();
-    map->InsertHeightmapColumn(static_cast<uint8_t>(y));
-    ClampBackgroundSelection();
+    // Insert a blank column before the selection; the new column takes its
+    // place, so the selection stays on the same index.
+    map->InsertHeightmapColumnAt(static_cast<uint8_t>(y));
+    SetSelectedCell(m_background_selected_x, y);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedHeightmapColumnAfter() {
+void GLCanvas::InsertSelectedHeightmapColumnAfter() {
     auto map = CurrentRoomMap();
     int y = SelectedHeightmapCellY();
     if (!map || y < 0 || map->GetHeightmapHeight() >= 64) {
         return;
     }
     CaptureUndoState();
-    map->InsertHeightmapColumn(static_cast<uint8_t>(y));
-    ++m_background_selected_y;
-    ClampBackgroundSelection();
+    // Insert a blank column after the selection and move onto the new column.
+    map->InsertHeightmapColumnAt(static_cast<uint8_t>(y + 1));
+    SetSelectedCell(m_background_selected_x, y + 1);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-void MyGLCanvas::DeleteSelectedHeightmapColumn() {
+void GLCanvas::DeleteSelectedHeightmapColumn() {
     auto map = CurrentRoomMap();
     int y = SelectedHeightmapCellY();
     if (!map || y < 0 || map->GetHeightmapHeight() <= 1) {
@@ -1695,14 +1735,17 @@ void MyGLCanvas::DeleteSelectedHeightmapColumn() {
     }
     CaptureUndoState();
     map->DeleteHeightmapColumn(static_cast<uint8_t>(y));
-    ClampBackgroundSelection();
+    // Keep the selection on the same index; SetSelectedCell clamps it into the
+    // shrunk heightmap so a repeated delete targets a valid, highlighted cell.
+    SetSelectedCell(m_background_selected_x, y);
     ReloadCurrentRoomMapView();
     RefreshObjectPlacementsFromHeightmap();
     NotifyHeightmapChanged(false);
+    NotifyHeightmapTargetChanged();
     Refresh();
 }
 
-uint16_t MyGLCanvas::SelectedBackgroundBlockId() const {
+uint16_t GLCanvas::SelectedBackgroundBlockId() const {
     auto map = CurrentRoomMap();
     int block_index = SelectedBackgroundBlockIndex();
     if (!map || block_index < 0) {
@@ -1714,7 +1757,7 @@ uint16_t MyGLCanvas::SelectedBackgroundBlockId() const {
     return static_cast<uint16_t>(map->GetBlock(static_cast<uint16_t>(block_index), CurrentEditLayer()).value & 0x03FF);
 }
 
-void MyGLCanvas::CopySelectedBackgroundBlock() {
+void GLCanvas::CopySelectedBackgroundBlock() {
     int block_index = SelectedBackgroundBlockIndex();
     auto map = CurrentRoomMap();
     if (!map || block_index < 0) {
@@ -1728,7 +1771,7 @@ void MyGLCanvas::CopySelectedBackgroundBlock() {
     NotifyLayerBlockSelected();
 }
 
-void MyGLCanvas::CopyBackgroundBlockAt(int x, int y) {
+void GLCanvas::CopyBackgroundBlockAt(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || x < 0 || y < 0 || x >= m_mapRenderer.GetRoomWidth() || y >= m_mapRenderer.GetRoomHeight()) {
         return;
@@ -1742,7 +1785,7 @@ void MyGLCanvas::CopyBackgroundBlockAt(int x, int y) {
     PostLayerBlockSelection(EventTarget(), this, static_cast<int>(m_background_clipboard_block_id));
 }
 
-void MyGLCanvas::SetSelectedBlockId(int block) {
+void GLCanvas::SetSelectedBlockId(int block) {
     if (block < 0) {
         m_background_clipboard_valid = false;
         m_background_clipboard_block_id = 0;
@@ -1757,12 +1800,12 @@ void MyGLCanvas::SetSelectedBlockId(int block) {
     Refresh();
 }
 
-void MyGLCanvas::AdjustSelectedBlockId(int delta) {
+void GLCanvas::AdjustSelectedBlockId(int delta) {
     int block = m_background_clipboard_valid ? static_cast<int>(m_background_clipboard_block_id) : static_cast<int>(SelectedBackgroundBlockId());
     SetSelectedBlockId((block + delta) & 0x03FF);
 }
 
-void MyGLCanvas::CopySelectedHeightmapCell() {
+void GLCanvas::CopySelectedHeightmapCell() {
     uint16_t value = SelectedHeightmapCellValue();
     if (!m_background_has_selection) {
         return;
@@ -1772,7 +1815,7 @@ void MyGLCanvas::CopySelectedHeightmapCell() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::SetSelectedHeightmapCell(uint16_t value, bool refresh_object_placements) {
+void GLCanvas::SetSelectedHeightmapCell(uint16_t value, bool refresh_object_placements) {
     if (IsHeightmapBrushTool()) {
         m_heightmap_clipboard_cell = value;
         m_heightmap_clipboard_valid = true;
@@ -1822,7 +1865,7 @@ void MyGLCanvas::SetSelectedHeightmapCell(uint16_t value, bool refresh_object_pl
     Refresh();
 }
 
-void MyGLCanvas::ApplyPrimaryHeightmapTypeToSelection() {
+void GLCanvas::ApplyPrimaryHeightmapTypeToSelection() {
     auto map = CurrentRoomMap();
     int primary_x = PrimaryHeightmapCellX();
     int primary_y = PrimaryHeightmapCellY();
@@ -1840,7 +1883,7 @@ void MyGLCanvas::ApplyPrimaryHeightmapTypeToSelection() {
     }
 }
 
-void MyGLCanvas::ApplyPrimaryHeightmapPropsToSelection() {
+void GLCanvas::ApplyPrimaryHeightmapPropsToSelection() {
     auto map = CurrentRoomMap();
     int primary_x = PrimaryHeightmapCellX();
     int primary_y = PrimaryHeightmapCellY();
@@ -1858,7 +1901,7 @@ void MyGLCanvas::ApplyPrimaryHeightmapPropsToSelection() {
     }
 }
 
-void MyGLCanvas::ApplyPrimaryHeightmapHeightToSelection() {
+void GLCanvas::ApplyPrimaryHeightmapHeightToSelection() {
     auto map = CurrentRoomMap();
     int primary_x = PrimaryHeightmapCellX();
     int primary_y = PrimaryHeightmapCellY();
@@ -1876,7 +1919,7 @@ void MyGLCanvas::ApplyPrimaryHeightmapHeightToSelection() {
     }
 }
 
-void MyGLCanvas::CopyHeightmapCellAt(int x, int y) {
+void GLCanvas::CopyHeightmapCellAt(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map || x < 0 || y < 0 || x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
         return;
@@ -1886,7 +1929,7 @@ void MyGLCanvas::CopyHeightmapCellAt(int x, int y) {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
+void GLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
     if (!HasSelectedHeightmapCell()) {
         return;
     }
@@ -1895,7 +1938,7 @@ void MyGLCanvas::UpdateHeightmapClipboardFromSelectedCell() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::ReloadCurrentRoomMapView() {
+void GLCanvas::ReloadCurrentRoomMapView() {
     if (m_tileswap_preview_map) {
         m_mapRenderer.LoadPreviewRoom(m_current_room, *m_tileswap_preview_map);
     } else {
@@ -1903,11 +1946,11 @@ void MyGLCanvas::ReloadCurrentRoomMapView() {
     }
 }
 
-void MyGLCanvas::PasteSelectedBackgroundBlock() {
+void GLCanvas::PasteSelectedBackgroundBlock() {
     PasteBackgroundBlockAt(m_background_selected_x, m_background_selected_y);
 }
 
-std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerFloodFillCells(int x, int y) const {
+std::vector<std::pair<int, int>> GLCanvas::BuildLayerFloodFillCells(int x, int y) const {
     std::vector<std::pair<int, int>> cells;
     auto map = CurrentRoomMap();
     const int width = m_mapRenderer.GetRoomWidth();
@@ -1955,7 +1998,7 @@ std::vector<std::pair<int, int>> MyGLCanvas::BuildLayerFloodFillCells(int x, int
     return cells;
 }
 
-void MyGLCanvas::ApplyLayerFloodFillAt(int x, int y) {
+void GLCanvas::ApplyLayerFloodFillAt(int x, int y) {
     if (!m_background_clipboard_valid) {
         return;
     }
@@ -1969,7 +2012,7 @@ void MyGLCanvas::ApplyLayerFloodFillAt(int x, int y) {
     }
 }
 
-std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildLayerStampCells(int x, int y) const {
+std::map<std::pair<int, int>, uint16_t> GLCanvas::BuildLayerStampCells(int x, int y) const {
     std::map<std::pair<int, int>, uint16_t> cells;
     auto map = CurrentRoomMap();
     if (!map || m_layer_selected_cells.empty() || m_layer_selection_anchor_x < 0 || m_layer_selection_anchor_y < 0) {
@@ -2001,7 +2044,7 @@ std::map<std::pair<int, int>, uint16_t> MyGLCanvas::BuildLayerStampCells(int x, 
     return cells;
 }
 
-void MyGLCanvas::ApplyLayerStampAt(int x, int y) {
+void GLCanvas::ApplyLayerStampAt(int x, int y) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
@@ -2036,7 +2079,7 @@ void MyGLCanvas::ApplyLayerStampAt(int x, int y) {
     }
 }
 
-bool MyGLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
+bool GLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
     auto map = CurrentRoomMap();
     if (!m_background_clipboard_valid || !map || x < 0 || y < 0 ||
         x >= m_mapRenderer.GetRoomWidth() || y >= m_mapRenderer.GetRoomHeight()) {
@@ -2068,7 +2111,7 @@ bool MyGLCanvas::PasteBackgroundBlockAt(int x, int y, bool defer_updates) {
     return true;
 }
 
-void MyGLCanvas::CommitLayerDrawStroke() {
+void GLCanvas::CommitLayerDrawStroke() {
     if (!m_layer_draw_dirty) {
         return;
     }
@@ -2076,7 +2119,7 @@ void MyGLCanvas::CommitLayerDrawStroke() {
     ReloadCurrentRoomMapView();
 }
 
-void MyGLCanvas::PasteSelectedHeightmapCell() {
+void GLCanvas::PasteSelectedHeightmapCell() {
     auto map = CurrentRoomMap();
     int x = SelectedHeightmapCellX();
     int y = SelectedHeightmapCellY();
@@ -2086,7 +2129,7 @@ void MyGLCanvas::PasteSelectedHeightmapCell() {
     PasteHeightmapCellAt(x, y);
 }
 
-bool MyGLCanvas::PasteHeightmapCellAt(int x, int y, bool defer_updates) {
+bool GLCanvas::PasteHeightmapCellAt(int x, int y, bool defer_updates) {
     auto map = CurrentRoomMap();
     if (!m_heightmap_clipboard_valid || !map || x < 0 || y < 0 ||
         x >= map->GetHeightmapWidth() || y >= map->GetHeightmapHeight()) {
@@ -2113,7 +2156,7 @@ bool MyGLCanvas::PasteHeightmapCellAt(int x, int y, bool defer_updates) {
     return true;
 }
 
-void MyGLCanvas::CommitHeightmapDrawStroke() {
+void GLCanvas::CommitHeightmapDrawStroke() {
     if (!m_heightmap_draw_dirty) {
         return;
     }
@@ -2124,88 +2167,104 @@ void MyGLCanvas::CommitHeightmapDrawStroke() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::ClearCurrentTilemap() {
+void GLCanvas::ClearCurrentTilemap() {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
     }
-    CaptureUndoState();
+    // ClearTilemap wipes both layers, so a blocks-only snapshot of the
+    // current layer cannot undo it.
+    CaptureUndoState(true);
     map->ClearTilemap();
     ClampBackgroundSelection();
     ReloadCurrentRoomMapView();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedTilemapRowBefore() {
+void GLCanvas::InsertSelectedTilemapRowBefore() {
     auto map = CurrentRoomMap();
     if (!map || !HasSelectedLayerCell() || map->GetWidth() >= 64) {
         return;
     }
-    CaptureUndoState();
-    map->InsertTilemapRow(m_background_selected_x);
-    ++m_background_selected_x;
-    ClampBackgroundSelection();
+    // Row/column edits resize the map and shift both layers; capture a full
+    // snapshot so undo can restore dimensions and the other layer. Insert a
+    // blank row before the selection; the new row takes its index.
+    CaptureUndoState(true);
+    map->InsertTilemapRowAt(m_background_selected_x);
+    SetSelectedCell(m_background_selected_x, m_background_selected_y);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedTilemapRowAfter() {
+void GLCanvas::InsertSelectedTilemapRowAfter() {
     auto map = CurrentRoomMap();
     if (!map || !HasSelectedLayerCell() || map->GetWidth() >= 64) {
         return;
     }
-    CaptureUndoState();
-    map->InsertTilemapRow(m_background_selected_x + 1);
-    ClampBackgroundSelection();
+    // Insert a blank row after the selection and move onto the new row.
+    CaptureUndoState(true);
+    map->InsertTilemapRowAt(m_background_selected_x + 1);
+    SetSelectedCell(m_background_selected_x + 1, m_background_selected_y);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }
 
-void MyGLCanvas::DeleteSelectedTilemapRow() {
+void GLCanvas::DeleteSelectedTilemapRow() {
     auto map = CurrentRoomMap();
     if (!map || !CanDeleteSelectedTilemapRow()) {
         return;
     }
-    CaptureUndoState();
+    CaptureUndoState(true);
     map->DeleteTilemapRow(m_background_selected_x);
-    ClampBackgroundSelection();
+    // Keep the selection on the same column index; SetSelectedCell clamps it to
+    // the shrunk map so a repeated delete targets a valid, highlighted row.
+    SetSelectedCell(m_background_selected_x, m_background_selected_y);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedTilemapColumnBefore() {
+void GLCanvas::InsertSelectedTilemapColumnBefore() {
     auto map = CurrentRoomMap();
     if (!map || !HasSelectedLayerCell() || map->GetHeight() >= 64) {
         return;
     }
-    CaptureUndoState();
-    map->InsertTilemapColumn(m_background_selected_y);
-    ++m_background_selected_y;
-    ClampBackgroundSelection();
+    // Insert a blank column before the selection; the new column takes its index.
+    CaptureUndoState(true);
+    map->InsertTilemapColumnAt(m_background_selected_y);
+    SetSelectedCell(m_background_selected_x, m_background_selected_y);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }
 
-void MyGLCanvas::InsertSelectedTilemapColumnAfter() {
+void GLCanvas::InsertSelectedTilemapColumnAfter() {
     auto map = CurrentRoomMap();
     if (!map || !HasSelectedLayerCell() || map->GetHeight() >= 64) {
         return;
     }
-    CaptureUndoState();
-    map->InsertTilemapColumn(m_background_selected_y + 1);
-    ClampBackgroundSelection();
+    // Insert a blank column after the selection and move onto the new column.
+    CaptureUndoState(true);
+    map->InsertTilemapColumnAt(m_background_selected_y + 1);
+    SetSelectedCell(m_background_selected_x, m_background_selected_y + 1);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }
 
-void MyGLCanvas::DeleteSelectedTilemapColumn() {
+void GLCanvas::DeleteSelectedTilemapColumn() {
     auto map = CurrentRoomMap();
     if (!map || !CanDeleteSelectedTilemapColumn()) {
         return;
     }
-    CaptureUndoState();
+    CaptureUndoState(true);
     map->DeleteTilemapColumn(m_background_selected_y);
-    ClampBackgroundSelection();
+    // Keep the selection on the same row index; SetSelectedCell clamps it to the
+    // shrunk map so a repeated delete targets a valid, highlighted row.
+    SetSelectedCell(m_background_selected_x, m_background_selected_y);
     ReloadCurrentRoomMapView();
+    NotifyLayerBlockSelected();
     Refresh();
 }

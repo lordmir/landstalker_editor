@@ -83,7 +83,7 @@ using PixelFont::DrawOverlayText;
 
 }  // namespace
 
-GLCanvasRoomInfoOverlay::GLCanvasRoomInfoOverlay(MyGLCanvas& canvas)
+GLCanvasRoomInfoOverlay::GLCanvasRoomInfoOverlay(GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }

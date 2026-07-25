@@ -103,27 +103,17 @@ bool WarpResizeAxisUsable(const WarpInstance& warp, int axis)
 	return false;
 }
 
-std::string HexWord(uint16_t value)
-{
-	constexpr char digits[] = "0123456789ABCDEF";
-	std::string out;
-	out.push_back(digits[(value >> 12) & 0x0F]);
-	out.push_back(digits[(value >> 8) & 0x0F]);
-	out.push_back(digits[(value >> 4) & 0x0F]);
-	out.push_back(digits[value & 0x0F]);
-	return out;
-}
-
 using PixelFont::DrawOverlayText;
+using PixelFont::HexWord;
 
 }  // namespace
 
-void MyGLCanvas::UpdateWarpFloor(WarpInstance& warp)
+void GLCanvas::UpdateWarpFloor(WarpInstance& warp)
 {
 	warp.floor_z = FloorUnderRect(warp.x, warp.y, warp.x + warp.width, warp.y + warp.height);
 }
 
-GLCanvasWarpEditor::GLCanvasWarpEditor(MyGLCanvas& canvas)
+GLCanvasWarpEditor::GLCanvasWarpEditor(GLCanvas& canvas)
 	: m_canvas(canvas)
 {
 }
@@ -131,7 +121,7 @@ GLCanvasWarpEditor::GLCanvasWarpEditor(MyGLCanvas& canvas)
 void GLCanvasWarpEditor::BeginAddWarpHalf()
 {
 	m_canvas.SetFocus();
-	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::Warp;
+	m_canvas.m_pending_add_type = GLCanvas::PendingObjectAddType::Warp;
 	m_canvas.m_pending_add_warp_width = 1.0f;
 	m_canvas.m_pending_add_warp_height = 1.0f;
 	m_canvas.m_pending_add_warp_type = Landstalker::WarpList::Warp::Type::NORMAL;
@@ -519,7 +509,7 @@ std::pair<float, float> GLCanvasWarpEditor::FindNearestFreeWarpCell(float prefer
 
 void GLCanvasWarpEditor::ResizeSelectedWarp(float dx, float dy)
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp) {
 		if (dx != 0.0f) {
 			m_canvas.m_pending_add_warp_height = GLCanvasObjectSupport::ValidWarpHeight(m_canvas.m_pending_add_warp_height, m_canvas.m_pending_add_warp_width);
 			m_canvas.m_pending_add_warp_width = GLCanvasObjectSupport::ValidWarpWidth(m_canvas.m_pending_add_warp_width + dx, m_canvas.m_pending_add_warp_height);
@@ -558,7 +548,7 @@ void GLCanvasWarpEditor::ResizeSelectedWarp(float dx, float dy)
 
 void GLCanvasWarpEditor::RotateSelectedWarp(float dx, float dy)
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp) {
 		return;
 	}
 	if (m_canvas.m_selected_warp_idx < 0 || m_canvas.m_selected_warp_idx >= static_cast<int>(m_canvas.m_warps.size())) {
@@ -572,7 +562,7 @@ void GLCanvasWarpEditor::RotateSelectedWarp(float dx, float dy)
 
 void GLCanvasWarpEditor::CycleSelectedWarpType(int delta)
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp) {
 		int type = static_cast<int>(m_canvas.m_pending_add_warp_type);
 		type = (type + delta + 3) % 3;
 		m_canvas.m_pending_add_warp_type = static_cast<Landstalker::WarpList::Warp::Type>(type);

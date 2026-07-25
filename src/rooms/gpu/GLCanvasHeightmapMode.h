@@ -8,7 +8,7 @@
 class GLCanvasHeightmapMode {
 public:
     // Binds the mode facade to the shared canvas state it edits.
-    explicit GLCanvasHeightmapMode(MyGLCanvas& canvas);
+    explicit GLCanvasHeightmapMode(GLCanvas& canvas);
 
     // Applies heightmap keyboard commands such as value and restriction changes.
     bool HandleKeyDown(wxKeyEvent& evt);
@@ -40,7 +40,7 @@ private:
     void ClearSelectedHeightmapCell();
 
     // Shared canvas owning room data, heightmap selection, and renderers.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_HEIGHTMAP_MODE_H

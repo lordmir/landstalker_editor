@@ -1,7 +1,7 @@
-#ifndef GL_CANVAS_TILE_DOOR_EDITOR_SUPPORT_H
-#define GL_CANVAS_TILE_DOOR_EDITOR_SUPPORT_H
+#ifndef GL_CANVAS_DOOR_TILE_SWAP_SUPPORT_H
+#define GL_CANVAS_DOOR_TILE_SWAP_SUPPORT_H
 
-#include "GLCanvasTileDoorEditor.h"
+#include "GLCanvas.h"
 #include "GLLoader.h"
 
 #include <algorithm>
@@ -301,5 +301,4 @@ void DrawDashedSegments(const std::vector<PickPoint>& points, float dash_len = 8
 
 }  // namespace
 
-#endif  // GL_CANVAS_TILE_DOOR_EDITOR_SUPPORT_H
-
+#endif  // GL_CANVAS_DOOR_TILE_SWAP_SUPPORT_H

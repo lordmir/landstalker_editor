@@ -3,6 +3,7 @@
 
 #include <wx/propgrid/advprops.h>
 #include <fstream>
+#include <filesystem>
 #include <landstalker/misc/Utils.h>
 
 enum MENU_IDS
@@ -11,12 +12,12 @@ enum MENU_IDS
 	ID_FILE_EXPORT_TILES,
 	ID_FILE_EXPORT_VDPMAP,
 	ID_FILE_EXPORT_PNG,
-	ID_FILE_EXPORT_PNG_ANIMATION,
-	ID_FILE_EXPORT_ALL_PNG_ANIMATION,
 	ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML,
+	ID_FILE_EXPORT_ALL_SPRITESHEETS,
 	ID_FILE_IMPORT_FRM,
 	ID_FILE_IMPORT_TILES,
 	ID_FILE_IMPORT_VDPMAP,
+	ID_FILE_IMPORT_SPRITE_METADATA,
 	ID_EDIT,
 	ID_EDIT_SPRITES,
 	ID_EDIT_SEP,
@@ -244,7 +245,9 @@ bool SpriteEditorFrame::OpenFrame(uint8_t spr, int frame, int anim, int ent, boo
 	m_spriteeditor->SetSecondaryColour(m_paledit->GetSecondaryColour());
 	m_spriteeditor->SelectTile(m_spriteeditor->GetFirstTile());
 	m_reset_props = true;
-	
+	// Keep the reservation valid for whatever frame is now current.
+	EnsureMaxTileCount();
+
 	if(fullUpdate)
 	{
 		Update();
@@ -341,6 +344,22 @@ void SpriteEditorFrame::Update()
 	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
+void SpriteEditorFrame::EnsureMaxTileCount()
+{
+	if (!m_gd || !m_sprite)
+	{
+		return;
+	}
+	const uint8_t sid = m_sprite->GetSprite();
+	const auto frame_tiles = static_cast<uint16_t>(m_sprite->GetData()->GetTileCount());
+	if (frame_tiles > m_gd->GetSpriteData()->GetSpriteMaxTileCount(sid))
+	{
+		// The frame outgrew the reservation - raise it so the sprite still fits in VRAM.
+		m_gd->GetSpriteData()->SetSpriteMaxTileCount(sid, frame_tiles);
+		FireEvent(EVT_PROPERTIES_UPDATE);
+	}
+}
+
 bool SpriteEditorFrame::Save()
 {
 	return m_spriteeditor->Save(m_filename, m_spriteeditor->GetCompressed());
@@ -364,13 +383,13 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_TILES, "Export Sprite Tileset as Binary...");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_VDPMAP, "Export VDP Sprite Map as CSV...");
 	AddMenuItem(fileMenu, 3, ID_FILE_EXPORT_PNG, "Export Sprite as PNG...");
-	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_PNG_ANIMATION, "Export Sprite Animation as PNG...");
-	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_PNG_ANIMATION, "Export Sprite All Animations as PNG...");
-	AddMenuItem(fileMenu, 6, ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
-	AddMenuItem(fileMenu, 7, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
-	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
-	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
-	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML, "Export Sprite Properties as YAML...");
+	AddMenuItem(fileMenu, 5, ID_FILE_EXPORT_ALL_SPRITESHEETS, "Export All Sprite Sheets with Metadata...");
+	AddMenuItem(fileMenu, 6, ID_VIEW_SEP1, "", wxITEM_SEPARATOR);
+	AddMenuItem(fileMenu, 7, ID_FILE_IMPORT_FRM, "Import Sprite Frame from Binary...");
+	AddMenuItem(fileMenu, 8, ID_FILE_IMPORT_TILES, "Import Sprite Tileset from Binary...");
+	AddMenuItem(fileMenu, 9, ID_FILE_IMPORT_VDPMAP, "Import VDP Sprite Map from CSV...");
+	AddMenuItem(fileMenu, 10, ID_FILE_IMPORT_SPRITE_METADATA, "Import Sprite Metadata from YAML...");
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_SPRITES, "Sprites...\tF10");
 	AddMenuItem(editMenu, 1, ID_EDIT_SEP, "", wxITEM_SEPARATOR);
@@ -533,14 +552,11 @@ void SpriteEditorFrame::ProcessEvent(int id)
 	case ID_FILE_EXPORT_PNG:
 		OnExportPng();
 		break;
-	case ID_FILE_EXPORT_PNG_ANIMATION:
-		OnExportPngAnimation();
-		break;
-	case ID_FILE_EXPORT_ALL_PNG_ANIMATION:
-		OnExportAllPngAnimation();
-		break;
 	case ID_FILE_EXPORT_SPRITE_PROPERTIES_YAML:
 		OnExportPropertiesYaml();
+		break;
+	case ID_FILE_EXPORT_ALL_SPRITESHEETS:
+		OnExportAllSpritesheets();
 		break;
 	case ID_FILE_IMPORT_FRM:
 		OnImportFrm();
@@ -550,6 +566,9 @@ void SpriteEditorFrame::ProcessEvent(int id)
 		break;
 	case ID_FILE_IMPORT_VDPMAP:
 		OnImportVdpSpritemap();
+		break;
+	case ID_FILE_IMPORT_SPRITE_METADATA:
+		OnImportSpriteMetadata();
 		break;
 	case ID_EDIT_SPRITES:
 		ShowSpriteManagerDialog();
@@ -740,47 +759,6 @@ void SpriteEditorFrame::ExportPng(const std::string& filename) const
 	buf.WritePNG(filename, { m_palette }, true);
 }
 
-void SpriteEditorFrame::ExportPngAnimation(const std::string& filename) const
-{
-	std::vector<std::string> frames = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim);
-
-	int width = 0;
-	int height = 0;
-	for (const auto& frame : frames) {
-		std::shared_ptr<Landstalker::SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(frame);
-		width += spriteFrame->GetData()->GetWidth();
-		if(spriteFrame->GetData()->GetHeight() > height) {
-			height = spriteFrame->GetData()->GetHeight();
-		}
-	}
-
-	ImageBufferWx buf(width, height);
-	int draw_x = 0;
-	for (const auto& frame : frames) {
-		std::shared_ptr<Landstalker::SpriteFrameEntry> spriteFrame = m_gd->GetSpriteData()->GetSpriteFrame(frame);
-		int draw_y = height - spriteFrame->GetData()->GetHeight();
-		buf.InsertSprite(-spriteFrame->GetData()->GetLeft() + draw_x, -spriteFrame->GetData()->GetTop() + draw_y, 0, *spriteFrame->GetData());
-		draw_x += spriteFrame->GetData()->GetWidth();
-	}
-
-	buf.WritePNG(filename, { m_palette }, true);
-}
-
-void SpriteEditorFrame::ExportAllPngAnimation(const std::string& dir)
-{
-    wxString curdir = wxGetCwd();
-    wxSetWorkingDirectory(dir);
-
-	for (std::size_t i = 0; i < m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()); ++i)
-	{
-		m_anim = i;
-		const std::string filename = Landstalker::StrPrintf("SpriteGfx%03dAnim%03d.png", m_sprite->GetSprite(), m_anim);
-		ExportPngAnimation(filename);
-	}
-
-    wxSetWorkingDirectory(curdir);
-}
-
 void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
 {   
     auto sd = m_gd->GetSpriteData();
@@ -826,7 +804,7 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
     ss << std::endl << "Hitbox:" << std::endl;
     ss << "  Width: " << std::fixed << std::setprecision(2) << (hitbox.base / 8.0) << std::endl;
     ss << "  Height: " << std::fixed << std::setprecision(2) << (hitbox.height / 16.0) << std::endl;
-    ss << "  Volume: " << std::fixed << std::setprecision(2) << (sd->GetSpriteVolume(sprite_index) / 16.0) << std::endl;
+    ss << "MaxTileCount: " << static_cast<int>(sd->GetSpriteMaxTileCount(sprite_index)) << std::endl;
     
     // Write to file
     std::ofstream file(filename);
@@ -837,10 +815,49 @@ void SpriteEditorFrame::ExportPropertiesYaml(const std::string& filename)
     }
 }
 
+void SpriteEditorFrame::ExportAllSpritesheets(const std::string& dir)
+{
+	using Result = Landstalker::SpriteData::SpriteSheetResult;
+	auto sd = m_gd->GetSpriteData();
+	const std::filesystem::path out_dir(dir);
+
+	int written = 0;
+	int failed = 0;
+	for (int id = 0; id < static_cast<int>(Landstalker::SpriteData::MAX_SPRITES); ++id)
+	{
+		const uint8_t sid = static_cast<uint8_t>(id);
+		if (!sd->IsSprite(sid))
+		{
+			continue;
+		}
+		// Colour each sprite with the same palette the editor previews it with.
+		const auto palette = sd->GetSpriteDisplayPalette(sid);
+		const std::filesystem::path png_path = out_dir / (sd->GetSpriteName(sid) + "_sheet.png");
+		switch (sd->WriteSpriteSheet(sid, png_path, { palette }))
+		{
+		case Result::Written:
+		case Result::MetadataWriteFailed:
+			++written;
+			break;
+		case Result::ImageWriteFailed:
+			++failed;
+			break;
+		case Result::NoFrames:
+			break;  // Nothing to draw for this sprite - skip it.
+		}
+	}
+
+	const wxString summary = wxString::Format("Exported %d sprite sheet%s to:\n%s", written,
+		written == 1 ? "" : "s", wxString::FromUTF8(dir))
+		+ (failed > 0 ? wxString::Format("\n\n%d sprite%s could not be written.", failed, failed == 1 ? "" : "s") : wxString());
+	wxMessageBox(summary, "Export All Sprite Sheets", wxOK | (failed > 0 ? wxICON_WARNING : wxICON_INFORMATION), this);
+}
+
 void SpriteEditorFrame::ImportFrm(const std::string& filename)
 {
 	auto bytes = Landstalker::ReadBytes(filename);
 	m_sprite->GetData()->SetBits(bytes);
+	EnsureMaxTileCount();
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_preview->Open(m_sprite->GetData(), m_palette);
 	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -857,6 +874,7 @@ void SpriteEditorFrame::ImportTiles(const std::string& filename)
 {
 	auto bytes = Landstalker::ReadBytes(filename);
 	m_sprite->GetData()->GetTileset()->SetBits(bytes, false);
+	EnsureMaxTileCount();
 	m_spriteeditor->Open(m_sprite->GetData(), m_palette, m_sprite->GetSprite());
 	m_preview->Open(m_sprite->GetData(), m_palette);
 	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
@@ -959,12 +977,12 @@ void SpriteEditorFrame::InitProperties(wxPropertyGridManager& props) const
 		height_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
 		height_prop->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(height_prop);
-		wxPGProperty* vol_prop = new wxFloatProperty("Volume", "Volume", sd->GetSpriteVolume(sprite_index) / 16.0);
-		vol_prop->SetAttribute(wxPG_ATTR_MIN, 0.0);
-		vol_prop->SetAttribute(wxPG_ATTR_MAX, 4095.9375);
-		vol_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 0.0625);
-		vol_prop->SetEditor(wxPGEditor_SpinCtrl);
-		props.Append(vol_prop);
+		wxPGProperty* tile_prop = new wxIntProperty("Max Tile Count", "Max Tile Count", sd->GetSpriteMaxTileCount(sprite_index));
+		tile_prop->SetAttribute(wxPG_ATTR_MIN, 1);
+		tile_prop->SetAttribute(wxPG_ATTR_MAX, 65535);
+		tile_prop->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
+		tile_prop->SetEditor(wxPGEditor_SpinCtrl);
+		props.Append(tile_prop);
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
@@ -1081,7 +1099,7 @@ void SpriteEditorFrame::RefreshProperties(wxPropertyGridManager& props) const
 			entity_index < 0 ? 0 : sd->GetEntityPaletteIdxs(entity_index).second + 1);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 1")->SetChoiceSelection(0);
 		props.GetGrid()->GetProperty("Projectile/Misc Palette 2")->SetChoiceSelection(0);
-		props.GetGrid()->SetPropertyValue("Volume", static_cast<double>(sd->GetSpriteVolume(sprite_index)) / 16.0);
+		props.GetGrid()->SetPropertyValue("Max Tile Count", static_cast<int>(sd->GetSpriteMaxTileCount(sprite_index)));
 		props.GetGrid()->SetPropertyValue("Compressed", m_sprite->GetData()->GetCompressed());
 		auto flags = sd->GetSpriteAnimationFlags(sprite_index);
 		props.GetGrid()->GetProperty("Idle Animation Frame Count")->SetChoices(m_idle_frame_count_options);
@@ -1158,10 +1176,12 @@ void SpriteEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			}
 		}
 	}
-	else if (name == "Additional Value")
+	else if (name == "Max Tile Count")
 	{
-		uint16_t value = static_cast<uint16_t>(property->GetValuePlain().GetDouble() * 16.0);
-		sd->SetSpriteVolume(sprite_index, value);
+		sd->SetSpriteMaxTileCount(sprite_index, static_cast<uint16_t>(property->GetValuePlain().GetLong()));
+		// The reservation can never drop below what the current frame needs.
+		EnsureMaxTileCount();
+		FireEvent(EVT_PROPERTIES_UPDATE);
 	}
 	else if (name == "Low Palette" || name == "High Palette" || name == "Projectile/Misc Palette 1" || name == "Projectile/Misc Palette 2")
 	{
@@ -1443,6 +1463,7 @@ void SpriteEditorFrame::OnSubSpriteAdd(wxCommandEvent& evt)
 		m_spriteeditor->PushUndo();
 		m_sprite->GetData()->AddSubSpriteBefore(pos - 1);
 		m_spriteeditor->UpdateSubSprites();
+		EnsureMaxTileCount();
 		m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
 		m_spriteeditor->SelectSubSprite(pos);
 		m_subspritectrl->SetSelected(pos);
@@ -1504,6 +1525,8 @@ void SpriteEditorFrame::OnSubSpriteMoveDown(wxCommandEvent& evt)
 void SpriteEditorFrame::OnSubSpriteUpdate(wxCommandEvent& /*evt*/)
 {
 	m_spriteeditor->UpdateSubSprites();
+	// A canvas resize can grow the frame's tile count past the reservation.
+	EnsureMaxTileCount();
 	m_subspritectrl->SetSubsprites(m_sprite->GetData()->GetSubSprites());
 	// Keyboard subsprite moves arrive here without passing through ProcessEvent/UpdateUI.
 	UpdateUndoRedoUI();
@@ -1531,9 +1554,13 @@ void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& /*evt*/)
 	auto dlg = wxTextEntryDialog(this, "Enter a unique name for the new animation", "New animation");
 	do
 	{
-		dlg.ShowModal();
+		if (dlg.ShowModal() != wxID_OK)
+		{
+			// User cancelled - do not create an animation.
+			return;
+		}
 		name = dlg.GetValue().ToStdString();
-	} while (m_gd->GetSpriteData()->SpriteAnimationExists(name));
+	} while (name.empty() || m_gd->GetSpriteData()->SpriteAnimationExists(name));
 	m_gd->GetSpriteData()->AddSpriteAnimation(m_sprite->GetSprite(), name);
 	m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
 	m_preview->SetAnimation(m_anim);
@@ -1547,9 +1574,11 @@ void SpriteEditorFrame::OnAnimationAdd(wxCommandEvent& /*evt*/)
 
 void SpriteEditorFrame::OnAnimationDelete(wxCommandEvent& evt)
 {
-	if (m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	// Resolve the animation by its list position, not the displayed label (which carries a role tag).
+	const auto anims = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite());
+	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(anims.size()))
 	{
-		m_gd->GetSpriteData()->DeleteSpriteAnimation(evt.GetString().ToStdString());
+		m_gd->GetSpriteData()->DeleteSpriteAnimation(anims[evt.GetInt() - 1]);
 		if (m_anim >= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())))
 		{
 			m_anim = m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite()) - 1;
@@ -1566,11 +1595,11 @@ void SpriteEditorFrame::OnAnimationDelete(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnAnimationMoveUp(wxCommandEvent& evt)
 {
-	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
-		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	const auto anims = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite());
+	if (evt.GetInt() > 1 && evt.GetInt() <= static_cast<int>(anims.size()))
 	{
 		m_anim = evt.GetInt() - 2;
-		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt() - 2);
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), anims[evt.GetInt() - 1], evt.GetInt() - 2);
 		m_preview->SetAnimation(m_anim);
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
@@ -1583,11 +1612,11 @@ void SpriteEditorFrame::OnAnimationMoveUp(wxCommandEvent& evt)
 
 void SpriteEditorFrame::OnAnimationMoveDown(wxCommandEvent& evt)
 {
-	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationCount(m_sprite->GetSprite())) &&
-		m_gd->GetSpriteData()->SpriteAnimationExists(evt.GetString().ToStdString()))
+	const auto anims = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite());
+	if (evt.GetInt() > 0 && evt.GetInt() < static_cast<int>(anims.size()))
 	{
 		m_anim = evt.GetInt();
-		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), evt.GetString().ToStdString(), evt.GetInt());
+		m_gd->GetSpriteData()->MoveSpriteAnimation(m_sprite->GetSprite(), anims[evt.GetInt() - 1], evt.GetInt());
 		m_preview->SetAnimation(m_anim);
 		m_animframectrl->SetAnimation(m_sprite->GetSprite(), m_anim);
 		std::string first_frame_name = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim)[0];
@@ -1604,7 +1633,9 @@ void SpriteEditorFrame::OnAnimationFrameSelect(wxCommandEvent& evt)
 	{
 		m_preview->Pause();
 		m_preview->SetAnimationFrame(evt.GetInt() - 1);
-		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), evt.GetString().ToStdString());
+		// Resolve the frame by its position in the animation, not the role-tagged display label.
+		const auto frames = m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim);
+		m_frame = m_gd->GetSpriteData()->GetSpriteFrameId(m_sprite->GetSprite(), frames[evt.GetInt() - 1]);
 		m_sprite = m_gd->GetSpriteData()->GetSpriteFrame(m_sprite->GetSprite(), m_frame);
 		OpenFrame(m_sprite->GetSprite(), m_frame, m_anim);
 		m_framectrl->SetSelected(m_frame + 1);
@@ -1708,7 +1739,8 @@ void SpriteEditorFrame::OnAnimationFrameChange(wxCommandEvent& evt)
 	if (evt.GetInt() > 0 && evt.GetInt() <= static_cast<int>(m_gd->GetSpriteData()->GetSpriteAnimationFrames(m_sprite->GetSprite(), m_anim).size()))
 	{
 		std::string anim = m_gd->GetSpriteData()->GetSpriteAnimations(m_sprite->GetSprite())[m_anim];
-		std::string new_frame = ShowFrameDialog(Landstalker::StrPrintf("Change frame \"%s\" to:", evt.GetString().c_str().AsChar()), "Change frame");
+		const std::string old_frame = m_gd->GetSpriteData()->GetSpriteAnimationFrames(anim)[evt.GetInt() - 1];
+		std::string new_frame = ShowFrameDialog(Landstalker::StrPrintf("Change frame \"%s\" to:", old_frame.c_str()), "Change frame");
 		if (!new_frame.empty())
 		{
 			m_gd->GetSpriteData()->ChangeSpriteAnimationFrame(anim, evt.GetInt() - 1, new_frame);
@@ -1844,25 +1876,6 @@ void SpriteEditorFrame::OnExportPng()
 	}
 }
 
-void SpriteEditorFrame::OnExportPngAnimation()
-{
-	const wxString default_file = Landstalker::StrPrintf("SpriteGfx%03dAnim%03d.png", m_sprite->GetSprite(), m_anim);
-	wxFileDialog fd(this, _("Export Sprite Animation As PNG"), "", default_file, "PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (fd.ShowModal() != wxID_CANCEL)
-	{
-		ExportPngAnimation(fd.GetPath().ToStdString());
-	}
-}
-
-void SpriteEditorFrame::OnExportAllPngAnimation()
-{
-	wxDirDialog dd(this, "Select PNG Output Directory");
-	if (dd.ShowModal() != wxID_CANCEL)
-	{
-		ExportAllPngAnimation(dd.GetPath().ToStdString());
-	}
-}
-
 void SpriteEditorFrame::OnExportPropertiesYaml()
 {
 	const wxString default_file = Landstalker::StrPrintf("Sprite%03dProperties.yaml", m_sprite->GetSprite());
@@ -1870,6 +1883,15 @@ void SpriteEditorFrame::OnExportPropertiesYaml()
 	if (fd.ShowModal() != wxID_CANCEL)
 	{
 		ExportPropertiesYaml(fd.GetPath().ToStdString());
+	}
+}
+
+void SpriteEditorFrame::OnExportAllSpritesheets()
+{
+	wxDirDialog dd(this, "Select Sprite Sheet Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllSpritesheets(dd.GetPath().ToStdString());
 	}
 }
 
@@ -1910,6 +1932,41 @@ void SpriteEditorFrame::OnImportVdpSpritemap()
 	}
 	m_spriteeditor->SelectTile(0);
 	Update();
+}
+
+void SpriteEditorFrame::OnImportSpriteMetadata()
+{
+	if (!m_gd || !m_sprite)
+	{
+		return;
+	}
+	wxFileDialog fd(this, _("Import Sprite Metadata From YAML"), "", "",
+		"YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	std::ifstream in(fd.GetPath().ToStdString(), std::ios::binary);
+	std::stringstream ss;
+	ss << in.rdbuf();
+
+	const uint8_t sid = m_sprite->GetSprite();
+	if (!m_gd->GetSpriteData()->ApplySpriteMetadataYaml(sid, ss.str()))
+	{
+		wxMessageBox("Could not read sprite metadata from the selected file.",
+			"Import Sprite Metadata", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	// A stale metadata file could specify a reservation below the current frame; keep it valid.
+	EnsureMaxTileCount();
+	// The animation flags feed the role labels and the hitbox drives the overlay, so refresh both
+	// the lists and the canvas along with the property panel.
+	m_animctrl->SetSprite(sid);
+	m_animframectrl->SetAnimation(sid, m_anim);
+	Redraw();
+	UpdateUI();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void SpriteEditorFrame::InitStatusBar(wxStatusBar& status) const

@@ -2,7 +2,8 @@
 #include "GLCanvasEntityEditor.h"
 #include "GLCanvasObjectCoordinator.h"
 #include "GLCanvasObjectSupport.h"
-#include "GLCanvasTileDoorEditor.h"
+#include "GLCanvasDoorEditor.h"
+#include "GLCanvasTileSwapEditor.h"
 #include "GLCanvasWarpEditor.h"
 
 #include <algorithm>
@@ -12,10 +13,17 @@
 
 namespace {
 
-float OpacityForIndex(int idx)
+// Cycles opacity through 1.0 -> 0.5 -> 0.0 -> 1.0, snapping any intermediate
+// value the slider may have set to the next step down.
+float NextOpacityStep(float current)
 {
-    static constexpr float opacities[] = {1.0f, 0.5f, 0.0f};
-    return opacities[idx % 3];
+    if (current > 0.75f) {
+        return 0.5f;
+    }
+    if (current > 0.25f) {
+        return 0.0f;
+    }
+    return 1.0f;
 }
 
 struct EntityBounds {
@@ -68,7 +76,7 @@ std::set<uint32_t> FindCollidedEntities(const std::vector<SpriteInstance>& insta
 
 }  // namespace
 
-GLCanvasRoomMode::GLCanvasRoomMode(MyGLCanvas& canvas)
+GLCanvasRoomMode::GLCanvasRoomMode(GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }
@@ -103,28 +111,28 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
     switch (evt.GetKeyCode()) {
         case '1':
             if (!shift) {
-                m_canvas.SetEditorMode(MyGLCanvas::EditorMode::Room);
+                m_canvas.SetEditorMode(GLCanvas::EditorMode::Room);
                 m_canvas.Refresh();
                 return true;
             }
             break;
         case '2':
             if (!shift) {
-                m_canvas.SetEditorMode(MyGLCanvas::EditorMode::Heightmap);
+                m_canvas.SetEditorMode(GLCanvas::EditorMode::Heightmap);
                 m_canvas.Refresh();
                 return true;
             }
             break;
         case '3':
             if (!shift) {
-                m_canvas.SetEditorMode(MyGLCanvas::EditorMode::BackgroundLayer);
+                m_canvas.SetEditorMode(GLCanvas::EditorMode::BackgroundLayer);
                 m_canvas.Refresh();
                 return true;
             }
             break;
         case '4':
             if (!shift) {
-                m_canvas.SetEditorMode(MyGLCanvas::EditorMode::ForegroundLayer);
+                m_canvas.SetEditorMode(GLCanvas::EditorMode::ForegroundLayer);
                 m_canvas.Refresh();
                 return true;
             }
@@ -223,12 +231,12 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             break;
         case ',':
         case '<':
-            if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Door ||
+            if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Door ||
                 m_canvas.m_selected_door_idx >= 0) {
                 m_canvas.CycleSelectedDoorSize(-1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.CycleSelectedTileSwapShape(-1);
-            } else if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                        m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.CycleSelectedWarpType(-1);
             } else {
@@ -237,12 +245,12 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             break;
         case '.':
         case '>':
-            if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Door ||
+            if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Door ||
                 m_canvas.m_selected_door_idx >= 0) {
                 m_canvas.CycleSelectedDoorSize(1);
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.CycleSelectedTileSwapShape(1);
-            } else if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                        m_canvas.m_selected_warp_idx >= 0) {
                 m_canvas.CycleSelectedWarpType(1);
             } else {
@@ -276,20 +284,17 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             break;
         case 'b':
         case 'B':
-            m_canvas.m_bg_opacity_idx = (m_canvas.m_bg_opacity_idx + 1) % 3;
-            m_canvas.m_mapRenderer.SetBackgroundOpacity(OpacityForIndex(m_canvas.m_bg_opacity_idx));
+            m_canvas.SetBackgroundOpacity(NextOpacityStep(m_canvas.m_bg_opacity));
             m_canvas.NotifyLayerOpacityChanged();
             break;
         case 'g':
         case 'G':
-            m_canvas.m_fg_opacity_idx = (m_canvas.m_fg_opacity_idx + 1) % 3;
-            m_canvas.m_mapRenderer.SetForegroundOpacity(OpacityForIndex(m_canvas.m_fg_opacity_idx));
+            m_canvas.SetForegroundOpacity(NextOpacityStep(m_canvas.m_fg_opacity));
             m_canvas.NotifyLayerOpacityChanged();
             break;
         case 'e':
         case 'E':
-            m_canvas.m_sprite_opacity_idx = (m_canvas.m_sprite_opacity_idx + 1) % 3;
-            m_canvas.m_spriteRenderer.SetOpacity(OpacityForIndex(m_canvas.m_sprite_opacity_idx));
+            m_canvas.SetSpriteOpacity(NextOpacityStep(m_canvas.m_sprite_opacity));
             m_canvas.NotifyLayerOpacityChanged();
             break;
         case 'x':
@@ -307,9 +312,9 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(0.0f, -1.0f, 0.0f);
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
-                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
+                       m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NW);
-            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (shift && (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                                  m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(0.0f, -1.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
@@ -325,9 +330,9 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(-1.0f, 0.0f, 0.0f);
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
-                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
+                       m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SW);
-            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (shift && (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                                  m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(-1.0f, 0.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
@@ -343,9 +348,9 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(0.0f, 1.0f, 0.0f);
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
-                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
+                       m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::SE);
-            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (shift && (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                                  m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(0.0f, 1.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
@@ -361,9 +366,9 @@ bool GLCanvasRoomMode::HandleKeyDown(wxKeyEvent& evt)
             } else if (m_canvas.m_selected_tileswap_region_idx >= 0) {
                 m_canvas.NudgeSelectedObject(1.0f, 0.0f, 0.0f);
             } else if (ctrl && (m_canvas.m_selected_entity_idx >= 0 ||
-                       m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity)) {
+                       m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity)) {
                 m_canvas.SetSelectedEntityOrientation(Landstalker::Orientation::NE);
-            } else if (shift && (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Warp ||
+            } else if (shift && (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Warp ||
                                  m_canvas.m_selected_warp_idx >= 0)) {
                 m_canvas.ResizeSelectedWarp(1.0f, 0.0f);
             } else if (ctrl && m_canvas.m_selected_warp_idx >= 0) {
@@ -489,7 +494,7 @@ void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
 {
     GLCanvasObjectCoordinator objects(m_canvas);
     if (m_canvas.HasPendingObjectAdd()) {
-        bool pending_entity_add = m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity;
+        bool pending_entity_add = m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity;
         m_canvas.CommitPendingObjectAdd();
         m_canvas.SetFocus();
         if (pending_entity_add && m_canvas.m_selected_entity_idx >= 0) {
@@ -722,7 +727,7 @@ void GLCanvasRoomMode::ResizeSelectedTileSwapByDelta(int dw, int dh)
         return;
     }
     m_canvas.CaptureObjectUndoState();
-    GLCanvasTileDoorEditor(m_canvas).ResizeSelectedTileSwapByDelta(dw, dh);
+    GLCanvasTileSwapEditor(m_canvas).ResizeSelectedTileSwapByDelta(dw, dh);
     GLCanvasObjectCoordinator(m_canvas).NotifyRoomDataChanged(false, false, true, false);
 }
 
@@ -742,6 +747,9 @@ void GLCanvasRoomMode::UpdateAnimations(float dt)
         uint8_t sprite_id = sprite_data->GetSpriteFromEntity(inst.entity_id);
         auto flags = sprite_data->GetSpriteAnimationFlags(sprite_id);
         auto animations = sprite_data->GetSpriteAnimations(sprite_id);
+        if (animations.empty()) {
+            continue;
+        }
         bool has_away = !flags.do_not_rotate && !sprite_data->IsEntityItem(inst.entity_id);
         int towards = 0;
         int away = 0;
@@ -804,7 +812,7 @@ void GLCanvasRoomMode::Render(int width, int height)
     }
     if (m_canvas.HasPendingObjectAdd()) {
         GLCanvasWarpEditor(m_canvas).RenderPendingWarpGhost();
-        GLCanvasTileDoorEditor(m_canvas).RenderPendingDoorGhost();
+        GLCanvasDoorEditor(m_canvas).RenderPendingDoorGhost();
     }
 
     SpriteRenderer::OcclusionMode occlusion_mode = SpriteRenderer::OcclusionMode::AlwaysOnTop;
@@ -874,7 +882,7 @@ void GLCanvasRoomMode::Render(int width, int height)
             screen_max_y);
     };
 
-    bool pending_entity_preview = m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity;
+    bool pending_entity_preview = m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity;
     if (m_canvas.m_show_entities || m_canvas.m_show_hitboxes || pending_entity_preview) {
         std::set<uint32_t> collided_entities = FindCollidedEntities(m_canvas.m_instances);
         int selected_collision_warning = 0;
@@ -937,7 +945,7 @@ void GLCanvasRoomMode::Render(int width, int height)
                 [](uint32_t) {
                     return false;
                 });
-            m_canvas.m_spriteRenderer.SetOpacity(OpacityForIndex(m_canvas.m_sprite_opacity_idx));
+            m_canvas.m_spriteRenderer.SetOpacity(m_canvas.m_sprite_opacity);
         }
     }
     if (m_canvas.m_show_warps) {

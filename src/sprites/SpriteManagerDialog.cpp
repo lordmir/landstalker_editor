@@ -300,18 +300,7 @@ int SpriteManagerDialog::GetSelectedSprite() const
 
 std::shared_ptr<Landstalker::Palette> SpriteManagerDialog::PreviewPalette(uint8_t id) const
 {
-	const auto sprite_data = m_gd->GetSpriteData();
-	const auto entities = sprite_data->GetEntitiesFromSprite(id);
-	if (!entities.empty())
-	{
-		const auto palette = sprite_data->GetEntityPalette(entities.front());
-		if (palette)
-		{
-			return palette;
-		}
-	}
-	// A sprite no entity uses still previews, on the first sprite palette.
-	return sprite_data->GetSpritePalette(0);
+	return m_gd->GetSpriteData()->GetSpriteDisplayPalette(id);
 }
 
 void SpriteManagerDialog::PopulatePreview()
@@ -435,7 +424,7 @@ void SpriteManagerDialog::PopulateDetails()
 	SetDetail(0, "Graphics id", wxString::Format("%d of %d", id, static_cast<int>(GetSpriteCount()) - 1));
 	SetDetail(1, "Animations", wxString::Format("%u", sprite_data->GetSpriteAnimationCount(sid)));
 	SetDetail(2, "Frames", wxString::Format("%d", static_cast<int>(sprite_data->GetSpriteFrames(sid).size())));
-	SetDetail(3, "Volume", wxString::Format("%u", sprite_data->GetSpriteVolume(sid)));
+	SetDetail(3, "Max Tile Count", wxString::Format("%u", sprite_data->GetSpriteMaxTileCount(sid)));
 
 	const auto entities = sprite_data->GetEntitiesFromSprite(sid);
 	SetDetail(4, "Used by entities", entities.empty()

@@ -89,7 +89,7 @@ std::wstring AnimationFrameControlFrame::MakeLabel(int index) const
 {
 	if (m_gd)
 	{
-		return m_gd->GetSpriteData()->GetSpriteFrameDisplayName(m_sprite_id, m_frames.at(index).ToStdString());
+		return m_gd->GetSpriteData()->GetSpriteAnimationFrameDisplayName(m_sprite_id, m_anim_id, index, m_frames.at(index).ToStdString());
 	}
 	return m_frames.at(index).ToStdWstring();
 }

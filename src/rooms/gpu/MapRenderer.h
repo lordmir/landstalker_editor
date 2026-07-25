@@ -37,7 +37,6 @@ public:
 private:
     void UploadRoomMap(uint16_t roomnum, const Landstalker::Tilemap3D& map);
     void InitShaders();
-    GLuint CreateShader(const char* vs_name, const char* vs_src, const char* fs_name, const char* fs_src);
     // Activates the map shader with all textures bound and default uniforms
     // (no priority filter/highlight) and blending enabled. Callers override
     // u_alpha and the priority uniforms as needed.

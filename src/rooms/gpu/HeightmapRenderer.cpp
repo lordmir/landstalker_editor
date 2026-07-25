@@ -318,6 +318,9 @@ void HeightmapRenderer::LoadRoom(uint16_t roomnum)
     }
 
     auto map = map_entry->GetData();
+    if (!map) {
+        return;
+    }
     m_current_room = roomnum;
     m_room_w = map->GetWidth();
     m_room_h = map->GetHeight();
@@ -611,10 +614,6 @@ void HeightmapRenderer::RenderInternal(float opacity, bool show_cell_text)
     DisableFixedFunctionTexturing();
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_STENCIL_TEST);
-    glStencilMask(0x00);
-    glStencilFunc(GL_EQUAL, 1, 0x01);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     std::vector<HeightmapCell> cells;
     cells.reserve(map->GetHeightmapWidth() * map->GetHeightmapHeight());
@@ -628,6 +627,9 @@ void HeightmapRenderer::RenderInternal(float opacity, bool show_cell_text)
     }
     std::stable_sort(cells.begin(), cells.end(), HeightmapDrawOrder);
 
+    // Stencil configuration is owned by ConfigureNoOverlapStencil below when a
+    // stencil buffer is present; without one, the cell pass must run with the
+    // stencil test disabled rather than filtering against an absent buffer.
     if (use_stencil) {
         ConfigureNoOverlapStencil();
     }

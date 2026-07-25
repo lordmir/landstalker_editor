@@ -13,7 +13,7 @@ using PickPoint = RoomProjection::PickPoint;
 
 }  // namespace
 
-void MyGLCanvas::SetZoom(double zoom)
+void GLCanvas::SetZoom(double zoom)
 {
     int best_idx = 0;
     double best_distance = std::abs(static_cast<double>(kZoomSteps[0]) - zoom);
@@ -37,7 +37,7 @@ void MyGLCanvas::SetZoom(double zoom)
     Refresh();
 }
 
-void MyGLCanvas::PanCameraByStep(int dx, int dy, float speed)
+void GLCanvas::PanCameraByStep(int dx, int dy, float speed)
 {
     m_cam_x += speed * static_cast<float>(dx);
     m_cam_y += speed * static_cast<float>(dy);
@@ -45,7 +45,7 @@ void MyGLCanvas::PanCameraByStep(int dx, int dy, float speed)
     m_cam_y = std::round(m_cam_y);
 }
 
-void MyGLCanvas::ChangeZoomStep(int delta, float anchor_x, float anchor_y)
+void GLCanvas::ChangeZoomStep(int delta, float anchor_x, float anchor_y)
 {
     int old_idx = std::clamp(m_zoom_step_idx, 0, static_cast<int>(kZoomSteps.size()) - 1);
     int new_idx = std::clamp(old_idx + delta, 0, static_cast<int>(kZoomSteps.size()) - 1);
@@ -63,23 +63,23 @@ void MyGLCanvas::ChangeZoomStep(int delta, float anchor_x, float anchor_y)
     m_cam_y = std::round(m_cam_y);
 }
 
-float MyGLCanvas::ZoomFactor() const
+float GLCanvas::ZoomFactor() const
 {
     int idx = std::clamp(m_zoom_step_idx, 0, static_cast<int>(kZoomSteps.size()) - 1);
     return kZoomSteps[static_cast<std::size_t>(idx)];
 }
 
-float MyGLCanvas::ScreenToWorldX(int screen_x) const
+float GLCanvas::ScreenToWorldX(int screen_x) const
 {
     return (static_cast<float>(screen_x) - m_cam_x) / ZoomFactor();
 }
 
-float MyGLCanvas::ScreenToWorldY(int screen_y) const
+float GLCanvas::ScreenToWorldY(int screen_y) const
 {
     return (static_cast<float>(screen_y) - m_cam_y) / ZoomFactor();
 }
 
-void MyGLCanvas::CenterCameraOnRoom()
+void GLCanvas::CenterCameraOnRoom()
 {
     int client_w = 0;
     int client_h = 0;
@@ -124,7 +124,7 @@ void MyGLCanvas::CenterCameraOnRoom()
     m_cam_y = std::round(m_cam_y);
 }
 
-void MyGLCanvas::EnsureWorldRectVisible(float min_x, float min_y, float max_x, float max_y)
+void GLCanvas::EnsureWorldRectVisible(float min_x, float min_y, float max_x, float max_y)
 {
     int client_w = 0;
     int client_h = 0;

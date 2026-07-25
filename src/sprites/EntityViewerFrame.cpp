@@ -11,11 +11,16 @@
 #include <wx/hyperlink.h>
 #include <wx/stattext.h>
 #include <wx/wrapsizer.h>
+#include <wx/dirdlg.h>
+#include <filesystem>
 #include <landstalker/misc/Labels.h>
 
 enum MENU_IDS
 {
-	ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML = 20000
+	ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML = 20000,
+	ID_FILE_EXPORT_ENTITY_SPRITESHEET,
+	ID_FILE_EXPORT_ALL_ENTITY_SPRITESHEETS,
+	ID_FILE_IMPORT_ENTITY_METADATA
 };
 
 namespace
@@ -341,10 +346,15 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(is_enemy);
 		auto health = new wxIntProperty("Health", "Health", 0);
 		health->SetAttribute(wxPG_ATTR_MIN, 0);
-		health->SetAttribute(wxPG_ATTR_MAX, 255);
+		// 255 is reserved as the game's "indestructible" sentinel, set via the Invulnerable box.
+		health->SetAttribute(wxPG_ATTR_MAX, 254);
 		health->SetAttribute(wxPG_ATTR_SPINCTRL_STEP, 1);
 		health->SetEditor(wxPGEditor_SpinCtrl);
 		props.Append(health)->Enable(false);
+		auto invulnerable = new wxBoolProperty("Invulnerable", "Invulnerable", false);
+		invulnerable->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+		invulnerable->SetHelpString("Sets health to 255, the value the game treats as indestructible.");
+		props.Append(invulnerable)->Enable(false);
 		auto def = new wxIntProperty("Defence", "Defence", 0);
 		def->SetAttribute(wxPG_ATTR_MIN, 0);
 		def->SetAttribute(wxPG_ATTR_MAX, 255);
@@ -365,6 +375,11 @@ void EntityViewerFrame::InitProperties(wxPropertyGridManager& props) const
 		props.Append(gold)->Enable(false);
 		props.Append(new wxEnumProperty("Item Drop", "Item Drop", m_verbs))->Enable(false);
 		props.Append(new wxEnumProperty("Drop Probability", "Drop Probability", m_probabilities))->Enable(false);
+		auto solid = new wxBoolProperty("Solid", "Solid", false);
+		solid->SetAttribute(wxPG_BOOL_USE_CHECKBOX, true);
+		solid->SetHelpString("Marks a hostile as a fixed obstacle (guaranteed drop with zero gold): immune "
+			"to the Statue of Gaia and the quake attack, and solid through hurt-invulnerability.");
+		props.Append(solid)->Enable(false);
 		EditorFrame::InitProperties(props);
 		RefreshProperties(props);
 	}
@@ -476,6 +491,11 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		auto item_props = sd->GetItemProperties(m_entity_id);
 		bool is_enemy = sd->IsEntityEnemy(m_entity_id);
 		auto enemy_stats = sd->GetEnemyStats(m_entity_id);
+		// The two derived toggles: 255 health is the indestructible sentinel, and zero gold with a
+		// guaranteed drop is the fixed-obstacle ("solid") sentinel.
+		const bool invulnerable = is_enemy && enemy_stats.health == 255;
+		const bool solid = is_enemy && enemy_stats.gold_drop == 0
+			&& enemy_stats.drop_probability == Landstalker::SpriteData::EnemyStats::DropProbability::GUARANTEED_DROP;
 
 		props.GetGrid()->SetPropertyValue("Name", wxString(sd->GetEntityDisplayName(m_entity_id)));
 		props.GetGrid()->SetPropertyValue("ID", m_entity_id);
@@ -509,13 +529,17 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 			props.GetGrid()->GetProperty("Article")->SetChoiceSelection(m_gd->GetScriptData()->GetItemArticle(m_entity_id - 0xC0));
 		}
 		props.GetGrid()->SetPropertyValue("Is Enemy", sd->IsEntityEnemy(m_entity_id));
-		props.GetGrid()->GetProperty("Health")->Enable(is_enemy);
+		// Health is driven by the Invulnerable box while it is set, so grey it out then.
+		props.GetGrid()->GetProperty("Health")->Enable(is_enemy && !invulnerable);
 		props.GetGrid()->SetPropertyValue("Health", is_enemy ? enemy_stats.health : 0);
+		props.GetGrid()->GetProperty("Invulnerable")->Enable(is_enemy);
+		props.GetGrid()->SetPropertyValue("Invulnerable", invulnerable);
 		props.GetGrid()->GetProperty("Defence")->Enable(is_enemy);
 		props.GetGrid()->SetPropertyValue("Defence", is_enemy ? enemy_stats.defence : 0);
 		props.GetGrid()->GetProperty("Attack")->Enable(is_enemy);
 		props.GetGrid()->SetPropertyValue("Attack", is_enemy ? enemy_stats.attack : 0);
-		props.GetGrid()->GetProperty("Gold Drop")->Enable(is_enemy);
+		// Gold Drop and Drop Probability are fixed (0 gold, guaranteed) while Solid is set, so grey them.
+		props.GetGrid()->GetProperty("Gold Drop")->Enable(is_enemy && !solid);
 		props.GetGrid()->SetPropertyValue("Gold Drop", is_enemy ? enemy_stats.gold_drop : 0);
 		props.GetGrid()->GetProperty("Item Drop")->Enable(is_enemy);
 		props.GetGrid()->GetProperty("Item Drop")->SetChoices(is_enemy ? m_items : m_empty_choices);
@@ -523,12 +547,14 @@ void EntityViewerFrame::RefreshProperties(wxPropertyGridManager& props) const
 		{
 			props.GetGrid()->GetProperty("Item Drop")->SetChoiceSelection(enemy_stats.item_drop);
 		}
-		props.GetGrid()->GetProperty("Drop Probability")->Enable(is_enemy);
+		props.GetGrid()->GetProperty("Drop Probability")->Enable(is_enemy && !solid);
 		props.GetGrid()->GetProperty("Drop Probability")->SetChoices(is_enemy ? m_probabilities : m_empty_choices);
 		if (is_enemy)
 		{
 			props.GetGrid()->GetProperty("Drop Probability")->SetChoiceSelection(static_cast<uint8_t>(enemy_stats.drop_probability));
 		}
+		props.GetGrid()->GetProperty("Solid")->Enable(is_enemy);
+		props.GetGrid()->SetPropertyValue("Solid", solid);
 		props.GetGrid()->Thaw();
 	}
 }
@@ -722,6 +748,43 @@ void EntityViewerFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 			FireEvent(EVT_PROPERTIES_UPDATE);
 		}
 	}
+	else if (name == "Invulnerable")
+	{
+		bool value = property->GetValuePlain().GetBool();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		// 255 is the game's indestructible sentinel; clearing it drops back to the capped maximum.
+		uint8_t new_health = value ? 255 : (enemy_stats.health >= 255 ? 254 : enemy_stats.health);
+		if (new_health != enemy_stats.health)
+		{
+			enemy_stats.health = new_health;
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
+	else if (name == "Solid")
+	{
+		bool value = property->GetValuePlain().GetBool();
+		auto enemy_stats = m_gd->GetSpriteData()->GetEnemyStats(m_entity_id);
+		using DropProbability = Landstalker::SpriteData::EnemyStats::DropProbability;
+		const bool currently_solid = enemy_stats.gold_drop == 0
+			&& enemy_stats.drop_probability == DropProbability::GUARANTEED_DROP;
+		if (value != currently_solid)
+		{
+			if (value)
+			{
+				// The fixed-obstacle sentinel: no gold plus a guaranteed drop.
+				enemy_stats.gold_drop = 0;
+				enemy_stats.drop_probability = DropProbability::GUARANTEED_DROP;
+			}
+			else
+			{
+				// Drop the guaranteed roll so the pair is no longer the sentinel; leave gold as-is.
+				enemy_stats.drop_probability = DropProbability::NO_DROP;
+			}
+			m_gd->GetSpriteData()->SetEnemyStats(m_entity_id, enemy_stats);
+			FireEvent(EVT_PROPERTIES_UPDATE);
+		}
+	}
 	// Keep the stats panel in step with whatever the edit changed.
 	PopulateStats();
 	ctrl->GetGrid()->Thaw();
@@ -732,6 +795,9 @@ void EntityViewerFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 	ClearMenu(menu);
 	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
 	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML, "Export Entity Properties as YAML...");
+	AddMenuItem(fileMenu, 1, ID_FILE_EXPORT_ENTITY_SPRITESHEET, "Export Entity Sprite Sheet with Metadata...");
+	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_ALL_ENTITY_SPRITESHEETS, "Export All Entity Sprite Sheets with Metadata...");
+	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_ENTITY_METADATA, "Import Entity Metadata from YAML...");
 
 	UpdateUI();
 
@@ -1136,6 +1202,15 @@ void EntityViewerFrame::ProcessEvent(int id)
 	case ID_FILE_EXPORT_ENTITY_PROPERTIES_YAML:
 		OnExportPropertiesYaml();
 		break;
+	case ID_FILE_EXPORT_ENTITY_SPRITESHEET:
+		OnExportEntitySpritesheet();
+		break;
+	case ID_FILE_EXPORT_ALL_ENTITY_SPRITESHEETS:
+		OnExportAllEntitySpritesheets();
+		break;
+	case ID_FILE_IMPORT_ENTITY_METADATA:
+		OnImportEntityMetadata();
+		break;
 	}
 }
 
@@ -1199,4 +1274,125 @@ void EntityViewerFrame::ExportPropertiesYaml(const std::string& filename)
         file << ss.str();
         file.close();
     }
+}
+
+void EntityViewerFrame::OnExportEntitySpritesheet()
+{
+	if (m_entity_id < 0)
+	{
+		return;
+	}
+	const wxString default_file = Landstalker::StrPrintf("Entity%03d_sheet.png", m_entity_id);
+	wxFileDialog fd(this, _("Export Entity Sprite Sheet with Metadata"), "", default_file,
+		"PNG Image (*.png)|*.png|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() != wxID_CANCEL)
+	{
+		ExportEntitySpritesheet(static_cast<uint8_t>(m_entity_id), fd.GetPath().ToStdString());
+	}
+}
+
+void EntityViewerFrame::OnExportAllEntitySpritesheets()
+{
+	wxDirDialog dd(this, "Select Sprite Sheet Output Directory");
+	if (dd.ShowModal() != wxID_CANCEL)
+	{
+		ExportAllEntitySpritesheets(dd.GetPath().ToStdString());
+	}
+}
+
+void EntityViewerFrame::ExportEntitySpritesheet(uint8_t entity_id, const std::string& filename)
+{
+	using Result = Landstalker::SpriteData::SpriteSheetResult;
+	auto sd = m_gd->GetSpriteData();
+	const uint8_t sid = sd->GetSpriteFromEntity(entity_id);
+	// Use the entity's own palette (the colours the editor shows it in), falling back if absent.
+	auto palette = sd->GetEntityPalette(entity_id);
+	if (!palette)
+	{
+		palette = sd->GetSpriteDisplayPalette(sid);
+	}
+	// Entity metadata precedes the sprite metadata and grid layout in the YAML.
+	const std::string entity_yaml = sd->GetEntityMetadataYaml(entity_id, m_gd->GetStringData());
+	switch (sd->WriteSpriteSheet(sid, std::filesystem::path(filename), { palette }, 8, entity_yaml))
+	{
+	case Result::NoFrames:
+		wxMessageBox("This entity's sprite has no frames to export.", "Export Entity Sprite Sheet", wxOK | wxICON_WARNING, this);
+		break;
+	case Result::ImageWriteFailed:
+		wxMessageBox("Unable to write the sprite sheet image.", "Export Entity Sprite Sheet", wxOK | wxICON_ERROR, this);
+		break;
+	case Result::MetadataWriteFailed:
+		wxMessageBox("The sheet image was written, but its metadata could not be saved.",
+			"Export Entity Sprite Sheet", wxOK | wxICON_WARNING, this);
+		break;
+	case Result::Written:
+		break;
+	}
+}
+
+void EntityViewerFrame::ExportAllEntitySpritesheets(const std::string& dir)
+{
+	using Result = Landstalker::SpriteData::SpriteSheetResult;
+	auto sd = m_gd->GetSpriteData();
+	const std::filesystem::path out_dir(dir);
+
+	int written = 0;
+	int failed = 0;
+	for (const auto eid : sd->GetEntityIds())
+	{
+		const uint8_t sid = sd->GetSpriteFromEntity(eid);
+		auto palette = sd->GetEntityPalette(eid);
+		if (!palette)
+		{
+			palette = sd->GetSpriteDisplayPalette(sid);
+		}
+		const std::string entity_yaml = sd->GetEntityMetadataYaml(eid, m_gd->GetStringData());
+		const std::filesystem::path png_path = out_dir / Landstalker::StrPrintf("Entity%03d_sheet.png", eid);
+		switch (sd->WriteSpriteSheet(sid, png_path, { palette }, 8, entity_yaml))
+		{
+		case Result::Written:
+		case Result::MetadataWriteFailed:
+			++written;
+			break;
+		case Result::ImageWriteFailed:
+			++failed;
+			break;
+		case Result::NoFrames:
+			break;
+		}
+	}
+
+	const wxString summary = wxString::Format("Exported %d entity sprite sheet%s to:\n%s", written,
+		written == 1 ? "" : "s", wxString::FromUTF8(dir))
+		+ (failed > 0 ? wxString::Format("\n\n%d entit%s could not be written.", failed, failed == 1 ? "y" : "ies") : wxString());
+	wxMessageBox(summary, "Export All Entity Sprite Sheets", wxOK | (failed > 0 ? wxICON_WARNING : wxICON_INFORMATION), this);
+}
+
+void EntityViewerFrame::OnImportEntityMetadata()
+{
+	if (!m_gd || m_entity_id < 0)
+	{
+		return;
+	}
+	wxFileDialog fd(this, _("Import Entity Metadata From YAML"), "", "",
+		"YAML Files (*.yml, *.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	std::ifstream in(fd.GetPath().ToStdString(), std::ios::binary);
+	std::stringstream ss;
+	ss << in.rdbuf();
+
+	if (!m_gd->GetSpriteData()->ApplyEntityMetadataYaml(static_cast<uint8_t>(m_entity_id), ss.str(), m_gd->GetStringData()))
+	{
+		wxMessageBox("Could not read entity metadata from the selected file.",
+			"Import Entity Metadata", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	// The import may flip the enemy/item tags and change palettes, so refresh the list, the
+	// property grid and the stats panel.
+	PopulateEntityList();
+	FireEvent(EVT_PROPERTIES_UPDATE);
+	PopulateStats();
 }

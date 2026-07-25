@@ -8,7 +8,7 @@
 class GLCanvasWarpEditor {
 public:
     // Creates a warp editor adapter over canvas-owned state.
-    explicit GLCanvasWarpEditor(MyGLCanvas& canvas);
+    explicit GLCanvasWarpEditor(GLCanvas& canvas);
 
     // Enters pending-add mode for adding the other half of a warp pair.
     void BeginAddWarpHalf();
@@ -43,7 +43,7 @@ public:
 
 private:
     // Canvas whose shared editor state is being manipulated.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_WARP_EDITOR_H

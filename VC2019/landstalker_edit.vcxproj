@@ -88,7 +88,7 @@
     <ClCompile Include="..\src\rooms\gpu\GLCanvasObjectSupport.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomInfoOverlay.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomMode.cpp" />
-    <ClCompile Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.cpp" />
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasDoorEditor.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasTileSwapEditor.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasTilemapEditing.cpp" />
     <ClCompile Include="..\src\rooms\gpu\GLCanvasWarpEditor.cpp" />
@@ -202,8 +202,9 @@
     <ClInclude Include="..\src\rooms\gpu\GLCanvasObjectSupport.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomInfoOverlay.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomMode.h" />
-    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.h" />
-    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditorSupport.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasDoorEditor.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileSwapEditor.h" />
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasDoorTileSwapSupport.h" />
     <ClInclude Include="..\src\rooms\gpu\GLCanvasWarpEditor.h" />
     <ClInclude Include="..\src\rooms\gpu\GLLoader.h" />
     <ClInclude Include="..\src\rooms\gpu\HeightmapRenderer.h" />

@@ -3,14 +3,14 @@
 
 #include "GLCanvasInputTypes.h"
 
-class MyGLCanvas;
+class GLCanvas;
 class wxKeyEvent;
 
 // Owns top-level keyboard policy and dispatches commands to the active editor mode.
 // This persistent controller is the integration point for customizable key bindings.
 class GLCanvasKeyboardInput {
 public:
-    explicit GLCanvasKeyboardInput(MyGLCanvas& canvas);
+    explicit GLCanvasKeyboardInput(GLCanvas& canvas);
 
     // Handles global shortcuts before delegating mode-specific input.
     bool HandleKeyDown(wxKeyEvent& evt);
@@ -50,7 +50,7 @@ private:
                                             IsometricDirection& direction);
     static int MappedKeyCode(IsometricDirection direction, const DirectionKey& key);
     bool MapDirectionalInput(const wxKeyEvent& evt, const DirectionKey& key, wxKeyEvent& mapped_evt);
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
     GLCanvasDirectionInputMode m_direction_input_mode = GLCanvasDirectionInputMode::UpIsNorthEast;
     DirectionAxis m_last_direction_axis = DirectionAxis::NorthEastSouthWest;
     unsigned int m_pressed_wasd_directions = 0;

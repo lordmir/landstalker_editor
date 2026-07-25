@@ -1,13 +1,13 @@
 #ifndef GL_CANVAS_MOUSE_INPUT_H
 #define GL_CANVAS_MOUSE_INPUT_H
 
-class MyGLCanvas;
+class GLCanvas;
 class wxMouseEvent;
 
 // Owns top-level mouse gesture state and dispatches pointer input to the active mode.
 class GLCanvasMouseInput {
 public:
-    explicit GLCanvasMouseInput(MyGLCanvas& canvas);
+    explicit GLCanvasMouseInput(GLCanvas& canvas);
 
     void HandleMouseWheel(wxMouseEvent& evt);
     void HandleMouseMove(wxMouseEvent& evt);
@@ -21,7 +21,7 @@ public:
     void HandleMouseLeave(wxMouseEvent& evt);
 
 private:
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_MOUSE_INPUT_H

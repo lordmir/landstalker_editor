@@ -5,13 +5,13 @@
 #include <wx/gdicmn.h>
 #include <vector>
 
-class MyGLCanvas;
+class GLCanvas;
 
 // Draws clickable room metadata and navigation links over the GL canvas.
 class GLCanvasRoomInfoOverlay {
 public:
     // Binds the overlay to the canvas whose room data it presents.
-    explicit GLCanvasRoomInfoOverlay(MyGLCanvas& canvas);
+    explicit GLCanvasRoomInfoOverlay(GLCanvas& canvas);
 
     // Renders the current room information panel and records link hit boxes.
     void Render(int width, int height);
@@ -26,7 +26,7 @@ private:
     };
 
     // Canvas supplying current room, room data, and navigation helpers.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
     // Link hit boxes populated during the latest render pass.
     std::vector<Link> m_links;
 };

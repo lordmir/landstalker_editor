@@ -2,7 +2,7 @@
 
 This directory contains the GPU-backed room editor used by `RoomViewerFrame`.
 The frame still owns the panes, menus, toolbars, property grid, and list
-controls. The central editing surface is `MyGLCanvas`.
+controls. The central editing surface is `GLCanvas`.
 
 For user-facing controls and shortcuts, see [USER_GUIDE.md](USER_GUIDE.md).
 
@@ -11,7 +11,7 @@ For user-facing controls and shortcuts, see [USER_GUIDE.md](USER_GUIDE.md).
 ```text
 RoomViewerFrame
   owns panes, toolbars, menus, property grid
-  owns MyGLCanvas
+  owns GLCanvas
       owns renderers
       owns room/editor/selection/camera state
       delegates mode behavior and object behavior
@@ -25,16 +25,16 @@ RoomViewerFrame
 - `WarpControlFrame`
 - `TileSwapControlFrame`
 - `BlocksetEditorCtrl`
-- `MyGLCanvas`
+- `GLCanvas`
 
-The frame talks to `MyGLCanvas` through public methods such as `SetRoomNum`,
+The frame talks to `GLCanvas` through public methods such as `SetRoomNum`,
 `SetEditorMode`, `SetDrawingTool`, `SelectEntityByIndex`,
 `SetBackgroundOpacity`, `SetSelectedBlockId`, and the row/column/object editing
 commands.
 
 ## Main GPU Control
 
-`MyGLCanvas` is the coordination hub. It owns:
+`GLCanvas` is the coordination hub. It owns:
 
 - Current room and edit mode.
 - Camera, zoom, visibility, opacity, and highlight state.
@@ -48,7 +48,7 @@ commands.
   - `SpriteRenderer`
 - A persistent `GLCanvasRoomInfoOverlay`.
 
-Input is received by `MyGLCanvas` and delegated by `EditorMode`:
+Input is received by `GLCanvas` and delegated by `EditorMode`:
 
 - `EditorMode::Room` -> `GLCanvasRoomMode`
 - `EditorMode::BackgroundLayer` / `ForegroundLayer` -> `GLCanvasLayerEditMode`
@@ -168,7 +168,7 @@ Handles heightmap editing:
 
 ## Object Editing Helpers
 
-These helpers group object-specific behavior while operating on `MyGLCanvas`
+These helpers group object-specific behavior while operating on `GLCanvas`
 state.
 
 ### `GLCanvasEntityEditor`
@@ -193,23 +193,26 @@ Handles warp-specific operations:
 - Cycle warp type.
 - Warp hit tests, rendering, pending ghost, and tooltip.
 
-### `GLCanvasTileDoorEditor`
+### `GLCanvasDoorEditor`
 
-The public helper class for both door and tile-swap commands. Its
-implementation is split by domain:
+The helper class for door commands (`GLCanvasDoorEditor.cpp`):
 
-- `GLCanvasTileDoorEditor.cpp`
-  - Door add/drag/resize-size cycling.
-  - Door preview toggling.
-  - Door hit tests, rendering, pending ghost, and tooltip.
-  - Shared preview reset.
-- `GLCanvasTileSwapEditor.cpp`
-  - Tile-swap add/commit flow.
-  - Tile-swap drag/resize.
-  - Tile-swap shape and ID cycling.
-  - Tile-swap preview, outlines, and tooltip.
-- `GLCanvasTileDoorEditorSupport.h`
-  - Private shared geometry, hit-test, preview, and overlay drawing helpers.
+- Door add/drag/resize-size cycling.
+- Door preview toggling.
+- Door hit tests, rendering, pending ghost, and tooltip.
+
+### `GLCanvasTileSwapEditor`
+
+The helper class for tile-swap commands (`GLCanvasTileSwapEditor.cpp`):
+
+- Tile-swap add/commit flow.
+- Tile-swap drag/resize.
+- Tile-swap shape and ID cycling.
+- Tile-swap preview, outlines, and tooltip.
+
+The shared preview reset lives on `GLCanvas::ClearTileSwapPreview`, since door
+and tile-swap previews share the same preview map. Geometry, hit-test, preview,
+and overlay drawing helpers used by both are in `GLCanvasDoorTileSwapSupport.h`.
 
 ### `GLCanvasObjectCoordinator`
 
@@ -257,7 +260,7 @@ overlay/tooltip renderers.
 
 ## Frame Integration Events
 
-`MyGLCanvas` posts wx events back to `RoomViewerFrame` so the existing panes and
+`GLCanvas` posts wx events back to `RoomViewerFrame` so the existing panes and
 properties stay in sync.
 
 - `EVT_GPU_EDITOR_MODE_CHANGE`
@@ -288,12 +291,12 @@ properties stay in sync.
 
 ## Design Notes
 
-The current design deliberately keeps `MyGLCanvas` as the central coordination
+The current design deliberately keeps `GLCanvas` as the central coordination
 object. Mode and object helpers are organizational adapters over shared canvas
 state rather than independent controllers. This made the GPU editor port
 practical and keeps the existing frame/pane contracts stable.
 
-The main tradeoff is that `MyGLCanvas` remains state-heavy and friend-heavy.
+The main tradeoff is that `GLCanvas` remains state-heavy and friend-heavy.
 Future refactors could move pending-add state, drag state, layer edit state, and
 heightmap edit state into explicit state/model objects so helper classes can
 depend on smaller contracts.

@@ -14,7 +14,7 @@
 #include <rooms/TileSwapDialog.h>
 #include <rooms/gpu/GLCanvasInputTypes.h>
 
-class MyGLCanvas;
+class GLCanvas;
 class EntityPropertiesWindow;
 
 namespace RoomEdit
@@ -168,7 +168,7 @@ private:
 	RoomEdit::Mode m_mode;
 	mutable wxAuiManager m_mgr;
 	std::string m_title;
-	MyGLCanvas* m_gpuview;
+	GLCanvas* m_gpuview;
 	GLCanvasDirectionInputMode m_direction_input_mode;
 	LayerControlFrame* m_layerctrl;
 	EntityControlFrame* m_entityctrl;

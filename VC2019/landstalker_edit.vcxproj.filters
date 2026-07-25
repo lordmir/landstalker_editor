@@ -300,7 +300,7 @@
     <ClCompile Include="..\src\rooms\gpu\GLCanvasRoomMode.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.cpp">
+    <ClCompile Include="..\src\rooms\gpu\GLCanvasDoorEditor.cpp">
       <Filter>src\Rooms\GPU</Filter>
     </ClCompile>
     <ClCompile Include="..\src\rooms\gpu\GLCanvasTileSwapEditor.cpp">
@@ -626,10 +626,13 @@
     <ClInclude Include="..\src\rooms\gpu\GLCanvasRoomMode.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditor.h">
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasDoorEditor.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileDoorEditorSupport.h">
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasTileSwapEditor.h">
+      <Filter>include\Rooms\GPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\gpu\GLCanvasDoorTileSwapSupport.h">
       <Filter>include\Rooms\GPU</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rooms\gpu\GLCanvasWarpEditor.h">

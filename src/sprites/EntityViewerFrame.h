@@ -41,6 +41,11 @@ private:
 	void ProcessEvent(int id);
 	void OnExportPropertiesYaml();
 	void ExportPropertiesYaml(const std::string& filename);
+	void OnExportEntitySpritesheet();
+	void OnExportAllEntitySpritesheets();
+	void ExportEntitySpritesheet(uint8_t entity_id, const std::string& filename);
+	void ExportAllEntitySpritesheets(const std::string& dir);
+	void OnImportEntityMetadata();
 
 	// Left-pane entity list and its management buttons.
 	void PopulateEntityList();

@@ -1,6 +1,6 @@
 #include "GLCanvasLayerEditMode.h"
 
-GLCanvasLayerEditMode::GLCanvasLayerEditMode(MyGLCanvas& canvas)
+GLCanvasLayerEditMode::GLCanvasLayerEditMode(GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }
@@ -12,19 +12,19 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
 
     switch (evt.GetKeyCode()) {
         case '1':
-            m_canvas.SetEditorMode(MyGLCanvas::EditorMode::Room);
+            m_canvas.SetEditorMode(GLCanvas::EditorMode::Room);
             m_canvas.Refresh();
             return true;
         case '2':
-            m_canvas.SetEditorMode(MyGLCanvas::EditorMode::Heightmap);
+            m_canvas.SetEditorMode(GLCanvas::EditorMode::Heightmap);
             m_canvas.Refresh();
             return true;
         case '3':
-            m_canvas.SetEditorMode(MyGLCanvas::EditorMode::BackgroundLayer);
+            m_canvas.SetEditorMode(GLCanvas::EditorMode::BackgroundLayer);
             m_canvas.Refresh();
             return true;
         case '4':
-            m_canvas.SetEditorMode(MyGLCanvas::EditorMode::ForegroundLayer);
+            m_canvas.SetEditorMode(GLCanvas::EditorMode::ForegroundLayer);
             m_canvas.Refresh();
             return true;
         case 'i':
@@ -39,7 +39,7 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
             return true;
         case 'b':
         case 'B':
-            if (m_canvas.m_editor_mode == MyGLCanvas::EditorMode::ForegroundLayer) {
+            if (m_canvas.m_editor_mode == GLCanvas::EditorMode::ForegroundLayer) {
                 m_canvas.m_foreground_show_background_underlay = !m_canvas.m_foreground_show_background_underlay;
                 m_canvas.Refresh();
             }
@@ -68,8 +68,8 @@ bool GLCanvasLayerEditMode::HandleKeyDown(wxKeyEvent& evt)
                 if (m_canvas.HasCapture()) {
                     m_canvas.ReleaseMouse();
                 }
-            } else if (m_canvas.m_drawing_tool != MyGLCanvas::DrawingTool::Select) {
-                m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Select);
+            } else if (m_canvas.m_drawing_tool != GLCanvas::DrawingTool::Select) {
+                m_canvas.SetDrawingTool(GLCanvas::DrawingTool::Select);
             } else {
                 m_canvas.ClearEditSelection();
             }
@@ -194,7 +194,7 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
     } else if (m_canvas.m_layer_dragging_select && has_drag_cell) {
         m_canvas.UpdateLayerSelectionDrag(drag_x, drag_y);
     } else if (m_canvas.m_layer_dragging_draw &&
-        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&
+        m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Draw &&
         m_canvas.m_background_has_hover &&
         (m_canvas.m_background_hover_x != m_canvas.m_layer_last_draw_x ||
          m_canvas.m_background_hover_y != m_canvas.m_layer_last_draw_y)) {
@@ -203,7 +203,7 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
             m_canvas.m_layer_last_draw_y = m_canvas.m_background_hover_y;
         }
     } else if (m_canvas.m_layer_dragging_draw &&
-        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp &&
+        m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Stamp &&
         m_canvas.m_background_has_hover &&
         (m_canvas.m_background_hover_x != m_canvas.m_layer_last_draw_x ||
          m_canvas.m_background_hover_y != m_canvas.m_layer_last_draw_y)) {
@@ -212,7 +212,7 @@ void GLCanvasLayerEditMode::HandleMouseMove(const wxMouseEvent& evt)
         m_canvas.m_layer_last_draw_y = m_canvas.m_background_hover_y;
     }
     m_canvas.SetCursor(wxCursor(
-        m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select &&
+        m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Select &&
         !evt.ShiftDown() &&
         m_canvas.m_background_has_hover &&
         m_canvas.IsLayerCellSelected(m_canvas.m_background_hover_x, m_canvas.m_background_hover_y) ?
@@ -229,25 +229,25 @@ void GLCanvasLayerEditMode::HandleLeftDown(const wxMouseEvent& evt)
         return;
     }
 
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw) {
+    if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Draw) {
         m_canvas.m_layer_dragging_draw = true;
         m_canvas.m_layer_last_draw_x = x;
         m_canvas.m_layer_last_draw_y = y;
         m_canvas.PasteBackgroundBlockAt(x, y, true);
-    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FloodFill) {
+    } else if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::FloodFill) {
         m_canvas.ApplyLayerFloodFillAt(x, y);
-    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp) {
+    } else if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Stamp) {
         m_canvas.m_layer_dragging_draw = true;
         m_canvas.m_layer_last_draw_x = x;
         m_canvas.m_layer_last_draw_y = y;
         m_canvas.ApplyLayerStampAt(x, y);
-    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Line ||
-               m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FilledRect ||
-               m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::OutlineRect ||
-               m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FilledCircle ||
-               m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::OutlineCircle) {
+    } else if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Line ||
+               m_canvas.m_drawing_tool == GLCanvas::DrawingTool::FilledRect ||
+               m_canvas.m_drawing_tool == GLCanvas::DrawingTool::OutlineRect ||
+               m_canvas.m_drawing_tool == GLCanvas::DrawingTool::FilledCircle ||
+               m_canvas.m_drawing_tool == GLCanvas::DrawingTool::OutlineCircle) {
         m_canvas.BeginLayerLineDrag(x, y, evt.ShiftDown(), evt.AltDown());
-    } else if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select &&
+    } else if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Select &&
                !evt.ShiftDown() &&
                m_canvas.IsLayerCellSelected(x, y)) {
         m_canvas.BeginLayerSelectionMoveDrag(x, y);
@@ -305,8 +305,8 @@ void GLCanvasLayerEditMode::HandleLeftUp(const wxMouseEvent& evt)
 
 void GLCanvasLayerEditMode::HandleRightDown(const wxMouseEvent& evt)
 {
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Select) {
-        m_canvas.SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+    if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Select) {
+        m_canvas.SetDrawingTool(GLCanvas::DrawingTool::Draw);
         m_canvas.UpdateStatusBar();
         return;
     }
@@ -360,7 +360,7 @@ void GLCanvasLayerEditMode::HandleMouseLeave(const wxMouseEvent& /*evt*/)
 
 void GLCanvasLayerEditMode::Render(int width, int height)
 {
-    if (m_canvas.m_editor_mode == MyGLCanvas::EditorMode::BackgroundLayer) {
+    if (m_canvas.m_editor_mode == GLCanvas::EditorMode::BackgroundLayer) {
         m_canvas.m_mapRenderer.RenderBackgroundOnly();
         if (m_canvas.m_layer_priority_highlight) {
             m_canvas.m_mapRenderer.RenderPriorityHighlight(m_canvas.CurrentEditLayer(), 1.0f, 0.0f, 0.0f, 0.42f);
@@ -432,7 +432,7 @@ void GLCanvasLayerEditMode::Render(int width, int height)
         }
     }
 
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Draw &&
+    if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Draw &&
         m_canvas.m_background_clipboard_valid &&
         !m_canvas.m_layer_dragging_draw) {
         int preview_x = -1;
@@ -463,7 +463,7 @@ void GLCanvasLayerEditMode::Render(int width, int height)
                 0.45f,
                 m_canvas.CurrentEditLayer());
             if (m_canvas.m_layer_priority_highlight) {
-                if (m_canvas.m_editor_mode == MyGLCanvas::EditorMode::BackgroundLayer) {
+                if (m_canvas.m_editor_mode == GLCanvas::EditorMode::BackgroundLayer) {
                     m_canvas.m_mapRenderer.RenderBlockPriorityHighlight(
                         m_canvas.m_background_clipboard_block_id,
                         preview_x,
@@ -488,7 +488,7 @@ void GLCanvasLayerEditMode::Render(int width, int height)
         }
     }
 
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::Stamp &&
+    if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::Stamp &&
         !m_canvas.m_layer_dragging_draw) {
         int preview_x = -1;
         int preview_y = -1;
@@ -525,7 +525,7 @@ void GLCanvasLayerEditMode::Render(int width, int height)
         }
     }
 
-    if (m_canvas.m_drawing_tool == MyGLCanvas::DrawingTool::FloodFill &&
+    if (m_canvas.m_drawing_tool == GLCanvas::DrawingTool::FloodFill &&
         m_canvas.m_background_clipboard_valid &&
         !m_canvas.m_layer_dragging_draw) {
         int preview_x = -1;

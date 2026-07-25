@@ -42,7 +42,6 @@ public:
 private:
     void InitTexture();
     void InitShaders();
-    GLuint CreateShader(const char* vs_name, const char* vs_src, const char* fs_name, const char* fs_src);
 
     std::shared_ptr<Landstalker::GameData> m_gd;
     GLuint m_texture_id;

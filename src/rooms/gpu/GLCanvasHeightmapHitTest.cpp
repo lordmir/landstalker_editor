@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-GLCanvasHeightmapHitTest::GLCanvasHeightmapHitTest(const MyGLCanvas& canvas)
+GLCanvasHeightmapHitTest::GLCanvasHeightmapHitTest(const GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }

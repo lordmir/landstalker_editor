@@ -7,7 +7,7 @@
 class GLCanvasRoomMode {
 public:
     // Binds the mode facade to the shared canvas state it operates on.
-    explicit GLCanvasRoomMode(MyGLCanvas& canvas);
+    explicit GLCanvasRoomMode(GLCanvas& canvas);
 
     // Dispatches keyboard commands that are only active in normal room mode.
     bool HandleKeyDown(wxKeyEvent& evt);
@@ -37,7 +37,7 @@ private:
     void ResizeSelectedTileSwapByDelta(int dw, int dh);
 
     // Shared canvas owning room data, renderer state, and selections.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_ROOM_MODE_H

@@ -12,7 +12,7 @@ constexpr unsigned int kDirectionLeft = 4U;
 constexpr unsigned int kDirectionRight = 8U;
 }
 
-GLCanvasKeyboardInput::GLCanvasKeyboardInput(MyGLCanvas& canvas)
+GLCanvasKeyboardInput::GLCanvasKeyboardInput(GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }
@@ -217,42 +217,42 @@ bool GLCanvasKeyboardInput::HandleKeyUp(wxKeyEvent& evt)
     return true;
 }
 
-bool MyGLCanvas::HandleKeyDown(wxKeyEvent& evt)
+bool GLCanvas::HandleKeyDown(wxKeyEvent& evt)
 {
     return m_keyboard_input->HandleKeyDown(evt);
 }
 
-bool MyGLCanvas::HandleKeyUp(wxKeyEvent& evt)
+bool GLCanvas::HandleKeyUp(wxKeyEvent& evt)
 {
     return m_keyboard_input->HandleKeyUp(evt);
 }
 
-void MyGLCanvas::SetDirectionInputMode(GLCanvasDirectionInputMode mode)
+void GLCanvas::SetDirectionInputMode(GLCanvasDirectionInputMode mode)
 {
     m_keyboard_input->SetDirectionInputMode(mode);
 }
 
-GLCanvasDirectionInputMode MyGLCanvas::GetDirectionInputMode() const
+GLCanvasDirectionInputMode GLCanvas::GetDirectionInputMode() const
 {
     return m_keyboard_input->GetDirectionInputMode();
 }
 
-void MyGLCanvas::CycleDirectionInputMode()
+void GLCanvas::CycleDirectionInputMode()
 {
     m_keyboard_input->CycleDirectionInputMode();
 }
 
-void MyGLCanvas::OnKeyDown(wxKeyEvent& evt)
+void GLCanvas::OnKeyDown(wxKeyEvent& evt)
 {
     evt.Skip(!m_keyboard_input->HandleKeyDown(evt));
 }
 
-void MyGLCanvas::OnKeyUp(wxKeyEvent& evt)
+void GLCanvas::OnKeyUp(wxKeyEvent& evt)
 {
     evt.Skip(!m_keyboard_input->HandleKeyUp(evt));
 }
 
-void MyGLCanvas::OnKillFocus(wxFocusEvent& evt)
+void GLCanvas::OnKillFocus(wxFocusEvent& evt)
 {
     m_keyboard_input->ResetDirectionState();
     evt.Skip();

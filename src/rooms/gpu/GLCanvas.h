@@ -45,7 +45,7 @@ struct WarpInstance {
     uint16_t DestinationRoom() const { return current_room_is_room1 ? warp.room2 : warp.room1; }
 };
 
-class MyGLCanvas : public wxGLCanvas {
+class GLCanvas : public wxGLCanvas {
 public:
     enum class EditorMode {
         Room,
@@ -67,8 +67,8 @@ public:
         Clear
     };
 
-    MyGLCanvas(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd);
-    virtual ~MyGLCanvas();
+    GLCanvas(wxWindow* parent, std::shared_ptr<Landstalker::GameData> gd);
+    virtual ~GLCanvas();
 
     void SetRoomNum(uint16_t roomnum);
     void LoadRoom(uint16_t roomnum);
@@ -172,6 +172,9 @@ public:
 
 private:
 
+    // Heightmap cell value written to "cleared" cells: restriction 4, height 0.
+    static constexpr uint16_t kClearedHeightmapCell = 0x4000;
+
     enum class PendingObjectAddType {
         None,
         Entity,
@@ -205,11 +208,16 @@ private:
     struct LayerUndoState {
         Landstalker::Tilemap3D::Layer layer;
         std::vector<uint16_t> blocks;
+        // Set for structural edits (row/column insert/delete, clear): those
+        // change map dimensions or both layers, so a blocks-only snapshot of
+        // one layer cannot restore them.
+        std::shared_ptr<Landstalker::Tilemap3D> full_map;
     };
 
     friend class GLCanvasEntityEditor;
     friend class GLCanvasWarpEditor;
-    friend class GLCanvasTileDoorEditor;
+    friend class GLCanvasDoorEditor;
+    friend class GLCanvasTileSwapEditor;
     friend class GLCanvasObjectCoordinator;
     friend class GLCanvasHeightmapHitTest;
     friend class GLCanvasHeightmapMode;
@@ -248,12 +256,14 @@ private:
     wxWindow* EventTarget() const;
     void ResetLayerEditState();
     void ResetHeightmapEditState();
-    void CaptureUndoState();
+    void CaptureUndoState(bool structural = false);
     void RestoreUndoState(const std::shared_ptr<Landstalker::Tilemap3D>& state);
     bool IsObjectHistoryMode() const;
     bool IsBackgroundLayerHistoryMode() const;
     bool IsForegroundLayerHistoryMode() const;
     LayerUndoState BuildLayerUndoState(Landstalker::Tilemap3D::Layer layer) const;
+    LayerUndoState BuildFullMapLayerUndoState(Landstalker::Tilemap3D::Layer layer) const;
+    void InvalidateCrossLayerHistory();
     void RestoreLayerUndoState(const LayerUndoState& state);
     std::vector<Landstalker::Entity> BuildCurrentRoomEntities() const;
     std::vector<Landstalker::WarpList::Warp> BuildCurrentRoomWarps() const;
@@ -295,7 +305,6 @@ private:
     void PasteEntity();
     void CutSelectedEntity();
     void SelectNextObject(int direction);
-    void SelectNextTileSwapRegion(int direction);
     void CycleSelectedEntityId(int delta);
     void CycleSelectedEntityPalette();
     void SetSelectedEntityOrientation(Landstalker::Orientation orientation);
@@ -388,6 +397,10 @@ private:
     void CommitHeightmapLineDrag();
     void CancelHeightmapLineDrag();
     void ClampBackgroundSelection();
+    // Collapses the layer/heightmap selection to a single cell, clamped to the
+    // current map dimensions, keeping every selection representation in sync
+    // (primary cell, anchors, and the selected-cell set for the active mode).
+    void SetSelectedCell(int x, int y);
     void MoveBackgroundSelection(int dx, int dy);
     std::shared_ptr<Landstalker::Tilemap3D> CurrentRoomMap() const;
     int SelectedBackgroundBlockIndex() const;
@@ -453,7 +466,6 @@ private:
     long m_frame_count = 0;
     long m_animation_update_count = 0;
     float m_fps = 0.0f;
-    bool m_render_deferred = false;
     bool m_alpha = false;
     bool m_show_heightmap = false;
     bool m_show_entities = true;
@@ -501,9 +513,12 @@ private:
     wxPoint m_drag_pan_start_mouse = wxDefaultPosition;
     float m_drag_pan_start_cam_x = 0.0f;
     float m_drag_pan_start_cam_y = 0.0f;
-    int m_bg_opacity_idx = 0;
-    int m_fg_opacity_idx = 0;
-    int m_sprite_opacity_idx = 0;
+    // Source of truth for layer/sprite opacity. Both the keyboard step cycle
+    // and the continuous slider write here, so the status bar, the layer
+    // control (GetXxxOpacityByte), and the pending-ghost render all agree.
+    float m_bg_opacity = 1.0f;
+    float m_fg_opacity = 1.0f;
+    float m_sprite_opacity = 1.0f;
     int m_entity_occlusion_idx = 1;
     bool m_show_hitboxes = true;
     EditorMode m_editor_mode = EditorMode::Room;

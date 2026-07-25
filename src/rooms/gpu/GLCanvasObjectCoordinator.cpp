@@ -17,74 +17,74 @@ using RoomProjection::PickPoint;
 using RoomProjection::ProjectEntityGridPoint;
 using RoomProjection::ProjectWarpGridPoint;
 
-// MyGLCanvas keeps a small room-control-facing API, while all object-selection
+// GLCanvas keeps a small room-control-facing API, while all object-selection
 // behavior is implemented by the room object's coordinator.
-void MyGLCanvas::ClearObjectSelection()
+void GLCanvas::ClearObjectSelection()
 {
 	GLCanvasObjectCoordinator(*this).ClearSelection();
 }
 
-void MyGLCanvas::SelectEntityByIndex(int selection)
+void GLCanvas::SelectEntityByIndex(int selection)
 {
 	GLCanvasObjectCoordinator(*this).SelectEntityByIndex(selection);
 }
 
-void MyGLCanvas::SelectWarpByIndex(int selection)
+void GLCanvas::SelectWarpByIndex(int selection)
 {
 	GLCanvasObjectCoordinator(*this).SelectWarpByIndex(selection);
 }
 
-void MyGLCanvas::SelectTileSwapByIndex(int selection)
+void GLCanvas::SelectTileSwapByIndex(int selection)
 {
 	GLCanvasObjectCoordinator(*this).SelectTileSwapByIndex(selection);
 }
 
-void MyGLCanvas::SelectDoorByIndex(int selection)
+void GLCanvas::SelectDoorByIndex(int selection)
 {
 	GLCanvasObjectCoordinator(*this).SelectDoorByIndex(selection);
 }
 
-int MyGLCanvas::SelectedEntityListIndex() const
+int GLCanvas::SelectedEntityListIndex() const
 {
 	return GLCanvasObjectCoordinator::SelectedEntityListIndex(*this);
 }
 
-int MyGLCanvas::SelectedWarpListIndex() const
+int GLCanvas::SelectedWarpListIndex() const
 {
 	return GLCanvasObjectCoordinator::SelectedWarpListIndex(*this);
 }
 
-int MyGLCanvas::SelectedTileSwapListIndex() const
+int GLCanvas::SelectedTileSwapListIndex() const
 {
 	return GLCanvasObjectCoordinator::SelectedTileSwapListIndex(*this);
 }
 
-int MyGLCanvas::SelectedDoorListIndex() const
+int GLCanvas::SelectedDoorListIndex() const
 {
 	return GLCanvasObjectCoordinator::SelectedDoorListIndex(*this);
 }
 
-void MyGLCanvas::NotifySelectionChanged()
+void GLCanvas::NotifySelectionChanged()
 {
 	GLCanvasObjectCoordinator(*this).NotifySelectionChanged();
 }
 
-void MyGLCanvas::NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors)
+void GLCanvas::NotifyRoomDataChanged(bool entities, bool warps, bool swaps, bool doors)
 {
 	GLCanvasObjectCoordinator(*this).NotifyRoomDataChanged(entities, warps, swaps, doors);
 }
 
-void MyGLCanvas::RefreshObjectPlacementsFromHeightmap()
+void GLCanvas::RefreshObjectPlacementsFromHeightmap()
 {
 	GLCanvasObjectCoordinator(*this).RefreshPlacementsFromHeightmap();
 }
 
-void MyGLCanvas::PersistCurrentRoomEdits()
+void GLCanvas::PersistCurrentRoomEdits()
 {
 	GLCanvasObjectCoordinator(*this).PersistCurrentRoomEdits();
 }
 
-GLCanvasObjectCoordinator::GLCanvasObjectCoordinator(MyGLCanvas& canvas)
+GLCanvasObjectCoordinator::GLCanvasObjectCoordinator(GLCanvas& canvas)
 	: m_canvas(canvas)
 {
 }
@@ -245,7 +245,11 @@ void GLCanvasObjectCoordinator::RefreshPlacementsFromHeightmap()
 
 void GLCanvasObjectCoordinator::PersistCurrentRoomEdits()
 {
-	if (m_canvas.m_room_entities.empty() && m_canvas.m_instances.empty() && m_canvas.m_warps.empty()) {
+	// Only persist once the canvas has loaded the room's objects. Guarding on
+	// initialization (rather than on the object lists being empty) keeps an
+	// unloaded canvas from writing empty lists over real room data, while
+	// still persisting a legitimate edit that deleted every object.
+	if (!m_canvas.m_initialized) {
 		return;
 	}
 
@@ -365,7 +369,7 @@ void GLCanvasObjectCoordinator::SelectDoorByIndex(int selection)
 	m_canvas.Refresh();
 }
 
-int GLCanvasObjectCoordinator::SelectedEntityListIndex(const MyGLCanvas& canvas)
+int GLCanvasObjectCoordinator::SelectedEntityListIndex(const GLCanvas& canvas)
 {
 	if (canvas.m_selected_entity_idx >= 0 &&
 		canvas.m_selected_entity_idx < static_cast<int>(canvas.m_instances.size())) {
@@ -374,7 +378,7 @@ int GLCanvasObjectCoordinator::SelectedEntityListIndex(const MyGLCanvas& canvas)
 	return -1;
 }
 
-int GLCanvasObjectCoordinator::SelectedWarpListIndex(const MyGLCanvas& canvas)
+int GLCanvasObjectCoordinator::SelectedWarpListIndex(const GLCanvas& canvas)
 {
 	if (canvas.m_selected_warp_idx >= 0 &&
 		canvas.m_selected_warp_idx < static_cast<int>(canvas.m_warps.size())) {
@@ -383,7 +387,7 @@ int GLCanvasObjectCoordinator::SelectedWarpListIndex(const MyGLCanvas& canvas)
 	return -1;
 }
 
-int GLCanvasObjectCoordinator::SelectedTileSwapListIndex(const MyGLCanvas& canvas)
+int GLCanvasObjectCoordinator::SelectedTileSwapListIndex(const GLCanvas& canvas)
 {
 	if (canvas.m_selected_tileswap_region_idx >= 0) {
 		auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
@@ -398,7 +402,7 @@ int GLCanvasObjectCoordinator::SelectedTileSwapListIndex(const MyGLCanvas& canva
 	return -1;
 }
 
-int GLCanvasObjectCoordinator::SelectedDoorListIndex(const MyGLCanvas& canvas)
+int GLCanvasObjectCoordinator::SelectedDoorListIndex(const GLCanvas& canvas)
 {
 	return canvas.m_selected_door_idx >= 0 ? canvas.m_selected_door_idx + 1 : -1;
 }
@@ -659,8 +663,22 @@ void GLCanvasObjectCoordinator::DeleteSelectedObject()
 			m_canvas.m_pending_warp_instance_id = 0;
 		}
 		m_canvas.m_warps.erase(m_canvas.m_warps.begin() + m_canvas.m_selected_warp_idx);
+		// Renumbering rewrites every instance id by position, so the pending
+		// warp half (if any survived this delete) must be re-identified before
+		// the rewrite and its stored id refreshed afterwards; otherwise it
+		// points at the wrong warp and its latest position is lost on persist.
+		bool track_pending = m_canvas.m_pending_warp_half &&
+			m_canvas.m_pending_warp_room == m_canvas.m_current_room &&
+			m_canvas.m_pending_warp_instance_id != 0;
+		int pending_new_idx = -1;
+		if (track_pending) {
+			pending_new_idx = m_canvas.FindWarpIndex(m_canvas.m_pending_warp_instance_id);
+		}
 		for (std::size_t i = 0; i < m_canvas.m_warps.size(); ++i) {
 			m_canvas.m_warps[i].instance_id = static_cast<uint32_t>(i + 1);
+		}
+		if (pending_new_idx >= 0) {
+			m_canvas.m_pending_warp_instance_id = static_cast<uint32_t>(pending_new_idx + 1);
 		}
 		m_canvas.m_selected_warp_idx = -1;
 		m_canvas.m_hovered_warp_idx = -1;
@@ -969,26 +987,6 @@ void GLCanvasObjectCoordinator::SelectNextObject(int direction)
 	}
 
 	FocusCameraOnSelectedObjectIfNeeded();
-}
-
-void GLCanvasObjectCoordinator::SelectNextTileSwapRegion(int direction)
-{
-	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
-	if (regions.empty()) {
-		m_canvas.m_selected_tileswap_region_idx = -1;
-		return;
-	}
-	int current = m_canvas.m_selected_tileswap_region_idx >= 0 ? m_canvas.m_selected_tileswap_region_idx : -1;
-	int next = (current + direction) % static_cast<int>(regions.size());
-	if (next < 0) {
-		next += static_cast<int>(regions.size());
-	}
-	m_canvas.m_selected_entity_idx = -1;
-	m_canvas.m_hovered_entity_idx = -1;
-	m_canvas.m_selected_warp_idx = -1;
-	m_canvas.m_hovered_warp_idx = -1;
-	m_canvas.m_selected_tileswap_region_idx = next;
-	m_canvas.m_hovered_tileswap_region_idx = next;
 }
 
 void GLCanvasObjectCoordinator::NudgeSelectedObject(float dx, float dy, float dz)

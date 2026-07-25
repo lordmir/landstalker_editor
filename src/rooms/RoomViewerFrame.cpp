@@ -187,33 +187,33 @@ float LayerOpacityToFloat(uint8_t opacity)
 	return static_cast<float>(opacity) / 255.0f;
 }
 
-MyGLCanvas::EditorMode ToGpuEditorMode(RoomEdit::Mode mode)
+GLCanvas::EditorMode ToGpuEditorMode(RoomEdit::Mode mode)
 {
 	switch (mode)
 	{
 	case RoomEdit::Mode::HEIGHTMAP:
-		return MyGLCanvas::EditorMode::Heightmap;
+		return GLCanvas::EditorMode::Heightmap;
 	case RoomEdit::Mode::BACKGROUND:
-		return MyGLCanvas::EditorMode::BackgroundLayer;
+		return GLCanvas::EditorMode::BackgroundLayer;
 	case RoomEdit::Mode::FOREGROUND:
-		return MyGLCanvas::EditorMode::ForegroundLayer;
+		return GLCanvas::EditorMode::ForegroundLayer;
 	case RoomEdit::Mode::NORMAL:
 	default:
-		return MyGLCanvas::EditorMode::Room;
+		return GLCanvas::EditorMode::Room;
 	}
 }
 
-RoomEdit::Mode ToRoomEditMode(MyGLCanvas::EditorMode mode)
+RoomEdit::Mode ToRoomEditMode(GLCanvas::EditorMode mode)
 {
 	switch (mode)
 	{
-	case MyGLCanvas::EditorMode::Heightmap:
+	case GLCanvas::EditorMode::Heightmap:
 		return RoomEdit::Mode::HEIGHTMAP;
-	case MyGLCanvas::EditorMode::BackgroundLayer:
+	case GLCanvas::EditorMode::BackgroundLayer:
 		return RoomEdit::Mode::BACKGROUND;
-	case MyGLCanvas::EditorMode::ForegroundLayer:
+	case GLCanvas::EditorMode::ForegroundLayer:
 		return RoomEdit::Mode::FOREGROUND;
-	case MyGLCanvas::EditorMode::Room:
+	case GLCanvas::EditorMode::Room:
 	default:
 		return RoomEdit::Mode::NORMAL;
 	}
@@ -320,7 +320,7 @@ void RoomViewerFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 	m_g = gd;
 	if (m_gpuview == nullptr && gd != nullptr)
 	{
-		m_gpuview = new MyGLCanvas(this, gd);
+		m_gpuview = new GLCanvas(this, gd);
 		m_gpuview->SetDirectionInputMode(m_direction_input_mode);
 		m_mgr.AddPane(m_gpuview, wxAuiPaneInfo().CenterPane().PaneBorder(false));
 		m_mgr.Update();
@@ -1748,35 +1748,35 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 			if (IsGpuViewSelected()) m_gpuview->ToggleLayerPriorityHighlight();
 			break;
 		case TOOL_SELECT:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Select);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::Select);
 			break;
 		case TOOL_DRAW:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::Draw);
 			break;
 		case TOOL_LINE:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Line);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::Line);
 			break;
 		case TOOL_FILLED_RECT:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::FilledRect);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::FilledRect);
 			break;
 		case TOOL_OUTLINE_RECT:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::OutlineRect);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::OutlineRect);
 			break;
 		case TOOL_FILLED_CIRCLE:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::FilledCircle);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::FilledCircle);
 			break;
 		case TOOL_OUTLINE_CIRCLE:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::OutlineCircle);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::OutlineCircle);
 			break;
 		case TOOL_FLOODFILL:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::FloodFill);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::FloodFill);
 			break;
 		case TOOL_STAMP:
-			if (m_gpuview) m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Stamp);
+			if (m_gpuview) m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::Stamp);
 			break;
 		case TOOL_CLEAR:
-			if (m_gpuview && (m_gpuview->GetEditorMode() == MyGLCanvas::EditorMode::BackgroundLayer ||
-			                  m_gpuview->GetEditorMode() == MyGLCanvas::EditorMode::ForegroundLayer))
+			if (m_gpuview && (m_gpuview->GetEditorMode() == GLCanvas::EditorMode::BackgroundLayer ||
+			                  m_gpuview->GetEditorMode() == GLCanvas::EditorMode::ForegroundLayer))
 			{
 				m_gpuview->ClearSelectedLayerCells();
 			}
@@ -2358,16 +2358,16 @@ void RoomViewerFrame::UpdateUI() const
 	CheckToolbarItem("Main", MODE_BACKGROUND, active_mode == RoomEdit::Mode::BACKGROUND);
 	CheckMenuItem(ID_VIEW_FOREGROUND, active_mode == RoomEdit::Mode::FOREGROUND);
 	CheckToolbarItem("Main", MODE_FOREGROUND, active_mode == RoomEdit::Mode::FOREGROUND);
-	CheckToolbarItem("Drawing Tools", TOOL_SELECT, m_gpuview == nullptr || m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Select);
-	CheckToolbarItem("Drawing Tools", TOOL_DRAW, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Draw);
-	CheckToolbarItem("Drawing Tools", TOOL_LINE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Line);
-	CheckToolbarItem("Drawing Tools", TOOL_FILLED_RECT, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::FilledRect);
-	CheckToolbarItem("Drawing Tools", TOOL_OUTLINE_RECT, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::OutlineRect);
-	CheckToolbarItem("Drawing Tools", TOOL_FILLED_CIRCLE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::FilledCircle);
-	CheckToolbarItem("Drawing Tools", TOOL_OUTLINE_CIRCLE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::OutlineCircle);
-	CheckToolbarItem("Drawing Tools", TOOL_FLOODFILL, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::FloodFill);
-	CheckToolbarItem("Drawing Tools", TOOL_STAMP, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Stamp);
-	CheckToolbarItem("Drawing Tools", TOOL_CLEAR, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Clear);
+	CheckToolbarItem("Drawing Tools", TOOL_SELECT, m_gpuview == nullptr || m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Select);
+	CheckToolbarItem("Drawing Tools", TOOL_DRAW, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Draw);
+	CheckToolbarItem("Drawing Tools", TOOL_LINE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Line);
+	CheckToolbarItem("Drawing Tools", TOOL_FILLED_RECT, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::FilledRect);
+	CheckToolbarItem("Drawing Tools", TOOL_OUTLINE_RECT, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::OutlineRect);
+	CheckToolbarItem("Drawing Tools", TOOL_FILLED_CIRCLE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::FilledCircle);
+	CheckToolbarItem("Drawing Tools", TOOL_OUTLINE_CIRCLE, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::OutlineCircle);
+	CheckToolbarItem("Drawing Tools", TOOL_FLOODFILL, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::FloodFill);
+	CheckToolbarItem("Drawing Tools", TOOL_STAMP, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Stamp);
+	CheckToolbarItem("Drawing Tools", TOOL_CLEAR, m_gpuview != nullptr && m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Clear);
 	EnableToolbarItem("Drawing Tools", TOOL_SELECT, drawing_tools_enabled);
 	EnableToolbarItem("Drawing Tools", TOOL_DRAW, drawing_tools_enabled);
 	EnableToolbarItem("Drawing Tools", TOOL_LINE, drawing_tools_enabled);
@@ -3169,11 +3169,11 @@ void RoomViewerFrame::OnBlockSelect(wxCommandEvent& evt)
 		// so drop out of select mode rather than making them reach for the tool button.
 		// The heightmap editor already behaves this way when a cell type is picked.
 		const auto editor_mode = m_gpuview->GetEditorMode();
-		if ((editor_mode == MyGLCanvas::EditorMode::BackgroundLayer ||
-			 editor_mode == MyGLCanvas::EditorMode::ForegroundLayer) &&
-			m_gpuview->GetDrawingTool() == MyGLCanvas::DrawingTool::Select)
+		if ((editor_mode == GLCanvas::EditorMode::BackgroundLayer ||
+			 editor_mode == GLCanvas::EditorMode::ForegroundLayer) &&
+			m_gpuview->GetDrawingTool() == GLCanvas::DrawingTool::Select)
 		{
-			m_gpuview->SetDrawingTool(MyGLCanvas::DrawingTool::Draw);
+			m_gpuview->SetDrawingTool(GLCanvas::DrawingTool::Draw);
 			SyncGpuViewControls();
 			UpdateUI();
 		}

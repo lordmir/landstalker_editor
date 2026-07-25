@@ -4,7 +4,6 @@
 #include <landstalker/sprites/SpriteFrame.h>
 #include <landstalker/palettes/Palette.h>
 #include <landstalker/main/ImageBuffer.h>
-#include <iostream>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -604,14 +603,16 @@ void SpriteRenderer::Render(
             if (frames.empty())
                 return;
 
-            // Get the metadata for the current frame of animation
+            // Get the metadata for the current frame of animation. Clamp after
+            // the item-entity override, since GetDefaultEntityFrameId can return
+            // an index past the end of this animation's frame list.
             int fidx = static_cast<int>(inst.anim_timer);
-            if (fidx < 0 || fidx >= (int)frames.size())
-                fidx = 0;
             if(sd->IsEntityItem(inst.entity_id))
             {
                 fidx = sd->GetDefaultEntityFrameId(inst.entity_id);
             }
+            if (fidx < 0 || fidx >= (int)frames.size())
+                fidx = 0;
             const auto &meta = frames[fidx];
 
             // Handle horizontal flipping for NW/SE orientations
@@ -823,7 +824,10 @@ void SpriteRenderer::InitTexture()
     }
     glGenTextures(1, &m_texture_id);
     glBindTexture(GL_TEXTURE_2D, m_texture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, m_tex_w, m_tex_h, 0, GL_RED, GL_UNSIGNED_BYTE, data.data());
+    // GL_LUMINANCE (not GL_RED) to match MapRenderer's tileset and stay within
+    // the GL 2.0 feature set the loader guarantees; the shader reads .r, which
+    // luminance replicates into the red channel.
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, m_tex_w, m_tex_h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -855,43 +859,5 @@ void SpriteRenderer::InitTexture()
 
 void SpriteRenderer::InitShaders()
 {
-    m_shader_program = CreateShader("sprite.vert", GpuShaders::kSpriteVertex, "sprite.frag", GpuShaders::kSpriteFragment);
-}
-
-GLuint SpriteRenderer::CreateShader(const char* vs_name, const char* vs_src, const char* fs_name, const char* fs_src)
-{
-    // Compile + link follows the same model as MapRenderer: source -> shader objects -> program.
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &vs_src, nullptr);
-    glCompileShader(vs);
-    GLint status;
-    glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-    if (status == GL_FALSE)
-    {
-        char log[512];
-        glGetShaderInfoLog(vs, 512, nullptr, log);
-        std::cerr << "VS Error (" << vs_name << "): " << log << std::endl;
-    }
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &fs_src, nullptr);
-    glCompileShader(fs);
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-    if (status == GL_FALSE)
-    {
-        char log[512];
-        glGetShaderInfoLog(fs, 512, nullptr, log);
-        std::cerr << "FS Error (" << fs_name << "): " << log << std::endl;
-    }
-    GLuint prog = glCreateProgram();
-    glAttachShader(prog, vs);
-    glAttachShader(prog, fs);
-    glLinkProgram(prog);
-    glGetProgramiv(prog, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE)
-    {
-        char log[512];
-        glGetProgramInfoLog(prog, 512, nullptr, log);
-        std::cerr << "Link Error: " << log << std::endl;
-    }
-    return prog;
+    m_shader_program = CompileShaderProgram("sprite.vert", GpuShaders::kSpriteVertex, "sprite.frag", GpuShaders::kSpriteFragment);
 }

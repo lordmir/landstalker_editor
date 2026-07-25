@@ -7,7 +7,7 @@
 class GLCanvasObjectCoordinator {
 public:
     // Creates a coordinator over canvas-owned object state.
-    explicit GLCanvasObjectCoordinator(MyGLCanvas& canvas);
+    explicit GLCanvasObjectCoordinator(GLCanvas& canvas);
 
     // Clears all room-object hover and selection state.
     void ClearSelection();
@@ -25,10 +25,10 @@ public:
     void SelectTileSwapByIndex(int selection);
     void SelectDoorByIndex(int selection);
     // Returns the selected object's identifier in its corresponding control list.
-    static int SelectedEntityListIndex(const MyGLCanvas& canvas);
-    static int SelectedWarpListIndex(const MyGLCanvas& canvas);
-    static int SelectedTileSwapListIndex(const MyGLCanvas& canvas);
-    static int SelectedDoorListIndex(const MyGLCanvas& canvas);
+    static int SelectedEntityListIndex(const GLCanvas& canvas);
+    static int SelectedWarpListIndex(const GLCanvas& canvas);
+    static int SelectedTileSwapListIndex(const GLCanvas& canvas);
+    static int SelectedDoorListIndex(const GLCanvas& canvas);
     // Selects the topmost room object under a canvas point.
     bool SelectAt(const wxPoint& point);
     // Opens the properties editor for the selected room object.
@@ -45,14 +45,12 @@ public:
     void ReorderSelectedObject(int delta);
     // Selects the next object across entities, warps, tile swaps, and doors.
     void SelectNextObject(int direction);
-    // Selects the next region belonging to tile swaps.
-    void SelectNextTileSwapRegion(int direction);
     // Nudges the selected object by room-grid/Z deltas.
     void NudgeSelectedObject(float dx, float dy, float dz);
 
 private:
     // Canvas whose shared editor state is being manipulated.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_OBJECT_COORDINATOR_H

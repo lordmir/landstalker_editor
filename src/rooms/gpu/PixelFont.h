@@ -244,4 +244,16 @@ inline void DrawOverlayText(const std::string& text, float x, float y, float sca
         DrawOverlayGlyph(text[i], x + float(i) * GLYPH_ADVANCE * scale, y, scale);
     }
 }
+
+// Formats a 16-bit value as four uppercase hex digits for overlay display.
+inline std::string HexWord(uint16_t value)
+{
+    constexpr char digits[] = "0123456789ABCDEF";
+    std::string out;
+    out.push_back(digits[(value >> 12) & 0x0F]);
+    out.push_back(digits[(value >> 8) & 0x0F]);
+    out.push_back(digits[(value >> 4) & 0x0F]);
+    out.push_back(digits[value & 0x0F]);
+    return out;
+}
 } // namespace PixelFont

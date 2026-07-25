@@ -20,22 +20,12 @@ uint8_t HeightmapCellHeight(uint16_t value) {
     return static_cast<uint8_t>((value >> 8) & 0x0F);
 }
 
-std::string HexWord(uint16_t value)
-{
-    constexpr char digits[] = "0123456789ABCDEF";
-    std::string out;
-    out.push_back(digits[(value >> 12) & 0x0F]);
-    out.push_back(digits[(value >> 8) & 0x0F]);
-    out.push_back(digits[(value >> 4) & 0x0F]);
-    out.push_back(digits[value & 0x0F]);
-    return out;
-}
-
 using PixelFont::DrawOverlayText;
+using PixelFont::HexWord;
 
 }  // namespace
 
-void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
+void GLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
@@ -311,7 +301,7 @@ void MyGLCanvas::RenderBackgroundEditorOverlay(int width, int height) {
     }
 }
 
-void MyGLCanvas::RenderHeightmapEditorOverlay(int width, int height) {
+void GLCanvas::RenderHeightmapEditorOverlay(int width, int height) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;

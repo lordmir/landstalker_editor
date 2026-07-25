@@ -39,6 +39,8 @@ public:
 	void Redraw() const;
 	void RedrawTiles(int index = -1) const;
 	void Update();
+	// Raises the current sprite's reserved tile count to fit the current frame when it grew past it.
+	void EnsureMaxTileCount();
 
 	bool Save();
 	bool SaveAs(wxString filename, bool compressed = false);
@@ -51,9 +53,8 @@ public:
 	void ExportTiles(const std::string& filename) const;
 	void ExportVdpSpritemap(const std::string& filename) const;
 	void ExportPng(const std::string& filename) const;
-	void ExportPngAnimation(const std::string& filename) const;
-	void ExportAllPngAnimation(const std::string& dir);
 	void ExportPropertiesYaml(const std::string& dir);
+	void ExportAllSpritesheets(const std::string& dir);
 	void ImportFrm(const std::string& filename);
 	void ImportTiles(const std::string& filename);
 	void ImportVdpSpritemap(const std::string& filename);
@@ -113,12 +114,12 @@ private:
 	void OnExportTiles();
 	void OnExportVdpSpritemap();
 	void OnExportPng();
-	void OnExportPngAnimation();
-	void OnExportAllPngAnimation();
+	void OnExportAllSpritesheets();
 	void OnExportPropertiesYaml();
 	void OnImportFrm();
 	void OnImportTiles();
 	void OnImportVdpSpritemap();
+	void OnImportSpriteMetadata();
 
 	void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;

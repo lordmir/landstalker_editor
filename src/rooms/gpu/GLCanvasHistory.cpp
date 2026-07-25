@@ -11,7 +11,7 @@ namespace {
 constexpr std::size_t kMaxUndoStates = 100;
 }
 
-bool MyGLCanvas::CanUndo() const {
+bool GLCanvas::CanUndo() const {
     if (IsObjectHistoryMode()) {
         return !m_object_undo_stack.empty();
     }
@@ -24,7 +24,7 @@ bool MyGLCanvas::CanUndo() const {
     return !m_map_undo_stack.empty();
 }
 
-bool MyGLCanvas::CanRedo() const {
+bool GLCanvas::CanRedo() const {
     if (IsObjectHistoryMode()) {
         return !m_object_redo_stack.empty();
     }
@@ -37,27 +37,37 @@ bool MyGLCanvas::CanRedo() const {
     return !m_map_redo_stack.empty();
 }
 
-void MyGLCanvas::CaptureUndoState() {
+void GLCanvas::CaptureUndoState(bool structural) {
     auto map = CurrentRoomMap();
     if (!map) {
         return;
     }
 
     if (IsBackgroundLayerHistoryMode()) {
-        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        m_bg_layer_undo_stack.push_back(structural
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::BG)
+            : BuildLayerUndoState(Tilemap3D::Layer::BG));
         if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
             m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
         }
         m_bg_layer_redo_stack.clear();
+        if (structural) {
+            InvalidateCrossLayerHistory();
+        }
         NotifyHeightmapTargetChanged();
         return;
     }
     if (IsForegroundLayerHistoryMode()) {
-        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        m_fg_layer_undo_stack.push_back(structural
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::FG)
+            : BuildLayerUndoState(Tilemap3D::Layer::FG));
         if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
             m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
         }
         m_fg_layer_redo_stack.clear();
+        if (structural) {
+            InvalidateCrossLayerHistory();
+        }
         NotifyHeightmapTargetChanged();
         return;
     }
@@ -70,7 +80,7 @@ void MyGLCanvas::CaptureUndoState() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
+void GLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
     auto map = CurrentRoomMap();
     if (!map || !state) {
         return;
@@ -97,19 +107,19 @@ void MyGLCanvas::RestoreUndoState(const std::shared_ptr<Tilemap3D>& state) {
     Refresh();
 }
 
-bool MyGLCanvas::IsObjectHistoryMode() const {
+bool GLCanvas::IsObjectHistoryMode() const {
     return m_editor_mode == EditorMode::Room;
 }
 
-bool MyGLCanvas::IsBackgroundLayerHistoryMode() const {
+bool GLCanvas::IsBackgroundLayerHistoryMode() const {
     return m_editor_mode == EditorMode::BackgroundLayer;
 }
 
-bool MyGLCanvas::IsForegroundLayerHistoryMode() const {
+bool GLCanvas::IsForegroundLayerHistoryMode() const {
     return m_editor_mode == EditorMode::ForegroundLayer;
 }
 
-MyGLCanvas::LayerUndoState MyGLCanvas::BuildLayerUndoState(Tilemap3D::Layer layer) const {
+GLCanvas::LayerUndoState GLCanvas::BuildLayerUndoState(Tilemap3D::Layer layer) const {
     LayerUndoState state{};
     state.layer = layer;
 
@@ -126,9 +136,50 @@ MyGLCanvas::LayerUndoState MyGLCanvas::BuildLayerUndoState(Tilemap3D::Layer laye
     return state;
 }
 
-void MyGLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
+GLCanvas::LayerUndoState GLCanvas::BuildFullMapLayerUndoState(Tilemap3D::Layer layer) const {
+    LayerUndoState state{};
+    state.layer = layer;
+
+    auto map = CurrentRoomMap();
+    if (map) {
+        state.full_map = std::make_shared<Tilemap3D>(*map);
+    }
+    return state;
+}
+
+void GLCanvas::InvalidateCrossLayerHistory() {
+    // Structural edits shift block indices in both layers, so blocks-only
+    // snapshots captured for the other layer no longer line up with the map.
+    if (IsBackgroundLayerHistoryMode()) {
+        m_fg_layer_undo_stack.clear();
+        m_fg_layer_redo_stack.clear();
+    } else if (IsForegroundLayerHistoryMode()) {
+        m_bg_layer_undo_stack.clear();
+        m_bg_layer_redo_stack.clear();
+    }
+}
+
+void GLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
     auto map = CurrentRoomMap();
     if (!map) {
+        return;
+    }
+
+    if (state.full_map) {
+        ResetLayerEditState();
+        InvalidateCrossLayerHistory();
+        RestoreUndoState(state.full_map);
+        // The map dimensions may have changed; drop selection cells that now
+        // fall outside the grid.
+        const int width = m_mapRenderer.GetRoomWidth();
+        const int height = m_mapRenderer.GetRoomHeight();
+        for (auto it = m_layer_selected_cells.begin(); it != m_layer_selected_cells.end(); ) {
+            if (it->first < 0 || it->second < 0 || it->first >= width || it->second >= height) {
+                it = m_layer_selected_cells.erase(it);
+            } else {
+                ++it;
+            }
+        }
         return;
     }
 
@@ -150,7 +201,7 @@ void MyGLCanvas::RestoreLayerUndoState(const LayerUndoState& state) {
     Refresh();
 }
 
-std::vector<Entity> MyGLCanvas::BuildCurrentRoomEntities() const {
+std::vector<Entity> GLCanvas::BuildCurrentRoomEntities() const {
     if (m_instances.empty()) {
         return m_room_entities;
     }
@@ -173,7 +224,7 @@ std::vector<Entity> MyGLCanvas::BuildCurrentRoomEntities() const {
     return entities;
 }
 
-std::vector<WarpList::Warp> MyGLCanvas::BuildCurrentRoomWarps() const {
+std::vector<WarpList::Warp> GLCanvas::BuildCurrentRoomWarps() const {
     std::vector<WarpList::Warp> warps;
     std::map<uint32_t, std::size_t> warp_slots;
     for (const auto& inst : m_warps) {
@@ -208,7 +259,7 @@ std::vector<WarpList::Warp> MyGLCanvas::BuildCurrentRoomWarps() const {
     return warps;
 }
 
-MyGLCanvas::ObjectUndoState MyGLCanvas::BuildObjectUndoState() const {
+GLCanvas::ObjectUndoState GLCanvas::BuildObjectUndoState() const {
     auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
     ObjectUndoState state{};
     state.entities = BuildCurrentRoomEntities();
@@ -226,7 +277,7 @@ MyGLCanvas::ObjectUndoState MyGLCanvas::BuildObjectUndoState() const {
     return state;
 }
 
-void MyGLCanvas::CaptureObjectUndoState() {
+void GLCanvas::CaptureObjectUndoState() {
     if (!m_gd) {
         return;
     }
@@ -239,7 +290,7 @@ void MyGLCanvas::CaptureObjectUndoState() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
+void GLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
     auto sd = m_gd ? m_gd->GetSpriteData() : nullptr;
     auto rd = m_gd ? m_gd->GetRoomData() : nullptr;
     if (!sd || !rd) {
@@ -291,7 +342,7 @@ void MyGLCanvas::RestoreObjectUndoState(const ObjectUndoState& state) {
     Refresh();
 }
 
-void MyGLCanvas::ClearUndoRedoHistory() {
+void GLCanvas::ClearUndoRedoHistory() {
     m_map_undo_stack.clear();
     m_map_redo_stack.clear();
     m_bg_layer_undo_stack.clear();
@@ -303,7 +354,7 @@ void MyGLCanvas::ClearUndoRedoHistory() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::Undo() {
+void GLCanvas::Undo() {
     if (!CanUndo()) {
         return;
     }
@@ -314,14 +365,19 @@ void MyGLCanvas::Undo() {
         m_object_undo_stack.pop_back();
         RestoreObjectUndoState(previous);
     } else if (IsBackgroundLayerHistoryMode()) {
-        m_bg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
         auto previous = m_bg_layer_undo_stack.back();
         m_bg_layer_undo_stack.pop_back();
+        // Undoing a structural edit needs a structural redo snapshot too.
+        m_bg_layer_redo_stack.push_back(previous.full_map
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::BG)
+            : BuildLayerUndoState(Tilemap3D::Layer::BG));
         RestoreLayerUndoState(previous);
     } else if (IsForegroundLayerHistoryMode()) {
-        m_fg_layer_redo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
         auto previous = m_fg_layer_undo_stack.back();
         m_fg_layer_undo_stack.pop_back();
+        m_fg_layer_redo_stack.push_back(previous.full_map
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::FG)
+            : BuildLayerUndoState(Tilemap3D::Layer::FG));
         RestoreLayerUndoState(previous);
     } else {
         auto map = CurrentRoomMap();
@@ -336,7 +392,7 @@ void MyGLCanvas::Undo() {
     NotifyHeightmapTargetChanged();
 }
 
-void MyGLCanvas::Redo() {
+void GLCanvas::Redo() {
     if (!CanRedo()) {
         return;
     }
@@ -350,20 +406,25 @@ void MyGLCanvas::Redo() {
         m_object_redo_stack.pop_back();
         RestoreObjectUndoState(next);
     } else if (IsBackgroundLayerHistoryMode()) {
-        m_bg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::BG));
+        auto next = m_bg_layer_redo_stack.back();
+        m_bg_layer_redo_stack.pop_back();
+        // Redoing a structural edit needs a structural undo snapshot too.
+        m_bg_layer_undo_stack.push_back(next.full_map
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::BG)
+            : BuildLayerUndoState(Tilemap3D::Layer::BG));
         if (m_bg_layer_undo_stack.size() > kMaxUndoStates) {
             m_bg_layer_undo_stack.erase(m_bg_layer_undo_stack.begin());
         }
-        auto next = m_bg_layer_redo_stack.back();
-        m_bg_layer_redo_stack.pop_back();
         RestoreLayerUndoState(next);
     } else if (IsForegroundLayerHistoryMode()) {
-        m_fg_layer_undo_stack.push_back(BuildLayerUndoState(Tilemap3D::Layer::FG));
+        auto next = m_fg_layer_redo_stack.back();
+        m_fg_layer_redo_stack.pop_back();
+        m_fg_layer_undo_stack.push_back(next.full_map
+            ? BuildFullMapLayerUndoState(Tilemap3D::Layer::FG)
+            : BuildLayerUndoState(Tilemap3D::Layer::FG));
         if (m_fg_layer_undo_stack.size() > kMaxUndoStates) {
             m_fg_layer_undo_stack.erase(m_fg_layer_undo_stack.begin());
         }
-        auto next = m_fg_layer_redo_stack.back();
-        m_fg_layer_redo_stack.pop_back();
         RestoreLayerUndoState(next);
     } else {
         auto map = CurrentRoomMap();

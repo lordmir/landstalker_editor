@@ -4,7 +4,8 @@
 #include "GLCanvasObjectCoordinator.h"
 #include "GLCanvasObjectSupport.h"
 #include "GLCanvasRoomInfoOverlay.h"
-#include "GLCanvasTileDoorEditor.h"
+#include "GLCanvasDoorEditor.h"
+#include "GLCanvasTileSwapEditor.h"
 #include "GLCanvasWarpEditor.h"
 #include "RoomProjection.h"
 
@@ -23,59 +24,59 @@ using RoomProjection::ScreenToHeightmapPoint;
 using RoomProjection::ScreenToMapPoint;
 }  // namespace
 
-void MyGLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
+void GLCanvas::UpdateEntityDrag(const wxMouseEvent& evt) {
     GLCanvasEntityEditor(*this).UpdateEntityDrag(evt);
 }
 
-void MyGLCanvas::EndEntityDrag() {
+void GLCanvas::EndEntityDrag() {
     GLCanvasEntityEditor(*this).EndEntityDrag();
 }
 
-void MyGLCanvas::StartWarpDrag(int warp_idx, const wxMouseEvent& evt) {
+void GLCanvas::StartWarpDrag(int warp_idx, const wxMouseEvent& evt) {
     GLCanvasWarpEditor(*this).StartWarpDrag(warp_idx, evt);
 }
 
-void MyGLCanvas::StartWarpResizeDrag(int warp_idx, int axis, const wxMouseEvent& evt) {
+void GLCanvas::StartWarpResizeDrag(int warp_idx, int axis, const wxMouseEvent& evt) {
     GLCanvasWarpEditor(*this).StartWarpResizeDrag(warp_idx, axis, evt);
 }
 
-void MyGLCanvas::UpdateWarpDrag(const wxMouseEvent& evt) {
+void GLCanvas::UpdateWarpDrag(const wxMouseEvent& evt) {
     GLCanvasWarpEditor(*this).UpdateWarpDrag(evt);
 }
 
-void MyGLCanvas::EndWarpDrag() {
+void GLCanvas::EndWarpDrag() {
     GLCanvasWarpEditor(*this).EndWarpDrag();
 }
 
-void MyGLCanvas::StartDoorDrag(int door_idx, const wxMouseEvent& evt) {
-    GLCanvasTileDoorEditor(*this).StartDoorDrag(door_idx, evt);
+void GLCanvas::StartDoorDrag(int door_idx, const wxMouseEvent& evt) {
+    GLCanvasDoorEditor(*this).StartDoorDrag(door_idx, evt);
 }
 
-void MyGLCanvas::UpdateDoorDrag(const wxMouseEvent& evt) {
-    GLCanvasTileDoorEditor(*this).UpdateDoorDrag(evt);
+void GLCanvas::UpdateDoorDrag(const wxMouseEvent& evt) {
+    GLCanvasDoorEditor(*this).UpdateDoorDrag(evt);
 }
 
-void MyGLCanvas::EndDoorDrag() {
-    GLCanvasTileDoorEditor(*this).EndDoorDrag();
+void GLCanvas::EndDoorDrag() {
+    GLCanvasDoorEditor(*this).EndDoorDrag();
 }
 
-void MyGLCanvas::StartTileSwapRegionDrag(int region_idx, int resize_axis, const wxMouseEvent& evt) {
-    GLCanvasTileDoorEditor(*this).StartTileSwapRegionDrag(region_idx, resize_axis, evt);
+void GLCanvas::StartTileSwapRegionDrag(int region_idx, int resize_axis, const wxMouseEvent& evt) {
+    GLCanvasTileSwapEditor(*this).StartTileSwapRegionDrag(region_idx, resize_axis, evt);
 }
 
-void MyGLCanvas::UpdateTileSwapRegionDrag(const wxMouseEvent& evt) {
-    GLCanvasTileDoorEditor(*this).UpdateTileSwapRegionDrag(evt);
+void GLCanvas::UpdateTileSwapRegionDrag(const wxMouseEvent& evt) {
+    GLCanvasTileSwapEditor(*this).UpdateTileSwapRegionDrag(evt);
 }
 
-void MyGLCanvas::EndTileSwapRegionDrag() {
-    GLCanvasTileDoorEditor(*this).EndTileSwapRegionDrag();
+void GLCanvas::EndTileSwapRegionDrag() {
+    GLCanvasTileSwapEditor(*this).EndTileSwapRegionDrag();
 }
 
-bool MyGLCanvas::HasPendingObjectAdd() const {
+bool GLCanvas::HasPendingObjectAdd() const {
     return m_pending_add_type != PendingObjectAddType::None;
 }
 
-void MyGLCanvas::UpdatePendingObjectAddHover() {
+void GLCanvas::UpdatePendingObjectAddHover() {
     if (!HasPendingObjectAdd()) {
         return;
     }
@@ -112,7 +113,7 @@ void MyGLCanvas::UpdatePendingObjectAddHover() {
     m_pending_add_hover_y = std::clamp(static_cast<int>(std::floor(point.y)), 0, 63);
 }
 
-bool MyGLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
+bool GLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
     if (m_pending_add_type != PendingObjectAddType::Entity) {
         return false;
     }
@@ -148,7 +149,7 @@ bool MyGLCanvas::BuildPendingEntityPreviewInstance(SpriteInstance& inst) {
     return true;
 }
 
-bool MyGLCanvas::BuildPendingWarpPreviewInstance(WarpInstance& inst) {
+bool GLCanvas::BuildPendingWarpPreviewInstance(WarpInstance& inst) {
     if (m_pending_add_type != PendingObjectAddType::Warp) {
         return false;
     }
@@ -178,7 +179,7 @@ bool MyGLCanvas::BuildPendingWarpPreviewInstance(WarpInstance& inst) {
     return true;
 }
 
-void MyGLCanvas::CancelPendingObjectAdd() {
+void GLCanvas::CancelPendingObjectAdd() {
     m_pending_add_type = PendingObjectAddType::None;
     m_pending_tileswap_part = PendingTileSwapPart::MapSource;
     m_pending_add_hover_x = -1;
@@ -200,7 +201,7 @@ void MyGLCanvas::CancelPendingObjectAdd() {
     Refresh();
 }
 
-void MyGLCanvas::CommitPendingObjectAdd() {
+void GLCanvas::CommitPendingObjectAdd() {
     if (!HasPendingObjectAdd()) {
         return;
     }
@@ -230,20 +231,20 @@ void MyGLCanvas::CommitPendingObjectAdd() {
             return;
         case PendingObjectAddType::Door:
             CaptureObjectUndoState();
-            GLCanvasTileDoorEditor(*this).AddDoor();
+            GLCanvasDoorEditor(*this).AddDoor();
             NotifyRoomDataChanged(false, false, false, true);
             NotifySelectionChanged();
             CancelPendingObjectAdd();
             return;
         case PendingObjectAddType::TileSwap:
-            GLCanvasTileDoorEditor(*this).CommitPendingTileSwapStep();
+            GLCanvasTileSwapEditor(*this).CommitPendingTileSwapStep();
             return;
         case PendingObjectAddType::None:
             return;
     }
 }
 
-void MyGLCanvas::RenderPendingObjectAddOverlay() {
+void GLCanvas::RenderPendingObjectAddOverlay() {
     if (!HasPendingObjectAdd() || m_pending_add_hover_x < 0 || m_pending_add_hover_y < 0) {
         return;
     }
@@ -376,17 +377,17 @@ void MyGLCanvas::RenderPendingObjectAddOverlay() {
 }
 
 
-// Thin forwarding layer: input handlers stay on MyGLCanvas while edit rules
+// Thin forwarding layer: input handlers stay on GLCanvas while edit rules
 // live in dedicated editor/coordinator classes.
-void MyGLCanvas::AddEntity() {
+void GLCanvas::AddEntity() {
     GLCanvasEntityEditor(*this).BeginAddEntity();
 }
 
-void MyGLCanvas::CopySelectedEntity() {
+void GLCanvas::CopySelectedEntity() {
     GLCanvasEntityEditor(*this).CopySelectedEntity();
 }
 
-void MyGLCanvas::PasteEntity() {
+void GLCanvas::PasteEntity() {
     if (!m_entity_clipboard_valid || m_room_entities.size() >= 15) {
         return;
     }
@@ -396,7 +397,7 @@ void MyGLCanvas::PasteEntity() {
     NotifySelectionChanged();
 }
 
-void MyGLCanvas::CutSelectedEntity() {
+void GLCanvas::CutSelectedEntity() {
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
         return;
     }
@@ -405,7 +406,7 @@ void MyGLCanvas::CutSelectedEntity() {
     DeleteSelectedObject();
 }
 
-void MyGLCanvas::DeleteSelectedObject() {
+void GLCanvas::DeleteSelectedObject() {
     const bool had_entity = m_selected_entity_idx >= 0;
     const bool had_warp = m_selected_warp_idx >= 0;
     const bool had_swap = m_selected_tileswap_region_idx >= 0;
@@ -419,7 +420,7 @@ void MyGLCanvas::DeleteSelectedObject() {
     NotifySelectionChanged();
 }
 
-void MyGLCanvas::ReorderSelectedObject(int delta) {
+void GLCanvas::ReorderSelectedObject(int delta) {
     const bool had_entity = m_selected_entity_idx >= 0;
     const bool had_warp = m_selected_warp_idx >= 0;
     const bool had_swap = m_selected_tileswap_region_idx >= 0;
@@ -433,19 +434,13 @@ void MyGLCanvas::ReorderSelectedObject(int delta) {
     NotifySelectionChanged();
 }
 
-void MyGLCanvas::SelectNextObject(int direction) {
+void GLCanvas::SelectNextObject(int direction) {
     GLCanvasObjectCoordinator(*this).SelectNextObject(direction);
     NotifySelectionChanged();
     UpdateStatusBar();
 }
 
-void MyGLCanvas::SelectNextTileSwapRegion(int direction) {
-    GLCanvasObjectCoordinator(*this).SelectNextTileSwapRegion(direction);
-    NotifySelectionChanged();
-    UpdateStatusBar();
-}
-
-void MyGLCanvas::CycleSelectedEntityId(int delta) {
+void GLCanvas::CycleSelectedEntityId(int delta) {
     bool selected_entity = m_selected_entity_idx >= 0 && m_selected_entity_idx < static_cast<int>(m_instances.size());
     if (selected_entity) {
         CaptureObjectUndoState();
@@ -456,7 +451,7 @@ void MyGLCanvas::CycleSelectedEntityId(int delta) {
     }
 }
 
-void MyGLCanvas::CycleSelectedEntityPalette() {
+void GLCanvas::CycleSelectedEntityPalette() {
     bool selected_entity = m_selected_entity_idx >= 0 && m_selected_entity_idx < static_cast<int>(m_instances.size());
     if (selected_entity) {
         CaptureObjectUndoState();
@@ -467,7 +462,7 @@ void MyGLCanvas::CycleSelectedEntityPalette() {
     }
 }
 
-void MyGLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientation) {
+void GLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientation) {
     bool selected_entity = m_selected_entity_idx >= 0 && m_selected_entity_idx < static_cast<int>(m_instances.size());
     if (selected_entity) {
         CaptureObjectUndoState();
@@ -478,7 +473,7 @@ void MyGLCanvas::SetSelectedEntityOrientation(Landstalker::Orientation orientati
     }
 }
 
-void MyGLCanvas::SetSelectedEntityToFloor() {
+void GLCanvas::SetSelectedEntityToFloor() {
     if (m_selected_entity_idx < 0 || m_selected_entity_idx >= static_cast<int>(m_instances.size())) {
         return;
     }
@@ -487,15 +482,15 @@ void MyGLCanvas::SetSelectedEntityToFloor() {
     NotifyRoomDataChanged(true, false, false, false);
 }
 
-void MyGLCanvas::AddWarpHalf() {
+void GLCanvas::AddWarpHalf() {
     GLCanvasWarpEditor(*this).BeginAddWarpHalf();
 }
 
-std::pair<float, float> MyGLCanvas::FindNearestFreeWarpCell(float preferred_x, float preferred_y) const {
-    return GLCanvasWarpEditor(const_cast<MyGLCanvas&>(*this)).FindNearestFreeWarpCell(preferred_x, preferred_y);
+std::pair<float, float> GLCanvas::FindNearestFreeWarpCell(float preferred_x, float preferred_y) const {
+    return GLCanvasWarpEditor(const_cast<GLCanvas&>(*this)).FindNearestFreeWarpCell(preferred_x, preferred_y);
 }
 
-std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
+std::pair<int, int> GLCanvas::MouseHeightmapCell() const {
     if (m_last_mouse_pos.x < 0 || m_last_mouse_pos.y < 0) {
         return {
             std::clamp(m_mapRenderer.GetRoomWidth() / 2, 0, 63),
@@ -505,7 +500,7 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
 
     int picked_x = -1;
     int picked_y = -1;
-    if (const_cast<MyGLCanvas*>(this)->HeightmapCellAt(m_last_mouse_pos, picked_x, picked_y)) {
+    if (const_cast<GLCanvas*>(this)->HeightmapCellAt(m_last_mouse_pos, picked_x, picked_y)) {
         return {
             std::clamp(picked_x, 0, 63),
             std::clamp(picked_y, 0, 63)
@@ -523,7 +518,7 @@ std::pair<int, int> MyGLCanvas::MouseHeightmapCell() const {
     };
 }
 
-void MyGLCanvas::ResizeSelectedWarp(float dx, float dy) {
+void GLCanvas::ResizeSelectedWarp(float dx, float dy) {
     bool selected_warp = m_selected_warp_idx >= 0 && m_selected_warp_idx < static_cast<int>(m_warps.size());
     if (selected_warp) {
         CaptureObjectUndoState();
@@ -534,7 +529,7 @@ void MyGLCanvas::ResizeSelectedWarp(float dx, float dy) {
     }
 }
 
-void MyGLCanvas::RotateSelectedWarp(float dx, float dy) {
+void GLCanvas::RotateSelectedWarp(float dx, float dy) {
     if (m_selected_warp_idx < 0 || m_selected_warp_idx >= static_cast<int>(m_warps.size())) {
         return;
     }
@@ -543,7 +538,7 @@ void MyGLCanvas::RotateSelectedWarp(float dx, float dy) {
     NotifyRoomDataChanged(false, true, false, false);
 }
 
-void MyGLCanvas::CycleSelectedWarpType(int delta) {
+void GLCanvas::CycleSelectedWarpType(int delta) {
     bool selected_warp = m_selected_warp_idx >= 0 && m_selected_warp_idx < static_cast<int>(m_warps.size());
     if (selected_warp) {
         CaptureObjectUndoState();
@@ -554,65 +549,79 @@ void MyGLCanvas::CycleSelectedWarpType(int delta) {
     }
 }
 
-void MyGLCanvas::CycleSelectedDoorSize(int delta) {
+void GLCanvas::CycleSelectedDoorSize(int delta) {
     bool selected_door = m_selected_door_idx >= 0;
     if (selected_door) {
         CaptureObjectUndoState();
     }
-    GLCanvasTileDoorEditor(*this).CycleSelectedDoorSize(delta);
+    GLCanvasDoorEditor(*this).CycleSelectedDoorSize(delta);
     if (selected_door) {
         NotifyRoomDataChanged(false, false, false, true);
     }
 }
 
-void MyGLCanvas::AddDoor() {
-    GLCanvasTileDoorEditor(*this).BeginAddDoor();
+void GLCanvas::AddDoor() {
+    GLCanvasDoorEditor(*this).BeginAddDoor();
 }
 
-void MyGLCanvas::AddTileSwap() {
-    GLCanvasTileDoorEditor(*this).BeginAddTileSwap();
+void GLCanvas::AddTileSwap() {
+    GLCanvasTileSwapEditor(*this).BeginAddTileSwap();
 }
 
-void MyGLCanvas::CycleSelectedTileSwapShape(int delta) {
+void GLCanvas::CycleSelectedTileSwapShape(int delta) {
     if (m_selected_tileswap_region_idx < 0) {
         return;
     }
     CaptureObjectUndoState();
-    GLCanvasTileDoorEditor(*this).CycleSelectedTileSwapShape(delta);
+    GLCanvasTileSwapEditor(*this).CycleSelectedTileSwapShape(delta);
     NotifyRoomDataChanged(false, false, true, false);
 }
 
-void MyGLCanvas::CycleSelectedTileSwapId(int delta) {
+void GLCanvas::CycleSelectedTileSwapId(int delta) {
     if (m_selected_tileswap_region_idx < 0) {
         return;
     }
     CaptureObjectUndoState();
-    GLCanvasTileDoorEditor(*this).CycleSelectedTileSwapId(delta);
+    GLCanvasTileSwapEditor(*this).CycleSelectedTileSwapId(delta);
     NotifyRoomDataChanged(false, false, true, false);
 }
 
-void MyGLCanvas::ResizeSelectedTileSwapRegion(float requested_width, float requested_height) {
+void GLCanvas::ResizeSelectedTileSwapRegion(float requested_width, float requested_height) {
     if (m_selected_tileswap_region_idx < 0) {
         return;
     }
     CaptureObjectUndoState();
-    GLCanvasTileDoorEditor(*this).ResizeSelectedTileSwapRegion(requested_width, requested_height);
+    GLCanvasTileSwapEditor(*this).ResizeSelectedTileSwapRegion(requested_width, requested_height);
     NotifyRoomDataChanged(false, false, true, false);
 }
 
-void MyGLCanvas::ToggleSelectedTileSwapPreview() {
-    GLCanvasTileDoorEditor(*this).ToggleSelectedTileSwapPreview();
+void GLCanvas::ToggleSelectedTileSwapPreview() {
+    GLCanvasTileSwapEditor(*this).ToggleSelectedTileSwapPreview();
 }
 
-void MyGLCanvas::ToggleSelectedDoorPreview() {
-    GLCanvasTileDoorEditor(*this).ToggleSelectedDoorPreview();
+void GLCanvas::ToggleSelectedDoorPreview() {
+    GLCanvasDoorEditor(*this).ToggleSelectedDoorPreview();
 }
 
-void MyGLCanvas::ClearTileSwapPreview() {
-    GLCanvasTileDoorEditor(*this).ClearTileSwapPreview();
+void GLCanvas::ClearTileSwapPreview() {
+    // Door and tile-swap previews share the same preview map/state, so a single
+    // canvas-owned clear serves both editors.
+    if (!m_tileswap_preview_active && !m_door_preview_active && !m_tileswap_preview_map) {
+        return;
+    }
+    m_tileswap_preview_active = false;
+    m_tileswap_preview_swap_index = -1;
+    m_door_preview_active = false;
+    m_door_preview_idx = -1;
+    m_tileswap_preview_map.reset();
+    m_heightmapRenderer.ClearPreviewMap();
+    if (m_initialized) {
+        m_mapRenderer.LoadRoom(m_current_room);
+        RefreshObjectPlacementsFromHeightmap();
+    }
 }
 
-void MyGLCanvas::NudgeSelectedObject(float dx, float dy, float dz) {
+void GLCanvas::NudgeSelectedObject(float dx, float dy, float dz) {
     const bool had_entity = m_selected_entity_idx >= 0;
     const bool had_warp = m_selected_warp_idx >= 0;
     const bool had_swap = m_selected_tileswap_region_idx >= 0;
@@ -625,55 +634,55 @@ void MyGLCanvas::NudgeSelectedObject(float dx, float dy, float dz) {
     NotifyRoomDataChanged(had_entity, had_warp, had_swap, had_door);
 }
 
-void MyGLCanvas::RenderWarps() {
+void GLCanvas::RenderWarps() {
     GLCanvasWarpEditor(*this).RenderWarps();
 }
 
-void MyGLCanvas::RenderEntityControls() {
+void GLCanvas::RenderEntityControls() {
     GLCanvasEntityEditor(*this).RenderEntityControls();
 }
 
-void MyGLCanvas::RenderSelectedEntityTooltip() {
+void GLCanvas::RenderSelectedEntityTooltip() {
     GLCanvasEntityEditor(*this).RenderSelectedEntityTooltip();
 }
 
-void MyGLCanvas::RenderSelectedWarpTooltip() {
+void GLCanvas::RenderSelectedWarpTooltip() {
     GLCanvasWarpEditor(*this).RenderSelectedWarpTooltip();
 }
 
-void MyGLCanvas::RenderSelectedDoorTooltip() {
-    GLCanvasTileDoorEditor(*this).RenderSelectedDoorTooltip();
+void GLCanvas::RenderSelectedDoorTooltip() {
+    GLCanvasDoorEditor(*this).RenderSelectedDoorTooltip();
 }
 
-void MyGLCanvas::RenderSelectedTileSwapRegionTooltip() {
-    GLCanvasTileDoorEditor(*this).RenderSelectedTileSwapRegionTooltip();
+void GLCanvas::RenderSelectedTileSwapRegionTooltip() {
+    GLCanvasTileSwapEditor(*this).RenderSelectedTileSwapRegionTooltip();
 }
 
-void MyGLCanvas::RenderRoomInfoTable(int width, int height) {
+void GLCanvas::RenderRoomInfoTable(int width, int height) {
     m_room_info_overlay.Render(width, height);
 }
 
-float MyGLCanvas::FloorUnderRect(float min_x, float min_y, float max_x, float max_y) const {
+float GLCanvas::FloorUnderRect(float min_x, float min_y, float max_x, float max_y) const {
     return GLCanvasHeightmapHitTest(*this).FloorUnderRect(min_x, min_y, max_x, max_y);
 }
 
-float MyGLCanvas::FloorUnderPoint(float x, float y) const {
+float GLCanvas::FloorUnderPoint(float x, float y) const {
     return GLCanvasHeightmapHitTest(*this).FloorUnderPoint(x, y);
 }
 
-bool MyGLCanvas::ShadowOccludedByHeightmap(float min_x, float min_y, float max_x, float max_y, float z) const {
+bool GLCanvas::ShadowOccludedByHeightmap(float min_x, float min_y, float max_x, float max_y, float z) const {
     return GLCanvasHeightmapHitTest(*this).ShadowOccludedByHeightmap(min_x, min_y, max_x, max_y, z);
 }
 
-bool MyGLCanvas::EntityCollidesWithHeightmap(const SpriteInstance& inst) const {
+bool GLCanvas::EntityCollidesWithHeightmap(const SpriteInstance& inst) const {
     return GLCanvasHeightmapHitTest(*this).EntityCollidesWithHeightmap(inst);
 }
 
-float MyGLCanvas::FloorUnderHitbox(float center_x, float center_y, float half_base) const {
+float GLCanvas::FloorUnderHitbox(float center_x, float center_y, float half_base) const {
     return GLCanvasHeightmapHitTest(*this).FloorUnderHitbox(center_x, center_y, half_base);
 }
 
-int MyGLCanvas::FindInstanceIndex(uint32_t instance_id) const {
+int GLCanvas::FindInstanceIndex(uint32_t instance_id) const {
     for (std::size_t i = 0; i < m_instances.size(); ++i) {
         if (m_instances[i].instance_id == instance_id) {
             return static_cast<int>(i);
@@ -682,7 +691,7 @@ int MyGLCanvas::FindInstanceIndex(uint32_t instance_id) const {
     return -1;
 }
 
-int MyGLCanvas::FindWarpIndex(uint32_t instance_id) const {
+int GLCanvas::FindWarpIndex(uint32_t instance_id) const {
     for (std::size_t i = 0; i < m_warps.size(); ++i) {
         if (m_warps[i].instance_id == instance_id) {
             return static_cast<int>(i);
@@ -691,47 +700,47 @@ int MyGLCanvas::FindWarpIndex(uint32_t instance_id) const {
     return -1;
 }
 
-int MyGLCanvas::HitTestRoomInfoLink(const wxPoint& point) const {
+int GLCanvas::HitTestRoomInfoLink(const wxPoint& point) const {
     return m_room_info_overlay.HitTest(point);
 }
 
-int MyGLCanvas::HitTestEntity(const wxPoint& point) const {
-    return GLCanvasEntityEditor(const_cast<MyGLCanvas&>(*this)).HitTestEntity(point);
+int GLCanvas::HitTestEntity(const wxPoint& point) const {
+    return GLCanvasEntityEditor(const_cast<GLCanvas&>(*this)).HitTestEntity(point);
 }
 
-int MyGLCanvas::HitTestEntityBody(const wxPoint& point) const {
-    return GLCanvasEntityEditor(const_cast<MyGLCanvas&>(*this)).HitTestEntityBody(point);
+int GLCanvas::HitTestEntityBody(const wxPoint& point) const {
+    return GLCanvasEntityEditor(const_cast<GLCanvas&>(*this)).HitTestEntityBody(point);
 }
 
-int MyGLCanvas::HitTestEntityZControl(const wxPoint& point) const {
-    return GLCanvasEntityEditor(const_cast<MyGLCanvas&>(*this)).HitTestEntityZControl(point);
+int GLCanvas::HitTestEntityZControl(const wxPoint& point) const {
+    return GLCanvasEntityEditor(const_cast<GLCanvas&>(*this)).HitTestEntityZControl(point);
 }
 
-int MyGLCanvas::HitTestWarpResizeControl(const wxPoint& point) const {
-    return GLCanvasWarpEditor(const_cast<MyGLCanvas&>(*this)).HitTestWarpResizeControl(point);
+int GLCanvas::HitTestWarpResizeControl(const wxPoint& point) const {
+    return GLCanvasWarpEditor(const_cast<GLCanvas&>(*this)).HitTestWarpResizeControl(point);
 }
 
-int MyGLCanvas::HitTestWarp(const wxPoint& point) const {
-    return GLCanvasWarpEditor(const_cast<MyGLCanvas&>(*this)).HitTestWarp(point);
+int GLCanvas::HitTestWarp(const wxPoint& point) const {
+    return GLCanvasWarpEditor(const_cast<GLCanvas&>(*this)).HitTestWarp(point);
 }
 
-int MyGLCanvas::HitTestTileSwapRegion(const wxPoint& point) const {
-    return GLCanvasTileDoorEditor(const_cast<MyGLCanvas&>(*this)).HitTestTileSwapRegion(point);
+int GLCanvas::HitTestTileSwapRegion(const wxPoint& point) const {
+    return GLCanvasTileSwapEditor(const_cast<GLCanvas&>(*this)).HitTestTileSwapRegion(point);
 }
 
-int MyGLCanvas::HitTestTileSwapRegionResizeControl(const wxPoint& point) const {
-    return GLCanvasTileDoorEditor(const_cast<MyGLCanvas&>(*this)).HitTestTileSwapRegionResizeControl(point);
+int GLCanvas::HitTestTileSwapRegionResizeControl(const wxPoint& point) const {
+    return GLCanvasTileSwapEditor(const_cast<GLCanvas&>(*this)).HitTestTileSwapRegionResizeControl(point);
 }
 
-int MyGLCanvas::HitTestDoor(const wxPoint& point) const {
-    return GLCanvasTileDoorEditor(const_cast<MyGLCanvas&>(*this)).HitTestDoor(point);
+int GLCanvas::HitTestDoor(const wxPoint& point) const {
+    return GLCanvasDoorEditor(const_cast<GLCanvas&>(*this)).HitTestDoor(point);
 }
 
-void MyGLCanvas::RenderTileSwapOutlines() {
-    GLCanvasTileDoorEditor(*this).RenderTileSwapOutlines();
+void GLCanvas::RenderTileSwapOutlines() {
+    GLCanvasTileSwapEditor(*this).RenderTileSwapOutlines();
 }
 
-void MyGLCanvas::RenderDoors() {
-    GLCanvasTileDoorEditor(*this).RenderDoors();
+void GLCanvas::RenderDoors() {
+    GLCanvasDoorEditor(*this).RenderDoors();
 }
 

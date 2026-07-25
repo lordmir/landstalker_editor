@@ -20,7 +20,7 @@ float WheelSteps(const wxMouseEvent& evt)
 
 }  // namespace
 
-GLCanvasMouseInput::GLCanvasMouseInput(MyGLCanvas& canvas)
+GLCanvasMouseInput::GLCanvasMouseInput(GLCanvas& canvas)
     : m_canvas(canvas)
 {
 }
@@ -175,52 +175,52 @@ void GLCanvasMouseInput::HandleMouseLeave(wxMouseEvent& evt)
     evt.Skip();
 }
 
-void MyGLCanvas::OnMouseWheel(wxMouseEvent& evt)
+void GLCanvas::OnMouseWheel(wxMouseEvent& evt)
 {
     m_mouse_input->HandleMouseWheel(evt);
 }
 
-void MyGLCanvas::OnMouseMove(wxMouseEvent& evt)
+void GLCanvas::OnMouseMove(wxMouseEvent& evt)
 {
     m_mouse_input->HandleMouseMove(evt);
 }
 
-void MyGLCanvas::OnLeftDown(wxMouseEvent& evt)
+void GLCanvas::OnLeftDown(wxMouseEvent& evt)
 {
     m_mouse_input->HandleLeftDown(evt);
 }
 
-void MyGLCanvas::OnLeftDClick(wxMouseEvent& evt)
+void GLCanvas::OnLeftDClick(wxMouseEvent& evt)
 {
     m_mouse_input->HandleLeftDClick(evt);
 }
 
-void MyGLCanvas::OnLeftUp(wxMouseEvent& evt)
+void GLCanvas::OnLeftUp(wxMouseEvent& evt)
 {
     m_mouse_input->HandleLeftUp(evt);
 }
 
-void MyGLCanvas::OnMiddleDown(wxMouseEvent& evt)
+void GLCanvas::OnMiddleDown(wxMouseEvent& evt)
 {
     m_mouse_input->HandleMiddleDown(evt);
 }
 
-void MyGLCanvas::OnMiddleUp(wxMouseEvent& evt)
+void GLCanvas::OnMiddleUp(wxMouseEvent& evt)
 {
     m_mouse_input->HandleMiddleUp(evt);
 }
 
-void MyGLCanvas::OnRightDown(wxMouseEvent& evt)
+void GLCanvas::OnRightDown(wxMouseEvent& evt)
 {
     m_mouse_input->HandleRightDown(evt);
 }
 
-void MyGLCanvas::OnRightUp(wxMouseEvent& evt)
+void GLCanvas::OnRightUp(wxMouseEvent& evt)
 {
     m_mouse_input->HandleRightUp(evt);
 }
 
-void MyGLCanvas::OnMouseLeave(wxMouseEvent& evt)
+void GLCanvas::OnMouseLeave(wxMouseEvent& evt)
 {
     m_mouse_input->HandleMouseLeave(evt);
 }

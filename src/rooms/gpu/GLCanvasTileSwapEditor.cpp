@@ -1,8 +1,13 @@
-#include "GLCanvasTileDoorEditor.h"
-#include "GLCanvasTileDoorEditorSupport.h"
+#include "GLCanvasTileSwapEditor.h"
+#include "GLCanvasDoorTileSwapSupport.h"
+
+GLCanvasTileSwapEditor::GLCanvasTileSwapEditor(GLCanvas& canvas)
+	: m_canvas(canvas)
+{
+}
 
 
-void GLCanvasTileDoorEditor::BeginAddTileSwap()
+void GLCanvasTileSwapEditor::BeginAddTileSwap()
 {
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd) {
@@ -33,42 +38,42 @@ void GLCanvasTileDoorEditor::BeginAddTileSwap()
 	m_canvas.m_pending_add_swap.mode = Landstalker::TileSwap::Mode::FLOOR;
 	m_canvas.m_pending_add_swap.map = {0, 0, 0, 0, 1, 1};
 	m_canvas.m_pending_add_swap.heightmap = {0, 0, 0, 0, 1, 1};
-	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::TileSwap;
-	m_canvas.m_pending_tileswap_part = MyGLCanvas::PendingTileSwapPart::MapSource;
+	m_canvas.m_pending_add_type = GLCanvas::PendingObjectAddType::TileSwap;
+	m_canvas.m_pending_tileswap_part = GLCanvas::PendingTileSwapPart::MapSource;
 	m_canvas.UpdatePendingObjectAddHover();
 	m_canvas.SetCursor(wxCursor(wxCURSOR_CROSS));
 	m_canvas.Refresh();
 }
 
 
-void GLCanvasTileDoorEditor::CommitPendingTileSwapStep()
+void GLCanvasTileSwapEditor::CommitPendingTileSwapStep()
 {
-	if (m_canvas.m_pending_add_type != MyGLCanvas::PendingObjectAddType::TileSwap) {
+	if (m_canvas.m_pending_add_type != GLCanvas::PendingObjectAddType::TileSwap) {
 		return;
 	}
 
 	uint8_t x = static_cast<uint8_t>(std::clamp(m_canvas.m_pending_add_hover_x, 0, 63));
 	uint8_t y = static_cast<uint8_t>(std::clamp(m_canvas.m_pending_add_hover_y, 0, 63));
 	switch (m_canvas.m_pending_tileswap_part) {
-		case MyGLCanvas::PendingTileSwapPart::MapSource:
+		case GLCanvas::PendingTileSwapPart::MapSource:
 			m_canvas.m_pending_add_swap.map.src_x = x;
 			m_canvas.m_pending_add_swap.map.src_y = y;
-			m_canvas.m_pending_tileswap_part = MyGLCanvas::PendingTileSwapPart::MapDestination;
+			m_canvas.m_pending_tileswap_part = GLCanvas::PendingTileSwapPart::MapDestination;
 			m_canvas.Refresh();
 			return;
-		case MyGLCanvas::PendingTileSwapPart::MapDestination:
+		case GLCanvas::PendingTileSwapPart::MapDestination:
 			m_canvas.m_pending_add_swap.map.dst_x = x;
 			m_canvas.m_pending_add_swap.map.dst_y = y;
-			m_canvas.m_pending_tileswap_part = MyGLCanvas::PendingTileSwapPart::HeightmapSource;
+			m_canvas.m_pending_tileswap_part = GLCanvas::PendingTileSwapPart::HeightmapSource;
 			m_canvas.Refresh();
 			return;
-		case MyGLCanvas::PendingTileSwapPart::HeightmapSource:
+		case GLCanvas::PendingTileSwapPart::HeightmapSource:
 			m_canvas.m_pending_add_swap.heightmap.src_x = x;
 			m_canvas.m_pending_add_swap.heightmap.src_y = y;
-			m_canvas.m_pending_tileswap_part = MyGLCanvas::PendingTileSwapPart::HeightmapDestination;
+			m_canvas.m_pending_tileswap_part = GLCanvas::PendingTileSwapPart::HeightmapDestination;
 			m_canvas.Refresh();
 			return;
-		case MyGLCanvas::PendingTileSwapPart::HeightmapDestination:
+		case GLCanvas::PendingTileSwapPart::HeightmapDestination:
 			m_canvas.m_pending_add_swap.heightmap.dst_x = x;
 			m_canvas.m_pending_add_swap.heightmap.dst_y = y;
 			break;
@@ -108,7 +113,7 @@ void GLCanvasTileDoorEditor::CommitPendingTileSwapStep()
 }
 
 
-int GLCanvasTileDoorEditor::HitTestTileSwapRegion(const wxPoint& point) const
+int GLCanvasTileSwapEditor::HitTestTileSwapRegion(const wxPoint& point) const
 {
 	PickPoint world_point{
 		m_canvas.ScreenToWorldX(point.x),
@@ -141,7 +146,7 @@ int GLCanvasTileDoorEditor::HitTestTileSwapRegion(const wxPoint& point) const
 }
 
 
-int GLCanvasTileDoorEditor::HitTestTileSwapRegionResizeControl(const wxPoint& point) const
+int GLCanvasTileSwapEditor::HitTestTileSwapRegionResizeControl(const wxPoint& point) const
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
 		m_canvas.m_gd,
@@ -164,7 +169,7 @@ int GLCanvasTileDoorEditor::HitTestTileSwapRegionResizeControl(const wxPoint& po
 }
 
 
-void GLCanvasTileDoorEditor::StartTileSwapRegionDrag(int region_idx, int resize_axis, const wxMouseEvent& evt)
+void GLCanvasTileSwapEditor::StartTileSwapRegionDrag(int region_idx, int resize_axis, const wxMouseEvent& evt)
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
 		m_canvas.m_gd,
@@ -196,7 +201,7 @@ void GLCanvasTileDoorEditor::StartTileSwapRegionDrag(int region_idx, int resize_
 }
 
 
-void GLCanvasTileDoorEditor::UpdateTileSwapRegionDrag(const wxMouseEvent& evt)
+void GLCanvasTileSwapEditor::UpdateTileSwapRegionDrag(const wxMouseEvent& evt)
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
 		m_canvas.m_gd,
@@ -249,7 +254,7 @@ void GLCanvasTileDoorEditor::UpdateTileSwapRegionDrag(const wxMouseEvent& evt)
 		int vertical_height_delta = static_cast<int>(std::trunc(
 			(m_canvas.ScreenToWorldY(evt.GetPosition().y) - m_canvas.ScreenToWorldY(m_canvas.m_drag_start_mouse.y)) / 32.0f));
 
-		ClearTileSwapPreview();
+		m_canvas.ClearTileSwapPreview();
 		auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 		if (!rd) {
 			return;
@@ -333,7 +338,7 @@ void GLCanvasTileDoorEditor::UpdateTileSwapRegionDrag(const wxMouseEvent& evt)
 			rd->SetTileSwaps(m_canvas.m_current_room, swaps);
 		}
 	} else {
-		ClearTileSwapPreview();
+		m_canvas.ClearTileSwapPreview();
 		auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 		if (!rd) {
 			return;
@@ -374,7 +379,7 @@ void GLCanvasTileDoorEditor::UpdateTileSwapRegionDrag(const wxMouseEvent& evt)
 }
 
 
-void GLCanvasTileDoorEditor::EndTileSwapRegionDrag()
+void GLCanvasTileSwapEditor::EndTileSwapRegionDrag()
 {
 	if (!m_canvas.m_dragging_tileswap_region) {
 		return;
@@ -390,97 +395,9 @@ void GLCanvasTileDoorEditor::EndTileSwapRegionDrag()
 }
 
 
-void GLCanvasTileDoorEditor::AddTileSwap()
+void GLCanvasTileSwapEditor::CycleSelectedTileSwapShape(int delta)
 {
-	ClearTileSwapPreview();
-	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
-	if (!rd) {
-		return;
-	}
-
-	auto swaps = rd->GetTileSwaps(m_canvas.m_current_room);
-	std::set<int> used_triggers;
-	for (const auto& swap : swaps) {
-		used_triggers.insert(static_cast<int>(swap.trigger));
-	}
-
-	int trigger = -1;
-	for (int candidate = 0; candidate <= 31; ++candidate) {
-		if (used_triggers.count(candidate) == 0) {
-			trigger = candidate;
-			break;
-		}
-	}
-	if (trigger < 0) {
-		return;
-	}
-
-	auto cell_used = [&swaps](int x, int y) {
-		for (const auto& swap : swaps) {
-			auto contains = [x, y](const Landstalker::TileSwap::CopyOp& op, bool source) {
-				int rx = source ? op.src_x : op.dst_x;
-				int ry = source ? op.src_y : op.dst_y;
-				return x >= rx && x < rx + op.width && y >= ry && y < ry + op.height;
-			};
-			if (contains(swap.map, true) || contains(swap.map, false) ||
-				contains(swap.heightmap, true) || contains(swap.heightmap, false)) {
-				return true;
-			}
-		}
-		return false;
-	};
-
-	auto [preferred_x, preferred_y] = m_canvas.MouseHeightmapCell();
-	preferred_x = std::clamp(preferred_x, 0, 62);
-	preferred_y = std::clamp(preferred_y, 0, 63);
-	int src_x = preferred_x;
-	int src_y = preferred_y;
-	bool found = false;
-	int best_dist = std::numeric_limits<int>::max();
-	for (int y = 0; y < 64; ++y) {
-		for (int x = 0; x < 63; ++x) {
-			if (!cell_used(x, y) && !cell_used(x + 1, y)) {
-				int dx = x - preferred_x;
-				int dy = y - preferred_y;
-				int dist = dx * dx + dy * dy;
-				if (dist < best_dist) {
-					best_dist = dist;
-					src_x = x;
-					src_y = y;
-					found = true;
-				}
-			}
-		}
-	}
-	if (!found) {
-		return;
-	}
-
-	Landstalker::TileSwap swap;
-	swap.trigger = static_cast<uint8_t>(trigger);
-	swap.mode = Landstalker::TileSwap::Mode::FLOOR;
-	swap.map = {
-		static_cast<uint8_t>(src_x),
-		static_cast<uint8_t>(src_y),
-		static_cast<uint8_t>(src_x + 1),
-		static_cast<uint8_t>(src_y),
-		1,
-		1
-	};
-	swap.heightmap = swap.map;
-	swaps.push_back(swap);
-	rd->SetTileSwaps(m_canvas.m_current_room, swaps);
-
-	m_canvas.m_selected_entity_idx = -1;
-	m_canvas.m_selected_warp_idx = -1;
-	m_canvas.m_selected_tileswap_region_idx = static_cast<int>((swaps.size() - 1) * 4);
-	m_canvas.m_hovered_tileswap_region_idx = m_canvas.m_selected_tileswap_region_idx;
-}
-
-
-void GLCanvasTileDoorEditor::CycleSelectedTileSwapShape(int delta)
-{
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
 	if (m_canvas.m_selected_tileswap_region_idx < 0 ||
 		m_canvas.m_selected_tileswap_region_idx >= static_cast<int>(regions.size())) {
@@ -502,9 +419,9 @@ void GLCanvasTileDoorEditor::CycleSelectedTileSwapShape(int delta)
 }
 
 
-void GLCanvasTileDoorEditor::CycleSelectedTileSwapId(int delta)
+void GLCanvasTileSwapEditor::CycleSelectedTileSwapId(int delta)
 {
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
 	if (m_canvas.m_selected_tileswap_region_idx < 0 ||
 		m_canvas.m_selected_tileswap_region_idx >= static_cast<int>(regions.size())) {
@@ -554,7 +471,7 @@ void GLCanvasTileDoorEditor::CycleSelectedTileSwapId(int delta)
 }
 
 
-void GLCanvasTileDoorEditor::ResizeSelectedTileSwapByDelta(int dw, int dh)
+void GLCanvasTileSwapEditor::ResizeSelectedTileSwapByDelta(int dw, int dh)
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
 	if (m_canvas.m_selected_tileswap_region_idx < 0 ||
@@ -570,9 +487,9 @@ void GLCanvasTileDoorEditor::ResizeSelectedTileSwapByDelta(int dw, int dh)
 }
 
 
-void GLCanvasTileDoorEditor::ResizeSelectedTileSwapRegion(float requested_width, float requested_height)
+void GLCanvasTileSwapEditor::ResizeSelectedTileSwapRegion(float requested_width, float requested_height)
 {
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
 	if (m_canvas.m_selected_tileswap_region_idx < 0 ||
 		m_canvas.m_selected_tileswap_region_idx >= static_cast<int>(regions.size())) {
@@ -609,7 +526,7 @@ void GLCanvasTileDoorEditor::ResizeSelectedTileSwapRegion(float requested_width,
 }
 
 
-void GLCanvasTileDoorEditor::ToggleSelectedTileSwapPreview()
+void GLCanvasTileSwapEditor::ToggleSelectedTileSwapPreview()
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(m_canvas.m_gd, m_canvas.m_current_room, m_canvas.m_mapRenderer, m_canvas.m_heightmapRenderer.GetZExtent());
 	if (m_canvas.m_selected_tileswap_region_idx < 0 ||
@@ -619,11 +536,11 @@ void GLCanvasTileDoorEditor::ToggleSelectedTileSwapPreview()
 
 	int swap_index = regions[static_cast<std::size_t>(m_canvas.m_selected_tileswap_region_idx)].swap_index;
 	if (m_canvas.m_tileswap_preview_active && m_canvas.m_tileswap_preview_swap_index == swap_index) {
-		ClearTileSwapPreview();
+		m_canvas.ClearTileSwapPreview();
 		return;
 	}
 
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd) {
@@ -656,7 +573,7 @@ void GLCanvasTileDoorEditor::ToggleSelectedTileSwapPreview()
 }
 
 
-void GLCanvasTileDoorEditor::RenderTileSwapOutlines()
+void GLCanvasTileSwapEditor::RenderTileSwapOutlines()
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
 		m_canvas.m_gd,
@@ -745,7 +662,7 @@ void GLCanvasTileDoorEditor::RenderTileSwapOutlines()
 }
 
 
-void GLCanvasTileDoorEditor::RenderSelectedTileSwapRegionTooltip()
+void GLCanvasTileSwapEditor::RenderSelectedTileSwapRegionTooltip()
 {
 	auto regions = GLCanvasObjectSupport::BuildTileSwapRegionGeometries(
 		m_canvas.m_gd,

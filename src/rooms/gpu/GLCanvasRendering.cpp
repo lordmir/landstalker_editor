@@ -15,7 +15,7 @@ constexpr long kTargetFrameMs = 1000 / 60;
 
 }  // namespace
 
-void MyGLCanvas::OnIdle(wxIdleEvent& evt)
+void GLCanvas::OnIdle(wxIdleEvent& evt)
 {
     if (!m_initialized || !m_gd || !IsShownOnScreen()) {
         return;
@@ -25,7 +25,6 @@ void MyGLCanvas::OnIdle(wxIdleEvent& evt)
     if (now_ms - m_last_frame_ms >= kTargetFrameMs) {
         float dt = std::clamp((now_ms - m_last_anim_ms) / 1000.0f, 0.0f, 0.1f);
         m_last_anim_ms = now_ms;
-        m_render_deferred = false;
 
         if (!IsAnyEditMode()) {
             GLCanvasRoomMode(*this).UpdateAnimations(dt);
@@ -36,7 +35,7 @@ void MyGLCanvas::OnIdle(wxIdleEvent& evt)
     evt.RequestMore();
 }
 
-void MyGLCanvas::RecordRenderedFrame()
+void GLCanvas::RecordRenderedFrame()
 {
     m_last_frame_ms = m_anim_stopwatch.Time();
     m_frame_count++;
@@ -48,7 +47,7 @@ void MyGLCanvas::RecordRenderedFrame()
     }
 }
 
-void MyGLCanvas::OnPaint(wxPaintEvent&)
+void GLCanvas::OnPaint(wxPaintEvent&)
 {
     // This is the entry point for drawing. wxPaintDC is a helper that ensures
     // the windowing system knows we are drawing.
@@ -60,10 +59,11 @@ void MyGLCanvas::OnPaint(wxPaintEvent&)
         m_context = new wxGLContext(this);
     }
 
-    // Set the current OpenGL context to this window.
+    // Set the current OpenGL context to this window. A failed SetCurrent is
+    // usually transient (e.g. the window is not yet shown on screen), so return
+    // without latching m_gl_init_failed and let the next paint retry. Only the
+    // genuine initialization failures below are treated as permanent.
     if (!m_context || !SetCurrent(*m_context)) {
-        m_gl_init_failed = true;
-        wxLogError("Failed to make the OpenGL context current.");
         return;
     }
 
@@ -86,10 +86,8 @@ void MyGLCanvas::OnPaint(wxPaintEvent&)
 
     long now_ms = m_anim_stopwatch.Time();
     if (now_ms - m_last_frame_ms < kTargetFrameMs) {
-        m_render_deferred = true;
         return;
     }
-    m_render_deferred = false;
 
     // wx reports client size in logical pixels; OpenGL needs the backing framebuffer size.
     int w = 0;

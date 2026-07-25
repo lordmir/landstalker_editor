@@ -7,7 +7,7 @@
 class GLCanvasLayerEditMode {
 public:
     // Binds the mode facade to the shared canvas state it edits.
-    explicit GLCanvasLayerEditMode(MyGLCanvas& canvas);
+    explicit GLCanvasLayerEditMode(GLCanvas& canvas);
 
     // Applies layer-edit keyboard shortcuts such as tool and tile changes.
     bool HandleKeyDown(wxKeyEvent& evt);
@@ -26,7 +26,7 @@ public:
 
 private:
     // Shared canvas owning room data, tilemap preview state, and renderers.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_LAYER_EDIT_MODE_H

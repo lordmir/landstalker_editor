@@ -1,16 +1,16 @@
-#include "GLCanvasTileDoorEditor.h"
-#include "GLCanvasTileDoorEditorSupport.h"
+#include "GLCanvasDoorEditor.h"
+#include "GLCanvasDoorTileSwapSupport.h"
 
-GLCanvasTileDoorEditor::GLCanvasTileDoorEditor(MyGLCanvas& canvas)
+GLCanvasDoorEditor::GLCanvasDoorEditor(GLCanvas& canvas)
 	: m_canvas(canvas)
 {
 }
 
 
-void GLCanvasTileDoorEditor::BeginAddDoor()
+void GLCanvasDoorEditor::BeginAddDoor()
 {
 	m_canvas.SetFocus();
-	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::Door;
+	m_canvas.m_pending_add_type = GLCanvas::PendingObjectAddType::Door;
 	m_canvas.m_pending_add_door_size = Landstalker::Door::Size::DOOR_1X4;
 	m_canvas.UpdatePendingObjectAddHover();
 	m_canvas.SetCursor(wxCursor(wxCURSOR_CROSS));
@@ -18,7 +18,7 @@ void GLCanvasTileDoorEditor::BeginAddDoor()
 }
 
 
-int GLCanvasTileDoorEditor::HitTestDoor(const wxPoint& point) const
+int GLCanvasDoorEditor::HitTestDoor(const wxPoint& point) const
 {
 	PickPoint world_point{
 		m_canvas.ScreenToWorldX(point.x),
@@ -47,7 +47,7 @@ int GLCanvasTileDoorEditor::HitTestDoor(const wxPoint& point) const
 }
 
 
-void GLCanvasTileDoorEditor::StartDoorDrag(int door_idx, const wxMouseEvent& evt)
+void GLCanvasDoorEditor::StartDoorDrag(int door_idx, const wxMouseEvent& evt)
 {
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd) {
@@ -59,7 +59,7 @@ void GLCanvasTileDoorEditor::StartDoorDrag(int door_idx, const wxMouseEvent& evt
 	}
 
 	m_canvas.CaptureObjectUndoState();
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	const Landstalker::Door& door = doors[static_cast<std::size_t>(door_idx)];
 	m_canvas.m_dragging_door = true;
 	m_canvas.m_drag_door_idx = door_idx;
@@ -77,7 +77,7 @@ void GLCanvasTileDoorEditor::StartDoorDrag(int door_idx, const wxMouseEvent& evt
 }
 
 
-void GLCanvasTileDoorEditor::UpdateDoorDrag(const wxMouseEvent& evt)
+void GLCanvasDoorEditor::UpdateDoorDrag(const wxMouseEvent& evt)
 {
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd || m_canvas.m_drag_door_idx < 0) {
@@ -115,7 +115,7 @@ void GLCanvasTileDoorEditor::UpdateDoorDrag(const wxMouseEvent& evt)
 }
 
 
-void GLCanvasTileDoorEditor::EndDoorDrag()
+void GLCanvasDoorEditor::EndDoorDrag()
 {
 	if (!m_canvas.m_dragging_door) {
 		return;
@@ -132,29 +132,9 @@ void GLCanvasTileDoorEditor::EndDoorDrag()
 }
 
 
-void GLCanvasTileDoorEditor::ClearTileSwapPreview()
+void GLCanvasDoorEditor::CycleSelectedDoorSize(int delta)
 {
-	// Previews temporarily mutate render state; this restores canonical room data.
-	if (!m_canvas.m_tileswap_preview_active && !m_canvas.m_door_preview_active && !m_canvas.m_tileswap_preview_map) {
-		return;
-	}
-
-	m_canvas.m_tileswap_preview_active = false;
-	m_canvas.m_tileswap_preview_swap_index = -1;
-	m_canvas.m_door_preview_active = false;
-	m_canvas.m_door_preview_idx = -1;
-	m_canvas.m_tileswap_preview_map.reset();
-	m_canvas.m_heightmapRenderer.ClearPreviewMap();
-	if (m_canvas.m_initialized) {
-		m_canvas.m_mapRenderer.LoadRoom(m_canvas.m_current_room);
-		m_canvas.RefreshObjectPlacementsFromHeightmap();
-	}
-}
-
-
-void GLCanvasTileDoorEditor::CycleSelectedDoorSize(int delta)
-{
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Door) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Door) {
 		static constexpr std::array<Landstalker::Door::Size, 4> sizes{
 			Landstalker::Door::Size::DOOR_1X4,
 			Landstalker::Door::Size::DOOR_2X4,
@@ -168,7 +148,7 @@ void GLCanvasTileDoorEditor::CycleSelectedDoorSize(int delta)
 		m_canvas.Refresh();
 		return;
 	}
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd || m_canvas.m_selected_door_idx < 0) {
 		return;
@@ -194,9 +174,9 @@ void GLCanvasTileDoorEditor::CycleSelectedDoorSize(int delta)
 }
 
 
-void GLCanvasTileDoorEditor::AddDoor()
+void GLCanvasDoorEditor::AddDoor()
 {
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd) {
 		return;
@@ -254,9 +234,9 @@ void GLCanvasTileDoorEditor::AddDoor()
 }
 
 
-void GLCanvasTileDoorEditor::RenderPendingDoorGhost()
+void GLCanvasDoorEditor::RenderPendingDoorGhost()
 {
-	if (m_canvas.m_pending_add_type != MyGLCanvas::PendingObjectAddType::Door) {
+	if (m_canvas.m_pending_add_type != GLCanvas::PendingObjectAddType::Door) {
 		return;
 	}
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
@@ -345,7 +325,7 @@ void GLCanvasTileDoorEditor::RenderPendingDoorGhost()
 }
 
 
-void GLCanvasTileDoorEditor::ToggleSelectedDoorPreview()
+void GLCanvasDoorEditor::ToggleSelectedDoorPreview()
 {
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd || m_canvas.m_selected_door_idx < 0) {
@@ -358,11 +338,11 @@ void GLCanvasTileDoorEditor::ToggleSelectedDoorPreview()
 	}
 
 	if (m_canvas.m_door_preview_active && m_canvas.m_door_preview_idx == m_canvas.m_selected_door_idx) {
-		ClearTileSwapPreview();
+		m_canvas.ClearTileSwapPreview();
 		return;
 	}
 
-	ClearTileSwapPreview();
+	m_canvas.ClearTileSwapPreview();
 
 	auto map_entry = rd->GetMapForRoom(m_canvas.m_current_room);
 	if (!map_entry) {
@@ -384,7 +364,7 @@ void GLCanvasTileDoorEditor::ToggleSelectedDoorPreview()
 }
 
 
-void GLCanvasTileDoorEditor::RenderDoors()
+void GLCanvasDoorEditor::RenderDoors()
 {
 	auto doors = BuildDoorGeometries(
 		m_canvas.m_gd,
@@ -433,7 +413,7 @@ void GLCanvasTileDoorEditor::RenderDoors()
 }
 
 
-void GLCanvasTileDoorEditor::RenderSelectedDoorTooltip()
+void GLCanvasDoorEditor::RenderSelectedDoorTooltip()
 {
 	auto rd = m_canvas.m_gd ? m_canvas.m_gd->GetRoomData() : nullptr;
 	if (!rd || m_canvas.m_selected_door_idx < 0) {
@@ -530,5 +510,3 @@ void GLCanvasTileDoorEditor::RenderSelectedDoorTooltip()
 		DrawOverlayText(lines[i], x, y + float(i) * line_height, scale);
 	}
 }
-
-

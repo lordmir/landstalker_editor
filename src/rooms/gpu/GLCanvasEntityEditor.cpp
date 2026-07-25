@@ -129,17 +129,17 @@ using PixelFont::DrawOverlayText;
 
 }  // namespace
 
-void MyGLCanvas::UpdateEntityProjection(SpriteInstance& inst)
+void GLCanvas::UpdateEntityProjection(SpriteInstance& inst)
 {
 	GLCanvasEntityEditor(*this).UpdateEntityProjection(inst);
 }
 
-void MyGLCanvas::RefreshEntityMetadata(SpriteInstance& inst)
+void GLCanvas::RefreshEntityMetadata(SpriteInstance& inst)
 {
 	GLCanvasEntityEditor(*this).RefreshEntityMetadata(inst);
 }
 
-GLCanvasEntityEditor::GLCanvasEntityEditor(MyGLCanvas& canvas)
+GLCanvasEntityEditor::GLCanvasEntityEditor(GLCanvas& canvas)
 	: m_canvas(canvas)
 {
 }
@@ -150,7 +150,7 @@ void GLCanvasEntityEditor::BeginAddEntity()
 		return;
 	}
 	m_canvas.SetFocus();
-	m_canvas.m_pending_add_type = MyGLCanvas::PendingObjectAddType::Entity;
+	m_canvas.m_pending_add_type = GLCanvas::PendingObjectAddType::Entity;
 
 	float room_left = static_cast<float>(m_canvas.m_mapRenderer.GetRoomLeft());
 	float room_top = static_cast<float>(m_canvas.m_mapRenderer.GetRoomTop());
@@ -495,7 +495,7 @@ void GLCanvasEntityEditor::PasteEntity()
 
 void GLCanvasEntityEditor::CycleSelectedEntityId(int delta)
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity) {
 		m_canvas.m_pending_add_entity_id = static_cast<uint8_t>((int(m_canvas.m_pending_add_entity_id) + delta + 256) & 0xFF);
 		m_canvas.Refresh();
 		return;
@@ -510,7 +510,7 @@ void GLCanvasEntityEditor::CycleSelectedEntityId(int delta)
 
 void GLCanvasEntityEditor::CycleSelectedEntityPalette()
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity) {
 		m_canvas.m_pending_add_entity_palette = static_cast<uint8_t>((m_canvas.m_pending_add_entity_palette + 1) % 4);
 		m_canvas.Refresh();
 		return;
@@ -524,7 +524,7 @@ void GLCanvasEntityEditor::CycleSelectedEntityPalette()
 
 void GLCanvasEntityEditor::SetSelectedEntityOrientation(Landstalker::Orientation orientation)
 {
-	if (m_canvas.m_pending_add_type == MyGLCanvas::PendingObjectAddType::Entity) {
+	if (m_canvas.m_pending_add_type == GLCanvas::PendingObjectAddType::Entity) {
 		m_canvas.m_pending_add_entity_orientation = orientation;
 		m_canvas.Refresh();
 		return;

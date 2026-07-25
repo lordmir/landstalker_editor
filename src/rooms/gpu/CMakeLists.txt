@@ -17,7 +17,7 @@ target_sources(${MODULE_NAME} PRIVATE
     "GLCanvasHistory.cpp"
     "GLCanvasEntityEditor.cpp"
     "GLCanvasWarpEditor.cpp"
-    "GLCanvasTileDoorEditor.cpp"
+    "GLCanvasDoorEditor.cpp"
     "GLCanvasTileSwapEditor.cpp"
     "GLCanvasObjectCoordinator.cpp"
     "GLCanvasObjectSupport.cpp"

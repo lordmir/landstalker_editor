@@ -3,7 +3,6 @@
 #include "ShaderSources.h"
 #include <landstalker/main/GameData.h>
 #include <algorithm>
-#include <iostream>
 #include <chrono>
 
 using namespace Landstalker;
@@ -50,9 +49,12 @@ void MapRenderer::UploadRoomMap(uint16_t roomnum, const Tilemap3D& map) {
     auto rd = m_gd->GetRoomData(); auto room = rd->GetRoom(roomnum); if (!room) return;
     auto tileset_entry = rd->GetTilesetForRoom(roomnum);
     if(!tileset_entry) return; auto tileset = tileset_entry->GetData();
-    auto blockset = rd->GetCombinedBlocksetForRoom(roomnum); 
+    if (!tileset) return;
+    auto blockset = rd->GetCombinedBlocksetForRoom(roomnum);
+    if (!blockset) return;
     auto palette_entry = rd->GetPaletteForRoom(roomnum); if(!palette_entry) return;
     auto pal = palette_entry->GetData();
+    if (!pal) return;
     
     m_current_room = roomnum;
     m_room_w = map.GetWidth(); m_room_h = map.GetHeight();
@@ -385,20 +387,5 @@ void MapRenderer::BuildForegroundCoverageStencil() {
 }
 
 void MapRenderer::InitShaders() {
-    m_map_shader_program = CreateShader("map.vert", GpuShaders::kMapVertex, "map.frag", GpuShaders::kMapFragment);
-}
-
-GLuint MapRenderer::CreateShader(const char* vs_name, const char* vs_src, const char* fs_name, const char* fs_src) {
-    // Standard OpenGL shader lifecycle: compile vertex+fragment shaders,
-    // then link them into a single executable GPU program object.
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER); glShaderSource(vs, 1, &vs_src, nullptr); glCompileShader(vs);
-    GLint status; glGetShaderiv(vs, GL_COMPILE_STATUS, &status);
-    if (status == GL_FALSE) { char log[512]; glGetShaderInfoLog(vs, 512, nullptr, log); std::cerr << "VS Error (" << vs_name << "): " << log << std::endl; }
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER); glShaderSource(fs, 1, &fs_src, nullptr); glCompileShader(fs);
-    glGetShaderiv(fs, GL_COMPILE_STATUS, &status);
-    if (status == GL_FALSE) { char log[512]; glGetShaderInfoLog(fs, 512, nullptr, log); std::cerr << "FS Error (" << fs_name << "): " << log << std::endl; }
-    GLuint prog = glCreateProgram(); glAttachShader(prog, vs); glAttachShader(prog, fs); glLinkProgram(prog);
-    glGetProgramiv(prog, GL_LINK_STATUS, &status);
-    if (status == GL_FALSE) { char log[512]; glGetProgramInfoLog(prog, 512, nullptr, log); std::cerr << "Link Error: " << log << std::endl; }
-    return prog;
+    m_map_shader_program = CompileShaderProgram("map.vert", GpuShaders::kMapVertex, "map.frag", GpuShaders::kMapFragment);
 }

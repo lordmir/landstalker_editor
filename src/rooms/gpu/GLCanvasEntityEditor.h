@@ -7,7 +7,7 @@
 class GLCanvasEntityEditor {
 public:
     // Creates an entity editor adapter over canvas-owned state.
-    explicit GLCanvasEntityEditor(MyGLCanvas& canvas);
+    explicit GLCanvasEntityEditor(GLCanvas& canvas);
 
     // Enters pending-add mode for placing a new entity with the cursor.
     void BeginAddEntity();
@@ -64,7 +64,7 @@ private:
         bool drag_floor_snap) const;
 
     // Canvas whose shared editor state is being manipulated.
-    MyGLCanvas& m_canvas;
+    GLCanvas& m_canvas;
 };
 
 #endif  // GL_CANVAS_ENTITY_EDITOR_H
