@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Landstalker Editor
+GenericName=ROM Editor
+Comment=Editor for the Sega Mega Drive game Landstalker
+Exec=@CMAKE_PROJECT_NAME@ %f
+Icon=@CMAKE_PROJECT_NAME@
+Terminal=false
+Categories=Development;Utility;
+Keywords=landstalker;rom;sega;megadrive;genesis;disassembly;

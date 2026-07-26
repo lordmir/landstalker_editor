@@ -3,6 +3,8 @@ set(MODULE_NAME "landstalker_editor")
 project(${MODULE_NAME} VERSION 0.4.0 DESCRIPTION "Landstalker Editor Application")
 set(CMAKE_CXX_STANDARD 20)
 
+include(GNUInstallDirs)
+
 option(LANDSTALKER_BUILD_SHARED "Build liblandstalker as a shared library" OFF)
 option(INSTALL_DEPS "Automatically download and build dependencies" ON)
 option(LANDSTALKER_BUILD_TESTING "Build the test suites" OFF)
@@ -78,3 +80,23 @@ install(
 )
 
 install(FILES $<TARGET_RUNTIME_DLLS:${CMAKE_PROJECT_NAME}> TYPE BIN)
+
+# Desktop integration for Linux: a .desktop launcher plus the application icon installed into the
+# freedesktop hicolor theme, so the editor shows up (with its icon) in application menus/launchers.
+if(UNIX AND NOT APPLE)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/landstalker_editor.desktop.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.desktop"
+        @ONLY
+    )
+    install(
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.desktop"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications"
+    )
+    foreach(icon_size 16 32 48 64 128)
+        install(
+            FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/icons/${icon_size}x${icon_size}/${CMAKE_PROJECT_NAME}.png"
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${icon_size}x${icon_size}/apps"
+        )
+    endforeach()
+endif()
