@@ -351,10 +351,9 @@ void GLCanvasWarpEditor::AddWarpHalf()
 		if (pending_idx >= 0) {
 			// A half placed in this session has no key yet - MakeWarpInstance defaults
 			// warp_key to 0, and only the room load path assigns real keys. Adopting that
-			// zero would leave both endpoints of this warp keyed by their instance ids in
-			// BuildCurrentRoomWarps, which then emits the single connection twice and
-			// trips the duplicate check, so the warp is rejected and thrown away. Only
-			// take the pending half's key when it actually has one.
+			// zero would leave both endpoints of this warp keyed by their instance ids, so
+			// BuildCurrentRoomWarps would treat them as two independent warps and emit the
+			// single connection twice. Only take the pending half's key when it has one.
 			const uint32_t pending_key = m_canvas.m_warps[static_cast<std::size_t>(pending_idx)].warp_key;
 			if (pending_key != 0) {
 				key = pending_key;

@@ -305,6 +305,9 @@ void RoomViewerFrame::UpdateFrame()
 	}
 	RefreshObjectLists();
 	UpdateUI();
+	const auto errors = GetRoomErrors();
+	m_room_error_status = errors.empty() ? "" : StrPrintf(
+		"⚠ %zu Error%s", errors.size(), errors.size() == 1 ? "" : "s");
 	FireEvent(EVT_STATUSBAR_UPDATE);
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
@@ -706,17 +709,17 @@ void RoomViewerFrame::ShowTileswapDialog(bool force, TileSwapDialog::PageType pa
 
 void RoomViewerFrame::ShowErrorDialog()
 {
-	RoomErrorDialog dlg(this, {});
+	RoomErrorDialog dlg(this, GetRoomErrors());
 	dlg.ShowModal();
 }
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 {
-	status.SetFieldsCount(4);
-	// Mode/room, hovered cell, selected cell(s), render stats.
-	const int widths[] = { -2, -1, -1, -3 };
-	status.SetStatusWidths(4, widths);
-	for (int field = 0; field < 4; ++field)
+	status.SetFieldsCount(5);
+	// Mode/room, hovered cell, selected cell(s), render stats, room errors.
+	const int widths[] = { -2, -1, -1, -3, -1 };
+	status.SetStatusWidths(5, widths);
+	for (int field = 0; field < 5; ++field)
 	{
 		status.SetStatusText("", field);
 	}
@@ -724,11 +727,26 @@ void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
 
 void RoomViewerFrame::UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const
 {
-	if (status.GetFieldsCount() != 4 || evt.GetString().empty())
+	if (status.GetFieldsCount() != 5)
 	{
 		return;
 	}
-	EditorFrame::UpdateStatusBar(status, evt);
+	if (!evt.GetString().empty())
+	{
+		EditorFrame::UpdateStatusBar(status, evt);
+	}
+	// Field 4 isn't carried by the event - it's refreshed from the cached room-error
+	// summary (recomputed once per edit in UpdateFrame) whenever any status event
+	// arrives, rather than requiring a dedicated event of its own.
+	status.SetStatusText(wxString::FromUTF8(m_room_error_status), 4);
+}
+
+void RoomViewerFrame::OnStatusBarClick(wxStatusBar&, int field)
+{
+	if (field == 4 && !m_room_error_status.empty())
+	{
+		ShowErrorDialog();
+	}
 }
 
 void RoomViewerFrame::InitProperties(wxPropertyGridManager& props) const
@@ -2702,6 +2720,78 @@ std::vector<WarpList::Warp> RoomViewerFrame::GetRoomWarps() const
 	return m_g->GetRoomData()->GetWarpsForRoom(m_roomnum);
 }
 
+std::vector<std::string> RoomViewerFrame::GetRoomErrors() const
+{
+	std::vector<std::string> errors;
+	if (!m_g)
+	{
+		return errors;
+	}
+
+	const auto warps = GetRoomWarps();
+	const auto duplicates = WarpList::FindWarpsWithDuplicatePosition(m_roomnum, warps);
+	for (const auto& [i, j] : duplicates)
+	{
+		const auto& a = warps[i];
+		const uint8_t x = a.room1 == m_roomnum ? a.x1 : a.x2;
+		const uint8_t y = a.room1 == m_roomnum ? a.y1 : a.y2;
+		errors.push_back(StrPrintf("Warps %d and %d occupy the same position (%d, %d) in this room.",
+			static_cast<int>(i) + 1, static_cast<int>(j) + 1, static_cast<int>(x), static_cast<int>(y)));
+	}
+
+	// maps\roomwarps.asm _overflow: more than 32 WarpTbl entries in one room beeps 30 times
+	// in a debug build, then truncates the table.
+	constexpr std::size_t kMaxRoomWarps = 32;
+	if (warps.size() > kMaxRoomWarps)
+	{
+		errors.push_back(StrPrintf("This room has %zu warps - only %zu are supported; extras will be truncated.",
+			warps.size(), kMaxRoomWarps));
+	}
+
+	const auto entities = GetRoomEntities();
+
+	// maps\loadroomsprites.asm InitialiseSprites has no bound check beyond the 15 fixed
+	// Sprite1..Sprite15 slots; more entities than that overrun into other game memory.
+	constexpr std::size_t kMaxRoomEntities = 15;
+	if (entities.size() > kMaxRoomEntities)
+	{
+		errors.push_back(StrPrintf("This room has %zu entities placed - only %zu are supported; extras will overrun into other game memory.",
+			entities.size(), kMaxRoomEntities));
+	}
+
+	auto sprite_data = m_g->GetSpriteData();
+	for (const auto& clash : sprite_data->FindPaletteClashes(entities))
+	{
+		const char* slot_name = "Sprite Lo/Hi (palette 1, low)";
+		if (clash.slot == Landstalker::SpriteData::SpritePaletteSlot::Palette1High)
+		{
+			slot_name = "Sprite Lo/Hi (palette 1, high)";
+		}
+		else if (clash.slot == Landstalker::SpriteData::SpritePaletteSlot::Palette3Low)
+		{
+			slot_name = "Sprite Lo, HUD (palette 3, low)";
+		}
+		errors.push_back(StrPrintf("Entities %zu and %zu need different palettes in the room's %s slot - one will render with the wrong colours in-game.",
+			clash.first + 1, clash.second + 1, slot_name));
+	}
+
+	const int vram_tiles = sprite_data->GetRoomSpriteVramTileUsage(entities);
+	if (vram_tiles >= Landstalker::SpriteData::SPRITE_VRAM_BUDGET_TILES)
+	{
+		errors.push_back(StrPrintf("This room's sprites use %d/%d VDP tiles - some sprite graphics may fail to load or corrupt others in-game.",
+			vram_tiles, Landstalker::SpriteData::SPRITE_VRAM_BUDGET_TILES));
+	}
+
+	const int piece_count = sprite_data->GetRoomSpritePieceUsage(entities);
+	if (piece_count > Landstalker::SpriteData::SPRITE_PIECE_BUDGET)
+	{
+		errors.push_back(StrPrintf("This room's entities need %d/%d VDP sprite pieces - the excess will corrupt other sprites in-game.",
+			piece_count, Landstalker::SpriteData::SPRITE_PIECE_BUDGET));
+	}
+
+	return errors;
+}
+
 void RoomViewerFrame::UpdateEntityProperties(int entity)
 {
 	if (!m_g)
@@ -2761,12 +2851,6 @@ void RoomViewerFrame::UpdateWarpProperties(int warp)
 	WarpPropertyWindow dlg(this, m_roomnum, warp, &warps[warp - 1], *m_g);
 	if (dlg.ShowModal() == wxID_OK)
 	{
-		if (Landstalker::WarpList::HasDuplicateWarps(warps))
-		{
-			wxMessageBox("That connection already exists. Warp direction does not create a distinct warp.",
-				"Duplicate Warp", wxOK | wxICON_ERROR, this);
-			return;
-		}
 		if (m_gpuview)
 		{
 			m_gpuview->CaptureObjectUndoState();

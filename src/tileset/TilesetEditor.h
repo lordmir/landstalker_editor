@@ -55,6 +55,10 @@ public:
 	// resize the underlying tileset directly (rather than via the editor's own insert/delete) must
 	// call this so the display picks up the new size.
 	bool UpdateRowCount();
+	// Forces a fixed number of columns rather than fitting as many as the control width allows.
+	// Used by animated tilesets so each frame (a fixed run of tiles) sits on its own row. Pass 0
+	// to return to width-driven layout.
+	void SetFixedColumns(int columns);
 
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
@@ -219,6 +223,9 @@ private:
 
 	int m_columns;
 	int m_rows;
+	// When > 0, the grid uses exactly this many columns instead of deriving them from the control
+	// width - see SetFixedColumns. Animated tilesets set it to a frame's tile count.
+	int m_fixed_columns;
 	int m_tilewidth;
 	int m_tileheight;
 	int m_cellwidth;

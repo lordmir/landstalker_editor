@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <deque>
 #include <limits>
 
 using namespace Landstalker;
@@ -61,100 +60,47 @@ PickPoint TileSwapResizeHandlePoint(const std::vector<PickPoint>& points, TileSw
     return best;
 }
 
-float EntityFrontDepthKey(const SpriteInstance& inst)
-{
-    float center_x = inst.map_x + inst.hitbox_offset;
-    float center_y = inst.map_y + inst.hitbox_offset;
-    float half_base = inst.hitbox_base * 0.5f;
-    return center_x + center_y + half_base * 2.0f;
-}
-
-struct EntityBounds {
+// Room-space footprint of an entity's hitbox (gamelogic3.asm CalcSpriteHitbox:
+// HitBoxXStart/XEnd/YStart/YEnd, a square box centred on CentreX/CentreY).
+struct EntityFootprint {
     float min_x;
-    float min_y;
     float max_x;
+    float min_y;
     float max_y;
-    float min_z;
-    float max_z;
-    float front_depth;
 };
 
-EntityBounds GetEntityBounds(const SpriteInstance& inst)
+EntityFootprint GetEntityFootprint(const SpriteInstance& inst)
 {
     float center_x = inst.map_x + inst.hitbox_offset;
     float center_y = inst.map_y + inst.hitbox_offset;
     float half_base = inst.hitbox_base * 0.5f;
-    float min_x = center_x - half_base;
-    float min_y = center_y - half_base;
-    float max_x = center_x + half_base;
-    float max_y = center_y + half_base;
-    return {
-        min_x,
-        min_y,
-        max_x,
-        max_y,
-        inst.map_z,
-        inst.map_z + std::max(inst.hitbox_height, 0.125f),
-        max_x + max_y
-    };
+    return {center_x - half_base, center_x + half_base, center_y - half_base, center_y + half_base};
 }
 
-bool EntityDrawOrder(const SpriteInstance& lhs, const SpriteInstance& rhs)
+// Port of gamelogic3.asm _overlapOrderFix's per-pair test. `anchor` is the entity
+// currently sitting at the earlier (higher-priority) draw-list slot; returns true
+// if `scanned` must be swapped into that slot ahead of it. Mirrors the asm exactly:
+// skip (false) if anchor's footprint already starts at/after scanned's on an axis;
+// swap (true) if anchor's footprint is entirely before scanned's on an axis (i.e.
+// scanned is further SE and so nearer the camera); otherwise the footprints truly
+// overlap in both X and Y, and the higher (larger Z) entity draws in front.
+bool ScannedDrawsInFrontOfAnchor(const SpriteInstance& anchor, const SpriteInstance& scanned)
 {
-    const float lhs_depth = EntityFrontDepthKey(lhs);
-    const float rhs_depth = EntityFrontDepthKey(rhs);
-    if (lhs_depth != rhs_depth) {
-        return lhs_depth < rhs_depth;
+    EntityFootprint a = GetEntityFootprint(anchor);
+    EntityFootprint b = GetEntityFootprint(scanned);
+    if (a.min_x >= b.max_x) {
+        return false;
     }
-
-    if (std::abs(lhs.map_z - rhs.map_z) > 0.001f) {
-        return lhs.map_z > rhs.map_z;
+    if (a.min_y >= b.max_y) {
+        return false;
     }
-
-    if (lhs.map_y != rhs.map_y) {
-        return lhs.map_y < rhs.map_y;
+    if (a.max_x <= b.min_x) {
+        return true;
     }
-
-    return lhs.map_x < rhs.map_x;
-}
-
-bool EntityMustDrawBefore(const SpriteInstance& lhs, const SpriteInstance& rhs)
-{
-    constexpr float epsilon = 0.001f;
-    EntityBounds lhs_bounds = GetEntityBounds(lhs);
-    EntityBounds rhs_bounds = GetEntityBounds(rhs);
-
-    bool lhs_behind = lhs_bounds.max_x <= rhs_bounds.min_x + epsilon ||
-                      lhs_bounds.max_y <= rhs_bounds.min_y + epsilon;
-    bool rhs_behind = rhs_bounds.max_x <= lhs_bounds.min_x + epsilon ||
-                      rhs_bounds.max_y <= lhs_bounds.min_y + epsilon;
-    if (lhs_behind != rhs_behind) {
-        return lhs_behind;
+    if (a.max_y <= b.min_y) {
+        return true;
     }
-
-    bool footprints_overlap = lhs_bounds.min_x < rhs_bounds.max_x - epsilon &&
-                              lhs_bounds.max_x > rhs_bounds.min_x + epsilon &&
-                              lhs_bounds.min_y < rhs_bounds.max_y - epsilon &&
-                              lhs_bounds.max_y > rhs_bounds.min_y + epsilon;
-    bool z_ranges_overlap = lhs_bounds.min_z < rhs_bounds.max_z - epsilon &&
-                            lhs_bounds.max_z > rhs_bounds.min_z + epsilon;
-    if (footprints_overlap && z_ranges_overlap &&
-        std::abs(lhs_bounds.front_depth - rhs_bounds.front_depth) > epsilon) {
-        return lhs_bounds.front_depth < rhs_bounds.front_depth;
-    }
-    if (footprints_overlap && !z_ranges_overlap && std::abs(lhs.map_z - rhs.map_z) > epsilon) {
-        return lhs.map_z > rhs.map_z;
-    }
-
-    if (std::abs(lhs_bounds.front_depth - rhs_bounds.front_depth) > epsilon) {
-        return lhs_bounds.front_depth < rhs_bounds.front_depth;
-    }
-
-    if (std::abs(lhs.map_z - rhs.map_z) > epsilon) {
-        return lhs.map_z > rhs.map_z;
-    }
-
-    return EntityDrawOrder(lhs, rhs);
+    return anchor.map_z < scanned.map_z;
 }
 
 }  // namespace
@@ -487,56 +433,33 @@ void ClampWarpToValidSize(WarpInstance& warp)
 
 void SortEntitiesGeometrically(std::vector<SpriteInstance>& instances)
 {
-    std::stable_sort(instances.begin(), instances.end(), EntityDrawOrder);
-
+    // Port of gamelogic3.asm SortSpritesByDepth's live path (_overlapOrderFix): a
+    // selection-style bubble pass over the room's entity slot order (the order
+    // `instances` is already in), identical to the game's draw-list fix-up. For
+    // each slot in turn, scan every later slot and swap in whichever entity the
+    // pairwise footprint/Z test says belongs there; earlier slots have priority
+    // (as in the VDP sprite table) until the final reverse below.
+    //
+    // Two things the game does are intentionally not reproduced:
+    //  - The disassembly's DrawOrder depth key (HitBoxXStart+HitBoxYStart)/2 +
+    //    Height + Z + HitBoxZEnd is computed every frame but the insertion sort
+    //    that reads it is dead code (unconditionally skipped) in the live game.
+    //  - _riderOrderFix (drawing a platform ahead of whatever's standing on it)
+    //    depends on runtime "standing on" state that isn't simulated here.
     const std::size_t count = instances.size();
-    std::vector<std::vector<std::size_t>> after(count);
-    std::vector<std::size_t> incoming(count, 0);
-    for (std::size_t i = 0; i < count; ++i) {
-        for (std::size_t j = i + 1; j < count; ++j) {
-            bool i_before_j = EntityMustDrawBefore(instances[i], instances[j]);
-            bool j_before_i = EntityMustDrawBefore(instances[j], instances[i]);
-            if (i_before_j == j_before_i) {
-                continue;
-            }
-            std::size_t before = i_before_j ? i : j;
-            std::size_t later = i_before_j ? j : i;
-            after[before].push_back(later);
-            ++incoming[later];
-        }
-    }
-
-    std::deque<std::size_t> ready;
-    for (std::size_t i = 0; i < count; ++i) {
-        if (incoming[i] == 0) {
-            ready.push_back(i);
-        }
-    }
-
-    std::vector<SpriteInstance> sorted;
-    sorted.reserve(count);
-    std::vector<bool> emitted(count, false);
-    while (!ready.empty()) {
-        std::size_t index = ready.front();
-        ready.pop_front();
-        if (emitted[index]) {
-            continue;
-        }
-        emitted[index] = true;
-        sorted.push_back(instances[index]);
-        for (std::size_t later : after[index]) {
-            if (--incoming[later] == 0) {
-                ready.push_back(later);
+    for (std::size_t anchor = 0; anchor + 1 < count; ++anchor) {
+        for (std::size_t scan = anchor + 1; scan < count; ++scan) {
+            if (ScannedDrawsInFrontOfAnchor(instances[anchor], instances[scan])) {
+                std::swap(instances[anchor], instances[scan]);
             }
         }
     }
 
-    for (std::size_t i = 0; i < count; ++i) {
-        if (!emitted[i]) {
-            sorted.push_back(instances[i]);
-        }
-    }
-    instances = std::move(sorted);
+    // The pass above builds the list in VDP sprite-table order (slot 0 = highest
+    // priority = drawn on top). SpriteRenderer paints `instances` in vector order
+    // with no depth test, so the LAST entry ends up on top instead - reverse to
+    // match that convention.
+    std::reverse(instances.begin(), instances.end());
 }
 
 }  // namespace GLCanvasObjectSupport

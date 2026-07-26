@@ -119,6 +119,10 @@ void EditorFrame::OnMenuClick(wxMenuEvent&)
 {
 }
 
+void EditorFrame::OnStatusBarClick(wxStatusBar&, int)
+{
+}
+
 bool EditorFrame::Show(bool show)
 {
 	if(show != IsShown())

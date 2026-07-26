@@ -15,6 +15,9 @@
 #include <tileset/TilesetEditor.h>
 #include <palettes/PaletteEditor.h>
 
+// Small dockable pane that plays an animated tileset's frames in a loop. Defined in the .cpp
+// as it is only used from there.
+class AnimatedTilesetPreview;
 
 class TilesetEditorFrame : public EditorFrame
 {
@@ -51,6 +54,11 @@ private:
 	void RequestStatusBarUpdate();
 	void OnStatusBarTimer(wxTimerEvent& evt);
 
+	// Shows the animation preview pane and starts it playing the given animated tileset. Hiding
+	// stops playback and collapses the pane again.
+	void ShowAnimationPreview(std::shared_ptr<Landstalker::AnimatedTileset> ats);
+	void HideAnimationPreview();
+
 	void ShowTilesetManagerDialog();
 	void ToggleAlpha();
 	void ToggleTileNums();
@@ -84,6 +92,7 @@ private:
 
 	TilesetEditor* m_tilesetEditor = nullptr;
 	PaletteEditor* m_paletteEditor = nullptr;
+	AnimatedTilesetPreview* m_animPreview = nullptr;
 	mutable wxSlider* m_zoomslider = nullptr;
 	wxTimer m_statusbar_timer;
 	mutable wxPGChoices m_palette_list;

@@ -42,6 +42,10 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 	void OnMouseLeave(wxMouseEvent& evt);
 	void OnKeyPress(wxKeyEvent& evt);
+	// Right-click on a row: offers "Set Palette Length..." for variable-width palettes (e.g. the
+	// title fades), whose colour count the user can change. Fixed-width palettes get no menu.
+	void OnListContextMenu(wxDataViewEvent& evt);
+	void OnSetPaletteLength();
 	void OnMenuImport();
 	void OnMenuExport();
 	// PNG palette import: bring the colours from an indexed PNG's palette into a game palette,
@@ -62,6 +66,9 @@ private:
 	// buttons; the others are fixed-shape and stay button-less, as the derived data they hold
 	// cannot be reordered independently.
 	bool IsEditableMode() const;
+	// Whether a new palette can be appended to the current list: an editable mode with room left
+	// under its cap. Gates both the "Add" button and the "Import ... as New Entry" menu item.
+	bool CanAddPalette() const;
 	std::size_t GetPaletteCount() const;
 	// The row the palette buttons act on - the last one the mouse hovered, since the list
 	// selects on hover so a single click still edits a swatch.

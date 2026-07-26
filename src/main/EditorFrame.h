@@ -26,6 +26,8 @@ public:
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void ClearMenu(wxMenuBar& menu) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	// Called when the user clicks a status bar field while this editor is active.
+	virtual void OnStatusBarClick(wxStatusBar& status, int field);
 	virtual bool Show(bool show = true);
 	virtual void UpdateUI() const;
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd) { m_gd = gd; }

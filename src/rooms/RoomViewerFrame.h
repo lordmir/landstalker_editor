@@ -87,6 +87,7 @@ private:
 	virtual void OnPropertyChange(wxPropertyGridEvent& evt);
 	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
 	virtual void OnMenuClick(wxMenuEvent& evt);
+	virtual void OnStatusBarClick(wxStatusBar& status, int field);
 
 	void OnExportBin();
 	void OnExportCsv();
@@ -162,6 +163,7 @@ private:
 	void SyncFrameModeFromGpuView();
 	std::vector<Landstalker::Entity> GetRoomEntities() const;
 	std::vector<Landstalker::WarpList::Warp> GetRoomWarps() const;
+	std::vector<std::string> GetRoomErrors() const;
 	void UpdateEntityProperties(int entity);
 	void UpdateWarpProperties(int warp);
 
@@ -181,6 +183,10 @@ private:
 
 	std::shared_ptr<Landstalker::GameData> m_g;
 	uint16_t m_roomnum;
+
+	// Cached summary text for status bar field 4, recomputed in UpdateFrame() from
+	// GetRoomErrors() rather than on every status bar refresh.
+	std::string m_room_error_status;
 
 	mutable bool m_reset_props;
 	mutable wxPGChoices m_palettes;

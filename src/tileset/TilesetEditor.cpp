@@ -43,6 +43,7 @@ TilesetEditor::TilesetEditor(wxWindow* parent)
 	m_hoveredtile(-1),
 	m_columns(0),
 	m_rows(0),
+	m_fixed_columns(0),
 	m_tilewidth(0),
 	m_tileheight(0),
 	m_cellwidth(0),
@@ -1670,7 +1671,8 @@ bool TilesetEditor::UpdateRowCount()
 	m_cellwidth = m_pixelsize * m_tilewidth;
 	m_tileheight = m_tileset->GetTileHeight();
 	m_cellheight = m_pixelsize * m_tileheight;
-	int columns = std::max<int>(1, m_ctrlwidth / m_cellwidth);
+	int columns = (m_fixed_columns > 0) ? m_fixed_columns
+		: std::max<int>(1, m_ctrlwidth / m_cellwidth);
 	int rows = std::max<int>(1, (m_tileset->GetTileCount() + columns - 1) / columns);
 	if ((columns != m_columns) || (rows != m_rows))
 	{
@@ -1680,6 +1682,25 @@ bool TilesetEditor::UpdateRowCount()
 		return true;
 	}
 	return false;
+}
+
+void TilesetEditor::SetFixedColumns(int columns)
+{
+	const int clamped = std::max(0, columns);
+	if (clamped == m_fixed_columns)
+	{
+		return;
+	}
+	m_fixed_columns = clamped;
+	// Force the layout to recompute even when the derived column count happens to match: a later
+	// resize must not silently revert an animated tileset to width-driven columns.
+	m_columns = 0;
+	m_rows = 0;
+	if (UpdateRowCount())
+	{
+		ForceRedraw();
+		Refresh();
+	}
 }
 
 void TilesetEditor::DrawGrid(wxDC& dest, const wxRect& damage)

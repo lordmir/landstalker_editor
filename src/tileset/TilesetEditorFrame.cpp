@@ -10,9 +10,12 @@
 #include <landstalker/misc/Labels.h>
 #include <landstalker/main/ImageBuffer.h>
 #include <landstalker/palettes/Palette.h>
+#include <landstalker/tileset/AnimatedTileset.h>
+#include <main/ImageBufferWx.h>
 #include <rooms/TilesetManagerDialog.h>
 #include <tileset/TilesetImportDialog.h>
 #include <wx/artprov.h>
+#include <wx/dcbuffer.h>
 #include <wx/numdlg.h>
 
 enum TOOL_IDS
@@ -116,6 +119,146 @@ static std::vector<T> CommaListToVec(const std::string& input)
 	return ret;
 }
 
+// Plays an animated tileset by cycling through its frames on a timer. A frame is a fixed run of
+// tiles, drawn here as a single row scaled up (nearest-neighbour) to fill the pane. It shares the
+// same AnimatedTileset the editor works on, so pixel edits appear on the next rebuild for free.
+class AnimatedTilesetPreview : public wxWindow
+{
+public:
+	AnimatedTilesetPreview(wxWindow* parent)
+		: wxWindow(parent, wxID_ANY),
+		  m_frame(0)
+	{
+		SetBackgroundStyle(wxBG_STYLE_PAINT);
+		m_timer.SetOwner(this);
+		Bind(wxEVT_PAINT, &AnimatedTilesetPreview::OnPaint, this);
+		Bind(wxEVT_TIMER, &AnimatedTilesetPreview::OnTimer, this);
+	}
+
+	void SetTileset(std::shared_ptr<Landstalker::AnimatedTileset> ats, std::shared_ptr<Landstalker::Palette> pal)
+	{
+		m_ats = ats;
+		m_pal = pal;
+		m_frame = 0;
+		RebuildBitmap();
+		Refresh();
+		RestartTimer();
+	}
+
+	void SetPalette(std::shared_ptr<Landstalker::Palette> pal)
+	{
+		m_pal = pal;
+		RebuildBitmap();
+		Refresh();
+	}
+
+	// Rebuilds the current frame from the (possibly just edited) tileset pixels.
+	void RefreshFrame()
+	{
+		RebuildBitmap();
+		Refresh();
+	}
+
+	// Restarts the timer, picking up any change to the animation speed or frame count.
+	void RestartTimer()
+	{
+		m_timer.Stop();
+		if (!m_ats)
+		{
+			return;
+		}
+		const int frames = m_ats->GetAnimationFrames();
+		const int speed = m_ats->GetAnimationSpeed();
+		if ((frames > 1) && (speed > 0))
+		{
+			// Speed is how many 60Hz fields each frame is held for; clamp the period so a bad
+			// value can't spin the timer flat out.
+			m_timer.Start(std::max(16, speed * 1000 / 60));
+		}
+	}
+
+	void Clear()
+	{
+		m_timer.Stop();
+		m_ats = nullptr;
+		m_pal = nullptr;
+		m_bmp.reset();
+		Refresh();
+	}
+
+private:
+	void OnTimer(wxTimerEvent&)
+	{
+		if (!m_ats)
+		{
+			return;
+		}
+		const int frames = std::max(1, static_cast<int>(m_ats->GetAnimationFrames()));
+		m_frame = (m_frame + 1) % frames;
+		RebuildBitmap();
+		Refresh();
+	}
+
+	void RebuildBitmap()
+	{
+		m_bmp.reset();
+		if (!m_ats || !m_pal)
+		{
+			return;
+		}
+		const int fst = static_cast<int>(m_ats->GetFrameSizeTiles());
+		const int frames = static_cast<int>(m_ats->GetAnimationFrames());
+		if ((fst <= 0) || (frames <= 0))
+		{
+			return;
+		}
+		if (m_frame >= frames)
+		{
+			m_frame = 0;
+		}
+		const int tw = m_ats->GetTileWidth();
+		const int th = m_ats->GetTileHeight();
+		m_buf.Resize(tw * fst, th);
+		for (int i = 0; i < fst; ++i)
+		{
+			m_buf.InsertTile(i * tw, 0, 0, m_frame * fst + i, *m_ats, true);
+		}
+		m_bmp = m_buf.MakeBitmap({ m_pal }, true);
+	}
+
+	void OnPaint(wxPaintEvent&)
+	{
+		wxAutoBufferedPaintDC dc(this);
+		dc.SetBackground(wxBrush(GetBackgroundColour()));
+		dc.Clear();
+		if (!m_bmp)
+		{
+			return;
+		}
+		const wxSize client = GetClientSize();
+		const int bw = m_bmp->GetWidth();
+		const int bh = m_bmp->GetHeight();
+		if ((bw <= 0) || (bh <= 0) || (client.x <= 0) || (client.y <= 0))
+		{
+			return;
+		}
+		// Largest integer zoom that fits, so pixels stay square and sharp.
+		const int zoom = std::max(1, std::min(client.x / bw, client.y / bh));
+		wxImage img = m_bmp->ConvertToImage();
+		img.Rescale(bw * zoom, bh * zoom); // nearest-neighbour by default
+		const int x = (client.x - bw * zoom) / 2;
+		const int y = (client.y - bh * zoom) / 2;
+		dc.DrawBitmap(wxBitmap(img), x, y, true);
+	}
+
+	std::shared_ptr<Landstalker::AnimatedTileset> m_ats;
+	std::shared_ptr<Landstalker::Palette> m_pal;
+	wxTimer m_timer;
+	int m_frame;
+	ImageBufferWx m_buf;
+	std::shared_ptr<wxBitmap> m_bmp;
+};
+
 TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent, ImageList* imglst)
 	: EditorFrame(parent, wxID_ANY, imglst),
 	  m_tile(0),
@@ -129,6 +272,7 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent, ImageList* imglst)
 
 	m_tilesetEditor = new TilesetEditor(this);
 	m_paletteEditor = new PaletteEditor(this);
+	m_animPreview = new AnimatedTilesetPreview(this);
 
 	// Drawing happens directly on the tileset canvas; the limiter stops the pencil straying
 	// past a glyph's width when the end credit font is open.
@@ -139,6 +283,8 @@ TilesetEditorFrame::TilesetEditorFrame(wxWindow* parent, ImageList* imglst)
 	// add the panes to the manager
 	m_mgr.SetDockSizeConstraint(0.3, 0.3);
 	m_mgr.AddPane(m_paletteEditor, wxAuiPaneInfo().Bottom().Layer(1).MinSize(180, 40).BestSize(700, 100).FloatingSize(700,100).Caption("Palette"));
+	// Hidden until an animated tileset is opened - it has nothing to show for a normal one.
+	m_mgr.AddPane(m_animPreview, wxAuiPaneInfo().Right().Layer(1).MinSize(120, 80).BestSize(220, 140).FloatingSize(220, 140).Caption("Animation Preview").Hide());
 	m_mgr.AddPane(m_tilesetEditor, wxAuiPaneInfo().CenterPane());
 
 	// tell the manager to "commit" all the changes just made
@@ -193,6 +339,10 @@ void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 	// off m_tile and would otherwise describe a different tile.
 	m_tile = m_tilesetEditor->GetSelectedTile();
 	m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
+	if (m_animated && m_animPreview)
+	{
+		m_animPreview->RefreshFrame();
+	}
 	FireEvent(EVT_PROPERTIES_UPDATE);
 	RequestStatusBarUpdate();
 	// Keeps the Undo/Redo menu enablement in step with mouse-driven edits.
@@ -202,6 +352,10 @@ void TilesetEditorFrame::OnTilesetChange(wxCommandEvent& evt)
 
 void TilesetEditorFrame::OnTilePixelChanged(wxCommandEvent& evt)
 {
+	if (m_animated && m_animPreview)
+	{
+		m_animPreview->RefreshFrame();
+	}
 	RequestStatusBarUpdate();
 	UpdateUI();
 	evt.Skip();
@@ -406,6 +560,36 @@ void TilesetEditorFrame::Save()
 
 void TilesetEditorFrame::SaveAs()
 {
+}
+
+void TilesetEditorFrame::ShowAnimationPreview(std::shared_ptr<Landstalker::AnimatedTileset> ats)
+{
+	if (m_animPreview == nullptr)
+	{
+		return;
+	}
+	m_animPreview->SetTileset(ats, m_selected_palette ? m_selected_palette->GetData() : nullptr);
+	auto& pane = m_mgr.GetPane(m_animPreview);
+	if (pane.IsOk() && !pane.IsShown())
+	{
+		pane.Show();
+		m_mgr.Update();
+	}
+}
+
+void TilesetEditorFrame::HideAnimationPreview()
+{
+	if (m_animPreview == nullptr)
+	{
+		return;
+	}
+	m_animPreview->Clear();
+	auto& pane = m_mgr.GetPane(m_animPreview);
+	if (pane.IsOk() && pane.IsShown())
+	{
+		pane.Hide();
+		m_mgr.Update();
+	}
 }
 
 void TilesetEditorFrame::ShowTilesetManagerDialog()
@@ -746,11 +930,15 @@ void TilesetEditorFrame::UpdateUI() const
 		// The drawing tools disable selection, so the operations that act on the selected
 		// tile grey out with them.
 		const bool sel = !drawing;
-		EnableToolbarItem("Tileset", ID_ADD_TILE_BEFORE_SEL, sel);
-		EnableToolbarItem("Tileset", ID_ADD_TILE_AFTER_SEL, sel);
-		EnableToolbarItem("Tileset", ID_DELETE_TILE, sel);
+		// An animated tileset's size is fixed at frames x frame-size, so anything that changes the
+		// tile count is disabled; pixel edits, copy, paste and swap (which preserve the count) stay.
+		const bool resize = sel && !m_animated;
+		EnableToolbarItem("Tileset", ID_ADD_TILE_BEFORE_SEL, resize);
+		EnableToolbarItem("Tileset", ID_ADD_TILE_AFTER_SEL, resize);
+		EnableToolbarItem("Tileset", ID_EXTEND_TILESET, resize);
+		EnableToolbarItem("Tileset", ID_DELETE_TILE, resize);
+		EnableToolbarItem("Tileset", ID_CUT_TILE, resize);
 		EnableToolbarItem("Tileset", ID_SWAP_TILES, sel);
-		EnableToolbarItem("Tileset", ID_CUT_TILE, sel);
 		EnableToolbarItem("Tileset", ID_COPY_TILE, sel);
 		EnableToolbarItem("Tileset", ID_PASTE_TILE, sel);
 		EnableMenuItem(ID_EDIT_UNDO, m_tilesetEditor->CanUndo());
@@ -780,6 +968,10 @@ void TilesetEditorFrame::OnPaletteChanged(wxCommandEvent& evt)
 {
 	m_paletteEditor->Refresh();
 	m_tilesetEditor->RedrawTiles();
+	if (m_animated && m_animPreview)
+	{
+		m_animPreview->RefreshFrame();
+	}
 	evt.Skip();
 }
 
@@ -1055,17 +1247,32 @@ void TilesetEditorFrame::OnPropertyChange(wxPropertyGridEvent& evt)
 	{
 		auto ats = std::static_pointer_cast<Landstalker::AnimatedTileset, Landstalker::Tileset>(m_tileset);
 		ats->SetFrameSizeTiles(property->GetValuePlain().GetLong());
-
+		// The frame size drives the one-frame-per-row layout and the preview's row width.
+		m_tilesetEditor->SetFixedColumns(static_cast<int>(ats->GetFrameSizeTiles()));
+		if (m_animPreview)
+		{
+			m_animPreview->RefreshFrame();
+			m_animPreview->RestartTimer();
+		}
 	}
 	else if (name == "A#F")
 	{
 		auto ats = std::static_pointer_cast<Landstalker::AnimatedTileset, Landstalker::Tileset>(m_tileset);
 		ats->SetAnimationFrames(property->GetValuePlain().GetLong());
+		if (m_animPreview)
+		{
+			m_animPreview->RefreshFrame();
+			m_animPreview->RestartTimer();
+		}
 	}
 	else if (name == "AS")
 	{
 		auto ats = std::static_pointer_cast<Landstalker::AnimatedTileset, Landstalker::Tileset>(m_tileset);
 		ats->SetAnimationSpeed(property->GetValuePlain().GetLong());
+		if (m_animPreview)
+		{
+			m_animPreview->RestartTimer();
+		}
 	}
 
 	FireEvent(EVT_PROPERTIES_UPDATE);
@@ -1307,6 +1514,7 @@ void TilesetEditorFrame::ClearGameData()
 	m_tileset_entry = nullptr;
 	m_animated_tileset_entry = nullptr;
 	m_font_entry = nullptr;
+	HideAnimationPreview();
 	m_tilesetEditor->SetGameData(nullptr);
 	m_paletteEditor->SetGameData(nullptr);
 }
@@ -1320,6 +1528,10 @@ void TilesetEditorFrame::SetActivePalette(std::string name)
 	m_selected_palette = m_gd->GetPalette(name);
 	m_tilesetEditor->SetActivePalette(name);
 	m_paletteEditor->SelectPalette(name);
+	if (m_animPreview && m_selected_palette)
+	{
+		m_animPreview->SetPalette(m_selected_palette->GetData());
+	}
 	// No properties event here: every caller (Open, OpenAnimated, OnPropertyChange) fires
 	// one itself, and each refresh costs ~100ms of property grid rebuild.
 }
@@ -1333,6 +1545,8 @@ bool TilesetEditorFrame::Open(std::vector<uint8_t>& pixels, bool uses_compressio
 	m_font_entry = nullptr;
 	m_tileset_entry = nullptr;
 	m_tileset = nullptr;
+	m_tilesetEditor->SetFixedColumns(0);
+	HideAnimationPreview();
 	if (retval)
 	{
 		m_tileset = m_tilesetEditor->GetTileset();
@@ -1358,6 +1572,8 @@ bool TilesetEditorFrame::Open(const std::string& name)
 	m_font_entry = nullptr;
 	m_tileset_entry = nullptr;
 	m_tileset = nullptr;
+	m_tilesetEditor->SetFixedColumns(0);
+	HideAnimationPreview();
 	if (retval)
 	{
 		m_tileset_entry = e;
@@ -1392,11 +1608,16 @@ bool TilesetEditorFrame::OpenAnimated(const std::string& name)
 		m_animated_tileset_entry = e;
 		m_animated = true;
 		m_tileset = m_tilesetEditor->GetTileset();
+		auto ats = std::static_pointer_cast<Landstalker::AnimatedTileset, Landstalker::Tileset>(m_tileset);
+		// One animation frame per row: a frame is a fixed run of tiles, so pinning the column
+		// count to the frame size lines the frames up vertically.
+		m_tilesetEditor->SetFixedColumns(static_cast<int>(ats->GetFrameSizeTiles()));
 		m_tile = 0;
 		m_tilesetEditor->SelectTile(m_tile.GetIndex());
 		SetActivePalette(m_animated_tileset_entry->GetDefaultPalette());
 		m_paletteEditor->SetBitsPerPixel(m_tileset->GetTileBitDepth());
 		m_paletteEditor->SetColourIndicies(m_tileset->GetColourIndicies());
+		ShowAnimationPreview(ats);
 	}
 	UpdateUI();
 	FireEvent(EVT_PROPERTIES_UPDATE);

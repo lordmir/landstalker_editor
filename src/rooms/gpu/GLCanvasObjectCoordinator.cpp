@@ -254,12 +254,6 @@ void GLCanvasObjectCoordinator::PersistCurrentRoomEdits()
 	}
 
 	const auto warps = m_canvas.BuildCurrentRoomWarps();
-	if (Landstalker::WarpList::HasDuplicateWarps(warps)) {
-		wxMessageBox("That connection already exists. Warp direction does not create a distinct warp.",
-			"Duplicate Warp", wxOK | wxICON_ERROR, &m_canvas);
-		m_canvas.ReloadCurrentRoomFromGameData();
-		return;
-	}
 
 	std::vector<Landstalker::Entity> entities = m_canvas.BuildCurrentRoomEntities();
 	m_canvas.m_gd->GetSpriteData()->SetRoomEntities(m_canvas.m_current_room, entities);

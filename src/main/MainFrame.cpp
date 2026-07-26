@@ -123,6 +123,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
 	this->Connect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
 	this->Connect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
 	this->Connect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
+	this->m_statusbar->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnStatusBarClick), nullptr, this);
 	this->Connect(EVT_PROPERTIES_INIT, wxCommandEventHandler(MainFrame::OnPropertiesInit), nullptr, this);
 	this->Connect(EVT_PROPERTIES_UPDATE, wxCommandEventHandler(MainFrame::OnPropertiesUpdate), nullptr, this);
 	this->Connect(EVT_PROPERTIES_CLEAR, wxCommandEventHandler(MainFrame::OnPropertiesClear), nullptr, this);
@@ -144,6 +145,7 @@ MainFrame::~MainFrame()
     this->Disconnect(EVT_STATUSBAR_INIT, wxCommandEventHandler(MainFrame::OnStatusBarInit), nullptr, this);
     this->Disconnect(EVT_STATUSBAR_UPDATE, wxCommandEventHandler(MainFrame::OnStatusBarUpdate), nullptr, this);
     this->Disconnect(EVT_STATUSBAR_CLEAR, wxCommandEventHandler(MainFrame::OnStatusBarClear), nullptr, this);
+    this->m_statusbar->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(MainFrame::OnStatusBarClick), nullptr, this);
     this->Disconnect(EVT_PROPERTIES_INIT, wxCommandEventHandler(MainFrame::OnPropertiesInit), nullptr, this);
     this->Disconnect(EVT_PROPERTIES_UPDATE, wxCommandEventHandler(MainFrame::OnPropertiesUpdate), nullptr, this);
     this->Disconnect(EVT_PROPERTIES_CLEAR, wxCommandEventHandler(MainFrame::OnPropertiesClear), nullptr, this);
@@ -773,6 +775,23 @@ void MainFrame::OnStatusBarClear(wxCommandEvent& event)
 {
 	EditorFrame* frame = static_cast<EditorFrame*>(event.GetClientData());
 	frame->ClearStatusBar(*this->m_statusbar);
+	event.Skip();
+}
+
+void MainFrame::OnStatusBarClick(wxMouseEvent& event)
+{
+	if (m_activeEditor != nullptr)
+	{
+		for (int field = 0; field < static_cast<int>(this->m_statusbar->GetFieldsCount()); ++field)
+		{
+			wxRect rect;
+			if (this->m_statusbar->GetFieldRect(field, rect) && rect.Contains(event.GetPosition()))
+			{
+				m_activeEditor->OnStatusBarClick(*this->m_statusbar, field);
+				break;
+			}
+		}
+	}
 	event.Skip();
 }
 

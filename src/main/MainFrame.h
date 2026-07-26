@@ -124,6 +124,7 @@ private:
 	void OnStatusBarInit(wxCommandEvent& event);
 	void OnStatusBarUpdate(wxCommandEvent& event);
 	void OnStatusBarClear(wxCommandEvent& event);
+	void OnStatusBarClick(wxMouseEvent& event);
 	void OnPropertiesInit(wxCommandEvent& event);
 	void OnPropertiesUpdate(wxCommandEvent& event);
 	void OnPropertiesClear(wxCommandEvent& event);

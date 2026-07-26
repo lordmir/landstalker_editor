@@ -58,6 +58,7 @@ PaletteListFrame::PaletteListFrame(wxWindow* parent, ImageList* imglst)
     m_list->Connect(wxEVT_CHAR, wxKeyEventHandler(PaletteListFrame::OnKeyPress), nullptr, this);
     m_list->GetMainWindow()->Connect(wxEVT_MOTION, wxMouseEventHandler(PaletteListFrame::OnMouseMove), nullptr, this);
     m_list->GetMainWindow()->Connect(wxEVT_LEAVE_WINDOW, wxMouseEventHandler(PaletteListFrame::OnMouseLeave), nullptr, this);
+    m_list->Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU, &PaletteListFrame::OnListContextMenu, this);
     hsizer->Add(m_list, 1, wxALL | wxEXPAND, 5);
 
     m_button_panel = new wxPanel(content, wxID_ANY);
@@ -190,6 +191,17 @@ bool PaletteListFrame::IsEditableMode() const
     return m_mode == Mode::ROOM || m_mode == Mode::SPRITE_LO || m_mode == Mode::SPRITE_HI;
 }
 
+bool PaletteListFrame::CanAddPalette() const
+{
+    if (!m_gd || !IsEditableMode())
+    {
+        return false;
+    }
+    const std::size_t cap = (m_mode == Mode::ROOM)
+        ? Landstalker::RoomData::MAX_ROOM_PALETTES : Landstalker::SpriteData::MAX_SPRITE_PALETTES;
+    return GetPaletteCount() < cap;
+}
+
 std::size_t PaletteListFrame::GetPaletteCount() const
 {
     if (!m_gd)
@@ -259,10 +271,8 @@ void PaletteListFrame::UpdatePaletteButtons()
     const int count = static_cast<int>(GetPaletteCount());
     const int row = GetSelectedRow();
     const bool sel = editable && row >= 0;
-    const std::size_t cap = (m_mode == Mode::ROOM)
-        ? Landstalker::RoomData::MAX_ROOM_PALETTES : Landstalker::SpriteData::MAX_SPRITE_PALETTES;
 
-    m_add->Enable(editable && count < static_cast<int>(cap));
+    m_add->Enable(CanAddPalette());
     // A palette can only go once nothing draws it, and the last one can never go; the in-use
     // refusal is reported on click so the user learns what is blocking it.
     m_remove->Enable(sel && count > 1);
@@ -579,7 +589,10 @@ void PaletteListFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
     auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
     AddMenuItem(fileMenu, 0, ID_FILE_EXPORT, "Export All Palettes...");
     AddMenuItem(fileMenu, 1, ID_FILE_IMPORT, "Import Palettes...");
-    AddMenuItem(fileMenu, 2, ID_FILE_IMPORT_PNG_NEW, "Import Palette from PNG as New Entry...");
+    // A new entry can only be added to an editable list with room under its cap; grey the option
+    // out otherwise so it matches the "Add" button and leaves "Overwrite Selected" as the way in.
+    AddMenuItem(fileMenu, 2, ID_FILE_IMPORT_PNG_NEW, "Import Palette from PNG as New Entry...")
+        .Enable(CanAddPalette());
     AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_PNG_OVERWRITE, "Import Palette from PNG, Overwrite Selected...");
     UpdateUI();
     m_mgr.Update();
@@ -841,6 +854,61 @@ void PaletteListFrame::OnImportPngOverwrite()
     {
         SelectRow(row);
     }
+}
+
+void PaletteListFrame::OnListContextMenu(wxDataViewEvent& evt)
+{
+    // Act on the right-clicked row (hover-select usually already picked it, but be explicit).
+    if (evt.GetItem().IsOk())
+    {
+        m_list->Select(evt.GetItem());
+    }
+    const auto entry = GetSelectedPaletteEntry();
+    if (!entry || !entry->GetData()->IsVarWidth())
+    {
+        // Only variable-width palettes have an adjustable length; fixed ones get no menu.
+        return;
+    }
+    wxMenu menu;
+    auto* item = menu.Append(wxID_ANY, "Set Palette Length...");
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) { OnSetPaletteLength(); }, item->GetId());
+    PopupMenu(&menu);
+}
+
+void PaletteListFrame::OnSetPaletteLength()
+{
+    const auto entry = GetSelectedPaletteEntry();
+    if (!entry)
+    {
+        return;
+    }
+    const auto pal = entry->GetData();
+    if (!pal->IsVarWidth())
+    {
+        return;
+    }
+    const int current = pal->GetSize();
+    // 255 is far beyond any in-game fade and stays well inside the format's 16-bit size word.
+    const long count = wxGetNumberFromUser(
+        "Set the number of colours in this variable-width palette.\n"
+        "New colours are added as black; reducing the count drops them from the end.",
+        "Colours:", "Set Palette Length", current, 1, 255, this);
+    if (count < 1 || count == current)
+    {
+        return;
+    }
+    if (!pal->SetSize(static_cast<int>(count)))
+    {
+        return;
+    }
+    const int row = GetSelectedRow();
+    Update();
+    if (row >= 0)
+    {
+        SelectRow(row);
+    }
+    UpdatePaletteButtons();
+    FireEvent(EVT_STATUSBAR_UPDATE);
 }
 
 void PaletteListFrame::OnImportPngNewEntry()
