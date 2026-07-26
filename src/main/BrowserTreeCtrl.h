@@ -29,7 +29,10 @@ public:
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,
-        FRIDAY_ANIMATION
+        EQUIP_LAYOUT,
+        INPUT_TABLE,
+        FRIDAY_ANIMATION,
+        DAMAGE_CONSTANTS
     };
     TreeNodeData(Node nodeType = Node::BASE, std::size_t value = 0, int img = -1, bool no_delete = true)
         : m_nodeType(nodeType), m_value(value), m_img(img), m_no_delete(no_delete) {}

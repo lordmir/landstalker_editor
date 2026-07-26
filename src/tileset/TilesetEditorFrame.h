@@ -77,15 +77,11 @@ private:
 	void SelectDrawPencil();
 	void SelectDrawTool(TilesetEditor::Tool tool);
 
-	void Save();
-	void SaveAs();
 	void ImportFromBin();
 	void ImportFromPng();
-	void ImportFromRom();
 	void ExportAsBin();
 	void ExportAsPng();
 	void ExportAll();
-	void InjectIntoRom();
 
 	void UpdateUI() const;
 	void RefreshProperties(wxPropertyGridManager& props) const;

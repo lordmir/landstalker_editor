@@ -140,12 +140,6 @@ bool TilesetEditor::Open(std::vector<uint8_t>& pixels, bool uses_compression, in
 	return Open(std::make_shared<Landstalker::Tileset>(pixels, uses_compression, tile_width, tile_height, tile_bitdepth));
 }
 
-bool TilesetEditor::New(int r, int c)
-{
-	m_tileset = std::make_shared<Landstalker::Tileset>(r, c);
-	return true;
-}
-
 void TilesetEditor::RedrawTiles(int index)
 {
 	if ((index < 0) || (index >= static_cast<int>(m_tileset->GetTileCount())))
@@ -1946,21 +1940,6 @@ int TilesetEditor::GetTilemapSize() const
 	return m_tileset->GetTileCount();
 }
 
-bool TilesetEditor::GetCompressed() const
-{
-	return m_tileset->GetCompressed();
-}
-
-void TilesetEditor::SetColourMap(const std::vector<uint8_t>& cmap)
-{
-	m_tileset->SetColourIndicies(cmap);
-}
-
-std::vector<uint8_t> TilesetEditor::GetColourMap() const
-{
-	return m_tileset->GetColourIndicies();
-}
-
 void TilesetEditor::SetActivePalette(const std::string& name)
 {
 	if (m_selected_palette_name != name)
@@ -1996,11 +1975,6 @@ void TilesetEditor::SetTileNumbersEnabled(bool enabled)
 	}
 }
 
-bool TilesetEditor::GetSelectionEnabled() const
-{
-	return m_enableselection;
-}
-
 void TilesetEditor::SetSelectionEnabled(bool enabled)
 {
 	if (m_enableselection != enabled)
@@ -2010,24 +1984,6 @@ void TilesetEditor::SetSelectionEnabled(bool enabled)
 			m_selectedtile = -1;
 		}
 		m_enableselection = enabled;
-		Refresh(false);
-	}
-}
-
-bool TilesetEditor::GetHoverEnabled() const
-{
-	return m_enablehover;
-}
-
-void TilesetEditor::SetHoverEnabled(bool enabled)
-{
-	if (m_enablehover != enabled)
-	{
-		if (enabled == false)
-		{
-			m_hoveredtile = -1;
-		}
-		m_enablehover = enabled;
 		Refresh(false);
 	}
 }

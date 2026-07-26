@@ -94,7 +94,9 @@ ImageList::ImageList(bool img32x32)
 		m_images["map_mode"] = wxBITMAP_PNG_FROM_DATA(map_mode_16x16);
 		m_images["mcr"] = wxBITMAP_PNG_FROM_DATA(MCR_16x16);
 		m_images["minus"] = wxBITMAP_PNG_FROM_DATA(minus_16x16);
+		m_images["mixer"] = wxBITMAP_PNG_FROM_DATA(mixer_16x16);
 		m_images["mouse"] = wxBITMAP_PNG_FROM_DATA(mouse_16x16);
+		m_images["music"] = wxBITMAP_PNG_FROM_DATA(music_16x16);
 		m_images["new"] = wxBITMAP_PNG_FROM_DATA(NEW_16x16);
 		m_images["nigel"] = wxBITMAP_PNG_FROM_DATA(nigel_16x16);
 		m_images["open_folder"] = wxBITMAP_PNG_FROM_DATA(open_folder_16x16);
@@ -113,8 +115,11 @@ ImageList::ImageList(bool img32x32)
 		m_images["script"] = wxBITMAP_PNG_FROM_DATA(script_16x16);
 		m_images["selblock"] = wxBITMAP_PNG_FROM_DATA(selblock_16x16);
 		m_images["seltile"] = wxBITMAP_PNG_FROM_DATA(seltile_16x16);
+		m_images["sound"] = wxBITMAP_PNG_FROM_DATA(sound_16x16);
 		m_images["spanel"] = wxBITMAP_PNG_FROM_DATA(spanel_16x16);
 		m_images["sprite"] = wxBITMAP_PNG_FROM_DATA(sprite_16x16);
+		m_images["stable"] = wxBITMAP_PNG_FROM_DATA(stable_16x16);
+		m_images["subsprite"] = wxBITMAP_PNG_FROM_DATA(subsprite_16x16);
 		m_images["stamp"] = wxBITMAP_PNG_FROM_DATA(stamp_16x16);
 		m_images["string"] = wxBITMAP_PNG_FROM_DATA(string_16x16);
 		m_images["swap"] = wxBITMAP_PNG_FROM_DATA(swap_16x16);
@@ -142,6 +147,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["sel_tile"] = wxBITMAP_PNG_FROM_DATA(seltile_16x16);
 		m_images["tile_nums"] = wxBITMAP_PNG_FROM_DATA(tilenums_16x16);
 		m_images["tileset"] = wxBITMAP_PNG_FROM_DATA(ts_16x16);
+		
 	}
 
 	for (const auto& img : m_images)

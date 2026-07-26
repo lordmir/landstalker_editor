@@ -25,6 +25,11 @@
 #include <script/ProgressFlagsFrame.h>
 #include <script/CharacterSfxFrame.h>
 #include <rooms/RoomConstantsFrame.h>
+#include <misc/InventoryLayoutFrame.h>
+#include <misc/EquipLayoutFrame.h>
+#include <misc/InputTableFrame.h>
+#include <misc/FridayAnimationFrame.h>
+#include <misc/DamageConstantsFrame.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/misc/Labels.h>
 
@@ -94,7 +99,10 @@ private:
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,
-        FRIDAY_ANIMATION
+        EQUIP_LAYOUT,
+        INPUT_TABLE,
+        FRIDAY_ANIMATION,
+        DAMAGE_CONSTANTS
     };
 
     enum class EditorType
@@ -118,7 +126,10 @@ private:
         ROM_DATA,
         CHARSET,
         INVENTORY_LAYOUT,
+        EQUIP_LAYOUT,
+        INPUT_TABLE,
         FRIDAY_ANIMATION,
+        DAMAGE_CONSTANTS,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -221,6 +232,11 @@ private:
     ProgressFlagsEditorFrame* GetProgressFlagsEditorFrame();
     CharacterSfxEditorFrame* GetCharacterSfxEditorFrame();
     RoomConstantsEditorFrame* GetRoomConstantsEditorFrame();
+    InventoryLayoutFrame* GetInventoryLayoutEditorFrame();
+    EquipLayoutFrame* GetEquipLayoutEditorFrame();
+    InputTableFrame* GetInputTableEditorFrame();
+    FridayAnimationFrame* GetFridayAnimationEditorFrame();
+    DamageConstantsFrame* GetDamageConstantsEditorFrame();
     CharsetEditorFrame* GetCharsetEditor();
     
     Mode m_mode;

@@ -16,7 +16,9 @@
 #include <tileset/TilesetImportDialog.h>
 #include <wx/artprov.h>
 #include <wx/dcbuffer.h>
+#include <wx/dirdlg.h>
 #include <wx/numdlg.h>
+#include <filesystem>
 
 enum TOOL_IDS
 {
@@ -554,14 +556,6 @@ void TilesetEditorFrame::SelectDrawTool(TilesetEditor::Tool tool)
 	}
 }
 
-void TilesetEditorFrame::Save()
-{
-}
-
-void TilesetEditorFrame::SaveAs()
-{
-}
-
 void TilesetEditorFrame::ShowAnimationPreview(std::shared_ptr<Landstalker::AnimatedTileset> ats)
 {
 	if (m_animPreview == nullptr)
@@ -851,10 +845,6 @@ void TilesetEditorFrame::ImportFromPng()
 	FireEvent(EVT_PROPERTIES_UPDATE);
 }
 
-void TilesetEditorFrame::ImportFromRom()
-{
-}
-
 void TilesetEditorFrame::ExportAsBin()
 {
 	const wxString defaultFile = m_tileset->GetCompressed() ? "tileset.lz77" : "tileset.bin";
@@ -890,11 +880,48 @@ void TilesetEditorFrame::ExportAsPng()
 
 void TilesetEditorFrame::ExportAll()
 {
-}
+	if (!m_gd)
+	{
+		return;
+	}
+	wxDirDialog dd(this, _("Select Tileset Export Directory"));
+	if (dd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	const std::filesystem::path dir = dd.GetPath().ToStdString();
 
-void TilesetEditorFrame::InjectIntoRom()
-{
-	auto bytes = m_tileset->GetBits(m_tileset->GetCompressed());
+	// Each tileset is written under its own name, with the extension reflecting whether it is
+	// stored compressed - matching what the single-tileset export produces.
+	const auto write_one = [&dir](const std::string& name, const std::shared_ptr<Landstalker::Tileset>& ts)
+	{
+		const bool compressed = ts->GetCompressed();
+		auto bytes = ts->GetBits(compressed);
+		Landstalker::WriteBytes(bytes, dir / (name + (compressed ? ".lz77" : ".bin")));
+	};
+
+	int count = 0;
+	try
+	{
+		for (const auto& [name, entry] : m_gd->GetAllTilesets())
+		{
+			write_one(name, entry->GetData());
+			++count;
+		}
+		for (const auto& [name, entry] : m_gd->GetAllAnimatedTilesets())
+		{
+			write_one(name, entry->GetData());
+			++count;
+		}
+	}
+	catch (const std::exception& e)
+	{
+		wxMessageBox(wxString::Format("Error exporting tilesets: %s", e.what()),
+			"Export All Tilesets", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	wxMessageBox(wxString::Format("Exported %d tilesets to %s", count, dd.GetPath()),
+		"Export All Tilesets", wxOK | wxICON_INFORMATION, this);
 }
 
 void TilesetEditorFrame::UpdateUI() const

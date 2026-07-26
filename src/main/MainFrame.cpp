@@ -60,6 +60,11 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::PROGRESS_FLAGS, new ProgressFlagsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARACTER_SFX, new CharacterSfxEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::ROOM_CONSTANTS, new RoomConstantsEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::INVENTORY_LAYOUT, new InventoryLayoutFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::EQUIP_LAYOUT, new EquipLayoutFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::INPUT_TABLE, new InputTableFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::FRIDAY_ANIMATION, new FridayAnimationFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::DAMAGE_CONSTANTS, new DamageConstantsFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
@@ -356,6 +361,10 @@ void MainFrame::InitUI()
     const int bscr_img = m_imgs->GetIdx("bscript");
     const int data_img = m_imgs->GetIdx("data");
     const int dtable_img = m_imgs->GetIdx("data_table");
+    const int stable_img = m_imgs->GetIdx("stable");
+    const int mixer_img = m_imgs->GetIdx("mixer");
+    const int sound_img = m_imgs->GetIdx("sound");
+    const int music_img = m_imgs->GetIdx("music");
 
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
@@ -440,7 +449,7 @@ void MainFrame::InitUI()
     std::map<std::wstring, wxTreeItemId> room_index;
     std::map<std::wstring, wxTreeItemId> sprite_index;
 
-    m_browser->AppendItem(nodeScript, "Main Script", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
+    m_browser->AppendItem(nodeScript, "Main Script", stable_img, stable_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     if (m_g->GetScriptData()->HasTables())
     {
         // One item per script target - entry navigation lives inside the tree editor itself.
@@ -458,6 +467,11 @@ void MainFrame::InitUI()
 
     m_browser->AppendItem(nodeData, "Character Sound Effects", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::CHARACTER_SFX));
     m_browser->AppendItem(nodeData, "Room Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::ROOM_CONSTANTS));
+    m_browser->AppendItem(nodeData, "Inventory Layout", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::INVENTORY_LAYOUT));
+    m_browser->AppendItem(nodeData, "Equip Layout", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::EQUIP_LAYOUT));
+    m_browser->AppendItem(nodeData, "Input Table", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::INPUT_TABLE));
+    m_browser->AppendItem(nodeData, "Friday Animations", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::FRIDAY_ANIMATION));
+    m_browser->AppendItem(nodeData, "Damage Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::DAMAGE_CONSTANTS));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(Landstalker::StringData::Type::MAIN)));
@@ -1935,6 +1949,31 @@ void MainFrame::RefreshEditor()
         GetRoomConstantsEditorFrame()->Open(m_extradata);
         ShowEditor(EditorType::ROOM_CONSTANTS);
         break;
+    case Mode::INVENTORY_LAYOUT:
+        // Display the item-menu ordering table
+        GetInventoryLayoutEditorFrame()->Open();
+        ShowEditor(EditorType::INVENTORY_LAYOUT);
+        break;
+    case Mode::EQUIP_LAYOUT:
+        // Display the equip-menu candidate table
+        GetEquipLayoutEditorFrame()->Open();
+        ShowEditor(EditorType::EQUIP_LAYOUT);
+        break;
+    case Mode::INPUT_TABLE:
+        // Display the scripted-input playback table
+        GetInputTableEditorFrame()->Open();
+        ShowEditor(EditorType::INPUT_TABLE);
+        break;
+    case Mode::FRIDAY_ANIMATION:
+        // Display the Friday overlay-animation waypoint tables
+        GetFridayAnimationEditorFrame()->Open();
+        ShowEditor(EditorType::FRIDAY_ANIMATION);
+        break;
+    case Mode::DAMAGE_CONSTANTS:
+        // Display the sword/armour damage-modifier constants
+        GetDamageConstantsEditorFrame()->Open();
+        ShowEditor(EditorType::DAMAGE_CONSTANTS);
+        break;
     case Mode::CHARSET:
         // Display character set mappings
         GetCharsetEditor()->Open();
@@ -2011,6 +2050,21 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::ROOM_CONSTANTS:
         SetMode(Mode::ROOM_CONSTANTS);
+        break;
+    case TreeNodeData::Node::INVENTORY_LAYOUT:
+        SetMode(Mode::INVENTORY_LAYOUT);
+        break;
+    case TreeNodeData::Node::EQUIP_LAYOUT:
+        SetMode(Mode::EQUIP_LAYOUT);
+        break;
+    case TreeNodeData::Node::INPUT_TABLE:
+        SetMode(Mode::INPUT_TABLE);
+        break;
+    case TreeNodeData::Node::FRIDAY_ANIMATION:
+        SetMode(Mode::FRIDAY_ANIMATION);
+        break;
+    case TreeNodeData::Node::DAMAGE_CONSTANTS:
+        SetMode(Mode::DAMAGE_CONSTANTS);
         break;
     case TreeNodeData::Node::CHARSET:
         SetMode(Mode::CHARSET);
@@ -2095,6 +2149,31 @@ CharacterSfxEditorFrame* MainFrame::GetCharacterSfxEditorFrame()
 RoomConstantsEditorFrame* MainFrame::GetRoomConstantsEditorFrame()
 {
     return static_cast<RoomConstantsEditorFrame*>(m_editors.at(EditorType::ROOM_CONSTANTS));
+}
+
+InventoryLayoutFrame* MainFrame::GetInventoryLayoutEditorFrame()
+{
+    return static_cast<InventoryLayoutFrame*>(m_editors.at(EditorType::INVENTORY_LAYOUT));
+}
+
+EquipLayoutFrame* MainFrame::GetEquipLayoutEditorFrame()
+{
+    return static_cast<EquipLayoutFrame*>(m_editors.at(EditorType::EQUIP_LAYOUT));
+}
+
+InputTableFrame* MainFrame::GetInputTableEditorFrame()
+{
+    return static_cast<InputTableFrame*>(m_editors.at(EditorType::INPUT_TABLE));
+}
+
+FridayAnimationFrame* MainFrame::GetFridayAnimationEditorFrame()
+{
+    return static_cast<FridayAnimationFrame*>(m_editors.at(EditorType::FRIDAY_ANIMATION));
+}
+
+DamageConstantsFrame* MainFrame::GetDamageConstantsEditorFrame()
+{
+    return static_cast<DamageConstantsFrame*>(m_editors.at(EditorType::DAMAGE_CONSTANTS));
 }
 
 CharsetEditorFrame* MainFrame::GetCharsetEditor()

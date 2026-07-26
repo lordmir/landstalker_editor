@@ -476,7 +476,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	toolbar->AddTool(ID_TOGGLE_HITBOX, "Toggle Hitbox", ilist.GetImage("ehitbox"), "Toggle Hitbox", wxITEM_CHECK);
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_COMPRESS_FRAME, "Compress Frame", ilist.GetImage("compress"), "Compress Frame", wxITEM_CHECK);
-	toolbar->AddTool(ID_OPTIMISE_SUBSPRITES, "Optimise Subsprites", ilist.GetImage("entity"),
+	toolbar->AddTool(ID_OPTIMISE_SUBSPRITES, "Optimise Subsprites", ilist.GetImage("lightning"),
 		"Repack this frame's subsprites to waste the fewest tiles (max 6 subsprites)");
 	toolbar->AddSeparator();
 	toolbar->AddTool(ID_CUT_TILE, "Cut", ilist.GetImage("cut"), "Cut");
@@ -505,7 +505,7 @@ void SpriteEditorFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	wxAuiToolBar* tools_tb = new wxAuiToolBar(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_VERTICAL);
 	tools_tb->SetToolBitmapSize(wxSize(16, 16));
 	tools_tb->AddTool(ID_SELECT, "Select", ilist.GetImage("mouse"), "Select", wxITEM_CHECK);
-	tools_tb->AddTool(ID_SUBSPRITE_MODE, "Edit Subsprites", ilist.GetImage("entity"),
+	tools_tb->AddTool(ID_SUBSPRITE_MODE, "Edit Subsprites", ilist.GetImage("subsprite"),
 		"Edit Subsprites (drag to move, handles to resize, right-click or Ins/Del to add and remove)", wxITEM_CHECK);
 	tools_tb->AddSeparator();
 	tools_tb->AddTool(ID_PIXEL_SELECT, "Select Pixels", ilist.GetImage("select_rect"),

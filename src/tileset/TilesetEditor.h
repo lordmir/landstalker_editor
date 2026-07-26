@@ -48,7 +48,6 @@ public:
 	bool Open(wxString filename, bool compressed = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
 	bool Open(std::shared_ptr<Landstalker::Tileset> ts);
 	bool Open(std::vector<uint8_t>& pixels, bool uses_compression = false, int tile_width = 8, int tile_height = 8, int tile_bitdepth = 4);
-	bool New(int r, int c);
 	void RedrawTiles(int index = -1);
 	void ForceRedraw();
 	// Recomputes the grid's row/column count from the tileset's current tile count. Callers that
@@ -63,19 +62,13 @@ public:
 	void SetPixelSize(int n);
 	int GetPixelSize() const;
 	int GetTilemapSize() const;
-	bool GetCompressed() const;
-	void SetColourMap(const std::vector<uint8_t>& cmap);
-	std::vector<uint8_t> GetColourMap() const;
 	void SetActivePalette(const std::string& name);
 	std::string GetActivePalette() const;
 	std::array<bool, 16> GetLockedColours() const;
 
 	bool GetTileNumbersEnabled() const;
 	void SetTileNumbersEnabled(bool enabled);
-	bool GetSelectionEnabled() const;
 	void SetSelectionEnabled(bool enabled);
-	bool GetHoverEnabled() const;
-	void SetHoverEnabled(bool enabled);
 	bool GetAlphaEnabled() const;
 	void SetAlphaEnabled(bool enabled);
 	bool GetBordersEnabled() const;
