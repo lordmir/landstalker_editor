@@ -5,6 +5,8 @@
 #include <optional>
 
 #include <landstalker/main/GameData.h>
+#include <landstalker/main/ScriptData.h>
+#include <landstalker/script/AsmFunctionTable.h>
 #include <landstalker/script/ScriptTableEntry.h>
 
 // Shared resolution of "does this script table entry reference another entry's own script
@@ -28,11 +30,26 @@ inline std::optional<Target> Resolve(const std::shared_ptr<Landstalker::GameData
 	}
 	if (entry.GetType() == Landstalker::ScriptTableEntryType::PLAY_CUTSCENE)
 	{
+		// A cutscene index is a dialogueactions handler slot (layer 1) - the real target of the
+		// index - so validate it against that table. Fall back to the script-VM cutscene table's
+		// size when the asm handlers are unavailable (e.g. a ROM-loaded project) so links still
+		// render there.
 		const int cutscene = entry.GetData();
-		const auto table = gd->GetScriptData()->GetCutsceneTable();
-		if (table && cutscene < static_cast<int>(table->size()))
+		const auto actions = gd->GetScriptData()->GetCutsceneActions();
+		if (actions && actions->IsValid())
 		{
-			return Target{ true, cutscene };
+			if (cutscene < static_cast<int>(actions->SlotCount()))
+			{
+				return Target{ true, cutscene };
+			}
+		}
+		else
+		{
+			const auto table = gd->GetScriptData()->GetCutsceneTable();
+			if (table && cutscene < static_cast<int>(table->size()))
+			{
+				return Target{ true, cutscene };
+			}
 		}
 	}
 	else if (entry.GetType() == Landstalker::ScriptTableEntryType::SET_SPEAKER)

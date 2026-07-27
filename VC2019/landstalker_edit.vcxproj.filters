@@ -372,6 +372,18 @@
     <ClCompile Include="..\src\misc\ResizeableGrid.cpp">
       <Filter>src\Miscellaneous</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomActionAddDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomActionDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomActionsEditorFrame.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\rooms\RoomShopDialog.cpp">
+      <Filter>src\Rooms</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\rooms\RoomViewerFrame.cpp">
       <Filter>src\Rooms</Filter>
     </ClCompile>
@@ -386,6 +398,39 @@
     </ClCompile>
     <ClCompile Include="..\src\script\ScriptEditorFrame.cpp">
       <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\CutsceneEditorFrame.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\AsmSymbolHarvester.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\CutsceneAsmSugar.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\ItemUseEditorFrame.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\TriggerActionEditorDialog.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\TriggerEditorFrame.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\CutsceneCodeEditor.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\script\CutsceneEditorDialog.cpp">
+      <Filter>src\Script</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\misc\CodeEditorCtrl.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\misc\InputScriptDialog.cpp">
+      <Filter>src\Miscellaneous</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\misc\IntroStringDialog.cpp">
+      <Filter>src\Miscellaneous</Filter>
     </ClCompile>
     <ClCompile Include="..\src\misc\SelectionControlFrame.cpp">
       <Filter>src\Miscellaneous</Filter>
@@ -629,6 +674,21 @@
     <ClInclude Include="..\src\rooms\RoomErrorDialog.h">
       <Filter>include\Rooms</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomActionAddDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomActionDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomActionDisplay.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomActionsEditorFrame.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rooms\RoomShopDialog.h">
+      <Filter>include\Rooms</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\rooms\RoomViewerFrame.h">
       <Filter>include\Rooms</Filter>
     </ClInclude>
@@ -739,6 +799,39 @@
     </ClInclude>
     <ClInclude Include="..\src\script\ScriptEditorFrame.h">
       <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\CutsceneEditorFrame.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\AsmSymbolHarvester.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\CutsceneAsmSugar.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\ItemUseEditorFrame.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\TriggerActionEditorDialog.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\TriggerEditorFrame.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\CutsceneCodeEditor.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\script\CutsceneEditorDialog.h">
+      <Filter>include\Script</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\CodeEditorCtrl.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\InputScriptDialog.h">
+      <Filter>include\Miscellaneous</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\misc\IntroStringDialog.h">
+      <Filter>include\Miscellaneous</Filter>
     </ClInclude>
     <ClInclude Include="..\src\misc\SelectionControlFrame.h">
       <Filter>include\Miscellaneous</Filter>

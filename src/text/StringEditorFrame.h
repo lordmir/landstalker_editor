@@ -17,6 +17,8 @@ public:
 
 	Landstalker::StringData::Type GetMode() const { return m_type; }
 	void SetMode(Landstalker::StringData::Type mode);
+	// Switch to the intro-string list and select/scroll to the given intro string (for inbound links).
+	void GoToIntroString(int index);
 
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
 	virtual void ClearGameData();

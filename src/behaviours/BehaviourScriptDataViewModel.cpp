@@ -9,6 +9,11 @@ BehaviourScriptDataViewModel::BehaviourScriptDataViewModel(std::shared_ptr<Lands
 	Initialise();
 }
 
+const Landstalker::Behaviours::Command* BehaviourScriptDataViewModel::GetCommand(unsigned int row) const
+{
+	return row < m_commands.size() ? &m_commands[row] : nullptr;
+}
+
 void BehaviourScriptDataViewModel::Initialise()
 {
 	m_commands.clear();

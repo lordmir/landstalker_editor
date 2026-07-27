@@ -42,6 +42,10 @@ public:
 
     virtual void InitControl(wxDataViewCtrl* ctrl) const override;
 
+    // The command at a row, or nullptr if out of range - for read-only inspection (e.g. resolving a
+    // cutscene reference to open its handler).
+    const Landstalker::Behaviours::Command* GetCommand(unsigned int row) const;
+
 private:
     std::shared_ptr<Landstalker::GameData> m_gd;
     int m_script_id;

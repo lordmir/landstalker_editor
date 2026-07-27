@@ -24,6 +24,8 @@ wxDECLARE_EVENT(EVT_GPU_EDITOR_MODE_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_OPACITY_CHANGE, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_LAYER_BLOCK_SELECT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GPU_HEIGHTMAP_TARGET_CHANGE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_GPU_OPEN_ROOM_ACTIONS, wxCommandEvent);
+wxDECLARE_EVENT(EVT_GPU_OPEN_ROOM_SHOP, wxCommandEvent);
 
 class GLCanvasKeyboardInput;
 class GLCanvasMouseInput;
@@ -283,6 +285,8 @@ private:
     int HitTestTileSwapRegionResizeControl(const wxPoint& point) const;
     int HitTestDoor(const wxPoint& point) const;
     int HitTestRoomInfoLink(const wxPoint& point) const;
+    bool HitTestRoomActionLink(const wxPoint& point) const;
+    bool HitTestRoomShopLink(const wxPoint& point) const;
     void UpdateEntityDrag(const wxMouseEvent& evt);
     void EndEntityDrag();
     void StartWarpDrag(int warp_idx, const wxMouseEvent& evt);

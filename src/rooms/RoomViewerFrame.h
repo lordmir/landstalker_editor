@@ -145,6 +145,8 @@ private:
 
 	void OnBlockSelect(wxCommandEvent& evt);
 	void OnGpuEditorModeChange(wxCommandEvent& evt);
+	void OnOpenRoomActions(wxCommandEvent& evt);
+	void OnOpenRoomShop(wxCommandEvent& evt);
 	void OnGpuLayerOpacityChange(wxCommandEvent& evt);
 	void OnGpuLayerBlockSelect(wxCommandEvent& evt);
 	void OnGpuHeightmapTargetChange(wxCommandEvent& evt);

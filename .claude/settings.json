@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -nvE '^\\\\s*bra\\\\.w\\\\s+CSA_|^\\\\s*;|^\\\\s*$|module|modend|ProcessDialogueScriptAction:|CustomScriptActionTable:|lsl\\\\.w|jmp' dialogueactionjumptable.asm)"
+    ]
+  }
+}

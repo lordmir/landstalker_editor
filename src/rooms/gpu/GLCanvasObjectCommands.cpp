@@ -704,6 +704,14 @@ int GLCanvas::HitTestRoomInfoLink(const wxPoint& point) const {
     return m_room_info_overlay.HitTest(point);
 }
 
+bool GLCanvas::HitTestRoomActionLink(const wxPoint& point) const {
+    return m_room_info_overlay.HitTestActionLink(point);
+}
+
+bool GLCanvas::HitTestRoomShopLink(const wxPoint& point) const {
+    return m_room_info_overlay.HitTestShopLink(point);
+}
+
 int GLCanvas::HitTestEntity(const wxPoint& point) const {
     return GLCanvasEntityEditor(const_cast<GLCanvas&>(*this)).HitTestEntity(point);
 }

@@ -9,6 +9,9 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
+#include <wx/textctrl.h>
+
+#include <landstalker/misc/Labels.h>
 
 namespace
 {
@@ -52,6 +55,7 @@ InputTableFrame::InputTableFrame(wxWindow* parent, ImageList* imglst)
 
 	// Left pane: the sequence list over a grid of management buttons (as in the entity editor).
 	wxPanel* left = new wxPanel(this, wxID_ANY);
+	m_left_pane = left;
 	wxBoxSizer* lv = new wxBoxSizer(wxVERTICAL);
 	m_seq_list = new wxListBox(left, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_SINGLE);
 	lv->Add(m_seq_list, 1, wxEXPAND | wxALL, 3);
@@ -74,13 +78,30 @@ InputTableFrame::InputTableFrame(wxWindow* parent, ImageList* imglst)
 	m_move_up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMoveSequence(-1); });
 	m_move_down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { OnMoveSequence(1); });
 
-	m_lines = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+	// Centre pane: an editable name field for the selected sequence over the line grid. The name
+	// lives in the C_INPUT_SCRIPT labels; the field stays visible even when the left list is hidden
+	// (the focused popup), so a sequence can be named there too.
+	wxPanel* center = new wxPanel(this, wxID_ANY);
+	wxBoxSizer* cv = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* name_row = new wxBoxSizer(wxHORIZONTAL);
+	name_row->Add(new wxStaticText(center, wxID_ANY, "Name:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+	m_name = new wxTextCtrl(center, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+		wxTE_PROCESS_ENTER);
+	name_row->Add(m_name, 1, wxALIGN_CENTER_VERTICAL);
+	cv->Add(name_row, 0, wxEXPAND | wxALL, 4);
+
+	m_lines = new wxScrolledWindow(center, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 		wxVSCROLL | wxHSCROLL | wxTAB_TRAVERSAL);
 	m_lines->SetScrollRate(8, 16);
+	cv->Add(m_lines, 1, wxEXPAND);
+	center->SetSizer(cv);
+
+	m_name->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { CommitName(); });
+	m_name->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) { CommitName(); e.Skip(); });
 
 	m_mgr.AddPane(left, wxAuiPaneInfo().Left().Caption("Sequences").MinSize(wxSize(180, -1))
 		.BestSize(wxSize(220, -1)).CloseButton(false).Floatable(false).Resizable());
-	m_mgr.AddPane(m_lines, wxAuiPaneInfo().CenterPane());
+	m_mgr.AddPane(center, wxAuiPaneInfo().CenterPane());
 	m_mgr.Update();
 	RefreshButtons();
 }
@@ -88,6 +109,16 @@ InputTableFrame::InputTableFrame(wxWindow* parent, ImageList* imglst)
 InputTableFrame::~InputTableFrame()
 {
 	m_mgr.UnInit();
+}
+
+void InputTableFrame::ShowSequenceListPane(bool show)
+{
+	if (!m_left_pane)
+	{
+		return;
+	}
+	m_mgr.GetPane(m_left_pane).Show(show);
+	m_mgr.Update();
 }
 
 bool InputTableFrame::Open()
@@ -115,6 +146,18 @@ void InputTableFrame::SetGameData(std::shared_ptr<Landstalker::GameData> gd)
 	Open();
 }
 
+void InputTableFrame::GoToSequence(int sequence)
+{
+	if (sequence < 0 || sequence >= static_cast<int>(m_sequences.size()))
+	{
+		return;
+	}
+	m_selected = sequence;
+	SelectSequenceInList(sequence);
+	RebuildLines();
+	RefreshButtons();
+}
+
 void InputTableFrame::ClearGameData()
 {
 	m_gd.reset();
@@ -139,6 +182,7 @@ void InputTableFrame::CommitPendingEdits()
 	{
 		return;
 	}
+	CommitName(); // flush a name typed but not yet blurred
 	// Pull any typed-but-not-blurred durations back out of the row controls, and fold in a
 	// trailing blank line that was changed but not yet committed.
 	auto& seq = m_sequences[m_selected];
@@ -216,6 +260,60 @@ void InputTableFrame::CommitToData()
 	m_gd->GetSpriteData()->SetInputPlayback(bytes);
 }
 
+wxString InputTableFrame::DisplayName(int index)
+{
+	const auto label = Landstalker::Labels::Get(Landstalker::Labels::C_INPUT_SCRIPT, index);
+	if (label && !label->empty())
+	{
+		return wxString(*label);
+	}
+	return wxString::Format("PlaybackScript%02d", index);
+}
+
+void InputTableFrame::CommitName()
+{
+	if (!m_name || m_selected < 0 || m_selected >= static_cast<int>(m_sequences.size()))
+	{
+		return;
+	}
+	const wxString text = m_name->GetValue().Trim(true).Trim(false);
+	if (text.empty())
+	{
+		return; // leave the existing/generic name in place rather than clearing it
+	}
+	// No-op if unchanged (avoids marking labels dirty on every focus change).
+	const auto current = Landstalker::Labels::Get(Landstalker::Labels::C_INPUT_SCRIPT, m_selected);
+	if (current && *current == text.ToStdWstring())
+	{
+		return;
+	}
+	Landstalker::Labels::Update(Landstalker::Labels::C_INPUT_SCRIPT, m_selected, text.ToStdWstring());
+	if (m_seq_list && m_selected < static_cast<int>(m_seq_list->GetCount()))
+	{
+		m_seq_list->SetString(m_selected, DisplayName(m_selected));
+	}
+}
+
+void InputTableFrame::UpdateNameField()
+{
+	if (!m_name)
+	{
+		return;
+	}
+	if (m_selected < 0 || m_selected >= static_cast<int>(m_sequences.size()))
+	{
+		m_name->ChangeValue(wxEmptyString);
+		m_name->SetHint(wxEmptyString);
+		m_name->Enable(false);
+		return;
+	}
+	m_name->Enable(true);
+	// Show the custom label if set; otherwise leave the field empty with the generic name as a hint.
+	const auto label = Landstalker::Labels::Get(Landstalker::Labels::C_INPUT_SCRIPT, m_selected);
+	m_name->ChangeValue(label && !label->empty() ? wxString(*label) : wxString());
+	m_name->SetHint(wxString::Format("PlaybackScript%02d", m_selected));
+}
+
 void InputTableFrame::PopulateSequenceList()
 {
 	if (!m_seq_list)
@@ -227,7 +325,7 @@ void InputTableFrame::PopulateSequenceList()
 	m_seq_list->Clear();
 	for (std::size_t i = 0; i < m_sequences.size(); ++i)
 	{
-		m_seq_list->Append(wxString::Format("Sequence %u", static_cast<unsigned>(i)));
+		m_seq_list->Append(DisplayName(static_cast<int>(i)));
 	}
 	m_seq_list->Thaw();
 	m_populating = false;
@@ -329,6 +427,7 @@ void InputTableFrame::OnMoveSequence(int delta)
 
 void InputTableFrame::RebuildLines()
 {
+	UpdateNameField(); // keep the name field in step with the selected sequence
 	if (!m_lines)
 	{
 		return;

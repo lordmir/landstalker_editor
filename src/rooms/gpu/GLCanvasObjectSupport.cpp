@@ -434,12 +434,27 @@ void ClampWarpToValidSize(WarpInstance& warp)
 void SortEntitiesGeometrically(std::vector<SpriteInstance>& instances)
 {
     // Port of gamelogic3.asm SortSpritesByDepth's live path (_overlapOrderFix): a
-    // selection-style bubble pass over the room's entity slot order (the order
-    // `instances` is already in), identical to the game's draw-list fix-up. For
-    // each slot in turn, scan every later slot and swap in whichever entity the
-    // pairwise footprint/Z test says belongs there; earlier slots have priority
-    // (as in the VDP sprite table) until the final reverse below.
+    // selection-style bubble pass over the room's entity slot order, identical to
+    // the game's draw-list fix-up. For each slot in turn, scan every later slot
+    // and swap in whichever entity the pairwise footprint/Z test says belongs
+    // there; earlier slots have priority (as in the VDP sprite table) until the
+    // final reverse below.
     //
+    // The pass isn't a true total order - two entities the comparator can't
+    // strictly place (e.g. identical position) are left as-is rather than swapped.
+    // In-game this never matters because ProjectAllSprites rebuilds the draw list
+    // from the fixed room-slot order fresh every frame before the sort runs, so
+    // its input - and therefore its output - never changes frame to frame. This
+    // is called every frame too (GLCanvasRoomMode::Render), but directly on the
+    // persistent, already-sorted `instances` vector; without re-deriving the same
+    // fixed base order first, a tied pair can flip back and forth forever as each
+    // frame's sort runs on the previous frame's output instead. Sorting by
+    // instance_id first (assigned once, never touched by this function) restores
+    // that fixed base order and makes the result idempotent regardless of the
+    // order `instances` arrived in.
+    std::stable_sort(instances.begin(), instances.end(),
+        [](const SpriteInstance& lhs, const SpriteInstance& rhs) { return lhs.instance_id < rhs.instance_id; });
+
     // Two things the game does are intentionally not reproduced:
     //  - The disassembly's DrawOrder depth key (HitBoxXStart+HitBoxYStart)/2 +
     //    Height + Z + HitBoxZEnd is computed every frame but the insertion sort

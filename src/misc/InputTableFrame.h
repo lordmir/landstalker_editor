@@ -9,8 +9,10 @@
 #include <landstalker/main/GameData.h>
 #include <main/EditorFrame.h>
 
+class wxPanel;
 class wxListBox;
 class wxButton;
+class wxTextCtrl;
 class wxScrolledWindow;
 class wxCheckBox;
 class wxSpinCtrl;
@@ -29,7 +31,15 @@ public:
 	InputTableFrame(wxWindow* parent, ImageList* imglst);
 	virtual ~InputTableFrame();
 
+	// The display name for input sequence `index`: its C_INPUT_SCRIPT label, or a generic
+	// "PlaybackScriptNN" when unnamed. Shared with the cutscene editor's <Playback> hints/picker.
+	static wxString DisplayName(int index);
+
 	bool Open();
+	// Select and show a given input sequence (e.g. when opened from a <Playback>/PlaybackInput link).
+	void GoToSequence(int sequence);
+	// Hide/show the left "Sequences" list pane - hidden for the focused single-sequence popup.
+	void ShowSequenceListPane(bool show);
 	virtual void SetGameData(std::shared_ptr<Landstalker::GameData> gd);
 	virtual void ClearGameData();
 	// Flushes any duration typed but not yet blurred, plus a changed trailing line, into the
@@ -65,6 +75,10 @@ private:
 	void LoadFromData();
 	void CommitToData();
 
+	// Name field.
+	void CommitName();       // write the field back to the C_INPUT_SCRIPT label for the selection
+	void UpdateNameField();  // show the selected sequence's current name in the field
+
 	// Left sequence list.
 	void PopulateSequenceList();
 	void SelectSequenceInList(int index);
@@ -86,12 +100,14 @@ private:
 	std::vector<LineRow> m_rows;        // widgets for the selected sequence's lines + blank
 
 	wxAuiManager m_mgr;
+	wxPanel* m_left_pane = nullptr;     // the "Sequences" list pane, hidden in the focused popup
 	wxListBox* m_seq_list = nullptr;
 	wxButton* m_add = nullptr;
 	wxButton* m_remove = nullptr;
 	wxButton* m_move_up = nullptr;
 	wxButton* m_move_down = nullptr;
 	wxScrolledWindow* m_lines = nullptr;
+	wxTextCtrl* m_name = nullptr;       // editable name for the selected sequence (C_INPUT_SCRIPT)
 	bool m_populating = false;          // guards programmatic list changes from re-entry
 };
 

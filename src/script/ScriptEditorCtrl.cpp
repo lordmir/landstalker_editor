@@ -3,6 +3,7 @@
 #include <script/ScriptEditorFrame.h>
 #include <script/ScriptDataViewRenderer.h>
 #include <script/ScriptTableTreeEditorDialog.h>
+#include <script/CutsceneEditorDialog.h>
 
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
@@ -510,10 +511,18 @@ void ScriptEditorCtrl::OpenLinkPopup(const ScriptEntryLink::Target& link)
 		const int top_row = RowFromItem(m_dvc_ctrl->GetTopItem());
 		const int sel_row = RowFromItem(m_dvc_ctrl->GetSelection());
 
-		ScriptTableTreeEditorDialog dlg(this, m_gd,
-			link.is_cutscene ? ScriptTableTreeCategory::CUTSCENE : ScriptTableTreeCategory::CHARACTER,
-			link.entry);
-		dlg.ShowModal();
+		// A cutscene index resolves to its dialogueactions handler (the real target of the index),
+		// not the script-VM cutscene table; a character reference stays on the character tree.
+		if (link.is_cutscene)
+		{
+			CutsceneEditorDialog dlg(this, m_gd, link.entry);
+			dlg.ShowModal();
+		}
+		else
+		{
+			ScriptTableTreeEditorDialog dlg(this, m_gd, ScriptTableTreeCategory::CHARACTER, link.entry);
+			dlg.ShowModal();
+		}
 		// The popup (or editors nested within it) can change script lines this view displays.
 		RefreshData();
 

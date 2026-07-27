@@ -1,6 +1,7 @@
 #include <script/ScriptTableTreeEditorDialog.h>
 
 #include <script/ScriptEditorDialog.h>
+#include <script/CutsceneEditorDialog.h>
 
 #include <wx/sizer.h>
 
@@ -80,10 +81,18 @@ bool ScriptEntryPopup::Open(wxWindow* parent, std::shared_ptr<Landstalker::GameD
 	}
 	if (target)
 	{
-		const ScriptTableTreeCategory category = target->first == ScriptTreeLinkType::CUTSCENE
-			? ScriptTableTreeCategory::CUTSCENE : ScriptTableTreeCategory::CHARACTER;
-		ScriptTableTreeEditorDialog dlg(parent, gd, category, target->second);
-		dlg.ShowModal();
+		if (target->first == ScriptTreeLinkType::CUTSCENE)
+		{
+			// A cutscene index resolves to its dialogueactions handler (layer 1), not the script-VM
+			// cutscene table.
+			CutsceneEditorDialog dlg(parent, gd, target->second);
+			dlg.ShowModal();
+		}
+		else
+		{
+			ScriptTableTreeEditorDialog dlg(parent, gd, ScriptTableTreeCategory::CHARACTER, target->second);
+			dlg.ShowModal();
+		}
 	}
 	else
 	{

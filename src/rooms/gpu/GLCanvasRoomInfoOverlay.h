@@ -15,14 +15,23 @@ public:
 
     // Renders the current room information panel and records link hit boxes.
     void Render(int width, int height);
-    // Returns the linked room under the mouse point, or a negative value when none is hit.
+    // Returns the linked destination room under the mouse point (navigation links only), or a
+    // negative value when none is hit.
     int HitTest(const wxPoint& point) const;
+    // True when the point is over the "Room Actions" row (which opens the room-actions editor for
+    // the current room rather than navigating).
+    bool HitTestActionLink(const wxPoint& point) const;
+    // True when the point is over the "Shop" row (which opens the shop editor for the current room).
+    bool HitTestShopLink(const wxPoint& point) const;
 
 private:
-    // Screen rectangle mapped to a destination room number.
+    // The kinds of clickable row in the overlay.
+    enum class LinkKind { Navigate, RoomActions, Shop };
+    // Screen rectangle mapped to a destination room number (or the current room, for editor rows).
     struct Link {
-        wxRect rect;   // Clickable bounds in canvas coordinates.
-        uint16_t room; // Room to open when the link is clicked.
+        wxRect rect;         // Clickable bounds in canvas coordinates.
+        uint16_t room;       // Room to open when a navigation link is clicked.
+        LinkKind kind = LinkKind::Navigate;
     };
 
     // Canvas supplying current room, room data, and navigation helpers.

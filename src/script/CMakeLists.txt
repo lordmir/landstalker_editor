@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.28)
 
 target_sources(${MODULE_NAME} PRIVATE
+    "AsmSymbolHarvester.cpp"
     "CharacterSfxCtrl.cpp"
     "CharacterSfxDataViewModel.cpp"
     "CharacterSfxFrame.cpp"
+    "CutsceneAsmSugar.cpp"
+    "CutsceneCodeEditor.cpp"
+    "CutsceneEditorDialog.cpp"
+    "CutsceneEditorFrame.cpp"
+    "ItemUseEditorFrame.cpp"
     "ProgressFlagsCtrl.cpp"
     "ProgressFlagsDataViewModel.cpp"
     "ProgressFlagsFrame.cpp"
@@ -19,4 +25,6 @@ target_sources(${MODULE_NAME} PRIVATE
     "ScriptTreeActionEditors.cpp"
     "ScriptTreeBuilder.cpp"
     "ScriptTreeDataViewModel.cpp"
+    "TriggerActionEditorDialog.cpp"
+    "TriggerEditorFrame.cpp"
 )

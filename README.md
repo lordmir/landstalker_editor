@@ -221,17 +221,12 @@ You will need to download and build the WxWidgets 3.2.2+ library (https://www.wx
 
 Navigate to the extracted library directory (e.g. `C:\libraries\wxwidgets-3.3.3`) in a command prompt window. Run the following commands to build WxWidgets for x64:
 ```
-cmake -A x64 -S . -B build_msw -DwxBUILD_SHARED=OFF -DwxUSE_LIBWEBP=OFF -DwxUSE_STC=OFF -DwxUSE_WEBVIEW=OFF -DwxUSE_RICHTEXT=OFF -DwxUSE_RIBBON=OFF -DwxUSE_MEDIACTRL=OFF -DwxUSE_DEBUGREPORT=OFF
+cmake -A x64 -S . -B build_msw -DwxBUILD_SHARED=OFF -DwxUSE_LIBWEBP=OFF -DwxUSE_WEBVIEW=OFF -DwxUSE_RICHTEXT=OFF -DwxUSE_RIBBON=OFF -DwxUSE_MEDIACTRL=OFF -DwxUSE_DEBUGREPORT=OFF
 cmake --build build_msw --target ALL_BUILD --config Release
 cmake --install build_msw --config Release --prefix .
 cmake --build build_msw --target ALL_BUILD --config Debug
 cmake --install build_msw --config Debug --prefix .
 ```
-`wxUSE_LIBWEBP=OFF` disables WebP image support, which this project doesn't use - it also avoids having to separately link WxWidgets' `wxwebpdemux`/`wxsharpyuv` archives, which its auto-link headers don't pull in automatically.
-
-The `wxUSE_STC`/`WEBVIEW`/`RICHTEXT`/`RIBBON`/`MEDIACTRL`/`DEBUGREPORT` flags disable WxWidgets GUI modules the project doesn't use (only `base`/`core`/`gl`/`adv`/`xrc`/`propgrid`/`aui`/`xml` are actually linked - see `CMakeLists.txt`). Because the manual VC2019 build relies on WxWidgets' auto-link `#pragma comment(lib, ...)` headers, it statically links *every* module WxWidgets was built with support for, regardless of whether this project calls into it - Scintilla (`wxUSE_STC`) and WebView/Edge alone add tens of megabytes of unused code to the executable if left enabled.
-
-`wxUSE_HTML` is left enabled, even though nothing here calls into it directly, for two reasons: WxWidgets' own built-in help controller (`wxUSE_WXHTML_HELP`) hard-requires it at compile time (`chkconf.h` raises a hard `#error` otherwise), and XRC itself links `wxhtml` internally whenever `wxUSE_HTML` is on. It's a relatively small module compared to the others disabled above.
 
 Finally, we need to add an environment variable to tell Visual Studio where to find WxWidgets. Open the Start menu and type `environ`. Click on *Edit the System Environment Variables*, and click the *Environment Variables* button. Add a new **System** Environment Variable named `WX_WIN`, and set its value equal to the full path to WxWidgets (e.g. `"C:\libraries\wxwidgets-3.3.3"`). Click *OK* and exit out of the system properties windows.
 
@@ -301,9 +296,6 @@ Make sure that Visual Studio has been restarted so that it picks up the new envi
  5. Finally, we need to add an environment variable to tell Visual Studio where to find pugixml. Open the Start menu and type `environ`. Click on *Edit the System Environment Variables*, and click the *Environment Variables* button. Add a new **System** Environment Variable named `PUGIXML_PATH`, and set its value equal to the full path to pugixml (e.g. `"C:\libraries\pugixml-1.6"`). Click *OK* and exit out of the system properties windows.
 
 #### GLEW
-
-The official GLEW distribution doesn't ship a CMake build that produces just a static library cleanly - its `.sln` bundles the shared DLL, static lib, and utility executables (`glewinfo`, `visualinfo`) together, with batch-build selection that's easy to get wrong. Instead, use the [glew-cmake](https://github.com/Perlmint/glew-cmake) fork, which wraps the same GLEW source in a proper CMake build with options to build only what's needed.
-
  1. Download the glew-cmake 2.2.0+ source as a zip file from [GitHub](https://github.com/Perlmint/glew-cmake/releases) (or `git clone` it).
  2. Extract the contents of the zip file to a suitable location (e.g. C:\libraries).
  3. Open a command prompt window and navigate to the extracted files:

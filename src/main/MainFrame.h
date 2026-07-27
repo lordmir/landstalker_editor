@@ -22,6 +22,11 @@
 #include <behaviours/BehaviourScriptEditorFrame.h>
 #include <script/ScriptEditorFrame.h>
 #include <script/ScriptTableTreeEditorFrame.h>
+#include <script/CutsceneEditorFrame.h>
+#include <script/TriggerEditorFrame.h>
+#include <script/ItemUseEditorFrame.h>
+#include <rooms/RoomActionsEditorFrame.h>
+#include <rooms/RoomActionsEditorFrame.h>
 #include <script/ProgressFlagsFrame.h>
 #include <script/CharacterSfxFrame.h>
 #include <rooms/RoomConstantsFrame.h>
@@ -102,7 +107,11 @@ private:
         EQUIP_LAYOUT,
         INPUT_TABLE,
         FRIDAY_ANIMATION,
-        DAMAGE_CONSTANTS
+        DAMAGE_CONSTANTS,
+        CUTSCENE_ACTIONS,
+        TRIGGER_ACTIONS,
+        ROOM_ACTIONS,
+        ITEM_USE
     };
 
     enum class EditorType
@@ -130,6 +139,10 @@ private:
         INPUT_TABLE,
         FRIDAY_ANIMATION,
         DAMAGE_CONSTANTS,
+        CUTSCENE_ACTIONS,
+        TRIGGER_ACTIONS,
+        ROOM_ACTIONS,
+        ITEM_USE,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -237,6 +250,10 @@ private:
     InputTableFrame* GetInputTableEditorFrame();
     FridayAnimationFrame* GetFridayAnimationEditorFrame();
     DamageConstantsFrame* GetDamageConstantsEditorFrame();
+    CutsceneEditorFrame* GetCutsceneEditorFrame();
+    TriggerEditorFrame* GetTriggerEditorFrame();
+    RoomActionsEditorFrame* GetRoomActionsEditorFrame();
+    ItemUseEditorFrame* GetItemUseEditorFrame();
     CharsetEditorFrame* GetCharsetEditor();
     
     Mode m_mode;

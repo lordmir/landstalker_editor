@@ -1,8 +1,13 @@
 #include <behaviours/BehaviourScriptEditorCtrl.h>
 
 #include <algorithm>
+#include <optional>
+#include <variant>
 
 #include <misc/DataViewModelAssociate.h>
+#include <misc/InputScriptDialog.h>
+#include <script/CutsceneEditorDialog.h>
+#include <script/TriggerActionEditorDialog.h>
 
 using namespace Landstalker;
 
@@ -16,12 +21,76 @@ enum
 	ID_CTX_MOVE_UP,
 	ID_CTX_MOVE_DOWN,
 	ID_CTX_EDIT,
+	ID_CTX_OPEN_CUTSCENE,
+	ID_CTX_OPEN_PLAYBACK,
+	ID_CTX_OPEN_TRIGGER,
 
 	ID_KB_INSERT,
 	ID_KB_DELETE,
 	ID_KB_MOVE_UP,
 	ID_KB_MOVE_DOWN
 };
+
+// If the command starts a cutscene, the cutscene index it plays (the dialogueactions handler slot);
+// otherwise nullopt. HIGH_CUTSCENE values are already decoded to the full index (+256).
+std::optional<int> CutsceneIndexOf(const Behaviours::Command& cmd)
+{
+	if (cmd.command != Behaviours::CommandType::START_LO_CUTSCENE
+		&& cmd.command != Behaviours::CommandType::START_HI_CUTSCENE)
+	{
+		return std::nullopt;
+	}
+	for (const auto& p : cmd.params)
+	{
+		const Behaviours::ParamType type = std::get<2>(p);
+		if (type == Behaviours::ParamType::LOW_CUTSCENE || type == Behaviours::ParamType::HIGH_CUTSCENE)
+		{
+			const auto& val = std::get<1>(p);
+			if (std::holds_alternative<int>(val))
+			{
+				return std::get<int>(val);
+			}
+		}
+	}
+	return std::nullopt;
+}
+
+// If the command waits on a condition (WaitForCondition), the trigger-action index it waits on
+// (the TA_xx handler slot); otherwise nullopt.
+std::optional<int> TriggerIndexOf(const Behaviours::Command& cmd)
+{
+	if (cmd.command != Behaviours::CommandType::WAIT_FOR_CONDITION)
+	{
+		return std::nullopt;
+	}
+	for (const auto& p : cmd.params)
+	{
+		const auto& val = std::get<1>(p);
+		if (std::holds_alternative<int>(val))
+		{
+			return std::get<int>(val);
+		}
+	}
+	return std::nullopt;
+}
+
+// If the command plays an input script (PlaybackInput), the input-sequence index it plays.
+std::optional<int> PlaybackIndexOf(const Behaviours::Command& cmd)
+{
+	if (cmd.command != Behaviours::CommandType::PLAYBACK_INPUT)
+	{
+		return std::nullopt;
+	}
+	for (const auto& p : cmd.params)
+	{
+		const auto& val = std::get<1>(p);
+		if (std::holds_alternative<int>(val))
+		{
+			return std::get<int>(val);
+		}
+	}
+	return std::nullopt;
+}
 }
 
 wxBEGIN_EVENT_TABLE(BehaviourScriptEditorCtrl, wxPanel)
@@ -283,6 +352,30 @@ void BehaviourScriptEditorCtrl::OnContextMenu(wxDataViewEvent& evt)
 	menu.AppendSeparator();
 	menu.Append(ID_CTX_EDIT, "Edit");
 
+	// If this row starts a cutscene, offer to jump to that cutscene's handler.
+	const auto* cmd = m_model->GetCommand(static_cast<unsigned int>(row));
+	const std::optional<int> cutscene = cmd ? CutsceneIndexOf(*cmd) : std::nullopt;
+	const std::optional<int> playback = cmd ? PlaybackIndexOf(*cmd) : std::nullopt;
+	const std::optional<int> trigger = cmd ? TriggerIndexOf(*cmd) : std::nullopt;
+	if (cutscene)
+	{
+		menu.AppendSeparator();
+		menu.Append(ID_CTX_OPEN_CUTSCENE,
+			wxString::Format("Open Cutscene $%03X", static_cast<unsigned>(*cutscene)));
+	}
+	if (playback)
+	{
+		menu.AppendSeparator();
+		menu.Append(ID_CTX_OPEN_PLAYBACK,
+			wxString::Format("Open Playback Script $%03X", static_cast<unsigned>(*playback)));
+	}
+	if (trigger)
+	{
+		menu.AppendSeparator();
+		menu.Append(ID_CTX_OPEN_TRIGGER,
+			wxString::Format("Open Trigger Action $%02X", static_cast<unsigned>(*trigger)));
+	}
+
 	switch (GetPopupMenuSelectionFromUser(menu))
 	{
 	case ID_CTX_ADD_ABOVE:
@@ -302,6 +395,27 @@ void BehaviourScriptEditorCtrl::OnContextMenu(wxDataViewEvent& evt)
 		break;
 	case ID_CTX_EDIT:
 		EditRowAt(row);
+		break;
+	case ID_CTX_OPEN_CUTSCENE:
+		if (cutscene)
+		{
+			CutsceneEditorDialog dlg(this, m_gd, *cutscene);
+			dlg.ShowModal();
+		}
+		break;
+	case ID_CTX_OPEN_PLAYBACK:
+		if (playback)
+		{
+			InputScriptDialog dlg(this, m_gd, *playback);
+			dlg.ShowModal();
+		}
+		break;
+	case ID_CTX_OPEN_TRIGGER:
+		if (trigger)
+		{
+			TriggerActionEditorDialog dlg(this, m_gd, *trigger);
+			dlg.ShowModal();
+		}
 		break;
 	default:
 		break;

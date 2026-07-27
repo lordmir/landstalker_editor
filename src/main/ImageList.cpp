@@ -29,6 +29,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["chest16"] = wxBITMAP_PNG_FROM_DATA(chest16_16x16);
 		m_images["circle_filled"] = wxBITMAP_PNG_FROM_DATA(circle_filled_16x16);
 		m_images["circle_outline"] = wxBITMAP_PNG_FROM_DATA(circle_outline_16x16);
+		m_images["chars"] = wxBITMAP_PNG_FROM_DATA(chars_16x16);
 		m_images["closed_folder"] = wxBITMAP_PNG_FROM_DATA(closed_folder_16x16);
 		m_images["compress"] = wxBITMAP_PNG_FROM_DATA(compress_16x16);
 		m_images["copy"] = wxBITMAP_PNG_FROM_DATA(COPY_16x16);
@@ -41,6 +42,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["delete_row"] = wxBITMAP_PNG_FROM_DATA(delete_row_16x16);
 		m_images["delete_tile"] = wxBITMAP_PNG_FROM_DATA(delete_tile_16x16);
 		m_images["dialogue"] = wxBITMAP_PNG_FROM_DATA(dialogue_16x16);
+		m_images["dollar"] = wxBITMAP_PNG_FROM_DATA(dollar_16x16);
 		m_images["down"] = wxBITMAP_PNG_FROM_DATA(down_16x16);
 		m_images["drawing"] = wxBITMAP_PNG_FROM_DATA(DRAWING_16x16);
 		m_images["ehitbox"] = wxBITMAP_PNG_FROM_DATA(ehitbox_16x16);
@@ -78,6 +80,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["layers"] = wxBITMAP_PNG_FROM_DATA(layers_16x16);
 		m_images["lightning"] = wxBITMAP_PNG_FROM_DATA(lightning_16x16);
 		m_images["line"] = wxBITMAP_PNG_FROM_DATA(line_16x16);
+		m_images["kbd"] = wxBITMAP_PNG_FROM_DATA(kbd_16x16);
 		m_images["map"] = wxBITMAP_PNG_FROM_DATA(map_16x16);
 		m_images["map_bg_active"] = wxBITMAP_PNG_FROM_DATA(map_bg_active_16x16);
 		m_images["map_delete_nesw"] = wxBITMAP_PNG_FROM_DATA(map_delete_nesw_16x16);
@@ -99,6 +102,7 @@ ImageList::ImageList(bool img32x32)
 		m_images["music"] = wxBITMAP_PNG_FROM_DATA(music_16x16);
 		m_images["new"] = wxBITMAP_PNG_FROM_DATA(NEW_16x16);
 		m_images["nigel"] = wxBITMAP_PNG_FROM_DATA(nigel_16x16);
+		m_images["notes"] = wxBITMAP_PNG_FROM_DATA(notes_16x16);
 		m_images["open_folder"] = wxBITMAP_PNG_FROM_DATA(open_folder_16x16);
 		m_images["pal"] = wxBITMAP_PNG_FROM_DATA(pal_16x16);
 		m_images["paste"] = wxBITMAP_PNG_FROM_DATA(PASTE_16x16);

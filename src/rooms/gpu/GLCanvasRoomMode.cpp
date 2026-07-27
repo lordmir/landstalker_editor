@@ -433,7 +433,9 @@ void GLCanvasRoomMode::HandleMouseMove(const wxMouseEvent& evt)
         return;
     }
 
-    if (m_canvas.HitTestRoomInfoLink(evt.GetPosition()) >= 0) {
+    if (m_canvas.HitTestRoomInfoLink(evt.GetPosition()) >= 0
+        || m_canvas.HitTestRoomActionLink(evt.GetPosition())
+        || m_canvas.HitTestRoomShopLink(evt.GetPosition())) {
         m_canvas.SetCursor(wxCursor(wxCURSOR_HAND));
         return;
     }
@@ -502,6 +504,20 @@ void GLCanvasRoomMode::HandleLeftDown(const wxMouseEvent& evt)
         }
         m_canvas.Refresh();
         objects.NotifySelectionChanged();
+        return;
+    }
+
+    if (m_canvas.HitTestRoomActionLink(evt.GetPosition())) {
+        wxCommandEvent e(EVT_GPU_OPEN_ROOM_ACTIONS);
+        e.SetInt(m_canvas.m_current_room);
+        m_canvas.ProcessWindowEvent(e);
+        return;
+    }
+
+    if (m_canvas.HitTestRoomShopLink(evt.GetPosition())) {
+        wxCommandEvent e(EVT_GPU_OPEN_ROOM_SHOP);
+        e.SetInt(m_canvas.m_current_room);
+        m_canvas.ProcessWindowEvent(e);
         return;
     }
 
@@ -627,6 +643,20 @@ void GLCanvasRoomMode::HandleRightDown(const wxMouseEvent& evt)
     if (m_canvas.HasPendingObjectAdd()) {
         m_canvas.CancelPendingObjectAdd();
         objects.NotifySelectionChanged();
+        return;
+    }
+
+    if (m_canvas.HitTestRoomActionLink(evt.GetPosition())) {
+        wxCommandEvent e(EVT_GPU_OPEN_ROOM_ACTIONS);
+        e.SetInt(m_canvas.m_current_room);
+        m_canvas.ProcessWindowEvent(e);
+        return;
+    }
+
+    if (m_canvas.HitTestRoomShopLink(evt.GetPosition())) {
+        wxCommandEvent e(EVT_GPU_OPEN_ROOM_SHOP);
+        e.SetInt(m_canvas.m_current_room);
+        m_canvas.ProcessWindowEvent(e);
         return;
     }
 

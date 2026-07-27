@@ -54,6 +54,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     wx::propgrid
     wx::aui
     wx::xml
+    wx::stc
     OpenGL::GL
     GLEW::GLEW
     yaml-cpp::yaml-cpp

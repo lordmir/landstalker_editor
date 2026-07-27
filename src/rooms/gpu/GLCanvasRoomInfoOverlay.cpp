@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 #include <landstalker/misc/Utils.h>
+#include <landstalker/main/ScriptData.h>
+#include <landstalker/script/RoomActionTable.h>
+#include <landstalker/script/ScriptTable.h>
 
 using namespace Landstalker;
 
@@ -20,6 +23,8 @@ struct RoomInfoRow {
     std::string label;
     std::string value;
     uint16_t room;
+    bool is_action = false;
+    bool is_shop = false;
 };
 
 std::string HexFlagWord(uint16_t value)
@@ -74,6 +79,39 @@ std::vector<RoomInfoRow> BuildRoomInfoRows(const std::shared_ptr<GameData>& gd, 
             RoomDisplayText(gd, other_room),
             other_room
         });
+    }
+
+    // A clickable "Room Actions" row (opens the hand-coded per-room fixup editor for this room),
+    // shown whenever the disassembly provides the room-action chain.
+    // Only shown when this room actually has a hand-coded action (add one via the toolbar / editor).
+    auto scd = gd ? gd->GetScriptData() : nullptr;
+    auto ra = scd ? scd->GetRoomActions() : nullptr;
+    if (ra && ra->IsValid()) {
+        const std::size_t n = ra->FindByRoom(room).size();
+        if (n > 0) {
+            RoomInfoRow action_row;
+            action_row.label = "Room Actions";
+            action_row.value = std::to_string(n) + (n == 1 ? " action - Edit" : " actions - Edit");
+            action_row.room = room;
+            action_row.is_action = true;
+            rows.push_back(action_row);
+        }
+    }
+
+    // A "Shop" row when this room hosts a shop (Shop.room == room).
+    auto shops = scd ? scd->GetShopTable() : nullptr;
+    if (shops) {
+        for (const auto& shop : *shops) {
+            if (shop.room == room) {
+                RoomInfoRow shop_row;
+                shop_row.label = "Shop";
+                shop_row.value = "Edit";
+                shop_row.room = room;
+                shop_row.is_shop = true;
+                rows.push_back(shop_row);
+                break;
+            }
+        }
     }
 
     return rows;
@@ -175,16 +213,38 @@ void GLCanvasRoomInfoOverlay::Render(int width, int height)
         glColor4f(1.0f, 0.95f, 0.18f, 0.98f);
         DrawOverlayText(row.value, value_x, row_y, scale);
 
-        m_links.push_back({value_rect, row.room});
+        const LinkKind kind = row.is_shop ? LinkKind::Shop
+            : row.is_action ? LinkKind::RoomActions : LinkKind::Navigate;
+        m_links.push_back({value_rect, row.room, kind});
     }
 }
 
 int GLCanvasRoomInfoOverlay::HitTest(const wxPoint& point) const
 {
     for (const auto& link : m_links) {
-        if (link.rect.Contains(point)) {
+        if (link.kind == LinkKind::Navigate && link.rect.Contains(point)) {
             return static_cast<int>(link.room);
         }
     }
     return -1;
+}
+
+bool GLCanvasRoomInfoOverlay::HitTestActionLink(const wxPoint& point) const
+{
+    for (const auto& link : m_links) {
+        if (link.kind == LinkKind::RoomActions && link.rect.Contains(point)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GLCanvasRoomInfoOverlay::HitTestShopLink(const wxPoint& point) const
+{
+    for (const auto& link : m_links) {
+        if (link.kind == LinkKind::Shop && link.rect.Contains(point)) {
+            return true;
+        }
+    }
+    return false;
 }

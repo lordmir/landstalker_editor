@@ -76,6 +76,17 @@ StringEditorFrame::~StringEditorFrame()
 {
 }
 
+void StringEditorFrame::GoToIntroString(int index)
+{
+	SetMode(Landstalker::StringData::Type::INTRO);
+	if (m_model && index >= 0 && static_cast<unsigned int>(index) < m_model->GetRowCount())
+	{
+		const wxDataViewItem item = m_model->GetItem(static_cast<unsigned int>(index));
+		m_stringView->Select(item);
+		m_stringView->EnsureVisible(item);
+	}
+}
+
 void StringEditorFrame::SetMode(Landstalker::StringData::Type type)
 {
     m_type = type;

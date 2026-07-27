@@ -65,6 +65,10 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::INPUT_TABLE, new InputTableFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::FRIDAY_ANIMATION, new FridayAnimationFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::DAMAGE_CONSTANTS, new DamageConstantsFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::CUTSCENE_ACTIONS, new CutsceneEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::TRIGGER_ACTIONS, new TriggerEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::ROOM_ACTIONS, new RoomActionsEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::ITEM_USE, new ItemUseEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
@@ -365,10 +369,13 @@ void MainFrame::InitUI()
     const int mixer_img = m_imgs->GetIdx("mixer");
     const int sound_img = m_imgs->GetIdx("sound");
     const int music_img = m_imgs->GetIdx("music");
+    const int asm_img = m_imgs->GetIdx("asm");
+    const int chars_img = m_imgs->GetIdx("chars");
 
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
+    wxTreeItemId nodeAsm = m_browser->AppendItem(nodeRoot, "Assembly", asm_img, asm_img, new TreeNodeData());
     wxTreeItemId nodeData = m_browser->AppendItem(nodeRoot, "Data", data_img, data_img, new TreeNodeData());
     wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
@@ -456,8 +463,32 @@ void MainFrame::InitUI()
         m_browser->AppendItem(nodeScript, "Shops", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::SHOP) << 16));
         m_browser->AppendItem(nodeScript, "Special Items", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::ITEM) << 16));
         m_browser->AppendItem(nodeScript, "Characters", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CHARACTER) << 16));
-        m_browser->AppendItem(nodeScript, "Cutscenes", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CUTSCENE) << 16));
+        // The script-VM cutscene dialogue scripts. Named "Cutscene Scripts" to distinguish them
+        // from the "Cutscenes" (dialogueactions) dispatch code below - see
+        // [[cutscene-two-layer-architecture]].
+        m_browser->AppendItem(nodeScript, "Cutscene Scripts", scr_img, scr_img, new TreeNodeData(TreeNodeData::Node::SCRIPT_TABLE, static_cast<std::size_t>(ScriptTableTreeCategory::CUTSCENE) << 16));
         m_browser->AppendItem(nodeScript, "Progress Flags", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::PROGRESS_FLAGS));
+    }
+    // The cutscene action code (dialogueactions.asm) - the actual code a cutscene index runs.
+    // Lives under a top-level "Assembly" section, alongside future asm-code editors.
+    if (m_g->GetScriptData()->GetCutsceneActions() && m_g->GetScriptData()->GetCutsceneActions()->IsValid())
+    {
+        m_browser->AppendItem(nodeAsm, "Cutscenes", asm_img, asm_img, new TreeNodeData(TreeNodeData::Node::CUTSCENE_ACTIONS));
+    }
+    // The behaviour trigger action code (triggeractions.asm) - what a WaitForCondition runs.
+    if (m_g->GetScriptData()->GetTriggerActions() && m_g->GetScriptData()->GetTriggerActions()->IsValid())
+    {
+        m_browser->AppendItem(nodeAsm, "Trigger Actions", asm_img, asm_img, new TreeNodeData(TreeNodeData::Node::TRIGGER_ACTIONS));
+    }
+    // The per-room fixup chain (customroomactions1/2.asm) - also reachable from the room editor overlay.
+    if (m_g->GetScriptData()->GetRoomActions() && m_g->GetScriptData()->GetRoomActions()->IsValid())
+    {
+        m_browser->AppendItem(nodeAsm, "Room Actions", asm_img, asm_img, new TreeNodeData(TreeNodeData::Node::ROOM_ACTIONS));
+    }
+    // The item pre-use / post-use handlers (itemuse1/2.asm + itempostuse.asm).
+    if (m_g->GetScriptData()->GetItemUse() && m_g->GetScriptData()->GetItemUse()->IsValid())
+    {
+        m_browser->AppendItem(nodeAsm, "Item Use", asm_img, asm_img, new TreeNodeData(TreeNodeData::Node::ITEM_USE));
     }
     // A single top-level leaf (placed directly below "Script") that opens the behaviour script
     // editor; -1 tells it to keep its current selection (script navigation lives in the editor's
@@ -494,7 +525,7 @@ void MainFrame::InitUI()
         m_browser->AppendItem(nodeS, "System Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
             static_cast<int>(Landstalker::StringData::Type::SYSTEM)));
     }
-    m_browser->AppendItem(nodeS, "Character Set", fonts_img, fonts_img, new TreeNodeData(TreeNodeData::Node::CHARSET));
+    m_browser->AppendItem(nodeS, "Character Set", chars_img, chars_img, new TreeNodeData(TreeNodeData::Node::CHARSET));
 
     m_browser->AppendItem(nodeP, "Room Palettes", pal_img, pal_img, new TreeNodeData(TreeNodeData::Node::PALETTE,
         static_cast<int>(PaletteListFrame::Mode::ROOM)));
@@ -694,6 +725,14 @@ MainFrame::ReturnCode MainFrame::SaveAsAsm(std::string path)
                     m_mnu_run_emu->Enable(true);
                 }
                 SaveLabelsFile(path);
+                // Re-root the project at the saved directory (path only, no reload) so later reads
+                // - the asm symbol harvester, labels, a subsequent plain Save - use it rather than
+                // the originally-opened directory.
+                const auto asm_name = m_g->GetAsmFilename().filename();
+                if (!asm_name.empty())
+                {
+                    m_g->Landstalker::DataManager::Open(std::filesystem::path(path) / asm_name);
+                }
             }
         }
         return ReturnCode::OK;
@@ -1974,6 +2013,26 @@ void MainFrame::RefreshEditor()
         GetDamageConstantsEditorFrame()->Open();
         ShowEditor(EditorType::DAMAGE_CONSTANTS);
         break;
+    case Mode::CUTSCENE_ACTIONS:
+        // Display the cutscene action code (dialogueactions.asm)
+        GetCutsceneEditorFrame()->Open();
+        ShowEditor(EditorType::CUTSCENE_ACTIONS);
+        break;
+    case Mode::TRIGGER_ACTIONS:
+        // Display the behaviour trigger action code (triggeractions.asm)
+        GetTriggerEditorFrame()->Open();
+        ShowEditor(EditorType::TRIGGER_ACTIONS);
+        break;
+    case Mode::ROOM_ACTIONS:
+        // Display the per-room fixup chain (customroomactions1/2.asm)
+        GetRoomActionsEditorFrame()->Open();
+        ShowEditor(EditorType::ROOM_ACTIONS);
+        break;
+    case Mode::ITEM_USE:
+        // Display the item pre-use / post-use handlers
+        GetItemUseEditorFrame()->Open();
+        ShowEditor(EditorType::ITEM_USE);
+        break;
     case Mode::CHARSET:
         // Display character set mappings
         GetCharsetEditor()->Open();
@@ -2065,6 +2124,18 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::DAMAGE_CONSTANTS:
         SetMode(Mode::DAMAGE_CONSTANTS);
+        break;
+    case TreeNodeData::Node::CUTSCENE_ACTIONS:
+        SetMode(Mode::CUTSCENE_ACTIONS);
+        break;
+    case TreeNodeData::Node::TRIGGER_ACTIONS:
+        SetMode(Mode::TRIGGER_ACTIONS);
+        break;
+    case TreeNodeData::Node::ROOM_ACTIONS:
+        SetMode(Mode::ROOM_ACTIONS);
+        break;
+    case TreeNodeData::Node::ITEM_USE:
+        SetMode(Mode::ITEM_USE);
         break;
     case TreeNodeData::Node::CHARSET:
         SetMode(Mode::CHARSET);
@@ -2174,6 +2245,26 @@ FridayAnimationFrame* MainFrame::GetFridayAnimationEditorFrame()
 DamageConstantsFrame* MainFrame::GetDamageConstantsEditorFrame()
 {
     return static_cast<DamageConstantsFrame*>(m_editors.at(EditorType::DAMAGE_CONSTANTS));
+}
+
+TriggerEditorFrame* MainFrame::GetTriggerEditorFrame()
+{
+    return static_cast<TriggerEditorFrame*>(m_editors.at(EditorType::TRIGGER_ACTIONS));
+}
+
+RoomActionsEditorFrame* MainFrame::GetRoomActionsEditorFrame()
+{
+    return static_cast<RoomActionsEditorFrame*>(m_editors.at(EditorType::ROOM_ACTIONS));
+}
+
+ItemUseEditorFrame* MainFrame::GetItemUseEditorFrame()
+{
+    return static_cast<ItemUseEditorFrame*>(m_editors.at(EditorType::ITEM_USE));
+}
+
+CutsceneEditorFrame* MainFrame::GetCutsceneEditorFrame()
+{
+    return static_cast<CutsceneEditorFrame*>(m_editors.at(EditorType::CUTSCENE_ACTIONS));
 }
 
 CharsetEditorFrame* MainFrame::GetCharsetEditor()

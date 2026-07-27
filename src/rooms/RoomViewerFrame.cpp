@@ -10,6 +10,8 @@
 #include <rooms/FlagDialog.h>
 #include <rooms/ChestDialog.h>
 #include <rooms/CharacterDialog.h>
+#include <rooms/RoomActionDialog.h>
+#include <rooms/RoomShopDialog.h>
 #include <rooms/EntityPropertiesWindow.h>
 #include <rooms/MapFileIo.h>
 #include <rooms/MapManagerDialog.h>
@@ -49,6 +51,8 @@ enum MENU_IDS
 	ID_EDIT,
 	ID_EDIT_ROOMS,
 	ID_EDIT_MAPS,
+	ID_EDIT_SHOPS,
+	ID_EDIT_ACTIONS,
 	ID_EDIT_TILESETS,
 	ID_EDIT_BLOCKSETS,
 	ID_EDIT_ENTITY_PROPERTIES,
@@ -95,6 +99,8 @@ enum TOOL_IDS
 	TOOL_SHOW_TILESWAPS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
 	TOOL_SHOW_ERRORS,
+	TOOL_SHOW_SHOP,
+	TOOL_SHOW_ROOM_ACTIONS,
 	TOOL_UNDO,
 	TOOL_REDO,
 	HM_INSERT_ROW_BEFORE,
@@ -156,6 +162,8 @@ EVT_COMMAND(wxID_ANY, EVT_WARP_ADD, RoomViewerFrame::OnWarpAdd)
 EVT_COMMAND(wxID_ANY, EVT_WARP_DELETE, RoomViewerFrame::OnWarpDelete)
 EVT_COMMAND(wxID_ANY, EVT_BLOCK_SELECT, RoomViewerFrame::OnBlockSelect)
 EVT_COMMAND(wxID_ANY, EVT_GPU_EDITOR_MODE_CHANGE, RoomViewerFrame::OnGpuEditorModeChange)
+EVT_COMMAND(wxID_ANY, EVT_GPU_OPEN_ROOM_ACTIONS, RoomViewerFrame::OnOpenRoomActions)
+EVT_COMMAND(wxID_ANY, EVT_GPU_OPEN_ROOM_SHOP, RoomViewerFrame::OnOpenRoomShop)
 EVT_COMMAND(wxID_ANY, EVT_GPU_LAYER_OPACITY_CHANGE, RoomViewerFrame::OnGpuLayerOpacityChange)
 EVT_COMMAND(wxID_ANY, EVT_GPU_LAYER_BLOCK_SELECT, RoomViewerFrame::OnGpuLayerBlockSelect)
 EVT_COMMAND(wxID_ANY, EVT_GPU_HEIGHTMAP_TARGET_CHANGE, RoomViewerFrame::OnGpuHeightmapTargetChange)
@@ -1334,13 +1342,15 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
 	AddMenuItem(editMenu, 0, ID_EDIT_ROOMS, "Rooms...\tF10");
 	AddMenuItem(editMenu, 1, ID_EDIT_MAPS, "Maps...\tF9");
-	AddMenuItem(editMenu, 2, ID_EDIT_TILESETS, "Tilesets...");
-	AddMenuItem(editMenu, 3, ID_EDIT_BLOCKSETS, "Blocksets...");
-	AddMenuItem(editMenu, 4, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 5, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 6, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 7, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 8, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 2, ID_EDIT_SHOPS, "Shops...\tF8");
+	AddMenuItem(editMenu, 3, ID_EDIT_ACTIONS, "Actions...\tF7");
+	AddMenuItem(editMenu, 4, ID_EDIT_TILESETS, "Tilesets...");
+	AddMenuItem(editMenu, 5, ID_EDIT_BLOCKSETS, "Blocksets...");
+	AddMenuItem(editMenu, 6, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 7, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 8, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 9, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 10, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ROOM, "Room Edit Mode", wxITEM_RADIO);
@@ -1376,6 +1386,8 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialogue Editor");
 	main_tb->AddTool(TOOL_SHOW_TILESWAPS, "Tile Swaps", ilist.GetImage("swap"), "Tile Swap Editor");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
+	main_tb->AddTool(TOOL_SHOW_SHOP, "Shop", ilist.GetImage("dollar"), "Shop Editor");
+	main_tb->AddTool(TOOL_SHOW_ROOM_ACTIONS, "Room Actions", ilist.GetImage("lightning"), "Room Actions Editor");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane", wxITEM_CHECK);
@@ -1689,6 +1701,24 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_VIEW_ERRORS:
 		case TOOL_SHOW_ERRORS:
 			ShowErrorDialog();
+			break;
+		case ID_EDIT_SHOPS:
+		case TOOL_SHOW_SHOP:
+			if (m_g)
+			{
+				RoomShopDialog dlg(this, m_g, m_roomnum);
+				dlg.ShowModal();
+				if (m_gpuview) m_gpuview->Refresh();
+			}
+			break;
+		case ID_EDIT_ACTIONS:
+		case TOOL_SHOW_ROOM_ACTIONS:
+			if (m_g)
+			{
+				RoomActionDialog dlg(this, m_g, m_roomnum);
+				dlg.ShowModal();
+				if (m_gpuview) m_gpuview->Refresh();
+			}
 			break;
 		case TOOL_UNDO:
 			if (m_gpuview) m_gpuview->Undo();
@@ -3276,6 +3306,34 @@ void RoomViewerFrame::OnGpuEditorModeChange(wxCommandEvent& evt)
 		SyncFrameModeFromGpuView();
 	}
 	evt.Skip();
+}
+
+void RoomViewerFrame::OnOpenRoomActions(wxCommandEvent& evt)
+{
+	if (!m_g)
+	{
+		return;
+	}
+	RoomActionDialog dlg(this, m_g, evt.GetInt());
+	dlg.ShowModal();
+	if (m_gpuview)
+	{
+		m_gpuview->Refresh(); // the action count in the overlay may have changed
+	}
+}
+
+void RoomViewerFrame::OnOpenRoomShop(wxCommandEvent& evt)
+{
+	if (!m_g)
+	{
+		return;
+	}
+	RoomShopDialog dlg(this, m_g, evt.GetInt());
+	dlg.ShowModal();
+	if (m_gpuview)
+	{
+		m_gpuview->Refresh(); // a shop may have been added/removed
+	}
 }
 
 void RoomViewerFrame::OnSize(wxSizeEvent& evt)
