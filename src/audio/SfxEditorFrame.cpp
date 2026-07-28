@@ -13,6 +13,7 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 
+#include <audio/SoundEventMidi.h>
 #include <audio/SoundEventYaml.h>
 #include <misc/SpinCtrlSize.h>
 
@@ -21,7 +22,8 @@ enum MENU_IDS
 	ID_FILE_ADD_SFX = 20000,
 	ID_FILE_DELETE_SFX,
 	ID_FILE_EXPORT_YAML,
-	ID_FILE_IMPORT_YAML
+	ID_FILE_IMPORT_YAML,
+	ID_FILE_EXPORT_MIDI
 };
 
 namespace
@@ -299,6 +301,7 @@ void SfxEditorFrame::RefreshMenuEnable() const
 	EnableMenuItem(ID_FILE_DELETE_SFX, m_have_selection);
 	EnableMenuItem(ID_FILE_EXPORT_YAML, m_have_selection);
 	EnableMenuItem(ID_FILE_IMPORT_YAML, m_have_selection);
+	EnableMenuItem(ID_FILE_EXPORT_MIDI, m_have_selection);
 }
 
 void SfxEditorFrame::CommitDetailFields()
@@ -387,6 +390,7 @@ void SfxEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
 	AddMenuItem(fileMenu, 1, ID_FILE_DELETE_SFX, "Delete This SFX");
 	AddMenuItem(fileMenu, 2, ID_FILE_EXPORT_YAML, "Export SFX as YAML...");
 	AddMenuItem(fileMenu, 3, ID_FILE_IMPORT_YAML, "Import SFX from YAML...");
+	AddMenuItem(fileMenu, 4, ID_FILE_EXPORT_MIDI, "Export SFX as MIDI...");
 	RefreshMenuEnable();
 }
 
@@ -405,6 +409,9 @@ void SfxEditorFrame::OnMenuClick(wxMenuEvent& evt)
 		break;
 	case ID_FILE_IMPORT_YAML:
 		OnImportYaml();
+		break;
+	case ID_FILE_EXPORT_MIDI:
+		OnExportMidi();
 		break;
 	}
 }
@@ -538,6 +545,29 @@ void SfxEditorFrame::OnImportYaml()
 	{
 		wxMessageBox(std::string("Error when parsing YAML:\n") + e.what(), "Import YAML", wxOK | wxICON_ERROR, this);
 	}
+}
+
+void SfxEditorFrame::OnExportMidi()
+{
+	if (!m_gd || !m_have_selection)
+	{
+		return;
+	}
+	const auto& entry = m_gd->GetMusicData()->GetSfxPool()[m_index];
+	wxFileDialog fd(this, "Export SFX as MIDI", "", entry.name + ".mid",
+		"MIDI file (*.mid)|*.mid|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (fd.ShowModal() == wxID_CANCEL)
+	{
+		return;
+	}
+	const auto bytes = ExportSfxEntryAsMidi(entry);
+	std::ofstream ofs(fd.GetPath().ToStdString(), std::ios::binary);
+	if (!ofs.is_open())
+	{
+		wxMessageBox("Unable to write to the selected file.", "Export MIDI", wxOK | wxICON_ERROR, this);
+		return;
+	}
+	ofs.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
 }
 
 void SfxEditorFrame::CommitPendingEdits()

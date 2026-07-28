@@ -60,6 +60,7 @@ private:
     void OnDeleteSfx();
     void OnExportYaml();
     void OnImportYaml();
+    void OnExportMidi();
 
     EventStream GetChannelEvents(std::size_t channel) const;
     void SetChannelEvents(std::size_t channel, const EventStream& events);

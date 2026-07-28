@@ -155,12 +155,14 @@
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp" />
     <ClCompile Include="..\src\audio\AlsaPlayer.cpp" />
     <ClCompile Include="..\src\audio\AudioBankMappingFrame.cpp" />
+    <ClCompile Include="..\src\audio\MidiWriter.cpp" />
     <ClCompile Include="..\src\audio\MusicEditorFrame.cpp" />
     <ClCompile Include="..\src\audio\SampleEditorFrame.cpp" />
     <ClCompile Include="..\src\audio\SfxEditorFrame.cpp" />
     <ClCompile Include="..\src\audio\SoundEventEditDialog.cpp" />
     <ClCompile Include="..\src\audio\SoundEventFormat.cpp" />
     <ClCompile Include="..\src\audio\SoundEventListColumn.cpp" />
+    <ClCompile Include="..\src\audio\SoundEventMidi.cpp" />
     <ClCompile Include="..\src\audio\SoundEventYaml.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -306,12 +308,14 @@
     <ClInclude Include="..\src\wxresource\wxcrafter.h" />
     <ClInclude Include="..\src\audio\AlsaPlayer.h" />
     <ClInclude Include="..\src\audio\AudioBankMappingFrame.h" />
+    <ClInclude Include="..\src\audio\MidiWriter.h" />
     <ClInclude Include="..\src\audio\MusicEditorFrame.h" />
     <ClInclude Include="..\src\audio\SampleEditorFrame.h" />
     <ClInclude Include="..\src\audio\SfxEditorFrame.h" />
     <ClInclude Include="..\src\audio\SoundEventEditDialog.h" />
     <ClInclude Include="..\src\audio\SoundEventFormat.h" />
     <ClInclude Include="..\src\audio\SoundEventListColumn.h" />
+    <ClInclude Include="..\src\audio\SoundEventMidi.h" />
     <ClInclude Include="..\src\audio\SoundEventYaml.h" />
   </ItemGroup>
   <ItemGroup>

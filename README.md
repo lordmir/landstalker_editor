@@ -47,7 +47,7 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 | Sprite Frames               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Sprite Animations           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Audio Samples               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Music                       | :x:                | :x:                | ROM format reverse engineered.                             |
+| Music                       | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 
 ## Credits
 

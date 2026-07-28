@@ -27,8 +27,12 @@ if(LANDSTALKER_BUILD_TESTING)
     add_subdirectory("tests")
     # modules/liblandstalker is added with EXCLUDE_FROM_ALL, which also excludes its test
     # executables - without this, a default build never produces them and ctest is left
-    # running gtest_discover_tests' "<target>_NOT_BUILT" placeholders.
-    set_target_properties(lz77_tests tilemap3d_tests script_tests asm_file_tests labels_tests PROPERTIES EXCLUDE_FROM_ALL FALSE)
+    # running gtest_discover_tests' "<target>_NOT_BUILT" placeholders. Enumerate the targets
+    # rather than listing them by name, so a test suite added to liblandstalker later can't be
+    # silently missed here (which is exactly how z80_asm_file_tests/music_data_tests broke CI).
+    get_directory_property(liblandstalker_test_targets
+        DIRECTORY modules/liblandstalker/tests BUILDSYSTEM_TARGETS)
+    set_target_properties(${liblandstalker_test_targets} PROPERTIES EXCLUDE_FROM_ALL FALSE)
 endif()
 
 if(WIN32)
