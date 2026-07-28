@@ -10,6 +10,9 @@
     <Filter Include="include\2D Maps">
       <UniqueIdentifier>{b61b7668-62fe-4f54-b171-c8955a78678e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\Audio">
+      <UniqueIdentifier>{718f399a-29ac-4a3a-a19d-75c445ae29d3}</UniqueIdentifier>
+    </Filter>
     <Filter Include="include\Behaviours">
       <UniqueIdentifier>{ac4a45cd-4e12-4bed-b40e-b1e651c5aac3}</UniqueIdentifier>
     </Filter>
@@ -63,6 +66,9 @@
     </Filter>
     <Filter Include="src\2D Maps">
       <UniqueIdentifier>{b61b7668-62fe-4f54-b171-c8955a78678e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Audio">
+      <UniqueIdentifier>{718f399a-29ac-4a3a-a19d-75c445ae29d3}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Behaviours">
       <UniqueIdentifier>{ac4a45cd-4e12-4bed-b40e-b1e651c5aac3}</UniqueIdentifier>
@@ -516,6 +522,12 @@
     <ClCompile Include="..\src\script\ScriptEditorDialog.cpp" />
     <ClCompile Include="..\src\script\ScriptEntryEditors.cpp" />
     <ClCompile Include="..\src\script\ScriptTableTreeEditorDialog.cpp" />
+    <ClCompile Include="..\src\audio\SampleEditorFrame.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\AlsaPlayer.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h">
@@ -924,6 +936,12 @@
     <ClInclude Include="..\src\script\ScriptEntryEditors.h" />
     <ClInclude Include="..\src\script\ScriptEntryLink.h" />
     <ClInclude Include="..\src\script\ScriptTableTreeEditorDialog.h" />
+    <ClInclude Include="..\src\audio\SampleEditorFrame.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\AlsaPlayer.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\wxresource\resource\images\map.ico">

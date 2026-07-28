@@ -153,6 +153,8 @@
     <ClCompile Include="..\src\tileset\TilesetImportDialog.cpp" />
     <ClCompile Include="..\src\wxresource\wxcrafter.cpp" />
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp" />
+    <ClCompile Include="..\src\audio\AlsaPlayer.cpp" />
+    <ClCompile Include="..\src\audio\SampleEditorFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\2d_maps\Map2DEditor.h" />
@@ -295,6 +297,8 @@
     <ClInclude Include="..\src\tileset\TilesetEditorFrame.h" />
     <ClInclude Include="..\src\tileset\TilesetImportDialog.h" />
     <ClInclude Include="..\src\wxresource\wxcrafter.h" />
+    <ClInclude Include="..\src\audio\AlsaPlayer.h" />
+    <ClInclude Include="..\src\audio\SampleEditorFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\wxresource\resource\images\map.ico" />

@@ -70,6 +70,7 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::ROOM_ACTIONS, new RoomActionsEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::ITEM_USE, new ItemUseEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::AUDIO_SAMPLES, new SampleEditorFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -392,6 +393,7 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
     wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
+    wxTreeItemId nodeAudio = m_browser->AppendItem(nodeRoot, "Audio", sound_img, sound_img, new TreeNodeData());
     const auto nodeRooms = InsertNavItem(L"Rooms", rm_img);
     // A single leaf that opens the entity editor; -1 tells it to keep its current selection.
     InsertNavItem(L"Entities", ent_img, TreeNodeData::Node::ENTITY, -1);
@@ -503,6 +505,8 @@ void MainFrame::InitUI()
     m_browser->AppendItem(nodeData, "Input Table", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::INPUT_TABLE));
     m_browser->AppendItem(nodeData, "Friday Animations", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::FRIDAY_ANIMATION));
     m_browser->AppendItem(nodeData, "Damage Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::DAMAGE_CONSTANTS));
+
+    m_browser->AppendItem(nodeAudio, "Samples", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_SAMPLES));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(Landstalker::StringData::Type::MAIN)));
@@ -1723,6 +1727,7 @@ bool MainFrame::CheckForFileChanges()
             { "strings",  m_g->GetStringData()->HasBeenModified() },
             { "sprites",  m_g->GetSpriteData()->HasBeenModified() },
             { "script",   m_g->GetScriptData()->HasBeenModified() },
+            { "audio",    m_g->GetAudioData()->HasBeenModified() },
         };
         std::string modified;
         for (const auto& dataset : datasets)
@@ -2013,6 +2018,11 @@ void MainFrame::RefreshEditor()
         GetDamageConstantsEditorFrame()->Open();
         ShowEditor(EditorType::DAMAGE_CONSTANTS);
         break;
+    case Mode::AUDIO_SAMPLES:
+        // Display the PCM sample bank waveforms/import/export
+        GetSampleEditorFrame()->Open();
+        ShowEditor(EditorType::AUDIO_SAMPLES);
+        break;
     case Mode::CUTSCENE_ACTIONS:
         // Display the cutscene action code (dialogueactions.asm)
         GetCutsceneEditorFrame()->Open();
@@ -2124,6 +2134,9 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::DAMAGE_CONSTANTS:
         SetMode(Mode::DAMAGE_CONSTANTS);
+        break;
+    case TreeNodeData::Node::AUDIO_SAMPLES:
+        SetMode(Mode::AUDIO_SAMPLES);
         break;
     case TreeNodeData::Node::CUTSCENE_ACTIONS:
         SetMode(Mode::CUTSCENE_ACTIONS);
@@ -2245,6 +2258,11 @@ FridayAnimationFrame* MainFrame::GetFridayAnimationEditorFrame()
 DamageConstantsFrame* MainFrame::GetDamageConstantsEditorFrame()
 {
     return static_cast<DamageConstantsFrame*>(m_editors.at(EditorType::DAMAGE_CONSTANTS));
+}
+
+SampleEditorFrame* MainFrame::GetSampleEditorFrame()
+{
+    return static_cast<SampleEditorFrame*>(m_editors.at(EditorType::AUDIO_SAMPLES));
 }
 
 TriggerEditorFrame* MainFrame::GetTriggerEditorFrame()

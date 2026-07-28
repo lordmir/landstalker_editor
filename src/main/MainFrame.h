@@ -35,6 +35,7 @@
 #include <misc/InputTableFrame.h>
 #include <misc/FridayAnimationFrame.h>
 #include <misc/DamageConstantsFrame.h>
+#include <audio/SampleEditorFrame.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/misc/Labels.h>
 
@@ -111,7 +112,8 @@ private:
         CUTSCENE_ACTIONS,
         TRIGGER_ACTIONS,
         ROOM_ACTIONS,
-        ITEM_USE
+        ITEM_USE,
+        AUDIO_SAMPLES
     };
 
     enum class EditorType
@@ -143,6 +145,7 @@ private:
         TRIGGER_ACTIONS,
         ROOM_ACTIONS,
         ITEM_USE,
+        AUDIO_SAMPLES,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -255,6 +258,7 @@ private:
     RoomActionsEditorFrame* GetRoomActionsEditorFrame();
     ItemUseEditorFrame* GetItemUseEditorFrame();
     CharsetEditorFrame* GetCharsetEditor();
+    SampleEditorFrame* GetSampleEditorFrame();
     
     Mode m_mode;
     ImageList* m_imgs;

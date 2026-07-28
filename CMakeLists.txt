@@ -69,6 +69,11 @@ if(UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::GTK3)
+
+    # For AlsaPlayer (src/audio) - direct PCM sample preview playback, bypassing wxSound's Unix
+    # backend (OSS-only, silently a no-op on distros without /dev/dsp - i.e. almost all of them).
+    pkg_check_modules(ALSA REQUIRED IMPORTED_TARGET alsa)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE PkgConfig::ALSA)
 endif()
 
 install(
