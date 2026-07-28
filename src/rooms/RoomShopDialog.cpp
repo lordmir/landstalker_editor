@@ -19,6 +19,7 @@
 #include <landstalker/misc/Utils.h>
 #include <landstalker/script/ScriptTable.h>
 #include <misc/LookupChoiceControl.h>
+#include <misc/SpinCtrlSize.h>
 
 using Landstalker::ScriptTable::Shop;
 using Landstalker::ScriptTable::Item;
@@ -81,11 +82,11 @@ RoomShopDialog::RoomShopDialog(wxWindow* parent, std::shared_ptr<Landstalker::Ga
 	m_shop_panel = new wxPanel(this, wxID_ANY);
 	auto* shop_sizer = new wxBoxSizer(wxHORIZONTAL);
 	shop_sizer->Add(new wxStaticText(m_shop_panel, wxID_ANY, "Markup %:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
-	m_markup = new wxSpinCtrlDouble(m_shop_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(90, -1),
+	m_markup = new wxSpinCtrlDouble(m_shop_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(90),
 		wxSP_ARROW_KEYS, -100.0, 1493.0, 0.0, 6.25);
 	shop_sizer->Add(m_markup, 0, wxRIGHT, 12);
 	shop_sizer->Add(new wxStaticText(m_shop_panel, wxID_ANY, "Lifestock Markup %:"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
-	m_lifestock_markup = new wxSpinCtrlDouble(m_shop_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(90, -1),
+	m_lifestock_markup = new wxSpinCtrlDouble(m_shop_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(90),
 		wxSP_ARROW_KEYS, -100.0, 1493.0, 0.0, 6.25);
 	shop_sizer->Add(m_lifestock_markup, 0);
 	m_shop_panel->SetSizer(shop_sizer);
@@ -97,7 +98,7 @@ RoomShopDialog::RoomShopDialog(wxWindow* parent, std::shared_ptr<Landstalker::Ga
 	item_sizer->Add(m_item_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
 	m_extra_check = new wxCheckBox(m_item_panel, wxID_ANY, "Additional data word:");
 	item_sizer->Add(m_extra_check, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 3);
-	m_extra_data = new wxSpinCtrl(m_item_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+	m_extra_data = new wxSpinCtrl(m_item_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 		wxSP_ARROW_KEYS, 0, 0xFFFF, 0);
 	m_extra_data->SetBase(16);
 	item_sizer->Add(m_extra_data, 0);

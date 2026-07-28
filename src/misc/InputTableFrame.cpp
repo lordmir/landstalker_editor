@@ -1,4 +1,5 @@
 #include <misc/InputTableFrame.h>
+#include <misc/SpinCtrlSize.h>
 
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -495,7 +496,7 @@ void InputTableFrame::RebuildLines()
 			grid->Add(cb, 0, wxALIGN_CENTER);
 		}
 
-		auto* sp = new wxSpinCtrl(m_lines, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(70, -1),
+		auto* sp = new wxSpinCtrl(m_lines, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(70),
 			wxSP_ARROW_KEYS, 0, MAX_DURATION, line.duration);
 		sp->Enable(!line.hold);
 		lr.duration = sp;

@@ -1,5 +1,7 @@
 #include <script/CutsceneEditorDialog.h>
 
+#include <misc/MovableModalDialog.h>
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -16,6 +18,8 @@ CutsceneEditorDialog::CutsceneEditorDialog(wxWindow* parent, std::shared_ptr<Lan
 	m_gd(std::move(gd)),
 	m_index(cutscene_index)
 {
+	MakeModalDialogMovable(this);
+
 	std::shared_ptr<Landstalker::AsmFunctionTable> table;
 	if (m_gd && m_gd->GetScriptData())
 	{

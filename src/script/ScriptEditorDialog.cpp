@@ -1,4 +1,5 @@
 #include <script/ScriptEditorDialog.h>
+#include <misc/MovableModalDialog.h>
 #include <script/ScriptEditorCtrl.h>
 
 #include <algorithm>
@@ -19,6 +20,8 @@ ScriptEditorDialog::ScriptEditorDialog(wxWindow* parent, std::shared_ptr<Landsta
 	: wxDialog(parent, wxID_ANY, "Script", wxDefaultPosition, wxSize(1000, 600),
 		wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX)
 {
+	MakeModalDialogMovable(this);
+
 	const auto script = gd->GetScriptData()->GetScript();
 	const int line_count = static_cast<int>(script->GetScriptLineCount());
 	int start = 0;

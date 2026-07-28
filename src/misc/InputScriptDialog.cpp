@@ -1,4 +1,5 @@
 #include <misc/InputScriptDialog.h>
+#include <misc/MovableModalDialog.h>
 
 #include <wx/sizer.h>
 
@@ -8,6 +9,8 @@ InputScriptDialog::InputScriptDialog(wxWindow* parent, std::shared_ptr<Landstalk
 	: wxDialog(parent, wxID_ANY, wxString::Format("Input Script $%03X", static_cast<unsigned>(sequence)),
 		wxDefaultPosition, wxSize(640, 520), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
+	MakeModalDialogMovable(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	// The input editor ignores its ImageList, so a null one is fine for the embedded instance.
 	m_editor = new InputTableFrame(this, nullptr);

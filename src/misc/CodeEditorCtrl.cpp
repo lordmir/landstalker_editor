@@ -1,6 +1,7 @@
 #include <misc/CodeEditorCtrl.h>
 
 #include <wx/font.h>
+#include <wx/settings.h>
 
 #include <string>
 
@@ -17,9 +18,22 @@ CodeEditorCtrl::CodeEditorCtrl(wxWindow* parent, wxWindowID id)
 
 void CodeEditorCtrl::Style()
 {
+	const auto colour = [](const wxColour& light, const wxColour& dark)
+	{
+		return wxSystemSettings::SelectLightDark(light, dark);
+	};
+	const wxColour foreground = colour(wxColour(0, 0, 0), wxColour(212, 212, 212));
+	const wxColour background = colour(wxColour(255, 255, 255), wxColour(30, 30, 30));
+
 	wxFont font(wxFontInfo(10).Family(wxFONTFAMILY_TELETYPE));
 	StyleSetFont(wxSTC_STYLE_DEFAULT, font);
+	StyleSetForeground(wxSTC_STYLE_DEFAULT, foreground);
+	StyleSetBackground(wxSTC_STYLE_DEFAULT, background);
 	StyleClearAll();
+	SetCaretForeground(foreground);
+	SetSelForeground(true, wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
+	SetSelBackground(true, wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT));
+	SetWhitespaceForeground(true, colour(wxColour(180, 180, 180), wxColour(90, 90, 90)));
 	SetLexer(wxSTC_LEX_ASM);
 	// Motorola 68000 mnemonics + registers, so the lexer can colour instructions. The ASM lexer
 	// treats '.' as a word character, so "move.w" is one token that won't match the bare "move" -
@@ -49,15 +63,15 @@ void CodeEditorCtrl::Style()
 	}
 	SetKeyWords(0, keywords);
 	SetKeyWords(1, "d0 d1 d2 d3 d4 d5 d6 d7 a0 a1 a2 a3 a4 a5 a6 a7 sp pc sr ccr usp");
-	StyleSetForeground(wxSTC_ASM_COMMENT, wxColour(0, 128, 0));
-	StyleSetForeground(wxSTC_ASM_COMMENTBLOCK, wxColour(0, 128, 0));
-	StyleSetForeground(wxSTC_ASM_NUMBER, wxColour(160, 80, 0));
-	StyleSetForeground(wxSTC_ASM_STRING, wxColour(160, 0, 0));
-	StyleSetForeground(wxSTC_ASM_CPUINSTRUCTION, wxColour(0, 0, 200));
+	StyleSetForeground(wxSTC_ASM_COMMENT, colour(wxColour(0, 128, 0), wxColour(106, 153, 85)));
+	StyleSetForeground(wxSTC_ASM_COMMENTBLOCK, colour(wxColour(0, 128, 0), wxColour(106, 153, 85)));
+	StyleSetForeground(wxSTC_ASM_NUMBER, colour(wxColour(160, 80, 0), wxColour(181, 206, 168)));
+	StyleSetForeground(wxSTC_ASM_STRING, colour(wxColour(160, 0, 0), wxColour(206, 145, 120)));
+	StyleSetForeground(wxSTC_ASM_CPUINSTRUCTION, colour(wxColour(0, 0, 200), wxColour(86, 156, 214)));
 	StyleSetBold(wxSTC_ASM_CPUINSTRUCTION, true);
-	StyleSetForeground(wxSTC_ASM_REGISTER, wxColour(128, 0, 128));
-	StyleSetForeground(wxSTC_ASM_DIRECTIVE, wxColour(128, 64, 0));
-	StyleSetForeground(wxSTC_ASM_IDENTIFIER, wxColour(0, 0, 0));
+	StyleSetForeground(wxSTC_ASM_REGISTER, colour(wxColour(128, 0, 128), wxColour(197, 134, 192)));
+	StyleSetForeground(wxSTC_ASM_DIRECTIVE, colour(wxColour(128, 64, 0), wxColour(220, 220, 170)));
+	StyleSetForeground(wxSTC_ASM_IDENTIFIER, foreground);
 	SetMarginWidth(0, 0); // no line-number margin
 	SetUseTabs(true);
 	SetTabWidth(8);
@@ -66,16 +80,17 @@ void CodeEditorCtrl::Style()
 	SetModEventMask(wxSTC_MOD_INSERTTEXT | wxSTC_MOD_DELETETEXT);
 	// Inline hints shown at the end of a line (subclasses fill them via HintForLine).
 	EOLAnnotationSetVisible(wxSTC_EOLANNOTATION_STANDARD);
-	StyleSetForeground(HINT_STYLE, wxColour(120, 120, 120));
+	StyleSetForeground(HINT_STYLE, colour(wxColour(120, 120, 120), wxColour(150, 150, 150)));
+	StyleSetBackground(HINT_STYLE, background);
 	StyleSetItalic(HINT_STYLE, true);
 	// Indicators that recolour the text of <...> spans on top of the ASM lexer: one for a valid
 	// token, one (red) for bad syntax. A valid token brightens on hover to hint it is Ctrl-clickable.
 	IndicatorSetStyle(IND_TOKEN_OK, wxSTC_INDIC_TEXTFORE);
-	IndicatorSetForeground(IND_TOKEN_OK, wxColour(0, 110, 160));
+	IndicatorSetForeground(IND_TOKEN_OK, colour(wxColour(0, 110, 160), wxColour(79, 193, 255)));
 	IndicatorSetHoverStyle(IND_TOKEN_OK, wxSTC_INDIC_TEXTFORE);
-	IndicatorSetHoverForeground(IND_TOKEN_OK, wxColour(0, 80, 220));
+	IndicatorSetHoverForeground(IND_TOKEN_OK, colour(wxColour(0, 80, 220), wxColour(156, 220, 254)));
 	IndicatorSetStyle(IND_TOKEN_ERR, wxSTC_INDIC_TEXTFORE);
-	IndicatorSetForeground(IND_TOKEN_ERR, wxColour(200, 0, 0));
+	IndicatorSetForeground(IND_TOKEN_ERR, colour(wxColour(200, 0, 0), wxColour(244, 71, 71)));
 	SetReadOnly(true);
 }
 

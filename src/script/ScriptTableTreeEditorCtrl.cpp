@@ -1,4 +1,6 @@
 #include <script/ScriptTableTreeEditorCtrl.h>
+
+#include <misc/MovableModalDialog.h>
 #include <misc/DataViewModelAssociate.h>
 
 #include <script/ScriptTableTreeEditorDialog.h>
@@ -790,6 +792,7 @@ void ScriptTableTreeEditorCtrl::OnTreeItemActivated(wxDataViewEvent& event)
                                  "Custom ASM",
                                  model->GetCustomAsmText(asm_block),
                                  wxTextEntryDialogStyle | wxTE_MULTILINE);
+        MakeModalDialogMovable(&dialog);
         for (wxWindow* child : dialog.GetChildren())
         {
             if (wxTextCtrl* text = wxDynamicCast(child, wxTextCtrl))

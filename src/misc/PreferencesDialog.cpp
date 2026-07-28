@@ -1,11 +1,32 @@
 #include <misc/PreferencesDialog.h>
+
+#include <algorithm>
+
 #include <wx/config.h>
 #include <wx/statline.h>
 #include <wxresource/wxcrafter.h>
 #include <misc/AssemblyBuilderDialog.h>
 
+namespace
+{
+wxSize BuildOptionsDialogSize()
+{
+#ifdef __WXGTK__
+    return wxSize(620, 820);
+#else
+    return wxSize(620, 720);
+#endif
+}
+
+struct OptionGroup
+{
+    wxFlexGridSizer* sizer;
+    wxWindow* parent;
+};
+}
+
 BuildOptionsDialog::BuildOptionsDialog(wxWindow* parent, wxConfig* config)
-    : wxDialog(parent, wxID_ANY, "Build Options", wxDefaultPosition, wxSize(620, 720)),
+    : wxDialog(parent, wxID_ANY, "Build Options", wxDefaultPosition, BuildOptionsDialogSize()),
       m_config(config)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -20,61 +41,61 @@ BuildOptionsDialog::BuildOptionsDialog(wxWindow* parent, wxConfig* config)
         gsizer->Add(ctrl, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
         gsizer->Add(new wxStaticText(ctrl->GetParent(), wxID_ANY, wxEmptyString), 1, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, 5);
     };
-    auto make_group = [this, sizer](const wxString& label) -> wxFlexGridSizer*
+    auto make_group = [this, sizer](const wxString& label) -> OptionGroup
     {
         wxStaticBoxSizer* group = new wxStaticBoxSizer(wxVERTICAL, this, label);
         wxFlexGridSizer* gsizer = new wxFlexGridSizer(2, 0, 0);
         gsizer->AddGrowableCol(1);
         group->Add(gsizer, 1, wxEXPAND, 5);
         sizer->Add(group, 0, wxEXPAND | wxALL, 5);
-        return gsizer;
+        return { gsizer, group->GetStaticBox() };
     };
 
-    wxFlexGridSizer* repo_sizer = make_group("Assembly Repository");
-    m_ctrl_clone_in_new_dir = new wxCheckBox(this, wxID_ANY, "Clone When Saving Assembly to Empty Directory");
-    m_ctrl_clonecmd = new wxTextCtrl(this, wxID_ANY);
-    m_ctrl_cloneurl = new wxTextCtrl(this, wxID_ANY);
-    m_ctrl_clonetag = new wxTextCtrl(this, wxID_ANY);
-    add_check_row(repo_sizer, m_ctrl_clone_in_new_dir);
-    add_row(repo_sizer, "Clone Command:", m_ctrl_clonecmd);
-    add_row(repo_sizer, "Clone URL:", m_ctrl_cloneurl);
-    add_row(repo_sizer, "Clone Tag/Branch:", m_ctrl_clonetag);
+    const OptionGroup repo = make_group("Assembly Repository");
+    m_ctrl_clone_in_new_dir = new wxCheckBox(repo.parent, wxID_ANY, "Clone When Saving Assembly to Empty Directory");
+    m_ctrl_clonecmd = new wxTextCtrl(repo.parent, wxID_ANY);
+    m_ctrl_cloneurl = new wxTextCtrl(repo.parent, wxID_ANY);
+    m_ctrl_clonetag = new wxTextCtrl(repo.parent, wxID_ANY);
+    add_check_row(repo.sizer, m_ctrl_clone_in_new_dir);
+    add_row(repo.sizer, "Clone Command:", m_ctrl_clonecmd);
+    add_row(repo.sizer, "Clone URL:", m_ctrl_cloneurl);
+    add_row(repo.sizer, "Clone Tag/Branch:", m_ctrl_clonetag);
 
-    wxFlexGridSizer* build_sizer = make_group("ROM Build");
-    m_ctrl_build_on_save = new wxCheckBox(this, wxID_ANY, "Build After Saving Assembly");
-    m_ctrl_assembler = new wxTextCtrl(this, wxID_ANY);
-    add_check_row(build_sizer, m_ctrl_build_on_save);
-    add_row(build_sizer, "Assembler Location:", m_ctrl_assembler);
+    const OptionGroup build = make_group("ROM Build");
+    m_ctrl_build_on_save = new wxCheckBox(build.parent, wxID_ANY, "Build After Saving Assembly");
+    m_ctrl_assembler = new wxTextCtrl(build.parent, wxID_ANY);
+    add_check_row(build.sizer, m_ctrl_build_on_save);
+    add_row(build.sizer, "Assembler Location:", m_ctrl_assembler);
 
-    wxFlexGridSizer* z80_sizer = make_group("Sound Driver (Z80)");
-    m_ctrl_z80assembler = new wxTextCtrl(this, wxID_ANY);
-    m_ctrl_z80linker = new wxTextCtrl(this, wxID_ANY);
-    add_row(z80_sizer, "Z80 Assembler Location:", m_ctrl_z80assembler);
-    add_row(z80_sizer, "Z80 Linker Location:", m_ctrl_z80linker);
+    const OptionGroup z80 = make_group("Sound Driver (Z80)");
+    m_ctrl_z80assembler = new wxTextCtrl(z80.parent, wxID_ANY);
+    m_ctrl_z80linker = new wxTextCtrl(z80.parent, wxID_ANY);
+    add_row(z80.sizer, "Z80 Assembler Location:", m_ctrl_z80assembler);
+    add_row(z80.sizer, "Z80 Linker Location:", m_ctrl_z80linker);
 
     // The build region and expanded state come from the opened assembly: the
     // controls here only select which build variant's stored settings are
     // being edited.
-    wxFlexGridSizer* region_sizer = make_group("Region Build Settings");
-    m_ctrl_region = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, AssemblyBuilderDialog::GetRegions());
-    m_ctrl_expanded = new wxCheckBox(this, wxID_ANY, "Expanded ROM");
-    m_ctrl_asmargs = new wxTextCtrl(this, wxID_ANY);
+    const OptionGroup region = make_group("Region Build Settings");
+    m_ctrl_region = new wxChoice(region.parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, AssemblyBuilderDialog::GetRegions());
+    m_ctrl_expanded = new wxCheckBox(region.parent, wxID_ANY, "Expanded ROM");
+    m_ctrl_asmargs = new wxTextCtrl(region.parent, wxID_ANY);
     m_ctrl_asmargs->SetToolTip("Pre-populated with the options from the assembly's build.yaml");
-    m_ctrl_defines = new wxTextCtrl(this, wxID_ANY);
+    m_ctrl_defines = new wxTextCtrl(region.parent, wxID_ANY);
     m_ctrl_defines->SetToolTip("NAME=VALUE pairs separated by semicolons, pre-populated from the assembly's build.yaml");
-    m_ctrl_outname = new wxTextCtrl(this, wxID_ANY);
+    m_ctrl_outname = new wxTextCtrl(region.parent, wxID_ANY);
     m_ctrl_outname->SetToolTip("Leave blank to use the build's default ROM filename");
-    add_row(region_sizer, "Settings for Region:", m_ctrl_region);
-    add_check_row(region_sizer, m_ctrl_expanded);
-    add_row(region_sizer, "Assembler Flags Override:", m_ctrl_asmargs);
-    add_row(region_sizer, "Preprocessor Defines:", m_ctrl_defines);
-    add_row(region_sizer, "Output ROM Filename Override:", m_ctrl_outname);
+    add_row(region.sizer, "Settings for Region:", m_ctrl_region);
+    add_check_row(region.sizer, m_ctrl_expanded);
+    add_row(region.sizer, "Assembler Flags Override:", m_ctrl_asmargs);
+    add_row(region.sizer, "Preprocessor Defines:", m_ctrl_defines);
+    add_row(region.sizer, "Output ROM Filename Override:", m_ctrl_outname);
 
-    wxFlexGridSizer* emu_sizer = make_group("Emulator");
-    m_ctrl_run_after_build = new wxCheckBox(this, wxID_ANY, "Run Emulator Following Build");
-    m_ctrl_emulator = new wxTextCtrl(this, wxID_ANY);
-    add_check_row(emu_sizer, m_ctrl_run_after_build);
-    add_row(emu_sizer, "Emulator Command:", m_ctrl_emulator);
+    const OptionGroup emulator = make_group("Emulator");
+    m_ctrl_run_after_build = new wxCheckBox(emulator.parent, wxID_ANY, "Run Emulator Following Build");
+    m_ctrl_emulator = new wxTextCtrl(emulator.parent, wxID_ANY);
+    add_check_row(emulator.sizer, m_ctrl_run_after_build);
+    add_row(emulator.sizer, "Emulator Command:", m_ctrl_emulator);
 
     wxBoxSizer* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStdDialogButtonSizer* btnszr = new wxStdDialogButtonSizer();
@@ -93,6 +114,14 @@ BuildOptionsDialog::BuildOptionsDialog(wxWindow* parent, wxConfig* config)
     btnszr->Realize();
 
     this->SetSizer(sizer);
+#ifdef __WXGTK__
+    // GTK controls are taller than their Windows counterparts. The corrected
+    // static-box parent hierarchy gives an accurate best size; never allow the
+    // initial height to be smaller than either it or the GTK fallback above.
+    SetMinSize(BuildOptionsDialogSize());
+    const wxSize best = sizer->ComputeFittingWindowSize(this);
+    SetSize(wxSize(GetSize().GetWidth(), std::max(GetSize().GetHeight(), best.GetHeight())));
+#endif
     this->Layout();
 
     m_ctrl_region->Bind(wxEVT_CHOICE, &BuildOptionsDialog::OnVariantChange, this);

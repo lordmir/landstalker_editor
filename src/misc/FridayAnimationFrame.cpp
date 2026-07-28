@@ -1,4 +1,5 @@
 #include <misc/FridayAnimationFrame.h>
+#include <misc/SpinCtrlSize.h>
 
 #include <algorithm>
 #include <cmath>
@@ -252,11 +253,11 @@ FridayAnimationFrame::FridayAnimationFrame(wxWindow* parent, ImageList* imglst)
 	wxBoxSizer* cv = new wxBoxSizer(wxVERTICAL);
 	wxBoxSizer* startrow = new wxBoxSizer(wxHORIZONTAL);
 	startrow->Add(new wxStaticText(center, wxID_ANY, "Start X:"), 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
-	m_start_x = new wxSpinCtrl(center, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+	m_start_x = new wxSpinCtrl(center, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 		wxSP_ARROW_KEYS, 0, MAX_COORD, 0);
 	startrow->Add(m_start_x, 0, wxALL, 4);
 	startrow->Add(new wxStaticText(center, wxID_ANY, "Start Y:"), 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
-	m_start_y = new wxSpinCtrl(center, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+	m_start_y = new wxSpinCtrl(center, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 		wxSP_ARROW_KEYS, 0, MAX_COORD, 0);
 	startrow->Add(m_start_y, 0, wxALL, 4);
 	cv->Add(startrow, 0, wxEXPAND);
@@ -482,13 +483,13 @@ void FridayAnimationFrame::RebuildRows()
 			blank ? wxString("*") : wxString::Format("%u", static_cast<unsigned>(r)));
 		grid->Add(lr.number, 0, wxALIGN_CENTER);
 
-		lr.x = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+		lr.x = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 			wxSP_ARROW_KEYS, 0, MAX_COORD, wp.x);
 		grid->Add(lr.x, 0, wxALIGN_CENTER);
-		lr.y = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+		lr.y = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 			wxSP_ARROW_KEYS, 0, MAX_COORD, wp.y);
 		grid->Add(lr.y, 0, wxALIGN_CENTER);
-		lr.frames = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1),
+		lr.frames = new wxSpinCtrl(m_grid_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(80),
 			wxSP_ARROW_KEYS, MIN_FRAMES, MAX_FRAMES, std::max<int>(MIN_FRAMES, wp.frames));
 		grid->Add(lr.frames, 0, wxALIGN_CENTER);
 

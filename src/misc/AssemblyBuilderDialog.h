@@ -105,6 +105,7 @@ private:
     void OnClose(wxCloseEvent& evt);
     void OnOK(wxCommandEvent& evt);
     void OnProcessComplete(wxProcessEvent& evt);
+    void HandleProcessComplete(int exit_code);
     void OnThreadInput(wxThreadEvent& evt);
 
     bool Assemble(bool post_save);

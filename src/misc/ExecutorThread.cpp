@@ -9,7 +9,10 @@ ExecutorThread::ExecutorThread(wxEvtHandler* h, wxProcess* p,
 {
     m_process = p;
     m_handler = h;
-    m_bufferSize = 1024 * 1024;
+    // Small reads let stdout and stderr alternate instead of draining a large
+    // burst from one pipe while the other (often carrying compiler errors)
+    // waits behind it.
+    m_bufferSize = 4096;
     m_buffer = new char[m_bufferSize];
 }
 
@@ -64,39 +67,34 @@ wxThread::ExitCode ExecutorThread::Entry()
 
 void ExecutorThread::DrainInput()
 {
-    if (!m_process->IsInputOpened())
+    auto queue_output = [this](wxEventType type, wxInputStream* stream)
     {
-        return;
-    }
-
-    wxString fromInputStream, fromErrorStream;
-    wxInputStream* stream;
-
-    while (m_process->IsInputAvailable())
-    {
-        stream = m_process->GetInputStream();
         stream->Read(m_buffer, m_bufferSize);
-        fromInputStream << wxString(m_buffer, stream->LastRead());
-    }
-
-    while (m_process->IsErrorAvailable())
-    {
-        stream = m_process->GetErrorStream();
-        stream->Read(m_buffer, m_bufferSize);
-        fromErrorStream << wxString(m_buffer, stream->LastRead());
-    }
-
-    if (!fromInputStream.IsEmpty())
-    {
-        wxThreadEvent* event = new wxThreadEvent(wxEVT_THREAD_STDIN);
-        event->SetString(fromInputStream);
+        if (stream->LastRead() == 0)
+        {
+            return;
+        }
+        wxThreadEvent* event = new wxThreadEvent(type);
+        event->SetString(wxString(m_buffer, stream->LastRead()));
         m_handler->QueueEvent(event);
-    }
+    };
 
-    if (!fromErrorStream.IsEmpty())
+    for (;;)
     {
-        wxThreadEvent* event = new wxThreadEvent(wxEVT_THREAD_STDERR);
-        event->SetString(fromErrorStream);
-        m_handler->QueueEvent(event);
+        bool read_any = false;
+        if (m_process->IsInputAvailable())
+        {
+            queue_output(wxEVT_THREAD_STDIN, m_process->GetInputStream());
+            read_any = true;
+        }
+        if (m_process->IsErrorAvailable())
+        {
+            queue_output(wxEVT_THREAD_STDERR, m_process->GetErrorStream());
+            read_any = true;
+        }
+        if (!read_any)
+        {
+            break;
+        }
     }
 }

@@ -413,10 +413,27 @@ void AssemblyBuilderDialog::OnOK(wxCommandEvent&)
 
 void AssemblyBuilderDialog::OnProcessComplete(wxProcessEvent& evt)
 {
-    bool retval = false;
-    if (evt.GetExitCode() != 0)
+    const int exit_code = evt.GetExitCode();
+    if (!JoinThread())
     {
-        Log("Command failed with code " + std::to_string(evt.GetExitCode()), *wxRED);
+        Log("Unable to collect command output.\n", *wxRED);
+        Abandon();
+        MakeIdle();
+        return;
+    }
+
+    // ExecutorThread queues its final output before JoinThread() returns. Defer
+    // the state transition so those events are appended before the failure
+    // message or the next command line, rather than appearing after them.
+    CallAfter([this, exit_code]() { HandleProcessComplete(exit_code); });
+}
+
+void AssemblyBuilderDialog::HandleProcessComplete(int exit_code)
+{
+    bool retval = false;
+    if (exit_code != 0)
+    {
+        Log("Command failed with code " + std::to_string(exit_code) + "\n", *wxRED);
         Abandon();
         MakeIdle();
         return;
@@ -427,42 +444,38 @@ void AssemblyBuilderDialog::OnProcessComplete(wxProcessEvent& evt)
         MakeIdle();
         break;
     case Step::CLONE:
-        if (JoinThread())
+        retval = DoSave();
+        if (retval)
         {
-            retval = DoSave();
-            if (retval)
+            if (build_on_save)
             {
-                if (build_on_save)
-                {
-                    retval = DoBuild();
-                    m_step = Step::BUILD;
-                }
-                else
-                {
-                    MakeIdle();
-                    m_operation_succeeded = true;
-                }
+                retval = DoBuild();
+                m_step = Step::BUILD;
             }
             else
             {
-                Abandon();
                 MakeIdle();
+                m_operation_succeeded = true;
             }
+        }
+        else
+        {
+            Abandon();
+            MakeIdle();
         }
         break;
     case Step::BUILD:
-        if (JoinThread())
+        if (!m_build_queue.empty())
         {
-            if (!m_build_queue.empty())
+            if (!RunNextBuildCommand())
             {
-                if (!RunNextBuildCommand())
-                {
-                    Abandon();
-                    MakeIdle();
-                    m_step = Step::IDLE;
-                }
-                break;
+                Abandon();
+                MakeIdle();
+                m_step = Step::IDLE;
             }
+            break;
+        }
+        {
             auto f = wxFileName(m_dir, "");
             f.SetFullName(m_built_rom_name);
             retval = DoFixChecksum();
@@ -583,9 +596,12 @@ void AssemblyBuilderDialog::Log(const wxString& str, const wxColor& colour)
 
 bool AssemblyBuilderDialog::JoinThread()
 {
-    if (m_execThread != nullptr && m_execThread->IsRunning())
+    if (m_execThread != nullptr)
     {
-        m_msgQueue.Post(ExecutorThread::ProcessComplete);
+        if (m_execThread->IsRunning())
+        {
+            m_msgQueue.Post(ExecutorThread::ProcessComplete);
+        }
         m_execThread->Wait();
         delete m_execThread;
         m_execThread = nullptr;

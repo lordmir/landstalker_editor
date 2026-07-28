@@ -10,7 +10,6 @@
 #include <wx/scrolwin.h>
 #include <wx/hyperlink.h>
 #include <wx/stattext.h>
-#include <wx/wrapsizer.h>
 #include <wx/dirdlg.h>
 #include <filesystem>
 #include <landstalker/misc/Labels.h>
@@ -1177,7 +1176,7 @@ void EntityViewerFrame::PopulateStats()
 		}
 		else
 		{
-			auto* wrap = new wxWrapSizer(wxHORIZONTAL);
+			auto* room_list = new wxBoxSizer(wxVERTICAL);
 			const std::size_t cap = 40;
 			for (std::size_t i = 0; i < rooms.size() && i < cap; ++i)
 			{
@@ -1185,15 +1184,15 @@ void EntityViewerFrame::PopulateStats()
 				auto* link = new wxHyperlinkCtrl(m_stats, wxID_ANY, wxString(rname), wxEmptyString);
 				const wxString path = L"Rooms/" + rname;
 				link->Bind(wxEVT_HYPERLINK, [this, path](wxHyperlinkEvent&) { NavigateTo(path); });
-				wrap->Add(link, 0, wxRIGHT | wxBOTTOM, 6);
+				room_list->Add(link, 0, wxBOTTOM, 2);
 			}
 			if (rooms.size() > cap)
 			{
-				wrap->Add(new wxStaticText(m_stats, wxID_ANY,
+				room_list->Add(new wxStaticText(m_stats, wxID_ANY,
 					wxString::Format("+%d more", static_cast<int>(rooms.size() - cap))),
-					0, wxALIGN_CENTER_VERTICAL);
+					0, wxTOP, 2);
 			}
-			grid->Add(wrap, 1, wxEXPAND);
+			grid->Add(room_list, 1, wxEXPAND);
 		}
 	}
 

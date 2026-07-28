@@ -1,5 +1,6 @@
 #include <script/ScriptTableTreeEditorDialog.h>
 
+#include <misc/MovableModalDialog.h>
 #include <script/ScriptEditorDialog.h>
 #include <script/CutsceneEditorDialog.h>
 
@@ -36,6 +37,8 @@ ScriptTableTreeEditorDialog::ScriptTableTreeEditorDialog(wxWindow* parent, std::
 	: wxDialog(parent, wxID_ANY, MakeTitle(gd, category, entry), wxDefaultPosition, wxSize(900, 650),
 		wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxMAXIMIZE_BOX)
 {
+	MakeModalDialogMovable(this);
+
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	// No entry list pane in the popup, so no ImageList needed (only the entry-list buttons use it).
 	m_editor = new ScriptTableTreeEditorCtrl(this, nullptr, false);

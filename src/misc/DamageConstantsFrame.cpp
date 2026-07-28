@@ -11,6 +11,7 @@
 #include <wx/stattext.h>
 
 #include <landstalker/main/SpriteData.h>
+#include <misc/SpinCtrlSize.h>
 
 namespace
 {
@@ -93,7 +94,7 @@ void DamageConstantsFrame::BuildUI()
 			grid->Add(new wxStaticText(box->GetStaticBox(), wxID_ANY, DAMAGE_CONSTANTS[i].label),
 				0, wxALIGN_CENTER_VERTICAL);
 			auto* spin = new wxSpinCtrlDouble(box->GetStaticBox(), wxID_ANY, wxEmptyString,
-				wxDefaultPosition, wxSize(110, -1), wxSP_ARROW_KEYS, 0.0, PERCENT_MAX, 0.0, PERCENT_STEP);
+				wxDefaultPosition, SpinCtrlSize(110), wxSP_ARROW_KEYS, 0.0, PERCENT_MAX, 0.0, PERCENT_STEP);
 			spin->SetDigits(2);
 			grid->Add(spin, 0, wxALIGN_CENTER_VERTICAL);
 			grid->Add(new wxStaticText(box->GetStaticBox(), wxID_ANY, "%"), 0, wxALIGN_CENTER_VERTICAL);

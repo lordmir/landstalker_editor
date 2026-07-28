@@ -1,5 +1,7 @@
 #include <script/TriggerActionEditorDialog.h>
 
+#include <misc/MovableModalDialog.h>
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -16,6 +18,8 @@ TriggerActionEditorDialog::TriggerActionEditorDialog(wxWindow* parent,
 	m_gd(std::move(gd)),
 	m_index(trigger_index)
 {
+	MakeModalDialogMovable(this);
+
 	std::shared_ptr<Landstalker::AsmFunctionTable> table;
 	if (m_gd && m_gd->GetScriptData())
 	{
