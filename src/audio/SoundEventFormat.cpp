@@ -1,16 +1,16 @@
 #include <audio/SoundEventFormat.h>
 
+const char* const MUSIC_NOTE_NAMES[12] = {
+	"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+};
+
 namespace
 {
 	using Landstalker::MusicData;
 
-	constexpr const char* NOTE_NAMES[12] = {
-		"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
-	};
-
 	wxString NoteName(uint8_t pitch)
 	{
-		return wxString::Format("%s%u", NOTE_NAMES[pitch % 12], pitch / 12);
+		return wxString::Format("%s%u", MUSIC_NOTE_NAMES[pitch % 12], pitch / 12);
 	}
 
 	// F8h's control byte: the top 3 bits select a loop sub-command, common to every channel type -

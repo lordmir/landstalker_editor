@@ -155,6 +155,9 @@
     <ClCompile Include="..\src\wxresource\wxcrafter_bitmaps.cpp" />
     <ClCompile Include="..\src\audio\AlsaPlayer.cpp" />
     <ClCompile Include="..\src\audio\AudioBankMappingFrame.cpp" />
+    <ClCompile Include="..\src\audio\AudioTablesYaml.cpp" />
+    <ClCompile Include="..\src\audio\InstrumentParamsFrame.cpp" />
+    <ClCompile Include="..\src\audio\InstrumentParamsYaml.cpp" />
     <ClCompile Include="..\src\audio\MidiWriter.cpp" />
     <ClCompile Include="..\src\audio\MusicEditorFrame.cpp" />
     <ClCompile Include="..\src\audio\SampleEditorFrame.cpp" />
@@ -164,6 +167,9 @@
     <ClCompile Include="..\src\audio\SoundEventListColumn.cpp" />
     <ClCompile Include="..\src\audio\SoundEventMidi.cpp" />
     <ClCompile Include="..\src\audio\SoundEventYaml.cpp" />
+    <ClCompile Include="..\src\audio\YamlIo.cpp" />
+    <ClCompile Include="..\src\audio\YmInstrumentEditorFrame.cpp" />
+    <ClCompile Include="..\src\audio\YmInstrumentYaml.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\2d_maps\Map2DEditor.h" />
@@ -308,6 +314,9 @@
     <ClInclude Include="..\src\wxresource\wxcrafter.h" />
     <ClInclude Include="..\src\audio\AlsaPlayer.h" />
     <ClInclude Include="..\src\audio\AudioBankMappingFrame.h" />
+    <ClInclude Include="..\src\audio\AudioTablesYaml.h" />
+    <ClInclude Include="..\src\audio\InstrumentParamsFrame.h" />
+    <ClInclude Include="..\src\audio\InstrumentParamsYaml.h" />
     <ClInclude Include="..\src\audio\MidiWriter.h" />
     <ClInclude Include="..\src\audio\MusicEditorFrame.h" />
     <ClInclude Include="..\src\audio\SampleEditorFrame.h" />
@@ -317,6 +326,9 @@
     <ClInclude Include="..\src\audio\SoundEventListColumn.h" />
     <ClInclude Include="..\src\audio\SoundEventMidi.h" />
     <ClInclude Include="..\src\audio\SoundEventYaml.h" />
+    <ClInclude Include="..\src\audio\YamlIo.h" />
+    <ClInclude Include="..\src\audio\YmInstrumentEditorFrame.h" />
+    <ClInclude Include="..\src\audio\YmInstrumentYaml.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\src\wxresource\resource\images\map.ico" />

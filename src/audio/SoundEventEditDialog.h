@@ -8,6 +8,7 @@
 
 class wxCheckBox;
 class wxChoice;
+class LookupChoiceControl;
 class wxSpinCtrl;
 
 // Edits one event's parameters - which fields are shown depends on the event's kind (see
@@ -41,6 +42,7 @@ private:
     wxSpinCtrl* m_duration_spin = nullptr;
 
     // Generic single/double byte fields, reused across several command kinds.
+    LookupChoiceControl* m_instrument_choice = nullptr; // FM instrument picker, by name
     wxSpinCtrl* m_byte_spin = nullptr;
     wxSpinCtrl* m_byte_spin2 = nullptr;
     wxCheckBox* m_check1 = nullptr;

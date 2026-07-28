@@ -12,13 +12,9 @@ namespace
 	using SoundEvent = MusicData::SoundEvent;
 	using EventStream = MusicData::EventStream;
 
-	constexpr const char* NOTE_NAMES[12] = {
-		"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
-	};
-
 	std::string NoteNameStd(uint8_t pitch)
 	{
-		return std::string(NOTE_NAMES[pitch % 12]) + std::to_string(pitch / 12);
+		return std::string(MUSIC_NOTE_NAMES[pitch % 12]) + std::to_string(pitch / 12);
 	}
 
 	// Parses "C4", "C#4", etc. back to a 0-0x6F pitch byte; throws on anything else.
@@ -38,7 +34,7 @@ namespace
 		int semitone = -1;
 		for (int n = 0; n < 12; ++n)
 		{
-			if (name == NOTE_NAMES[n])
+			if (name == MUSIC_NOTE_NAMES[n])
 			{
 				semitone = n;
 				break;
@@ -278,7 +274,16 @@ namespace
 			break;
 		}
 		default:
-			break; // markers/end/end_loop need no extra fields
+			// The marker/play-once/jump/end-loop commands have no dedicated fields, but their
+			// control byte's low bits are driver-visible parameters all the same (e.g. F8h E8h is
+			// still "end loop" - the low bits are just unused there). Emit the byte whenever it
+			// isn't the canonical default, so a round trip is exact for real data like music09's
+			// F8h E8h rather than silently normalising it.
+			if (op != (MakeDefaultSoundEvent(insert_kind).operand.empty() ? 0 : MakeDefaultSoundEvent(insert_kind).operand[0]))
+			{
+				out << YAML::Key << "raw" << YAML::Value << YAML::Hex << static_cast<int>(op);
+			}
+			break;
 		}
 		out << YAML::EndMap;
 	}
@@ -355,7 +360,10 @@ namespace
 			}
 			else if (kind == SoundEventChannelKind::FM && node["portamento_speed"].IsDefined())
 			{
-				ev.operand = { static_cast<uint8_t>(0x80 | (ReadInt(node, "portamento_speed", 0, context) & 0x7F)) };
+				// Speeds 0 and 127 would encode to 80h (a key-off hold) and FFh (portamento off)
+				// respectively - different commands entirely - so the usable range is 1-126.
+				ev.operand = { static_cast<uint8_t>(0x80 |
+					std::clamp(ReadInt(node, "portamento_speed", 1, context), 1, 126)) };
 			}
 			else
 			{
@@ -386,10 +394,22 @@ namespace
 		case SoundEventInsertKind::JumpAddress:
 		{
 			const int addr = ReadInt(node, "address", 0, context);
+			if (addr < 0x100 || addr > 0xFFFF)
+			{
+				// A high byte of zero means end/chain to the driver, not a jump - refuse rather
+				// than silently writing an event with a different meaning.
+				throw std::runtime_error("Invalid " + context + ".address: must be 0x100-0xFFFF");
+			}
 			ev.operand = { static_cast<uint8_t>(addr & 0xFF), static_cast<uint8_t>((addr >> 8) & 0xFF) };
 			break;
 		}
 		default:
+			// See EmitSoundEvent: a non-default control byte for the field-less F8h commands round
+			// trips through "raw".
+			if (node["raw"].IsDefined() && ev.value == 0xF8)
+			{
+				ev.operand = { static_cast<uint8_t>(ReadInt(node, "raw", 0, context)) };
+			}
 			break;
 		}
 		return ev;

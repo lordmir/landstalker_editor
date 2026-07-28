@@ -41,9 +41,10 @@ public:
 	// Hands pcm (at sample_rate) off to the engine thread to resample and start playing; returns
 	// false only if the device isn't open at all. Play() itself does no resampling or other real
 	// work - it just stores the request and returns, so it's cheap to call from the GUI thread no
-	// matter how long the sample is. on_finished is invoked on the wxWidgets main thread once the
-	// buffer has fully played out - not called if Stop() (or a subsequent Play()) supersedes it
-	// first, including while it's still queued (not yet resampled/started).
+	// matter how long the sample is. on_finished is invoked ON THE ENGINE THREAD once the sample
+	// has fully played out of the device (tracked via snd_pcm_delay against the silence queued
+	// after it) - marshal to the GUI thread yourself (e.g. CallAfter). Not called if Stop() (or a
+	// subsequent Play()) supersedes it first, including while it's still queued.
 	bool Play(const std::vector<uint8_t>& pcm, unsigned sample_rate, std::function<void()> on_finished);
 	// Immediately stops playback (silence resumes on the next chunk) without a fade, so this - as
 	// with any audio app's Stop button - can itself click; it is a genuine interruption, not the
@@ -68,6 +69,11 @@ private:
 	std::vector<uint8_t> m_playing;
 	std::size_t m_play_pos = 0;
 	std::function<void()> m_on_finished;
+	// Set once the last content frame has been queued; on_finished then fires when the device's
+	// remaining delay drops to just the silence queued after that point, i.e. when the content
+	// itself has actually left the speaker rather than merely the software buffer.
+	bool m_draining = false;
+	std::size_t m_drain_silence_frames = 0;
 };
 
 #endif // __linux__

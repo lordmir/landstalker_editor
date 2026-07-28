@@ -58,6 +58,10 @@ public:
 	// Flushes any field typed but not yet blurred, plus a changed trailing row, before a save/build.
 	virtual void CommitPendingEdits();
 
+	virtual void InitMenu(wxMenuBar& menu, ImageList& ilist) const;
+	virtual void OnMenuClick(wxMenuEvent& evt);
+	virtual void ClearMenu(wxMenuBar& menu) const;
+
 private:
 	using PcmSample = Landstalker::AudioData::PcmSample;
 
@@ -79,6 +83,9 @@ private:
 
 	void BuildUI();
 	void LoadValues();
+	void RefreshMenuEnable() const;
+	void OnExportYaml();
+	void OnImportYaml();
 	// One PCM bank's box: waveform + size readout + import/export buttons. bank is 0 or 1.
 	wxSizer* BuildBankBox(wxWindow* parent, const wxString& title, int bank);
 	void UpdateBankSizeLabel(int bank);

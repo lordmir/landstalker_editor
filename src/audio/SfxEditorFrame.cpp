@@ -15,6 +15,7 @@
 
 #include <audio/SoundEventMidi.h>
 #include <audio/SoundEventYaml.h>
+#include <audio/YamlIo.h>
 #include <misc/SpinCtrlSize.h>
 
 enum MENU_IDS
@@ -42,11 +43,6 @@ namespace
 	std::size_t ChannelCountForType(uint8_t type)
 	{
 		return IsFullType(type) ? MusicData::SFX_FULL_CHANNEL_COUNT : MusicData::SFX_OVERLAY_CHANNEL_COUNT;
-	}
-
-	SoundEventChannelKind KindForChannel(uint8_t type, std::size_t channel)
-	{
-		return IsFullType(type) ? MusicChannelKind(channel) : SfxOverlayChannelKind(channel);
 	}
 
 	MusicData::SfxEntry MakeBlankSfx()
@@ -485,26 +481,8 @@ void SfxEditorFrame::OnExportYaml()
 		return;
 	}
 	const auto& entry = m_gd->GetMusicData()->GetSfxPool()[m_index];
-	wxFileDialog fd(this, "Export SFX as YAML", "", entry.name + ".yaml",
-		"YAML file (*.yml;*.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (fd.ShowModal() == wxID_CANCEL)
-	{
-		return;
-	}
-	YAML::Emitter out;
-	EmitSfxEntryYaml(out, entry);
-	if (!out.good())
-	{
-		wxMessageBox("Failed to build YAML for this SFX.", "Export YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	std::ofstream ofs(fd.GetPath().ToStdString());
-	if (!ofs.is_open())
-	{
-		wxMessageBox("Unable to write to the selected file.", "Export YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	ofs << out.c_str();
+	ExportYamlWithDialog(this, "Export SFX as YAML", entry.name + ".yaml",
+		[&](YAML::Emitter& out) { EmitSfxEntryYaml(out, entry); });
 }
 
 void SfxEditorFrame::OnImportYaml()
@@ -513,38 +491,37 @@ void SfxEditorFrame::OnImportYaml()
 	{
 		return;
 	}
-	wxFileDialog fd(this, "Import SFX from YAML", "", "",
-		"YAML file (*.yml;*.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() == wxID_CANCEL)
+	ImportYamlWithDialog(this, "Import SFX from YAML", [&](const YAML::Node& root)
 	{
-		return;
-	}
-	std::ifstream ifs(fd.GetPath().ToStdString(), std::ios::binary);
-	if (!ifs.is_open())
-	{
-		wxMessageBox("Unable to read the selected file.", "Import YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	std::ostringstream contents;
-	contents << ifs.rdbuf();
-	try
-	{
-		const YAML::Node root = YAML::Load(contents.str());
-		const auto imported = SfxPoolEntryFromYaml(root);
+		auto imported = SfxPoolEntryFromYaml(root);
 		auto md = m_gd->GetMusicData();
 		auto pool = md->GetSfxPool();
 		if (m_index >= pool.size())
 		{
 			return;
 		}
+		// See MusicEditorFrame::OnImportYaml - a duplicate name folds navigation-tree leaves and
+		// makes name-based lookups ambiguous.
+		const auto name_taken = [&](const std::string& name)
+		{
+			for (std::size_t i = 0; i < pool.size(); ++i)
+			{
+				if (i != m_index && pool[i].name == name)
+				{
+					return true;
+				}
+			}
+			return false;
+		};
+		const std::string base_name = imported.name;
+		for (int suffix = 2; name_taken(imported.name); ++suffix)
+		{
+			imported.name = base_name + " (" + std::to_string(suffix) + ")";
+		}
 		pool[m_index] = imported;
 		md->SetSfxPool(pool);
 		FireEvent(EVT_REBUILD_NAV_TREE, wxString("Audio/SFX/" + imported.name), 0);
-	}
-	catch (const std::exception& e)
-	{
-		wxMessageBox(std::string("Error when parsing YAML:\n") + e.what(), "Import YAML", wxOK | wxICON_ERROR, this);
-	}
+	});
 }
 
 void SfxEditorFrame::OnExportMidi()

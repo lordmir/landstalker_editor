@@ -1,5 +1,9 @@
 #include <audio/SoundEventEditDialog.h>
 
+#include <landstalker/main/MusicData.h>
+#include <landstalker/misc/Labels.h>
+#include <misc/LookupChoiceControl.h>
+
 #include <algorithm>
 
 #include <wx/checkbox.h>
@@ -12,10 +16,6 @@ namespace
 {
 	using Landstalker::MusicData;
 	using SoundEvent = MusicData::SoundEvent;
-
-	constexpr const char* NOTE_NAMES[12] = {
-		"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
-	};
 
 	void AddRow(wxFlexGridSizer* grid, wxWindow* parent, const wxString& label, wxWindow* control)
 	{
@@ -69,7 +69,7 @@ wxSizer* SoundEventEditDialog::BuildPitchFields(wxWindow* parent)
 	{
 		const uint8_t pitch = std::min<uint8_t>(m_event.value, 0x6F);
 		m_note_choice = new wxChoice(parent, wxID_ANY);
-		for (const char* name : NOTE_NAMES)
+		for (const char* name : MUSIC_NOTE_NAMES)
 		{
 			m_note_choice->Append(name);
 		}
@@ -113,10 +113,29 @@ void SoundEventEditDialog::BuildUI()
 		AddRow(grid, this, "Duration", BuildDurationFields(this));
 		break;
 	case SoundEventInsertKind::Instrument:
-		m_byte_spin = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
-			wxSP_ARROW_KEYS, 0, 255, OperandByte(m_event, 0));
-		AddRow(grid, this, "Instrument ID", m_byte_spin);
+	{
+		// Pick the FM patch by name (see the YM Instruments editor for naming). The event list
+		// itself keeps showing just the id - there's no room for names in the channel columns.
+		wxArrayString choices;
+		for (std::size_t i = 0; i < Landstalker::MusicData::YM_INSTRUMENT_COUNT; ++i)
+		{
+			const auto label = Landstalker::Labels::Get(Landstalker::Labels::C_YM_INSTRUMENTS, static_cast<int>(i));
+			choices.Add(wxString::Format("[%02zX] ", i)
+				+ (label ? wxString(*label) : wxString::Format("Instrument %02zX", i)));
+		}
+		const uint8_t current = OperandByte(m_event, 0);
+		if (current >= Landstalker::MusicData::YM_INSTRUMENT_COUNT)
+		{
+			// Out-of-range id in existing data - keep it selectable so opening and OK-ing the
+			// dialog doesn't silently rewrite the event.
+			choices.Add(wxString::Format("[%02X] (out of range)", current));
+		}
+		m_instrument_choice = new LookupChoiceControl(this, wxID_ANY, wxEmptyString, choices);
+		m_instrument_choice->SetSelection(std::min<int>(current, static_cast<int>(choices.GetCount()) - 1));
+		m_instrument_choice->SetMinSize(wxSize(260, -1));
+		AddRow(grid, this, "Instrument", m_instrument_choice);
 		break;
+	}
 	case SoundEventInsertKind::Volume:
 		if (m_channel_kind == SoundEventChannelKind::PSG_TONE || m_channel_kind == SoundEventChannelKind::PSG_NOISE)
 		{
@@ -220,9 +239,11 @@ void SoundEventEditDialog::BuildUI()
 		AddRow(grid, this, "New operation id", m_byte_spin);
 		break;
 	case SoundEventInsertKind::JumpAddress:
+		// Minimum 100h: a high byte of zero means end/chain to the driver, so a lower target
+		// would silently turn this event into a different command.
 		m_address_spin = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(100, -1),
-			wxSP_ARROW_KEYS, 0, 65535,
-			(static_cast<int>(OperandByte(m_event, 1)) << 8) | OperandByte(m_event, 0));
+			wxSP_ARROW_KEYS, 0x100, 65535,
+			std::max(0x100, (static_cast<int>(OperandByte(m_event, 1)) << 8) | OperandByte(m_event, 0)));
 		AddRow(grid, this, "Target address", m_address_spin);
 		break;
 	case SoundEventInsertKind::LoopSetMarkerA:
@@ -284,8 +305,15 @@ void SoundEventEditDialog::OnOk(wxCommandEvent& evt)
 		m_event.duration = static_cast<uint8_t>(m_duration_spin->GetValue());
 		break;
 	case SoundEventInsertKind::Instrument:
-		m_event.operand = { static_cast<uint8_t>(m_byte_spin->GetValue()) };
+	{
+		m_instrument_choice->CommitPendingSelection();
+		const int selection = m_instrument_choice->GetSelection();
+		const uint8_t original = OperandByte(m_event, 0);
+		// The extra "(out of range)" entry, when present, maps back to the original byte.
+		m_event.operand = { (selection >= 0 && selection < static_cast<int>(Landstalker::MusicData::YM_INSTRUMENT_COUNT))
+			? static_cast<uint8_t>(selection) : original };
 		break;
+	}
 	case SoundEventInsertKind::Volume:
 		if (m_channel_kind == SoundEventChannelKind::PSG_TONE || m_channel_kind == SoundEventChannelKind::PSG_NOISE)
 		{
@@ -302,7 +330,9 @@ void SoundEventEditDialog::OnOk(wxCommandEvent& evt)
 			switch (m_mode_choice->GetSelection())
 			{
 			case 2: m_event.operand = { 0xFF }; break; // portamento off
-			case 1: m_event.operand = { static_cast<uint8_t>(0x80 | (m_byte_spin->GetValue() & 0x7F)) }; break; // portamento speed
+			// Clamped to 1-126: speed 0 would encode to 80h (key-off hold) and 127 to FFh
+			// (portamento off) - different commands entirely.
+			case 1: m_event.operand = { static_cast<uint8_t>(0x80 | std::clamp(m_byte_spin->GetValue(), 1, 126)) }; break; // portamento speed
 			default:
 				m_event.operand = { static_cast<uint8_t>((m_byte_spin->GetValue() & 0x7F) | (m_check1->GetValue() ? 0x80 : 0)) };
 				break;

@@ -19,6 +19,10 @@ enum class SoundEventChannelKind
     PSG_NOISE
 };
 
+// The twelve semitone names, C first - a pitch byte is octave * 12 + semitone (see
+// docs/sound_driver_format.md section 5.1). Shared by every place a pitch is shown or parsed.
+extern const char* const MUSIC_NOTE_NAMES[12];
+
 // The channel kind for one of MusicData's ten fixed music-track channel slots (FM1-5, DAC, PSG1-3,
 // PSG noise, in that order) or a full-type (10-channel) SFX entry, which uses the same order.
 SoundEventChannelKind MusicChannelKind(std::size_t channel_index);

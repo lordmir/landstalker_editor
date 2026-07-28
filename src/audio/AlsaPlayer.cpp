@@ -99,6 +99,8 @@ void AlsaPlayer::Stop()
 	m_playing.clear();
 	m_play_pos = 0;
 	m_on_finished = nullptr; // dropped, not called - this is an interruption, not completion
+	m_draining = false;
+	m_drain_silence_frames = 0;
 }
 
 void AlsaPlayer::EngineThreadMain()
@@ -132,23 +134,28 @@ void AlsaPlayer::EngineThreadMain()
 			m_playing = std::move(resampled);
 			m_play_pos = 0;
 			m_on_finished = std::move(pending_on_finished);
+			m_draining = false; // any previous sample's pending completion is superseded
+			m_drain_silence_frames = 0;
 		}
 
-		std::function<void()> fire_on_finished;
+		std::size_t content_frames = 0;
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
 			if (!m_playing.empty() && m_play_pos < m_playing.size())
 			{
-				const std::size_t n = std::min<std::size_t>(CHUNK_FRAMES, m_playing.size() - m_play_pos);
-				std::copy(m_playing.begin() + m_play_pos, m_playing.begin() + m_play_pos + n, chunk.begin());
-				std::fill(chunk.begin() + n, chunk.end(), static_cast<uint8_t>(128));
-				m_play_pos += n;
+				content_frames = std::min<std::size_t>(CHUNK_FRAMES, m_playing.size() - m_play_pos);
+				std::copy(m_playing.begin() + m_play_pos, m_playing.begin() + m_play_pos + content_frames, chunk.begin());
+				std::fill(chunk.begin() + content_frames, chunk.end(), static_cast<uint8_t>(128));
+				m_play_pos += content_frames;
 				if (m_play_pos >= m_playing.size())
 				{
+					// All content is queued to the device now, but up to the device buffer depth
+					// of it is still to be played - switch to drain-tracking rather than firing
+					// on_finished while the tail is still audible.
 					m_playing.clear();
 					m_play_pos = 0;
-					fire_on_finished = std::move(m_on_finished);
-					m_on_finished = nullptr;
+					m_draining = true;
+					m_drain_silence_frames = 0;
 				}
 			}
 			else
@@ -163,6 +170,30 @@ void AlsaPlayer::EngineThreadMain()
 			// Recover (e.g. from an underrun) and retry once; if that also fails just move on to
 			// the next chunk rather than getting stuck.
 			snd_pcm_recover(m_handle, static_cast<int>(written), 1);
+		}
+
+		std::function<void()> fire_on_finished;
+		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+			if (m_draining)
+			{
+				if (written > 0 && static_cast<std::size_t>(written) > content_frames)
+				{
+					m_drain_silence_frames += static_cast<std::size_t>(written) - content_frames;
+				}
+				// The device's delay counts every queued-but-unplayed frame. Once it's no more
+				// than the silence queued since the content's final frame, the content itself has
+				// fully played. A delay query error just falls back to firing immediately.
+				snd_pcm_sframes_t delay = 0;
+				if (snd_pcm_delay(m_handle, &delay) < 0
+					|| delay <= static_cast<snd_pcm_sframes_t>(m_drain_silence_frames))
+				{
+					m_draining = false;
+					m_drain_silence_frames = 0;
+					fire_on_finished = std::move(m_on_finished);
+					m_on_finished = nullptr;
+				}
+			}
 		}
 
 		if (fire_on_finished)

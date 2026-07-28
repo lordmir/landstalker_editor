@@ -74,6 +74,8 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::AUDIO_MUSIC, new MusicEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::AUDIO_SFX, new SfxEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::AUDIO_BANK_MAPPING, new AudioBankMappingFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::YM_INSTRUMENTS, new YmInstrumentEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::INSTRUMENT_PARAMS, new InstrumentParamsFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -512,6 +514,8 @@ void MainFrame::InitUI()
 
     m_browser->AppendItem(nodeAudio, "Samples", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_SAMPLES));
     m_browser->AppendItem(nodeAudio, "Bank Mapping", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_BANK_MAPPING));
+    m_browser->AppendItem(nodeAudio, "YM Instruments", music_img, music_img, new TreeNodeData(TreeNodeData::Node::YM_INSTRUMENTS));
+    m_browser->AppendItem(nodeAudio, "Instrument Parameters", music_img, music_img, new TreeNodeData(TreeNodeData::Node::INSTRUMENT_PARAMS));
     const auto nodeMusic = InsertNavItem(L"Audio/Music", music_img);
     const auto nodeSfx = InsertNavItem(L"Audio/SFX", music_img);
 
@@ -2075,6 +2079,16 @@ void MainFrame::RefreshEditor()
         GetAudioBankMappingFrame()->Open();
         ShowEditor(EditorType::AUDIO_BANK_MAPPING);
         break;
+    case Mode::YM_INSTRUMENTS:
+        // Display the FM (YM2612) instrument patch table
+        GetYmInstrumentEditorFrame()->Open();
+        ShowEditor(EditorType::YM_INSTRUMENTS);
+        break;
+    case Mode::INSTRUMENT_PARAMS:
+        // Display the driver's PSG envelope / pitch effect / frequency parameter tables
+        GetInstrumentParamsFrame()->Open();
+        ShowEditor(EditorType::INSTRUMENT_PARAMS);
+        break;
     case Mode::CUTSCENE_ACTIONS:
         // Display the cutscene action code (dialogueactions.asm)
         GetCutsceneEditorFrame()->Open();
@@ -2195,6 +2209,12 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::SFX_ENTRY:
         SetMode(Mode::SFX_ENTRY);
+        break;
+    case TreeNodeData::Node::YM_INSTRUMENTS:
+        SetMode(Mode::YM_INSTRUMENTS);
+        break;
+    case TreeNodeData::Node::INSTRUMENT_PARAMS:
+        SetMode(Mode::INSTRUMENT_PARAMS);
         break;
     case TreeNodeData::Node::AUDIO_BANK_MAPPING:
         SetMode(Mode::AUDIO_BANK_MAPPING);
@@ -2339,6 +2359,16 @@ SfxEditorFrame* MainFrame::GetSfxEditorFrame()
 AudioBankMappingFrame* MainFrame::GetAudioBankMappingFrame()
 {
     return static_cast<AudioBankMappingFrame*>(m_editors.at(EditorType::AUDIO_BANK_MAPPING));
+}
+
+YmInstrumentEditorFrame* MainFrame::GetYmInstrumentEditorFrame()
+{
+    return static_cast<YmInstrumentEditorFrame*>(m_editors.at(EditorType::YM_INSTRUMENTS));
+}
+
+InstrumentParamsFrame* MainFrame::GetInstrumentParamsFrame()
+{
+    return static_cast<InstrumentParamsFrame*>(m_editors.at(EditorType::INSTRUMENT_PARAMS));
 }
 
 TriggerEditorFrame* MainFrame::GetTriggerEditorFrame()

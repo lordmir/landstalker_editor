@@ -36,6 +36,8 @@
 #include <misc/FridayAnimationFrame.h>
 #include <misc/DamageConstantsFrame.h>
 #include <audio/AudioBankMappingFrame.h>
+#include <audio/YmInstrumentEditorFrame.h>
+#include <audio/InstrumentParamsFrame.h>
 #include <audio/MusicEditorFrame.h>
 #include <audio/SampleEditorFrame.h>
 #include <audio/SfxEditorFrame.h>
@@ -119,7 +121,9 @@ private:
         AUDIO_SAMPLES,
         MUSIC_TRACK,
         SFX_ENTRY,
-        AUDIO_BANK_MAPPING
+        AUDIO_BANK_MAPPING,
+        YM_INSTRUMENTS,
+        INSTRUMENT_PARAMS
     };
 
     enum class EditorType
@@ -155,6 +159,8 @@ private:
         AUDIO_MUSIC,
         AUDIO_SFX,
         AUDIO_BANK_MAPPING,
+        YM_INSTRUMENTS,
+        INSTRUMENT_PARAMS,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -271,6 +277,8 @@ private:
     MusicEditorFrame* GetMusicEditorFrame();
     SfxEditorFrame* GetSfxEditorFrame();
     AudioBankMappingFrame* GetAudioBankMappingFrame();
+    YmInstrumentEditorFrame* GetYmInstrumentEditorFrame();
+    InstrumentParamsFrame* GetInstrumentParamsFrame();
 
     Mode m_mode;
     ImageList* m_imgs;

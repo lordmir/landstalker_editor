@@ -15,6 +15,7 @@
 
 #include <audio/SoundEventMidi.h>
 #include <audio/SoundEventYaml.h>
+#include <audio/YamlIo.h>
 #include <misc/SpinCtrlSize.h>
 
 enum MENU_IDS
@@ -85,6 +86,7 @@ void MusicEditorFrame::SetChannelEvents(std::size_t channel, const EventStream& 
 	}
 	pool[m_index].track.channels[channel] = events;
 	md->SetMusicTrackPool(pool);
+	RefreshSizeLabel();
 }
 
 void MusicEditorFrame::BuildUI()
@@ -144,6 +146,10 @@ void MusicEditorFrame::BuildUI()
 	detail_grid->Add(new wxStaticText(detail_panel, wxID_ANY, "Used by"), 0, wxALIGN_CENTER_VERTICAL);
 	m_usage_label = new wxStaticText(detail_panel, wxID_ANY, wxEmptyString);
 	detail_grid->Add(m_usage_label, 0, wxALIGN_CENTER_VERTICAL);
+
+	detail_grid->Add(new wxStaticText(detail_panel, wxID_ANY, "Size"), 0, wxALIGN_CENTER_VERTICAL);
+	m_size_label = new wxStaticText(detail_panel, wxID_ANY, wxEmptyString);
+	detail_grid->Add(m_size_label, 0, wxALIGN_CENTER_VERTICAL);
 	detail_box->Add(detail_grid, 0, wxEXPAND | wxALL, 6);
 	top->Add(detail_box, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
@@ -232,6 +238,18 @@ void MusicEditorFrame::RefreshUsageLabel()
 	m_usage_label->SetLabel(wxString::Format("%ld slot(s)", static_cast<long>(usage)));
 }
 
+void MusicEditorFrame::RefreshSizeLabel()
+{
+	if (!m_have_selection || !m_gd)
+	{
+		m_size_label->SetLabel(wxEmptyString);
+		return;
+	}
+	const auto& entry = m_gd->GetMusicData()->GetMusicTrackPool()[m_index];
+	const std::size_t size = MusicData::GetMusicTrackSize(entry.track);
+	m_size_label->SetLabel(wxString::Format("%zu bytes (%04zXh), including the 24-byte header", size, size));
+}
+
 void MusicEditorFrame::RefreshChannelLists()
 {
 	for (auto& col : m_columns)
@@ -257,6 +275,7 @@ void MusicEditorFrame::LoadDetail()
 		m_tempo_hz_label->SetLabel(wxEmptyString);
 		m_autofade_ctrl->SetValue(0);
 		m_usage_label->SetLabel(wxEmptyString);
+		m_size_label->SetLabel(wxEmptyString);
 		RefreshChannelLists();
 		m_populating = false;
 		return;
@@ -268,6 +287,7 @@ void MusicEditorFrame::LoadDetail()
 	m_tempo_hz_label->SetLabel(wxString::Format("%.2f Hz", MusicData::GetTempoHz(entry.track.tempo)));
 	m_autofade_ctrl->SetValue(entry.track.autofade_frames);
 	RefreshUsageLabel();
+	RefreshSizeLabel();
 	RefreshChannelLists();
 	m_populating = false;
 }
@@ -454,26 +474,8 @@ void MusicEditorFrame::OnExportYaml()
 		return;
 	}
 	const auto& entry = m_gd->GetMusicData()->GetMusicTrackPool()[m_index];
-	wxFileDialog fd(this, "Export Track as YAML", "", entry.name + ".yaml",
-		"YAML file (*.yml;*.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-	if (fd.ShowModal() == wxID_CANCEL)
-	{
-		return;
-	}
-	YAML::Emitter out;
-	EmitMusicTrackYaml(out, entry);
-	if (!out.good())
-	{
-		wxMessageBox("Failed to build YAML for this track.", "Export YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	std::ofstream ofs(fd.GetPath().ToStdString());
-	if (!ofs.is_open())
-	{
-		wxMessageBox("Unable to write to the selected file.", "Export YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	ofs << out.c_str();
+	ExportYamlWithDialog(this, "Export Track as YAML", entry.name + ".yaml",
+		[&](YAML::Emitter& out) { EmitMusicTrackYaml(out, entry); });
 }
 
 void MusicEditorFrame::OnImportYaml()
@@ -482,38 +484,37 @@ void MusicEditorFrame::OnImportYaml()
 	{
 		return;
 	}
-	wxFileDialog fd(this, "Import Track from YAML", "", "",
-		"YAML file (*.yml;*.yaml)|*.yml;*.yaml|All Files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (fd.ShowModal() == wxID_CANCEL)
+	ImportYamlWithDialog(this, "Import Track from YAML", [&](const YAML::Node& root)
 	{
-		return;
-	}
-	std::ifstream ifs(fd.GetPath().ToStdString(), std::ios::binary);
-	if (!ifs.is_open())
-	{
-		wxMessageBox("Unable to read the selected file.", "Import YAML", wxOK | wxICON_ERROR, this);
-		return;
-	}
-	std::ostringstream contents;
-	contents << ifs.rdbuf();
-	try
-	{
-		const YAML::Node root = YAML::Load(contents.str());
-		const auto imported = MusicTrackEntryFromYaml(root);
+		auto imported = MusicTrackEntryFromYaml(root);
 		auto md = m_gd->GetMusicData();
 		auto pool = md->GetMusicTrackPool();
 		if (m_index >= pool.size())
 		{
 			return;
 		}
+		// A name clashing with another entry would fold two leaves onto one navigation-tree path
+		// (and make name-based lookups like the bank-mapping YAML ambiguous) - uniquify it.
+		const auto name_taken = [&](const std::string& name)
+		{
+			for (std::size_t i = 0; i < pool.size(); ++i)
+			{
+				if (i != m_index && pool[i].name == name)
+				{
+					return true;
+				}
+			}
+			return false;
+		};
+		const std::string base_name = imported.name;
+		for (int suffix = 2; name_taken(imported.name); ++suffix)
+		{
+			imported.name = base_name + " (" + std::to_string(suffix) + ")";
+		}
 		pool[m_index] = imported;
 		md->SetMusicTrackPool(pool);
 		FireEvent(EVT_REBUILD_NAV_TREE, wxString("Audio/Music/" + imported.name), 0);
-	}
-	catch (const std::exception& e)
-	{
-		wxMessageBox(std::string("Error when parsing YAML:\n") + e.what(), "Import YAML", wxOK | wxICON_ERROR, this);
-	}
+	});
 }
 
 void MusicEditorFrame::OnExportMidi()

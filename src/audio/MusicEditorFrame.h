@@ -53,6 +53,7 @@ private:
     void RefreshMenuEnable() const;
     void CommitDetailFields();
     void RefreshUsageLabel();
+    void RefreshSizeLabel();
     void RefreshChannelLists();
     void OnCharHook(wxKeyEvent& evt);
 
@@ -78,6 +79,7 @@ private:
     wxStaticText* m_tempo_hz_label = nullptr;
     wxSpinCtrl* m_autofade_ctrl = nullptr;
     wxStaticText* m_usage_label = nullptr;
+    wxStaticText* m_size_label = nullptr;
     std::array<std::unique_ptr<SoundEventListColumn>, Landstalker::MusicData::MUSIC_CHANNEL_COUNT> m_columns;
 
     std::size_t m_index = 0;

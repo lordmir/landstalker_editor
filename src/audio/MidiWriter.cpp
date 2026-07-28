@@ -49,7 +49,7 @@ std::size_t MidiWriter::AddTrack(const std::string& name)
 
 void MidiWriter::AddEvent(std::size_t track, uint32_t tick, std::vector<uint8_t> bytes)
 {
-	m_tracks[track].events.push_back(Event{ tick, m_next_seq++, std::move(bytes) });
+	m_tracks[track].events.push_back(Event{ tick, std::move(bytes) });
 }
 
 void MidiWriter::AddNoteOn(std::size_t track, uint32_t tick, uint8_t channel, uint8_t note, uint8_t velocity)
@@ -104,6 +104,8 @@ std::vector<uint8_t> MidiWriter::Serialize() const
 	for (const auto& track : m_tracks)
 	{
 		auto events = track.events;
+		// stable_sort keeps same-tick events in insertion order (e.g. a note-off stays before the
+		// note-on that follows it at the same tick).
 		std::stable_sort(events.begin(), events.end(), [](const Event& a, const Event& b)
 		{
 			return a.tick < b.tick;

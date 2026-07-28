@@ -33,8 +33,6 @@ private:
     struct Event
     {
         uint32_t tick;
-        std::size_t seq; // insertion order - keeps same-tick events in a deterministic order
-                          // (e.g. a note-off always sorts before the note-on that follows it)
         std::vector<uint8_t> bytes;
     };
     struct Track
@@ -47,7 +45,6 @@ private:
 
     uint16_t m_ticks_per_quarter_note;
     std::vector<Track> m_tracks;
-    std::size_t m_next_seq = 0;
 };
 
 #endif // _MIDI_WRITER_H_

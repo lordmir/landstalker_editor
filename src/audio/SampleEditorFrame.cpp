@@ -1,5 +1,11 @@
 #include <audio/SampleEditorFrame.h>
 
+#include <fstream>
+#include <sstream>
+
+#include <audio/AudioTablesYaml.h>
+#include <audio/YamlIo.h>
+
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -271,6 +277,81 @@ void SampleEditorFrame::BuildUI()
 	m_panel->SetSizer(top);
 	m_panel->Layout();
 	m_panel->Thaw();
+}
+
+namespace
+{
+	enum MENU_IDS
+	{
+		ID_FILE_EXPORT_YAML = 20000,
+		ID_FILE_IMPORT_YAML
+	};
+}
+
+void SampleEditorFrame::InitMenu(wxMenuBar& menu, ImageList& /*ilist*/) const
+{
+	ClearMenu(menu);
+	auto& fileMenu = *menu.GetMenu(menu.FindMenu("File"));
+	AddMenuItem(fileMenu, 0, ID_FILE_EXPORT_YAML, "Export Sample Table as YAML...");
+	AddMenuItem(fileMenu, 1, ID_FILE_IMPORT_YAML, "Import Sample Table from YAML...");
+	RefreshMenuEnable();
+}
+
+void SampleEditorFrame::OnMenuClick(wxMenuEvent& evt)
+{
+	switch (evt.GetId())
+	{
+	case ID_FILE_EXPORT_YAML:
+		OnExportYaml();
+		break;
+	case ID_FILE_IMPORT_YAML:
+		OnImportYaml();
+		break;
+	}
+}
+
+void SampleEditorFrame::ClearMenu(wxMenuBar& menu) const
+{
+	EditorFrame::ClearMenu(menu);
+}
+
+void SampleEditorFrame::RefreshMenuEnable() const
+{
+	EnableMenuItem(ID_FILE_EXPORT_YAML, static_cast<bool>(m_gd));
+	EnableMenuItem(ID_FILE_IMPORT_YAML, static_cast<bool>(m_gd));
+}
+
+void SampleEditorFrame::OnExportYaml()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+	CommitPendingEdits();
+	ExportYamlWithDialog(this, "Export Sample Table as YAML", "samples.yaml",
+		[&](YAML::Emitter& out) { EmitPcmSampleTableYaml(out, m_gd->GetAudioData()->GetPcmSampleTable()); });
+}
+
+void SampleEditorFrame::OnImportYaml()
+{
+	if (!m_gd)
+	{
+		return;
+	}
+	if (ImportYamlWithDialog(this, "Import Sample Table from YAML", [&](const YAML::Node& root)
+		{
+			const auto table = PcmSampleTableFromYaml(root);
+			auto ad = m_gd->GetAudioData();
+			if (table.size() > ad->GetMaxPcmSampleCount())
+			{
+				throw std::runtime_error("The file holds " + std::to_string(table.size())
+					+ " samples, but this project only has room for " + std::to_string(ad->GetMaxPcmSampleCount()));
+			}
+			ad->SetPcmSampleTable(table);
+		}))
+	{
+		LoadValues();
+	}
 }
 
 bool SampleEditorFrame::Open()
@@ -695,8 +776,9 @@ void SampleEditorFrame::OnExportSampleRow(std::size_t row)
 bool SampleEditorFrame::StartPlayback(const std::vector<uint8_t>& pcm, uint32_t rate_hz, std::size_t row)
 {
 #if defined(__linux__)
-	// Real completion detection: the background thread only calls this once snd_pcm_drain
-	// returns, i.e. the audio has actually finished playing (see AlsaPlayer). The row check
+	// Real completion detection: AlsaPlayer's engine thread fires this once the sample has
+	// actually played out of the device (it tracks the device delay through the trailing
+	// silence), so the button flips back exactly when the audio ends. The row check
 	// guards against a stale completion for a row that isn't the current one anymore - e.g. it
 	// finished naturally at (almost) the same moment the user clicked Play on another row.
 	return m_alsa.Play(pcm, rate_hz, [this, row]()
