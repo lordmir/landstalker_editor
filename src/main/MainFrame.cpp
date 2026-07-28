@@ -71,6 +71,9 @@ MainFrame::MainFrame(wxWindow* parent, const std::string& filename)
     m_editors.insert({ EditorType::ITEM_USE, new ItemUseEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::CHARSET, new CharsetEditorFrame(this->m_mainwin, m_imgs) });
     m_editors.insert({ EditorType::AUDIO_SAMPLES, new SampleEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::AUDIO_MUSIC, new MusicEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::AUDIO_SFX, new SfxEditorFrame(this->m_mainwin, m_imgs) });
+    m_editors.insert({ EditorType::AUDIO_BANK_MAPPING, new AudioBankMappingFrame(this->m_mainwin, m_imgs) });
     m_mainwin->SetBackgroundColour(*wxBLACK);
     for (const auto& editor : m_editors)
     {
@@ -456,6 +459,8 @@ void MainFrame::InitUI()
     };
     std::map<std::wstring, wxTreeItemId> room_index;
     std::map<std::wstring, wxTreeItemId> sprite_index;
+    std::map<std::wstring, wxTreeItemId> music_index;
+    std::map<std::wstring, wxTreeItemId> sfx_index;
 
     m_browser->AppendItem(nodeScript, "Main Script", stable_img, stable_img, new TreeNodeData(TreeNodeData::Node::SCRIPT));
     if (m_g->GetScriptData()->HasTables())
@@ -506,6 +511,9 @@ void MainFrame::InitUI()
     m_browser->AppendItem(nodeData, "Damage Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::DAMAGE_CONSTANTS));
 
     m_browser->AppendItem(nodeAudio, "Samples", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_SAMPLES));
+    m_browser->AppendItem(nodeAudio, "Bank Mapping", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_BANK_MAPPING));
+    const auto nodeMusic = InsertNavItem(L"Audio/Music", music_img);
+    const auto nodeSfx = InsertNavItem(L"Audio/SFX", music_img);
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(Landstalker::StringData::Type::MAIN)));
@@ -634,6 +642,35 @@ void MainFrame::InitUI()
     {
         append_leaf(nodeRooms, room_index, room->GetDisplayName(), rm_img,
             TreeNodeData::Node::ROOM, room->index);
+    }
+
+    // append_leaf folds a duplicate path onto the first item with that name, so two pool entries
+    // that happen to share a display name (most often after a manual rename) get disambiguated
+    // here to keep both reachable from the tree - this only affects the tree label, not the
+    // underlying pool entry's own name.
+    std::map<std::wstring, int> music_name_counts;
+    const auto& music_pool = m_g->GetMusicData()->GetMusicTrackPool();
+    for (std::size_t i = 0; i < music_pool.size(); ++i)
+    {
+        std::wstring name = music_pool[i].name.empty() ? L"(unnamed)" : wxString(music_pool[i].name).ToStdWstring();
+        const int count = ++music_name_counts[name];
+        if (count > 1)
+        {
+            name += L" (" + std::to_wstring(count) + L")";
+        }
+        append_leaf(nodeMusic, music_index, name, music_img, TreeNodeData::Node::MUSIC_TRACK, i);
+    }
+    std::map<std::wstring, int> sfx_name_counts;
+    const auto& sfx_pool = m_g->GetMusicData()->GetSfxPool();
+    for (std::size_t i = 0; i < sfx_pool.size(); ++i)
+    {
+        std::wstring name = sfx_pool[i].name.empty() ? L"(unnamed)" : wxString(sfx_pool[i].name).ToStdWstring();
+        const int count = ++sfx_name_counts[name];
+        if (count > 1)
+        {
+            name += L" (" + std::to_wstring(count) + L")";
+        }
+        append_leaf(nodeSfx, sfx_index, name, music_img, TreeNodeData::Node::SFX_ENTRY, i);
     }
 
     SortNavItems(m_browser->GetRootItem());
@@ -1727,6 +1764,7 @@ bool MainFrame::CheckForFileChanges()
             { "sprites",  m_g->GetSpriteData()->HasBeenModified() },
             { "script",   m_g->GetScriptData()->HasBeenModified() },
             { "audio",    m_g->GetAudioData()->HasBeenModified() },
+            { "music",    m_g->GetMusicData()->HasBeenModified() },
         };
         std::string modified;
         for (const auto& dataset : datasets)
@@ -2022,6 +2060,21 @@ void MainFrame::RefreshEditor()
         GetSampleEditorFrame()->Open();
         ShowEditor(EditorType::AUDIO_SAMPLES);
         break;
+    case Mode::MUSIC_TRACK:
+        // Display a single music track pool entry
+        GetMusicEditorFrame()->Open(m_seldata);
+        ShowEditor(EditorType::AUDIO_MUSIC);
+        break;
+    case Mode::SFX_ENTRY:
+        // Display a single SFX pool entry
+        GetSfxEditorFrame()->Open(m_seldata);
+        ShowEditor(EditorType::AUDIO_SFX);
+        break;
+    case Mode::AUDIO_BANK_MAPPING:
+        // Display the music bank / SFX table slot mapping
+        GetAudioBankMappingFrame()->Open();
+        ShowEditor(EditorType::AUDIO_BANK_MAPPING);
+        break;
     case Mode::CUTSCENE_ACTIONS:
         // Display the cutscene action code (dialogueactions.asm)
         GetCutsceneEditorFrame()->Open();
@@ -2136,6 +2189,15 @@ void MainFrame::ProcessSelectedBrowserItem(const wxTreeItemId& item, int data)
         break;
     case TreeNodeData::Node::AUDIO_SAMPLES:
         SetMode(Mode::AUDIO_SAMPLES);
+        break;
+    case TreeNodeData::Node::MUSIC_TRACK:
+        SetMode(Mode::MUSIC_TRACK);
+        break;
+    case TreeNodeData::Node::SFX_ENTRY:
+        SetMode(Mode::SFX_ENTRY);
+        break;
+    case TreeNodeData::Node::AUDIO_BANK_MAPPING:
+        SetMode(Mode::AUDIO_BANK_MAPPING);
         break;
     case TreeNodeData::Node::CUTSCENE_ACTIONS:
         SetMode(Mode::CUTSCENE_ACTIONS);
@@ -2262,6 +2324,21 @@ DamageConstantsFrame* MainFrame::GetDamageConstantsEditorFrame()
 SampleEditorFrame* MainFrame::GetSampleEditorFrame()
 {
     return static_cast<SampleEditorFrame*>(m_editors.at(EditorType::AUDIO_SAMPLES));
+}
+
+MusicEditorFrame* MainFrame::GetMusicEditorFrame()
+{
+    return static_cast<MusicEditorFrame*>(m_editors.at(EditorType::AUDIO_MUSIC));
+}
+
+SfxEditorFrame* MainFrame::GetSfxEditorFrame()
+{
+    return static_cast<SfxEditorFrame*>(m_editors.at(EditorType::AUDIO_SFX));
+}
+
+AudioBankMappingFrame* MainFrame::GetAudioBankMappingFrame()
+{
+    return static_cast<AudioBankMappingFrame*>(m_editors.at(EditorType::AUDIO_BANK_MAPPING));
 }
 
 TriggerEditorFrame* MainFrame::GetTriggerEditorFrame()

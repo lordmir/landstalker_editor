@@ -528,6 +528,27 @@
     <ClCompile Include="..\src\audio\AlsaPlayer.cpp">
       <Filter>src\Audio</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\audio\MusicEditorFrame.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\SfxEditorFrame.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\AudioBankMappingFrame.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\SoundEventFormat.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\SoundEventEditDialog.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\SoundEventListColumn.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\audio\SoundEventYaml.cpp">
+      <Filter>src\Audio</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\sprites\AnimationControlFrame.h">
@@ -940,6 +961,27 @@
       <Filter>include\Audio</Filter>
     </ClInclude>
     <ClInclude Include="..\src\audio\AlsaPlayer.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\MusicEditorFrame.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\SfxEditorFrame.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\AudioBankMappingFrame.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\SoundEventFormat.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\SoundEventEditDialog.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\SoundEventListColumn.h">
+      <Filter>include\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\audio\SoundEventYaml.h">
       <Filter>include\Audio</Filter>
     </ClInclude>
   </ItemGroup>

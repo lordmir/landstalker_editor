@@ -35,7 +35,10 @@
 #include <misc/InputTableFrame.h>
 #include <misc/FridayAnimationFrame.h>
 #include <misc/DamageConstantsFrame.h>
+#include <audio/AudioBankMappingFrame.h>
+#include <audio/MusicEditorFrame.h>
 #include <audio/SampleEditorFrame.h>
+#include <audio/SfxEditorFrame.h>
 #include <landstalker/main/GameData.h>
 #include <landstalker/misc/Labels.h>
 
@@ -113,7 +116,10 @@ private:
         TRIGGER_ACTIONS,
         ROOM_ACTIONS,
         ITEM_USE,
-        AUDIO_SAMPLES
+        AUDIO_SAMPLES,
+        MUSIC_TRACK,
+        SFX_ENTRY,
+        AUDIO_BANK_MAPPING
     };
 
     enum class EditorType
@@ -146,6 +152,9 @@ private:
         ROOM_ACTIONS,
         ITEM_USE,
         AUDIO_SAMPLES,
+        AUDIO_MUSIC,
+        AUDIO_SFX,
+        AUDIO_BANK_MAPPING,
         NONE
     };
 	void OnStatusBarInit(wxCommandEvent& event);
@@ -259,7 +268,10 @@ private:
     ItemUseEditorFrame* GetItemUseEditorFrame();
     CharsetEditorFrame* GetCharsetEditor();
     SampleEditorFrame* GetSampleEditorFrame();
-    
+    MusicEditorFrame* GetMusicEditorFrame();
+    SfxEditorFrame* GetSfxEditorFrame();
+    AudioBankMappingFrame* GetAudioBankMappingFrame();
+
     Mode m_mode;
     ImageList* m_imgs;
     ImageList* m_imgs32;
