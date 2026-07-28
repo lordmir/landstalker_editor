@@ -42,12 +42,11 @@ Work-in-progress documentation [here](https://github.com/lordmir/landstalker_edi
 | Room Graphic Transitions    | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Properties           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Entity Behaviours           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Triggers                    | :x:                | :x:                | ROM format reverse engineered.                             |
-| Room Triggers               | :x:                | :x:                | ROM format reverse engineered.                             |
+| Room Triggers               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Cutscenes                   | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Sprite Frames               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Sprite Animations           | :heavy_check_mark: | :heavy_check_mark: |                                                            |
-| Audio Samples               | :x:                | :x:                | ROM format reverse engineered.                             |
+| Audio Samples               | :heavy_check_mark: | :heavy_check_mark: |                                                            |
 | Music                       | :x:                | :x:                | ROM format reverse engineered.                             |
 
 ## Credits
