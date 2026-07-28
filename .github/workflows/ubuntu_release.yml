@@ -44,6 +44,7 @@ jobs:
                 libcurl4-openssl-dev \
                 libpng-dev \
                 zlib1g-dev \
+                libasound2-dev \
                 cmake
              sudo apt-get remove libunwind-*
              sudo apt-get install -y --no-install-recommends libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev

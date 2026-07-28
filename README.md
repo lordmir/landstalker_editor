@@ -127,7 +127,8 @@ In addition to build-essential (compiler and make), the following libraries are 
 - libpng (`libpng-dev` via `apt get` on Ubuntu)
 - zlib (`libz1g-dev` via `apt get` on Ubuntu)
 - pugixml (`libpugixml-dev` via `apt get` on Ubuntu)
-- GLEW (`libglew-dev` via `apt get` on Ubuntu)
+- GLEW (`libglew-dev` via `apt get` on Ubuntu)libasound2-dev
+- ALSA-dev (`libasound2-dev` via `apt get` on Ubuntu)
 - cmake
 
 It is recommended to have the following installed in addition to the above, in order to build assemblies:
