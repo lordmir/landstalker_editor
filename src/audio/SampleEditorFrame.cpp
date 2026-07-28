@@ -435,13 +435,14 @@ void SampleEditorFrame::RebuildRows()
 	const bool can_add = m_table.size() < max_count;
 
 	auto* top = new wxBoxSizer(wxVERTICAL);
-	auto* grid = new wxFlexGridSizer(9, wxSize(18, 6));
+	auto* grid = new wxFlexGridSizer(10, wxSize(18, 6));
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "#"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Rate"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Sample Rate"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Bank"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Length"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Start Offset"), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, "Duration"), 0, wxALIGN_CENTER);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
 	grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
@@ -467,16 +468,6 @@ void SampleEditorFrame::RebuildRows()
 			wxString::Format("%u Hz", Landstalker::AudioData::GetPcmSampleRateHz(sample.rate)),
 			wxDefaultPosition, wxSize(80, -1), wxALIGN_RIGHT);
 		grid->Add(row.rate_hz, 0, wxALIGN_CENTER_VERTICAL);
-		row.rate->Bind(wxEVT_TEXT, [rl = row.rate, lbl = row.rate_hz](wxCommandEvent&)
-			{
-				lbl->SetLabel(wxString::Format("%u Hz", Landstalker::AudioData::GetPcmSampleRateHz(
-					static_cast<uint8_t>(rl->GetValue()))));
-			});
-		row.rate->Bind(wxEVT_SPINCTRL, [rl = row.rate, lbl = row.rate_hz](wxSpinEvent&)
-			{
-				lbl->SetLabel(wxString::Format("%u Hz", Landstalker::AudioData::GetPcmSampleRateHz(
-					static_cast<uint8_t>(rl->GetValue()))));
-			});
 
 		row.bank = new wxSpinCtrl(m_table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, SpinCtrlSize(60),
 			wxSP_ARROW_KEYS, 0, MAX_BANK, sample.bank);
@@ -490,6 +481,11 @@ void SampleEditorFrame::RebuildRows()
 			wxSP_ARROW_KEYS, 0, MAX_START_OFFSET, sample.start_offset);
 		grid->Add(row.start_offset, 0, wxALIGN_CENTER);
 
+		row.duration = new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString,
+			wxDefaultPosition, wxSize(70, -1), wxALIGN_RIGHT);
+		grid->Add(row.duration, 0, wxALIGN_CENTER_VERTICAL);
+		UpdateRowReadouts(row); // seed the derived Hz/duration labels from the initial values
+
 		if (blank)
 		{
 			// Commit only when a field settles (spin buttons / focus loss), never per keystroke -
@@ -501,6 +497,10 @@ void SampleEditorFrame::RebuildRows()
 			}
 			row.rate->Bind(wxEVT_SPINCTRL, [this, r](wxSpinEvent&) { OnRowEdited(r); });
 			row.rate->Bind(wxEVT_KILL_FOCUS, [this, r](wxFocusEvent& e) { e.Skip(); OnRowEdited(r); });
+			// The blank row doesn't commit per keystroke, but its Hz/duration readouts should still
+			// track what's being typed - so update them live without touching the data.
+			row.rate->Bind(wxEVT_TEXT, [this, row](wxCommandEvent&) { UpdateRowReadouts(row); });
+			row.length->Bind(wxEVT_TEXT, [this, row](wxCommandEvent&) { UpdateRowReadouts(row); });
 			grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
 			grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
 			grid->Add(new wxStaticText(m_table_panel, wxID_ANY, wxEmptyString), 0);
@@ -543,6 +543,25 @@ void SampleEditorFrame::RebuildRows()
 	m_populating = false;
 }
 
+void SampleEditorFrame::UpdateRowReadouts(const SampleRow& row) const
+{
+	if (!row.rate)
+	{
+		return;
+	}
+	const uint32_t hz = Landstalker::AudioData::GetPcmSampleRateHz(static_cast<uint8_t>(row.rate->GetValue()));
+	if (row.rate_hz)
+	{
+		row.rate_hz->SetLabel(wxString::Format("%u Hz", hz));
+	}
+	if (row.duration)
+	{
+		// length is the sample count (mono 8bpp = one byte per sample); hz is always > 0.
+		const unsigned length = row.length ? static_cast<unsigned>(row.length->GetValue()) : 0;
+		row.duration->SetLabel(wxString::Format("%.3f s", static_cast<double>(length) / hz));
+	}
+}
+
 SampleEditorFrame::PcmSample SampleEditorFrame::ReadRow(const SampleRow& row) const
 {
 	PcmSample s;
@@ -565,6 +584,9 @@ void SampleEditorFrame::OnRowEdited(std::size_t row)
 		return;
 	}
 	SampleRow& r = m_rows[row];
+	// Keep the derived Hz/duration readouts in sync with whatever was just edited, regardless of
+	// whether the change ends up committing below.
+	UpdateRowReadouts(r);
 	if (r.is_blank)
 	{
 		if (RowIsBlank(r))

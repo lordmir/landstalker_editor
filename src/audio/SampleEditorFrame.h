@@ -70,6 +70,7 @@ private:
 		wxSpinCtrl* bank = nullptr;
 		wxSpinCtrl* length = nullptr;
 		wxSpinCtrl* start_offset = nullptr;
+		wxStaticText* duration = nullptr; // derived readout: length / sample-rate, in seconds
 		wxButton* play = nullptr;       // null on the trailing blank row
 		wxButton* export_wav = nullptr; // null on the trailing blank row
 		wxButton* del = nullptr;        // null on the trailing blank row
@@ -86,6 +87,9 @@ private:
 
 	// Sample table grid.
 	void RebuildRows();
+	// Refreshes a row's derived readout labels (Hz sample rate and duration) from its current
+	// Rate/Length control values. Touches no data, so it's safe to call at any time.
+	void UpdateRowReadouts(const SampleRow& row) const;
 	PcmSample ReadRow(const SampleRow& row) const;
 	bool RowIsBlank(const SampleRow& row) const;
 	void OnRowEdited(std::size_t row);
