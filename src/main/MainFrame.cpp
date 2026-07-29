@@ -374,15 +374,15 @@ void MainFrame::InitUI()
     const int mixer_img = m_imgs->GetIdx("mixer");
     const int sound_img = m_imgs->GetIdx("sound");
     const int music_img = m_imgs->GetIdx("music");
+    const int kbd_img = m_imgs->GetIdx("kbd");
     const int asm_img = m_imgs->GetIdx("asm");
     const int chars_img = m_imgs->GetIdx("chars");
 
     wxTreeItemId nodeRoot = m_browser->AddRoot("");
     wxTreeItemId nodeS = m_browser->AppendItem(nodeRoot, "Strings", str_img, str_img, new TreeNodeData());
     wxTreeItemId nodeScript = m_browser->AppendItem(nodeRoot, "Script", scr_img, scr_img, new TreeNodeData());
-    wxTreeItemId nodeAsm = m_browser->AppendItem(nodeRoot, "Assembly", asm_img, asm_img, new TreeNodeData());
     wxTreeItemId nodeData = m_browser->AppendItem(nodeRoot, "Data", data_img, data_img, new TreeNodeData());
-    wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
+    wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
     wxTreeItemId nodeG = m_browser->AppendItem(nodeRoot, "Graphics", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGF = m_browser->AppendItem(nodeG, "Fonts", fonts_img, fonts_img, new TreeNodeData());
     wxTreeItemId nodeGU = m_browser->AppendItem(nodeG, "User Interface", ts_img, ts_img, new TreeNodeData());
@@ -395,13 +395,14 @@ void MainFrame::InitUI()
     wxTreeItemId nodeGSe = m_browser->AppendItem(nodeG, "Sega Logo", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGC = m_browser->AppendItem(nodeG, "Climax Logo", img_img, img_img, new TreeNodeData());
     wxTreeItemId nodeGLo = m_browser->AppendItem(nodeG, "Load Game", img_img, img_img, new TreeNodeData());
+    wxTreeItemId nodeTs = m_browser->AppendItem(nodeRoot, "Tilesets", ts_img, ts_img, new TreeNodeData());
     wxTreeItemId nodeBs = m_browser->AppendItem(nodeRoot, "Blocksets", bs_img, bs_img, new TreeNodeData());
-    wxTreeItemId nodeP = m_browser->AppendItem(nodeRoot, "Palettes", pal_img, pal_img, new TreeNodeData());
-    wxTreeItemId nodeAudio = m_browser->AppendItem(nodeRoot, "Audio", sound_img, sound_img, new TreeNodeData());
     const auto nodeRooms = InsertNavItem(L"Rooms", rm_img);
-    // A single leaf that opens the entity editor; -1 tells it to keep its current selection.
     InsertNavItem(L"Entities", ent_img, TreeNodeData::Node::ENTITY, -1);
     const auto nodeSprites = InsertNavItem(L"Sprites", spr_img);
+    wxTreeItemId nodeAudio = m_browser->AppendItem(nodeRoot, "Audio", sound_img, sound_img, new TreeNodeData());
+    wxTreeItemId nodeAsm = m_browser->AppendItem(nodeRoot, "Assembly", asm_img, asm_img, new TreeNodeData());
+    // A single leaf that opens the entity editor; -1 tells it to keep its current selection.
 
     // InsertNavItem resolves a path by walking the tree, scanning every sibling with a
     // GetItemText call to see whether the entry already exists and again to find where it
@@ -512,12 +513,12 @@ void MainFrame::InitUI()
     m_browser->AppendItem(nodeData, "Friday Animations", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::FRIDAY_ANIMATION));
     m_browser->AppendItem(nodeData, "Damage Constants", dtable_img, dtable_img, new TreeNodeData(TreeNodeData::Node::DAMAGE_CONSTANTS));
 
-    m_browser->AppendItem(nodeAudio, "Samples", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_SAMPLES));
-    m_browser->AppendItem(nodeAudio, "Bank Mapping", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_BANK_MAPPING));
-    m_browser->AppendItem(nodeAudio, "YM Instruments", music_img, music_img, new TreeNodeData(TreeNodeData::Node::YM_INSTRUMENTS));
-    m_browser->AppendItem(nodeAudio, "Instrument Parameters", music_img, music_img, new TreeNodeData(TreeNodeData::Node::INSTRUMENT_PARAMS));
     const auto nodeMusic = InsertNavItem(L"Audio/Music", music_img);
     const auto nodeSfx = InsertNavItem(L"Audio/SFX", music_img);
+    m_browser->AppendItem(nodeAudio, "Samples", sound_img, sound_img, new TreeNodeData(TreeNodeData::Node::AUDIO_SAMPLES));
+    m_browser->AppendItem(nodeAudio, "Bank Mapping", music_img, music_img, new TreeNodeData(TreeNodeData::Node::AUDIO_BANK_MAPPING));
+    m_browser->AppendItem(nodeAudio, "YM Instruments", kbd_img, kbd_img, new TreeNodeData(TreeNodeData::Node::YM_INSTRUMENTS));
+    m_browser->AppendItem(nodeAudio, "Instrument Parameters", mixer_img, mixer_img, new TreeNodeData(TreeNodeData::Node::INSTRUMENT_PARAMS));
 
     m_browser->AppendItem(nodeS, "Compressed Strings", str_img, str_img, new TreeNodeData(TreeNodeData::Node::STRING,
         static_cast<int>(Landstalker::StringData::Type::MAIN)));
