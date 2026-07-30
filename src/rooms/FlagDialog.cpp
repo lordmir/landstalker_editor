@@ -31,15 +31,22 @@ FlagDialog::FlagDialog(wxWindow* parent, ImageList* imglst, uint16_t room, std::
 
     szr1->Add(m_tabs, 1, wxALL | wxEXPAND, 5);
 
-    AddPage(Landstalker::FlagType::ROOM_TRANSITION, "Room Transitions", new RoomTransitionFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
-    AddPage(Landstalker::FlagType::ENTITY_VISIBILITY, "Entity Visibility", new EntityVisibilityFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
-    AddPage(Landstalker::FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", new OneTimeEventFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
-    AddPage(Landstalker::FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", new RoomClearFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
-    AddPage(Landstalker::FlagType::LOCKED_DOOR, "Locked Door (Entity)", new LockedDoorFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
-    AddPage(Landstalker::FlagType::PERMANENT_SWITCH, "Permanent Switches", new PermanentSwitchFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    // PageProperties third arg = rearrange_enabled (the up/down reorder buttons). Only enable it
+    // where the on-disk order is semantically significant. Room transitions are resolved by first
+    // match while the game scans the table in order, so their order matters (and the editor now
+    // preserves it - see WarpList::GetTransitionBytes). Every other flag list here is applied
+    // all-match (the game scans the whole table and acts on every entry matching the current room -
+    // CheckSpriteVisibleFlags / CheckForGraphicSwapFlags) or is a keyed per-room lookup, so
+    // reordering has no effect and the buttons would only mislead.
+    AddPage(Landstalker::FlagType::ROOM_TRANSITION, "Room Transitions", new RoomTransitionFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(Landstalker::FlagType::ENTITY_VISIBILITY, "Entity Visibility", new EntityVisibilityFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(Landstalker::FlagType::ONE_TIME_ENTITY_VISIBILITY, "One Time Entity Visibility", new OneTimeEventFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(Landstalker::FlagType::HIDE_MULTIPLE_ENTITIES, "Multiple Entity Visibility", new RoomClearFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(Landstalker::FlagType::LOCKED_DOOR, "Locked Door (Entity)", new LockedDoorFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(Landstalker::FlagType::PERMANENT_SWITCH, "Permanent Switches", new PermanentSwitchFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
     AddPage(Landstalker::FlagType::SACRED_TREE, "Sacred Trees", new SacredTreeFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
-    AddPage(Landstalker::FlagType::TILESWAP, "Tile Swap Flags", new TileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
-    AddPage(Landstalker::FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, true));
+    AddPage(Landstalker::FlagType::TILESWAP, "Tile Swap Flags", new TileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
+    AddPage(Landstalker::FlagType::LOCKED_DOOR_TILESWAP, "Locked Door (Tile Swap)", new LockedDoorTileSwapFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
     AddPage(Landstalker::FlagType::TREE_WARP, "Tree Warp Flag", new TreeWarpFlagViewModel(m_roomnum, m_gd), PageProperties(true, true, false));
     m_tabs->GetListView()->SetColumnWidth(0, 150);
 
