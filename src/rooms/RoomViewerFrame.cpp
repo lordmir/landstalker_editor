@@ -31,6 +31,8 @@ enum MENU_IDS
 	ID_FILE_IMPORT_TMX,
 	ID_FILE_IMPORT_ALL_TMX,
 	ID_EDIT,
+	ID_EDIT_UNDO,
+	ID_EDIT_REDO,
 	ID_EDIT_ENTITY_PROPERTIES,
 	ID_EDIT_FLAGS,
 	ID_EDIT_CHESTS,
@@ -70,6 +72,8 @@ enum TOOL_IDS
 	TOOL_SHOW_TILESWAPS,
 	TOOL_SHOW_SELECTION_PROPERTIES,
 	TOOL_SHOW_ERRORS,
+	TOOL_UNDO,
+	TOOL_REDO,
 	HM_INSERT_ROW_BEFORE,
 	HM_INSERT_ROW_AFTER,
 	HM_DELETE_ROW,
@@ -698,6 +702,19 @@ bool RoomViewerFrame::ImportCsv(const std::array<std::string, 3>& paths)
 
 bool RoomViewerFrame::HandleKeyDown(unsigned int key, unsigned int modifiers)
 {
+	if ((modifiers & wxMOD_CONTROL) > 0)
+	{
+		if (key == 'z' || key == 'Z')
+		{
+			Undo();
+			return true;
+		}
+		else if (key == 'y' || key == 'Y')
+		{
+			Redo();
+			return true;
+		}
+	}
 	if (m_mode == RoomEdit::Mode::NORMAL && m_roomview != nullptr)
 	{
 		return m_roomview->HandleKeyDown(key, modifiers);
@@ -782,6 +799,66 @@ void RoomViewerFrame::ShowErrorDialog()
 {
 	RoomErrorDialog dlg(this, m_roomview->GetErrors());
 	dlg.ShowModal();
+}
+
+void RoomViewerFrame::Undo()
+{
+	if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		m_fgedit->Undo();
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		m_bgedit->Undo();
+	}
+	if (m_roomview)
+	{
+		m_roomview->RefreshLayers();
+	}
+	UpdateUI();
+}
+
+void RoomViewerFrame::Redo()
+{
+	if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		m_fgedit->Redo();
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		m_bgedit->Redo();
+	}
+	if (m_roomview)
+	{
+		m_roomview->RefreshLayers();
+	}
+	UpdateUI();
+}
+
+bool RoomViewerFrame::CanUndo() const
+{
+	if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		return m_fgedit->CanUndo();
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		return m_bgedit->CanUndo();
+	}
+	return false;
+}
+
+bool RoomViewerFrame::CanRedo() const
+{
+	if (m_mode == RoomEdit::Mode::FOREGROUND && m_fgedit != nullptr)
+	{
+		return m_fgedit->CanRedo();
+	}
+	else if (m_mode == RoomEdit::Mode::BACKGROUND && m_bgedit != nullptr)
+	{
+		return m_bgedit->CanRedo();
+	}
+	return false;
 }
 
 void RoomViewerFrame::InitStatusBar(wxStatusBar& status) const
@@ -1364,11 +1441,13 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	AddMenuItem(fileMenu, 12, ID_FILE_IMPORT_ALL_TMX, "Import All Maps from Tiled TMX...");
 
 	auto& editMenu = AddMenu(menu, 1, ID_EDIT, "Edit");
-	AddMenuItem(editMenu, 0, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
-	AddMenuItem(editMenu, 1, ID_EDIT_FLAGS, "Flags...");
-	AddMenuItem(editMenu, 2, ID_EDIT_CHESTS, "Chests...");
-	AddMenuItem(editMenu, 3, ID_EDIT_DIALOGUE, "Dialogue...");
-	AddMenuItem(editMenu, 4, ID_EDIT_TILESWAPS, "Tile Swaps...");
+	AddMenuItem(editMenu, 0, ID_EDIT_UNDO, "Undo\tCtrl+Z");
+	AddMenuItem(editMenu, 1, ID_EDIT_REDO, "Redo\tCtrl+Y");
+	AddMenuItem(editMenu, 2, ID_EDIT_ENTITY_PROPERTIES, "Selection Properties...");
+	AddMenuItem(editMenu, 3, ID_EDIT_FLAGS, "Flags...");
+	AddMenuItem(editMenu, 4, ID_EDIT_CHESTS, "Chests...");
+	AddMenuItem(editMenu, 5, ID_EDIT_DIALOGUE, "Dialogue...");
+	AddMenuItem(editMenu, 6, ID_EDIT_TILESWAPS, "Tile Swaps...");
 
 	auto& viewMenu = AddMenu(menu, 2, ID_VIEW, "View");
 	AddMenuItem(viewMenu, 0, ID_VIEW_ALPHA, "Toggle Alpha", wxITEM_CHECK);
@@ -1399,6 +1478,9 @@ void RoomViewerFrame::InitMenu(wxMenuBar& menu, ImageList& ilist) const
 	main_tb->AddTool(TOOL_SHOW_DIALOGUE, "Dialogue", ilist.GetImage("dialogue"), "Dialogue Editor");
 	main_tb->AddTool(TOOL_SHOW_TILESWAPS, "Tile Swaps", ilist.GetImage("swap"), "Tile Swap Editor");
 	main_tb->AddTool(TOOL_SHOW_SELECTION_PROPERTIES, "Selection Properties", ilist.GetImage("properties"), "Selection Properties");
+	main_tb->AddSeparator();
+	main_tb->AddTool(TOOL_UNDO, "Undo", ilist.GetImage("undo"), "Undo");
+	main_tb->AddTool(TOOL_REDO, "Redo", ilist.GetImage("redo"), "Redo");
 	main_tb->AddSeparator();
 	main_tb->AddTool(TOOL_SHOW_LAYERS_PANE, "Layers Pane", ilist.GetImage("layers"), "Layers Pane", wxITEM_CHECK);
 	main_tb->AddTool(TOOL_SHOW_ENTITIES_PANE, "Entities Pane", ilist.GetImage("epanel"), "Entities Pane", wxITEM_CHECK);
@@ -1583,6 +1665,14 @@ void RoomViewerFrame::OnMenuClick(wxMenuEvent& evt)
 		case ID_TOOLS_BLOCKS:
 		case TOOL_SHOW_BLOCKS_PANE:
 			SetPaneVisibility(m_blkctrl, !IsPaneVisible(m_blkctrl));
+			break;
+		case ID_EDIT_UNDO:
+		case TOOL_UNDO:
+			Undo();
+			break;
+		case ID_EDIT_REDO:
+		case TOOL_REDO:
+			Redo();
 			break;
 		case ID_EDIT_ENTITY_PROPERTIES:
 		case TOOL_SHOW_SELECTION_PROPERTIES:
@@ -1975,6 +2065,11 @@ void RoomViewerFrame::UpdateUI() const
 	EnableToolbarItem("Main", TOOL_SHOW_BLOCKS_PANE, true);
 	CheckMenuItem(ID_TOOLS_BLOCKS, IsPaneVisible(m_blkctrl));
 	CheckToolbarItem("Main", TOOL_SHOW_BLOCKS_PANE, IsPaneVisible(m_blkctrl));
+
+	EnableMenuItem(ID_EDIT_UNDO, CanUndo());
+	EnableMenuItem(ID_EDIT_REDO, CanRedo());
+	EnableToolbarItem("Main", TOOL_UNDO, CanUndo());
+	EnableToolbarItem("Main", TOOL_REDO, CanRedo());
 
 	if (m_mode == RoomEdit::Mode::NORMAL)
 	{
@@ -2594,6 +2689,7 @@ void RoomViewerFrame::OnMapUpdate(wxCommandEvent& evt)
 	{
 		m_fgedit->RefreshGraphics();
 	}
+	UpdateUI();
 	evt.Skip();
 }
 

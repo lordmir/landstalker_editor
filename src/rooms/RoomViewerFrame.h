@@ -65,6 +65,11 @@ public:
 	void ShowCharDialog();
 	void ShowTileswapDialog(bool force = false, TileSwapDialog::PageType type = TileSwapDialog::PageType::SWAPS, int row = -1);
 	void ShowErrorDialog();
+
+	void Undo();
+	void Redo();
+	bool CanUndo() const;
+	bool CanRedo() const;
 private:
 	virtual void InitStatusBar(wxStatusBar& status) const;
 	virtual void UpdateStatusBar(wxStatusBar& status, wxCommandEvent& evt) const;

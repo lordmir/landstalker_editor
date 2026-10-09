@@ -90,6 +90,8 @@ void Map3DEditor::SetRoomNum(uint16_t roomnum)
         {
             SetSelectedSwap(-1);
             m_roomnum = roomnum;
+            m_undo.clear();
+            m_redo.clear();
         }
         else
         {
@@ -309,9 +311,53 @@ void Map3DEditor::DeleteSelectedDoor()
 
 void Map3DEditor::RefreshGraphics()
 {
-    UpdateScroll();
-    ForceRedraw();
+	UpdateScroll();
+	ForceRedraw();
 }
+
+void Map3DEditor::RefreshFromMap()
+{
+	if (m_map != nullptr && m_map_disp != nullptr)
+	{
+		*m_map_disp = *m_map;
+	}
+	RefreshGraphics();
+}
+
+void Map3DEditor::Undo()
+{
+	if (m_map != nullptr && !m_undo.empty())
+	{
+		const auto& p = m_undo.back();
+		m_map->SetBlock({ p.old_block, {p.x, p.y} }, m_layer);
+		m_redo.push_back(p);
+		m_undo.pop_back();
+		RefreshFromMap();
+	}
+}
+
+void Map3DEditor::Redo()
+{
+	if (m_map != nullptr && !m_redo.empty())
+	{
+		const auto& p = m_redo.back();
+		m_map->SetBlock({ p.new_block, {p.x, p.y} }, m_layer);
+		m_undo.push_back(p);
+		m_redo.pop_back();
+		RefreshFromMap();
+	}
+}
+
+bool Map3DEditor::CanUndo() const
+{
+	return !m_undo.empty();
+}
+
+bool Map3DEditor::CanRedo() const
+{
+	return !m_redo.empty();
+}
+
 
 void Map3DEditor::UpdateSwaps()
 {
@@ -915,6 +961,10 @@ void Map3DEditor::SetHoveredTile()
 {
     if (m_hovered.first != -1)
     {
+        m_undo.push_back({ m_hovered.first, m_hovered.second,
+                           m_map->GetBlock({ m_hovered.first, m_hovered.second }, m_layer),
+                           static_cast<uint16_t>(m_selected_block) });
+        m_redo.clear();
         m_map->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
         m_map_disp->SetBlock({ static_cast<uint16_t>(m_selected_block), {m_hovered.first, m_hovered.second} }, m_layer);
         FireMapEvent(EVT_MAPLAYER_UPDATE);

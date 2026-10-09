@@ -29,6 +29,14 @@ public:
 	};
 	using Coord = std::pair<int, int>;
 
+	struct TilePlacement
+	{
+		int x;
+		int y;
+		uint16_t old_block;
+		uint16_t new_block;
+	};
+
 	Map3DEditor(wxWindow* parent, RoomViewerFrame* frame, Landstalker::Tilemap3D::Layer layer);
 	virtual ~Map3DEditor();
 
@@ -67,8 +75,14 @@ public:
 	void DeleteSelectedDoor();
 
 	void RefreshGraphics();
+	void RefreshFromMap();
 	void UpdateSwaps();
 	void UpdateDoors();
+
+	void Undo();
+	void Redo();
+	bool CanUndo() const;
+	bool CanRedo() const;
 
 	bool HandleKeyDown(unsigned int key, unsigned int modifiers);
 	bool HandleDrawKeyDown(unsigned int key, unsigned int modifiers);
@@ -177,6 +191,9 @@ private:
 	std::vector<Landstalker::TileSwap> m_preview_swaps;
 
 	std::array<bool, 4> m_mousebtnstate;
+
+	std::vector<TilePlacement> m_undo;
+	std::vector<TilePlacement> m_redo;
 
 	bool m_show_blocknums;
 	bool m_show_borders;
